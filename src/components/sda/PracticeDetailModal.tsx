@@ -8,6 +8,7 @@ import { Building2, PoundSterling, Sun, Snowflake, SlidersHorizontal, Users } fr
 import { SystmOneIcon } from "@/components/icons/SystmOneIcon";
 import { EmisIcon } from "@/components/icons/EmisIcon";
 import { PracticeKey } from "@/hooks/useEstatesConfig";
+import { getRecruitmentDataForPractice, calculatePracticeTotals, statusConfig, type StaffMember } from "@/data/nresRecruitmentData";
 
 interface PracticeData {
   practice: string;
@@ -40,6 +41,133 @@ interface PracticeDetailModalProps {
   activeSplit: number;
   viewMode: "sessions" | "appointments";
 }
+
+const RecruitmentStatusSection = ({ practiceKey }: { practiceKey: PracticeKey }) => {
+  const recruitmentData = getRecruitmentDataForPractice(practiceKey);
+  if (!recruitmentData) return null;
+
+  const totals = calculatePracticeTotals(recruitmentData);
+  const allStaff = [
+    ...recruitmentData.workforce.gp.map(s => ({ ...s, roleType: 'GP' as const })),
+    ...recruitmentData.workforce.acp.map(s => ({ ...s, roleType: 'ACP/ANP' as const })),
+    ...recruitmentData.workforce.buyBack.map(s => ({ ...s, roleType: 'Buy-Back' as const })),
+  ];
+
+  const filledPct = totals.required > 0 ? Math.min((totals.totalFilled / totals.required) * 100, 100) : 0;
+  const pipelinePct = totals.required > 0 ? Math.min((totals.totalPipeline / totals.required) * 100, 100 - filledPct) : 0;
+  const outstandingPct = totals.required > 0 ? Math.min((totals.totalOutstanding / totals.required) * 100, 100 - filledPct - pipelinePct) : 0;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <Users className="w-4 h-4 text-[#003087]" />
+        <h3 className="font-semibold text-[#003087] text-sm">Recruitment Status</h3>
+      </div>
+
+      {/* Summary stats */}
+      <div className="grid grid-cols-3 gap-3 mb-3">
+        <div className="bg-green-50 rounded-lg p-3 border border-green-200 text-center">
+          <p className="text-xs text-green-600 mb-0.5">Filled</p>
+          <p className="text-xl font-bold text-green-700">{totals.totalFilled}</p>
+          <p className="text-[10px] text-green-500">{totals.filledPercent}% of {totals.required}</p>
+        </div>
+        <div className="bg-amber-50 rounded-lg p-3 border border-amber-200 text-center">
+          <p className="text-xs text-amber-600 mb-0.5">Pipeline</p>
+          <p className="text-xl font-bold text-amber-700">{totals.totalPipeline}</p>
+          <p className="text-[10px] text-amber-500">{totals.pipelinePercent}% TBC/Potential</p>
+        </div>
+        <div className="bg-red-50 rounded-lg p-3 border border-red-200 text-center">
+          <p className="text-xs text-red-600 mb-0.5">Outstanding</p>
+          <p className="text-xl font-bold text-red-700">{totals.totalOutstanding}</p>
+          <p className="text-[10px] text-red-500">{totals.outstandingPercent}% recruiting</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-4">
+        <div className="h-5 bg-gray-200 rounded-full overflow-hidden flex">
+          {filledPct > 0 && (
+            <div className="bg-green-500 h-full flex items-center justify-center text-[10px] text-white font-medium" style={{ width: `${filledPct}%` }}>
+              {filledPct >= 12 && `${Math.round(filledPct)}%`}
+            </div>
+          )}
+          {pipelinePct > 0 && (
+            <div className="bg-amber-400 h-full flex items-center justify-center text-[10px] text-amber-900 font-medium" style={{ width: `${pipelinePct}%` }}>
+              {pipelinePct >= 12 && `${Math.round(pipelinePct)}%`}
+            </div>
+          )}
+          {outstandingPct > 0 && (
+            <div className="bg-red-400 h-full flex items-center justify-center text-[10px] text-white font-medium" style={{ width: `${outstandingPct}%` }}>
+              {outstandingPct >= 12 && `${Math.round(outstandingPct)}%`}
+            </div>
+          )}
+        </div>
+        <div className="flex justify-between text-[10px] mt-1 text-slate-500">
+          <span>{totals.totalPlanned} / {totals.required} sessions planned</span>
+          <span>{totals.required - totals.totalPlanned > 0 ? `${totals.required - totals.totalPlanned} gap` : '✓ Covered'}</span>
+        </div>
+      </div>
+
+      {/* Staff detail grouped by role */}
+      <div className="space-y-3">
+        {recruitmentData.workforce.gp.length > 0 && (
+          <div>
+            <h4 className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+              <span className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-[10px] font-bold">GP</span>
+              GP ({totals.byType.gp} sessions)
+            </h4>
+            {recruitmentData.workforce.gp.map((staff, i) => (
+              <StaffRowCompact key={i} staff={staff} />
+            ))}
+          </div>
+        )}
+        {recruitmentData.workforce.acp.length > 0 && (
+          <div>
+            <h4 className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+              <span className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-[10px] font-bold">ACP</span>
+              ACP/ANP ({totals.byType.acp} sessions)
+            </h4>
+            {recruitmentData.workforce.acp.map((staff, i) => (
+              <StaffRowCompact key={i} staff={staff} />
+            ))}
+          </div>
+        )}
+        {recruitmentData.workforce.buyBack.length > 0 && (
+          <div>
+            <h4 className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+              <span className="w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-[10px] font-bold">BB</span>
+              Buy-Back ({totals.byType.buyBack} sessions)
+            </h4>
+            {recruitmentData.workforce.buyBack.map((staff, i) => (
+              <StaffRowCompact key={i} staff={staff} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const StaffRowCompact = ({ staff }: { staff: StaffMember }) => {
+  const config = statusConfig[staff.status];
+  return (
+    <div className={`flex items-center justify-between p-2 rounded-lg ${config.bgLight} ${config.border} border mb-1.5 text-sm`}>
+      <div className="flex items-center gap-2">
+        <div className={`w-7 h-7 rounded-full ${config.color} flex items-center justify-center text-white font-bold text-xs`}>
+          {staff.sessions}
+        </div>
+        <div>
+          <div className="font-medium text-slate-900 text-xs">{staff.name}</div>
+          {staff.notes && <div className="text-[10px] text-slate-500">{staff.notes}</div>}
+        </div>
+      </div>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${config.bgLight} ${config.textColor} ${config.border} border`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${config.color} mr-1`}></span>
+        {config.label}
+      </span>
+    </div>
+  );
+};
 
 export const PracticeDetailModal = ({
   open,
@@ -357,6 +485,11 @@ export const PracticeDetailModal = ({
             </p>
           </div>
         </div>
+
+        <Separator />
+
+        {/* Recruitment Status Section */}
+        <RecruitmentStatusSection practiceKey={practice.key} />
 
         {practice.note && (
           <>
