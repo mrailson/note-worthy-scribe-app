@@ -6,6 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/nres-logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
+import SNVBLogo from "@/assets/snvb-logo.png";
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
 import { actionLogData, actionLogMetadata } from "@/data/nresBoardActionsData";
@@ -331,16 +332,21 @@ export const SDAExecutiveSummary = () => {
                 </Card>
 
                 <div className="flex flex-col gap-4 h-full">
-                  <div className="flex justify-center items-center gap-4">
+                  <div className="flex justify-center items-center gap-6">
                     <img 
                       src={NRESLogo} 
                       alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
-                      className="h-28 w-auto object-contain"
+                      className="h-16 w-auto object-contain"
                     />
                     <img 
                       src={DocMedLogo} 
                       alt="DocMed Northamptonshire - PML" 
-                      className="h-20 w-auto object-contain"
+                      className="h-16 w-auto object-contain"
+                    />
+                    <img 
+                      src={SNVBLogo} 
+                      alt="SNVB - Supporting Voluntary Activity" 
+                      className="h-16 w-auto object-contain"
                     />
                   </div>
                   <div className="flex-1" />
