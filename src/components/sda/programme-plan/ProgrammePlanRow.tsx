@@ -3,6 +3,12 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, Pencil, Trash2, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Excel-matched section colours
 const sectionColorMap: Record<string, { bg: string; text: string }> = {
@@ -105,7 +111,19 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
       )}
       
       <div className="flex-1 min-w-0 pr-1">
-        <div className={cn("truncate", fontClass)}>{name}</div>
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={cn("truncate", fontClass)}>{name}</div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs text-xs">
+              <p>{name}</p>
+              {assignedTo && level === "task" && (
+                <p className="text-muted-foreground mt-0.5">{assignedTo}</p>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         {assignedTo && level === "task" && (
           <div className="text-[10px] text-muted-foreground truncate">
             {assignedTo}
