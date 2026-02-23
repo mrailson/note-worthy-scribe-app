@@ -62,7 +62,7 @@ const RecruitmentStatusSection = ({ practiceKey }: { practiceKey: PracticeKey })
     <div>
       <div className="flex items-center gap-2 mb-3">
         <Users className="w-4 h-4 text-[#003087]" />
-        <h3 className="font-semibold text-[#003087] text-sm">Recruitment Status</h3>
+        <h3 className="font-semibold text-[#003087] text-sm">Recruitment Status <span className="font-normal text-slate-400 text-xs">as at 23rd February 2026</span></h3>
       </div>
 
       {/* Summary stats */}
