@@ -115,11 +115,10 @@ export const practices: RecruitmentPractice[] = [
     workforce: {
       gp: [
         { name: 'Dr Gareth Griffiths', sessions: 6, status: 'tbc', type: 'New Recruit', notes: 'Expected to join - TBC' },
-        { name: 'New GP 2', sessions: 6, status: 'tbc', type: 'New Recruit', notes: 'Expected to join - TBC' },
-        { name: 'GP Vacancy', sessions: 4, status: 'outstanding', type: 'New Recruit', notes: 'Recruiting up to 4 further sessions' }
+        { name: 'New GP 2', sessions: 6, status: 'tbc', type: 'New Recruit', notes: 'Expected to join - TBC' }
       ],
       acp: [
-        { name: 'ACP/ANP (Balance)', sessions: 0, status: 'tbc', type: 'New Recruit', notes: 'Balance will be ACP/ANP - TBC' }
+        { name: 'ACP/ANP (Balance)', sessions: 4, status: 'outstanding', type: 'New Recruit', notes: 'Recruiting up to 4 ACP/ANP sessions' }
       ],
       buyBack: []
     }
