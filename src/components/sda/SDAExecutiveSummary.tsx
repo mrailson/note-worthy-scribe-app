@@ -362,9 +362,9 @@ export const SDAExecutiveSummary = () => {
                       if (day !== 0 && day !== 6) count++;
                     }
                     return (
-                      <div className="text-center py-2">
-                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Working Days to Go-Live</p>
+                      <div className="flex items-center justify-center gap-3 py-2">
                         <p className="text-4xl font-bold text-[#005EB8]">{count}</p>
+                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Working Days<br />to Go-Live</p>
                       </div>
                     );
                   })()}
