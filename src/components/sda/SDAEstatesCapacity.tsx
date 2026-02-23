@@ -750,45 +750,59 @@ export const SDAEstatesCapacity = () => {
             );
           })}
           
-          {/* Remote Sessions Balance Box */}
+          {/* Neighbourhood Totals Box */}
           {(() => {
             const totalOnsiteSessions = practiceSummaryWithSessions.reduce((sum, p) => sum + p.totalSessions, 0);
-            const totalRequired = Math.round(currentCapacity.sessionsPerWeek);
+            const totalRequired = currentCapacity.sessionsPerWeek;
             const remoteBalance = Math.max(0, totalRequired - totalOnsiteSessions);
-            const remoteBalanceAppts = remoteBalance * 12;
+            const multiplierVal = viewMode === "appointments" ? 12 : 1;
+            const unitLabel = viewMode === "appointments" ? "appts/week" : "sessions/week";
             
             return (
-              <div className="rounded-xl p-4 border bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+              <div className="rounded-xl p-4 border bg-gradient-to-br from-slate-100 to-blue-50 border-blue-300">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h4 className="font-semibold text-indigo-900">Remote Sessions</h4>
-                    <p className="text-xs text-indigo-600 mt-0.5">
-                      Balance after on-site capacity
+                    <h4 className="font-semibold text-slate-900">Neighbourhood Total</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      All practices combined
                     </p>
                   </div>
                   <Badge 
                     variant="outline" 
-                    className="bg-indigo-100 text-indigo-700 border-indigo-300"
+                    className="bg-blue-100 text-blue-700 border-blue-300"
                   >
-                    REMOTE
+                    TOTAL
                   </Badge>
                 </div>
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-2xl font-bold text-indigo-900">
-                      {viewMode === "appointments" ? remoteBalanceAppts : remoteBalance}
-                    </p>
-                    <p className="text-xs text-indigo-600">
-                      {viewMode === "appointments" ? "appts/week (remote)" : "sessions/week (remote)"}
-                    </p>
+
+                {/* Total Required */}
+                <div className="mb-3 pb-2 border-b border-slate-200">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Required</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {(totalRequired * multiplierVal).toFixed(1)}
+                  </p>
+                  <p className="text-xs text-slate-500">{unitLabel}</p>
+                </div>
+
+                {/* F2F / Remote split */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
+                    <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
+                    <p className="text-lg font-bold text-green-900">{totalOnsiteSessions * multiplierVal}</p>
+                    <p className="text-[10px] text-green-600">{unitLabel}</p>
                   </div>
-                  <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-600 border-indigo-200">
-                    {season === "winter" ? "Winter" : "Non-Winter"}
+                  <div className="bg-indigo-50 rounded-lg p-2 text-center border border-indigo-200">
+                    <p className="text-xs font-medium text-indigo-700">Remote</p>
+                    <p className="text-lg font-bold text-indigo-900">{(remoteBalance * multiplierVal).toFixed(1)}</p>
+                    <p className="text-[10px] text-indigo-600">{unitLabel}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-2">
+                  <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
+                    {season === "winter" ? "Winter" : season === "total" ? "Full Year" : "Non-Winter"}
                   </Badge>
                 </div>
-                <p className="text-xs text-indigo-500 mt-2 italic">
-                  {totalRequired} required − {totalOnsiteSessions} on-site = {remoteBalance} remote
-                </p>
               </div>
             );
           })()}
