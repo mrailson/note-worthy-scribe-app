@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -9,19 +9,32 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet, MessageSquare } from "lucide-react";
+import { ChevronUp, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet, MessageSquare, Plus, Pencil, Trash2, ClipboardList } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import * as XLSX from "xlsx-js-style";
 import { ActionLogItem } from "@/data/nresBoardActionsData";
 import { PPGUpdateModal } from "./board-actions/PPGUpdateModal";
+import { ActionLogEditDialog } from "./ActionLogEditDialog";
+import { ActionLogAuditDialog, ActionAuditEntry } from "./ActionLogAuditDialog";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Owner lookup with full name and job title
 const ownerDetails: Record<string, { name: string; title: string }> = {
@@ -83,10 +96,93 @@ const parseDate = (dateStr: string): Date => {
   return new Date(year, month - 1, day);
 };
 
-export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
+export const ActionLogTable = ({ actions: initialActions, metadata }: ActionLogTableProps) => {
+  const { user } = useAuth();
+  const [actions, setActions] = useState<ActionLogItem[]>(initialActions);
   const [sort, setSort] = useState<SortState>({ field: null, direction: null });
   const [showOpenOnly, setShowOpenOnly] = useState(true);
   const [ppgModalOpen, setPpgModalOpen] = useState(false);
+
+  // CRUD state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<ActionLogItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ActionLogItem | null>(null);
+
+  // Audit state
+  const [auditEntries, setAuditEntries] = useState<ActionAuditEntry[]>([]);
+  const [auditDialogOpen, setAuditDialogOpen] = useState(false);
+
+  const userEmail = user?.email ?? "unknown";
+
+  const getNextId = useCallback(() => {
+    const maxId = actions.reduce((max, a) => Math.max(max, parseInt(a.actionId, 10) || 0), 0);
+    return String(maxId + 1).padStart(3, "0");
+  }, [actions]);
+
+  const addAuditEntry = useCallback(
+    (action: ActionAuditEntry["action"], itemName: string, field?: string, oldValue?: string, newValue?: string) => {
+      setAuditEntries((prev) => [
+        {
+          id: crypto.randomUUID(),
+          timestamp: new Date(),
+          userEmail,
+          action,
+          itemName,
+          field,
+          oldValue,
+          newValue,
+        },
+        ...prev,
+      ]);
+    },
+    [userEmail]
+  );
+
+  // Handlers
+  const handleAdd = () => {
+    setEditingItem(null);
+    setEditDialogOpen(true);
+  };
+
+  const handleEdit = (item: ActionLogItem) => {
+    setEditingItem(item);
+    setEditDialogOpen(true);
+  };
+
+  const handleSave = (updated: ActionLogItem) => {
+    if (editingItem) {
+      // Edit — field-level diffs
+      const fields: { key: keyof ActionLogItem; label: string }[] = [
+        { key: "description", label: "Description" },
+        { key: "owner", label: "Owner" },
+        { key: "dateRaised", label: "Date Raised" },
+        { key: "dueDate", label: "Due Date" },
+        { key: "priority", label: "Priority" },
+        { key: "status", label: "Status" },
+        { key: "notes", label: "Notes" },
+      ];
+      const itemLabel = `${editingItem.actionId} – ${editingItem.description.slice(0, 30)}`;
+      fields.forEach(({ key, label }) => {
+        const oldVal = String(editingItem[key] ?? "");
+        const newVal = String(updated[key] ?? "");
+        if (oldVal !== newVal) {
+          addAuditEntry("Edited", itemLabel, label, oldVal || "—", newVal || "—");
+        }
+      });
+      setActions((prev) => prev.map((a) => (a.actionId === updated.actionId ? updated : a)));
+    } else {
+      // Add
+      addAuditEntry("Added", `${updated.actionId} – ${updated.description.slice(0, 30)}`);
+      setActions((prev) => [...prev, updated]);
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return;
+    addAuditEntry("Deleted", `${deleteTarget.actionId} – ${deleteTarget.description.slice(0, 30)}`);
+    setActions((prev) => prev.filter((a) => a.actionId !== deleteTarget.actionId));
+    setDeleteTarget(null);
+  };
 
   const handleSort = (field: SortField) => {
     setSort((prev) => {
@@ -250,18 +346,18 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
     
     // Merge cells for title and subtitle
     ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },  // Title merge
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },  // Subtitle merge
-      { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } },  // Last Updated merge
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } },
     ];
     
     // Set row heights
     ws['!rows'] = [
-      { hpt: 30 },  // Title row
-      { hpt: 22 },  // Subtitle row
-      { hpt: 18 },  // Last Updated row
-      { hpt: 15 },  // Spacer
-      { hpt: 25 },  // Header row
+      { hpt: 30 },
+      { hpt: 22 },
+      { hpt: 18 },
+      { hpt: 15 },
+      { hpt: 25 },
     ];
     
     const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
@@ -286,10 +382,8 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
         const cell = ws[`${col}${rowNum}`];
         if (cell) {
           if (col === 'F') {
-            // Priority column - colour coded
             cell.s = priorityStyles[action.priority] || cellStyle;
           } else if (col === 'G') {
-            // Status column - colour coded
             cell.s = statusStyles[action.status] || cellStyle;
           } else {
             cell.s = cellStyle;
@@ -320,6 +414,29 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
           </Label>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAdd}
+            className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add Action</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAuditDialogOpen(true)}
+            className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 relative"
+          >
+            <ClipboardList className="w-4 h-4" />
+            <span className="hidden sm:inline">Audit</span>
+            {auditEntries.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] rounded-full h-4 min-w-[16px] flex items-center justify-center px-1">
+                {auditEntries.length}
+              </span>
+            )}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -396,12 +513,13 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
               </div>
             </TableHead>
             <TableHead className="font-semibold text-slate-700 min-w-[150px]">Notes</TableHead>
+            <TableHead className="font-semibold text-slate-700 w-[70px]"></TableHead>
           </TableRow>
           </TableHeader>
           <TableBody>
             {filteredAndSortedActions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-slate-500 py-8">
+                <TableCell colSpan={9} className="text-center text-slate-500 py-8">
                   No open actions
                 </TableCell>
               </TableRow>
@@ -409,7 +527,7 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
               filteredAndSortedActions.map((action, index) => (
             <TableRow 
               key={action.actionId}
-              className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}
+              className={`group ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
             >
               <TableCell className="font-mono text-sm text-slate-600">{action.actionId}</TableCell>
               <TableCell className="text-sm text-slate-600 whitespace-nowrap">{action.dateRaised}</TableCell>
@@ -452,6 +570,16 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
                   )}
                 </div>
               </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(action)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(action)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </TableCell>
               </TableRow>
               ))
             )}
@@ -461,6 +589,40 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
 
       {/* PPG Update Modal */}
       <PPGUpdateModal open={ppgModalOpen} onOpenChange={setPpgModalOpen} />
+
+      {/* Edit / Add Dialog */}
+      <ActionLogEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        item={editingItem}
+        nextId={getNextId()}
+        onSave={handleSave}
+      />
+
+      {/* Audit Dialog */}
+      <ActionLogAuditDialog
+        open={auditDialogOpen}
+        onOpenChange={setAuditDialogOpen}
+        entries={auditEntries}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Action {deleteTarget?.actionId}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove "{deleteTarget?.description}" from the action log. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     </TooltipProvider>
   );
