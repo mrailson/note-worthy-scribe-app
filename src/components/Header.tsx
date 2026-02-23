@@ -315,8 +315,8 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   <LayoutDashboard className="h-4 w-4 mr-2" />
                                   SDA Pilot Dashboard
                                 </DropdownMenuItem>
-                                {/* Hide other NRES options for ICB members */}
-                                {!isIcbMember && (
+                                {/* Only show additional NRES options for system admins */}
+                                {isSystemAdmin && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem 
