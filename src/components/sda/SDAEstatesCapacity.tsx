@@ -31,12 +31,12 @@ const practiceSummary = [
     system: "SystmOne",
     key: "theParks" as PracticeKey,
   },
-  { practice: "Brackley MC", listSize: 16212, role: "HUB", system: "SystmOne", note: "Non-GMS rent required", key: "brackley" as PracticeKey },
+  { practice: "Brackley MC", listSize: 16212, role: "HUB", system: "SystmOne", key: "brackley" as PracticeKey },
   { practice: "Springfield", listSize: 12611, role: "SPOKE", system: "EMIS", key: "springfield" as PracticeKey },
   { practice: "Towcester MC", listSize: 11748, role: "SPOKE", system: "EMIS", key: "towcester" as PracticeKey },
   { practice: "Bugbrooke", listSize: 10788, role: "SPOKE", system: "SystmOne", key: "bugbrooke" as PracticeKey },
-  { practice: "Brook Health", listSize: 9069, role: "TBC", system: "SystmOne", note: "Awaiting NHFT meeting (15 Jan) - will report to board", key: "brook" as PracticeKey },
-  { practice: "Denton Village", listSize: 6329, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM", key: "denton" as PracticeKey },
+  { practice: "Brook Health", listSize: 9069, role: "TBC", system: "SystmOne", key: "brook" as PracticeKey },
+  { practice: "Denton Village", listSize: 6329, role: "SPOKE", system: "SystmOne", key: "denton" as PracticeKey },
 ];
 
 const totalListSize = practiceSummary.reduce((sum, p) => sum + p.listSize, 0);
@@ -746,8 +746,8 @@ export const SDAEstatesCapacity = () => {
                     {practice.system}
                   </Badge>
                 </div>
-                {practice.note && (
-                  <p className="text-xs text-amber-600 mt-1 italic">{practice.note}</p>
+                {'note' in practice && practice.note && (
+                  <p className="text-xs text-amber-600 mt-1 italic">{String(practice.note)}</p>
                 )}
               </div>
             );
