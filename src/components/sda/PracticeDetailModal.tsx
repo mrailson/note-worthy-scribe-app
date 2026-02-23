@@ -52,6 +52,7 @@ export const PracticeDetailModal = ({
   viewMode,
 }: PracticeDetailModalProps) => {
   const [gpPct, setGpPct] = useState(50);
+  const [capacitySeason, setCapacitySeason] = useState<"summer" | "winter">("summer");
   const acpPct = 100 - gpPct;
   const multiplier = viewMode === "appointments" ? 12 : 1;
   const unitLabel = viewMode === "appointments" ? "appointments" : "sessions";
@@ -75,7 +76,8 @@ export const PracticeDetailModal = ({
 
   // F2F from room matrix
   const f2fFromRooms = practice.totalSessions;
-  const remoteRequired = Math.max(0, nwTotal - f2fFromRooms);
+  const capacityTotal = capacitySeason === "winter" ? wTotal : nwTotal;
+  const remoteRequired = Math.max(0, capacityTotal - f2fFromRooms);
 
   // GP/ACP resource mix calculations
   const gpSessionCost = 11000 * 1.2938;
@@ -217,9 +219,25 @@ export const PracticeDetailModal = ({
 
         {/* Room-Based On-Site Capacity */}
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Building2 className="w-4 h-4 text-[#003087]" />
-            <h3 className="font-semibold text-[#003087] text-sm">On-Site Capacity (from Room Matrix)</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-[#003087]" />
+              <h3 className="font-semibold text-[#003087] text-sm">On-Site Capacity (from Room Matrix)</h3>
+            </div>
+            <div className="flex items-center gap-1 bg-[#F0F4F5] rounded-lg p-0.5">
+              <button
+                onClick={() => setCapacitySeason("summer")}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${capacitySeason === "summer" ? "bg-white text-[#003087] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              >
+                ☀️ Non-Winter
+              </button>
+              <button
+                onClick={() => setCapacitySeason("winter")}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${capacitySeason === "winter" ? "bg-white text-[#003087] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              >
+                ❄️ Winter
+              </button>
+            </div>
           </div>
           <div className="bg-[#F0F4F5] rounded-lg p-4">
             <div className="grid grid-cols-3 gap-4">
