@@ -1,67 +1,82 @@
 
 
-## Editable Programme Board Action Log with Audit Trail
+## Centralised Programme Board People Directory
 
 ### Overview
-Convert the static Programme Board Action Log into an interactive, editable table supporting add, edit, and delete operations on action items, with a full audit trail recording who changed what, when, and the before/after values.
+Create a single, shared people directory that serves as the source of truth for all programme board members and stakeholders. This directory will be used across the Action Log, Programme Delivery Schedule, and Risk Register, providing consistent owner/assignee dropdowns and a single place to add, edit, or remove people and their roles.
+
+### What You Will Get
+- A new **"People Directory"** data file containing all current board members, their initials, roles, and organisations (pre-populated from the Terms of Reference and existing data)
+- A **People Manager dialog** accessible from a shared icon button, allowing you to add, edit, and delete people in one place
+- **Owner/Assignee dropdowns** in the Action Log, Programme Delivery Schedule, and Risk Register edit dialogs that all pull from the same people list
+- Owner tooltips across all three tools showing full name and role on hover
+
+### People to Pre-populate (from ToR and existing data)
+
+| Initials | Name | Role | Organisation |
+|----------|------|------|-------------|
+| MJG | Maureen Green | Programme Director | PML |
+| MR | Malcolm Railson | Digital & Estates Lead | NRES |
+| AT | Amanda Taylor | Managerial Lead | NRES |
+| LH | Lucy Hibberd | Supporting Managerial Lead | NRES - Bugbrooke |
+| AW | Alex Whitehead | Supporting Digital & Estates Lead | NRES - The Parks |
+| DMG | Dr Mark Gray | SRO / Chair | PML |
+| DSE | Dr Simon Ellis | Clinical Lead | Towcester Medical Centre |
+| DMC | Dr Muhammed Chisti | Supporting Clinical Lead | The Parks |
 
 ### Changes Required
 
-#### 1. Convert static data to editable state (`ActionLogTable.tsx`)
-- Import `actionLogData` into a `useState` hook as the initial value
-- Accept optional `onDataChange` callback prop so parent components can react to changes
-- Add an "Add Action" button next to the existing Export button
-- Add Edit (pencil) and Delete (trash) icon buttons on each row, visible on hover
-- Delete shows a confirmation dialog before removal
+#### 1. New shared data file: `src/data/nresPeopleDirectory.ts`
+- Define a `ProgrammePerson` interface: `id`, `initials`, `name`, `role`, `organisation`, `isActive`
+- Export a default list pre-populated with the people above
+- Export helper functions: `getPersonByInitials()`, `getPersonLabel()` (returns "initials - full name")
 
-#### 2. Create Action Edit/Add Dialog (`ActionLogEditDialog.tsx`)
-- New component with a clean white-background modal (matching the programme plan edit dialog style with `px-8 sm:px-10` padding)
-- Fields:
-  - **Description** (text input, required)
-  - **Owner** (text input)
-  - **Date Raised** (date picker, DD/MM/YYYY format)
-  - **Due Date** (date picker, DD/MM/YYYY format)
-  - **Priority** (select: High / Medium / Low)
-  - **Status** (select: Open / Closed)
-  - **Notes** (textarea)
-- When adding, auto-generate the next Action ID (e.g. "009") based on the highest existing ID
-- When editing, pre-populate all fields with the current values
+#### 2. New shared component: `src/components/sda/PeopleDirectoryDialog.tsx`
+- A modal listing all people in a clean table
+- Add, Edit, and Delete people with fields: Name, Initials, Role, Organisation, Active toggle
+- Audit trail of people changes (added/edited/removed) with user email and timestamp
+- Accessible via a Users icon button that can be placed in any toolbar
 
-#### 3. Add Audit Log (`ActionLogAuditDialog.tsx`)
-- New component reusing the same audit log dialog pattern from `ProgrammeAuditLogDialog.tsx`
-- Each audit entry records:
-  - Timestamp (DD/MM/YY HH:mm format)
-  - User email (from `useAuth()`)
-  - Action type (Added / Edited / Deleted)
-  - Item name (Action ID + description snippet)
-  - Field changed (for edits)
-  - Old value and new value
-- Audit entries stored in React state within `ActionLogTable`
-- Accessible via a History/ClipboardList icon button in the controls row, with a count badge showing number of entries
-- For edits: granular field-level diffs (e.g. "Status: Open -> Closed", "Priority: Medium -> High")
-- For adds: single entry "Added action 009"
-- For deletes: single entry "Deleted action 005"
+#### 3. New shared component: `src/components/sda/PersonSelect.tsx`
+- A reusable `Select` dropdown showing all active people from the directory
+- Displays initials and full name in the dropdown
+- Accepts `value` (initials) and `onChange` props
+- Used as a drop-in replacement for free-text owner/assignee fields
 
-#### 4. Wire up edit/delete/add handlers in `ActionLogTable.tsx`
-- `handleAdd`: push new item to state, log audit entry
-- `handleEdit`: update item in state, log field-level diffs to audit
-- `handleDelete`: remove item from state after confirmation, log audit entry
-- All handlers capture the current user email via `useAuth()`
+#### 4. Update `ActionLogTable.tsx`
+- Remove the hardcoded `ownerDetails` lookup (lines 40-45)
+- Import and use the shared people directory for owner tooltips
+- Replace the free-text Owner input in `ActionLogEditDialog.tsx` with the `PersonSelect` component
+
+#### 5. Update `TaskEditDialog.tsx` (Programme Delivery Schedule)
+- Replace the free-text "Assigned To" input with the `PersonSelect` component
+- Existing assignee values will still display correctly (matched by name or initials)
+
+#### 6. Update `RiskEditDialog.tsx` (Risk Register)
+- Replace the free-text "Owner" input with the `PersonSelect` component
+
+#### 7. Update `SDAFinanceGovernance.tsx`
+- Replace the hardcoded `seniorLeadership` array with data sourced from the shared people directory
+- Maintain the existing visual layout (cards with icons, voting badges)
 
 ### Technical Details
 
-**State management**: In-memory `useState` matching the existing pattern used by the Programme Plan Gantt chart. No database changes required.
+**State management**: The people directory will use React context (`NRESPeopleContext`) wrapping the NRES Dashboard, providing `people`, `addPerson`, `updatePerson`, and `deletePerson` functions to all child components. This avoids prop drilling and ensures all three tools always see the same list.
 
-**Audit log**: Stored as `useState<AuditEntry[]>` within `ActionLogTable`. Uses the same `AuditEntry` interface pattern from `ProgrammeAuditLogDialog.tsx`.
+**Data flow**: Initial data loaded from `nresPeopleDirectory.ts` into context state. All mutations update context state in-memory (matching the existing pattern used by Action Log and Programme Plan).
 
-**User identity**: Obtained via `useAuth()` from `@/contexts/AuthContext` -- consistent with the rest of the application.
-
-**ID generation**: Parse existing action IDs as numbers, find the max, increment, and zero-pad to 3 digits.
+**Backward compatibility**: Existing data that uses full names (e.g. "Maureen Green" in the Programme Plan) or initials (e.g. "MJG" in Action Log) will be matched against both the `name` and `initials` fields in the directory.
 
 ### Files to Create
-- `src/components/sda/ActionLogEditDialog.tsx` -- add/edit dialog for action items
-- `src/components/sda/ActionLogAuditDialog.tsx` -- audit trail dialog
+- `src/data/nresPeopleDirectory.ts` -- shared people data and types
+- `src/contexts/NRESPeopleContext.tsx` -- React context provider
+- `src/components/sda/PeopleDirectoryDialog.tsx` -- people management modal
+- `src/components/sda/PersonSelect.tsx` -- reusable person picker dropdown
 
 ### Files to Modify
-- `src/components/sda/ActionLogTable.tsx` -- convert to stateful, add CRUD handlers, add audit log state, add action buttons on rows and toolbar
-
+- `src/components/sda/ActionLogTable.tsx` -- use shared directory, remove hardcoded lookup
+- `src/components/sda/ActionLogEditDialog.tsx` -- use PersonSelect for Owner
+- `src/components/sda/programme-plan/TaskEditDialog.tsx` -- use PersonSelect for Assigned To
+- `src/components/sda/risk-register/RiskEditDialog.tsx` -- use PersonSelect for Owner
+- `src/components/sda/SDAFinanceGovernance.tsx` -- source leadership from shared directory
+- NRES Dashboard wrapper component -- wrap with `NRESPeopleProvider`
