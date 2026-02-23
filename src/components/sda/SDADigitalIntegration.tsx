@@ -160,7 +160,7 @@ export const SDADigitalIntegration = () => {
           </p>
 
           {/* Excel Resource Analysis */}
-          <div className="bg-[#F0F4F5] rounded-lg p-4 space-y-3 border border-slate-200">
+          <div className="bg-white rounded-lg p-4 space-y-3 border border-slate-200">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "#EEF2FF", color: "#4F46E5" }}>
                 📊
