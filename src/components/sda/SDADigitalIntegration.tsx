@@ -121,8 +121,8 @@ export const SDADigitalIntegration = () => {
           {[
             { border: "#10B981", label: "OPERATIONS TOOL", value: "Excel V3.1 ✓ Ready", subtitle: "No additional funding required" },
             { border: "#F59E0B", label: "SERVICE GO-LIVE", value: "1 April 2026", subtitle: "39 days — operational from day one" },
-            { border: "#7C3AED", label: "MANAGED BY", value: "Railson & Palin", subtitle: "Populated centrally, practices consulted" },
-            { border: "#2563EB", label: "PRACTICE BURDEN", value: "Minimal", subtitle: "Data gathered centrally where possible" },
+            { border: "#7C3AED", label: "MANAGED BY", value: "Practice Managers", subtitle: "With support from Programme Manager" },
+            { border: "#2563EB", label: "PRACTICE BURDEN", value: "Significant", subtitle: "Resource funding TBC" },
           ].map((card, i) => (
             <div key={i} className="bg-white rounded-lg border border-slate-200 p-3" style={{ borderLeft: `4px solid ${card.border}` }}>
               <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">{card.label}</p>
