@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,17 +29,21 @@ import {
   ExternalLink
 } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { useNRESPeople } from "@/contexts/NRESPeopleContext";
+import { PeopleDirectoryDialog } from "./PeopleDirectoryDialog";
 
-const seniorLeadership = [
-  { name: "Dr Mark Gray", role: "Senior Responsible Officer (SRO) / Chair", organisation: "PML Medical Director", isVoting: true, icon: Crown },
-  { name: "Maureen Green", role: "Programme Director", organisation: "Director of Community Services, PML", isVoting: false, icon: Building2 },
-  { name: "Dr Simon Ellis", role: "Clinical Lead", organisation: "GP - Towcester Medical Centre", isVoting: true, icon: Stethoscope },
-  { name: "Dr Muhammed Chisti", role: "Supporting Clinical Lead", organisation: "GP - The Parks", isVoting: true, icon: Stethoscope },
-  { name: "Amanda Taylor", role: "Managerial Lead", organisation: "NRES", isVoting: false, icon: UserCog },
-  { name: "Lucy Hibberd", role: "Supporting Managerial Lead", organisation: "NRES - Bugbrooke", isVoting: false, icon: UserCog },
-  { name: "Malcolm Railson", role: "Digital & Estates Lead", organisation: "NRES", isVoting: false, icon: Monitor },
-  { name: "Alex Whitehead", role: "Supporting Digital & Estates Lead", organisation: "NRES - The Parks", isVoting: false, icon: Monitor },
-];
+const roleIcons: Record<string, any> = {
+  "SRO / Chair": Crown,
+  "Programme Director": Building2,
+  "Clinical Lead": Stethoscope,
+  "Supporting Clinical Lead": Stethoscope,
+  "Managerial Lead": UserCog,
+  "Supporting Managerial Lead": UserCog,
+  "Digital & Estates Lead": Monitor,
+  "Supporting Digital & Estates Lead": Monitor,
+};
+
+const votingRoles = ["SRO / Chair", "Clinical Lead", "Supporting Clinical Lead"];
 
 const nonVotingMembers = [
   "ICB Representative - ensures SDA initiative aligns with service specification",
@@ -123,6 +128,17 @@ const practiceInsuranceChecklist = [
 ];
 
 export const SDAFinanceGovernance = () => {
+  const { people } = useNRESPeople();
+  const [peopleDialogOpen, setPeopleDialogOpen] = useState(false);
+
+  const seniorLeadership = people.filter((p) => p.isActive).map((p) => ({
+    name: p.name,
+    role: p.role,
+    organisation: p.organisation,
+    isVoting: votingRoles.includes(p.role),
+    icon: roleIcons[p.role] || Users,
+  }));
+
   const handleDownloadTOR = () => {
     const link = document.createElement('a');
     link.href = '/documents/Final_Terms_of_Reference_for_the_Programme_Board_SDA_innovator.pdf';
@@ -218,10 +234,16 @@ export const SDAFinanceGovernance = () => {
       {/* Programme Board Members */}
       <Card className="bg-white border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#005EB8]" />
-            Programme Board Leadership
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Users className="w-5 h-5 text-[#005EB8]" />
+              Programme Board Leadership
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={() => setPeopleDialogOpen(true)} className="flex items-center gap-1.5">
+              <UserCog className="w-4 h-4" />
+              <span className="hidden sm:inline">Manage People</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-4">
@@ -703,6 +725,7 @@ export const SDAFinanceGovernance = () => {
           </div>
         </CardContent>
       </Card>
+      <PeopleDirectoryDialog open={peopleDialogOpen} onOpenChange={setPeopleDialogOpen} />
     </div>
   );
 };
