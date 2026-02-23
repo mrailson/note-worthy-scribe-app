@@ -146,10 +146,10 @@ const RecruitmentStatusSection = ({ practiceKey }: { practiceKey: PracticeKey })
           <div>
             <h4 className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
               <span className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-[10px] font-bold">ACP</span>
-              ACP/ANP ({totals.byType.acp} sessions)
+              ACP/ANP ({totals.byType.acp} sessions · {(totals.byType.acp * 4 / 37.5).toFixed(2)} WTE · {totals.byType.acp * 4} hrs/wk)
             </h4>
             {recruitmentData.workforce.acp.map((staff, i) => (
-              <StaffRowCompact key={i} staff={staff} />
+              <StaffRowCompact key={i} staff={staff} category="acp" />
             ))}
           </div>
         )}
@@ -169,8 +169,13 @@ const RecruitmentStatusSection = ({ practiceKey }: { practiceKey: PracticeKey })
   );
 };
 
-const StaffRowCompact = ({ staff }: { staff: StaffMember }) => {
+const StaffRowCompact = ({ staff, category = 'gp' }: { staff: StaffMember; category?: 'gp' | 'acp' | 'buyBack' }) => {
   const config = statusConfig[staff.status];
+  // For ACP/ANP: convert sessions to hours (1 session = 4hrs) and WTE (37.5 hrs/week)
+  const isAcp = category === 'acp';
+  const hours = staff.sessions * 4;
+  const wte = (hours / 37.5).toFixed(2);
+
   return (
     <div className={`flex items-center justify-between p-2 rounded-lg ${config.bgLight} ${config.border} border mb-1.5 text-sm`}>
       <div className="flex items-center gap-2">
@@ -180,7 +185,11 @@ const StaffRowCompact = ({ staff }: { staff: StaffMember }) => {
         <div>
           <div className="font-medium text-slate-900 text-xs">
             {staff.name}
-            <span className="ml-1.5 font-normal text-slate-500">— {staff.sessions} {staff.sessions === 1 ? 'session' : 'sessions'}</span>
+            {isAcp ? (
+              <span className="ml-1.5 font-normal text-slate-500">— {hours} hrs/wk ({wte} WTE)</span>
+            ) : (
+              <span className="ml-1.5 font-normal text-slate-500">— {staff.sessions} {staff.sessions === 1 ? 'session' : 'sessions'}</span>
+            )}
           </div>
           {staff.notes && <div className="text-[10px] text-slate-500">{staff.notes}</div>}
         </div>
