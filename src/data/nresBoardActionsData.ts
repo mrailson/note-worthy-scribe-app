@@ -93,7 +93,7 @@ export const actionLogData: ActionLogItem[] = [
 ];
 
 export const actionLogMetadata = {
-  sourceMeeting: "Programme Board Meeting - 23rd December 2025",
-  nextMeeting: "In Person - Wooton - 27th January 2026, 15:15-17:00",
-  lastUpdated: "27/01/2026 15:15"
+  sourceMeeting: "",
+  nextMeeting: "In Person - Bragborough Hall Business Centre - 24th February 2026, 15:15-17:00",
+  lastUpdated: "24/02/2026 15:15"
 };

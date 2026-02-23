@@ -410,7 +410,7 @@ export const SDAEvidenceLibrary = () => {
             <div className="px-4 pb-4 space-y-3">
               <ActionLogTable actions={actionLogData} metadata={actionLogMetadata} />
               <p className="text-xs text-slate-500 pt-2 border-t border-slate-100">
-                Source: {actionLogMetadata.sourceMeeting} • Next Meeting: {actionLogMetadata.nextMeeting}
+                Next Programme Board Meeting: {actionLogMetadata.nextMeeting}
               </p>
             </div>
           </CollapsibleContent>
