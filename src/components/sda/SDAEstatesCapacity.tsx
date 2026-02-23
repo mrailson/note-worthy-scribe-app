@@ -679,12 +679,11 @@ export const SDAEstatesCapacity = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {practiceSummaryWithSessions.map((practice, index) => {
-            const displayValue = viewMode === "appointments" 
-              ? practice.totalSessions * 12 
-              : practice.totalSessions;
-            const displayUnit = viewMode === "appointments" 
-              ? "appts/week (on-site)" 
-              : "sessions/week (on-site)";
+            const multiplierVal = viewMode === "appointments" ? 12 : 1;
+            const unitLabel = viewMode === "appointments" ? "appts/week" : "sessions/week";
+            const totalRequired = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize);
+            const f2fAvailable = practice.totalSessions;
+            const remoteRequired = Math.max(0, totalRequired - f2fAvailable);
             
             return (
               <div 
@@ -715,17 +714,37 @@ export const SDAEstatesCapacity = () => {
                     {practice.role}
                   </Badge>
                 </div>
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">{displayValue}</p>
-                    <p className="text-xs text-slate-500">{displayUnit}</p>
+
+                {/* Total Required */}
+                <div className="mb-3 pb-2 border-b border-slate-200">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Required</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {(totalRequired * multiplierVal).toFixed(1)}
+                  </p>
+                  <p className="text-xs text-slate-500">{unitLabel}</p>
+                </div>
+
+                {/* F2F / Remote split */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
+                    <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
+                    <p className="text-lg font-bold text-green-900">{f2fAvailable * multiplierVal}</p>
+                    <p className="text-[10px] text-green-600">{unitLabel}</p>
                   </div>
+                  <div className="bg-indigo-50 rounded-lg p-2 text-center border border-indigo-200">
+                    <p className="text-xs font-medium text-indigo-700">Remote</p>
+                    <p className="text-lg font-bold text-indigo-900">{(remoteRequired * multiplierVal).toFixed(1)}</p>
+                    <p className="text-[10px] text-indigo-600">{unitLabel}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-2">
                   <Badge variant="outline" className="text-xs">
                     {practice.system}
                   </Badge>
                 </div>
                 {practice.note && (
-                  <p className="text-xs text-amber-600 mt-2 italic">{practice.note}</p>
+                  <p className="text-xs text-amber-600 mt-1 italic">{practice.note}</p>
                 )}
               </div>
             );
