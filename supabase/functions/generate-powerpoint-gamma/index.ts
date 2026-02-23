@@ -199,8 +199,12 @@ serve(async (req) => {
     // Build additional instructions — condensed to stay within Gamma's 5000-char limit
     let additionalInstructions = `British English spelling throughout. Audience: ${audience}. Professional design. Each slide: clear, actionable message.`;
 
-    // Image requirements (condensed)
-    additionalInstructions += ` Every slide must include a high-quality photorealistic image relevant to the topic. No slide without a visual.`;
+    // Image requirements — conditional on stock mode (set later if useStockLibraryImages)
+    if (!useStockLibraryImages) {
+      additionalInstructions += ` Every slide must include a high-quality photorealistic image relevant to the topic. No slide without a visual.`;
+    } else {
+      additionalInstructions += ` Use the provided stock library images where relevant. Place images as accent visuals alongside content — never let an image dominate or push text to the bottom. Not every slide needs an image.`;
+    }
 
     // Speaker notes (condensed)
     if (includeSpeakerNotes) {
@@ -295,21 +299,28 @@ serve(async (req) => {
           .from('stock_images')
           .select('image_url, title, tags, category')
           .eq('is_active', true)
-          .limit(5);
+          .limit(60);
 
         if (stockError) {
           console.warn(`[Gamma] Stock images query failed: ${stockError.message}`);
         } else if (stockImages && stockImages.length > 0) {
-          console.log(`[Gamma] Found ${stockImages.length} stock library images`);
+          // Fisher-Yates shuffle then take first 30
+          const shuffled = [...stockImages];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          const selected = shuffled.slice(0, 30);
+          console.log(`[Gamma] Selected ${selected.length} random stock images from ${stockImages.length} total`);
           
-          const imageRefs = stockImages
+          const imageRefs = selected
             .map((img: any) => `![${img.title || img.category}](${img.image_url})`)
             .join('\n');
           
-          requestPayload.inputText += `\n\nUse at most one image per slide. Select the most relevant image for each slide's topic.\n${imageRefs}`;
+          requestPayload.inputText += `\n\nPlace each image as a small accent visual (no wider than 40% of the slide). Content text must remain the primary focus. Never allow an image to push content below the fold. Use at most one image per slide.\n${imageRefs}`;
           requestPayload.imageOptions = { source: 'noImages' };
           
-          console.log(`[Gamma] Injected ${stockImages.length} stock image URLs, set imageOptions to noImages`);
+          console.log(`[Gamma] Injected ${selected.length} stock image URLs, set imageOptions to noImages`);
         } else {
           console.warn('[Gamma] No active stock images found, falling back to AI-generated images');
         }
