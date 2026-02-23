@@ -363,9 +363,8 @@ export const SDAExecutiveSummary = () => {
                     }
                     return (
                       <div className="text-center py-2">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Working Days to Go-Live</p>
-                        <p className="text-2xl font-bold text-[#005EB8]">{count}</p>
-                        <p className="text-[10px] text-slate-500">1st April 2026</p>
+                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Working Days to Go-Live</p>
+                        <p className="text-4xl font-bold text-[#005EB8]">{count}</p>
                       </div>
                     );
                   })()}
