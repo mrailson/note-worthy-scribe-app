@@ -86,6 +86,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   const [importedMeetingId, setImportedMeetingId] = useState<string | null>(null);
   const [boundaryReport, setBoundaryReport] = useState<BoundaryReport | null>(null);
   const [showTrimEditor, setShowTrimEditor] = useState(false);
+  const trimEditorRef = useRef<HTMLDivElement>(null);
 
   // Expose handleFilesAdded to parent via ref
   React.useEffect(() => {
@@ -96,6 +97,15 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       if (onFilesAddedRef) onFilesAddedRef.current = null;
     };
   });
+
+  // Auto-scroll to trim editor when audio files are added
+  React.useEffect(() => {
+    if (uploadedFiles.length > 0 && uploadedFiles.some(f => f.type === 'audio') && trimEditorRef.current) {
+      setTimeout(() => {
+        trimEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+    }
+  }, [uploadedFiles.length]);
   const getFileType = (file: File): 'audio' | 'text' | 'document' | null => {
     if (SUPPORTED_AUDIO_TYPES.includes(file.type) || 
         file.name.match(/\.(mp3|wav|webm|ogg|m4a|mp4)$/i)) {
@@ -702,12 +712,14 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
         
         {/* Audio Trim Editor — shown when files are pending and user hasn't started processing */}
         {uploadedFiles.length > 0 && uploadedFiles.some(f => f.type === 'audio') && uploadedFiles.every(f => f.status === 'pending') && (
+          <div ref={trimEditorRef}>
           <AudioTrimEditor
             files={uploadedFiles.map(f => ({ file: f.file, type: f.type }))}
             onTrimConfirm={handleTrimConfirm}
             onCancel={() => setShowTrimEditor(false)}
             isProcessing={isProcessing}
           />
+          </div>
         )}
         
         {/* Meeting Boundary Warning */}
