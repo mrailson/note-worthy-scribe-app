@@ -181,12 +181,6 @@ export const SDARisksMitigation = () => {
                         </TableHead>
                         <TableHead 
                           className="font-semibold text-xs text-center cursor-pointer hover:bg-slate-100"
-                          onClick={() => handleSort('originalScore')}
-                        >
-                          <div className="flex items-center justify-center">Original<br/>Score {getSortIcon('originalScore')}</div>
-                        </TableHead>
-                        <TableHead 
-                          className="font-semibold text-xs text-center cursor-pointer hover:bg-slate-100"
                           onClick={() => handleSort('currentScore')}
                         >
                           <div className="flex items-center justify-center">Current<br/>Score {getSortIcon('currentScore')}</div>
@@ -231,12 +225,6 @@ export const SDARisksMitigation = () => {
                               <Badge variant="outline" className={`${getRiskTypeBadgeStyles(risk.riskType)} text-[10px]`}>
                                 {getRiskTypeLabel(risk.riskType)}
                               </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="text-xs text-slate-500">
-                                {risk.originalLikelihood}×{risk.originalConsequence}=
-                                <span className="font-semibold">{risk.originalScore}</span>
-                              </div>
                             </TableCell>
                             <TableCell className="text-center">
                               <div className="flex items-center justify-center gap-1">
