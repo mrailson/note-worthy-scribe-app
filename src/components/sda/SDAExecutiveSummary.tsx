@@ -94,8 +94,8 @@ export const SDAExecutiveSummary = () => {
           <CollapsibleContent>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                  <CardContent className="p-6">
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+                  <CardContent className="p-6 flex flex-col flex-1">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-slate-500 font-medium">Patient List Size</p>
@@ -115,6 +115,7 @@ export const SDAExecutiveSummary = () => {
                         50% Remote Assumption
                       </span>
                     </div>
+                    <div className="flex-1" />
                     {/* Live Planning Map Button */}
                     <div
                       onMouseEnter={() => setMapBtnHovered(true)}
@@ -224,8 +225,8 @@ export const SDAExecutiveSummary = () => {
                 </Card>
 
 
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                  <CardContent className="p-6 flex flex-col flex-1">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-slate-500 font-medium">Contract Value (per year)</p>
@@ -236,6 +237,7 @@ export const SDAExecutiveSummary = () => {
                         <PoundSterling className="w-6 h-6 text-green-600" />
                       </div>
                     </div>
+                    <div className="flex-1" />
                     {/* Reporting Requirements Button */}
                     <div
                       onMouseEnter={() => setReportingBtnHovered(true)}
@@ -328,7 +330,7 @@ export const SDAExecutiveSummary = () => {
                   </CardContent>
                 </Card>
 
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 h-full">
                   <div className="flex justify-center items-center gap-4">
                     <img 
                       src={NRESLogo} 
@@ -341,6 +343,7 @@ export const SDAExecutiveSummary = () => {
                       className="h-20 w-auto object-contain"
                     />
                   </div>
+                  <div className="flex-1" />
                   <Card className="bg-slate-50 border border-slate-200 hover:border-[#005EB8] transition-colors">
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between flex-wrap gap-2">
