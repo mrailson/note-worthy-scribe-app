@@ -126,7 +126,7 @@ export const SDARisksMitigation = () => {
 
         {/* Project Risks Register */}
         <AccordionItem value="risks-register" className="border-0">
-          <Card className="bg-white border-0 shadow-sm">
+          <Card className="bg-white border-0 shadow-sm overflow-hidden">
             <AccordionTrigger className="hover:no-underline px-6 py-4 [&[data-state=open]>div>svg.chevron]:rotate-180">
               <div className="flex items-center justify-between w-full pr-4">
                 <div className="flex items-center gap-3">
@@ -151,7 +151,7 @@ export const SDARisksMitigation = () => {
               </div>
             </AccordionTrigger>
             <AccordionContent>
-              <CardContent className="pt-0 space-y-6">
+              <CardContent className="pt-0 space-y-6 px-2 sm:px-4">
                 
                 {/* Risk Matrix Heatmap */}
                 <RiskMatrixHeatmap risks={risks} />
