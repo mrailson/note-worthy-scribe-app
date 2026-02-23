@@ -6,6 +6,14 @@ export interface AssuranceItem {
   completed: boolean;
 }
 
+export interface RiskDocument {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  file: File;
+}
+
 export interface ProjectRisk {
   id: number;
   risk: string;
@@ -24,6 +32,7 @@ export interface ProjectRisk {
   lastReviewed: string;
   assuranceIndicators: AssuranceItem[];
   comments?: string;
+  documents?: RiskDocument[];
 }
 
 export const projectRisks: ProjectRisk[] = [

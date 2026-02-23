@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { AlertTriangle, ChevronDown, TrendingDown, TrendingUp, Minus, ArrowUpDown, ArrowUp, ArrowDown, ClipboardList } from "lucide-react";
+import { AlertTriangle, ChevronDown, TrendingDown, TrendingUp, Minus, ArrowUpDown, ArrowUp, ArrowDown, ClipboardList, Paperclip } from "lucide-react";
 import { RiskAssessmentGuidance } from "./risk-register/RiskAssessmentGuidance";
 import { RiskMatrixHeatmap } from "./risk-register/RiskMatrixHeatmap";
 import { RiskEditDialog } from "./risk-register/RiskEditDialog";
@@ -60,6 +60,14 @@ export const SDARisksMitigation = () => {
       if (original.owner !== updated.owner) changes.push(`Owner: ${original.owner} → ${updated.owner}`);
       if (original.lastReviewed !== updated.lastReviewed) changes.push(`Last reviewed: ${updated.lastReviewed}`);
       if (JSON.stringify(original.assuranceIndicators) !== JSON.stringify(updated.assuranceIndicators)) changes.push('Assurance indicators updated');
+
+      // Track document changes
+      const oldDocs = original.documents || [];
+      const newDocs = updated.documents || [];
+      const addedDocs = newDocs.filter(nd => !oldDocs.some(od => od.id === nd.id));
+      const removedDocs = oldDocs.filter(od => !newDocs.some(nd => nd.id === od.id));
+      addedDocs.forEach(d => changes.push(`Document added: ${d.name}`));
+      removedDocs.forEach(d => changes.push(`Document removed: ${d.name}`));
       
       if (changes.length > 0) {
         setAuditLog(prev => [{
@@ -301,14 +309,30 @@ export const SDARisksMitigation = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => setEditingRisk(risk)}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                {(risk.documents?.length ?? 0) > 0 && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 relative"
+                                    onClick={() => setEditingRisk(risk)}
+                                    title={`${risk.documents!.length} document(s) attached`}
+                                  >
+                                    <Paperclip className="h-3.5 w-3.5 text-slate-500" />
+                                    <span className="absolute -top-0.5 -right-0.5 bg-[#005EB8] text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                                      {risk.documents!.length}
+                                    </span>
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setEditingRisk(risk)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
