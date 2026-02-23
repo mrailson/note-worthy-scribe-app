@@ -1,6 +1,8 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Trash2, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // Excel-matched section colours
 const sectionColorMap: Record<string, { bg: string; text: string }> = {
@@ -25,6 +27,8 @@ interface ProgrammePlanRowProps {
   onToggle?: () => void;
   hasChildren?: boolean;
   rowId?: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
@@ -36,6 +40,8 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
   onToggle,
   hasChildren = false,
   rowId,
+  onEdit,
+  onDelete,
 }) => {
   const indentClass = {
     phase: "pl-2",
@@ -55,22 +61,25 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
     task: "h-9",
   }[level];
 
-  // Get section-specific colour or default
   const getSectionBg = () => {
     if (level === "task") return { bg: "bg-background", text: "text-foreground" };
-    if (rowId && sectionColorMap[rowId]) {
-      return sectionColorMap[rowId];
-    }
-    // Default light blue for phases
+    if (rowId && sectionColorMap[rowId]) return sectionColorMap[rowId];
     return { bg: "bg-[#BDD7EE]", text: "text-foreground" };
   };
 
   const sectionStyle = getSectionBg();
 
+  const getStatusBadge = () => {
+    if (level !== "task") return null;
+    if (progress === 100) return <Badge className="text-[9px] px-1.5 py-0 h-4 bg-[#4EA72E] hover:bg-[#4EA72E] text-white border-0">Done</Badge>;
+    if (progress > 0) return <Badge className="text-[9px] px-1.5 py-0 h-4 bg-[#7B7BC7] hover:bg-[#7B7BC7] text-white border-0">Active</Badge>;
+    return <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">Pending</Badge>;
+  };
+
   return (
     <div
       className={cn(
-        "flex items-center border-b border-border/50",
+        "flex items-center border-b border-border/50 group",
         heightClass,
         sectionStyle.bg,
         sectionStyle.text,
@@ -95,7 +104,7 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
         <div className="w-5" />
       )}
       
-      <div className="flex-1 min-w-0 pr-2">
+      <div className="flex-1 min-w-0 pr-1">
         <div className={cn("truncate", fontClass)}>{name}</div>
         {assignedTo && level === "task" && (
           <div className="text-[10px] text-muted-foreground truncate">
@@ -103,12 +112,42 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
           </div>
         )}
       </div>
-      
-      <div className={cn(
-        "w-12 text-right pr-2 text-xs opacity-80"
-      )}>
-        {progress}%
-      </div>
+
+      {level === "task" && (
+        <div className="flex items-center gap-1 mr-1">
+          {getStatusBadge()}
+          <span className="w-8 text-right text-[10px] opacity-70">{progress}%</span>
+          <button
+            onClick={onEdit}
+            className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-black/10 transition-opacity"
+            title="Edit task"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-destructive transition-opacity"
+            title="Delete task"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      {level !== "task" && (
+        <div className="w-12 text-right pr-2 text-xs opacity-80">
+          {progress}%
+        </div>
+      )}
     </div>
   );
 };
+
+// Compact add button for inserting tasks/sections
+export const AddItemButton: React.FC<{ label: string; onClick: () => void; indent?: string }> = ({ label, onClick, indent = "pl-10" }) => (
+  <div className={cn("flex items-center h-7 border-b border-border/30 border-dashed", indent)}>
+    <Button variant="ghost" size="sm" className="h-5 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground" onClick={onClick}>
+      <Plus className="h-3 w-3" /> {label}
+    </Button>
+  </div>
+);
