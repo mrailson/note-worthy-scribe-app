@@ -82,12 +82,12 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[520px] max-h-[calc(100vh-8rem)] overflow-y-auto bg-background">
+        <DialogHeader className="px-8 sm:px-10 pt-2">
           <DialogTitle>Edit Task</DialogTitle>
           <DialogDescription>Update task details below.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
+        <div className="grid gap-4 py-2 px-8 sm:px-10">
           <div className="grid gap-1.5">
             <Label htmlFor="task-name">Task Name</Label>
             <Input id="task-name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -135,7 +135,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
             <Textarea id="task-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="px-8 sm:px-10 pb-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSave}>Save Changes</Button>
         </DialogFooter>
