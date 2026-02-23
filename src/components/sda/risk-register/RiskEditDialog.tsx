@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Plus, AlertTriangle, Upload, FileText } from "lucide-react";
 import { ProjectRisk, AssuranceItem, RiskDocument, getRatingFromScore, getRatingBadgeStyles } from "./projectRisksData";
 import { toast } from "sonner";
+import { PersonSelect } from "@/components/sda/PersonSelect";
 
 interface RiskEditDialogProps {
   risk: ProjectRisk | null;
@@ -181,7 +182,7 @@ export const RiskEditDialog = ({ risk, open, onOpenChange, onSave }: RiskEditDia
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="font-semibold text-slate-800 text-sm">Owner</Label>
-              <Input value={owner} onChange={(e) => setOwner(e.target.value)} className="bg-white" />
+              <PersonSelect value={owner} onChange={setOwner} placeholder="Select owner" />
             </div>
             <div className="space-y-2">
               <Label className="font-semibold text-slate-800 text-sm">Last Reviewed</Label>

@@ -36,13 +36,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Owner lookup with full name and job title
-const ownerDetails: Record<string, { name: string; title: string }> = {
-  MJG: { name: "Maureen Green", title: "PML Programme Director" },
-  MR: { name: "Malcolm Railson", title: "NRES Neighbourhood Manager" },
-  AT: { name: "Amanda Taylor", title: "NRES Managerial Lead" },
-  TBC: { name: "To Be Confirmed", title: "" },
-};
+import { useNRESPeople } from "@/contexts/NRESPeopleContext";
+import { getPersonByInitials } from "@/data/nresPeopleDirectory";
 
 interface ActionLogMetadata {
   sourceMeeting: string;
@@ -98,6 +93,7 @@ const parseDate = (dateStr: string): Date => {
 
 export const ActionLogTable = ({ actions: initialActions, metadata }: ActionLogTableProps) => {
   const { user } = useAuth();
+  const { people } = useNRESPeople();
   const [actions, setActions] = useState<ActionLogItem[]>(initialActions);
   const [sort, setSort] = useState<SortState>({ field: null, direction: null });
   const [showOpenOnly, setShowOpenOnly] = useState(true);
@@ -533,25 +529,26 @@ export const ActionLogTable = ({ actions: initialActions, metadata }: ActionLogT
               <TableCell className="text-sm text-slate-600 whitespace-nowrap">{action.dateRaised}</TableCell>
               <TableCell className="text-sm text-slate-900">{action.description}</TableCell>
               <TableCell className="text-sm font-medium text-slate-700">
-                {ownerDetails[action.owner] ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-help underline decoration-dotted underline-offset-2">
-                        {action.owner}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs">
-                      <div className="text-sm">
-                        <p className="font-semibold">{ownerDetails[action.owner].name}</p>
-                        {ownerDetails[action.owner].title && (
-                          <p className="text-muted-foreground">{ownerDetails[action.owner].title}</p>
-                        )}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  action.owner
-                )}
+                {(() => {
+                  const person = getPersonByInitials(people, action.owner);
+                  return person ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help underline decoration-dotted underline-offset-2">
+                          {action.owner}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <div className="text-sm">
+                          <p className="font-semibold">{person.name}</p>
+                          <p className="text-muted-foreground">{person.role} — {person.organisation}</p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    action.owner
+                  );
+                })()}
               </TableCell>
               <TableCell className="text-sm text-slate-600 whitespace-nowrap">{action.dueDate}</TableCell>
               <TableCell>{getPriorityBadge(action.priority)}</TableCell>

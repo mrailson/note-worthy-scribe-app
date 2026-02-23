@@ -28,6 +28,7 @@ import { CalendarIcon } from "lucide-react";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ActionLogItem } from "@/data/nresBoardActionsData";
+import { PersonSelect } from "./PersonSelect";
 
 interface ActionLogEditDialogProps {
   open: boolean;
@@ -124,13 +125,8 @@ export const ActionLogEditDialog: React.FC<ActionLogEditDialogProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="owner">Owner</Label>
-              <Input
-                id="owner"
-                value={owner}
-                onChange={(e) => setOwner(e.target.value)}
-                placeholder="e.g. MJG"
-              />
+              <Label>Owner</Label>
+              <PersonSelect value={owner} onChange={setOwner} placeholder="Select owner" />
             </div>
             <div className="space-y-1.5">
               <Label>Date Raised</Label>

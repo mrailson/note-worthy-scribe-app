@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PersonSelect } from "@/components/sda/PersonSelect";
 
 interface TaskEditDialogProps {
   open: boolean;
@@ -128,8 +129,8 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
             <Input id="task-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="assigned-to">Assigned To</Label>
-            <Input id="assigned-to" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} />
+            <Label>Assigned To</Label>
+            <PersonSelect value={assignedTo} onChange={setAssignedTo} placeholder="Select person" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
