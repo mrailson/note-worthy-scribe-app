@@ -112,16 +112,12 @@ export const SDAWorkforceInnovation = () => {
                 <Badge className="bg-amber-500 text-white">Interactive</Badge>
               </div>
               <p className="text-sm text-slate-600 max-w-2xl">
-                Live session planning and recruitment status across all 8 practices — track GP, ACP/ANP and buy-back sessions with real-time progress bars, WTE calculations and sortable practice-by-practice comparison. View by individual practice or neighbourhood summary.
+                Live session planning and recruitment status across all 7 practices — track GP, ACP/ANP and buy-back sessions with real-time progress bars, WTE calculations and sortable practice-by-practice comparison. View by individual practice or neighbourhood summary.
               </p>
               <p className="text-xs text-slate-400 mt-1">Updated: 23rd February 2026</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="text-right hidden md:block">
-              <div className="text-2xl font-bold text-amber-700">149</div>
-              <div className="text-xs text-amber-600">sessions tracked</div>
-            </div>
             <div className="w-10 h-10 bg-amber-200 rounded-full flex items-center justify-center group-hover:bg-amber-300 transition-colors">
               <ExternalLink className="w-5 h-5 text-amber-800" />
             </div>
