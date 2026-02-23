@@ -4,24 +4,20 @@ import { sdaProgrammePlan } from "@/data/sdaProgrammePlanData";
 import { ProgrammePlanRow, AddItemButton } from "./ProgrammePlanRow";
 import { ProgrammePlanLegend } from "./ProgrammePlanLegend";
 import { TaskEditDialog } from "./TaskEditDialog";
+import { ProgrammeAuditLogDialog, AuditEntry } from "./ProgrammeAuditLogDialog";
 import { cn } from "@/lib/utils";
-import { format, eachDayOfInterval, isWeekend, startOfWeek, addDays, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, eachMonthOfInterval, eachQuarterOfInterval, subDays } from "date-fns";
+import { format, eachDayOfInterval, isWeekend, startOfWeek, addDays, endOfMonth, startOfQuarter, endOfQuarter, eachMonthOfInterval, eachQuarterOfInterval, subDays } from "date-fns";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CalendarDays, CalendarRange, Calendar, FileSpreadsheet, Mail } from "lucide-react";
-import { ProgrammePlan, ProgrammeTask, ProgrammePhase, ProgrammeSection } from "@/types/sdaProgrammePlan";
+import { CalendarDays, CalendarRange, Calendar, FileSpreadsheet, Mail, ClipboardList } from "lucide-react";
+import { ProgrammePlan, ProgrammeTask, ProgrammeSection } from "@/types/sdaProgrammePlan";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 type TimeView = "weeks" | "months" | "quarters";
 
@@ -49,7 +45,6 @@ const formatDDMMYY = (d: Date): string => {
   return `${day}/${mon}/${yr}`;
 };
 
-// Collect all task dates from the plan tree
 const collectAllDates = (plan: ProgrammePlan): Date[] => {
   const dates: Date[] = [];
   plan.phases.forEach((phase) => {
@@ -71,7 +66,6 @@ const collectAllDates = (plan: ProgrammePlan): Date[] => {
   return dates;
 };
 
-// Calculate average progress of tasks
 const avgProgress = (tasks: ProgrammeTask[]): number => {
   if (tasks.length === 0) return 0;
   return Math.round(tasks.reduce((sum, t) => sum + t.progress, 0) / tasks.length);
@@ -92,6 +86,9 @@ interface FlatRow {
 }
 
 export const ProgrammePlanGantt: React.FC = () => {
+  const { user } = useAuth();
+  const userEmail = user?.email || "Unknown";
+
   const [planData, setPlanData] = useState<ProgrammePlan>(() => JSON.parse(JSON.stringify(sdaProgrammePlan)));
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set(["discovery-setup"]));
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(
@@ -101,13 +98,29 @@ export const ProgrammePlanGantt: React.FC = () => {
   const [editingTask, setEditingTask] = useState<ProgrammeTask | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editContext, setEditContext] = useState<{ phaseId: string; sectionId?: string } | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ taskId: string; taskName: string; phaseId: string; sectionId?: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "task" | "section"; id: string; name: string; phaseId: string; sectionId?: string } | null>(null);
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
+  const [showAuditLog, setShowAuditLog] = useState(false);
   
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
-  // Dynamic date range from data
+  // Audit helper
+  const addAuditEntry = useCallback((action: string, itemName: string, field?: string, oldValue?: string, newValue?: string) => {
+    setAuditLog(prev => [{
+      id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      timestamp: new Date(),
+      userEmail,
+      action,
+      itemName,
+      field,
+      oldValue,
+      newValue,
+    }, ...prev]);
+  }, [userEmail]);
+
+  // Dynamic date range
   const { startDate, endDate } = useMemo(() => {
     const allDates = collectAllDates(planData);
     if (allDates.length === 0) {
@@ -238,44 +251,94 @@ export const ProgrammePlanGantt: React.FC = () => {
 
   const handleSaveTask = useCallback((updated: ProgrammeTask) => {
     if (!editContext) return;
+    // Find the original task for diffing
+    const phase = planData.phases.find(p => p.id === editContext.phaseId);
+    let original: ProgrammeTask | undefined;
+    if (phase) {
+      if (editContext.sectionId) {
+        original = phase.sections?.find(s => s.id === editContext.sectionId)?.tasks.find(t => t.id === updated.id);
+      } else {
+        original = phase.tasks?.find(t => t.id === updated.id);
+      }
+    }
+
+    // Record field-level changes
+    if (original) {
+      const fields: { key: keyof ProgrammeTask; label: string }[] = [
+        { key: "name", label: "Name" },
+        { key: "assignedTo", label: "Assigned To" },
+        { key: "startDate", label: "Start Date" },
+        { key: "endDate", label: "End Date" },
+        { key: "progress", label: "Progress" },
+        { key: "notes", label: "Notes" },
+      ];
+      fields.forEach(({ key, label }) => {
+        const oldVal = String(original![key] ?? "");
+        const newVal = String(updated[key] ?? "");
+        if (oldVal !== newVal) {
+          addAuditEntry("Edited", updated.name, label, oldVal || "—", newVal || "—");
+        }
+      });
+    } else {
+      addAuditEntry("Added", updated.name);
+    }
+
     setPlanData(prev => {
       const next = JSON.parse(JSON.stringify(prev)) as ProgrammePlan;
-      const phase = next.phases.find(p => p.id === editContext.phaseId);
-      if (!phase) return prev;
+      const ph = next.phases.find(p => p.id === editContext.phaseId);
+      if (!ph) return prev;
       if (editContext.sectionId) {
-        const sec = phase.sections?.find(s => s.id === editContext.sectionId);
+        const sec = ph.sections?.find(s => s.id === editContext.sectionId);
         if (sec) {
           const idx = sec.tasks.findIndex(t => t.id === updated.id);
           if (idx >= 0) sec.tasks[idx] = updated;
         }
       } else {
-        if (phase.tasks) {
-          const idx = phase.tasks.findIndex(t => t.id === updated.id);
-          if (idx >= 0) phase.tasks[idx] = updated;
+        if (ph.tasks) {
+          const idx = ph.tasks.findIndex(t => t.id === updated.id);
+          if (idx >= 0) ph.tasks[idx] = updated;
         }
       }
       return next;
     });
     toast.success("Task updated");
-  }, [editContext]);
+  }, [editContext, planData, addAuditEntry]);
 
-  const handleDeleteTask = useCallback(() => {
+  const handleDelete = useCallback(() => {
     if (!deleteTarget) return;
-    setPlanData(prev => {
-      const next = JSON.parse(JSON.stringify(prev)) as ProgrammePlan;
-      const phase = next.phases.find(p => p.id === deleteTarget.phaseId);
-      if (!phase) return prev;
-      if (deleteTarget.sectionId) {
-        const sec = phase.sections?.find(s => s.id === deleteTarget.sectionId);
-        if (sec) sec.tasks = sec.tasks.filter(t => t.id !== deleteTarget.taskId);
-      } else {
-        if (phase.tasks) phase.tasks = phase.tasks.filter(t => t.id !== deleteTarget.taskId);
-      }
-      return next;
-    });
-    toast.success(`"${deleteTarget.taskName}" removed`);
+    if (deleteTarget.type === "task") {
+      addAuditEntry("Deleted", deleteTarget.name, "Task");
+      setPlanData(prev => {
+        const next = JSON.parse(JSON.stringify(prev)) as ProgrammePlan;
+        const phase = next.phases.find(p => p.id === deleteTarget.phaseId);
+        if (!phase) return prev;
+        if (deleteTarget.sectionId) {
+          const sec = phase.sections?.find(s => s.id === deleteTarget.sectionId);
+          if (sec) sec.tasks = sec.tasks.filter(t => t.id !== deleteTarget.id);
+        } else {
+          if (phase.tasks) phase.tasks = phase.tasks.filter(t => t.id !== deleteTarget.id);
+        }
+        return next;
+      });
+    } else {
+      // Delete section
+      addAuditEntry("Deleted", deleteTarget.name, "Section");
+      setPlanData(prev => {
+        const next = JSON.parse(JSON.stringify(prev)) as ProgrammePlan;
+        const phase = next.phases.find(p => p.id === deleteTarget.phaseId);
+        if (!phase || !phase.sections) return prev;
+        phase.sections = phase.sections.filter(s => s.id !== deleteTarget.id);
+        return next;
+      });
+      setExpandedSections(prev => {
+        const next = new Set(prev);
+        next.delete(deleteTarget.id);
+        return next;
+      });
+    }
+    toast.success(`"${deleteTarget.name}" removed`);
     setDeleteTarget(null);
-  }, [deleteTarget]);
+  }, [deleteTarget, addAuditEntry]);
 
   const handleAddTask = useCallback((phaseId: string, sectionId?: string) => {
     const now = new Date();
@@ -301,11 +364,11 @@ export const ProgrammePlanGantt: React.FC = () => {
       }
       return next;
     });
-    // Immediately open edit dialog for the new task
+    addAuditEntry("Added", "New Task", "Task");
     setEditingTask({ ...newTask });
     setEditContext({ phaseId, sectionId });
     setEditDialogOpen(true);
-  }, []);
+  }, [addAuditEntry]);
 
   const handleAddSection = useCallback((phaseId: string) => {
     const newSection: ProgrammeSection = {
@@ -322,8 +385,9 @@ export const ProgrammePlanGantt: React.FC = () => {
       return next;
     });
     setExpandedSections(prev => new Set([...prev, newSection.id]));
+    addAuditEntry("Added", "New Section", "Section");
     toast.success("Section added");
-  }, []);
+  }, [addAuditEntry]);
 
   // ---- Scroll sync ----
   const handleScroll = (source: "left" | "timeline") => {
@@ -391,7 +455,7 @@ export const ProgrammePlanGantt: React.FC = () => {
   
   const totalTimelineWidth = days.length * unitWidth;
 
-  // Build left panel rows with add-buttons injected
+  // Build left panel rows
   const renderLeftPanel = () => {
     const elements: React.ReactNode[] = [];
 
@@ -426,11 +490,10 @@ export const ProgrammePlanGantt: React.FC = () => {
               level="task"
               hasChildren={false}
               onEdit={() => handleEditTask(task.id, phase.id)}
-              onDelete={() => setDeleteTarget({ taskId: task.id, taskName: task.name, phaseId: phase.id })}
+              onDelete={() => setDeleteTarget({ type: "task", id: task.id, name: task.name, phaseId: phase.id })}
             />
           );
         });
-        // Add task button for phase-level tasks
         elements.push(<AddItemButton key={`add-task-${phase.id}`} label="Add Task" onClick={() => handleAddTask(phase.id)} />);
 
         phase.sections?.forEach((section) => {
@@ -445,6 +508,7 @@ export const ProgrammePlanGantt: React.FC = () => {
               isExpanded={expandedSections.has(section.id)}
               onToggle={() => toggleSection(section.id)}
               hasChildren={section.tasks.length > 0}
+              onDelete={() => setDeleteTarget({ type: "section", id: section.id, name: section.name, phaseId: phase.id })}
             />
           );
 
@@ -460,7 +524,7 @@ export const ProgrammePlanGantt: React.FC = () => {
                   level="task"
                   hasChildren={false}
                   onEdit={() => handleEditTask(task.id, phase.id, section.id)}
-                  onDelete={() => setDeleteTarget({ taskId: task.id, taskName: task.name, phaseId: phase.id, sectionId: section.id })}
+                  onDelete={() => setDeleteTarget({ type: "task", id: task.id, name: task.name, phaseId: phase.id, sectionId: section.id })}
                 />
               );
             });
@@ -468,7 +532,6 @@ export const ProgrammePlanGantt: React.FC = () => {
           }
         });
 
-        // Add section button at end of phase
         elements.push(<AddItemButton key={`add-section-${phase.id}`} label="Add Section" onClick={() => handleAddSection(phase.id)} indent="pl-6" />);
       }
     });
@@ -501,6 +564,28 @@ export const ProgrammePlanGantt: React.FC = () => {
                 <span className="hidden sm:inline">Quarters</span>
               </ToggleGroupItem>
             </ToggleGroup>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2.5 gap-1.5 relative"
+                    onClick={() => setShowAuditLog(true)}
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    <span className="hidden sm:inline text-xs">Audit</span>
+                    {auditLog.length > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                        {auditLog.length}
+                      </span>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>View audit log ({auditLog.length} entries)</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             
             <TooltipProvider>
               <Tooltip>
@@ -558,19 +643,16 @@ export const ProgrammePlanGantt: React.FC = () => {
             
             <div ref={timelineRef} className="overflow-auto max-h-[500px]" onScroll={() => handleScroll("timeline")}>
               <div className="relative" style={{ width: totalTimelineWidth }}>
-                {/* Day columns */}
                 <div className="absolute inset-0 flex">
                   {days.map((day, idx) => (
                     <div key={idx} className={cn("flex-shrink-0 border-r border-border/20", isWeekend(day) && timeView === "weeks" && "bg-muted/30")} style={{ width: unitWidth }} />
                   ))}
                 </div>
                 
-                {/* Today marker */}
                 {todayPosition !== null && (
                   <div className="absolute top-0 bottom-0 w-0.5 bg-[#AD3815] z-20" style={{ left: todayPosition }} />
                 )}
                 
-                {/* Task bars */}
                 {flatRows.map((row) => {
                   const barPos = calculateBarPosition(row);
                   const rowHeight = getRowHeight(row.level);
@@ -595,18 +677,15 @@ export const ProgrammePlanGantt: React.FC = () => {
                   );
                 })}
 
-                {/* Extra rows for add-buttons (match left panel height) */}
                 {planData.phases.map((phase) => {
                   if (!expandedPhases.has(phase.id)) return null;
                   const addRows: React.ReactNode[] = [];
-                  // Phase tasks add button row
                   addRows.push(<div key={`add-row-${phase.id}`} className="border-b border-border/30 border-dashed" style={{ height: 28 }} />);
                   phase.sections?.forEach((section) => {
                     if (expandedSections.has(section.id)) {
                       addRows.push(<div key={`add-row-${section.id}`} className="border-b border-border/30 border-dashed" style={{ height: 28 }} />);
                     }
                   });
-                  // Add section row
                   addRows.push(<div key={`add-sec-row-${phase.id}`} className="border-b border-border/30 border-dashed" style={{ height: 28 }} />);
                   return addRows;
                 })}
@@ -616,7 +695,6 @@ export const ProgrammePlanGantt: React.FC = () => {
         </div>
       </CardContent>
 
-      {/* Edit Dialog */}
       <TaskEditDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
@@ -624,18 +702,25 @@ export const ProgrammePlanGantt: React.FC = () => {
         onSave={handleSaveTask}
       />
 
-      {/* Delete Confirmation */}
+      <ProgrammeAuditLogDialog
+        open={showAuditLog}
+        onOpenChange={setShowAuditLog}
+        entries={auditLog}
+      />
+
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogTitle>Delete {deleteTarget?.type === "section" ? "Section" : "Task"}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove "{deleteTarget?.taskName}"? This action cannot be undone.
+              Are you sure you want to remove "{deleteTarget?.name}"?
+              {deleteTarget?.type === "section" && " All tasks within this section will also be removed."}
+              {" "}This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTask} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
