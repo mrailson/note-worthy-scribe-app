@@ -1,71 +1,59 @@
 
 
-## Admin-Editable Room Availability Matrix and F2F/Remote Split
+## Add Total/F2F/Remote Breakdown to Practice Estate Cards
 
-### Overview
+### What Changes
 
-Add a system-admin-only editing mode to the Estates & Capacity tab. When a system admin views the page, they'll see an "Edit" toggle that reveals inline editing controls for the Room Availability Matrix table and the F2F/Remote split percentage. Normal users see the page exactly as it looks today -- no visual difference whatsoever.
+Each practice card in the "Practice Estate Summary" section will be enhanced to show three key figures instead of just the on-site count:
 
-All changes persist in Supabase so they survive browser refreshes and are visible to every user immediately.
+1. **Total Required** -- the number of sessions (or appointments) this practice needs based on its share of the total list size and the selected season
+2. **Face-to-Face (On-Site)** -- the available on-site sessions from the Room Availability Matrix (already shown, but now clearly labelled as F2F)
+3. **Remote Required** -- the remaining sessions/appointments needed remotely to meet the total (Total minus F2F)
 
-### What Becomes Editable
+The existing "Remote Sessions" balance card at the end of the grid will remain, showing the neighbourhood-wide remote balance.
 
-1. **Room Availability Matrix** -- every cell value (rooms per practice per session slot, e.g. "Monday AM / The Parks = 1"). Row and column totals auto-recalculate.
-2. **F2F / Remote split percentage** -- currently hardcoded at 50/50. The admin can change it to any split (e.g. 60/40). This cascades to:
-   - The "Face-to-Face Sessions Required" and "Remote Sessions Required" cards in Capacity Planning
-   - The F2F and Remote columns in the "Sessions Required by Practice" table
-   - The column headers (currently showing "F2F (50%)" / "Remote (50%)")
-   - The Practice Capacity Breakdown footer (F2F/Remote per season)
-   - The summary badges (on-site vs remote session counts)
+### Visual Layout per Card
 
-### Database Changes (Supabase Migration)
+Each practice card will keep its current styling (blue for HUB, grey for SPOKE) and gain a structured breakdown beneath the practice name:
 
-**New table: `nres_estates_config`**
+```text
++---------------------------------------+
+| The Parks MC              [HUB]       |
+| Roade, Blisworth, ...                 |
+|                                       |
+| Total Required: 34.6 sessions/week    |
+|                                       |
+|  F2F (On-Site)    |  Remote           |
+|  29               |  5.6              |
+|  sessions/week    |  sessions/week    |
+|                            [SystmOne] |
++---------------------------------------+
+```
 
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | text (PK) | Single row, value = 'default' |
-| room_data | jsonb | The full session matrix as JSON |
-| f2f_split_pct | integer | Face-to-face percentage (e.g. 50, 60) |
-| updated_at | timestamptz | Last edit timestamp |
-| updated_by | uuid (FK auth.users) | Who last edited |
+- The **Total Required** figure is prominent at the top
+- Below it, a two-column mini-layout shows the F2F and Remote split side by side
+- F2F comes from the room matrix totals; Remote = Total Required minus F2F
+- All values respect the Sessions/Appointments toggle and the season selector
+- Clear colour coding: F2F in green tones, Remote in indigo/purple tones
 
-RLS policies:
-- **SELECT**: All authenticated users can read
-- **UPDATE/INSERT**: Only system admins (via existing `is_system_admin` RPC)
+### Calculation Logic
 
-Seeded with current hardcoded values on creation.
-
-### Frontend Changes
-
-**`src/components/sda/SDAEstatesCapacity.tsx`**
-
-1. **New hook `useEstatesConfig()`** -- fetches from `nres_estates_config`, falls back to current hardcoded defaults if no row exists. Returns `{ roomData, f2fSplitPct, isLoading, updateConfig }`.
-
-2. **Admin edit mode** -- when `isSystemAdmin` is true, show a small "Edit Data" button (pencil icon) in the top-right area. Clicking it:
-   - Makes matrix cells into number inputs (compact, styled to match current cell colours)
-   - Shows a split percentage slider or input (e.g. "F2F: 60% / Remote: 40%")
-   - Shows "Save" and "Cancel" buttons
-   - On save, writes to Supabase and auto-recalculates all derived values
-
-3. **Auto-recalculation** -- all derived figures (totals, F2F/Remote splits in Capacity Planning, Practice Breakdown table, summary badges) use the stored split percentage instead of the hardcoded `/2` division.
-
-4. **No visual change for normal users** -- the edit controls are gated behind `isSystemAdmin`. The table renders identically using the same styling; data simply comes from Supabase instead of constants.
+For each practice:
+- `totalRequired = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize)`
+- `f2fAvailable = practiceColumnTotals[practice.key]` (from room matrix)
+- `remoteRequired = Math.max(0, totalRequired - f2fAvailable)`
+- When in appointments mode, multiply all values by 12
 
 ### Technical Details
 
-- Replace the hardcoded `sessionData` array and `capacityData.f2fRequired/remoteRequired` with values derived from the database config
-- The `f2fSplitPct` value (e.g. 50) drives: `f2fRequired = sessionsPerWeek * (f2fSplitPct / 100)` and `remoteRequired = sessionsPerWeek * ((100 - f2fSplitPct) / 100)`
-- `practiceCapacityData` F2F/Remote columns recalculate using the same split
-- Column headers update dynamically: `F2F (${f2fSplitPct}%)` / `Remote (${100 - f2fSplitPct}%)`
-- A "Last updated" timestamp and editor name display subtly below the table when data has been edited
-- Input validation: room values must be non-negative integers; split must be 0--100
+**Single file changed:** `src/components/sda/SDAEstatesCapacity.tsx`
 
-### Files Affected
+Within the practice card rendering block (around lines 680-732):
+- Add `totalRequired` calculation using `currentCapacity.sessionsPerWeek` and the practice's list size proportion
+- Add `remoteRequired` as `totalRequired - practice.totalSessions`
+- Restructure the card body to show the total prominently, then a two-column F2F/Remote split below
+- Apply the `multiplier` for appointments mode
+- Use consistent colour coding (green for F2F, indigo for Remote) matching the existing Remote Sessions balance card
 
-| File | Change |
-|------|--------|
-| Migration SQL | New `nres_estates_config` table + RLS + seed |
-| `src/hooks/useEstatesConfig.ts` | New hook for fetch/update |
-| `src/components/sda/SDAEstatesCapacity.tsx` | Replace hardcoded data with hook; add admin edit UI |
+No database changes, no new files, no new hooks needed -- purely a UI enhancement to the existing practice cards.
 
