@@ -211,10 +211,6 @@ export const SDADigitalIntegration = () => {
                 <span className="text-slate-500">Setup</span>
                 <span className="font-semibold text-slate-800 ml-1">24 hrs (one-off)</span>
               </div>
-              <div className="bg-white rounded px-2.5 py-1.5 border border-green-200" style={{ backgroundColor: "#ECFDF5" }}>
-                <span className="text-green-700">Additional Cost</span>
-                <span className="font-semibold text-green-800 ml-1">£0</span>
-              </div>
             </div>
             <div className="flex justify-end pt-1">
               <Button variant="outline" size="sm" asChild>
