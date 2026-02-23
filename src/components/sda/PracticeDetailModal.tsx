@@ -43,6 +43,27 @@ interface PracticeDetailModalProps {
   viewMode: "sessions" | "appointments";
 }
 
+const GPSessionsSummary = ({ practiceKey }: { practiceKey: PracticeKey }) => {
+  const recruitmentData = getRecruitmentDataForPractice(practiceKey);
+  if (!recruitmentData || recruitmentData.workforce.gp.length === 0) return null;
+
+  const gpTotal = recruitmentData.workforce.gp.reduce((sum, s) => sum + s.sessions, 0);
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <Users className="w-4 h-4 text-[#003087]" />
+        <h3 className="font-semibold text-[#003087] text-sm">GP Sessions ({gpTotal} total)</h3>
+      </div>
+      <div className="space-y-1.5">
+        {recruitmentData.workforce.gp.map((staff, i) => (
+          <StaffRowCompact key={i} staff={staff} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const RecruitmentStatusSection = ({ practiceKey }: { practiceKey: PracticeKey }) => {
   const [seasonFilter, setSeasonFilter] = useState<string>('combined');
   const recruitmentData = getRecruitmentDataForPractice(practiceKey);
@@ -446,6 +467,11 @@ export const PracticeDetailModal = ({
                 </div>
               </div>
             </div>
+
+            <Separator />
+
+            {/* GP Sessions Breakdown */}
+            <GPSessionsSummary practiceKey={practice.key} />
           </TabsContent>
 
           {/* Tab 2: Resource Mix Explorer */}
