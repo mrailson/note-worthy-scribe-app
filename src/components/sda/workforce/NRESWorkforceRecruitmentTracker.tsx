@@ -281,7 +281,7 @@ const NRESWorkforceRecruitmentTracker = () => {
               </span>
             )}
             {totals.byStatus.offered > 0 && (
-              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+              <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium">
                 📤 {totals.byStatus.offered} offered
               </span>
             )}
@@ -455,7 +455,7 @@ const NRESWorkforceRecruitmentTracker = () => {
             <span className="text-gray-600">Recruited/Confirmed</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+            <span className="w-3 h-3 rounded-full bg-amber-500"></span>
             <span className="text-gray-600">Offered</span>
           </div>
           <div className="flex items-center gap-1.5">
