@@ -913,7 +913,7 @@ const NRESReportingComprehensive = () => {
               Single Nominated Organisation (SNO) Requirements
               <ICBRequirementTooltip requirementId="open-book" position="right"><span /></ICBRequirementTooltip>
             </h3>
-            <p className="text-gray-600 mb-4">PCN Services Ltd acts as the Single Nominated Organisation, responsible for:</p>
+            <p className="text-gray-600 mb-4">PML Ltd acts as the Single Nominated Organisation, responsible for:</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
