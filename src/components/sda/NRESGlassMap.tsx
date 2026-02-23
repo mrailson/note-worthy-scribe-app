@@ -111,10 +111,10 @@ function TableView() {
         <table style={{ width: "100%", borderCollapse: "collapse", background: "rgba(10,26,46,0.5)", borderRadius: "8px", overflow: "hidden" }}>
           <thead>
             <tr style={{ background: "rgba(0,240,255,0.04)" }}>
-              <th style={thStyle} rowSpan={2}>PRACTICE</th><th style={thRight} rowSpan={2}>MONTHLY (£)</th><th style={thRight} rowSpan={2}>BUDGET 75% (£)</th>
+              <th style={{ ...thStyle, background: "rgba(10,26,46,0.8)" }} rowSpan={2}>PRACTICE</th><th style={{ ...thRight, background: "rgba(10,26,46,0.8)" }} rowSpan={2}>MONTHLY (£)</th><th style={{ ...thRight, background: "rgba(10,26,46,0.8)" }} rowSpan={2}>BUDGET 75% (£)</th>
               <th style={{ ...thStyle, textAlign: "center", background: "rgba(0,224,138,0.06)", borderBottom: "1px solid rgba(0,224,138,0.15)" }} colSpan={3}><span style={{ color: "#00e08a" }}>● NON-WINTER · 15.2/1,000 · 39 WKS</span></th>
               <th style={{ ...thStyle, textAlign: "center", background: "rgba(255,107,53,0.06)", borderBottom: "1px solid rgba(255,107,53,0.15)" }} colSpan={3}><span style={{ color: "#ff8855" }}>❄ WINTER · 18.2/1,000 · 13 WKS</span></th>
-              <th style={{ ...thRight, color: "#ffd700" }} rowSpan={2}>SDA REQ</th><th style={{ ...thStyle, textAlign: "center" }} rowSpan={2}>TYPE</th>
+              <th style={{ ...thRight, color: "#ffd700", background: "rgba(10,26,46,0.8)" }} rowSpan={2}>SDA REQ</th><th style={{ ...thStyle, textAlign: "center", background: "rgba(10,26,46,0.8)" }} rowSpan={2}>TYPE</th>
             </tr>
             <tr style={{ background: "rgba(0,240,255,0.03)" }}>
               <th style={{ ...thRight, color: "#80ccaa", fontSize: "8px" }}>WKLY</th><th style={{ ...thRight, color: "#80ccaa", fontSize: "8px" }}>F2F</th><th style={{ ...thRight, color: "#80ccaa", fontSize: "8px" }}>REM</th>
