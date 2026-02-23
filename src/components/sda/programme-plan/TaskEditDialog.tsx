@@ -16,8 +16,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 import { ProgrammeTask } from "@/types/sdaProgrammePlan";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TaskEditDialogProps {
   open: boolean;
@@ -42,6 +49,22 @@ const formatDDMMYY = (date: Date): string => {
   return `${d}/${m}/${y}`;
 };
 
+type TaskStatus = "pending" | "in-progress" | "done";
+
+const getStatusFromProgress = (progress: number): TaskStatus => {
+  if (progress === 100) return "done";
+  if (progress > 0) return "in-progress";
+  return "pending";
+};
+
+const getProgressFromStatus = (status: TaskStatus): number => {
+  switch (status) {
+    case "done": return 100;
+    case "in-progress": return 50;
+    case "pending": return 0;
+  }
+};
+
 export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
   open,
   onOpenChange,
@@ -53,6 +76,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState<TaskStatus>("pending");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
@@ -62,9 +86,20 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       setStartDate(parseDDMMYY(task.startDate));
       setEndDate(parseDDMMYY(task.endDate));
       setProgress(task.progress);
+      setStatus(getStatusFromProgress(task.progress));
       setNotes(task.notes || "");
     }
   }, [task]);
+
+  const handleStatusChange = (newStatus: TaskStatus) => {
+    setStatus(newStatus);
+    setProgress(getProgressFromStatus(newStatus));
+  };
+
+  const handleProgressChange = (value: number) => {
+    setProgress(value);
+    setStatus(getStatusFromProgress(value));
+  };
 
   const handleSave = () => {
     if (!task) return;
@@ -82,7 +117,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px] max-h-[calc(100vh-8rem)] overflow-y-auto bg-background">
+      <DialogContent className="sm:max-w-[520px] max-h-[calc(100vh-8rem)] overflow-y-auto bg-white border shadow-xl rounded-xl">
         <DialogHeader className="px-8 sm:px-10 pt-2">
           <DialogTitle>Edit Task</DialogTitle>
           <DialogDescription>Update task details below.</DialogDescription>
@@ -126,9 +161,24 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
               </Popover>
             </div>
           </div>
-          <div className="grid gap-1.5">
-            <Label>Progress: {progress}%</Label>
-            <Slider value={[progress]} onValueChange={(v) => setProgress(v[0])} max={100} step={5} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={(v) => handleStatusChange(v as TaskStatus)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Progress: {progress}%</Label>
+              <Slider value={[progress]} onValueChange={(v) => handleProgressChange(v[0])} max={100} step={5} className="mt-2" />
+            </div>
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="task-notes">Notes</Label>
