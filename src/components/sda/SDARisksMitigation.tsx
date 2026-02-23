@@ -151,7 +151,7 @@ export const SDARisksMitigation = () => {
               </div>
             </AccordionTrigger>
             <AccordionContent>
-              <CardContent className="pt-0 space-y-6 px-2 sm:px-4">
+              <CardContent className="pt-0 space-y-6 px-0 sm:px-2">
                 
                 {/* Risk Matrix Heatmap */}
                 <RiskMatrixHeatmap risks={risks} />
