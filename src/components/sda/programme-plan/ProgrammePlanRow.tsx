@@ -134,7 +134,22 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
         </div>
       )}
 
-      {level !== "task" && (
+      {level === "section" && (
+        <div className="flex items-center gap-1 mr-1">
+          <span className="w-8 text-right text-xs opacity-80">{progress}%</span>
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/20 text-destructive transition-opacity"
+              title="Delete section"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {level === "phase" && (
         <div className="w-12 text-right pr-2 text-xs opacity-80">
           {progress}%
         </div>
