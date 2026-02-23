@@ -1,45 +1,25 @@
 
 
-## Integrate Recruitment Status into Practice Detail Modals
+## Restrict NRES Submenu to SDA Pilot Dashboard Only
 
-### What This Does
-Each practice pop-up modal (e.g. The Parks MC, Brackley MC) will gain a new **"Recruitment Status"** section showing:
-- A summary of sessions filled (recruited/offered/buy-back), in pipeline (TBC/potential), and still outstanding
-- A colour-coded progress bar (green = filled, amber = pipeline, red = outstanding)
-- A detailed breakdown of each staff member/vacancy with their status, session count, and notes
-- Grouped by role type (GP, ACP/ANP, Buy-Back)
+Currently, all NRES-activated users (except ICB members) can see five submenu items under NRES: SDA Pilot Dashboard, Results Dashboard, Proactive Complex Care, AI Phone Agents, and Comms Strategy. The change will restrict regular NRES users to only see **SDA Pilot Dashboard**, while system admins retain access to all items.
 
-This mirrors the data from the Workforce Recruitment Tracker but presented in the context of each individual practice.
+### What Changes
 
-### How It Will Look
-Below the existing "Resource Mix Explorer" section in each modal, a new card will appear with:
-1. **Header**: "Recruitment Status" with a Users icon
-2. **Summary row**: Three small stat boxes — Filled (green), Pipeline (amber), Outstanding (red) — each showing session count and percentage
-3. **Progress bar**: Visual representation of recruitment coverage
-4. **Staff detail list**: Each person/vacancy shown with a coloured status badge, session count, role type, and notes
+**File: `src/components/Header.tsx`** (lines ~318-351)
 
-### Technical Approach
+Replace the current `!isIcbMember` condition with `isSystemAdmin` so that only system admins see the additional submenu items:
 
-1. **Extract recruitment data** from the tracker into a shared data file (`src/data/nresRecruitmentData.ts`) so both the tracker component and the modal can reference the same source of truth.
+- **Before**: `{!isIcbMember && ( ... )}` — hides extras only for ICB members
+- **After**: `{isSystemAdmin && ( ... )}` — hides extras for everyone except system admins
 
-2. **Create a mapping** from `PracticeKey` (used by the modal) to the recruitment tracker's practice ID:
-   - `theParks` -> `parks`
-   - `brackley` -> `brackley`
-   - `springfield` -> `springfield`
-   - `towcester` -> `towcester`
-   - `bugbrooke` -> `bugbrooke`
-   - `brook` -> `brook`
-   - `denton` -> `denton`
+This applies to both the desktop dropdown and the mobile drawer (if duplicated there).
 
-3. **Add a new section** to `PracticeDetailModal.tsx` after the Resource Mix Explorer, displaying:
-   - Summary stats (filled/pipeline/outstanding counts and percentages)
-   - A progress bar matching the tracker's visual style
-   - Individual staff rows with status badges, grouped by GP / ACP / Buy-Back
+The items affected:
+- Results Dashboard (`/nres`)
+- Proactive Complex Care (`/nres/complex-care`)
+- AI Phone Agents (`/gp-genie`)
+- Comms Strategy (`/nres/comms-strategy`)
 
-4. **Update the tracker component** to import from the shared data file instead of having inline data, keeping both views in sync.
-
-### Files to Create/Modify
-- **Create**: `src/data/nresRecruitmentData.ts` — shared practice recruitment data and helper functions (status config, calculation utilities)
-- **Modify**: `src/components/sda/PracticeDetailModal.tsx` — add the Recruitment Status section using data from the shared file
-- **Modify**: `src/components/sda/workforce/NRESWorkforceRecruitmentTracker.tsx` — import practice data from the shared file instead of defining it inline
+All NRES users will still see "SDA Pilot Dashboard" as before. System admins will continue to see all five items. The routes themselves remain protected so even if someone navigates directly, the `ProtectedRoute` guard still applies.
 
