@@ -347,7 +347,7 @@ export const PracticeDetailModal = ({
                       <span className="font-bold text-slate-900">{Math.round(nwTotal * 12).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-700 font-medium">Total SDA Appointments</span>
+                      <span className="text-slate-700 font-medium">Total Non-Winter SDA Appts</span>
                       <span className="font-bold text-slate-900">{Math.round(nwTotal * 12 * 39).toLocaleString()}</span>
                     </div>
                     <Separator className="my-1" />
@@ -383,7 +383,7 @@ export const PracticeDetailModal = ({
                       <span className="font-bold text-slate-900">{Math.round(wTotal * 12).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-700 font-medium">Total SDA Appointments</span>
+                      <span className="text-slate-700 font-medium">Total Winter SDA Appts</span>
                       <span className="font-bold text-slate-900">{Math.round(wTotal * 12 * 13).toLocaleString()}</span>
                     </div>
                     <Separator className="my-1" />
