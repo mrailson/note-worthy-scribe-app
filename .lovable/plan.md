@@ -1,59 +1,61 @@
 
 
-## Add Total/F2F/Remote Breakdown to Practice Estate Cards
+## Practice Detail Pop-Out Modal (Light Theme, NRES Style)
 
-### What Changes
+### Overview
+Each practice card in the Practice Estate Summary section becomes clickable. Clicking opens a light-themed modal styled consistently with the NRES Results Dashboard (white cards, NHS blue headings, `#F0F4F5` backgrounds).
 
-Each practice card in the "Practice Estate Summary" section will be enhanced to show three key figures instead of just the on-site count:
+### Modal Content
 
-1. **Total Required** -- the number of sessions (or appointments) this practice needs based on its share of the total list size and the selected season
-2. **Face-to-Face (On-Site)** -- the available on-site sessions from the Room Availability Matrix (already shown, but now clearly labelled as F2F)
-3. **Remote Required** -- the remaining sessions/appointments needed remotely to meet the total (Total minus F2F)
+**Header:**
+- Practice name in large `text-[#003087]` font
+- HUB/SPOKE badge (NHS blue for HUB, grey for SPOKE)
+- Clinical system badge (SystmOne/EMIS)
+- Patient list size and percentage of neighbourhood total
 
-The existing "Remote Sessions" balance card at the end of the grid will remain, showing the neighbourhood-wide remote balance.
+**Financial Summary Card** (light grey `bg-[#F0F4F5]` card):
+- Monthly SDA allocation (GBP)
+- 9-month budget at 75%
+- Annual appointment target
 
-### Visual Layout per Card
+**Seasonal Breakdown** (two side-by-side white cards):
+- Non-Winter (39 wks): weekly requirement, F2F count, Remote count, rate per 1,000
+- Winter (13 wks): weekly requirement, F2F count, Remote count, rate per 1,000
 
-Each practice card will keep its current styling (blue for HUB, grey for SPOKE) and gain a structured breakdown beneath the practice name:
+**Resource Mix Section** (interactive):
+- F2F / Remote percentage slider (using existing Slider component)
+- Preset buttons: 50/50, 75/25, 100/0
+- Live-updating F2F and Remote values based on slider position
+- Green-tinted F2F box and indigo-tinted Remote box (matching existing card styling)
 
-```text
-+---------------------------------------+
-| The Parks MC              [HUB]       |
-| Roade, Blisworth, ...                 |
-|                                       |
-| Total Required: 34.6 sessions/week    |
-|                                       |
-|  F2F (On-Site)    |  Remote           |
-|  29               |  5.6              |
-|  sessions/week    |  sessions/week    |
-|                            [SystmOne] |
-+---------------------------------------+
-```
-
-- The **Total Required** figure is prominent at the top
-- Below it, a two-column mini-layout shows the F2F and Remote split side by side
-- F2F comes from the room matrix totals; Remote = Total Required minus F2F
-- All values respect the Sessions/Appointments toggle and the season selector
-- Clear colour coding: F2F in green tones, Remote in indigo/purple tones
+### Styling Approach
+Matches the NRES `PatientDetailModal` pattern exactly:
+- `DialogContent` with `max-w-3xl`, white background, scrollable
+- Section headings with NHS blue icon + `text-[#003087]` title
+- Cards with `bg-[#F0F4F5]` for key info, white for detail sections
+- `Separator` between sections
+- NHS colour palette throughout (#005EB8, #003087, #007F3B, #ED8B00)
 
 ### Calculation Logic
-
-For each practice:
+All values derived dynamically from existing data:
 - `totalRequired = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize)`
-- `f2fAvailable = practiceColumnTotals[practice.key]` (from room matrix)
-- `remoteRequired = Math.max(0, totalRequired - f2fAvailable)`
-- When in appointments mode, multiply all values by 12
+- `f2fAvailable` from room matrix totals
+- `remoteRequired = totalRequired - f2fAvailable`
+- Financial: `monthlyBudget = (practice.listSize / totalListSize) * totalBudget`
+- Slider adjusts the F2F/Remote split locally (exploratory, not persisted)
+- All values respect the current Sessions/Appointments toggle
 
 ### Technical Details
 
-**Single file changed:** `src/components/sda/SDAEstatesCapacity.tsx`
+**New file:** `src/components/sda/PracticeDetailModal.tsx`
+- Receives practice data, capacity config, season, view mode, and split percentage as props
+- Local state for the resource mix slider
+- Uses existing `Dialog`, `DialogContent`, `DialogHeader`, `Card`, `Slider`, `Badge`, `Separator` components
 
-Within the practice card rendering block (around lines 680-732):
-- Add `totalRequired` calculation using `currentCapacity.sessionsPerWeek` and the practice's list size proportion
-- Add `remoteRequired` as `totalRequired - practice.totalSessions`
-- Restructure the card body to show the total prominently, then a two-column F2F/Remote split below
-- Apply the `multiplier` for appointments mode
-- Use consistent colour coding (green for F2F, indigo for Remote) matching the existing Remote Sessions balance card
+**Edit:** `src/components/sda/SDAEstatesCapacity.tsx`
+- Add `selectedPracticeIndex` state (number | null)
+- Add `cursor-pointer` and `hover:shadow-md hover:scale-[1.01]` to each practice card
+- Import and render `PracticeDetailModal` at the bottom of the component
+- Pass all calculated data (capacity, financials, room matrix totals) as props
 
-No database changes, no new files, no new hooks needed -- purely a UI enhancement to the existing practice cards.
-
+No database changes, no new hooks, no new dependencies required.
