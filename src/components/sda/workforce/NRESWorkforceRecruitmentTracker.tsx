@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 const NRESWorkforceRecruitmentTracker = () => {
-  const [viewMode, setViewMode] = useState('practice'); // 'practice' or 'neighbourhood'
+  const [viewMode, setViewMode] = useState('neighbourhood'); // 'practice' or 'neighbourhood'
   const [seasonFilter, setSeasonFilter] = useState('combined'); // 'winter', 'non-winter', 'combined'
   const [expandedPractice, setExpandedPractice] = useState(null);
   const [sortColumn, setSortColumn] = useState('name'); // 'name', 'required', 'filled', 'pipeline', 'outstanding'
