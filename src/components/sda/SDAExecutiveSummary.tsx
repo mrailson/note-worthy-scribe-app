@@ -93,7 +93,7 @@ export const SDAExecutiveSummary = () => {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
@@ -105,6 +105,15 @@ export const SDAExecutiveSummary = () => {
                       <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
                         <Users className="w-6 h-6 text-[#005EB8]" />
                       </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-slate-200 flex items-center gap-3">
+                      <div>
+                        <p className="text-xs text-slate-500 font-medium">Annual Capacity</p>
+                        <p className="text-xl font-bold text-slate-900">74,301</p>
+                      </div>
+                      <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded-full">
+                        50% Remote Assumption
+                      </span>
                     </div>
                     {/* Live Planning Map Button */}
                     <div
@@ -214,22 +223,6 @@ export const SDAExecutiveSummary = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm text-slate-500 font-medium">Annual Capacity</p>
-                        <p className="text-3xl font-bold text-slate-900 mt-1">74,301</p>
-                        <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                          50% Remote Assumption
-                        </span>
-                      </div>
-                      <div className="w-12 h-12 rounded-xl bg-cyan-50 flex items-center justify-center">
-                        <Calendar className="w-6 h-6 text-cyan-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
 
                 <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
