@@ -542,12 +542,12 @@ export const SDAEstatesCapacity = () => {
                   <div>The Parks</div>
                   <div className="text-xs font-normal text-slate-400">4 sites</div>
                 </TableHead>
-                <TableHead className="text-center font-semibold">Springfield</TableHead>
                 <TableHead className="text-center font-semibold">Brackley</TableHead>
-                <TableHead className="text-center font-semibold">Brook</TableHead>
-                <TableHead className="text-center font-semibold">Bugbrooke</TableHead>
-                <TableHead className="text-center font-semibold">Denton</TableHead>
+                <TableHead className="text-center font-semibold">Springfield</TableHead>
                 <TableHead className="text-center font-semibold">Towcester</TableHead>
+                <TableHead className="text-center font-semibold">Bugbrooke</TableHead>
+                <TableHead className="text-center font-semibold">Brook</TableHead>
+                <TableHead className="text-center font-semibold">Denton</TableHead>
                 <TableHead className="text-center font-semibold bg-slate-100">Total</TableHead>
               </TableRow>
             </TableHeader>
