@@ -210,7 +210,6 @@ export const PracticeDetailModal = ({
   // Financial calculations
   const monthlyBudget = Math.round((practice.listSize * 26.33) / 12 * 100) / 100;
   const budget75 = Math.round(monthlyBudget * 9);
-  const annualTarget = Math.round(74301 * (practice.listSize / totalListSize));
 
   // Seasonal calculations using activeSplit (F2F/Remote from parent)
   const nwTotal = capacityNonWinter.sessionsPerWeek * (practice.listSize / totalListSize);
@@ -222,6 +221,10 @@ export const PracticeDetailModal = ({
   const wF2f = wTotal * (activeSplit / 100);
   const wRemote = wTotal * ((100 - activeSplit) / 100);
   const wRate = ((wTotal * 12) / practice.listSize * 1000).toFixed(1);
+
+  const nonWinterAppts = Math.round(nwTotal * 12 * 39);
+  const winterAppts = Math.round(wTotal * 12 * 13);
+  const annualTarget = nonWinterAppts + winterAppts;
 
   // F2F from room matrix
   const f2fFromRooms = practice.totalSessions;
@@ -348,7 +351,7 @@ export const PracticeDetailModal = ({
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-700 font-medium">Total Non-Winter SDA Appts</span>
-                      <span className="font-bold text-slate-900">{Math.round(nwTotal * 12 * 39).toLocaleString()}</span>
+                      <span className="font-bold text-slate-900">{nonWinterAppts.toLocaleString()}</span>
                     </div>
                     <Separator className="my-1" />
                     <div className="flex justify-between text-xs">
@@ -384,7 +387,7 @@ export const PracticeDetailModal = ({
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-700 font-medium">Total Winter SDA Appts</span>
-                      <span className="font-bold text-slate-900">{Math.round(wTotal * 12 * 13).toLocaleString()}</span>
+                      <span className="font-bold text-slate-900">{winterAppts.toLocaleString()}</span>
                     </div>
                     <Separator className="my-1" />
                     <div className="flex justify-between text-xs">
