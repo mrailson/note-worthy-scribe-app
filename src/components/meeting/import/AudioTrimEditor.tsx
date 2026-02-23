@@ -58,6 +58,13 @@ export const AudioTrimEditor: React.FC<AudioTrimEditorProps> = ({
 
   const hasAudioFiles = files.some(f => f.type === 'audio');
 
+  // Auto-expand when audio files are present
+  useEffect(() => {
+    if (hasAudioFiles) {
+      setIsOpen(true);
+    }
+  }, [hasAudioFiles, files.length]);
+
   // Decode audio durations when editor opens
   useEffect(() => {
     if (!isOpen || trimFiles.length > 0) return;
