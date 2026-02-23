@@ -48,7 +48,7 @@ export const AudioTrimEditor: React.FC<AudioTrimEditorProps> = ({
   onCancel,
   isProcessing = false,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [trimFiles, setTrimFiles] = useState<TrimFile[]>([]);
   const [isDecoding, setIsDecoding] = useState(false);
   const [isTrimming, setIsTrimming] = useState(false);
