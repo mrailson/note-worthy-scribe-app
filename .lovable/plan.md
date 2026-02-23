@@ -1,52 +1,40 @@
 
 
-## Edit Risk Register Entries
+## Add Document Attachments to Risk Register
 
 ### Overview
-Add inline and modal-based editing to the Project Risks Register, allowing users to modify the current risk score (Likelihood 1-5 x Consequence 1-5 = 1-25), mitigation text, key concerns, owner, last reviewed date, and assurance indicators (add, edit, delete).
+Add the ability to attach documents (any format, multiple files, max 20MB each) to individual risks. Attached documents will display as small icons on the main risk register table row, and the Edit Risk modal will include a document management section.
 
-### What Changes
+### Changes Required
 
-**1. State Management for Editable Risks**
-- Convert `projectRisks` from a static imported array to local React state in `SDARisksMitigation.tsx` using `useState`, seeded from the imported data.
-- Track which risk is currently being edited via `editingRiskId` state.
+#### 1. Update `ProjectRisk` type (`src/components/sda/risk-register/projectRisksData.ts`)
+- Add a `documents` array field to the `ProjectRisk` interface:
+  - Each document: `{ id: string, name: string, size: number, type: string, file: File }`
 
-**2. Edit Modal/Dialog for Each Risk**
-- Add an "Edit" button (pencil icon) to each risk row in the table.
-- Clicking opens a Dialog/modal pre-populated with that risk's current values:
-  - **Current Score**: Two dropdown selects side-by-side — Likelihood (1-5) and Consequence (1-5) — with a live-calculated total displayed (e.g. "4 x 5 = 20") and the resulting rating badge.
-  - **Mitigation**: Textarea field.
-  - **Key Concerns**: Textarea field.
-  - **Owner**: Text input field.
-  - **Last Reviewed**: Date picker input (defaults to today's date in `MMM-YY` format).
-  - **Assurance Indicators**: A list of current indicators, each with:
-    - Editable text input
-    - Completed checkbox toggle
-    - Delete button (trash icon)
-    - "Add Indicator" button at the bottom to append new entries.
-- Save and Cancel buttons at the modal footer.
+#### 2. Update Edit Risk Dialog (`src/components/sda/risk-register/RiskEditDialog.tsx`)
+- Add a **Documents** section below Assurance Indicators
+- Include a file drop zone / file input button accepting any format
+- Validate each file is under 20MB before adding
+- List attached documents with name, size, and a delete button
+- Pass documents through on save
 
-**3. Heatmap & Summary Auto-Update**
-- Since the risks array is now state, the Risk Position Heatmap and summary badges (High/Significant/Escalation counts) will automatically recalculate when a risk is saved.
-
-**4. Score Change Tracking**
-- Original scores remain immutable — only `currentLikelihood`, `currentConsequence`, and `currentScore` are editable, preserving the trend indicators.
+#### 3. Update Main Table Row (`src/components/sda/SDARisksMitigation.tsx`)
+- Add a small paperclip/file icon with a count badge on each risk row that has documents attached
+- Clicking the icon could open the edit dialog or show a tooltip listing the files
+- Record document additions/removals in the audit log
 
 ### Technical Details
 
-**Files to modify:**
-- `src/components/sda/SDARisksMitigation.tsx` — Add `useState` for risks array and editing state; add edit button column; import and render the new edit dialog.
-- `src/components/sda/risk-register/projectRisksData.ts` — No changes needed (data stays as the initial seed).
+**Document storage**: Since the risk register currently uses local React state (not Supabase), documents will be held in memory as `File` objects. This matches the existing pattern -- no database changes needed.
 
-**New file:**
-- `src/components/sda/risk-register/RiskEditDialog.tsx` — The edit modal component containing all form fields, score calculator, and assurance indicator management.
+**File validation**: Max 20MB per file checked on selection, with a toast error if exceeded.
 
-**Key implementation details:**
-- Uses existing `Dialog` component from `@/components/ui/dialog`.
-- Uses existing `Select`, `Input`, `Textarea`, `Checkbox`, `Button` components.
-- Score auto-calculates as `likelihood x consequence` when either dropdown changes.
-- Rating badge updates live using the existing `getRatingFromScore` and `getRatingBadgeStyles` utilities.
-- Assurance indicators managed via local array state within the dialog, with add/edit/delete operations.
-- Last reviewed date uses a standard date input, formatted to `MMM-YY` on save.
-- All changes are in-memory only (no database persistence) — consistent with the current static data approach.
+**UI on table row**: A `Paperclip` icon from lucide-react with a small count badge, shown only when documents exist. Keeps the table compact.
+
+**Audit trail**: Document additions and removals will be tracked as changes (e.g. "Document added: report.pdf", "Document removed: notes.docx").
+
+### Files to Modify
+- `src/components/sda/risk-register/projectRisksData.ts` -- add `documents` to interface
+- `src/components/sda/risk-register/RiskEditDialog.tsx` -- add document upload/management section
+- `src/components/sda/SDARisksMitigation.tsx` -- show document icon on table rows, track in audit
 
