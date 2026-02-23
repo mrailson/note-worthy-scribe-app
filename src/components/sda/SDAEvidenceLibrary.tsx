@@ -31,6 +31,25 @@ interface Meeting {
 // Programme Board Meetings with their documents
 const programmeBoardMeetings: Meeting[] = [
   {
+    id: 24,
+    date: "24 February 2026",
+    location: "Programme Board Meeting",
+    documents: [
+      { 
+        title: "Programme Board Agenda (24 Feb 2026)", 
+        type: "agenda",
+        filePath: "/documents/SDA_DRAFT_Agenda_24_February_2026.pdf"
+      },
+      { 
+        title: "Draft Minutes (10 Feb 2026)", 
+        type: "draft-minutes",
+        filePath: "/documents/DRAFT_SDA_MINUTES_10_02_2026.pdf",
+        isDraft: true,
+        draftNote: "Draft - Final version to follow"
+      },
+    ]
+  },
+  {
     id: 23,
     date: "23 December 2025",
     location: "Brackley Medical Centre",
@@ -187,7 +206,7 @@ const handleDownload = (filePath?: string) => {
 };
 
 export const SDAEvidenceLibrary = () => {
-  const [openProgrammeMeetings, setOpenProgrammeMeetings] = useState<number[]>([23]);
+  const [openProgrammeMeetings, setOpenProgrammeMeetings] = useState<number[]>([24]);
   const [openWorkgroupMeetings, setOpenWorkgroupMeetings] = useState<number[]>([]);
   const [openVcseMeetings, setOpenVcseMeetings] = useState<number[]>([1, 2]);
   const [openCommunications, setOpenCommunications] = useState<number[]>([1]);
