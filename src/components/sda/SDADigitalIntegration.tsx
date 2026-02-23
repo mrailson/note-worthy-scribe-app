@@ -165,6 +165,26 @@ export const SDADigitalIntegration = () => {
             The Managerial Lead will manage this workbook centrally, populating it directly where possible and working with practices to gather any data they can't source themselves. Formula-driven across 20 tabs with full open book financials visible to the NRES board and ICB.
           </p>
 
+          {/* Expandable tab explorer */}
+          <div>
+            <button
+              onClick={() => setTabExplorerOpen(!tabExplorerOpen)}
+              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+            >
+              <span className="text-sm text-slate-700">📋 <span className="font-medium">20 tabs</span> — Core · Rota · Finance · Compliance · Practice</span>
+              {tabExplorerOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+            </button>
+            {tabExplorerOpen && (
+              <div className="flex flex-wrap gap-2 mt-3 p-3 bg-slate-50 rounded-lg">
+                {excelTabs.map((tab, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white rounded text-xs text-slate-700 border border-slate-200" style={{ borderLeft: `3px solid ${tab.color}` }}>
+                    <span>{tab.icon}</span> {tab.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Excel Resource Analysis */}
           <div className="bg-white rounded-lg p-4 space-y-3 border border-slate-200">
             <div className="flex items-start gap-3">
@@ -204,26 +224,6 @@ export const SDADigitalIntegration = () => {
                 </a>
               </Button>
             </div>
-          </div>
-
-          {/* Expandable tab explorer */}
-          <div>
-            <button
-              onClick={() => setTabExplorerOpen(!tabExplorerOpen)}
-              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors text-left"
-            >
-              <span className="text-sm text-slate-700">📋 <span className="font-medium">20 tabs</span> — Core · Rota · Finance · Compliance · Practice</span>
-              {tabExplorerOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-            </button>
-            {tabExplorerOpen && (
-              <div className="flex flex-wrap gap-2 mt-3 p-3 bg-slate-50 rounded-lg">
-                {excelTabs.map((tab, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white rounded text-xs text-slate-700 border border-slate-200" style={{ borderLeft: `3px solid ${tab.color}` }}>
-                    <span>{tab.icon}</span> {tab.label}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Footer */}
