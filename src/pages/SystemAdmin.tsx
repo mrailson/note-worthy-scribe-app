@@ -1048,7 +1048,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     const exportData = filteredUsers.map(user => ({
       'Full Name': user.full_name,
       'Email': user.email,
-      'Last Login': user.last_login 
+      'Last Activity': user.last_login 
         ? new Date(user.last_login).toLocaleDateString('en-GB', {
             year: 'numeric',
             month: 'short',
@@ -1069,7 +1069,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     ws['!cols'] = [
       { wch: 25 }, // Full Name
       { wch: 35 }, // Email
-      { wch: 20 }, // Last Login
+      { wch: 20 }, // Last Activity
       { wch: 35 }, // Practice Name
       { wch: 20 }  // Role
     ];
@@ -2441,7 +2441,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                           }}
                         >
                           <div className="flex items-center gap-1">
-                            Last Login
+                            Last Activity
                             {userSortField === 'last_login' ? (
                               userSortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
                             ) : (
