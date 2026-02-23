@@ -43,28 +43,6 @@ export const RiskEditDialog = ({ risk, open, onOpenChange, onSave }: RiskEditDia
     }
   }, [risk]);
 
-  if (!risk) return null;
-
-  const score = likelihood * consequence;
-  const rating = getRatingFromScore(score);
-  const badgeStyles = getRatingBadgeStyles(score);
-
-  const handleSave = () => {
-    onSave({
-      ...risk,
-      currentLikelihood: likelihood,
-      currentConsequence: consequence,
-      currentScore: score,
-      mitigation,
-      concerns,
-      owner,
-      lastReviewed,
-      assuranceIndicators: indicators,
-      documents,
-    });
-    onOpenChange(false);
-  };
-
   const handleFileAdd = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -87,6 +65,28 @@ export const RiskEditDialog = ({ risk, open, onOpenChange, onSave }: RiskEditDia
     }
     e.target.value = '';
   }, []);
+
+  if (!risk) return null;
+
+  const score = likelihood * consequence;
+  const rating = getRatingFromScore(score);
+  const badgeStyles = getRatingBadgeStyles(score);
+
+  const handleSave = () => {
+    onSave({
+      ...risk,
+      currentLikelihood: likelihood,
+      currentConsequence: consequence,
+      currentScore: score,
+      mitigation,
+      concerns,
+      owner,
+      lastReviewed,
+      assuranceIndicators: indicators,
+      documents,
+    });
+    onOpenChange(false);
+  };
 
   const removeDocument = (docId: string) => {
     setDocuments(prev => prev.filter(d => d.id !== docId));
