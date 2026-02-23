@@ -431,7 +431,7 @@ function TimelineTab() {
       </div>
 
       <div style={{ padding: "12px 20px 6px", fontSize: 12, color: txS, background: wh }}>
-        Malcolm Railson and Amanda Palin will manage this workbook centrally, populating it directly where possible and working with practices to gather any data they can't source themselves. The aim is to minimise the burden on practices while maintaining accurate, real-time operational oversight. As the Notewell AI system progresses (Alpha → Beta → Go-Live), each Excel tab is progressively replaced by a live dashboard.
+        The Managerial Lead will manage this workbook centrally, populating it directly where possible and working with practices to gather any data they can't source themselves. The aim is to minimise the burden on practices while maintaining accurate, real-time operational oversight. As the Notewell AI system progresses (Alpha → Beta → Go-Live), each Excel tab is progressively replaced by a live dashboard.
       </div>
 
       {/* Tab group selector */}

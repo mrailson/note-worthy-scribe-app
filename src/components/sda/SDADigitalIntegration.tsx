@@ -156,7 +156,7 @@ export const SDADigitalIntegration = () => {
 
           {/* Body text */}
           <p className="text-sm text-slate-600 leading-relaxed">
-            Malcolm Railson and Amanda Palin will manage this workbook centrally, populating it directly where possible and working with practices to gather any data they can't source themselves. Formula-driven across 20 tabs with full open book financials visible to the NRES board and ICB.
+            The Managerial Lead will manage this workbook centrally, populating it directly where possible and working with practices to gather any data they can't source themselves. Formula-driven across 20 tabs with full open book financials visible to the NRES board and ICB.
           </p>
 
           {/* Expandable tab explorer */}
