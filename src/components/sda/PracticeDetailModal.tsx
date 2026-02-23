@@ -44,45 +44,20 @@ interface PracticeDetailModalProps {
 }
 
 const RecruitmentStatusSection = ({ practiceKey }: { practiceKey: PracticeKey }) => {
-  const [seasonFilter, setSeasonFilter] = useState<string>('combined');
   const recruitmentData = getRecruitmentDataForPractice(practiceKey);
   if (!recruitmentData) return null;
 
-  const totals = calculatePracticeTotals(recruitmentData, seasonFilter);
+  const totals = calculatePracticeTotals(recruitmentData, 'combined');
 
   const filledPct = totals.required > 0 ? Math.min((totals.totalFilled / totals.required) * 100, 100) : 0;
   const pipelinePct = totals.required > 0 ? Math.min((totals.totalPipeline / totals.required) * 100, 100 - filledPct) : 0;
   const outstandingPct = totals.required > 0 ? Math.min((totals.totalOutstanding / totals.required) * 100, 100 - filledPct - pipelinePct) : 0;
 
-  const seasonLabel = seasonFilter === 'winter' ? 'Winter (13 wks)' : seasonFilter === 'non-winter' ? 'Non-Winter (39 wks)' : 'Combined';
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-[#003087]" />
-          <h3 className="font-semibold text-[#003087] text-sm">Recruitment Status <span className="font-normal text-slate-400 text-xs">as at 23rd February 2026</span></h3>
-        </div>
-        <div className="flex items-center gap-1 bg-[#F0F4F5] rounded-lg p-0.5">
-          <button
-            onClick={() => setSeasonFilter("combined")}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all ${seasonFilter === "combined" ? "bg-white text-[#003087] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-          >
-            📊 Combined
-          </button>
-          <button
-            onClick={() => setSeasonFilter("non-winter")}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all ${seasonFilter === "non-winter" ? "bg-white text-[#003087] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-          >
-            ☀️ Non-Winter
-          </button>
-          <button
-            onClick={() => setSeasonFilter("winter")}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all ${seasonFilter === "winter" ? "bg-white text-[#003087] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-          >
-            ❄️ Winter
-          </button>
-        </div>
+      <div className="flex items-center gap-2 mb-3">
+        <Users className="w-4 h-4 text-[#003087]" />
+        <h3 className="font-semibold text-[#003087] text-sm">Recruitment Status <span className="font-normal text-slate-400 text-xs">as at 23rd February 2026</span></h3>
       </div>
 
       {/* Summary stats — {seasonLabel} */}
