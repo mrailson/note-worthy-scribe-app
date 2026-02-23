@@ -239,7 +239,7 @@ export const SDADigitalIntegration = () => {
 
 
       <CollapsibleCard
-        title="SDA Reporting Requirements from Specification — Overview & Planning"
+        title="Full SDA Reporting Requirements from Specification — Overview & Planning"
         icon={<BarChart3 className="w-5 h-5" />}
         defaultOpen={true}
         
