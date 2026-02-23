@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, AlertTriangle } from "lucide-react";
-import { ProjectRisk, AssuranceItem, getRatingFromScore, getRatingBadgeStyles } from "./projectRisksData";
+import { Trash2, Plus, AlertTriangle, Upload, FileText } from "lucide-react";
+import { ProjectRisk, AssuranceItem, RiskDocument, getRatingFromScore, getRatingBadgeStyles } from "./projectRisksData";
+import { toast } from "sonner";
 
 interface RiskEditDialogProps {
   risk: ProjectRisk | null;
@@ -25,6 +26,9 @@ export const RiskEditDialog = ({ risk, open, onOpenChange, onSave }: RiskEditDia
   const [owner, setOwner] = useState("");
   const [lastReviewed, setLastReviewed] = useState("");
   const [indicators, setIndicators] = useState<AssuranceItem[]>([]);
+  const [documents, setDocuments] = useState<RiskDocument[]>([]);
+
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
   useEffect(() => {
     if (risk) {
@@ -35,6 +39,7 @@ export const RiskEditDialog = ({ risk, open, onOpenChange, onSave }: RiskEditDia
       setOwner(risk.owner);
       setLastReviewed(risk.lastReviewed);
       setIndicators(risk.assuranceIndicators.map(i => ({ ...i })));
+      setDocuments(risk.documents ? [...risk.documents] : []);
     }
   }, [risk]);
 
@@ -55,8 +60,42 @@ export const RiskEditDialog = ({ risk, open, onOpenChange, onSave }: RiskEditDia
       owner,
       lastReviewed,
       assuranceIndicators: indicators,
+      documents,
     });
     onOpenChange(false);
+  };
+
+  const handleFileAdd = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newDocs: RiskDocument[] = [];
+    Array.from(files).forEach(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`"${file.name}" exceeds 20MB limit.`);
+        return;
+      }
+      newDocs.push({
+        id: crypto.randomUUID(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        file,
+      });
+    });
+    if (newDocs.length > 0) {
+      setDocuments(prev => [...prev, ...newDocs]);
+    }
+    e.target.value = '';
+  }, []);
+
+  const removeDocument = (docId: string) => {
+    setDocuments(prev => prev.filter(d => d.id !== docId));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const addIndicator = () => {
@@ -186,6 +225,46 @@ export const RiskEditDialog = ({ risk, open, onOpenChange, onSave }: RiskEditDia
             <Button variant="outline" size="sm" onClick={addIndicator}>
               <Plus className="h-3 w-3 mr-1" /> Add Indicator
             </Button>
+          </div>
+
+          {/* Documents */}
+          <div className="space-y-3">
+            <Label className="font-semibold text-slate-800 text-sm">Documents</Label>
+            {documents.length > 0 && (
+              <div className="rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
+                {documents.map((doc) => (
+                  <div key={doc.id} className="flex items-center gap-3 px-3 py-2.5">
+                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.name}</p>
+                      <p className="text-xs text-muted-foreground">{formatFileSize(doc.size)}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeDocument(doc.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div>
+              <Button variant="outline" size="sm" asChild>
+                <label className="cursor-pointer">
+                  <Upload className="h-3 w-3 mr-1" /> Add Files
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileAdd}
+                  />
+                </label>
+              </Button>
+              <p className="text-[11px] text-muted-foreground mt-1">Any format, max 20MB per file</p>
+            </div>
           </div>
         </div>
 
