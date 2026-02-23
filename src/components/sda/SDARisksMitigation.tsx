@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { usePracticeContext } from "@/hooks/usePracticeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { AlertTriangle, ChevronDown, TrendingDown, TrendingUp, Minus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { AlertTriangle, ChevronDown, TrendingDown, TrendingUp, Minus, ArrowUpDown, ArrowUp, ArrowDown, ClipboardList } from "lucide-react";
 import { RiskAssessmentGuidance } from "./risk-register/RiskAssessmentGuidance";
 import { RiskMatrixHeatmap } from "./risk-register/RiskMatrixHeatmap";
 import { RiskEditDialog } from "./risk-register/RiskEditDialog";
@@ -12,6 +13,16 @@ import { projectRisks as initialProjectRisks, getRatingFromScore, getRatingBadge
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
+import { format } from "date-fns";
+
+interface AuditEntry {
+  id: string;
+  timestamp: Date;
+  userEmail: string;
+  riskId: number;
+  riskName: string;
+  changes: string[];
+}
 
 type SortField = 'id' | 'risk' | 'riskType' | 'originalScore' | 'currentScore' | 'category' | 'owner';
 type SortDirection = 'asc' | 'desc';
@@ -24,7 +35,9 @@ export const SDARisksMitigation = () => {
   const [sortField, setSortField] = useState<SortField>('currentScore');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const { practiceContext } = usePracticeContext();
-  
+  const { user } = useAuth();
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
+  const [showAudit, setShowAudit] = useState(false);
 
   // Risk summary calculations (reactive to state)
   const riskSummary = useMemo(() => ({
@@ -36,6 +49,29 @@ export const SDARisksMitigation = () => {
   }), [risks]);
   
   const handleRiskSave = (updated: ProjectRisk) => {
+    const original = risks.find(r => r.id === updated.id);
+    if (original) {
+      const changes: string[] = [];
+      if (original.currentLikelihood !== updated.currentLikelihood) changes.push(`Likelihood: ${original.currentLikelihood} → ${updated.currentLikelihood}`);
+      if (original.currentConsequence !== updated.currentConsequence) changes.push(`Consequence: ${original.currentConsequence} → ${updated.currentConsequence}`);
+      if (original.currentScore !== updated.currentScore) changes.push(`Score: ${original.currentScore} → ${updated.currentScore}`);
+      if (original.mitigation !== updated.mitigation) changes.push('Mitigation updated');
+      if (original.concerns !== updated.concerns) changes.push('Key concerns updated');
+      if (original.owner !== updated.owner) changes.push(`Owner: ${original.owner} → ${updated.owner}`);
+      if (original.lastReviewed !== updated.lastReviewed) changes.push(`Last reviewed: ${updated.lastReviewed}`);
+      if (JSON.stringify(original.assuranceIndicators) !== JSON.stringify(updated.assuranceIndicators)) changes.push('Assurance indicators updated');
+      
+      if (changes.length > 0) {
+        setAuditLog(prev => [{
+          id: crypto.randomUUID(),
+          timestamp: new Date(),
+          userEmail: user?.email || 'Unknown',
+          riskId: updated.id,
+          riskName: updated.risk,
+          changes,
+        }, ...prev]);
+      }
+    }
     setRisks(prev => prev.map(r => r.id === updated.id ? updated : r));
   };
 
@@ -315,6 +351,65 @@ export const SDARisksMitigation = () => {
                     <strong>{riskSummary.requiresEscalation} risks</strong> have a score of ≥12 and require review by the Programme Board and ICB per the PML Risk Assessment Framework.
                   </p>
                 </div>
+
+                {/* Audit Log Link */}
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-slate-500 hover:text-slate-700 gap-1.5"
+                    onClick={() => setShowAudit(!showAudit)}
+                  >
+                    <ClipboardList className="w-3.5 h-3.5" />
+                    Audit of Changes ({auditLog.length})
+                  </Button>
+                </div>
+
+                {/* Audit Log Table */}
+                {showAudit && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-slate-50 px-4 py-2 border-b">
+                      <h4 className="text-sm font-semibold text-slate-700">Audit of Changes</h4>
+                      <p className="text-[10px] text-slate-500">All edits to the risk register are recorded below</p>
+                    </div>
+                    {auditLog.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-sm text-slate-400">
+                        No changes recorded yet. Edits to risks will appear here.
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-slate-50">
+                            <TableHead className="text-xs font-semibold">Date &amp; Time</TableHead>
+                            <TableHead className="text-xs font-semibold">User</TableHead>
+                            <TableHead className="text-xs font-semibold">Risk</TableHead>
+                            <TableHead className="text-xs font-semibold">Changes Made</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {auditLog.map((entry) => (
+                            <TableRow key={entry.id}>
+                              <TableCell className="text-xs text-slate-600 whitespace-nowrap">
+                                {format(entry.timestamp, 'dd/MM/yyyy HH:mm')}
+                              </TableCell>
+                              <TableCell className="text-xs text-slate-600">{entry.userEmail}</TableCell>
+                              <TableCell className="text-xs text-slate-700 font-medium">
+                                #{entry.riskId} – {entry.riskName}
+                              </TableCell>
+                              <TableCell className="text-xs text-slate-600">
+                                <ul className="list-disc list-inside space-y-0.5">
+                                  {entry.changes.map((change, i) => (
+                                    <li key={i}>{change}</li>
+                                  ))}
+                                </ul>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </AccordionContent>
           </Card>
