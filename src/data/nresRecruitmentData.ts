@@ -114,7 +114,7 @@ export const practices: RecruitmentPractice[] = [
     hubSpoke: 'SPOKE',
     workforce: {
       gp: [
-        { name: 'New GP 1', sessions: 6, status: 'tbc', type: 'New Recruit', notes: 'Expected to join - TBC' },
+        { name: 'Dr Gareth Griffiths', sessions: 6, status: 'tbc', type: 'New Recruit', notes: 'Expected to join - TBC' },
         { name: 'New GP 2', sessions: 6, status: 'tbc', type: 'New Recruit', notes: 'Expected to join - TBC' },
         { name: 'GP Vacancy', sessions: 4, status: 'outstanding', type: 'New Recruit', notes: 'Recruiting up to 4 further sessions' }
       ],
