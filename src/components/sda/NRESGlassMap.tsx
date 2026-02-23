@@ -290,12 +290,12 @@ function DriveLines({ fromPos, times, positions }) {
 }
 
 /* ─── DRIVE TIME SIDEBAR ─── */
-function DriveTimeSidebar({ title, subtitle, times, isBranch, onViewSDA }) {
+function DriveTimeSidebar({ title, subtitle, times, isBranch, onViewSDA, positionLeft = false }) {
   if (!times) return null;
   const routes = practices.map((p, i) => ({ practice: p, mins: times[i], idx: i })).filter(r => r.mins > 0).sort((a, b) => a.mins - b.mins);
   const accentColor = isBranch ? "#aa88ee" : "#00f0ff";
   return (
-    <div style={{ position: "absolute", top: "12px", right: "12px", background: "rgba(10,26,46,0.95)", border: `1px solid ${isBranch ? "rgba(136,102,204,0.3)" : "rgba(0,240,255,0.25)"}`, borderRadius: "8px", padding: "14px 16px", width: "220px", zIndex: 20, backdropFilter: "blur(12px)", boxShadow: `0 0 30px ${isBranch ? "rgba(136,102,204,0.1)" : "rgba(0,240,255,0.05)"}` }} onClick={(e) => e.stopPropagation()}>
+    <div style={{ position: "absolute", top: "12px", ...(positionLeft ? { left: "12px" } : { right: "12px" }), background: "rgba(10,26,46,0.95)", border: `1px solid ${isBranch ? "rgba(136,102,204,0.3)" : "rgba(0,240,255,0.25)"}`, borderRadius: "8px", padding: "14px 16px", width: "220px", zIndex: 20, backdropFilter: "blur(12px)", boxShadow: `0 0 30px ${isBranch ? "rgba(136,102,204,0.1)" : "rgba(0,240,255,0.05)"}` }} onClick={(e) => e.stopPropagation()}>
       <div style={{ color: accentColor, fontSize: "9px", letterSpacing: "2px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "4px" }}>DRIVE TIMES FROM</div>
       <div style={{ color: "#fff", fontSize: "12px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace", marginBottom: "2px" }}>{title}</div>
       {subtitle && <div style={{ color: isBranch ? "#8866cc" : "#5a8a9a", fontSize: "8px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "10px", paddingBottom: "8px", borderBottom: `1px solid ${isBranch ? "rgba(136,102,204,0.2)" : "rgba(0,240,255,0.15)"}` }}>{subtitle}</div>}
@@ -490,7 +490,7 @@ function MapView() {
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)", pointerEvents: "none", zIndex: 10, borderRadius: "12px 12px 0 0" }} />
       <div style={{ position: "absolute", top: "10%", left: "-20%", width: "60%", height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)", transform: "rotate(-15deg)", pointerEvents: "none", zIndex: 10 }} />
 
-      <DriveTimeSidebar title={sidebarTitle} subtitle={sidebarSubtitle} times={activeTimes} isBranch={isBranchSidebar} onViewSDA={selected !== null ? () => { setSdaPractice(selected); setSelected(null); setSelectedBranch(null); } : null} />
+      <DriveTimeSidebar title={sidebarTitle} subtitle={sidebarSubtitle} times={activeTimes} isBranch={isBranchSidebar} positionLeft={selected === 0 || selected === 4} onViewSDA={selected !== null ? () => { setSdaPractice(selected); setSelected(null); setSelectedBranch(null); } : null} />
       <SDAPanel practice={sdaPractice !== null ? practices[sdaPractice] : null} visible={sdaPractice !== null && selected === null && !selectedBranch} acpPct={acpPct} setAcpPct={setAcpPct} />
 
       <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }} onClick={clearAll}>
