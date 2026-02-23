@@ -75,6 +75,7 @@ export const PracticeDetailModal = ({
 
   // F2F from room matrix
   const f2fFromRooms = practice.totalSessions;
+  const remoteRequired = Math.max(0, nwTotal - f2fFromRooms);
 
   // GP/ACP resource mix calculations
   const gpSessionCost = 11000 * 1.2938;
@@ -134,7 +135,7 @@ export const PracticeDetailModal = ({
                 <p className="text-xl font-bold text-slate-900">£{monthlyBudget.toLocaleString()}</p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-slate-500 mb-1">9-Month Budget (75%)</p>
+                <p className="text-xs text-slate-500 mb-1">Budget -25%</p>
                 <p className="text-xl font-bold text-slate-900">£{budget75.toLocaleString()}</p>
               </div>
               <div className="text-center">
@@ -221,7 +222,7 @@ export const PracticeDetailModal = ({
             <h3 className="font-semibold text-[#003087] text-sm">On-Site Capacity (from Room Matrix)</h3>
           </div>
           <div className="bg-[#F0F4F5] rounded-lg p-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
                 <p className="text-xs text-slate-500 mb-1">F2F Sessions Available/Week</p>
                 <p className="text-2xl font-bold text-green-700">{f2fFromRooms}</p>
@@ -229,6 +230,16 @@ export const PracticeDetailModal = ({
               <div className="text-center">
                 <p className="text-xs text-slate-500 mb-1">F2F Appointments Available/Week</p>
                 <p className="text-2xl font-bold text-green-700">{f2fFromRooms * 12}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">Remote Required/Week</p>
+                <p className={`text-2xl font-bold ${remoteRequired > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
+                  {viewMode === "appointments"
+                    ? Math.round(remoteRequired * 12)
+                    : remoteRequired.toFixed(1)
+                  }
+                </p>
+                <p className="text-[10px] text-slate-400 mt-1">{viewMode === "appointments" ? "appointments" : "sessions"} to meet SDA target</p>
               </div>
             </div>
           </div>
