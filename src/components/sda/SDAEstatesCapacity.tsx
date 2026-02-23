@@ -650,7 +650,7 @@ export const SDAEstatesCapacity = () => {
                 }`}
               >
                 <CalendarRange className="w-3 h-3" />
-                Full Year
+                Combined
               </button>
             </div>
             <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
@@ -800,7 +800,7 @@ export const SDAEstatesCapacity = () => {
 
                 <div className="flex items-center justify-between mt-2">
                   <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
-                    {season === "winter" ? "Winter" : season === "total" ? "Full Year" : "Non-Winter"}
+                    {season === "winter" ? "Winter" : season === "total" ? "Combined" : "Non-Winter"}
                   </Badge>
                 </div>
               </div>
@@ -880,7 +880,7 @@ export const SDAEstatesCapacity = () => {
                 }`}
               >
                 <CalendarRange className="w-4 h-4" />
-                Full Year
+                Combined
               </button>
             </div>
           </div>
@@ -902,7 +902,7 @@ export const SDAEstatesCapacity = () => {
               }
             </p>
             <p className={`text-xs ${season === "total" ? "text-slate-400" : "text-slate-400"}`}>
-              {season === "total" ? "full year total" : "required"}
+              {season === "total" ? "combined average" : "required"}
             </p>
           </div>
           <div className="bg-slate-50 rounded-lg p-4 text-center">
@@ -918,7 +918,7 @@ export const SDAEstatesCapacity = () => {
               }
             </p>
             <p className="text-xs text-slate-400">
-              {season === "total" ? "full year total" : "total needed"}
+              {season === "total" ? "combined average" : "total needed"}
             </p>
           </div>
           <div className="bg-slate-50 rounded-lg p-4 text-center">
