@@ -7,8 +7,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { AlertTriangle, Shield, Scale, Users, PoundSterling, UserCheck, Building2, Laptop, Handshake, FileText, ClipboardCheck, ShieldCheck, FileCheck, Calendar, Target, Pill, DoorOpen, RefreshCw, ShieldAlert, Database, Banknote, HelpCircle, CheckCircle2, AlertCircle, ChevronDown, TrendingDown, TrendingUp, Minus, ArrowUpDown, ArrowUp, ArrowDown, Clock, Gavel, UserPlus, ShieldCheck as InsuranceIcon, UsersRound } from "lucide-react";
 import { RiskAssessmentGuidance } from "./risk-register/RiskAssessmentGuidance";
 import { RiskMatrixHeatmap } from "./risk-register/RiskMatrixHeatmap";
-import { projectRisks, getRatingFromScore, getRatingBadgeStyles, getRiskTypeBadgeStyles, getRiskTypeLabel, ProjectRisk, AssuranceItem } from "./risk-register/projectRisksData";
+import { RiskEditDialog } from "./risk-register/RiskEditDialog";
+import { projectRisks as initialProjectRisks, getRatingFromScore, getRatingBadgeStyles, getRiskTypeBadgeStyles, getRiskTypeLabel, ProjectRisk, AssuranceItem } from "./risk-register/projectRisksData";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
 
 type SortField = 'id' | 'risk' | 'riskType' | 'originalScore' | 'currentScore' | 'category' | 'owner';
 type SortDirection = 'asc' | 'desc';
@@ -238,16 +241,9 @@ const outstandingQuestions = [
   "Insurance confirmation from all practices needed"
 ];
 
-// Risk summary calculations
-const riskSummary = {
-  high: projectRisks.filter(r => r.currentScore >= 16).length,
-  significant: projectRisks.filter(r => r.currentScore >= 10 && r.currentScore < 16).length,
-  moderate: projectRisks.filter(r => r.currentScore >= 5 && r.currentScore < 10).length,
-  low: projectRisks.filter(r => r.currentScore < 5).length,
-  requiresEscalation: projectRisks.filter(r => r.currentScore >= 12).length,
-};
-
 export const SDARisksMitigation = () => {
+  const [risks, setRisks] = useState<ProjectRisk[]>(initialProjectRisks);
+  const [editingRisk, setEditingRisk] = useState<ProjectRisk | null>(null);
   const [sortField, setSortField] = useState<SortField>('currentScore');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const { practiceContext } = usePracticeContext();
@@ -256,6 +252,19 @@ export const SDARisksMitigation = () => {
   const isMemberPractice = !practiceContext.organisationType || 
     practiceContext.organisationType === 'GP Practice' || 
     practiceContext.organisationType === 'Practice';
+
+  // Risk summary calculations (reactive to state)
+  const riskSummary = useMemo(() => ({
+    high: risks.filter(r => r.currentScore >= 16).length,
+    significant: risks.filter(r => r.currentScore >= 10 && r.currentScore < 16).length,
+    moderate: risks.filter(r => r.currentScore >= 5 && r.currentScore < 10).length,
+    low: risks.filter(r => r.currentScore < 5).length,
+    requiresEscalation: risks.filter(r => r.currentScore >= 12).length,
+  }), [risks]);
+  
+  const handleRiskSave = (updated: ProjectRisk) => {
+    setRisks(prev => prev.map(r => r.id === updated.id ? updated : r));
+  };
 
   const getScoreChangeIndicator = (original: number, current: number) => {
     if (current < original) return <TrendingDown className="w-3 h-3 text-green-600" />;
@@ -282,7 +291,7 @@ export const SDARisksMitigation = () => {
   };
 
   const sortedRisks = useMemo(() => {
-    const sorted = [...projectRisks].sort((a, b) => {
+    const sorted = [...risks].sort((a, b) => {
       let aValue: string | number;
       let bValue: string | number;
 
@@ -333,7 +342,7 @@ export const SDARisksMitigation = () => {
     });
 
     return sorted;
-  }, [sortField, sortDirection]);
+  }, [risks, sortField, sortDirection]);
 
   return (
     <div className="space-y-4">
@@ -351,7 +360,7 @@ export const SDARisksMitigation = () => {
                   <AlertTriangle className="w-6 h-6 text-amber-500" />
                   <div className="text-left">
                     <CardTitle className="text-lg font-semibold text-slate-900">Project Risks Register</CardTitle>
-                    <p className="text-sm text-slate-500">Full risk register with PML framework – {projectRisks.length} risks tracked</p>
+                    <p className="text-sm text-slate-500">Full risk register with PML framework – {risks.length} risks tracked</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -372,7 +381,7 @@ export const SDARisksMitigation = () => {
               <CardContent className="pt-0 space-y-6">
                 
                 {/* Risk Matrix Heatmap */}
-                <RiskMatrixHeatmap risks={projectRisks} />
+                <RiskMatrixHeatmap risks={risks} />
 
                 {/* Risk Table */}
                 <div className="overflow-x-auto">
@@ -425,6 +434,7 @@ export const SDARisksMitigation = () => {
                         </TableHead>
                         <TableHead className="font-semibold text-xs">Last<br/>Reviewed</TableHead>
                         <TableHead className="font-semibold text-xs min-w-[180px]">Assurance Indicators<br/><span className="text-[10px] font-normal text-slate-500">(Progress Tracking)</span></TableHead>
+                        <TableHead className="font-semibold text-xs w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -492,6 +502,16 @@ export const SDARisksMitigation = () => {
                                   </div>
                                 ))}
                               </div>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => setEditingRisk(risk)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
@@ -836,6 +856,13 @@ export const SDARisksMitigation = () => {
         </AccordionItem>
 
       </Accordion>
+
+      <RiskEditDialog
+        risk={editingRisk}
+        open={!!editingRisk}
+        onOpenChange={(open) => { if (!open) setEditingRisk(null); }}
+        onSave={handleRiskSave}
+      />
     </div>
   );
 };
