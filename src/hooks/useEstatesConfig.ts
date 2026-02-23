@@ -36,7 +36,7 @@ const DEFAULT_ROOM_DATA: RoomRow[] = [
 
 const DEFAULT_F2F_SPLIT = 50;
 
-export const PRACTICE_KEYS = ['theParks', 'springfield', 'brackley', 'brook', 'bugbrooke', 'denton', 'towcester'] as const;
+export const PRACTICE_KEYS = ['theParks', 'brackley', 'springfield', 'towcester', 'bugbrooke', 'brook', 'denton'] as const;
 export type PracticeKey = typeof PRACTICE_KEYS[number];
 
 export function useEstatesConfig() {
