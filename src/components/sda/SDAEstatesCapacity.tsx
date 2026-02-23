@@ -149,7 +149,7 @@ export const SDAEstatesCapacity = () => {
   const practiceCapacityData = useMemo(() => {
     return practiceSummaryWithSessions.map(p => {
       const pct = Math.round((p.listSize / totalListSize) * 1000) / 10;
-      const monthly = Math.round(p.listSize * 2.19); // approximate
+      const monthly = Math.round((p.listSize * 26.33) / 12 * 100) / 100;
       const budget75 = Math.round(monthly * 9);
       const wklyNonWinter = Math.round(capacityData.nonWinter.apptsPerWeek * (p.listSize / totalListSize) * 10) / 10;
       const wklyWinter = Math.round(capacityData.winter.apptsPerWeek * (p.listSize / totalListSize) * 10) / 10;
