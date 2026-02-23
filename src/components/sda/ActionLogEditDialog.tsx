@@ -103,7 +103,7 @@ export const ActionLogEditDialog: React.FC<ActionLogEditDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] max-h-[calc(100vh-8rem)] bg-background overflow-y-auto">
+      <DialogContent className="sm:max-w-[560px] max-h-[calc(100vh-8rem)] bg-white overflow-y-auto border shadow-xl rounded-xl">
         <DialogHeader className="px-8 sm:px-10 pt-2">
           <DialogTitle>{isEditing ? `Edit Action ${item.actionId}` : "Add New Action"}</DialogTitle>
           <DialogDescription>
