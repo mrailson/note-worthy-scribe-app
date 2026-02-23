@@ -149,6 +149,12 @@ export const SDADigitalIntegration = () => {
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h3 className="font-bold text-[15px] text-slate-900">NRES SDA Rota Management and Buy Back Resource Workbook V3.1</h3>
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold" style={{ backgroundColor: "#ECFDF5", color: "#10B981", border: "1px solid #A7F3D0" }}>✓ Ready</span>
+                <Button variant="outline" size="sm" asChild>
+                  <a href="/documents/NRES_SDA_Rota_Management_V3_1.xlsx" download>
+                    <Download className="h-3.5 w-3.5 mr-1" />
+                    Download Excel
+                  </a>
+                </Button>
               </div>
               <p className="text-sm text-slate-500">The operational tool for NRES service management from 1st April 2026</p>
             </div>
@@ -221,14 +227,8 @@ export const SDADigitalIntegration = () => {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+          <div className="flex items-center pt-2 border-t border-slate-100">
             <p className="text-[10px] text-slate-400">Formula-driven · Open book · No additional funding required</p>
-            <Button variant="outline" size="sm" asChild>
-              <a href="/documents/NRES_SDA_Rota_Management_V3_1.xlsx" download>
-                <Download className="h-4 w-4 mr-1" />
-                Download Excel
-              </a>
-            </Button>
           </div>
         </div>
 
