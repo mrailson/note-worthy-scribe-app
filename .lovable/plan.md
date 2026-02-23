@@ -1,61 +1,45 @@
 
 
-## Practice Detail Pop-Out Modal (Light Theme, NRES Style)
+## Integrate Recruitment Status into Practice Detail Modals
 
-### Overview
-Each practice card in the Practice Estate Summary section becomes clickable. Clicking opens a light-themed modal styled consistently with the NRES Results Dashboard (white cards, NHS blue headings, `#F0F4F5` backgrounds).
+### What This Does
+Each practice pop-up modal (e.g. The Parks MC, Brackley MC) will gain a new **"Recruitment Status"** section showing:
+- A summary of sessions filled (recruited/offered/buy-back), in pipeline (TBC/potential), and still outstanding
+- A colour-coded progress bar (green = filled, amber = pipeline, red = outstanding)
+- A detailed breakdown of each staff member/vacancy with their status, session count, and notes
+- Grouped by role type (GP, ACP/ANP, Buy-Back)
 
-### Modal Content
+This mirrors the data from the Workforce Recruitment Tracker but presented in the context of each individual practice.
 
-**Header:**
-- Practice name in large `text-[#003087]` font
-- HUB/SPOKE badge (NHS blue for HUB, grey for SPOKE)
-- Clinical system badge (SystmOne/EMIS)
-- Patient list size and percentage of neighbourhood total
+### How It Will Look
+Below the existing "Resource Mix Explorer" section in each modal, a new card will appear with:
+1. **Header**: "Recruitment Status" with a Users icon
+2. **Summary row**: Three small stat boxes — Filled (green), Pipeline (amber), Outstanding (red) — each showing session count and percentage
+3. **Progress bar**: Visual representation of recruitment coverage
+4. **Staff detail list**: Each person/vacancy shown with a coloured status badge, session count, role type, and notes
 
-**Financial Summary Card** (light grey `bg-[#F0F4F5]` card):
-- Monthly SDA allocation (GBP)
-- 9-month budget at 75%
-- Annual appointment target
+### Technical Approach
 
-**Seasonal Breakdown** (two side-by-side white cards):
-- Non-Winter (39 wks): weekly requirement, F2F count, Remote count, rate per 1,000
-- Winter (13 wks): weekly requirement, F2F count, Remote count, rate per 1,000
+1. **Extract recruitment data** from the tracker into a shared data file (`src/data/nresRecruitmentData.ts`) so both the tracker component and the modal can reference the same source of truth.
 
-**Resource Mix Section** (interactive):
-- F2F / Remote percentage slider (using existing Slider component)
-- Preset buttons: 50/50, 75/25, 100/0
-- Live-updating F2F and Remote values based on slider position
-- Green-tinted F2F box and indigo-tinted Remote box (matching existing card styling)
+2. **Create a mapping** from `PracticeKey` (used by the modal) to the recruitment tracker's practice ID:
+   - `theParks` -> `parks`
+   - `brackley` -> `brackley`
+   - `springfield` -> `springfield`
+   - `towcester` -> `towcester`
+   - `bugbrooke` -> `bugbrooke`
+   - `brook` -> `brook`
+   - `denton` -> `denton`
 
-### Styling Approach
-Matches the NRES `PatientDetailModal` pattern exactly:
-- `DialogContent` with `max-w-3xl`, white background, scrollable
-- Section headings with NHS blue icon + `text-[#003087]` title
-- Cards with `bg-[#F0F4F5]` for key info, white for detail sections
-- `Separator` between sections
-- NHS colour palette throughout (#005EB8, #003087, #007F3B, #ED8B00)
+3. **Add a new section** to `PracticeDetailModal.tsx` after the Resource Mix Explorer, displaying:
+   - Summary stats (filled/pipeline/outstanding counts and percentages)
+   - A progress bar matching the tracker's visual style
+   - Individual staff rows with status badges, grouped by GP / ACP / Buy-Back
 
-### Calculation Logic
-All values derived dynamically from existing data:
-- `totalRequired = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize)`
-- `f2fAvailable` from room matrix totals
-- `remoteRequired = totalRequired - f2fAvailable`
-- Financial: `monthlyBudget = (practice.listSize / totalListSize) * totalBudget`
-- Slider adjusts the F2F/Remote split locally (exploratory, not persisted)
-- All values respect the current Sessions/Appointments toggle
+4. **Update the tracker component** to import from the shared data file instead of having inline data, keeping both views in sync.
 
-### Technical Details
+### Files to Create/Modify
+- **Create**: `src/data/nresRecruitmentData.ts` — shared practice recruitment data and helper functions (status config, calculation utilities)
+- **Modify**: `src/components/sda/PracticeDetailModal.tsx` — add the Recruitment Status section using data from the shared file
+- **Modify**: `src/components/sda/workforce/NRESWorkforceRecruitmentTracker.tsx` — import practice data from the shared file instead of defining it inline
 
-**New file:** `src/components/sda/PracticeDetailModal.tsx`
-- Receives practice data, capacity config, season, view mode, and split percentage as props
-- Local state for the resource mix slider
-- Uses existing `Dialog`, `DialogContent`, `DialogHeader`, `Card`, `Slider`, `Badge`, `Separator` components
-
-**Edit:** `src/components/sda/SDAEstatesCapacity.tsx`
-- Add `selectedPracticeIndex` state (number | null)
-- Add `cursor-pointer` and `hover:shadow-md hover:scale-[1.01]` to each practice card
-- Import and render `PracticeDetailModal` at the bottom of the component
-- Pass all calculated data (capacity, financials, room matrix totals) as props
-
-No database changes, no new hooks, no new dependencies required.
