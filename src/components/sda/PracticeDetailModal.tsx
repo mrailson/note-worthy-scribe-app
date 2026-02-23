@@ -84,7 +84,7 @@ export const PracticeDetailModal = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-3xl bg-white max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl bg-white max-h-[85vh] overflow-y-auto m-6 sm:m-8">
         <DialogHeader>
           <div className="flex items-center gap-3 flex-wrap">
             <DialogTitle className="text-xl font-bold text-[#003087]">
