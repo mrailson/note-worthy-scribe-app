@@ -339,6 +339,11 @@ export const PracticeDetailModal = ({
 
             <Separator />
 
+            {/* GP Sessions Breakdown — shown early for visibility */}
+            <GPSessionsSummary practiceKey={practice.key} />
+
+            <Separator />
+
             {/* Seasonal Breakdown */}
             <div>
               <div className="flex items-center gap-2 mb-3">
@@ -468,10 +473,6 @@ export const PracticeDetailModal = ({
               </div>
             </div>
 
-            <Separator />
-
-            {/* GP Sessions Breakdown */}
-            <GPSessionsSummary practiceKey={practice.key} />
           </TabsContent>
 
           {/* Tab 2: Resource Mix Explorer */}
