@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +14,6 @@ interface MagicLinkRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,83 +21,79 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { email, magic_link, user_name }: MagicLinkRequest = await req.json();
 
-    // Get EmailJS credentials from Supabase secrets
-    const serviceId = Deno.env.get("EMAILJS_SERVICE_ID");
-    const templateId = Deno.env.get("EMAILJS_TEMPLATE_ID");
-    const publicKey = Deno.env.get("EMAILJS_PUBLIC_KEY");
-    const privateKey = Deno.env.get("EMAILJS_PRIVATE_KEY");
-
-    if (!serviceId || !templateId || !publicKey) {
-      throw new Error("EmailJS credentials not configured");
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      throw new Error("RESEND_API_KEY not configured");
     }
 
-    // Prepare the EmailJS API request
-    const emailjsUrl = "https://api.emailjs.com/api/v1.0/email/send";
-    
-    const payload = {
-      service_id: serviceId,
-      template_id: templateId,
-      user_id: publicKey,
-      accessToken: privateKey,
-      template_params: {
-        to_email: email,
-        to_name: user_name || email.split('@')[0],
-        user_name: user_name || email.split('@')[0],
-        magic_link: magic_link,
-        from_name: "Notewell AI Login Service",
-        reply_to: "malcolm.railson@nhs.net",
-        subject: "Your Secure Login Link - Notewell AI",
-        message: `Dear ${user_name || email.split('@')[0]},
+    const resend = new Resend(resendApiKey);
+    const displayName = user_name || email.split('@')[0];
 
-As requested, here is your link to login to Notewell:
+    console.log("Sending magic link email via Resend:", { to_email: email });
 
-${magic_link}
-
-This secure login link will expire in 60 minutes for your security.
-
-Simply click the link above to access your Notewell AI account without needing to enter your password. This bypass method is particularly useful if you're experiencing VPN connectivity issues.
-
-If you have any questions, please contact us on malcolm.railson@nhs.net
-
-Best regards,
-Notewell AI Login Service
-
----
-This is an automated message. Please do not reply to this email.
-If you did not request this login link, you can safely ignore this email.`
-      }
-    };
-
-    console.log("Sending magic link email via EmailJS:", { 
-      service_id: serviceId, 
-      template_id: templateId,
-      to_email: email 
+    const { data, error } = await resend.emails.send({
+      from: "Notewell AI <noreply@bluepcn.co.uk>",
+      to: [email],
+      subject: "Your Secure Login Link - Notewell AI",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🔐 Secure Login Link</h1>
+          </div>
+          
+          <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+            <p style="margin-top: 0;">Dear ${displayName},</p>
+            
+            <p>As requested, here is your link to login to Notewell:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${magic_link}" style="display: inline-block; background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                Login to Notewell
+              </a>
+            </div>
+            
+            <p style="color: #64748b; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="background: #e2e8f0; padding: 12px; border-radius: 6px; word-break: break-all; font-size: 12px; color: #475569;">
+              ${magic_link}
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+            
+            <div style="color: #64748b; font-size: 13px;">
+              <p style="margin: 8px 0;">⏰ This secure login link will expire in 60 minutes</p>
+              <p style="margin: 8px 0;">💡 This bypass method is particularly useful if you're experiencing VPN connectivity issues</p>
+              <p style="margin: 8px 0;">❓ If you have any questions, please contact us on malcolm.railson@nhs.net</p>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+            
+            <p style="color: #94a3b8; font-size: 12px; text-align: center; margin-bottom: 0;">
+              This email was sent by Notewell AI<br>
+              If you did not request this login link, you can safely ignore this email.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
     });
 
-    // Send email via EmailJS API
-    const emailjsResponse = await fetch(emailjsUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Origin": "https://gpnotewell.co.uk",
-        "Referer": "https://gpnotewell.co.uk/"
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!emailjsResponse.ok) {
-      const errorText = await emailjsResponse.text();
-      console.error("EmailJS API error:", errorText);
-      throw new Error(`EmailJS API error: ${emailjsResponse.status} - ${errorText}`);
+    if (error) {
+      console.error("Resend API error:", error);
+      throw new Error(`Email sending failed: ${error.message}`);
     }
 
-    const result = await emailjsResponse.text();
-    console.log("EmailJS response:", result);
+    console.log("Resend response:", data);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: "Magic link email sent successfully via EmailJS"
+      message: "Magic link email sent successfully via Resend",
+      id: data?.id
     }), {
       status: 200,
       headers: {
