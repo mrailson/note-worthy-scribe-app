@@ -137,7 +137,7 @@ export const PracticeDetailModal = ({
                 <p className="text-xl font-bold text-slate-900">£{monthlyBudget.toLocaleString()}</p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-slate-500 mb-1">Budget -25%</p>
+                <p className="text-xs text-slate-500 mb-1">Budget @ 75%</p>
                 <p className="text-xl font-bold text-slate-900">£{budget75.toLocaleString()}</p>
               </div>
               <div className="text-center">
