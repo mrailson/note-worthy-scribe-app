@@ -159,6 +159,47 @@ export const SDADigitalIntegration = () => {
             The Managerial Lead will manage this workbook centrally, populating it directly where possible and working with practices to gather any data they can't source themselves. Formula-driven across 20 tabs with full open book financials visible to the NRES board and ICB.
           </p>
 
+          {/* Excel Resource Analysis */}
+          <div className="bg-[#F0F4F5] rounded-lg p-4 space-y-3 border border-slate-200">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "#EEF2FF", color: "#4F46E5" }}>
+                📊
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-sm text-slate-900 mb-1">Operational Resource Analysis — Go-Live Method</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  A detailed analysis of the resource requirements for operating the SDA programme using the Excel Workbook V3.1 from Day 1. This document is intended as a ready-to-start framework covering the major operational elements — weekly cycles, monthly reporting, practice burden, and central team effort — with a view to developing the full ICB reporting specification (shown below) in parallel during Year 1 operations.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3 text-xs">
+              <div className="bg-white rounded px-2.5 py-1.5 border border-slate-200">
+                <span className="text-slate-500">Central Team</span>
+                <span className="font-semibold text-slate-800 ml-1">8–12 hrs/wk</span>
+              </div>
+              <div className="bg-white rounded px-2.5 py-1.5 border border-slate-200">
+                <span className="text-slate-500">Per Practice</span>
+                <span className="font-semibold text-slate-800 ml-1">1–2 hrs/wk</span>
+              </div>
+              <div className="bg-white rounded px-2.5 py-1.5 border border-slate-200">
+                <span className="text-slate-500">Setup</span>
+                <span className="font-semibold text-slate-800 ml-1">24 hrs (one-off)</span>
+              </div>
+              <div className="bg-white rounded px-2.5 py-1.5 border border-green-200" style={{ backgroundColor: "#ECFDF5" }}>
+                <span className="text-green-700">Additional Cost</span>
+                <span className="font-semibold text-green-800 ml-1">£0</span>
+              </div>
+            </div>
+            <div className="flex justify-end pt-1">
+              <Button variant="outline" size="sm" asChild>
+                <a href="/documents/NRES_Excel_Operational_Resource_Analysis.docx" download>
+                  <Download className="h-3.5 w-3.5 mr-1" />
+                  Download Resource Analysis
+                </a>
+              </Button>
+            </div>
+          </div>
+
           {/* Expandable tab explorer */}
           <div>
             <button
