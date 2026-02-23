@@ -336,17 +336,17 @@ export const SDAExecutiveSummary = () => {
                     <img 
                       src={NRESLogo} 
                       alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
-                      className="h-16 w-auto object-contain"
+                      className="h-20 w-auto object-contain"
                     />
                     <img 
                       src={DocMedLogo} 
                       alt="DocMed Northamptonshire - PML" 
-                      className="h-16 w-auto object-contain"
+                      className="h-20 w-auto object-contain"
                     />
                     <img 
                       src={SNVBLogo} 
                       alt="SNVB - Supporting Voluntary Activity" 
-                      className="h-16 w-auto object-contain"
+                      className="h-20 w-auto object-contain"
                     />
                   </div>
                   <div className="flex-1" />
