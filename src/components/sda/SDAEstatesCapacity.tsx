@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Info, Pencil, Save, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { PracticeDetailModal } from "./PracticeDetailModal";
 import { TravelTimesThumbnail, TravelTimesSlideshow } from "./TravelTimesSlideshow";
 import { useEstatesConfig, RoomRow, PRACTICE_KEYS, PracticeKey } from "@/hooks/useEstatesConfig";
 import { useAuth } from "@/contexts/AuthContext";
@@ -62,6 +63,7 @@ export const SDAEstatesCapacity = () => {
   const [badgeDisplayMode, setBadgeDisplayMode] = useState<BadgeDisplayMode>("total");
   const [travelTimesModalOpen, setTravelTimesModalOpen] = useState(false);
   const [listSizeOpen, setListSizeOpen] = useState(true);
+  const [selectedPracticeIndex, setSelectedPracticeIndex] = useState<number | null>(null);
   const [appointmentsOpen, setAppointmentsOpen] = useState(true);
   
   const [sitesDisplayMode, setSitesDisplayMode] = useState<SitesDisplayMode>("total");
@@ -688,11 +690,12 @@ export const SDAEstatesCapacity = () => {
             return (
               <div 
                 key={index} 
-                className={`rounded-xl p-4 border ${
+                className={`rounded-xl p-4 border cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] ${
                   practice.role === "HUB" 
                     ? "bg-blue-50 border-blue-200" 
                     : "bg-slate-50 border-slate-200"
                 }`}
+                onClick={() => setSelectedPracticeIndex(index)}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -1158,6 +1161,19 @@ export const SDAEstatesCapacity = () => {
         isOpen={travelTimesModalOpen} 
         onClose={() => setTravelTimesModalOpen(false)} 
       />
+
+      {selectedPracticeIndex !== null && (
+        <PracticeDetailModal
+          open={selectedPracticeIndex !== null}
+          onOpenChange={(open) => { if (!open) setSelectedPracticeIndex(null); }}
+          practice={practiceSummaryWithSessions[selectedPracticeIndex]}
+          totalListSize={totalListSize}
+          capacityNonWinter={capacityData.nonWinter}
+          capacityWinter={capacityData.winter}
+          activeSplit={activeSplit}
+          viewMode={viewMode}
+        />
+      )}
     </div>
   );
 };
