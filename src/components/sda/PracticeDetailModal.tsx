@@ -84,7 +84,7 @@ export const PracticeDetailModal = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-3xl bg-white max-h-[calc(100vh-4rem)] overflow-y-auto !left-[50%] !top-[50%] !translate-x-[-50%] !translate-y-[-50%] w-[calc(100%-3rem)] sm:w-[calc(100%-5rem)]">
+      <DialogContent className="max-w-3xl bg-white max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'min(48rem, calc(100vw - 4rem))' }}>
         <DialogHeader>
           <div className="flex items-center gap-3 flex-wrap">
             <DialogTitle className="text-xl font-bold text-[#003087]">
