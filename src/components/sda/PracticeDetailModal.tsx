@@ -59,7 +59,7 @@ export const PracticeDetailModal = ({
   const pct = ((practice.listSize / totalListSize) * 100).toFixed(1);
 
   // Financial calculations
-  const monthlyBudget = Math.round(practice.listSize * 2.19);
+  const monthlyBudget = Math.round((practice.listSize * 26.33) / 12 * 100) / 100;
   const budget75 = Math.round(monthlyBudget * 9);
   const annualTarget = Math.round(74301 * (practice.listSize / totalListSize));
 
