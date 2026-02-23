@@ -343,6 +343,10 @@ export const PracticeDetailModal = ({
                     </div>
                     <Separator className="my-1" />
                     <div className="flex justify-between text-sm">
+                      <span className="text-slate-700 font-medium">Weekly Appointments</span>
+                      <span className="font-bold text-slate-900">{Math.round(nwTotal * 12).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
                       <span className="text-slate-700 font-medium">Total SDA Appointments</span>
                       <span className="font-bold text-slate-900">{Math.round(nwTotal * 12 * 39).toLocaleString()}</span>
                     </div>
@@ -374,6 +378,10 @@ export const PracticeDetailModal = ({
                       <span className="font-semibold text-indigo-700">{(wRemote * multiplier).toFixed(1)}</span>
                     </div>
                     <Separator className="my-1" />
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-700 font-medium">Weekly Appointments</span>
+                      <span className="font-bold text-slate-900">{Math.round(wTotal * 12).toLocaleString()}</span>
+                    </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-700 font-medium">Total SDA Appointments</span>
                       <span className="font-bold text-slate-900">{Math.round(wTotal * 12 * 13).toLocaleString()}</span>
