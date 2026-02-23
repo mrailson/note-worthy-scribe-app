@@ -821,6 +821,43 @@ export const SDAEstatesCapacity = () => {
               : "Capacity requirements by season"}
           </p>
           <div className="flex flex-wrap gap-2">
+            {/* Season Toggle */}
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+              <button 
+                onClick={() => setSeason("nonWinter")}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  season === "nonWinter" 
+                    ? "bg-white text-slate-900 shadow-sm" 
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Sun className="w-4 h-4" />
+                Non-Winter
+              </button>
+              <button 
+                onClick={() => setSeason("winter")}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  season === "winter" 
+                    ? "bg-white text-slate-900 shadow-sm" 
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Snowflake className="w-4 h-4" />
+                Winter
+              </button>
+              <button 
+                onClick={() => setSeason("total")}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  season === "total" 
+                    ? "bg-white text-slate-900 shadow-sm" 
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <CalendarRange className="w-4 h-4" />
+                Combined
+              </button>
+            </div>
+
             {/* View Mode Toggle */}
             <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
               <button 
@@ -844,43 +881,6 @@ export const SDAEstatesCapacity = () => {
               >
                 <CalendarDays className="w-4 h-4" />
                 Appointments
-              </button>
-            </div>
-            
-            {/* Season Toggle */}
-            <div className="flex gap-1">
-              <button 
-                onClick={() => setSeason("nonWinter")}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  season === "nonWinter" 
-                    ? "bg-amber-500 text-white" 
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                <Sun className="w-4 h-4" />
-                Non-Winter
-              </button>
-              <button 
-                onClick={() => setSeason("winter")}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  season === "winter" 
-                    ? "bg-blue-500 text-white" 
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                <Snowflake className="w-4 h-4" />
-                Winter
-              </button>
-              <button 
-                onClick={() => setSeason("total")}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  season === "total" 
-                    ? "bg-slate-700 text-white" 
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                <CalendarRange className="w-4 h-4" />
-                Combined
               </button>
             </div>
           </div>
