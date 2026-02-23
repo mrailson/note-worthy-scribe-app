@@ -490,7 +490,7 @@ function MapView() {
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)", pointerEvents: "none", zIndex: 10, borderRadius: "12px 12px 0 0" }} />
       <div style={{ position: "absolute", top: "10%", left: "-20%", width: "60%", height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)", transform: "rotate(-15deg)", pointerEvents: "none", zIndex: 10 }} />
 
-      <DriveTimeSidebar title={sidebarTitle} subtitle={sidebarSubtitle} times={activeTimes} isBranch={isBranchSidebar} positionLeft={selected === 0 || selected === 4} onViewSDA={selected !== null ? () => { setSdaPractice(selected); setSelected(null); setSelectedBranch(null); } : null} />
+      <DriveTimeSidebar title={sidebarTitle} subtitle={sidebarSubtitle} times={activeTimes} isBranch={isBranchSidebar} positionLeft onViewSDA={selected !== null ? () => { setSdaPractice(selected); setSelected(null); setSelectedBranch(null); } : null} />
       <SDAPanel practice={sdaPractice !== null ? practices[sdaPractice] : null} visible={sdaPractice !== null && selected === null && !selectedBranch} acpPct={acpPct} setAcpPct={setAcpPct} />
 
       <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }} onClick={clearAll}>
