@@ -282,7 +282,7 @@ Answer questions accurately and specifically based on the contract context above
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" />
-              <DialogTitle className="text-base font-semibold">Ask AI about ICB New Models Contract</DialogTitle>
+              <DialogTitle className="text-base font-semibold">Ask AI about the New Models Specification</DialogTitle>
             </div>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" onClick={() => setIsFullScreen(p => !p)} className="h-8 px-2" title={isFullScreen ? "Exit full screen" : "Full screen"}>
