@@ -396,7 +396,7 @@ export const SDAExecutiveSummary = () => {
                             className="flex items-center gap-1 hover:bg-[#005EB8] hover:text-white transition-colors text-xs h-7 px-2"
                           >
                             <Bot className="w-3 h-3" />
-                            Ask AI
+                            Ask AI about the New Models Pilot
                           </Button>
                         </div>
                       </div>
