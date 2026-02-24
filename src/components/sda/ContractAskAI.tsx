@@ -173,32 +173,15 @@ export const ContractAskAI = ({ open, onOpenChange }: ContractAskAIProps) => {
     setIsLoading(true);
 
     try {
-      const systemContext = `You are an expert NHS contract analyst helping GP practice partners and programme managers understand the NRES Neighbourhood SDA Programme contract — the "New Models Primary Care Service Specification v5" from the Northamptonshire ICB.
-
-This is a Local Enhanced Service (LES) contract for a 2-year pilot programme testing new models of primary care delivery across 7 GP practices in the Northamptonshire Rural East & South (NRES) neighbourhood. The total contract value is approximately £2,358,746.72 per year.
-
-Key contract details you should reference:
-- Hub and spoke model: 30% hub, 20% spoke (face-to-face), 50% remote
-- Capacity target: 15.2 appointments per 1,000 weighted population per week (standard), 18.2 during winter surge
-- 7 practices: The Parks MC, Brackley MC, Springfield Surgery, Towcester MC, Bugbrooke Surgery, Brook Health Centre, Denton Village Surgery
-- Patient population: approximately 89,584
-- Lead provider: DocMed/PML
-- Commissioner: NHS Northamptonshire ICB
-- Go-live date: 1st April 2026
-
-Answer questions accurately and specifically based on the contract context above. Use British English. Format dates as DD/MM/YYYY. Be concise but thorough. Use bullet points for clarity when listing items.`;
-
       const conversationHistory = messages.map(m => ({
         role: m.role,
         content: m.content
       }));
 
-      const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
+      const { data, error } = await supabase.functions.invoke('contract-ask-ai', {
         body: {
           message: userMessage,
           conversationHistory,
-          systemPrompt: systemContext,
-          model: 'gemini-2.5-flash'
         }
       });
 
