@@ -295,7 +295,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, conversationHistory } = await req.json();
+    const { message, conversationHistory, dashboardContext } = await req.json();
 
     if (!message || !message.trim()) {
       throw new Error("Question is required");
@@ -306,7 +306,13 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = "You are an expert NHS contract analyst. You have been given the FULL TEXT of the \"New Models Primary Care Service Specification v5\" — the contract document for the NRES Neighbourhood SDA Programme from NHS Northamptonshire ICB.\n\nIMPORTANT RULES:\n1. Answer questions ONLY based on what is explicitly stated in the document text below. Do NOT make up or infer information not present in the document.\n2. If the answer to a question is not found in the document, clearly state: \"This information is not specified in the Service Specification document.\"\n3. Quote directly from the document where possible, using exact wording.\n4. Use British English spelling.\n5. Format dates as DD/MM/YYYY.\n6. Be specific and cite the relevant section of the document (e.g. \"Section 2.2.1 Monthly Reporting states...\").\n7. Use bullet points for clarity when listing items.\n\nHERE IS THE FULL DOCUMENT TEXT:\n\n" + SPECIFICATION_TEXT;
+    // Build context-aware system prompt
+    let additionalContext = "";
+    if (dashboardContext) {
+      additionalContext = "\n\nYou also have access to LIVE DASHBOARD DATA from the NRES SDA Programme. This includes the Programme Board Action Log, Risk Register, Hours Tracker, and Evidence Library metadata. Use this data to provide up-to-date, contextual answers.\n\nLIVE DASHBOARD DATA:\n\n" + dashboardContext;
+    }
+
+    const systemPrompt = "You are an expert NHS programme analyst for the NRES Neighbourhood SDA Programme. You have access to the FULL TEXT of the \"New Models Primary Care Service Specification v5\" contract document AND live programme data from the dashboard.\n\nIMPORTANT RULES:\n1. Answer questions based on the contract document AND/OR the live dashboard data as appropriate.\n2. When answering about contract terms, KPIs, or specification details, cite the relevant section.\n3. When answering about actions, risks, hours, or evidence, reference the live dashboard data.\n4. If information is not found in any source, clearly state so.\n5. Quote directly from sources where possible.\n6. Use British English spelling.\n7. Format dates as DD/MM/YYYY.\n8. Use bullet points for clarity when listing items.\n9. Cross-reference between the contract specification and live programme data when relevant (e.g., linking risks to contract requirements).\n\nCONTRACT DOCUMENT:\n\n" + SPECIFICATION_TEXT + additionalContext;
 
     const messages = [
       { role: "system", content: systemPrompt },

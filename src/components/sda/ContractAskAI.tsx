@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,6 +33,8 @@ import { generateWordDocument } from '@/utils/documentGenerators';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { format } from 'date-fns';
+import { projectRisks } from './risk-register/projectRisksData';
+import { actionLogData, actionLogMetadata } from '@/data/nresBoardActionsData';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -98,6 +100,63 @@ export const ContractAskAI = ({ open, onOpenChange }: ContractAskAIProps) => {
   const recognitionRef = useRef<any>(null);
   const lastAssistantMessageRef = useRef<HTMLDivElement>(null);
   const { sendEmailAutomatically, isSending } = useAutoEmail();
+
+  // Gather dashboard context from all sources
+  const gatherDashboardContext = useCallback(async () => {
+    const contextParts: string[] = [];
+
+    // 1. Action Log (from Supabase + local data)
+    try {
+      const { data: dbActions } = await supabase
+        .from('nres_board_actions')
+        .select('action_title, description, responsible_person, meeting_date, due_date, status, priority, notes')
+        .order('meeting_date', { ascending: false })
+        .limit(50);
+
+      if (dbActions && dbActions.length > 0) {
+        contextParts.push('## Programme Board Action Log (Live Database)\n' +
+          dbActions.map(a => `- [${a.status}] ${a.action_title} | Owner: ${a.responsible_person} | Priority: ${a.priority} | Due: ${a.due_date || 'TBC'} | Notes: ${a.notes || 'None'}`).join('\n'));
+      }
+    } catch (e) {
+      console.log('Could not fetch board actions from DB');
+    }
+
+    // Local action log data
+    contextParts.push('## Programme Board Action Log (Local Records)\nNext Meeting: ' + actionLogMetadata.nextMeeting + '\n' +
+      actionLogData.map(a => `- [${a.status}] #${a.actionId}: ${a.description} | Owner: ${a.owner} | Due: ${a.dueDate} | Priority: ${a.priority} | Notes: ${a.notes}`).join('\n'));
+
+    // 2. Risk Register
+    contextParts.push('## Risk Register\n' +
+      projectRisks.map(r => `- Risk #${r.id}: ${r.risk} | Category: ${r.category} | Type: ${r.riskType} | Original Score: ${r.originalScore} | Current Score: ${r.currentScore} | Owner: ${r.owner} | Last Reviewed: ${r.lastReviewed}\n  Concerns: ${r.concerns}\n  Mitigation: ${r.mitigation}${r.comments ? '\n  Comments: ' + r.comments : ''}`).join('\n\n'));
+
+    // 3. Hours Tracker summary
+    try {
+      const { data: hoursData } = await supabase
+        .from('nres_hours_entries')
+        .select('claimant_name, claimant_type, work_date, duration_hours, activity_type, description, invoice_status')
+        .order('work_date', { ascending: false })
+        .limit(100);
+
+      if (hoursData && hoursData.length > 0) {
+        const totalHours = hoursData.reduce((sum, e) => sum + (e.duration_hours || 0), 0);
+        contextParts.push(`## Hours Tracker Summary\nTotal entries: ${hoursData.length} | Total hours: ${totalHours.toFixed(1)}\n` +
+          hoursData.slice(0, 30).map(e => `- ${e.work_date}: ${e.claimant_name} (${e.claimant_type}) - ${e.duration_hours}hrs - ${e.activity_type} - ${e.description || 'No description'}${e.invoice_status === 'invoiced' ? ' [INVOICED]' : ''}`).join('\n'));
+      }
+    } catch (e) {
+      console.log('Could not fetch hours data');
+    }
+
+    // 4. Evidence Library metadata (static)
+    contextParts.push(`## Evidence Library - Key Documents
+- Programme Board Meeting (24 Feb 2026): Agenda, Draft Minutes (10 Feb 2026)
+- Programme Board Meeting (23 Dec 2025): Agenda, Minutes (9 Dec 2025), Terms of Reference (Approved), SDA Innovator Project Plan
+- Workgroup: Finance Workgroup Minutes (17 Feb 2026), IT Task & Finish Notes (22 Jan 2026), Workforce Meeting Notes (8 Jan 2026)
+- VCSE Meetings: 22 Dec 2025 (Virtual), 19 Jan 2026 (Towcester)
+- Communications: PPG Engagement Materials (29 Jan 2026) - PPG briefing document and presentation shared with SNVB`);
+
+    return contextParts.join('\n\n');
+  }, []);
+
 
   // Speech recognition setup
   useEffect(() => {
@@ -178,10 +237,14 @@ export const ContractAskAI = ({ open, onOpenChange }: ContractAskAIProps) => {
         content: m.content
       }));
 
+      // Gather live dashboard context
+      const dashboardContext = await gatherDashboardContext();
+
       const { data, error } = await supabase.functions.invoke('contract-ask-ai', {
         body: {
           message: userMessage,
           conversationHistory,
+          dashboardContext,
         }
       });
 
@@ -282,9 +345,13 @@ export const ContractAskAI = ({ open, onOpenChange }: ContractAskAIProps) => {
               </Button>
             </div>
           </div>
-          <Badge variant="secondary" className="w-fit text-xs mt-1">
-            New Models Primary Care Service Specification v5
-          </Badge>
+          <div className="flex flex-wrap gap-1 mt-1">
+            <Badge variant="secondary" className="text-xs">Service Specification v5</Badge>
+            <Badge variant="outline" className="text-xs">Action Log</Badge>
+            <Badge variant="outline" className="text-xs">Risk Register</Badge>
+            <Badge variant="outline" className="text-xs">Hours Tracker</Badge>
+            <Badge variant="outline" className="text-xs">Evidence Library</Badge>
+          </div>
         </DialogHeader>
 
         <ScrollArea ref={scrollAreaRef} className="flex-1 px-4">
@@ -293,10 +360,10 @@ export const ContractAskAI = ({ open, onOpenChange }: ContractAskAIProps) => {
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Bot className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-2">
-                  Ask questions about the <span className="font-medium text-foreground">ICB New Models Contract</span>
+                  Ask questions about the <span className="font-medium text-foreground">NRES SDA Programme</span>
                 </p>
                 <p className="text-xs text-muted-foreground mb-6 max-w-md">
-                  New Models Primary Care Service Specification v5 — Original ICB Bid Requirements for the NRES SDA Pilot &amp; Innovator Site
+                  Connected to the Service Specification, Action Log, Risk Register, Hours Tracker &amp; Evidence Library
                 </p>
 
                 <div className="w-full space-y-2">
@@ -422,7 +489,7 @@ export const ContractAskAI = ({ open, onOpenChange }: ContractAskAIProps) => {
             <div className="flex-1 relative">
               <Textarea
                 ref={textareaRef}
-                placeholder={isListening ? "Listening..." : "Ask about the ICB contract..."}
+                placeholder={isListening ? "Listening..." : "Ask about the programme, contract, actions, risks..."}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
