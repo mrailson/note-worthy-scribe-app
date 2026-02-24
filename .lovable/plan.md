@@ -1,82 +1,86 @@
 
 
-## Centralised Programme Board People Directory
+## Groups and Email Addresses for the People Directory
 
 ### Overview
-Create a single, shared people directory that serves as the source of truth for all programme board members and stakeholders. This directory will be used across the Action Log, Programme Delivery Schedule, and Risk Register, providing consistent owner/assignee dropdowns and a single place to add, edit, or remove people and their roles.
+Extend the centralised People Directory to support **groups** (e.g., "PMs", "Clinical Team", "ICB Representatives") alongside individuals, and add **email addresses** to both. Groups and individuals will appear in the dropdowns across the Action Log, Programme Delivery Schedule, and Risk Register, as well as the Executive Summary governance section.
 
 ### What You Will Get
-- A new **"People Directory"** data file containing all current board members, their initials, roles, and organisations (pre-populated from the Terms of Reference and existing data)
-- A **People Manager dialog** accessible from a shared icon button, allowing you to add, edit, and delete people in one place
-- **Owner/Assignee dropdowns** in the Action Log, Programme Delivery Schedule, and Risk Register edit dialogs that all pull from the same people list
-- Owner tooltips across all three tools showing full name and role on hover
+- **Email field** added to every person in the directory (existing and new)
+- **Groups** as a new concept: a named collection with its own email address, role label, and member list
+- **People Directory Dialog** updated with two tabs: "Individuals" and "Groups", each with full add/edit/delete capability
+- **PersonSelect dropdown** updated to show both individuals and groups, visually separated with group labels
+- **Audit trail** extended to cover group changes (added/edited/deleted groups)
 
-### People to Pre-populate (from ToR and existing data)
+### Data Changes
 
-| Initials | Name | Role | Organisation |
-|----------|------|------|-------------|
-| MJG | Maureen Green | Programme Director | PML |
-| MR | Malcolm Railson | Digital & Estates Lead | NRES |
-| AT | Amanda Taylor | Managerial Lead | NRES |
-| LH | Lucy Hibberd | Supporting Managerial Lead | NRES - Bugbrooke |
-| AW | Alex Whitehead | Supporting Digital & Estates Lead | NRES - The Parks |
-| DMG | Dr Mark Gray | SRO / Chair | PML |
-| DSE | Dr Simon Ellis | Clinical Lead | Towcester Medical Centre |
-| DMC | Dr Muhammed Chisti | Supporting Clinical Lead | The Parks |
+**ProgrammePerson** gains an `email` field:
+| Field | Type | Notes |
+|-------|------|-------|
+| email | string (optional) | e.g. "maureen.green@nhs.net" |
+
+**New ProgrammeGroup interface**:
+| Field | Type | Notes |
+|-------|------|-------|
+| id | string | UUID |
+| name | string | e.g. "Programme Managers" |
+| abbreviation | string | e.g. "PMs" |
+| email | string | Group email, e.g. "pms@nres.nhs.net" |
+| description | string | Brief purpose |
+| memberIds | string[] | References to ProgrammePerson IDs |
+| isActive | boolean | Active toggle |
 
 ### Changes Required
 
-#### 1. New shared data file: `src/data/nresPeopleDirectory.ts`
-- Define a `ProgrammePerson` interface: `id`, `initials`, `name`, `role`, `organisation`, `isActive`
-- Export a default list pre-populated with the people above
-- Export helper functions: `getPersonByInitials()`, `getPersonLabel()` (returns "initials - full name")
+#### 1. Update data file (`src/data/nresPeopleDirectory.ts`)
+- Add `email?: string` to the `ProgrammePerson` interface
+- Define a new `ProgrammeGroup` interface
+- Add a `defaultGroups` array with sensible defaults (e.g., "Programme Managers", "Clinical Leads")
+- Add helper functions: `getGroupByName()`, `getGroupLabel()`
 
-#### 2. New shared component: `src/components/sda/PeopleDirectoryDialog.tsx`
-- A modal listing all people in a clean table
-- Add, Edit, and Delete people with fields: Name, Initials, Role, Organisation, Active toggle
-- Audit trail of people changes (added/edited/removed) with user email and timestamp
-- Accessible via a Users icon button that can be placed in any toolbar
+#### 2. Update context (`src/contexts/NRESPeopleContext.tsx`)
+- Add `groups` state initialised from `defaultGroups`
+- Add CRUD functions: `addGroup`, `updateGroup`, `deleteGroup`
+- Extend audit log to cover group operations
+- Expose `groups` and group CRUD via the context
 
-#### 3. New shared component: `src/components/sda/PersonSelect.tsx`
-- A reusable `Select` dropdown showing all active people from the directory
-- Displays initials and full name in the dropdown
-- Accepts `value` (initials) and `onChange` props
-- Used as a drop-in replacement for free-text owner/assignee fields
+#### 3. Update People Directory Dialog (`src/components/sda/PeopleDirectoryDialog.tsx`)
+- Add a **Tabs** component with "Individuals" and "Groups" tabs
+- **Individuals tab**: add an Email field to the add/edit form; display email in the table
+- **Groups tab**: table listing groups with name, abbreviation, email, member count; add/edit/delete with a form that includes a multi-select for members
+- Audit trail remains unified across both tabs
 
-#### 4. Update `ActionLogTable.tsx`
-- Remove the hardcoded `ownerDetails` lookup (lines 40-45)
-- Import and use the shared people directory for owner tooltips
-- Replace the free-text Owner input in `ActionLogEditDialog.tsx` with the `PersonSelect` component
+#### 4. Update PersonSelect dropdown (`src/components/sda/PersonSelect.tsx`)
+- Show two `SelectGroup` sections: "Individuals" and "Groups"
+- Individuals show "initials - name" as before
+- Groups show "abbreviation - group name"
+- Group values prefixed with `group:` to distinguish from individual initials (e.g., `group:PMs`)
 
-#### 5. Update `TaskEditDialog.tsx` (Programme Delivery Schedule)
-- Replace the free-text "Assigned To" input with the `PersonSelect` component
-- Existing assignee values will still display correctly (matched by name or initials)
+#### 5. Update ActionLogEditDialog (`src/components/sda/ActionLogEditDialog.tsx`)
+- The Owner field already uses `PersonSelect`, so groups will appear automatically
+- No additional changes needed beyond the PersonSelect update
 
-#### 6. Update `RiskEditDialog.tsx` (Risk Register)
-- Replace the free-text "Owner" input with the `PersonSelect` component
+#### 6. Update ActionLogTable owner tooltips (`src/components/sda/ActionLogTable.tsx`)
+- Extend the owner tooltip lookup to also check groups when the value starts with `group:`
+- Show group name, email, and member list in the tooltip
 
-#### 7. Update `SDAFinanceGovernance.tsx`
-- Replace the hardcoded `seniorLeadership` array with data sourced from the shared people directory
-- Maintain the existing visual layout (cards with icons, voting badges)
+#### 7. Update SDAFinanceGovernance (`src/components/sda/SDAFinanceGovernance.tsx`)
+- Display email addresses alongside people in the Senior Leadership section
+- No group-specific changes needed here as it already sources from the directory
 
 ### Technical Details
 
-**State management**: The people directory will use React context (`NRESPeopleContext`) wrapping the NRES Dashboard, providing `people`, `addPerson`, `updatePerson`, and `deletePerson` functions to all child components. This avoids prop drilling and ensures all three tools always see the same list.
+**Group value convention**: In dropdowns and data, group selections are stored as `group:<abbreviation>` (e.g., `group:PMs`). This allows the system to distinguish between an individual with initials "PM" and a group abbreviated "PMs".
 
-**Data flow**: Initial data loaded from `nresPeopleDirectory.ts` into context state. All mutations update context state in-memory (matching the existing pattern used by Action Log and Programme Plan).
+**Backward compatibility**: Existing owner values (initials or names) remain valid. The updated `PersonSelect` will still resolve them correctly.
 
-**Backward compatibility**: Existing data that uses full names (e.g. "Maureen Green" in the Programme Plan) or initials (e.g. "MJG" in Action Log) will be matched against both the `name` and `initials` fields in the directory.
-
-### Files to Create
-- `src/data/nresPeopleDirectory.ts` -- shared people data and types
-- `src/contexts/NRESPeopleContext.tsx` -- React context provider
-- `src/components/sda/PeopleDirectoryDialog.tsx` -- people management modal
-- `src/components/sda/PersonSelect.tsx` -- reusable person picker dropdown
+**State management**: Groups follow the same in-memory `useState` pattern as individuals. Both share a single audit trail.
 
 ### Files to Modify
-- `src/components/sda/ActionLogTable.tsx` -- use shared directory, remove hardcoded lookup
-- `src/components/sda/ActionLogEditDialog.tsx` -- use PersonSelect for Owner
-- `src/components/sda/programme-plan/TaskEditDialog.tsx` -- use PersonSelect for Assigned To
-- `src/components/sda/risk-register/RiskEditDialog.tsx` -- use PersonSelect for Owner
-- `src/components/sda/SDAFinanceGovernance.tsx` -- source leadership from shared directory
-- NRES Dashboard wrapper component -- wrap with `NRESPeopleProvider`
+- `src/data/nresPeopleDirectory.ts` -- add email field, group interface, default groups
+- `src/contexts/NRESPeopleContext.tsx` -- add groups state and CRUD, extend audit
+- `src/components/sda/PeopleDirectoryDialog.tsx` -- add tabs, email field, groups management
+- `src/components/sda/PersonSelect.tsx` -- show grouped dropdown with individuals and groups
+- `src/components/sda/ActionLogTable.tsx` -- extend owner tooltip for groups
+- `src/components/sda/SDAFinanceGovernance.tsx` -- display emails in leadership cards
+
