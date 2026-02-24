@@ -1,7 +1,8 @@
 import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, ZoomIn, ZoomOut, X } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, ZoomIn, ZoomOut, X, Bot } from "lucide-react";
+import { ContractAskAI } from "./ContractAskAI";
 import { Slider } from "@/components/ui/slider";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/nres-logo.png";
@@ -46,6 +47,7 @@ export const SDAExecutiveSummary = () => {
   const [mapZoom, setMapZoom] = useState(120);
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
   const [showReportingPreview, setShowReportingPreview] = useState(false);
+  const [showContractAskAI, setShowContractAskAI] = useState(false);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
@@ -381,15 +383,26 @@ export const SDAExecutiveSummary = () => {
                             <p className="text-[10px] text-slate-500">Original ICB Bid Requirements for SDA Pilot & Innovator Site</p>
                           </div>
                         </div>
-                        <Button 
-                          onClick={handleDownloadBidRequirements}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1 hover:bg-[#005EB8] hover:text-white transition-colors text-xs h-7 px-2"
-                        >
-                          <Download className="w-3 h-3" />
-                          Download PDF
-                        </Button>
+                        <div className="flex items-center gap-1.5">
+                          <Button 
+                            onClick={handleDownloadBidRequirements}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1 hover:bg-[#005EB8] hover:text-white transition-colors text-xs h-7 px-2"
+                          >
+                            <Download className="w-3 h-3" />
+                            Download PDF
+                          </Button>
+                          <Button
+                            onClick={() => setShowContractAskAI(true)}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1 hover:bg-[#005EB8] hover:text-white transition-colors text-xs h-7 px-2"
+                          >
+                            <Bot className="w-3 h-3" />
+                            Ask AI
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -653,6 +666,7 @@ export const SDAExecutiveSummary = () => {
         }
       `}</style>
     </div>
+    <ContractAskAI open={showContractAskAI} onOpenChange={setShowContractAskAI} />
     </>
   );
 };
