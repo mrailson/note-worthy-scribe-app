@@ -75,7 +75,7 @@ export const practices: RecruitmentPractice[] = [
     workforce: {
       gp: [
         { name: 'Dr Charlotte', sessions: 5, status: 'recruited', type: 'New Recruit', notes: 'In post' },
-        { name: 'Dr Rajan', sessions: 7, status: 'potential', type: 'New Recruit', notes: 'Potential offer' },
+        { name: 'Dr Rajan', sessions: 2, status: 'potential', type: 'New Recruit', notes: 'Potential offer' },
         { name: 'GP Vacancy', sessions: 3, status: 'outstanding', type: 'New Recruit', notes: 'Recruiting' }
       ],
       acp: [],
