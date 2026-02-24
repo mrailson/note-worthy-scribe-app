@@ -135,6 +135,7 @@ export const SDAFinanceGovernance = () => {
     name: p.name,
     role: p.role,
     organisation: p.organisation,
+    email: p.email,
     isVoting: votingRoles.includes(p.role),
     icon: roleIcons[p.role] || Users,
   }));
@@ -269,6 +270,7 @@ export const SDAFinanceGovernance = () => {
                     </div>
                     <p className="text-sm text-[#005EB8] font-medium">{member.role}</p>
                     <p className="text-xs text-slate-500">{member.organisation}</p>
+                    {member.email && <p className="text-xs text-slate-400">{member.email}</p>}
                   </div>
                 </div>
               );

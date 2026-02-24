@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { ProgrammePerson, defaultPeople } from "@/data/nresPeopleDirectory";
+import { ProgrammePerson, ProgrammeGroup, defaultPeople, defaultGroups } from "@/data/nresPeopleDirectory";
 
 export interface PeopleAuditEntry {
   id: string;
@@ -14,9 +14,13 @@ export interface PeopleAuditEntry {
 
 interface NRESPeopleContextType {
   people: ProgrammePerson[];
+  groups: ProgrammeGroup[];
   addPerson: (person: Omit<ProgrammePerson, "id">, userEmail: string) => void;
   updatePerson: (id: string, updates: Partial<ProgrammePerson>, userEmail: string) => void;
   deletePerson: (id: string, userEmail: string) => void;
+  addGroup: (group: Omit<ProgrammeGroup, "id">, userEmail: string) => void;
+  updateGroup: (id: string, updates: Partial<ProgrammeGroup>, userEmail: string) => void;
+  deleteGroup: (id: string, userEmail: string) => void;
   auditLog: PeopleAuditEntry[];
 }
 
@@ -24,6 +28,7 @@ const NRESPeopleContext = createContext<NRESPeopleContextType | undefined>(undef
 
 export const NRESPeopleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [people, setPeople] = useState<ProgrammePerson[]>(defaultPeople);
+  const [groups, setGroups] = useState<ProgrammeGroup[]>(defaultGroups);
   const [auditLog, setAuditLog] = useState<PeopleAuditEntry[]>([]);
 
   const addAudit = useCallback(
@@ -53,8 +58,8 @@ export const NRESPeopleProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           const updated = { ...p, ...updates };
           Object.keys(updates).forEach((key) => {
             const k = key as keyof ProgrammePerson;
-            if (String(p[k]) !== String(updates[k])) {
-              addAudit(userEmail, "Edited", p.name, k, String(p[k]), String(updates[k]));
+            if (String(p[k] ?? "") !== String(updates[k] ?? "")) {
+              addAudit(userEmail, "Edited", p.name, k, String(p[k] ?? ""), String(updates[k] ?? ""));
             }
           });
           return updated;
@@ -75,8 +80,49 @@ export const NRESPeopleProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     [addAudit]
   );
 
+  const addGroup = useCallback(
+    (group: Omit<ProgrammeGroup, "id">, userEmail: string) => {
+      const newGroup = { ...group, id: crypto.randomUUID() };
+      setGroups((prev) => [...prev, newGroup]);
+      addAudit(userEmail, "Added", `Group: ${group.name}`);
+    },
+    [addAudit]
+  );
+
+  const updateGroup = useCallback(
+    (id: string, updates: Partial<ProgrammeGroup>, userEmail: string) => {
+      setGroups((prev) =>
+        prev.map((g) => {
+          if (g.id !== id) return g;
+          const updated = { ...g, ...updates };
+          Object.keys(updates).forEach((key) => {
+            const k = key as keyof ProgrammeGroup;
+            const oldVal = String(g[k] ?? "");
+            const newVal = String(updates[k] ?? "");
+            if (oldVal !== newVal) {
+              addAudit(userEmail, "Edited", `Group: ${g.name}`, k, oldVal, newVal);
+            }
+          });
+          return updated;
+        })
+      );
+    },
+    [addAudit]
+  );
+
+  const deleteGroup = useCallback(
+    (id: string, userEmail: string) => {
+      setGroups((prev) => {
+        const group = prev.find((g) => g.id === id);
+        if (group) addAudit(userEmail, "Deleted", `Group: ${group.name}`);
+        return prev.filter((g) => g.id !== id);
+      });
+    },
+    [addAudit]
+  );
+
   return (
-    <NRESPeopleContext.Provider value={{ people, addPerson, updatePerson, deletePerson, auditLog }}>
+    <NRESPeopleContext.Provider value={{ people, groups, addPerson, updatePerson, deletePerson, addGroup, updateGroup, deleteGroup, auditLog }}>
       {children}
     </NRESPeopleContext.Provider>
   );
