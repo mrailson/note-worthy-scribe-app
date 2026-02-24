@@ -373,7 +373,7 @@ export const SDAExecutiveSummary = () => {
                   <div className="flex-1" />
                   <Card className="bg-slate-50 border border-slate-200 hover:border-[#005EB8] transition-colors">
                     <CardContent className="p-3">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex flex-col items-center gap-2">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
                             <FileText className="w-4 h-4 text-red-600" />
@@ -388,17 +388,15 @@ export const SDAExecutiveSummary = () => {
                             <p className="text-[10px] text-slate-500">Original ICB Bid Requirements for SDA Pilot & Innovator Site</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Button
-                            onClick={() => setShowContractAskAI(true)}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1 hover:bg-[#005EB8] hover:text-white transition-colors text-xs h-7 px-2"
-                          >
-                            <Bot className="w-3 h-3" />
-                            Ask AI about the New Models Pilot
-                          </Button>
-                        </div>
+                        <Button
+                          onClick={() => setShowContractAskAI(true)}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1 hover:bg-[#005EB8] hover:text-white transition-colors text-xs h-7 px-2"
+                        >
+                          <Bot className="w-3 h-3" />
+                          Ask AI about the New Models Pilot
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
