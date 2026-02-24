@@ -378,21 +378,17 @@ export const SDAExecutiveSummary = () => {
                           <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
                             <FileText className="w-4 h-4 text-red-600" />
                           </div>
-                          <div>
-                            <p className="font-medium text-slate-900 text-xs">New Models Primary Care Service Specification v5</p>
+                         <div>
+                            <p 
+                              className="font-medium text-slate-900 text-xs cursor-pointer hover:text-[#005EB8] hover:underline transition-colors"
+                              onClick={handleDownloadBidRequirements}
+                            >
+                              New Models Primary Care Service Specification v5
+                            </p>
                             <p className="text-[10px] text-slate-500">Original ICB Bid Requirements for SDA Pilot & Innovator Site</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Button 
-                            onClick={handleDownloadBidRequirements}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1 hover:bg-[#005EB8] hover:text-white transition-colors text-xs h-7 px-2"
-                          >
-                            <Download className="w-3 h-3" />
-                            Download PDF
-                          </Button>
                           <Button
                             onClick={() => setShowContractAskAI(true)}
                             variant="outline"
