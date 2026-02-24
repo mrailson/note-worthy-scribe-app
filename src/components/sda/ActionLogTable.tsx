@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { useNRESPeople } from "@/contexts/NRESPeopleContext";
-import { getPersonByInitials } from "@/data/nresPeopleDirectory";
+import { getPersonByInitials, getGroupByAbbreviation, parseGroupValue } from "@/data/nresPeopleDirectory";
 
 interface ActionLogMetadata {
   sourceMeeting: string;
@@ -93,7 +93,7 @@ const parseDate = (dateStr: string): Date => {
 
 export const ActionLogTable = ({ actions: initialActions, metadata }: ActionLogTableProps) => {
   const { user } = useAuth();
-  const { people } = useNRESPeople();
+  const { people, groups } = useNRESPeople();
   const [actions, setActions] = useState<ActionLogItem[]>(initialActions);
   const [sort, setSort] = useState<SortState>({ field: null, direction: null });
   const [showOpenOnly, setShowOpenOnly] = useState(true);
@@ -530,6 +530,30 @@ export const ActionLogTable = ({ actions: initialActions, metadata }: ActionLogT
               <TableCell className="text-sm text-slate-900">{action.description}</TableCell>
               <TableCell className="text-sm font-medium text-slate-700">
                 {(() => {
+                  const groupAbbr = parseGroupValue(action.owner);
+                  if (groupAbbr) {
+                    const group = getGroupByAbbreviation(groups, groupAbbr);
+                    if (!group) return action.owner;
+                    const members = group.memberIds.map((id) => people.find((p) => p.id === id)).filter(Boolean);
+                    return (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help underline decoration-dotted underline-offset-2">
+                            {group.abbreviation}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <div className="text-sm">
+                            <p className="font-semibold">{group.name}</p>
+                            {group.email && <p className="text-muted-foreground">{group.email}</p>}
+                            {members.length > 0 && (
+                              <p className="text-muted-foreground mt-1">Members: {members.map((m) => m!.initials).join(", ")}</p>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }
                   const person = getPersonByInitials(people, action.owner);
                   return person ? (
                     <Tooltip>
@@ -542,6 +566,7 @@ export const ActionLogTable = ({ actions: initialActions, metadata }: ActionLogT
                         <div className="text-sm">
                           <p className="font-semibold">{person.name}</p>
                           <p className="text-muted-foreground">{person.role} — {person.organisation}</p>
+                          {person.email && <p className="text-muted-foreground">{person.email}</p>}
                         </div>
                       </TooltipContent>
                     </Tooltip>
