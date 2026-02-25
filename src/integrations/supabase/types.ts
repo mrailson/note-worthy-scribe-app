@@ -7251,6 +7251,63 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_recruitment_audit: {
+        Row: {
+          action: string
+          field: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          practice_name: string | null
+          staff_name: string
+          timestamp: string
+          user_email: string
+        }
+        Insert: {
+          action: string
+          field?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          practice_name?: string | null
+          staff_name: string
+          timestamp?: string
+          user_email: string
+        }
+        Update: {
+          action?: string
+          field?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          practice_name?: string | null
+          staff_name?: string
+          timestamp?: string
+          user_email?: string
+        }
+        Relationships: []
+      }
+      nres_recruitment_config: {
+        Row: {
+          id: string
+          practices_data: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          practices_data?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          practices_data?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       nres_submenu_access: {
         Row: {
           created_at: string | null
