@@ -6,7 +6,7 @@ import { SDAEstatesCapacity } from "@/components/sda/SDAEstatesCapacity";
 import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
 import { SDAWorkforceInnovation } from "@/components/sda/SDAWorkforceInnovation";
 
-import { SDARisksMitigation } from "@/components/sda/SDARisksMitigation";
+
 import { SDAEvidenceLibrary } from "@/components/sda/SDAEvidenceLibrary";
 import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
@@ -15,8 +15,6 @@ import {
   Building2, 
   Monitor, 
   Users, 
-   
-  AlertTriangle, 
   FolderOpen,
   Clock
 } from "lucide-react";
@@ -88,15 +86,7 @@ const SDADashboard = () => {
               <span className="hidden sm:inline">Workforce</span>
               <span className="sm:hidden">Workforce</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="risks" 
-              className="flex items-center gap-2 data-[state=active]:bg-[#005EB8] data-[state=active]:text-white px-4 py-2.5 rounded-lg transition-all"
-            >
-              <AlertTriangle className="w-4 h-4" />
-              <span className="hidden sm:inline">Risks & Mitigation</span>
-              <span className="sm:hidden">Risks</span>
-            </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="evidence" 
               className="flex items-center gap-2 data-[state=active]:bg-[#005EB8] data-[state=active]:text-white px-4 py-2.5 rounded-lg transition-all"
             >
@@ -126,9 +116,6 @@ const SDADashboard = () => {
             </TabsContent>
             <TabsContent value="workforce" className="mt-0">
               <SDAWorkforceInnovation />
-            </TabsContent>
-            <TabsContent value="risks" className="mt-0">
-              <SDARisksMitigation />
             </TabsContent>
             <TabsContent value="evidence" className="mt-0">
               <SDAEvidenceLibrary />
