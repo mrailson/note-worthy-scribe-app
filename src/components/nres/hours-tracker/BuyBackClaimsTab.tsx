@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
@@ -216,7 +216,7 @@ function AddStaffForm({ saving, onAdd }: {
 export function BuyBackClaimsTab() {
   const { user } = useAuth();
   const { activeStaff, loading: loadingStaff, saving: savingStaff, admin, addStaff, updateStaff, removeStaff } = useNRESBuyBackStaff();
-  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims();
+  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, approveClaim, rejectClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims();
 
   const isAdmin = admin;
 
@@ -490,6 +490,8 @@ export function BuyBackClaimsTab() {
                   onUpdateStaffAmount={updateStaffClaimedAmount}
                   onRemoveStaff={removeStaffFromClaim}
                   onUpdateStaffNotes={updateStaffNotes}
+                  onApprove={approveClaim}
+                  onReject={rejectClaim}
                 />
               ))}
             </div>
@@ -624,7 +626,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount }: { staff: any; claimMo
   );
 }
 
-function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes }: {
+function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject }: {
   claim: BuyBackClaim;
   userId?: string;
   userEmail?: string;
@@ -635,11 +637,17 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
   onUpdateStaffAmount: (claimId: string, staffIndex: number, amount: number) => void;
   onRemoveStaff: (claimId: string, staffIndex: number) => void;
   onUpdateStaffNotes: (claimId: string, staffIndex: number, notes: string) => void;
+  onApprove: (id: string, notes?: string) => void;
+  onReject: (id: string, notes: string) => void;
 }) {
   const [editingNoteIdx, setEditingNoteIdx] = useState<number | null>(null);
   const [noteText, setNoteText] = useState('');
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState(false);
   const isDraft = claim.status === 'draft';
+  const isSubmitted = claim.status === 'submitted';
   const canEdit = isDraft && (userId === claim.user_id || isAdmin);
+  const canApprove = isSubmitted && isAdmin;
   const staffDetails = claim.staff_details as any[];
 
   const statusBadge = (status: string) => {
@@ -809,6 +817,23 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
         </tbody>
       </table>
 
+      {/* Submission info */}
+      {claim.submitted_at && (
+        <div className="px-3 py-2 border-t bg-blue-50/50 dark:bg-blue-950/20 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+          <span>Submitted by: <strong className="text-foreground">{claim.submitted_by_email || '—'}</strong></span>
+          <span>on <strong className="text-foreground">{format(new Date(claim.submitted_at), 'dd/MM/yyyy')} at {format(new Date(claim.submitted_at), 'HH:mm')}</strong></span>
+        </div>
+      )}
+
+      {/* Approval info */}
+      {(claim.status === 'approved' || claim.status === 'rejected') && claim.reviewed_at && (
+        <div className={`px-3 py-2 border-t text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 ${claim.status === 'approved' ? 'bg-green-50/50 dark:bg-green-950/20' : 'bg-red-50/50 dark:bg-red-950/20'}`}>
+          <span>{claim.status === 'approved' ? 'Approved' : 'Rejected'} by: <strong className="text-foreground">{claim.approved_by_email || '—'}</strong></span>
+          <span>on <strong className="text-foreground">{format(new Date(claim.reviewed_at), 'dd/MM/yyyy')} at {format(new Date(claim.reviewed_at), 'HH:mm')}</strong></span>
+          {claim.review_notes && <span>Notes: <em className="text-foreground">{claim.review_notes}</em></span>}
+        </div>
+      )}
+
       {/* Declaration & Submit */}
       <div className="px-3 py-3 flex items-center justify-between border-t bg-muted/10">
         <div className="flex items-center gap-3">
@@ -842,10 +867,33 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
             <Send className="w-3 h-3 mr-1" /> Submit
           </Button>
         )}
-        {claim.review_notes && (
-          <span className="text-xs text-muted-foreground italic ml-2" title={claim.review_notes}>Review note</span>
-        )}
       </div>
+
+      {/* Admin Approval Actions */}
+      {canApprove && (
+        <div className="px-3 py-3 border-t bg-amber-50/50 dark:bg-amber-950/20 space-y-2">
+          <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Review this claim</p>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Input
+                className="text-xs"
+                placeholder="Review notes (optional for approval, required for rejection)..."
+                value={reviewNotes}
+                onChange={e => setReviewNotes(e.target.value)}
+              />
+            </div>
+            <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => { onApprove(claim.id, reviewNotes); setReviewNotes(''); }}>
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onReject(claim.id, reviewNotes); setReviewNotes(''); }} disabled={showRejectInput && !reviewNotes.trim()}>
+              <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+            </Button>
+          </div>
+          {showRejectInput && !reviewNotes.trim() && (
+            <p className="text-xs text-destructive">Please enter a reason for rejection above.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

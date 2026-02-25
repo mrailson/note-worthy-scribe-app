@@ -6949,6 +6949,7 @@ export type Database = {
       }
       nres_buyback_claims: {
         Row: {
+          approved_by_email: string | null
           calculated_amount: number
           claim_month: string
           claimed_amount: number
@@ -6963,10 +6964,12 @@ export type Database = {
           staff_details: Json
           status: string
           submitted_at: string | null
+          submitted_by_email: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          approved_by_email?: string | null
           calculated_amount?: number
           claim_month: string
           claimed_amount?: number
@@ -6981,10 +6984,12 @@ export type Database = {
           staff_details?: Json
           status?: string
           submitted_at?: string | null
+          submitted_by_email?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          approved_by_email?: string | null
           calculated_amount?: number
           claim_month?: string
           claimed_amount?: number
@@ -6999,6 +7004,7 @@ export type Database = {
           staff_details?: Json
           status?: string
           submitted_at?: string | null
+          submitted_by_email?: string | null
           updated_at?: string
           user_id?: string
         }
