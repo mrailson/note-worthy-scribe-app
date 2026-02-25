@@ -110,6 +110,7 @@ export function useNRESBuyBackClaims() {
         allocation_type: s.allocation_type,
         allocation_value: s.allocation_value,
         hourly_rate: s.hourly_rate,
+        claimed_amount: calculateStaffMonthlyAmount(s),
       }));
 
       const { data, error } = await supabase
@@ -190,6 +191,35 @@ export function useNRESBuyBackClaims() {
     }
   };
 
+  /** Update a single staff member's claimed amount within the claim's staff_details JSON */
+  const updateStaffClaimedAmount = async (claimId: string, staffIndex: number, newAmount: number) => {
+    if (!user?.id) return;
+    try {
+      const claim = claims.find(c => c.id === claimId);
+      if (!claim) return;
+
+      const updatedDetails = [...(claim.staff_details as any[])];
+      updatedDetails[staffIndex] = { ...updatedDetails[staffIndex], claimed_amount: newAmount };
+
+      const totalClaimed = updatedDetails.reduce((sum, s) => sum + (s.claimed_amount ?? calculateStaffMonthlyAmount(s as any)), 0);
+
+      let query = supabase
+        .from('nres_buyback_claims')
+        .update({ staff_details: updatedDetails, claimed_amount: totalClaimed })
+        .eq('id', claimId);
+
+      if (!admin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query.select().single();
+      if (error) throw error;
+      setClaims(prev => prev.map(c => c.id === claimId ? (data as BuyBackClaim) : c));
+    } catch (error) {
+      console.error('Error updating staff claimed amount:', error);
+    }
+  };
+
   const confirmDeclaration = async (id: string, confirmed: boolean) => {
     if (!user?.id) return;
     try {
@@ -240,6 +270,7 @@ export function useNRESBuyBackClaims() {
     createClaim,
     submitClaim,
     updateClaimAmount,
+    updateStaffClaimedAmount,
     confirmDeclaration,
     deleteClaim,
     refetch: () => fetchClaims(true),
