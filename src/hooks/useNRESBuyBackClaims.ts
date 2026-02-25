@@ -39,17 +39,37 @@ const GP_SESSION_ANNUAL = 11000 * 1.2938;   // £14,231.80
 const WTE_ANNUAL        = 60000 * 1.2938;   // £77,628.00
 
 /** Calculate the maximum monthly claim amount for a staff member */
-export function calculateStaffMonthlyAmount(staff: BuyBackStaffMember): number {
+export function calculateStaffMonthlyAmount(staff: BuyBackStaffMember | { allocation_type: string; allocation_value: number; staff_role?: string }, claimMonth?: string, startDate?: string | null): number {
+  let fullMonthly: number;
   if (staff.allocation_type === 'sessions') {
-    // sessions × annual session cost ÷ 12 months
-    return (staff.allocation_value * GP_SESSION_ANNUAL) / 12;
+    fullMonthly = (staff.allocation_value * GP_SESSION_ANNUAL) / 12;
+  } else if (staff.allocation_type === 'hours') {
+    fullMonthly = ((staff.allocation_value / 37.5) * WTE_ANNUAL) / 12;
+  } else {
+    fullMonthly = (staff.allocation_value * WTE_ANNUAL) / 12;
   }
-  if (staff.allocation_type === 'hours') {
-    // pro-rata WTE: (hours/week ÷ 37.5) × WTE annual ÷ 12
-    return ((staff.allocation_value / 37.5) * WTE_ANNUAL) / 12;
+
+  // Pro-rata if start_date falls within the claim month
+  if (claimMonth && startDate) {
+    const claimStart = new Date(claimMonth);
+    const claimYear = claimStart.getFullYear();
+    const claimMonthNum = claimStart.getMonth();
+    const staffStart = new Date(startDate);
+
+    // Only pro-rata if staff starts in this specific month
+    if (staffStart.getFullYear() === claimYear && staffStart.getMonth() === claimMonthNum) {
+      const daysInMonth = new Date(claimYear, claimMonthNum + 1, 0).getDate();
+      const startDay = staffStart.getDate(); // e.g. 15th
+      const workingDays = daysInMonth - startDay + 1; // days from start to end of month inclusive
+      fullMonthly = fullMonthly * (workingDays / daysInMonth);
+    }
+    // If staff starts after the claim month, no claim allowed
+    if (staffStart > new Date(claimYear, claimMonthNum + 1, 0)) {
+      return 0;
+    }
   }
-  // WTE
-  return (staff.allocation_value * WTE_ANNUAL) / 12;
+
+  return fullMonthly;
 }
 
 export function useNRESBuyBackClaims() {
@@ -103,15 +123,19 @@ export function useNRESBuyBackClaims() {
     if (!user?.id) return null;
     try {
       setSaving(true);
-      const staffSnapshot = staffMembers.map(s => ({
-        staff_name: s.staff_name,
-        staff_role: s.staff_role,
-        staff_category: s.staff_category,
-        allocation_type: s.allocation_type,
-        allocation_value: s.allocation_value,
-        hourly_rate: s.hourly_rate,
-        claimed_amount: calculateStaffMonthlyAmount(s),
-      }));
+      const staffSnapshot = staffMembers.map(s => {
+        const maxAmount = calculateStaffMonthlyAmount(s, claimMonth, s.start_date);
+        return {
+          staff_name: s.staff_name,
+          staff_role: s.staff_role,
+          staff_category: s.staff_category,
+          allocation_type: s.allocation_type,
+          allocation_value: s.allocation_value,
+          hourly_rate: s.hourly_rate,
+          start_date: s.start_date,
+          claimed_amount: maxAmount,
+        };
+      });
 
       const { data, error } = await supabase
         .from('nres_buyback_claims')

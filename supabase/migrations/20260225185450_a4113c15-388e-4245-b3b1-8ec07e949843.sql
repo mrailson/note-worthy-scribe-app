@@ -1,0 +1,1 @@
+ALTER TABLE public.nres_buyback_staff ADD COLUMN start_date date;

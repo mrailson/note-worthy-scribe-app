@@ -16,6 +16,7 @@ export interface BuyBackStaffMember {
   is_active: boolean;
   staff_category: 'buyback' | 'new_sda';
   practice_key: string | null;
+  start_date: string | null;
   created_at: string;
   updated_at: string;
 }
