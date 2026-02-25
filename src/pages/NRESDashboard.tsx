@@ -75,7 +75,7 @@ const NRESDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="hours-tracker" className="gap-2">
               <Clock className="w-4 h-4" />
-              Hours Tracker
+              Financials
             </TabsTrigger>
           </TabsList>
 
