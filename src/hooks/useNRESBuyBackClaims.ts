@@ -29,18 +29,27 @@ function isAdmin(email: string | null | undefined): boolean {
   return NRES_ADMIN_EMAILS.includes(email.toLowerCase());
 }
 
-/** Calculate monthly amount from staff allocation */
+/**
+ * ICB-approved annual cost basis (including 29.38% on-costs):
+ *  - GP session: £11,000 + 29.38% = £14,231.80/session/year → monthly = /12
+ *  - WTE (37.5 hrs/wk): £60,000 + 29.38% = £77,628.00/year → monthly = /12
+ *  - Hours: pro-rata of WTE based on hours ÷ 37.5
+ */
+const GP_SESSION_ANNUAL = 11000 * 1.2938;   // £14,231.80
+const WTE_ANNUAL        = 60000 * 1.2938;   // £77,628.00
+
+/** Calculate the maximum monthly claim amount for a staff member */
 export function calculateStaffMonthlyAmount(staff: BuyBackStaffMember): number {
   if (staff.allocation_type === 'sessions') {
-    // sessions × 4 hrs/session × hourly rate
-    return staff.allocation_value * 4 * staff.hourly_rate;
+    // sessions × annual session cost ÷ 12 months
+    return (staff.allocation_value * GP_SESSION_ANNUAL) / 12;
   }
   if (staff.allocation_type === 'hours') {
-    // hours per week × 4.33 weeks/month × hourly rate
-    return staff.allocation_value * 4.33 * staff.hourly_rate;
+    // pro-rata WTE: (hours/week ÷ 37.5) × WTE annual ÷ 12
+    return ((staff.allocation_value / 37.5) * WTE_ANNUAL) / 12;
   }
-  // WTE: value × 37.5 hrs/week × hourly rate × 4.33 weeks/month
-  return staff.allocation_value * 37.5 * staff.hourly_rate * 4.33;
+  // WTE
+  return (staff.allocation_value * WTE_ANNUAL) / 12;
 }
 
 export function useNRESBuyBackClaims() {

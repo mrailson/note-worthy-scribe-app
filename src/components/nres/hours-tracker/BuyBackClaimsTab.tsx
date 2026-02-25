@@ -154,9 +154,8 @@ export function BuyBackClaimsTab() {
     const staffForClaim = filteredStaff.filter(s => s.practice_key === practiceForClaim);
     if (staffForClaim.length === 0) return;
     const calcAmount = staffForClaim.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s), 0);
-    const prevApproved = claims.find(c => c.status === 'approved' && c.practice_key === practiceForClaim);
-    const defaultAmount = prevApproved ? prevApproved.claimed_amount : calcAmount;
-    await createClaim(monthDate, staffForClaim, defaultAmount, calcAmount, practiceForClaim);
+    // Pre-populate claimed amount at the calculated max — user can lower but not raise
+    await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim);
   };
 
   // Filter claims by practice
@@ -441,14 +440,24 @@ function ClaimRow({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCon
       <td className="p-2 text-right">£{claim.calculated_amount.toFixed(2)}</td>
       <td className="p-2 text-right">
         {canEdit ? (
-          <Input
-            type="number"
-            className="w-24 ml-auto text-right"
-            value={claim.claimed_amount}
-            onChange={e => onUpdateAmount(claim.id, parseFloat(e.target.value) || 0)}
-            min="0"
-            step="0.01"
-          />
+          <div className="space-y-1">
+            <Input
+              type="number"
+              className="w-28 ml-auto text-right"
+              value={claim.claimed_amount}
+              onChange={e => {
+                const val = parseFloat(e.target.value) || 0;
+                // Cannot exceed the calculated maximum
+                onUpdateAmount(claim.id, Math.min(val, claim.calculated_amount));
+              }}
+              min="0"
+              max={claim.calculated_amount}
+              step="0.01"
+            />
+            <p className="text-[10px] text-muted-foreground text-right">
+              Max: £{claim.calculated_amount.toFixed(2)}
+            </p>
+          </div>
         ) : (
           `£${claim.claimed_amount.toFixed(2)}`
         )}
