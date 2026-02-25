@@ -645,8 +645,9 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
   const [reviewNotes, setReviewNotes] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const isDraft = claim.status === 'draft';
+  const isRejected = claim.status === 'rejected';
   const isSubmitted = claim.status === 'submitted';
-  const canEdit = isDraft && (userId === claim.user_id || isAdmin);
+  const canEdit = (isDraft || isRejected) && (userId === claim.user_id || isAdmin);
   const canApprove = isSubmitted && isAdmin;
   const staffDetails = claim.staff_details as any[];
 
