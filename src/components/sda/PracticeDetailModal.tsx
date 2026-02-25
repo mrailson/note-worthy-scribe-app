@@ -1,15 +1,28 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Building2, PoundSterling, Sun, Snowflake, SlidersHorizontal, Users } from "lucide-react";
+import { Building2, PoundSterling, Sun, Snowflake, SlidersHorizontal, Users, Pencil, Plus, Trash2, Save, X } from "lucide-react";
+import { format } from "date-fns";
 import { SystmOneIcon } from "@/components/icons/SystmOneIcon";
 import { EmisIcon } from "@/components/icons/EmisIcon";
 import { PracticeKey } from "@/hooks/useEstatesConfig";
-import { getRecruitmentDataForPractice, calculatePracticeTotals, statusConfig, type StaffMember } from "@/data/nresRecruitmentData";
+import { useRecruitmentConfig } from "@/hooks/useRecruitmentConfig";
+import { useAuth } from "@/contexts/AuthContext";
+import { InfoTooltip } from "@/components/nres/InfoTooltip";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  getRecruitmentDataForPractice,
+  calculatePracticeTotals,
+  statusConfig,
+  practiceKeyToRecruitmentId,
+  type StaffMember,
+  type RecruitmentPractice,
+} from "@/data/nresRecruitmentData";
 
 interface PracticeData {
   practice: string;
@@ -41,26 +54,361 @@ interface PracticeDetailModalProps {
   capacityWinter: CapacityData;
   activeSplit: number;
   viewMode: "sessions" | "appointments";
+  canEditRecruitment: boolean;
 }
 
-const RecruitmentStatusSection = ({ practiceKey }: { practiceKey: PracticeKey }) => {
-  const recruitmentData = getRecruitmentDataForPractice(practiceKey);
+const STATUS_OPTIONS: StaffMember["status"][] = ["recruited", "confirmed", "offered", "potential", "tbc", "outstanding"];
+
+type WorkforceCategory = "gp" | "acp" | "buyBack";
+
+const buildPracticeAuditEntries = (
+  originalPractice: RecruitmentPractice,
+  updatedPractice: RecruitmentPractice,
+  userEmail: string,
+  timestamp: string
+) => {
+  const entries: any[] = [];
+
+  for (const category of ["gp", "acp", "buyBack"] as const) {
+    const originalStaff = originalPractice.workforce[category] ?? [];
+    const updatedStaff = updatedPractice.workforce[category] ?? [];
+    const maxLen = Math.max(originalStaff.length, updatedStaff.length);
+
+    for (let i = 0; i < maxLen; i++) {
+      const before = originalStaff[i];
+      const after = updatedStaff[i];
+
+      if (!before && after) {
+        entries.push({
+          timestamp,
+          user_email: userEmail,
+          action: "Added",
+          practice_name: updatedPractice.name,
+          staff_name: after.name || `New ${category.toUpperCase()} staff`,
+          field: "Staff",
+          old_value: null,
+          new_value: `${after.sessions} sessions, ${after.status}`,
+        });
+        continue;
+      }
+
+      if (before && !after) {
+        entries.push({
+          timestamp,
+          user_email: userEmail,
+          action: "Deleted",
+          practice_name: originalPractice.name,
+          staff_name: before.name,
+          field: "Staff",
+          old_value: `${before.sessions} sessions, ${before.status}`,
+          new_value: null,
+        });
+        continue;
+      }
+
+      if (before && after) {
+        const staffName = after.name || before.name || `Row ${i + 1}`;
+
+        if (before.name !== after.name) {
+          entries.push({
+            timestamp,
+            user_email: userEmail,
+            action: "Edited",
+            practice_name: updatedPractice.name,
+            staff_name: staffName,
+            field: "Name",
+            old_value: before.name,
+            new_value: after.name,
+          });
+        }
+        if (before.sessions !== after.sessions) {
+          entries.push({
+            timestamp,
+            user_email: userEmail,
+            action: "Edited",
+            practice_name: updatedPractice.name,
+            staff_name: staffName,
+            field: "Sessions",
+            old_value: String(before.sessions),
+            new_value: String(after.sessions),
+          });
+        }
+        if (before.status !== after.status) {
+          entries.push({
+            timestamp,
+            user_email: userEmail,
+            action: "Edited",
+            practice_name: updatedPractice.name,
+            staff_name: staffName,
+            field: "Status",
+            old_value: before.status,
+            new_value: after.status,
+          });
+        }
+        if (before.type !== after.type) {
+          entries.push({
+            timestamp,
+            user_email: userEmail,
+            action: "Edited",
+            practice_name: updatedPractice.name,
+            staff_name: staffName,
+            field: "Type",
+            old_value: before.type,
+            new_value: after.type,
+          });
+        }
+        if ((before.notes || "") !== (after.notes || "")) {
+          entries.push({
+            timestamp,
+            user_email: userEmail,
+            action: "Edited",
+            practice_name: updatedPractice.name,
+            staff_name: staffName,
+            field: "Notes",
+            old_value: before.notes || "",
+            new_value: after.notes || "",
+          });
+        }
+      }
+    }
+  }
+
+  return entries;
+};
+
+const RecruitmentStatusSection = ({
+  practiceKey,
+  canEditRecruitment,
+}: {
+  practiceKey: PracticeKey;
+  canEditRecruitment: boolean;
+}) => {
+  const { user } = useAuth();
+  const { practices, isLoading, updateConfig } = useRecruitmentConfig();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [draftPractice, setDraftPractice] = useState<RecruitmentPractice | null>(null);
+
+  const practiceId = practiceKeyToRecruitmentId[practiceKey];
+  const livePractice = useMemo(
+    () => practices.find((p) => p.id === practiceId) || getRecruitmentDataForPractice(practiceKey),
+    [practiceId, practiceKey, practices]
+  );
+
+  const recruitmentData = isEditing ? draftPractice : livePractice;
+
+  const updateStaffField = (
+    category: WorkforceCategory,
+    staffIdx: number,
+    field: keyof StaffMember,
+    value: string | number
+  ) => {
+    setDraftPractice((prev) => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev)) as RecruitmentPractice;
+      (next.workforce[category][staffIdx] as any)[field] = value;
+      next.workforce[category][staffIdx].lastUpdated = new Date().toISOString();
+      return next;
+    });
+  };
+
+  const addStaff = (category: WorkforceCategory) => {
+    setDraftPractice((prev) => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev)) as RecruitmentPractice;
+      next.workforce[category].push({
+        name: "",
+        sessions: 0,
+        status: "outstanding",
+        type: category === "buyBack" ? "Buy-Back" : "New Recruit",
+        notes: "",
+        lastUpdated: new Date().toISOString(),
+      });
+      return next;
+    });
+  };
+
+  const deleteStaff = (category: WorkforceCategory, staffIdx: number) => {
+    setDraftPractice((prev) => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev)) as RecruitmentPractice;
+      next.workforce[category].splice(staffIdx, 1);
+      return next;
+    });
+  };
+
+  const startEditing = () => {
+    if (!livePractice) return;
+    setDraftPractice(JSON.parse(JSON.stringify(livePractice)) as RecruitmentPractice);
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setDraftPractice(null);
+  };
+
+  const saveChanges = async () => {
+    if (!livePractice || !draftPractice || !user?.email) {
+      toast.error("You must be logged in to save recruitment changes.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const nextPractices = practices.map((p) => (p.id === draftPractice.id ? draftPractice : p));
+
+      const auditEntries = buildPracticeAuditEntries(livePractice, draftPractice, user.email, now);
+      if (auditEntries.length > 0) {
+        const { error: auditError } = await supabase.from("nres_recruitment_audit" as any).insert(auditEntries as any);
+        if (auditError) {
+          console.error("Error writing modal recruitment audit entries:", auditError);
+        }
+      }
+
+      const success = await updateConfig(nextPractices);
+      if (success) {
+        setIsEditing(false);
+        setDraftPractice(null);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading && !recruitmentData) {
+    return <p className="text-xs text-slate-500">Loading recruitment data…</p>;
+  }
+
   if (!recruitmentData) return null;
 
-  const totals = calculatePracticeTotals(recruitmentData, 'combined');
-
+  const totals = calculatePracticeTotals(recruitmentData, "combined");
   const filledPct = totals.required > 0 ? Math.min((totals.totalFilled / totals.required) * 100, 100) : 0;
   const pipelinePct = totals.required > 0 ? Math.min((totals.totalPipeline / totals.required) * 100, 100 - filledPct) : 0;
   const outstandingPct = totals.required > 0 ? Math.min((totals.totalOutstanding / totals.required) * 100, 100 - filledPct - pipelinePct) : 0;
 
+  const EditableStaffRow = ({ staff, category, staffIdx }: { staff: StaffMember; category: WorkforceCategory; staffIdx: number }) => {
+    const config = statusConfig[staff.status];
+
+    return (
+      <div className={`flex items-center gap-2 p-2 rounded-lg ${config.bgLight} ${config.border} border mb-1.5 text-sm`}>
+        <input
+          className="flex-1 min-w-0 px-2 py-1 text-xs border rounded bg-white"
+          placeholder="Name"
+          value={staff.name}
+          onChange={(e) => updateStaffField(category, staffIdx, "name", e.target.value)}
+        />
+        <input
+          className="w-14 px-2 py-1 text-xs border rounded bg-white text-center"
+          type="number"
+          min={0}
+          value={staff.sessions}
+          onChange={(e) => updateStaffField(category, staffIdx, "sessions", Number(e.target.value))}
+        />
+        <select
+          className="px-2 py-1 text-xs border rounded bg-white"
+          value={staff.status}
+          onChange={(e) => updateStaffField(category, staffIdx, "status", e.target.value)}
+        >
+          {STATUS_OPTIONS.map((status) => (
+            <option key={status} value={status}>
+              {statusConfig[status].label}
+            </option>
+          ))}
+        </select>
+        <input
+          className="w-20 px-2 py-1 text-xs border rounded bg-white"
+          placeholder="Type"
+          value={staff.type}
+          onChange={(e) => updateStaffField(category, staffIdx, "type", e.target.value)}
+        />
+        <input
+          className="w-28 px-2 py-1 text-xs border rounded bg-white"
+          placeholder="Notes"
+          value={staff.notes || ""}
+          onChange={(e) => updateStaffField(category, staffIdx, "notes", e.target.value)}
+        />
+        <button
+          className="p-1 text-red-500 hover:text-red-700"
+          onClick={() => deleteStaff(category, staffIdx)}
+          title="Delete"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  };
+
+  const renderCategory = (
+    label: string,
+    icon: string,
+    iconClass: string,
+    category: WorkforceCategory,
+    staffList: StaffMember[],
+    sessionCount: number
+  ) => {
+    if (!isEditing && staffList.length === 0) return null;
+
+    return (
+      <div>
+        <h4 className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${iconClass}`}>{icon}</span>
+          {label} ({sessionCount} sessions)
+          {category === "acp" && sessionCount > 0 && (
+            <span className="font-normal text-slate-500">· {(sessionCount * 4 / 37.5).toFixed(2)} WTE · {sessionCount * 4} hrs/wk</span>
+          )}
+        </h4>
+
+        {isEditing ? (
+          <>
+            {staffList.map((staff, index) => (
+              <EditableStaffRow key={`${category}-${index}`} staff={staff} category={category} staffIdx={index} />
+            ))}
+            <button
+              className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 mt-1"
+              onClick={() => addStaff(category)}
+            >
+              <Plus className="h-3.5 w-3.5" /> Add {label}
+            </button>
+          </>
+        ) : (
+          staffList.map((staff, index) => <StaffRowCompact key={`${category}-${index}`} staff={staff} category={category} />)
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Users className="w-4 h-4 text-[#003087]" />
-        <h3 className="font-semibold text-[#003087] text-sm">Recruitment Status <span className="font-normal text-slate-400 text-xs">as at 23rd February 2026</span></h3>
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-[#003087]" />
+          <h3 className="font-semibold text-[#003087] text-sm">
+            Recruitment Status <span className="font-normal text-slate-400 text-xs">as at 23rd February 2026</span>
+          </h3>
+        </div>
+
+        {canEditRecruitment && (
+          <div className="flex items-center gap-1.5">
+            {isEditing ? (
+              <>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={cancelEditing} disabled={isSaving}>
+                  <X className="w-3.5 h-3.5 mr-1" /> Cancel
+                </Button>
+                <Button size="sm" className="h-7 text-xs" onClick={saveChanges} disabled={isSaving}>
+                  <Save className="w-3.5 h-3.5 mr-1" /> Save
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={startEditing}>
+                <Pencil className="w-3.5 h-3.5 mr-1" /> Edit Data
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Summary stats — {seasonLabel} */}
       <div className="grid grid-cols-3 gap-3 mb-3">
         <div className="bg-green-50 rounded-lg p-3 border border-green-200 text-center">
           <p className="text-xs text-green-600 mb-0.5">Filled</p>
@@ -79,7 +427,6 @@ const RecruitmentStatusSection = ({ practiceKey }: { practiceKey: PracticeKey })
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="mb-4">
         <div className="h-5 bg-gray-200 rounded-full overflow-hidden flex">
           {filledPct > 0 && (
@@ -100,73 +447,44 @@ const RecruitmentStatusSection = ({ practiceKey }: { practiceKey: PracticeKey })
         </div>
         <div className="flex justify-between text-[10px] mt-1 text-slate-500">
           <span>{totals.totalPlanned} / {totals.required} sessions planned</span>
-          <span>{totals.required - totals.totalPlanned > 0 ? `${totals.required - totals.totalPlanned} gap` : '✓ Covered'}</span>
+          <span>{totals.required - totals.totalPlanned > 0 ? `${totals.required - totals.totalPlanned} gap` : "✓ Covered"}</span>
         </div>
       </div>
 
-      {/* Staff detail grouped by role */}
       <div className="space-y-3">
-        {recruitmentData.workforce.gp.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
-              <span className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-[10px] font-bold">GP</span>
-              GP ({totals.byType.gp} sessions)
-            </h4>
-            {recruitmentData.workforce.gp.map((staff, i) => (
-              <StaffRowCompact key={i} staff={staff} />
-            ))}
-          </div>
-        )}
-        {recruitmentData.workforce.acp.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
-              <span className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-[10px] font-bold">ACP</span>
-              ACP/ANP ({totals.byType.acp} sessions · {(totals.byType.acp * 4 / 37.5).toFixed(2)} WTE · {totals.byType.acp * 4} hrs/wk)
-            </h4>
-            {recruitmentData.workforce.acp.map((staff, i) => (
-              <StaffRowCompact key={i} staff={staff} category="acp" />
-            ))}
-          </div>
-        )}
-        {recruitmentData.workforce.buyBack.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
-              <span className="w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-[10px] font-bold">BB</span>
-              Buy-Back ({totals.byType.buyBack} sessions)
-            </h4>
-            {recruitmentData.workforce.buyBack.map((staff, i) => (
-              <StaffRowCompact key={i} staff={staff} />
-            ))}
-          </div>
-        )}
+        {renderCategory("GP", "GP", "bg-blue-100 text-blue-600", "gp", recruitmentData.workforce.gp, totals.byType.gp)}
+        {renderCategory("ACP/ANP", "ACP", "bg-purple-100 text-purple-600", "acp", recruitmentData.workforce.acp, totals.byType.acp)}
+        {renderCategory("Buy-Back", "BB", "bg-gray-200 text-gray-600", "buyBack", recruitmentData.workforce.buyBack, totals.byType.buyBack)}
       </div>
     </div>
   );
 };
 
-const StaffRowCompact = ({ staff, category = 'gp' }: { staff: StaffMember; category?: 'gp' | 'acp' | 'buyBack' }) => {
+const StaffRowCompact = ({ staff, category = "gp" }: { staff: StaffMember; category?: "gp" | "acp" | "buyBack" }) => {
   const config = statusConfig[staff.status];
-  // For ACP/ANP: convert sessions to hours (1 session = 4hrs) and WTE (37.5 hrs/week)
-  const isAcp = category === 'acp';
+  const isAcp = category === "acp";
   const hours = staff.sessions * 4;
   const wte = (hours / 37.5).toFixed(2);
+
+  const hasLastUpdated = !!staff.lastUpdated && !Number.isNaN(new Date(staff.lastUpdated).getTime());
 
   return (
     <div className={`flex items-center justify-between p-2 rounded-lg ${config.bgLight} ${config.border} border mb-1.5 text-sm`}>
       <div className="flex items-center gap-2">
-        <div className={`w-7 h-7 rounded-full ${config.color} flex items-center justify-center text-white font-bold text-xs`}>
-          {staff.sessions}
-        </div>
+        <div className={`w-7 h-7 rounded-full ${config.color} flex items-center justify-center text-white font-bold text-xs`}>{staff.sessions}</div>
         <div>
-          <div className="font-medium text-slate-900 text-xs">
-            {staff.name}
+          <div className="font-medium text-slate-900 text-xs flex items-center gap-1.5">
+            <span>{staff.name}</span>
+            {staff.notes && <InfoTooltip content={staff.notes} />}
             {isAcp ? (
-              <span className="ml-1.5 font-normal text-slate-500">— {hours} hrs/wk ({wte} WTE)</span>
+              <span className="font-normal text-slate-500">— {hours} hrs/wk ({wte} WTE)</span>
             ) : (
-              <span className="ml-1.5 font-normal text-slate-500">— {staff.sessions} {staff.sessions === 1 ? 'session' : 'sessions'}</span>
+              <span className="font-normal text-slate-500">— {staff.sessions} {staff.sessions === 1 ? "session" : "sessions"}</span>
             )}
           </div>
-          {staff.notes && <div className="text-[10px] text-slate-500">{staff.notes}</div>}
+          {hasLastUpdated && (
+            <div className="text-[10px] text-slate-500 mt-0.5">Updated: {format(new Date(staff.lastUpdated as string), "dd/MM/yy HH:mm")}</div>
+          )}
         </div>
       </div>
       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${config.bgLight} ${config.textColor} ${config.border} border`}>
@@ -186,6 +504,7 @@ export const PracticeDetailModal = ({
   capacityWinter,
   activeSplit,
   viewMode,
+  canEditRecruitment,
 }: PracticeDetailModalProps) => {
   const [gpPct, setGpPct] = useState(50);
   const [capacitySeason, setCapacitySeason] = useState<"summer" | "winter">("summer");
@@ -498,7 +817,7 @@ export const PracticeDetailModal = ({
 
           {/* Tab 3: Recruitment Status */}
           <TabsContent value="recruitment" className="mt-0">
-            <RecruitmentStatusSection practiceKey={practice.key} />
+            <RecruitmentStatusSection practiceKey={practice.key} canEditRecruitment={canEditRecruitment} />
           </TabsContent>
         </Tabs>
 

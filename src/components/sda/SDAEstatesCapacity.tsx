@@ -1174,6 +1174,7 @@ export const SDAEstatesCapacity = () => {
           capacityWinter={capacityData.winter}
           activeSplit={activeSplit}
           viewMode={viewMode}
+          canEditRecruitment={!!canEditEstates}
         />
       )}
     </div>
