@@ -1,113 +1,85 @@
 
-## Editable Workforce Recruitment Tracker with Audit Trail
+# Combined Staff & Claims Tab: Buy-Back + New NRES SDA Staff
 
-### What this does
-1. NRES admins can add, edit, and delete staff members and buy-back entries directly in the tracker
-2. Each staff row retains its existing colour coding based on status (green/amber/red)
-3. Each staff entry shows a "Last Updated" date
-4. All changes are tracked in an audit trail table (who changed what, when)
-5. Staff notes display as a discreet Info hover icon (tooltip) rather than inline text
+## Overview
 
-### Design Details
+Enhance the existing Buy-Back Claims tab to support **two staff categories** — Buy-Back Staff (existing practice staff bought back for SDA work) and **New NRES SDA Staff** (newly recruited GPs, ACPs/ANPs hired for the programme). Each staff member and claim will be linked to one of the **7 neighbourhood practices**, and admins (like Amanda) can manage claims on behalf of any practice.
 
-**Colour Coding (kept as-is)**
-- Green: Recruited / Confirmed
-- Amber: Offered / Potential / TBC
-- Red: Outstanding
-- Each `StaffRow` continues to use the `statusConfig` colours for backgrounds, borders, and badge dots
+---
 
-**Last Updated per Staff Member**
-- Add an optional `lastUpdated` field to the `StaffMember` interface
-- Display as a small muted timestamp beneath each staff member's name (e.g., "Updated: 24/02/26 14:30")
-- Auto-set when any field on that staff member is changed
+## What Changes
 
-**Notes as Info Tooltip**
-- Replace the current inline notes text with a discreet `Info` icon (from lucide-react)
-- Hovering shows the note content in a tooltip (using the existing `InfoTooltip` component pattern)
-- Only visible when notes exist
+### 1. Database Changes
 
-**Audit Trail**
-- A new Supabase table `nres_recruitment_audit` stores every change with: timestamp, user email, action (Added/Edited/Deleted), staff name, field changed, old value, new value
-- An "Audit" button (with count badge) opens a dialog showing the full change history in the same table format used by the Programme Board Action Log audit
+Add two new columns to `nres_buyback_staff`:
+- `staff_category` (text, default `'buyback'`) — values: `'buyback'` or `'new_sda'`
+- `practice_key` (text, nullable) — stores the practice identifier (e.g. `'parks'`, `'brackley'`)
 
-### Technical Details
+Add one new column to `nres_buyback_claims`:
+- `practice_key` (text, nullable) — which practice the claim is for
 
-**1. Database: New table `nres_recruitment_config`**
-Single-row JSONB config table (mirrors `nres_estates_config`):
-```sql
-CREATE TABLE nres_recruitment_config (
-  id TEXT PRIMARY KEY DEFAULT 'default',
-  practices_data JSONB NOT NULL DEFAULT '[]',
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_by UUID REFERENCES auth.users(id)
-);
--- RLS: authenticated read/write
+Update RLS policies so admins (from `NRES_ADMIN_EMAILS` / `BUYBACK_APPROVER_EMAILS`) can read/write staff and claims for any user, enabling Amanda to manage claims on behalf of practices.
+
+### 2. UI Changes to BuyBackClaimsTab
+
+**Staff Management Section:**
+- Rename section title from "Buy-Back Staff" to "NRES SDA Staff"
+- Add a **Staff Category** toggle/select: "Buy-Back" or "New SDA Recruit"
+- Add a **Practice** dropdown (the 7 practices: The Parks MC, Brackley MC, Springfield Surgery, Towcester MC, Bugbrooke Surgery, Brook Health Centre, Denton Village Surgery)
+- Staff table gains two new columns: Category (badge) and Practice
+- Filter/group staff by practice for clarity
+
+**Claims Section:**
+- Add a **Practice** dropdown when creating a claim — determines which practice the claim is for
+- Claims history table gains a Practice column
+- For admins: show a practice filter and allow creating claims for any practice
+- For practice users: default to their own practice
+
+**Guide Section:**
+- Update the collapsible guide text to explain both buy-back and new SDA staff categories
+
+### 3. Hook Updates
+
+**`useNRESBuyBackStaff.ts`:**
+- Update `BuyBackStaffMember` interface to include `staff_category` and `practice_key`
+- Update `addStaff` to accept and save the new fields
+- For admins: fetch all staff (not just own `user_id`); for regular users: fetch own only
+
+**`useNRESBuyBackClaims.ts`:**
+- Update `BuyBackClaim` interface to include `practice_key`
+- Update `createClaim` to accept `practice_key`
+- For admins: fetch all claims; for regular users: fetch own only
+
+### 4. Practice Data
+
+Use a shared constant mapping the 7 practices:
+
+```text
+parks       -> The Parks MC
+brackley    -> Brackley MC
+springfield -> Springfield Surgery
+towcester   -> Towcester MC
+bugbrooke   -> Bugbrooke Surgery
+brook       -> Brook Health Centre
+denton      -> Denton Village Surgery
 ```
 
-**2. Database: New table `nres_recruitment_audit`**
-```sql
-CREATE TABLE nres_recruitment_audit (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
-  user_email TEXT NOT NULL,
-  action TEXT NOT NULL,       -- Added, Edited, Deleted
-  practice_name TEXT,
-  staff_name TEXT NOT NULL,
-  field TEXT,
-  old_value TEXT,
-  new_value TEXT
-);
--- RLS: authenticated read/write
-```
+### 5. Admin vs Practice User Behaviour
 
-**3. New file: `src/data/nresAdminEmails.ts`**
-Shared admin email list used by Estates, Claims, and Recruitment:
-```typescript
-export const NRES_ADMIN_EMAILS = [
-  'm.green28@nhs.net',
-  'mark.gray1@nhs.net',
-  'amanda.taylor75@nhs.net',
-  'carolyn.abbisogni@nhs.net'
-];
-```
+| Capability | Practice User | Admin (Amanda etc.) |
+|---|---|---|
+| Add staff | Own practice only | Any practice |
+| View staff | Own entries | All practices |
+| Create claim | Own practice | Any practice (on behalf) |
+| Submit claim | Own claims | Any claim |
+| Approve/reject | No | Yes (existing flow) |
 
-**4. New file: `src/hooks/useRecruitmentConfig.ts`**
-Mirrors `useEstatesConfig` pattern:
-- Fetches practices data from `nres_recruitment_config`, falls back to hardcoded defaults
-- `updateConfig(newPractices)` upserts the data
-- Exports `practices`, `isLoading`, `updatedAt`, `updateConfig`
+---
 
-**5. Updated: `src/data/nresRecruitmentData.ts`**
-- Add `lastUpdated?: string` to the `StaffMember` interface
+## Files to Modify
 
-**6. Updated: `src/components/sda/workforce/NRESWorkforceRecruitmentTracker.tsx`**
-Major changes:
-- Import `useRecruitmentConfig` hook instead of static `practices`
-- Import `useAuth` and `NRES_ADMIN_EMAILS` for permission check
-- Add edit mode state with inline editing of staff fields (name, sessions, status, type, notes)
-- Add/delete staff buttons per category (GP, ACP, Buy-Back)
-- Each `StaffRow`:
-  - Shows `lastUpdated` as small muted text
-  - Shows notes via `InfoTooltip` icon instead of inline text
-  - In edit mode: inline fields + delete button
-- Admin toolbar: "Edit Data" / "Save" / "Cancel" buttons (same pattern as Estates)
-- "Audit" button opens `RecruitmentAuditDialog`
-- On save: write audit entries to `nres_recruitment_audit` for each detected change
-
-**7. New file: `src/components/sda/workforce/RecruitmentAuditDialog.tsx`**
-Reuses the same table layout as `ProgrammeAuditLogDialog` / `ActionLogAuditDialog`:
-- Fetches from `nres_recruitment_audit` table
-- Shows date/time, user, action (with coloured badge), staff name, field, from, to columns
-
-**8. Updated: `src/components/sda/SDAEstatesCapacity.tsx`**
-- Import `NRES_ADMIN_EMAILS` from shared file, remove local constant
-
-**Files created:**
-- `src/data/nresAdminEmails.ts`
-- `src/hooks/useRecruitmentConfig.ts`
-- `src/components/sda/workforce/RecruitmentAuditDialog.tsx`
-
-**Files modified:**
-- `src/data/nresRecruitmentData.ts` (add `lastUpdated` to interface)
-- `src/components/sda/workforce/NRESWorkforceRecruitmentTracker.tsx` (edit mode, tooltips, audit, permissions)
-- `src/components/sda/SDAEstatesCapacity.tsx` (use shared admin list)
+1. **Database migration** — add `staff_category`, `practice_key` columns; update RLS
+2. **`src/hooks/useNRESBuyBackStaff.ts`** — new fields, admin fetch logic
+3. **`src/hooks/useNRESBuyBackClaims.ts`** — new fields, admin fetch logic
+4. **`src/components/nres/hours-tracker/BuyBackClaimsTab.tsx`** — new dropdowns, table columns, admin controls
+5. **`src/utils/buybackStaffMasking.ts`** — update `canViewStaffName` to also check admin emails list
