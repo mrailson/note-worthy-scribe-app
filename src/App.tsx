@@ -124,6 +124,7 @@ const ComplimentDetails = lazy(() => import("./pages/ComplimentDetails"));
 const MockCQCInspection = lazy(() => import("./pages/MockCQCInspection"));
 const InspectionCapture = lazy(() => import("./pages/InspectionCapture"));
 const AudioUploadCapture = lazy(() => import("./pages/AudioUploadCapture"));
+const BuyBackExplainer = lazy(() => import("./pages/BuyBackExplainer"));
 
 // Global loading fallback
 const PageLoader = () => (
@@ -316,6 +317,7 @@ const App = () => {
                 <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
                 <Route path="/admin/consolidate" element={<AdminConsolidate />} />
                 <Route path="/turkey2025" element={<Turkey2025 />} />
+                <Route path="/buyback-explainer" element={<BuyBackExplainer />} />
                 <Route path="/voice-test" element={<VoiceTest />} />
                 <Route path="/security-report" element={<SecurityReport />} />
                 <Route path="/compliance/security-audit-2025-11-19" element={<SecurityAudit20251119 />} />
