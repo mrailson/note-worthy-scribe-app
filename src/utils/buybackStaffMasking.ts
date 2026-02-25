@@ -7,10 +7,11 @@ import { maskPatientName } from '@/utils/patientDataMasking';
 
 /** Authorised approver email addresses */
 export const BUYBACK_APPROVER_EMAILS = [
-  'm.green28@nhs.net',        // Malcolm Railson
-  'mark.gray1@nhs.net',       // Dr Mark Gray (SNO)
-  'amanda.taylor75@nhs.net',  // Amanda Taylor
-  'carolyn.abbisogni@nhs.net' // Carolyn Abbisogni
+  'm.green28@nhs.net',         // Maureen Green (admin)
+  'malcolm.railson@nhs.net',   // Malcolm Railson
+  'mark.gray1@nhs.net',        // Dr Mark Gray (SNO)
+  'amanda.taylor75@nhs.net',   // Amanda Taylor
+  'carolyn.abbisogni@nhs.net'  // Carolyn Abbisogni
 ] as const;
 
 /**
