@@ -72,7 +72,7 @@ export function NRESHoursTracker() {
         </TabsTrigger>
         <TabsTrigger value="buy-back" className="flex items-center gap-2">
           <ArrowLeftRight className="w-4 h-4" />
-          Buy-Back Claims
+          SDA Resource &amp; Buy-Back Claims
         </TabsTrigger>
         <TabsTrigger value="finance-governance" className="flex items-center gap-2">
           <PoundSterling className="w-4 h-4" />
