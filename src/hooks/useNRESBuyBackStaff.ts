@@ -78,7 +78,7 @@ export function useNRESBuyBackStaff() {
         .single();
       if (error) throw error;
       setStaff(prev => [...prev, data as BuyBackStaffMember]);
-      toast.success('Staff member added');
+      
       return data;
     } catch (error) {
       console.error('Error adding buyback staff:', error);
