@@ -148,7 +148,7 @@ export const ContractAskAI = ({ open, onOpenChange }: ContractAskAIProps) => {
 
     // 4. Evidence Library metadata (static)
     contextParts.push(`## Evidence Library - Key Documents
-- Programme Board Meeting (24 Feb 2026): Agenda, Draft Minutes (10 Feb 2026)
+- Programme Board Meeting (24 Feb 2026): Agenda, Draft Minutes (24 Feb 2026 - DRAFT ONLY), Draft Minutes (10 Feb 2026)
 - Programme Board Meeting (23 Dec 2025): Agenda, Minutes (9 Dec 2025), Terms of Reference (Approved), SDA Innovator Project Plan
 - Workgroup: Finance Workgroup Minutes (17 Feb 2026), IT Task & Finish Notes (22 Jan 2026), Workforce Meeting Notes (8 Jan 2026)
 - VCSE Meetings: 22 Dec 2025 (Virtual), 19 Jan 2026 (Towcester)

@@ -41,6 +41,13 @@ const programmeBoardMeetings: Meeting[] = [
         filePath: "/documents/SDA_DRAFT_Agenda_24_February_2026.pdf"
       },
       { 
+        title: "Draft Minutes (24 Feb 2026)", 
+        type: "draft-minutes",
+        filePath: "/documents/SDA_Programme_Board_Meeting_24th_Feb_2026_DRAFT.docx",
+        isDraft: true,
+        draftNote: "DRAFT ONLY – Not yet approved. Final version to follow after Programme Board review."
+      },
+      { 
         title: "Draft Minutes (10 Feb 2026)", 
         type: "draft-minutes",
         filePath: "/documents/DRAFT_SDA_MINUTES_10_02_2026.pdf",
