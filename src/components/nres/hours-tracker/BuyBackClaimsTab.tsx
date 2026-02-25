@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
@@ -398,10 +399,12 @@ export function BuyBackClaimsTab() {
 
       <Separator />
 
-      {/* Claims History */}
+      {/* Claims */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Claims History</CardTitle>
+          <CardTitle className="text-lg">
+            {filteredClaims.some(c => c.status === 'draft') ? 'Current Claim' : 'Claims History'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {filteredClaims.length === 0 ? (
@@ -473,7 +476,7 @@ function ClaimRow({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCon
             <Input
               type="number"
               className="w-28 ml-auto text-right"
-              value={claim.claimed_amount}
+              value={claim.claimed_amount.toFixed(2)}
               onChange={e => {
                 const val = parseFloat(e.target.value) || 0;
                 onUpdateAmount(claim.id, Math.min(val, claim.calculated_amount));
@@ -492,13 +495,22 @@ function ClaimRow({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCon
       </td>
       <td className="p-2 text-center">
         {canEdit ? (
-          <div className="flex flex-col items-center gap-1">
-            <Checkbox
-              checked={claim.declaration_confirmed}
-              onCheckedChange={checked => onConfirmDeclaration(claim.id, !!checked)}
-            />
-            <span className="text-[10px] text-muted-foreground max-w-[150px] leading-tight">{DECLARATION_TEXT.substring(0, 60)}…</span>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center gap-1 cursor-help">
+                  <Checkbox
+                    checked={claim.declaration_confirmed}
+                    onCheckedChange={checked => onConfirmDeclaration(claim.id, !!checked)}
+                  />
+                  <span className="text-[10px] text-muted-foreground">Declaration</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs">
+                {DECLARATION_TEXT}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ) : (
           claim.declaration_confirmed ? '✓' : '✗'
         )}
