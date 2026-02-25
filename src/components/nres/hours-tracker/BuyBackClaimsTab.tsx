@@ -129,9 +129,9 @@ function AddStaffForm({ saving, onAdd }: {
         </div>
         <div>
           <Label className="text-xs">
-            {allocType === 'sessions' ? 'Sessions' : allocType === 'hours' ? 'Hrs/wk' : 'WTE'}
+            {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : 'WTE Value'}
           </Label>
-          <div className="flex gap-1">
+          <div className="flex gap-1 items-end">
             <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours'); setAllocValue(''); }}>
               <SelectTrigger className="h-9 w-[90px] shrink-0"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -140,21 +140,16 @@ function AddStaffForm({ saving, onAdd }: {
                 <SelectItem value="wte">WTE</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-muted-foreground leading-tight mb-0.5">
-                {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : 'WTE Value'}
-              </span>
-              <Input
-                type="number"
-                className="h-9 w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                value={allocValue}
-                onChange={e => handleAllocValueChange(e.target.value)}
-                placeholder="0"
-                min="0"
-                max={maxAlloc}
-                step={allocType === 'wte' ? 0.1 : 1}
-              />
-            </div>
+            <Input
+              type="number"
+              className="h-9 w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              value={allocValue}
+              onChange={e => handleAllocValueChange(e.target.value)}
+              placeholder="0"
+              min="0"
+              max={maxAlloc}
+              step={allocType === 'wte' ? 0.1 : 1}
+            />
           </div>
         </div>
         <div className="flex items-end">
