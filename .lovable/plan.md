@@ -1,85 +1,114 @@
 
-# Combined Staff & Claims Tab: Buy-Back + New NRES SDA Staff
+
+# Buy-Back Claims Access Control Settings
 
 ## Overview
 
-Enhance the existing Buy-Back Claims tab to support **two staff categories** — Buy-Back Staff (existing practice staff bought back for SDA work) and **New NRES SDA Staff** (newly recruited GPs, ACPs/ANPs hired for the programme). Each staff member and claim will be linked to one of the **7 neighbourhood practices**, and admins (like Amanda) can manage claims on behalf of any practice.
+Add a settings cog button alongside the status filter buttons in the Claims History section. Clicking it opens a modal where admins can assign system users to practices with specific access roles: **Submit** (can create/submit claims for a practice), **View** (read-only access to a practice's claims and staff), and **Approver** (can approve/reject claims). Users will only see claims and staff data for practices they are assigned to.
 
 ---
 
 ## What Changes
 
-### 1. Database Changes
+### 1. New Database Table: `nres_buyback_access`
 
-Add two new columns to `nres_buyback_staff`:
-- `staff_category` (text, default `'buyback'`) — values: `'buyback'` or `'new_sda'`
-- `practice_key` (text, nullable) — stores the practice identifier (e.g. `'parks'`, `'brackley'`)
-
-Add one new column to `nres_buyback_claims`:
-- `practice_key` (text, nullable) — which practice the claim is for
-
-Update RLS policies so admins (from `NRES_ADMIN_EMAILS` / `BUYBACK_APPROVER_EMAILS`) can read/write staff and claims for any user, enabling Amanda to manage claims on behalf of practices.
-
-### 2. UI Changes to BuyBackClaimsTab
-
-**Staff Management Section:**
-- Rename section title from "Buy-Back Staff" to "NRES SDA Staff"
-- Add a **Staff Category** toggle/select: "Buy-Back" or "New SDA Recruit"
-- Add a **Practice** dropdown (the 7 practices: The Parks MC, Brackley MC, Springfield Surgery, Towcester MC, Bugbrooke Surgery, Brook Health Centre, Denton Village Surgery)
-- Staff table gains two new columns: Category (badge) and Practice
-- Filter/group staff by practice for clarity
-
-**Claims Section:**
-- Add a **Practice** dropdown when creating a claim — determines which practice the claim is for
-- Claims history table gains a Practice column
-- For admins: show a practice filter and allow creating claims for any practice
-- For practice users: default to their own practice
-
-**Guide Section:**
-- Update the collapsible guide text to explain both buy-back and new SDA staff categories
-
-### 3. Hook Updates
-
-**`useNRESBuyBackStaff.ts`:**
-- Update `BuyBackStaffMember` interface to include `staff_category` and `practice_key`
-- Update `addStaff` to accept and save the new fields
-- For admins: fetch all staff (not just own `user_id`); for regular users: fetch own only
-
-**`useNRESBuyBackClaims.ts`:**
-- Update `BuyBackClaim` interface to include `practice_key`
-- Update `createClaim` to accept `practice_key`
-- For admins: fetch all claims; for regular users: fetch own only
-
-### 4. Practice Data
-
-Use a shared constant mapping the 7 practices:
+Stores per-user, per-practice access assignments:
 
 ```text
-parks       -> The Parks MC
-brackley    -> Brackley MC
-springfield -> Springfield Surgery
-towcester   -> Towcester MC
-bugbrooke   -> Bugbrooke Surgery
-brook       -> Brook Health Centre
-denton      -> Denton Village Surgery
+id              UUID (PK, auto)
+user_id         UUID (references auth.users, not null)
+practice_key    TEXT (not null) — e.g. 'parks', 'brackley'
+access_role     TEXT (not null) — 'submit', 'view', or 'approver'
+granted_by      TEXT (nullable) — email of admin who granted
+granted_at      TIMESTAMPTZ (default now())
+UNIQUE(user_id, practice_key, access_role)
 ```
 
-### 5. Admin vs Practice User Behaviour
+RLS: Only NRES admins (checked via `NRES_ADMIN_EMAILS` or a security-definer function) can INSERT/UPDATE/DELETE. Authenticated users can SELECT their own rows.
 
-| Capability | Practice User | Admin (Amanda etc.) |
-|---|---|---|
-| Add staff | Own practice only | Any practice |
-| View staff | Own entries | All practices |
-| Create claim | Own practice | Any practice (on behalf) |
-| Submit claim | Own claims | Any claim |
-| Approve/reject | No | Yes (existing flow) |
+### 2. New Hook: `useNRESBuyBackAccess`
+
+- **Fetches** all access assignments (for admins) or own assignments (for regular users)
+- **Provides** helper functions: `grantAccess(userId, practiceKey, role)`, `revokeAccess(id)`, `getUserPractices(userId)`, `getUserRole(userId, practiceKey)`
+- **Exposes** a derived list of which practices the current user can submit to, view, or approve
+
+### 3. Settings Modal Component: `BuyBackAccessSettingsModal`
+
+Opened via a cog icon button placed inline with the status filter buttons in Claims History.
+
+**Layout:**
+- Left side: list of system users (from `useNRESUserAccess` — already exists, fetches all NRES-activated users with name, email, practice)
+- Searchable/filterable user list
+- When a user is selected, the right side shows a grid of the 7 practices with checkboxes for each role (Submit / View / Approver)
+- Save changes per user
+
+**Only visible to admins** (checked via `NRES_ADMIN_EMAILS`).
+
+### 4. Update Data Fetching in Hooks
+
+**`useNRESBuyBackStaff.ts`:**
+- Instead of fetching all staff when admin, fetch staff only for practices the user has access to (any role)
+- Use the access assignments to build a `practice_key IN (...)` filter
+
+**`useNRESBuyBackClaims.ts`:**
+- Same approach — filter claims by the user's assigned practices
+- Admin override remains for users with 'approver' role on a practice
+
+**`buybackStaffMasking.ts`:**
+- Update `isBuybackApprover` to also check the new access table for 'approver' role (or keep the hardcoded list as a fallback during transition)
+
+### 5. UI Filtering in BuyBackClaimsTab
+
+- The practice dropdown (for creating claims) only shows practices the user has 'submit' access to
+- The claims list only shows claims for practices the user is assigned to
+- The staff list only shows staff for assigned practices
+- Approve/reject buttons only appear for users with 'approver' role on that claim's practice
 
 ---
 
-## Files to Modify
+## Technical Details
 
-1. **Database migration** — add `staff_category`, `practice_key` columns; update RLS
-2. **`src/hooks/useNRESBuyBackStaff.ts`** — new fields, admin fetch logic
-3. **`src/hooks/useNRESBuyBackClaims.ts`** — new fields, admin fetch logic
-4. **`src/components/nres/hours-tracker/BuyBackClaimsTab.tsx`** — new dropdowns, table columns, admin controls
-5. **`src/utils/buybackStaffMasking.ts`** — update `canViewStaffName` to also check admin emails list
+### Database Migration
+
+```sql
+CREATE TABLE public.nres_buyback_access (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  practice_key TEXT NOT NULL,
+  access_role TEXT NOT NULL CHECK (access_role IN ('submit', 'view', 'approver')),
+  granted_by TEXT,
+  granted_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, practice_key, access_role)
+);
+
+ALTER TABLE public.nres_buyback_access ENABLE ROW LEVEL SECURITY;
+
+-- Users can read their own access
+CREATE POLICY "Users can read own access"
+  ON public.nres_buyback_access FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+
+-- Admins can manage all access (using security definer function)
+CREATE POLICY "Admins can manage access"
+  ON public.nres_buyback_access FOR ALL
+  TO authenticated
+  USING (public.is_nres_admin(auth.uid()))
+  WITH CHECK (public.is_nres_admin(auth.uid()));
+```
+
+A `is_nres_admin` security-definer function will check if the user's email is in the admin list (queried from `auth.users`).
+
+### Files to Create
+
+1. `src/hooks/useNRESBuyBackAccess.ts` — fetch/manage access assignments
+2. `src/components/nres/hours-tracker/BuyBackAccessSettingsModal.tsx` — settings modal UI
+
+### Files to Modify
+
+1. **Database migration** — new table, RLS, security-definer function
+2. `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` — add cog button, integrate access filtering
+3. `src/hooks/useNRESBuyBackStaff.ts` — filter by assigned practices
+4. `src/hooks/useNRESBuyBackClaims.ts` — filter by assigned practices
+5. `src/utils/buybackStaffMasking.ts` — extend approver check to use access table
+
