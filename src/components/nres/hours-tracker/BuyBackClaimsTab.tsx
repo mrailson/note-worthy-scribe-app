@@ -229,6 +229,7 @@ export function BuyBackClaimsTab() {
 
   // Filters (admin)
   const [filterPractice, setFilterPractice] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const [guideOpen, setGuideOpen] = useState(false);
   const isLoading = loadingStaff || loadingClaims;
@@ -252,10 +253,23 @@ export function BuyBackClaimsTab() {
     await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim);
   };
 
-  // Filter claims by practice
-  const filteredClaims = filterPractice === 'all'
+  // Filter claims by practice and status
+  const practiceFilteredClaims = filterPractice === 'all'
     ? claims
     : claims.filter(c => c.practice_key === filterPractice);
+
+  const filteredClaims = filterStatus === 'all'
+    ? practiceFilteredClaims
+    : practiceFilteredClaims.filter(c => c.status === filterStatus);
+
+  // Status counts for badges
+  const statusCounts = {
+    all: practiceFilteredClaims.length,
+    submitted: practiceFilteredClaims.filter(c => c.status === 'submitted').length,
+    approved: practiceFilteredClaims.filter(c => c.status === 'approved').length,
+    rejected: practiceFilteredClaims.filter(c => c.status === 'rejected').length,
+    draft: practiceFilteredClaims.filter(c => c.status === 'draft').length,
+  };
 
   const categoryBadge = (cat: string) => {
     if (cat === 'new_sda') return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>;
@@ -471,6 +485,30 @@ export function BuyBackClaimsTab() {
           <CardTitle className="text-lg">
             {filteredClaims.some(c => c.status === 'draft') ? 'Current Claim' : 'Claims History'}
           </CardTitle>
+          {isAdmin && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {([
+                { key: 'all', label: 'All' },
+                { key: 'submitted', label: 'Outstanding' },
+                { key: 'approved', label: 'Approved' },
+                { key: 'rejected', label: 'Rejected' },
+                { key: 'draft', label: 'Draft' },
+              ] as const).map(({ key, label }) => (
+                <Button
+                  key={key}
+                  size="sm"
+                  variant={filterStatus === key ? 'default' : 'outline'}
+                  className="text-xs"
+                  onClick={() => setFilterStatus(key)}
+                >
+                  {label}
+                  <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                    {statusCounts[key]}
+                  </Badge>
+                </Button>
+              ))}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {filteredClaims.length === 0 ? (
