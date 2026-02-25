@@ -69,21 +69,21 @@ function AddStaffForm({ saving, onAdd }: {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 items-end">
         <div>
-          <Label>Category</Label>
+          <Label className="text-xs">Category</Label>
           <Select value={category} onValueChange={v => setCategory(v as 'buyback' | 'new_sda')}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="buyback">Buy-Back</SelectItem>
-              <SelectItem value="new_sda">New SDA Recruit</SelectItem>
+              <SelectItem value="new_sda">New SDA</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label>Practice</Label>
+          <Label className="text-xs">Practice</Label>
           <Select value={practice} onValueChange={setPractice}>
-            <SelectTrigger><SelectValue placeholder="Select practice" /></SelectTrigger>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Select" /></SelectTrigger>
             <SelectContent>
               {NRES_PRACTICE_KEYS.map(k => (
                 <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
@@ -92,37 +92,44 @@ function AddStaffForm({ saving, onAdd }: {
           </Select>
         </div>
         <div>
-          <Label htmlFor="staff-name">Name</Label>
-          <Input id="staff-name" value={name} onChange={e => setName(e.target.value)} placeholder="Staff name" />
+          <Label className="text-xs">Name</Label>
+          <Input id="staff-name" className="h-9" value={name} onChange={e => setName(e.target.value)} placeholder="Staff name" />
         </div>
         <div>
-          <Label>Role</Label>
+          <Label className="text-xs">Role</Label>
           <Select value={role} onValueChange={setRole}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               {STAFF_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
         <div>
-          <Label>Allocation Type</Label>
-          <Select value={allocType} onValueChange={v => setAllocType(v as 'sessions' | 'wte' | 'hours')}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sessions">Sessions</SelectItem>
-              <SelectItem value="hours">Hours/week</SelectItem>
-              <SelectItem value="wte">WTE</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>{allocType === 'sessions' ? 'Sessions' : allocType === 'hours' ? 'Hours/week' : 'WTE'}</Label>
-          <Input type="number" value={allocValue} onChange={e => setAllocValue(e.target.value)} placeholder="0" min="0" step="0.1" />
+          <Label className="text-xs">
+            {allocType === 'sessions' ? 'Sessions' : allocType === 'hours' ? 'Hrs/wk' : 'WTE'}
+          </Label>
+          <div className="flex gap-1">
+            <Select value={allocType} onValueChange={v => setAllocType(v as 'sessions' | 'wte' | 'hours')}>
+              <SelectTrigger className="h-9 w-[90px] shrink-0"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sessions">Sessions</SelectItem>
+                <SelectItem value="hours">Hrs/wk</SelectItem>
+                <SelectItem value="wte">WTE</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="number"
+              className="h-9 w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              value={allocValue}
+              onChange={e => setAllocValue(e.target.value)}
+              placeholder="0"
+              min="0"
+              step="0.1"
+            />
+          </div>
         </div>
         <div className="flex items-end">
-          <Button onClick={handleSubmit} disabled={saving || !name.trim() || !practice || !allocValue} size="icon">
+          <Button className="h-9" onClick={handleSubmit} disabled={saving || !name.trim() || !practice || !allocValue} size="icon">
             <Plus className="w-4 h-4" />
           </Button>
         </div>
