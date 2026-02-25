@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Plus, Trash2, Send, Users, FileText } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
 const DECLARATION_TEXT =
@@ -37,6 +38,7 @@ export function BuyBackClaimsTab() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
 
+  const [guideOpen, setGuideOpen] = useState(false);
   const isLoading = loadingStaff || loadingClaims;
 
   const handleAddStaff = async () => {
@@ -85,6 +87,76 @@ export function BuyBackClaimsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Buy-Back Scheme Guide */}
+      <Collapsible open={guideOpen} onOpenChange={setGuideOpen}>
+        <div className="bg-white rounded-lg shadow-sm border border-teal-200 overflow-hidden">
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between p-4 hover:bg-teal-50/50 transition-colors text-left">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-teal-100 text-teal-700">
+                  <Info className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-[#003087]">How the Buy-Back Scheme Works</h2>
+                  <p className="text-sm text-muted-foreground">Quick reference guide, key rules &amp; claim steps</p>
+                </div>
+              </div>
+              <div className="text-slate-500">
+                {guideOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+              </div>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-4 pb-5 space-y-4 border-t border-teal-100 pt-4">
+              <div>
+                <h3 className="font-semibold text-[#003087] mb-1">Overview</h3>
+                <p className="text-sm text-muted-foreground">
+                  The Neighbourhood Buy-Back Scheme allows practices to claim reimbursement for staff time dedicated
+                  100% to <strong>SDA (Part A)</strong> work. Claims are overseen by the Senior Neighbourhood Officer (SNO) and
+                  must follow ICB-approved rules.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-[#003087] mb-1">The Golden Rule</h3>
+                <p className="text-sm text-muted-foreground">
+                  Staff must be working <strong>exclusively on SDA (Part A)</strong> during their funded hours. No LTC (Part B) activity
+                  is permitted during buy-back time. Mixed roles must have clear, separated allocations.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-[#003087] mb-1">How to Claim</h3>
+                <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                  <li>Add staff members with their role, allocation and hourly rate</li>
+                  <li>Set session or WTE allocations for each staff member</li>
+                  <li>Create a monthly claim — the amount auto-calculates</li>
+                  <li>Review the claim and confirm the declaration checkbox</li>
+                  <li>Submit for approval by your SNO</li>
+                </ol>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-[#003087] mb-1">Approvals</h3>
+                <p className="text-sm text-muted-foreground">
+                  Submitted claims are reviewed by your Senior Neighbourhood Officer. Once approved, the claim is
+                  forwarded for payment processing.
+                </p>
+              </div>
+
+              <div className="pt-1">
+                <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-50" asChild>
+                  <a href="/buyback-explainer" target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    View Full Explainer Guide
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+
       {/* Staff Management */}
       <Card>
         <CardHeader>
