@@ -61,11 +61,12 @@ function AddStaffForm({ saving, onAdd }: {
     }
   };
 
+  const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : 9;
+
   const handleAllocValueChange = (val: string) => {
     const num = parseFloat(val);
-    // Cap WTE at 1.0
-    if (allocType === 'wte' && num > 1) {
-      setAllocValue('1');
+    if (!isNaN(num) && num > maxAlloc) {
+      setAllocValue(String(maxAlloc));
       return;
     }
     setAllocValue(val);
@@ -139,16 +140,21 @@ function AddStaffForm({ saving, onAdd }: {
                 <SelectItem value="wte">WTE</SelectItem>
               </SelectContent>
             </Select>
-            <Input
-              type="number"
-              className="h-9 w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              value={allocValue}
-              onChange={e => handleAllocValueChange(e.target.value)}
-              placeholder="0"
-              min="0"
-              max={allocType === 'wte' ? 1 : undefined}
-              step={allocType === 'wte' ? 0.1 : 1}
-            />
+            <div className="flex flex-col">
+              <span className="text-[10px] text-muted-foreground leading-tight mb-0.5">
+                {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : 'WTE Value'}
+              </span>
+              <Input
+                type="number"
+                className="h-9 w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                value={allocValue}
+                onChange={e => handleAllocValueChange(e.target.value)}
+                placeholder="0"
+                min="0"
+                max={maxAlloc}
+                step={allocType === 'wte' ? 0.1 : 1}
+              />
+            </div>
           </div>
         </div>
         <div className="flex items-end">
