@@ -12,13 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
-// Authorised NRES admin users who can edit estates data
-const NRES_ADMIN_EMAILS = [
-  'm.green28@nhs.net',
-  'mark.gray1@nhs.net',
-  'amanda.taylor75@nhs.net',
-  'carolyn.abbisogni@nhs.net'
-];
+import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
 type SortDirection = "asc" | "desc";

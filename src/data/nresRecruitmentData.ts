@@ -6,6 +6,7 @@ export interface StaffMember {
   status: 'recruited' | 'confirmed' | 'offered' | 'potential' | 'tbc' | 'outstanding';
   type: string;
   notes?: string;
+  lastUpdated?: string;
 }
 
 export interface PracticeWorkforce {
