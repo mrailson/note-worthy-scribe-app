@@ -712,11 +712,30 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
           <span>{format(new Date(claim.claim_month), 'MMMM yyyy')}</span>
           {statusBadge(claim.status)}
         </div>
-        {canEdit && (
-          <Button size="sm" variant="ghost" onClick={() => onDelete(claim.id)}>
-            <Trash2 className="w-3 h-3 text-destructive" />
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {canEdit && (
+            <Button size="sm" variant="ghost" onClick={() => onDelete(claim.id)}>
+              <Trash2 className="w-3 h-3 text-destructive" />
+            </Button>
+          )}
+          {/* Testing-only: allow malcolm.railson to delete approved/rejected claims */}
+          {!canEdit && (claim.status === 'approved' || claim.status === 'rejected' || claim.status === 'submitted') && userEmail?.toLowerCase() === 'malcolm.railson@nhs.net' && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="sm" variant="ghost" onClick={() => {
+                    if (window.confirm('Delete this ' + claim.status + ' claim? This is a testing function.')) {
+                      onDelete(claim.id);
+                    }
+                  }}>
+                    <Trash2 className="w-3 h-3 text-destructive" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">Testing: Delete {claim.status} claim</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
       </div>
 
       {/* Staff lines */}
