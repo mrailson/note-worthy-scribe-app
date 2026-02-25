@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNRESBuyBackStaff, type BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
 import { useNRESBuyBackClaims, calculateStaffMonthlyAmount, type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
+import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Settings } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
@@ -217,8 +219,10 @@ export function BuyBackClaimsTab() {
   const { user } = useAuth();
   const { activeStaff, loading: loadingStaff, saving: savingStaff, admin, addStaff, updateStaff, removeStaff } = useNRESBuyBackStaff();
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, approveClaim, rejectClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims();
+  const { myPractices, mySubmitPractices, myApproverPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
 
   const isAdmin = admin;
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // New claim state
   const [claimMonth, setClaimMonth] = useState(() => {
@@ -232,12 +236,27 @@ export function BuyBackClaimsTab() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const [guideOpen, setGuideOpen] = useState(false);
-  const isLoading = loadingStaff || loadingClaims;
+  const isLoading = loadingStaff || loadingClaims || loadingAccess;
 
-  // Filter staff by practice if filter is active
+  // Determine which practices to show based on access assignments
+  // Admins with no assignments see everything; otherwise filtered
+  const hasAnyAssignment = myPractices.length > 0;
+  const accessFilteredPracticeKeys = isAdmin && !hasAnyAssignment
+    ? NRES_PRACTICE_KEYS
+    : NRES_PRACTICE_KEYS.filter(k => myPractices.includes(k));
+
+  // Practices user can submit claims for
+  const submitPracticeKeys = isAdmin && !hasAnyAssignment
+    ? NRES_PRACTICE_KEYS
+    : NRES_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k));
+
+  // Filter staff by practice — respect access assignments
+  const accessFilteredStaff = activeStaff.filter(s =>
+    !s.practice_key || accessFilteredPracticeKeys.includes(s.practice_key as NRESPracticeKey)
+  );
   const filteredStaff = filterPractice === 'all'
-    ? activeStaff
-    : activeStaff.filter(s => s.practice_key === filterPractice);
+    ? accessFilteredStaff
+    : accessFilteredStaff.filter(s => s.practice_key === filterPractice);
 
   const totalCalculated = filteredStaff.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s), 0);
 
@@ -253,10 +272,13 @@ export function BuyBackClaimsTab() {
     await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim);
   };
 
-  // Filter claims by practice and status
+  // Filter claims by access then practice/status
+  const accessFilteredClaims = claims.filter(c =>
+    !c.practice_key || accessFilteredPracticeKeys.includes(c.practice_key as NRESPracticeKey)
+  );
   const practiceFilteredClaims = filterPractice === 'all'
-    ? claims
-    : claims.filter(c => c.practice_key === filterPractice);
+    ? accessFilteredClaims
+    : accessFilteredClaims.filter(c => c.practice_key === filterPractice);
 
   const filteredClaims = filterStatus === 'all'
     ? practiceFilteredClaims
@@ -364,7 +386,7 @@ export function BuyBackClaimsTab() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Practices</SelectItem>
-              {NRES_PRACTICE_KEYS.map(k => (
+              {accessFilteredPracticeKeys.map(k => (
                 <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
               ))}
             </SelectContent>
@@ -453,7 +475,7 @@ export function BuyBackClaimsTab() {
                   <SelectValue placeholder="Select practice" />
                 </SelectTrigger>
                 <SelectContent>
-                  {NRES_PRACTICE_KEYS.map(k => (
+                  {submitPracticeKeys.map(k => (
                     <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
                   ))}
                 </SelectContent>
@@ -486,7 +508,7 @@ export function BuyBackClaimsTab() {
             {filteredClaims.some(c => c.status === 'draft') ? 'Current Claim' : 'Claims History'}
           </CardTitle>
           {isAdmin && (
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex flex-wrap gap-2 mt-2 items-center">
               {([
                 { key: 'all', label: 'All' },
                 { key: 'submitted', label: 'Outstanding' },
@@ -507,6 +529,16 @@ export function BuyBackClaimsTab() {
                   </Badge>
                 </Button>
               ))}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" variant="outline" className="text-xs ml-auto" onClick={() => setSettingsOpen(true)}>
+                      <Settings className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">Access Settings</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
         </CardHeader>
@@ -522,6 +554,10 @@ export function BuyBackClaimsTab() {
                   userId={user?.id}
                   userEmail={user?.email}
                   isAdmin={isAdmin}
+                  canApproveClaim={isAdmin && (
+                    (!hasAnyAssignment) ||
+                    myApproverPractices.includes(c.practice_key || '')
+                  )}
                   onSubmit={submitClaim}
                   onDelete={deleteClaim}
                   onConfirmDeclaration={confirmDeclaration}
@@ -536,6 +572,15 @@ export function BuyBackClaimsTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Access Settings Modal */}
+      <BuyBackAccessSettingsModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        hasAccess={hasAccess}
+        grantAccess={grantAccess}
+        revokeByKey={revokeByKey}
+      />
     </div>
   );
 }
@@ -664,11 +709,12 @@ function CalcBreakdownHover({ staff, claimMonth, amount }: { staff: any; claimMo
   );
 }
 
-function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject }: {
+function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject }: {
   claim: BuyBackClaim;
   userId?: string;
   userEmail?: string;
   isAdmin: boolean;
+  canApproveClaim?: boolean;
   onSubmit: (id: string) => void;
   onDelete: (id: string) => void;
   onConfirmDeclaration: (id: string, confirmed: boolean) => void;
@@ -686,7 +732,7 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
   const isRejected = claim.status === 'rejected';
   const isSubmitted = claim.status === 'submitted';
   const canEdit = (isDraft || isRejected) && (userId === claim.user_id || isAdmin);
-  const canApprove = isSubmitted && isAdmin;
+  const canApprove = isSubmitted && (canApproveClaim ?? isAdmin);
   const staffDetails = claim.staff_details as any[];
 
   const statusBadge = (status: string) => {
