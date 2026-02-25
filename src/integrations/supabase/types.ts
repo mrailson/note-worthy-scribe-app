@@ -6947,6 +6947,33 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_buyback_access: {
+        Row: {
+          access_role: string
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          practice_key: string
+          user_id: string
+        }
+        Insert: {
+          access_role: string
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          practice_key: string
+          user_id: string
+        }
+        Update: {
+          access_role?: string
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          practice_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       nres_buyback_claims: {
         Row: {
           approved_by_email: string | null
@@ -11448,7 +11475,7 @@ export type Database = {
       }
       is_nres_admin:
         | { Args: never; Returns: boolean }
-        | { Args: { user_id: string }; Returns: boolean }
+        | { Args: { _user_id: string }; Returns: boolean }
       is_nres_claims_admin: { Args: never; Returns: boolean }
       is_pcn_manager: { Args: { _user_id?: string }; Returns: boolean }
       is_pcn_manager_for_practice: {
