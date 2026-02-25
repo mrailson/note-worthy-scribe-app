@@ -848,7 +848,7 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
                       onCheckedChange={checked => onConfirmDeclaration(claim.id, !!checked)}
                     />
                     <span className="text-xs text-muted-foreground">
-                      I confirm all staff listed are working 100% on SDA (Part A) during their funded hours
+                      I confirm all staff listed are working 100% on SDA (Part A) during their funded hours, with no LTC (Part B) activity, in accordance with the ICB-approved buy-back rules. I also confirm that the practice has verified the professional qualifications, registration status, and competencies of all staff members listed in this claim.
                     </span>
                   </div>
                 </TooltipTrigger>
