@@ -115,6 +115,22 @@ function AddStaffForm({ saving, onAdd }: {
           </Button>
         </div>
       </div>
+      {/* Live monthly amount preview */}
+      {allocValue && parseFloat(allocValue) > 0 && (
+        <div className="rounded-md bg-teal-50 dark:bg-teal-950 border border-teal-200 dark:border-teal-800 px-3 py-2 text-sm">
+          <span className="text-muted-foreground">Max monthly claim: </span>
+          <span className="font-semibold text-teal-800 dark:text-teal-200">
+            £{calculateStaffMonthlyAmount({
+              allocation_type: allocType,
+              allocation_value: parseFloat(allocValue),
+              hourly_rate: parseFloat(rate) || 0,
+            } as BuyBackStaffMember).toFixed(2)}
+          </span>
+          <span className="text-xs text-muted-foreground ml-2">
+            (incl. 29.38% on-costs)
+          </span>
+        </div>
+      )}
     </>
   );
 }
