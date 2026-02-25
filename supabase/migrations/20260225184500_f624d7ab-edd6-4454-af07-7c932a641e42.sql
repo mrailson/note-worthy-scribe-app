@@ -1,0 +1,2 @@
+ALTER TABLE public.nres_buyback_staff DROP CONSTRAINT nres_buyback_staff_allocation_type_check;
+ALTER TABLE public.nres_buyback_staff ADD CONSTRAINT nres_buyback_staff_allocation_type_check CHECK (allocation_type = ANY (ARRAY['sessions'::text, 'wte'::text, 'hours'::text]));
