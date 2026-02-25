@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import buyBackInfographic from '@/assets/buy-back-explainer-infographic.png';
 
 const BuyBackExplainer = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [showFullImage, setShowFullImage] = useState(false);
 
   const colors = {
     primary: '#0D9488',
@@ -233,6 +235,78 @@ const BuyBackExplainer = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Buy-Back Explained</h1>
           <p className="text-gray-500">A simplified guide for practices</p>
         </div>
+
+        {/* Infographic Thumbnail */}
+        <div className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">📋 Buy-Back Infographic</h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowFullImage(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:shadow-sm"
+                style={{ backgroundColor: '#F0FDFA', color: '#0D9488', border: '1px solid rgba(13,148,136,0.2)' }}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                </svg>
+                View Full Size
+              </button>
+              <a
+                href={buyBackInfographic}
+                download="Buy_Back_Explainer_NRES_SDA_Pilot.png"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-white transition-all hover:opacity-90"
+                style={{ backgroundColor: '#0D9488' }}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
+              </a>
+            </div>
+          </div>
+          <img
+            src={buyBackInfographic}
+            alt="Buy Back Explainer - NRES SDA Pilot infographic"
+            className="w-full rounded-lg border border-gray-100 cursor-pointer hover:opacity-95 transition-opacity"
+            onClick={() => setShowFullImage(true)}
+          />
+        </div>
+
+        {/* Full-page image overlay */}
+        {showFullImage && (
+          <div
+            className="fixed inset-0 z-[999] bg-black/80 flex items-center justify-center p-4"
+            onClick={() => setShowFullImage(false)}
+          >
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+              <a
+                href={buyBackInfographic}
+                download="Buy_Back_Explainer_NRES_SDA_Pilot.png"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-white text-gray-800 hover:bg-gray-100 transition-colors shadow-lg"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
+              </a>
+              <button
+                onClick={() => setShowFullImage(false)}
+                className="flex items-center justify-center w-10 h-10 rounded-lg bg-white text-gray-800 hover:bg-gray-100 transition-colors shadow-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <img
+              src={buyBackInfographic}
+              alt="Buy Back Explainer - NRES SDA Pilot infographic"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2 mb-6 justify-center">
           <TabButton id="overview" label="Overview" icon={
