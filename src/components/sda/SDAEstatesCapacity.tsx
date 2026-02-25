@@ -13,6 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
 import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
+import { practices as recruitmentPractices, calculatePracticeTotals, practiceKeyToRecruitmentId } from '@/data/nresRecruitmentData';
+import { useRecruitmentConfig } from '@/hooks/useRecruitmentConfig';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
 type SortDirection = "asc" | "desc";
@@ -53,6 +57,8 @@ export const SDAEstatesCapacity = () => {
   const { user, isSystemAdmin } = useAuth();
   const canEditEstates = isSystemAdmin || (user?.email && NRES_ADMIN_EMAILS.includes(user.email));
   const { roomData, f2fSplitPct, updatedAt, isLoading, updateConfig } = useEstatesConfig();
+  const { practices: recruitmentData } = useRecruitmentConfig();
+  const [ragOverviewOpen, setRagOverviewOpen] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editRoomData, setEditRoomData] = useState<RoomRow[]>([]);
@@ -402,6 +408,41 @@ export const SDAEstatesCapacity = () => {
     return { totalMonthly, totalBudget, totalNW, totalF2fNW, totalRemoteNW, totalW, totalF2fW, totalRemoteW, totalAnnual };
   }, [practiceCapacityData]);
 
+  // Build RAG data for each practice using recruitment data
+  const ragDataByPractice = useMemo(() => {
+    const activeData = recruitmentData.length > 0 ? recruitmentData : recruitmentPractices;
+    return practiceSummary.map(p => {
+      const recruitId = practiceKeyToRecruitmentId[p.key];
+      const rp = activeData.find(r => r.id === recruitId);
+      if (!rp) return { key: p.key, name: p.practice, filled: 0, pipeline: 0, outstanding: 0, required: 0, filledPct: 0, pipelinePct: 0, outstandingPct: 0 };
+      const totals = calculatePracticeTotals(rp, 'combined');
+      return {
+        key: p.key,
+        name: p.practice,
+        filled: totals.totalFilled,
+        pipeline: totals.totalPipeline,
+        outstanding: totals.totalOutstanding,
+        required: rp.sessionsRequired.combined,
+        filledPct: totals.filledPercent,
+        pipelinePct: totals.pipelinePercent,
+        outstandingPct: totals.outstandingPercent,
+      };
+    });
+  }, [recruitmentData]);
+
+  const ragTotals = useMemo(() => {
+    const filled = ragDataByPractice.reduce((s, r) => s + r.filled, 0);
+    const pipeline = ragDataByPractice.reduce((s, r) => s + r.pipeline, 0);
+    const outstanding = ragDataByPractice.reduce((s, r) => s + r.outstanding, 0);
+    const required = ragDataByPractice.reduce((s, r) => s + r.required, 0);
+    return {
+      filled, pipeline, outstanding, required,
+      filledPct: required > 0 ? Math.round((filled / required) * 100) : 0,
+      pipelinePct: required > 0 ? Math.round((pipeline / required) * 100) : 0,
+      outstandingPct: required > 0 ? Math.round((outstanding / required) * 100) : 0,
+    };
+  }, [ragDataByPractice]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -744,6 +785,27 @@ export const SDAEstatesCapacity = () => {
                   </div>
                 </div>
 
+                {/* RAG Recruitment Status */}
+                {(() => {
+                  const rag = ragDataByPractice.find(r => r.key === practice.key);
+                  if (!rag || rag.required === 0) return null;
+                  return (
+                    <div className="mt-3 pt-2 border-t border-slate-200">
+                      <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">Recruitment</p>
+                      <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-200">
+                        {rag.filledPct > 0 && <div className="bg-green-500" style={{ width: `${rag.filledPct}%` }} />}
+                        {rag.pipelinePct > 0 && <div className="bg-amber-400" style={{ width: `${rag.pipelinePct}%` }} />}
+                        {rag.outstandingPct > 0 && <div className="bg-red-500" style={{ width: `${rag.outstandingPct}%` }} />}
+                      </div>
+                      <div className="flex justify-between mt-1 text-[10px] text-slate-500">
+                        <span className="text-green-700">{rag.filled} filled</span>
+                        <span className="text-amber-600">{rag.pipeline} pipeline</span>
+                        <span className="text-red-600">{rag.outstanding} outstanding</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="flex items-center justify-between mt-2">
                   <Badge variant="outline" className="text-xs">
                     {practice.system}
@@ -801,6 +863,27 @@ export const SDAEstatesCapacity = () => {
                     <p className="text-xs font-medium text-indigo-700">Remote</p>
                     <p className="text-lg font-bold text-indigo-900">{(remoteBalance * multiplierVal).toFixed(1)}</p>
                     <p className="text-[10px] text-indigo-600">{unitLabel}</p>
+                  </div>
+                </div>
+
+                {/* RAG Neighbourhood Total - Clickable */}
+                <div 
+                  className="mt-3 pt-2 border-t border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setRagOverviewOpen(true)}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Recruitment Status</p>
+                    <span className="text-[10px] text-blue-600 font-medium">View All →</span>
+                  </div>
+                  <div className="flex h-3 rounded-full overflow-hidden bg-slate-200">
+                    {ragTotals.filledPct > 0 && <div className="bg-green-500" style={{ width: `${ragTotals.filledPct}%` }} />}
+                    {ragTotals.pipelinePct > 0 && <div className="bg-amber-400" style={{ width: `${ragTotals.pipelinePct}%` }} />}
+                    {ragTotals.outstandingPct > 0 && <div className="bg-red-500" style={{ width: `${ragTotals.outstandingPct}%` }} />}
+                  </div>
+                  <div className="flex justify-between mt-1 text-[10px] text-slate-500">
+                    <span className="text-green-700 font-semibold">{ragTotals.filled} filled ({ragTotals.filledPct}%)</span>
+                    <span className="text-amber-600 font-semibold">{ragTotals.pipeline} pipeline ({ragTotals.pipelinePct}%)</span>
+                    <span className="text-red-600 font-semibold">{ragTotals.outstanding} outstanding ({ragTotals.outstandingPct}%)</span>
                   </div>
                 </div>
 
@@ -1177,6 +1260,60 @@ export const SDAEstatesCapacity = () => {
           canEditRecruitment={!!canEditEstates}
         />
       )}
+
+      {/* RAG Overview Dialog */}
+      <Dialog open={ragOverviewOpen} onOpenChange={setRagOverviewOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#003087]">Recruitment Status — All Practices</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            {/* Combined total */}
+            <div className="bg-slate-50 rounded-lg p-4 border">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-slate-900">Neighbourhood Total</h4>
+                <span className="text-sm text-slate-500">{ragTotals.filled + ragTotals.pipeline + ragTotals.outstanding} / {ragTotals.required} sessions</span>
+              </div>
+              <div className="flex h-4 rounded-full overflow-hidden bg-slate-200">
+                {ragTotals.filledPct > 0 && <div className="bg-green-500" style={{ width: `${ragTotals.filledPct}%` }} />}
+                {ragTotals.pipelinePct > 0 && <div className="bg-amber-400" style={{ width: `${ragTotals.pipelinePct}%` }} />}
+                {ragTotals.outstandingPct > 0 && <div className="bg-red-500" style={{ width: `${ragTotals.outstandingPct}%` }} />}
+              </div>
+              <div className="flex gap-4 mt-2 text-xs">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500 inline-block" /> Filled: {ragTotals.filled} ({ragTotals.filledPct}%)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block" /> Pipeline: {ragTotals.pipeline} ({ragTotals.pipelinePct}%)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block" /> Outstanding: {ragTotals.outstanding} ({ragTotals.outstandingPct}%)</span>
+              </div>
+            </div>
+
+            {/* Per-practice breakdown */}
+            <div className="space-y-3">
+              {ragDataByPractice.map((rag) => (
+                <div key={rag.key} className="flex items-center gap-3">
+                  <div className="w-32 text-sm font-medium text-slate-700 truncate">{rag.name}</div>
+                  <div className="flex-1">
+                    <div className="flex h-3 rounded-full overflow-hidden bg-slate-200">
+                      {rag.filledPct > 0 && <div className="bg-green-500" style={{ width: `${rag.filledPct}%` }} />}
+                      {rag.pipelinePct > 0 && <div className="bg-amber-400" style={{ width: `${rag.pipelinePct}%` }} />}
+                      {rag.outstandingPct > 0 && <div className="bg-red-500" style={{ width: `${rag.outstandingPct}%` }} />}
+                    </div>
+                  </div>
+                  <div className="w-24 text-right text-xs text-slate-500">
+                    <span className="text-green-700">{rag.filled}</span>
+                    {' / '}
+                    <span className="text-amber-600">{rag.pipeline}</span>
+                    {' / '}
+                    <span className="text-red-600">{rag.outstanding}</span>
+                  </div>
+                  <div className="w-12 text-right text-xs font-medium text-slate-500">
+                    /{rag.required}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
