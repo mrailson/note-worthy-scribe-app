@@ -220,6 +220,69 @@ export function useNRESBuyBackClaims() {
     }
   };
 
+  /** Remove a single staff member from a claim's staff_details, recalculating totals */
+  const removeStaffFromClaim = async (claimId: string, staffIndex: number) => {
+    if (!user?.id) return;
+    try {
+      const claim = claims.find(c => c.id === claimId);
+      if (!claim) return;
+
+      const updatedDetails = (claim.staff_details as any[]).filter((_, i) => i !== staffIndex);
+      
+      // If no staff left, delete the whole claim
+      if (updatedDetails.length === 0) {
+        await deleteClaim(claimId);
+        return;
+      }
+
+      const totalCalc = updatedDetails.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s as any), 0);
+      const totalClaimed = updatedDetails.reduce((sum, s) => sum + (s.claimed_amount ?? calculateStaffMonthlyAmount(s as any)), 0);
+
+      let query = supabase
+        .from('nres_buyback_claims')
+        .update({ staff_details: updatedDetails, calculated_amount: totalCalc, claimed_amount: totalClaimed })
+        .eq('id', claimId);
+
+      if (!admin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query.select().single();
+      if (error) throw error;
+      setClaims(prev => prev.map(c => c.id === claimId ? (data as BuyBackClaim) : c));
+    } catch (error) {
+      console.error('Error removing staff from claim:', error);
+      toast.error('Failed to remove staff line');
+    }
+  };
+
+  /** Update notes for a staff line within a claim */
+  const updateStaffNotes = async (claimId: string, staffIndex: number, notes: string) => {
+    if (!user?.id) return;
+    try {
+      const claim = claims.find(c => c.id === claimId);
+      if (!claim) return;
+
+      const updatedDetails = [...(claim.staff_details as any[])];
+      updatedDetails[staffIndex] = { ...updatedDetails[staffIndex], notes };
+
+      let query = supabase
+        .from('nres_buyback_claims')
+        .update({ staff_details: updatedDetails })
+        .eq('id', claimId);
+
+      if (!admin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query.select().single();
+      if (error) throw error;
+      setClaims(prev => prev.map(c => c.id === claimId ? (data as BuyBackClaim) : c));
+    } catch (error) {
+      console.error('Error updating staff notes:', error);
+    }
+  };
+
   const confirmDeclaration = async (id: string, confirmed: boolean) => {
     if (!user?.id) return;
     try {
@@ -271,6 +334,8 @@ export function useNRESBuyBackClaims() {
     submitClaim,
     updateClaimAmount,
     updateStaffClaimedAmount,
+    removeStaffFromClaim,
+    updateStaffNotes,
     confirmDeclaration,
     deleteClaim,
     refetch: () => fetchClaims(true),

@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
@@ -186,7 +186,7 @@ function AddStaffForm({ saving, onAdd }: {
 export function BuyBackClaimsTab() {
   const { user } = useAuth();
   const { activeStaff, loading: loadingStaff, saving: savingStaff, admin, addStaff, updateStaff, removeStaff } = useNRESBuyBackStaff();
-  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount } = useNRESBuyBackClaims();
+  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims();
 
   const isAdmin = admin;
 
@@ -454,6 +454,8 @@ export function BuyBackClaimsTab() {
                   onDelete={deleteClaim}
                   onConfirmDeclaration={confirmDeclaration}
                   onUpdateStaffAmount={updateStaffClaimedAmount}
+                  onRemoveStaff={removeStaffFromClaim}
+                  onUpdateStaffNotes={updateStaffNotes}
                 />
               ))}
             </div>
@@ -473,7 +475,7 @@ function getStaffMaxAmount(staff: any): number {
   } as BuyBackStaffMember);
 }
 
-function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount }: {
+function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes }: {
   claim: BuyBackClaim;
   userId?: string;
   userEmail?: string;
@@ -482,7 +484,11 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
   onDelete: (id: string) => void;
   onConfirmDeclaration: (id: string, confirmed: boolean) => void;
   onUpdateStaffAmount: (claimId: string, staffIndex: number, amount: number) => void;
+  onRemoveStaff: (claimId: string, staffIndex: number) => void;
+  onUpdateStaffNotes: (claimId: string, staffIndex: number, notes: string) => void;
 }) {
+  const [editingNoteIdx, setEditingNoteIdx] = useState<number | null>(null);
+  const [noteText, setNoteText] = useState('');
   const isDraft = claim.status === 'draft';
   const canEdit = isDraft && (userId === claim.user_id || isAdmin);
   const staffDetails = claim.staff_details as any[];
@@ -526,6 +532,7 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
             <th className="text-left p-2 font-medium">Allocation</th>
             <th className="text-right p-2 font-medium">Calculated</th>
             <th className="text-right p-2 font-medium">Claimed</th>
+            {canEdit && <th className="p-2 font-medium w-20"></th>}
           </tr>
         </thead>
         <tbody>
@@ -533,34 +540,112 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
             const maxAmount = getStaffMaxAmount(s);
             const claimedAmount = s.claimed_amount ?? maxAmount;
             const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail);
+            const hasNotes = !!s.notes;
             return (
-              <tr key={idx} className="border-b">
-                <td className="p-2">{displayName}</td>
-                <td className="p-2">{s.staff_role}</td>
-                <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
-                <td className="p-2 text-right">{fmtGBP(maxAmount)}</td>
-                <td className="p-2 text-right">
-                  {canEdit ? (
-                    <div className="space-y-0.5">
-                      <Input
-                        type="number"
-                        className="w-28 ml-auto text-right"
-                        value={claimedAmount.toFixed(2)}
-                        onChange={e => {
-                          const val = parseFloat(e.target.value) || 0;
-                          onUpdateStaffAmount(claim.id, idx, Math.min(val, maxAmount));
-                        }}
-                        min="0"
-                        max={maxAmount}
-                        step="0.01"
-                      />
-                      <p className="text-[10px] text-muted-foreground text-right">Max: {fmtGBP(maxAmount)}</p>
-                    </div>
-                  ) : (
-                    fmtGBP(claimedAmount)
+              <>
+                <tr key={idx} className="border-b">
+                  <td className="p-2">{displayName}</td>
+                  <td className="p-2">{s.staff_role}</td>
+                  <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
+                  <td className="p-2 text-right">{fmtGBP(maxAmount)}</td>
+                  <td className="p-2 text-right">
+                    {canEdit ? (
+                      <div className="space-y-0.5">
+                        <Input
+                          type="number"
+                          className="w-28 ml-auto text-right"
+                          value={claimedAmount.toFixed(2)}
+                          onChange={e => {
+                            const val = parseFloat(e.target.value) || 0;
+                            onUpdateStaffAmount(claim.id, idx, Math.min(val, maxAmount));
+                          }}
+                          min="0"
+                          max={maxAmount}
+                          step="0.01"
+                        />
+                        <p className="text-[10px] text-muted-foreground text-right">Max: {fmtGBP(maxAmount)}</p>
+                      </div>
+                    ) : (
+                      fmtGBP(claimedAmount)
+                    )}
+                  </td>
+                  {canEdit && (
+                    <td className="p-2">
+                      <div className="flex gap-1 justify-end">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => {
+                                  if (editingNoteIdx === idx) {
+                                    setEditingNoteIdx(null);
+                                  } else {
+                                    setNoteText(s.notes || '');
+                                    setEditingNoteIdx(idx);
+                                  }
+                                }}
+                              >
+                                <MessageSquarePlus className={`w-3.5 h-3.5 ${hasNotes ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              {hasNotes ? 'Edit notes' : 'Add notes'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => onRemoveStaff(claim.id, idx)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
                   )}
-                </td>
-              </tr>
+                </tr>
+                {/* Inline notes editor */}
+                {editingNoteIdx === idx && canEdit && (
+                  <tr key={`note-${idx}`} className="border-b bg-muted/10">
+                    <td colSpan={canEdit ? 6 : 5} className="p-2">
+                      <div className="flex gap-2 items-start">
+                        <Input
+                          className="flex-1 text-xs"
+                          placeholder="Add notes or supporting information..."
+                          value={noteText}
+                          onChange={e => setNoteText(e.target.value)}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9"
+                          onClick={() => {
+                            onUpdateStaffNotes(claim.id, idx, noteText);
+                            setEditingNoteIdx(null);
+                          }}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-9"
+                          onClick={() => setEditingNoteIdx(null)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                      {hasNotes && (
+                        <p className="text-xs text-muted-foreground mt-1">Current: {s.notes}</p>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </>
             );
           })}
           {/* Total row */}
@@ -568,6 +653,7 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
             <td colSpan={3} className="p-2 text-right">Total</td>
             <td className="p-2 text-right">{fmtGBP(totalCalculated)}</td>
             <td className="p-2 text-right">{fmtGBP(totalClaimed)}</td>
+            {canEdit && <td></td>}
           </tr>
         </tbody>
       </table>
