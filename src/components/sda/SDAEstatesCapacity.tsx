@@ -12,6 +12,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
+// Authorised NRES admin users who can edit estates data
+const NRES_ADMIN_EMAILS = [
+  'm.green28@nhs.net',
+  'mark.gray1@nhs.net',
+  'amanda.taylor75@nhs.net',
+  'carolyn.abbisogni@nhs.net'
+];
+
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
 type SortDirection = "asc" | "desc";
 type BadgeDisplayMode = "total" | "winter" | "nonWinter" | "onsite" | "remote";
@@ -48,7 +56,8 @@ const getCellColor = (value: number) => {
 };
 
 export const SDAEstatesCapacity = () => {
-  const { isSystemAdmin } = useAuth();
+  const { user, isSystemAdmin } = useAuth();
+  const canEditEstates = isSystemAdmin || (user?.email && NRES_ADMIN_EMAILS.includes(user.email));
   const { roomData, f2fSplitPct, updatedAt, isLoading, updateConfig } = useEstatesConfig();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -410,7 +419,7 @@ export const SDAEstatesCapacity = () => {
   return (
     <div className="space-y-6">
       {/* Admin Edit Controls */}
-      {isSystemAdmin && (
+      {canEditEstates && (
         <div className="flex items-center justify-end gap-2">
           {isEditing ? (
             <>
@@ -1081,7 +1090,6 @@ export const SDAEstatesCapacity = () => {
           </p>
         </div>
       </CollapsibleCard>
-
 
       {/* Hub Location Status */}
       <CollapsibleCard
