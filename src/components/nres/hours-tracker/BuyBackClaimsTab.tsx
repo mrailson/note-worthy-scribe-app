@@ -768,6 +768,17 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
                     </td>
                   )}
                 </tr>
+                {/* Display saved notes */}
+                {hasNotes && editingNoteIdx !== idx && (
+                  <tr key={`saved-note-${idx}`} className="border-b">
+                    <td colSpan={canEdit ? 6 : 5} className="px-2 py-1">
+                      <p className="text-xs text-muted-foreground italic">
+                        <MessageSquarePlus className="w-3 h-3 inline mr-1 text-blue-600" />
+                        {s.notes}
+                      </p>
+                    </td>
+                  </tr>
+                )}
                 {/* Inline notes editor */}
                 {editingNoteIdx === idx && canEdit && (
                   <tr key={`note-${idx}`} className="border-b bg-muted/10">
