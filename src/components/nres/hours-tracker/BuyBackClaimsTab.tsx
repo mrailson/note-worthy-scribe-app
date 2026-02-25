@@ -51,13 +51,35 @@ function AddStaffForm({ saving, onAdd }: {
   const [category, setCategory] = useState<'buyback' | 'new_sda'>('buyback');
   const [practice, setPractice] = useState<string>('');
 
+  // Default allocation type based on role
+  const handleRoleChange = (newRole: string) => {
+    setRole(newRole);
+    if (newRole === 'ANP' || newRole === 'ACP') {
+      setAllocType('hours');
+    } else if (newRole === 'GP') {
+      setAllocType('sessions');
+    }
+  };
+
+  const handleAllocValueChange = (val: string) => {
+    const num = parseFloat(val);
+    // Cap WTE at 1.0
+    if (allocType === 'wte' && num > 1) {
+      setAllocValue('1');
+      return;
+    }
+    setAllocValue(val);
+  };
+
   const handleSubmit = async () => {
     if (!name.trim() || !allocValue || !practice) return;
+    const numVal = parseFloat(allocValue);
+    if (allocType === 'wte' && numVal > 1) return;
     await onAdd({
       staff_name: name.trim(),
       staff_role: role,
       allocation_type: allocType,
-      allocation_value: parseFloat(allocValue),
+      allocation_value: numVal,
       hourly_rate: 0,
       is_active: true,
       staff_category: category,
@@ -97,7 +119,7 @@ function AddStaffForm({ saving, onAdd }: {
         </div>
         <div>
           <Label className="text-xs">Role</Label>
-          <Select value={role} onValueChange={setRole}>
+          <Select value={role} onValueChange={handleRoleChange}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               {STAFF_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
@@ -109,7 +131,7 @@ function AddStaffForm({ saving, onAdd }: {
             {allocType === 'sessions' ? 'Sessions' : allocType === 'hours' ? 'Hrs/wk' : 'WTE'}
           </Label>
           <div className="flex gap-1">
-            <Select value={allocType} onValueChange={v => setAllocType(v as 'sessions' | 'wte' | 'hours')}>
+            <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours'); setAllocValue(''); }}>
               <SelectTrigger className="h-9 w-[90px] shrink-0"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="sessions">Sessions</SelectItem>
@@ -121,10 +143,11 @@ function AddStaffForm({ saving, onAdd }: {
               type="number"
               className="h-9 w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               value={allocValue}
-              onChange={e => setAllocValue(e.target.value)}
+              onChange={e => handleAllocValueChange(e.target.value)}
               placeholder="0"
               min="0"
-              step="0.1"
+              max={allocType === 'wte' ? 1 : undefined}
+              step={allocType === 'wte' ? 0.1 : 1}
             />
           </div>
         </div>
