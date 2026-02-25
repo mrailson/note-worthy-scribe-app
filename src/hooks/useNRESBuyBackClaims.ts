@@ -32,8 +32,14 @@ function isAdmin(email: string | null | undefined): boolean {
 /** Calculate monthly amount from staff allocation */
 export function calculateStaffMonthlyAmount(staff: BuyBackStaffMember): number {
   if (staff.allocation_type === 'sessions') {
+    // sessions × 4 hrs/session × hourly rate
     return staff.allocation_value * 4 * staff.hourly_rate;
   }
+  if (staff.allocation_type === 'hours') {
+    // hours per week × 4.33 weeks/month × hourly rate
+    return staff.allocation_value * 4.33 * staff.hourly_rate;
+  }
+  // WTE: value × 37.5 hrs/week × hourly rate × 4.33 weeks/month
   return staff.allocation_value * 37.5 * staff.hourly_rate * 4.33;
 }
 

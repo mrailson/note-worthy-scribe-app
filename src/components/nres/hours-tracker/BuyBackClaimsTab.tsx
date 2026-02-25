@@ -28,7 +28,7 @@ function AddStaffForm({ saving, onAdd }: {
 }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('GP');
-  const [allocType, setAllocType] = useState<'sessions' | 'wte'>('sessions');
+  const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours'>('sessions');
   const [allocValue, setAllocValue] = useState('');
   const [rate, setRate] = useState('');
   const [category, setCategory] = useState<'buyback' | 'new_sda'>('buyback');
@@ -92,16 +92,17 @@ function AddStaffForm({ saving, onAdd }: {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
         <div>
           <Label>Allocation Type</Label>
-          <Select value={allocType} onValueChange={v => setAllocType(v as 'sessions' | 'wte')}>
+          <Select value={allocType} onValueChange={v => setAllocType(v as 'sessions' | 'wte' | 'hours')}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="sessions">Sessions</SelectItem>
+              <SelectItem value="hours">Hours/week</SelectItem>
               <SelectItem value="wte">WTE</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label>{allocType === 'sessions' ? 'Sessions' : 'WTE'}</Label>
+          <Label>{allocType === 'sessions' ? 'Sessions' : allocType === 'hours' ? 'Hours/week' : 'WTE'}</Label>
           <Input type="number" value={allocValue} onChange={e => setAllocValue(e.target.value)} placeholder="0" min="0" step="0.1" />
         </div>
         <div className="flex gap-2 items-end">
