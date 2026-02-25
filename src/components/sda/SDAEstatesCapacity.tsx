@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Info, Pencil, Save, X } from "lucide-react";
+import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Info, Pencil, Save, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { PracticeDetailModal } from "./PracticeDetailModal";
@@ -17,6 +17,7 @@ import { practices as recruitmentPractices, calculatePracticeTotals, practiceKey
 import { useRecruitmentConfig } from '@/hooks/useRecruitmentConfig';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import NRESGlassMap from "./NRESGlassMap";
 
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
 type SortDirection = "asc" | "desc";
@@ -71,6 +72,9 @@ export const SDAEstatesCapacity = () => {
   const [practiceSortDirection, setPracticeSortDirection] = useState<SortDirection>("desc");
   const [badgeDisplayMode, setBadgeDisplayMode] = useState<BadgeDisplayMode>("total");
   const [travelTimesModalOpen, setTravelTimesModalOpen] = useState(false);
+  const [mapBtnHovered, setMapBtnHovered] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [mapZoom, setMapZoom] = useState(120);
   const [listSizeOpen, setListSizeOpen] = useState(true);
   const [selectedPracticeIndex, setSelectedPracticeIndex] = useState<number | null>(null);
   const [appointmentsOpen, setAppointmentsOpen] = useState(true);
@@ -1238,6 +1242,112 @@ export const SDAEstatesCapacity = () => {
             <div className="max-w-xs">
               <TravelTimesThumbnail onClick={() => setTravelTimesModalOpen(true)} />
             </div>
+
+            {/* Live Planning Map Button */}
+            <div
+              onMouseEnter={() => setMapBtnHovered(true)}
+              onMouseLeave={() => setMapBtnHovered(false)}
+              onClick={() => setShowMapModal(true)}
+              style={{
+                position: "relative",
+                cursor: "pointer",
+                borderRadius: "10px",
+                padding: "10px 12px",
+                background: mapBtnHovered 
+                  ? "linear-gradient(135deg, #009198 0%, #00737a 100%)" 
+                  : "linear-gradient(135deg, #f0fafa 0%, #e8f6f7 100%)",
+                border: mapBtnHovered ? "1px solid #009198" : "1px solid rgba(0, 145, 152, 0.2)",
+                transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                animation: !mapBtnHovered ? "attentionPulse 3s ease-in-out infinite" : "none",
+                boxShadow: mapBtnHovered 
+                  ? "0 8px 30px rgba(0, 145, 152, 0.3), 0 0 0 1px rgba(0, 145, 152, 0.1)" 
+                  : "0 2px 12px rgba(0, 145, 152, 0.15)",
+                overflow: "hidden",
+                marginTop: "12px",
+                maxWidth: "320px",
+              }}
+            >
+              {mapBtnHovered && (
+                <div style={{
+                  position: "absolute",
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)",
+                  backgroundSize: "200% 100%",
+                  animation: "shimmer 2s linear infinite",
+                  pointerEvents: "none",
+                }} />
+              )}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", zIndex: 1 }}>
+                <div style={{
+                  width: "36px", height: "36px", borderRadius: "8px",
+                  background: mapBtnHovered ? "rgba(255,255,255,0.15)" : "rgba(0,145,152,0.08)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.3s ease", flexShrink: 0,
+                }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="8" r="2.5" fill={mapBtnHovered ? "#fff" : "#009198"} opacity="0.9">
+                      <animate attributeName="r" values="2.5;3;2.5" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="6" cy="16" r="2" fill={mapBtnHovered ? "#fff" : "#009198"} opacity="0.7">
+                      <animate attributeName="r" values="2;2.3;2" dur="2.5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="18" cy="16" r="2" fill={mapBtnHovered ? "#fff" : "#009198"} opacity="0.7">
+                      <animate attributeName="r" values="2;2.3;2" dur="2.5s" begin="0.5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="5" cy="10" r="1.2" fill={mapBtnHovered ? "rgba(255,255,255,0.5)" : "rgba(0,145,152,0.4)"} />
+                    <circle cx="19" cy="10" r="1.2" fill={mapBtnHovered ? "rgba(255,255,255,0.5)" : "rgba(0,145,152,0.4)"} />
+                    <line x1="12" y1="8" x2="6" y2="16" stroke={mapBtnHovered ? "rgba(255,255,255,0.4)" : "rgba(0,145,152,0.3)"} strokeWidth="1" strokeDasharray="2 2">
+                      <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="1.5s" repeatCount="indefinite" />
+                    </line>
+                    <line x1="12" y1="8" x2="18" y2="16" stroke={mapBtnHovered ? "rgba(255,255,255,0.4)" : "rgba(0,145,152,0.3)"} strokeWidth="1" strokeDasharray="2 2">
+                      <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="1.5s" repeatCount="indefinite" />
+                    </line>
+                    <line x1="12" y1="8" x2="5" y2="10" stroke={mapBtnHovered ? "rgba(255,255,255,0.25)" : "rgba(0,145,152,0.2)"} strokeWidth="0.8" strokeDasharray="1.5 1.5">
+                      <animate attributeName="stroke-dashoffset" from="0" to="-6" dur="2s" repeatCount="indefinite" />
+                    </line>
+                    <line x1="12" y1="8" x2="19" y2="10" stroke={mapBtnHovered ? "rgba(255,255,255,0.25)" : "rgba(0,145,152,0.2)"} strokeWidth="0.8" strokeDasharray="1.5 1.5">
+                      <animate attributeName="stroke-dashoffset" from="0" to="-6" dur="2s" repeatCount="indefinite" />
+                    </line>
+                    <line x1="6" y1="16" x2="18" y2="16" stroke={mapBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(0,145,152,0.15)"} strokeWidth="0.6" strokeDasharray="3 3">
+                      <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="3s" repeatCount="indefinite" />
+                    </line>
+                  </svg>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{
+                      fontSize: "12px", fontWeight: 700, letterSpacing: "0.3px",
+                      color: mapBtnHovered ? "#fff" : "#006b70",
+                      transition: "color 0.3s ease",
+                      whiteSpace: "nowrap",
+                    }}>Live Planning Map</span>
+                    <span style={{
+                      fontSize: "7px", fontWeight: 700, letterSpacing: "1.5px",
+                      padding: "2px 5px", borderRadius: "4px",
+                      background: mapBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(0,145,152,0.1)",
+                      color: mapBtnHovered ? "rgba(255,255,255,0.9)" : "#009198",
+                      transition: "all 0.3s ease",
+                    }}>INTERACTIVE</span>
+                  </div>
+                  <div style={{
+                    fontSize: "9px", marginTop: "2px",
+                    color: mapBtnHovered ? "rgba(255,255,255,0.8)" : "#5a8a8d",
+                    transition: "color 0.3s ease",
+                  }}>Drive times, SDA capacity & resource modelling</div>
+                </div>
+                <div style={{
+                  width: "24px", height: "24px", borderRadius: "6px",
+                  background: mapBtnHovered ? "rgba(255,255,255,0.15)" : "rgba(0,145,152,0.06)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.3s ease", flexShrink: 0,
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                    <path d="M5 3L9 7L5 11" stroke={mapBtnHovered ? "#fff" : "#009198"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-2">Updated: 25 February 2026</p>
           </div>
         </div>
       </CollapsibleCard>
@@ -1246,6 +1356,38 @@ export const SDAEstatesCapacity = () => {
         isOpen={travelTimesModalOpen} 
         onClose={() => setTravelTimesModalOpen(false)} 
       />
+
+      {/* Glass Map Fullscreen Modal */}
+      <Dialog open={showMapModal} onOpenChange={(open) => { setShowMapModal(open); if (!open) setMapZoom(100); }}>
+        <DialogContent className="!max-w-none !w-screen !h-screen !max-h-screen !translate-x-[-50%] !translate-y-[-50%] !rounded-none p-0 overflow-auto border-0 bg-[#0e1a2e] mx-0 my-0">
+          <DialogTitle className="sr-only">NRES Neighbourhood Map</DialogTitle>
+          <div style={{ transform: `scale(${mapZoom / 100})`, transformOrigin: 'top center', transition: 'transform 0.2s ease' }}>
+            <NRESGlassMap />
+          </div>
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[#0e1a2e]/90 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2.5 shadow-lg">
+            <button onClick={() => setMapZoom(Math.max(50, mapZoom - 10))} className="text-white/70 hover:text-white transition-colors" aria-label="Zoom out">
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <Slider value={[mapZoom]} onValueChange={(v) => setMapZoom(v[0])} min={50} max={150} step={5} className="w-40" />
+            <button onClick={() => setMapZoom(Math.min(150, mapZoom + 10))} className="text-white/70 hover:text-white transition-colors" aria-label="Zoom in">
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <span className="text-white/70 text-xs font-mono min-w-[3ch] text-right">{mapZoom}%</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes attentionPulse {
+          0% { box-shadow: 0 2px 12px rgba(0, 145, 152, 0.15); }
+          50% { box-shadow: 0 2px 20px rgba(0, 145, 152, 0.35), 0 0 0 3px rgba(0, 145, 152, 0.08); }
+          100% { box-shadow: 0 2px 12px rgba(0, 145, 152, 0.15); }
+        }
+      `}</style>
 
       {selectedPracticeIndex !== null && (
         <PracticeDetailModal
