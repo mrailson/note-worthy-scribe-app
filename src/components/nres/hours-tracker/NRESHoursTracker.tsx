@@ -13,11 +13,12 @@ import { AdminClaimsReport } from './AdminClaimsReport';
 import { ClaimantsManager } from './ClaimantsManager';
 import { BuyBackClaimsTab } from './BuyBackClaimsTab';
 import { SDAFinanceGovernance } from '@/components/sda/SDAFinanceGovernance';
+import { SDARisksMitigation } from '@/components/sda/SDARisksMitigation';
 import { useNRESUserSettings } from '@/hooks/useNRESUserSettings';
 import { useNRESHoursTracker } from '@/hooks/useNRESHoursTracker';
 import { useNRESExpenses } from '@/hooks/useNRESExpenses';
 import { useNRESClaimants } from '@/hooks/useNRESClaimants';
-import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle } from 'lucide-react';
 
 export function NRESHoursTracker() {
   const [expensesOpen, setExpensesOpen] = useState(false);
@@ -76,6 +77,10 @@ export function NRESHoursTracker() {
         <TabsTrigger value="finance-governance" className="flex items-center gap-2">
           <PoundSterling className="w-4 h-4" />
           Finance & Governance
+        </TabsTrigger>
+        <TabsTrigger value="risks" className="flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" />
+          Risks & Mitigation
         </TabsTrigger>
       </TabsList>
 
@@ -171,6 +176,10 @@ export function NRESHoursTracker() {
 
       <TabsContent value="finance-governance">
         <SDAFinanceGovernance />
+      </TabsContent>
+
+      <TabsContent value="risks">
+        <SDARisksMitigation />
       </TabsContent>
     </Tabs>
   );
