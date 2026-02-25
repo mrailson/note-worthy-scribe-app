@@ -7025,6 +7025,7 @@ export type Database = {
           staff_category: string
           staff_name: string
           staff_role: string
+          start_date: string | null
           updated_at: string
           user_id: string
         }
@@ -7040,6 +7041,7 @@ export type Database = {
           staff_category?: string
           staff_name: string
           staff_role?: string
+          start_date?: string | null
           updated_at?: string
           user_id: string
         }
@@ -7055,6 +7057,7 @@ export type Database = {
           staff_category?: string
           staff_name?: string
           staff_role?: string
+          start_date?: string | null
           updated_at?: string
           user_id?: string
         }

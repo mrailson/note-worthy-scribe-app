@@ -13,7 +13,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
@@ -50,6 +53,7 @@ function AddStaffForm({ saving, onAdd }: {
   const [allocValue, setAllocValue] = useState('');
   const [category, setCategory] = useState<'buyback' | 'new_sda'>('buyback');
   const [practice, setPractice] = useState<string>('');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
 
   // Default allocation type based on role
   const handleRoleChange = (newRole: string) => {
@@ -85,14 +89,16 @@ function AddStaffForm({ saving, onAdd }: {
       is_active: true,
       staff_category: category,
       practice_key: practice,
+      start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
     });
     setName('');
     setAllocValue('');
+    setStartDate(undefined);
   };
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 items-end">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-2 items-end">
         <div>
           <Label className="text-xs">Category</Label>
           <Select value={category} onValueChange={v => setCategory(v as 'buyback' | 'new_sda')}>
@@ -152,6 +158,29 @@ function AddStaffForm({ saving, onAdd }: {
             max={maxAlloc}
             step={allocType === 'wte' ? 0.1 : 1}
           />
+        </div>
+        <div>
+          <Label className="text-xs">Start Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn("h-9 w-full justify-start text-left font-normal text-xs", !startDate && "text-muted-foreground")}
+              >
+                <CalendarIcon className="mr-1 h-3 w-3" />
+                {startDate ? format(startDate, 'dd/MM/yyyy') : 'Select'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={setStartDate}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="flex items-end">
           <Button className="h-9" onClick={handleSubmit} disabled={saving || !name.trim() || !practice || !allocValue} size="icon">
@@ -217,7 +246,7 @@ export function BuyBackClaimsTab() {
     const monthDate = `${claimMonth}-01`;
     const staffForClaim = filteredStaff.filter(s => s.practice_key === practiceForClaim);
     if (staffForClaim.length === 0) return;
-    const calcAmount = staffForClaim.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s), 0);
+    const calcAmount = staffForClaim.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, monthDate, s.start_date), 0);
     // Pre-populate claimed amount at the calculated max — user can lower but not raise
     await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim);
   };
@@ -350,6 +379,7 @@ export function BuyBackClaimsTab() {
                      <th className="text-left p-2 font-medium">Name</th>
                      <th className="text-left p-2 font-medium">Role</th>
                      <th className="text-left p-2 font-medium">Allocation</th>
+                     <th className="text-left p-2 font-medium">Start Date</th>
                      <th className="text-right p-2 font-medium">Monthly</th>
                      <th className="p-2"></th>
                    </tr>
@@ -365,6 +395,7 @@ export function BuyBackClaimsTab() {
                          <td className="p-2">{displayName}</td>
                          <td className="p-2">{s.staff_role}</td>
                          <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
+                         <td className="p-2 text-xs">{s.start_date ? format(new Date(s.start_date), 'dd/MM/yyyy') : '—'}</td>
                          <td className="p-2 text-right font-medium">{fmtGBP(monthly)}</td>
                          <td className="p-2 text-right">
                            <Button variant="ghost" size="icon" onClick={() => removeStaff(s.id)}>
@@ -375,7 +406,7 @@ export function BuyBackClaimsTab() {
                      );
                    })}
                    <tr className="border-t bg-muted/30 font-semibold">
-                     <td colSpan={5} className="p-2 text-right">Total Calculated Monthly</td>
+                     <td colSpan={6} className="p-2 text-right">Total Calculated Monthly</td>
                      <td className="p-2 text-right">{fmtGBP(totalCalculated)}</td>
                      <td></td>
                    </tr>
@@ -466,13 +497,13 @@ export function BuyBackClaimsTab() {
   );
 }
 
-/** Helper to get the max monthly amount for a staff detail entry */
-function getStaffMaxAmount(staff: any): number {
+/** Helper to get the max monthly amount for a staff detail entry, with optional pro-rata */
+function getStaffMaxAmount(staff: any, claimMonth?: string): number {
   return calculateStaffMonthlyAmount({
     allocation_type: staff.allocation_type,
     allocation_value: staff.allocation_value,
     staff_role: staff.staff_role,
-  } as BuyBackStaffMember);
+  } as BuyBackStaffMember, claimMonth, staff.start_date);
 }
 
 function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes }: {
@@ -503,8 +534,8 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
     return <Badge className={variants[status] || ''}>{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>;
   };
 
-  const totalCalculated = staffDetails.reduce((sum, s) => sum + getStaffMaxAmount(s), 0);
-  const totalClaimed = staffDetails.reduce((sum, s) => sum + (s.claimed_amount ?? getStaffMaxAmount(s)), 0);
+  const totalCalculated = staffDetails.reduce((sum, s) => sum + getStaffMaxAmount(s, claim.claim_month), 0);
+  const totalClaimed = staffDetails.reduce((sum, s) => sum + (s.claimed_amount ?? getStaffMaxAmount(s, claim.claim_month)), 0);
 
   return (
     <div className="border rounded-md overflow-hidden">
@@ -537,7 +568,7 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
         </thead>
         <tbody>
           {staffDetails.map((s, idx) => {
-            const maxAmount = getStaffMaxAmount(s);
+            const maxAmount = getStaffMaxAmount(s, claim.claim_month);
             const claimedAmount = s.claimed_amount ?? maxAmount;
             const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail);
             const hasNotes = !!s.notes;
