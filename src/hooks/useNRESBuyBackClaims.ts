@@ -225,7 +225,7 @@ export function useNRESBuyBackClaims() {
       const { error } = await query;
       if (error) throw error;
       setClaims(prev => prev.filter(c => c.id !== id));
-      toast.success('Claim deleted');
+      
     } catch (error) {
       console.error('Error deleting claim:', error);
       toast.error('Failed to delete claim');
