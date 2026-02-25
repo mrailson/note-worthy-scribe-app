@@ -17,9 +17,11 @@ export interface BuyBackClaim {
   declaration_confirmed: boolean;
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
   submitted_at: string | null;
+  submitted_by_email: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_notes: string | null;
+  approved_by_email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -176,7 +178,7 @@ export function useNRESBuyBackClaims() {
 
       let query = supabase
         .from('nres_buyback_claims')
-        .update({ status: 'submitted', submitted_at: new Date().toISOString() })
+        .update({ status: 'submitted', submitted_at: new Date().toISOString(), submitted_by_email: user.email || null })
         .eq('id', id);
 
       if (!admin) {
@@ -349,6 +351,60 @@ export function useNRESBuyBackClaims() {
     }
   };
 
+  const approveClaim = async (id: string, notes?: string) => {
+    if (!user?.id || !admin) return;
+    try {
+      setSaving(true);
+      const { data, error } = await supabase
+        .from('nres_buyback_claims')
+        .update({
+          status: 'approved',
+          reviewed_by: user.id,
+          reviewed_at: new Date().toISOString(),
+          review_notes: notes || null,
+          approved_by_email: user.email || null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
+      toast.success('Claim approved');
+    } catch (error) {
+      console.error('Error approving claim:', error);
+      toast.error('Failed to approve claim');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const rejectClaim = async (id: string, notes: string) => {
+    if (!user?.id || !admin) return;
+    try {
+      setSaving(true);
+      const { data, error } = await supabase
+        .from('nres_buyback_claims')
+        .update({
+          status: 'rejected',
+          reviewed_by: user.id,
+          reviewed_at: new Date().toISOString(),
+          review_notes: notes,
+          approved_by_email: user.email || null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
+      toast.success('Claim rejected');
+    } catch (error) {
+      console.error('Error rejecting claim:', error);
+      toast.error('Failed to reject claim');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return {
     claims,
     loading,
@@ -356,6 +412,8 @@ export function useNRESBuyBackClaims() {
     admin,
     createClaim,
     submitClaim,
+    approveClaim,
+    rejectClaim,
     updateClaimAmount,
     updateStaffClaimedAmount,
     removeStaffFromClaim,
