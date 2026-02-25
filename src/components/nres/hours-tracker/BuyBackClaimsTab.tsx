@@ -21,21 +21,109 @@ const DECLARATION_TEXT =
 
 const STAFF_ROLES = ['GP', 'ANP', 'ACP', 'Practice Nurse', 'HCA', 'Pharmacist', 'Other'];
 
+/** Isolated add-staff form – keeps its own state so typing never loses focus */
+function AddStaffForm({ saving, onAdd }: {
+  saving: boolean;
+  onAdd: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
+}) {
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('GP');
+  const [allocType, setAllocType] = useState<'sessions' | 'wte'>('sessions');
+  const [allocValue, setAllocValue] = useState('');
+  const [rate, setRate] = useState('');
+  const [category, setCategory] = useState<'buyback' | 'new_sda'>('buyback');
+  const [practice, setPractice] = useState<string>('');
+
+  const handleSubmit = async () => {
+    if (!name.trim() || !allocValue || !rate || !practice) return;
+    await onAdd({
+      staff_name: name.trim(),
+      staff_role: role,
+      allocation_type: allocType,
+      allocation_value: parseFloat(allocValue),
+      hourly_rate: parseFloat(rate),
+      is_active: true,
+      staff_category: category,
+      practice_key: practice,
+    });
+    setName('');
+    setAllocValue('');
+    setRate('');
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
+        <div>
+          <Label>Category</Label>
+          <Select value={category} onValueChange={v => setCategory(v as 'buyback' | 'new_sda')}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="buyback">Buy-Back</SelectItem>
+              <SelectItem value="new_sda">New SDA Recruit</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Practice</Label>
+          <Select value={practice} onValueChange={setPractice}>
+            <SelectTrigger><SelectValue placeholder="Select practice" /></SelectTrigger>
+            <SelectContent>
+              {NRES_PRACTICE_KEYS.map(k => (
+                <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="staff-name">Name</Label>
+          <Input id="staff-name" value={name} onChange={e => setName(e.target.value)} placeholder="Staff name" />
+        </div>
+        <div>
+          <Label>Role</Label>
+          <Select value={role} onValueChange={setRole}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {STAFF_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+        <div>
+          <Label>Allocation Type</Label>
+          <Select value={allocType} onValueChange={v => setAllocType(v as 'sessions' | 'wte')}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sessions">Sessions</SelectItem>
+              <SelectItem value="wte">WTE</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>{allocType === 'sessions' ? 'Sessions' : 'WTE'}</Label>
+          <Input type="number" value={allocValue} onChange={e => setAllocValue(e.target.value)} placeholder="0" min="0" step="0.1" />
+        </div>
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <Label>£/hr</Label>
+            <Input type="number" value={rate} onChange={e => setRate(e.target.value)} placeholder="0" min="0" step="0.01" />
+          </div>
+          <Button onClick={handleSubmit} disabled={saving || !name.trim() || !practice} size="icon">
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function BuyBackClaimsTab() {
   const { user } = useAuth();
   const { activeStaff, loading: loadingStaff, saving: savingStaff, admin, addStaff, updateStaff, removeStaff } = useNRESBuyBackStaff();
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, confirmDeclaration, deleteClaim, updateClaimAmount } = useNRESBuyBackClaims();
 
   const isAdmin = admin;
-
-  // New staff form state
-  const [newName, setNewName] = useState('');
-  const [newRole, setNewRole] = useState('GP');
-  const [newAllocType, setNewAllocType] = useState<'sessions' | 'wte'>('sessions');
-  const [newAllocValue, setNewAllocValue] = useState('');
-  const [newRate, setNewRate] = useState('');
-  const [newCategory, setNewCategory] = useState<'buyback' | 'new_sda'>('buyback');
-  const [newPractice, setNewPractice] = useState<string>('');
 
   // New claim state
   const [claimMonth, setClaimMonth] = useState(() => {
@@ -49,23 +137,6 @@ export function BuyBackClaimsTab() {
 
   const [guideOpen, setGuideOpen] = useState(false);
   const isLoading = loadingStaff || loadingClaims;
-
-  const handleAddStaff = async () => {
-    if (!newName.trim() || !newAllocValue || !newRate || !newPractice) return;
-    await addStaff({
-      staff_name: newName.trim(),
-      staff_role: newRole,
-      allocation_type: newAllocType,
-      allocation_value: parseFloat(newAllocValue),
-      hourly_rate: parseFloat(newRate),
-      is_active: true,
-      staff_category: newCategory,
-      practice_key: newPractice,
-    });
-    setNewName('');
-    setNewAllocValue('');
-    setNewRate('');
-  };
 
   // Filter staff by practice if filter is active
   const filteredStaff = filterPractice === 'all'
@@ -202,68 +273,7 @@ export function BuyBackClaimsTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Add staff form */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
-            <div>
-              <Label>Category</Label>
-              <Select value={newCategory} onValueChange={v => setNewCategory(v as 'buyback' | 'new_sda')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="buyback">Buy-Back</SelectItem>
-                  <SelectItem value="new_sda">New SDA Recruit</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Practice</Label>
-              <Select value={newPractice} onValueChange={setNewPractice}>
-                <SelectTrigger><SelectValue placeholder="Select practice" /></SelectTrigger>
-                <SelectContent>
-                  {NRES_PRACTICE_KEYS.map(k => (
-                    <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="staff-name">Name</Label>
-              <Input id="staff-name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Staff name" />
-            </div>
-            <div>
-              <Label>Role</Label>
-              <Select value={newRole} onValueChange={setNewRole}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {STAFF_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
-            <div>
-              <Label>Allocation Type</Label>
-              <Select value={newAllocType} onValueChange={v => setNewAllocType(v as 'sessions' | 'wte')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sessions">Sessions</SelectItem>
-                  <SelectItem value="wte">WTE</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>{newAllocType === 'sessions' ? 'Sessions' : 'WTE'}</Label>
-              <Input type="number" value={newAllocValue} onChange={e => setNewAllocValue(e.target.value)} placeholder="0" min="0" step="0.1" />
-            </div>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <Label>£/hr</Label>
-                <Input type="number" value={newRate} onChange={e => setNewRate(e.target.value)} placeholder="0" min="0" step="0.01" />
-              </div>
-              <Button onClick={handleAddStaff} disabled={savingStaff || !newName.trim() || !newPractice} size="icon">
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+          <AddStaffForm saving={savingStaff} onAdd={addStaff} />
 
           {/* Staff list */}
           {filteredStaff.length > 0 && (
