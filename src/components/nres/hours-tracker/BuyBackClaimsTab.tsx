@@ -15,8 +15,9 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
@@ -396,7 +397,9 @@ export function BuyBackClaimsTab() {
                          <td className="p-2">{s.staff_role}</td>
                          <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
                          <td className="p-2 text-xs">{s.start_date ? format(new Date(s.start_date), 'dd/MM/yyyy') : '—'}</td>
-                         <td className="p-2 text-right font-medium">{fmtGBP(monthly)}</td>
+                          <td className="p-2 text-right font-medium">
+                            <CalcBreakdownHover staff={s} amount={monthly} />
+                          </td>
                          <td className="p-2 text-right">
                            <Button variant="ghost" size="icon" onClick={() => removeStaff(s.id)}>
                              <Trash2 className="w-4 h-4 text-destructive" />
@@ -506,6 +509,113 @@ function getStaffMaxAmount(staff: any, claimMonth?: string): number {
   } as BuyBackStaffMember, claimMonth, staff.start_date);
 }
 
+/** Build a detailed calculation breakdown for hover display */
+function buildCalcTooltip(staff: any, claimMonth?: string) {
+  const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours';
+  const allocValue = staff.allocation_value as number;
+  const GP_SESSION_ANNUAL = 11000 * 1.2938;
+  const WTE_ANNUAL = 60000 * 1.2938;
+
+  let annualBase: number;
+  let annualLabel: string;
+  let fullMonthly: number;
+
+  if (allocType === 'sessions') {
+    annualBase = allocValue * GP_SESSION_ANNUAL;
+    annualLabel = `${allocValue} session${allocValue !== 1 ? 's' : ''} × £11,000/yr × 1.2938 on-costs`;
+    fullMonthly = annualBase / 12;
+  } else if (allocType === 'hours') {
+    const wteRatio = allocValue / 37.5;
+    annualBase = wteRatio * WTE_ANNUAL;
+    annualLabel = `${allocValue} hrs/wk ÷ 37.5 = ${wteRatio.toFixed(4)} WTE × £60,000/yr × 1.2938 on-costs`;
+    fullMonthly = annualBase / 12;
+  } else {
+    annualBase = allocValue * WTE_ANNUAL;
+    annualLabel = `${allocValue} WTE × £60,000/yr × 1.2938 on-costs`;
+    fullMonthly = annualBase / 12;
+  }
+
+  let proRataInfo: { daysInMonth: number; workingDays: number; startDay: number; ratio: number } | null = null;
+  let finalMonthly = fullMonthly;
+
+  if (claimMonth && staff.start_date) {
+    const claimStart = new Date(claimMonth);
+    const claimYear = claimStart.getFullYear();
+    const claimMonthNum = claimStart.getMonth();
+    const staffStart = new Date(staff.start_date);
+
+    if (staffStart.getFullYear() === claimYear && staffStart.getMonth() === claimMonthNum) {
+      const daysInMonth = new Date(claimYear, claimMonthNum + 1, 0).getDate();
+      const startDay = staffStart.getDate();
+      const workingDays = daysInMonth - startDay + 1;
+      const ratio = workingDays / daysInMonth;
+      proRataInfo = { daysInMonth, workingDays, startDay, ratio };
+      finalMonthly = fullMonthly * ratio;
+    }
+  }
+
+  return { annualBase, annualLabel, fullMonthly, proRataInfo, finalMonthly };
+}
+
+/** Hover card showing the full calculation breakdown for a staff line's monthly amount */
+function CalcBreakdownHover({ staff, claimMonth, amount }: { staff: any; claimMonth?: string; amount: number }) {
+  const breakdown = buildCalcTooltip(staff, claimMonth);
+  return (
+    <HoverCard openDelay={200} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <button type="button" className="inline-flex items-center gap-1 cursor-help text-right hover:text-primary transition-colors">
+          <span>{fmtGBP(amount)}</span>
+          <Calculator className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80 p-0" align="end" side="left" sideOffset={5}>
+        <div className="p-2.5 bg-muted/50 border-b">
+          <h4 className="font-semibold text-xs flex items-center gap-1.5">
+            <Calculator className="h-3.5 w-3.5" />
+            Calculation Breakdown
+          </h4>
+        </div>
+        <div className="p-3 space-y-2 text-xs">
+          {/* Step 1: Annual */}
+          <div>
+            <p className="text-muted-foreground font-medium mb-0.5">Annual Calculation</p>
+            <p className="text-foreground">{breakdown.annualLabel}</p>
+            <p className="font-semibold">= {fmtGBP(breakdown.annualBase)}/year</p>
+          </div>
+          <Separator />
+          {/* Step 2: Monthly */}
+          <div>
+            <p className="text-muted-foreground font-medium mb-0.5">Monthly Amount</p>
+            <p className="text-foreground">{fmtGBP(breakdown.annualBase)} ÷ 12 months</p>
+            <p className="font-semibold">= {fmtGBP(breakdown.fullMonthly)}/month</p>
+          </div>
+          {/* Step 3: Pro-rata if applicable */}
+          {breakdown.proRataInfo && (
+            <>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Pro-Rata Adjustment</p>
+                <p className="text-foreground">
+                  Staff started on day {breakdown.proRataInfo.startDay} of {breakdown.proRataInfo.daysInMonth}
+                </p>
+                <p className="text-foreground">
+                  {breakdown.proRataInfo.workingDays} of {breakdown.proRataInfo.daysInMonth} days = {(breakdown.proRataInfo.ratio * 100).toFixed(1)}%
+                </p>
+                <p className="font-semibold">= {fmtGBP(breakdown.finalMonthly)}/month (pro-rated)</p>
+              </div>
+            </>
+          )}
+          <Separator />
+          <div className="flex justify-between font-semibold text-sm">
+            <span>Maximum Claimable</span>
+            <span className="text-primary">{fmtGBP(breakdown.finalMonthly)}</span>
+          </div>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
 function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes }: {
   claim: BuyBackClaim;
   userId?: string;
@@ -578,7 +688,9 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
                   <td className="p-2">{displayName}</td>
                   <td className="p-2">{s.staff_role}</td>
                   <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
-                  <td className="p-2 text-right">{fmtGBP(maxAmount)}</td>
+                  <td className="p-2 text-right">
+                    <CalcBreakdownHover staff={s} claimMonth={claim.claim_month} amount={maxAmount} />
+                  </td>
                   <td className="p-2 text-right">
                     {canEdit ? (
                       <div className="space-y-0.5">
