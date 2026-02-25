@@ -6947,6 +6947,118 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_buyback_claims: {
+        Row: {
+          calculated_amount: number
+          claim_month: string
+          claimed_amount: number
+          created_at: string
+          declaration_confirmed: boolean
+          id: string
+          practice_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          staff_details: Json
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calculated_amount?: number
+          claim_month: string
+          claimed_amount?: number
+          created_at?: string
+          declaration_confirmed?: boolean
+          id?: string
+          practice_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          staff_details?: Json
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calculated_amount?: number
+          claim_month?: string
+          claimed_amount?: number
+          created_at?: string
+          declaration_confirmed?: boolean
+          id?: string
+          practice_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          staff_details?: Json
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nres_buyback_claims_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nres_buyback_staff: {
+        Row: {
+          allocation_type: string
+          allocation_value: number
+          created_at: string
+          hourly_rate: number
+          id: string
+          is_active: boolean
+          practice_id: string | null
+          staff_name: string
+          staff_role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allocation_type?: string
+          allocation_value?: number
+          created_at?: string
+          hourly_rate?: number
+          id?: string
+          is_active?: boolean
+          practice_id?: string | null
+          staff_name: string
+          staff_role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allocation_type?: string
+          allocation_value?: number
+          created_at?: string
+          hourly_rate?: number
+          id?: string
+          is_active?: boolean
+          practice_id?: string | null
+          staff_name?: string
+          staff_role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nres_buyback_staff_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nres_candidate_feedback: {
         Row: {
           agrees_with_assessment: boolean

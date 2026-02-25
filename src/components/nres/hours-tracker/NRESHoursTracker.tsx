@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { HoursSettings } from './HoursSettings';
@@ -10,11 +11,12 @@ import { TrackerSummary } from './TrackerSummary';
 import { TrackerReportModal } from './TrackerReportModal';
 import { AdminClaimsReport } from './AdminClaimsReport';
 import { ClaimantsManager } from './ClaimantsManager';
+import { BuyBackClaimsTab } from './BuyBackClaimsTab';
 import { useNRESUserSettings } from '@/hooks/useNRESUserSettings';
 import { useNRESHoursTracker } from '@/hooks/useNRESHoursTracker';
 import { useNRESExpenses } from '@/hooks/useNRESExpenses';
 import { useNRESClaimants } from '@/hooks/useNRESClaimants';
-import { Loader2, ChevronDown, ChevronRight, Receipt, Users } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight } from 'lucide-react';
 
 export function NRESHoursTracker() {
   const [expensesOpen, setExpensesOpen] = useState(false);
@@ -60,90 +62,107 @@ export function NRESHoursTracker() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <TrackerSummary 
-        totalHours={totalHours}
-        totalExpenses={totalExpenses}
-        hourlyRate={hourlyRate}
-      />
+    <Tabs defaultValue="time-expenses" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="time-expenses" className="flex items-center gap-2">
+          <Clock className="w-4 h-4" />
+          Time & Expenses
+        </TabsTrigger>
+        <TabsTrigger value="buy-back" className="flex items-center gap-2">
+          <ArrowLeftRight className="w-4 h-4" />
+          Buy-Back Claims
+        </TabsTrigger>
+      </TabsList>
 
-      {/* Settings & Report */}
-      <div className="flex flex-wrap gap-4 items-start justify-between">
-        <HoursSettings
-          hourlyRate={hourlyRate}
-          hasRateSet={hasRateSet}
-          saving={savingSettings}
-          onSaveRate={saveHourlyRate}
-        />
-        <TrackerReportModal
-          entries={entries}
-          expenses={expenses}
+      <TabsContent value="time-expenses" className="space-y-6">
+        {/* Summary Cards */}
+        <TrackerSummary 
+          totalHours={totalHours}
+          totalExpenses={totalExpenses}
           hourlyRate={hourlyRate}
         />
-      </div>
 
-      <Separator />
-
-      {/* Claimants Management Section */}
-      <Collapsible open={claimantsOpen} onOpenChange={setClaimantsOpen}>
-        <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-          {claimantsOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-          <Users className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-semibold">Manage Claimants</h3>
-          <span className="text-sm text-muted-foreground">({activeClaimants.length} active)</span>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-4">
-          <ClaimantsManager />
-        </CollapsibleContent>
-      </Collapsible>
-
-      <Separator />
-
-      {/* Time Tracking Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Time Tracking</h3>
-        <HoursEntryForm 
-          saving={savingEntry}
-          claimants={activeClaimants}
-          onSubmit={addEntry}
-        />
-        <HoursEntriesTable
-          entries={entries}
-          hourlyRate={hourlyRate}
-          loading={loadingEntries}
-          claimants={activeClaimants}
-          onUpdate={updateEntry}
-        />
-      </div>
-
-      <Separator />
-
-      {/* Expenses Section */}
-      <Collapsible open={expensesOpen} onOpenChange={setExpensesOpen}>
-        <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-          {expensesOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-          <Receipt className="w-5 h-5 text-amber-600" />
-          <h3 className="text-lg font-semibold">Expenses</h3>
-          <span className="text-sm text-muted-foreground">({expenses.length} items)</span>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-4 mt-4">
-          <ExpenseEntryForm
-            saving={savingExpense}
-            onSubmit={addExpense}
+        {/* Settings & Report */}
+        <div className="flex flex-wrap gap-4 items-start justify-between">
+          <HoursSettings
+            hourlyRate={hourlyRate}
+            hasRateSet={hasRateSet}
+            saving={savingSettings}
+            onSaveRate={saveHourlyRate}
           />
-          <ExpensesTable
+          <TrackerReportModal
+            entries={entries}
             expenses={expenses}
-            loading={loadingExpenses}
-            onDelete={deleteExpense}
+            hourlyRate={hourlyRate}
           />
-        </CollapsibleContent>
-      </Collapsible>
+        </div>
 
-      <Separator />
+        <Separator />
 
-      {/* Admin Report Section - only visible to authorised users */}
-      <AdminClaimsReport />
-    </div>
+        {/* Claimants Management Section */}
+        <Collapsible open={claimantsOpen} onOpenChange={setClaimantsOpen}>
+          <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+            {claimantsOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+            <Users className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-semibold">Manage Claimants</h3>
+            <span className="text-sm text-muted-foreground">({activeClaimants.length} active)</span>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <ClaimantsManager />
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Separator />
+
+        {/* Time Tracking Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Time Tracking</h3>
+          <HoursEntryForm 
+            saving={savingEntry}
+            claimants={activeClaimants}
+            onSubmit={addEntry}
+          />
+          <HoursEntriesTable
+            entries={entries}
+            hourlyRate={hourlyRate}
+            loading={loadingEntries}
+            claimants={activeClaimants}
+            onUpdate={updateEntry}
+          />
+        </div>
+
+        <Separator />
+
+        {/* Expenses Section */}
+        <Collapsible open={expensesOpen} onOpenChange={setExpensesOpen}>
+          <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+            {expensesOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+            <Receipt className="w-5 h-5 text-amber-600" />
+            <h3 className="text-lg font-semibold">Expenses</h3>
+            <span className="text-sm text-muted-foreground">({expenses.length} items)</span>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 mt-4">
+            <ExpenseEntryForm
+              saving={savingExpense}
+              onSubmit={addExpense}
+            />
+            <ExpensesTable
+              expenses={expenses}
+              loading={loadingExpenses}
+              onDelete={deleteExpense}
+            />
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Separator />
+
+        {/* Admin Report Section */}
+        <AdminClaimsReport />
+      </TabsContent>
+
+      <TabsContent value="buy-back">
+        <BuyBackClaimsTab />
+      </TabsContent>
+    </Tabs>
   );
 }
