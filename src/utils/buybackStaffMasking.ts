@@ -4,6 +4,7 @@
  */
 
 import { maskPatientName } from '@/utils/patientDataMasking';
+import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 
 /** Authorised approver email addresses */
 export const BUYBACK_APPROVER_EMAILS = [
@@ -19,7 +20,9 @@ export const BUYBACK_APPROVER_EMAILS = [
  */
 export function isBuybackApprover(userEmail: string | null | undefined): boolean {
   if (!userEmail) return false;
-  return BUYBACK_APPROVER_EMAILS.includes(userEmail.toLowerCase() as any);
+  const lower = userEmail.toLowerCase();
+  return BUYBACK_APPROVER_EMAILS.includes(lower as any) ||
+         NRES_ADMIN_EMAILS.includes(lower);
 }
 
 /**
@@ -27,7 +30,7 @@ export function isBuybackApprover(userEmail: string | null | undefined): boolean
  *
  * Full names are shown when the user is:
  * 1. The practice user who submitted the claim (owner), OR
- * 2. An authorised approver
+ * 2. An authorised approver / NRES admin
  */
 export function canViewStaffName(
   currentUserId: string | null | undefined,

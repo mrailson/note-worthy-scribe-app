@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 
 export interface BuyBackStaffMember {
   id: string;
@@ -13,8 +14,15 @@ export interface BuyBackStaffMember {
   allocation_value: number;
   hourly_rate: number;
   is_active: boolean;
+  staff_category: 'buyback' | 'new_sda';
+  practice_key: string | null;
   created_at: string;
   updated_at: string;
+}
+
+function isAdmin(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return NRES_ADMIN_EMAILS.includes(email.toLowerCase());
 }
 
 export function useNRESBuyBackStaff() {
@@ -24,18 +32,25 @@ export function useNRESBuyBackStaff() {
   const [saving, setSaving] = useState(false);
   const hasFetchedRef = useRef(false);
 
+  const admin = isAdmin(user?.email);
+
   const fetchStaff = useCallback(async (forceRefresh = false) => {
     if (!user?.id) return;
     if (!forceRefresh && hasFetchedRef.current) return;
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('nres_buyback_staff')
         .select('*')
-        .eq('user_id', user.id)
         .order('staff_name');
 
+      // Non-admins only see their own staff
+      if (!isAdmin(user.email)) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setStaff((data || []) as BuyBackStaffMember[]);
       hasFetchedRef.current = true;
@@ -45,7 +60,7 @@ export function useNRESBuyBackStaff() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, user?.email]);
 
   useEffect(() => {
     if (user?.id) fetchStaff();
@@ -78,13 +93,16 @@ export function useNRESBuyBackStaff() {
     if (!user?.id) return null;
     try {
       setSaving(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('nres_buyback_staff')
         .update(updates)
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
+        .eq('id', id);
+
+      if (!admin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query.select().single();
       if (error) throw error;
       setStaff(prev => prev.map(s => s.id === id ? (data as BuyBackStaffMember) : s));
       toast.success('Staff member updated');
@@ -101,11 +119,16 @@ export function useNRESBuyBackStaff() {
   const removeStaff = async (id: string) => {
     if (!user?.id) return;
     try {
-      const { error } = await supabase
+      let query = supabase
         .from('nres_buyback_staff')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
+
+      if (!admin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { error } = await query;
       if (error) throw error;
       setStaff(prev => prev.filter(s => s.id !== id));
       toast.success('Staff member removed');
@@ -117,5 +140,5 @@ export function useNRESBuyBackStaff() {
 
   const activeStaff = staff.filter(s => s.is_active);
 
-  return { staff, activeStaff, loading, saving, addStaff, updateStaff, removeStaff, refetch: () => fetchStaff(true) };
+  return { staff, activeStaff, loading, saving, admin, addStaff, updateStaff, removeStaff, refetch: () => fetchStaff(true) };
 }
