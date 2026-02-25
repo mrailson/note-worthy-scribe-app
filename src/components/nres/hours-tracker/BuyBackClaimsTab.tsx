@@ -186,7 +186,7 @@ function AddStaffForm({ saving, onAdd }: {
 export function BuyBackClaimsTab() {
   const { user } = useAuth();
   const { activeStaff, loading: loadingStaff, saving: savingStaff, admin, addStaff, updateStaff, removeStaff } = useNRESBuyBackStaff();
-  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, confirmDeclaration, deleteClaim, updateClaimAmount } = useNRESBuyBackClaims();
+  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount } = useNRESBuyBackClaims();
 
   const isAdmin = admin;
 
@@ -442,26 +442,20 @@ export function BuyBackClaimsTab() {
           {filteredClaims.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">No claims yet.</p>
           ) : (
-            <div className="border rounded-md overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-2 font-medium">Practice</th>
-                    <th className="text-left p-2 font-medium">Month</th>
-                    <th className="text-left p-2 font-medium">Staff</th>
-                    <th className="text-right p-2 font-medium">Calculated</th>
-                    <th className="text-right p-2 font-medium">Claimed</th>
-                    <th className="text-center p-2 font-medium">Declaration</th>
-                    <th className="text-center p-2 font-medium">Status</th>
-                    <th className="p-2 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredClaims.map(c => (
-                    <ClaimRow key={c.id} claim={c} userId={user?.id} userEmail={user?.email} isAdmin={isAdmin} onSubmit={submitClaim} onDelete={deleteClaim} onConfirmDeclaration={confirmDeclaration} onUpdateAmount={updateClaimAmount} />
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-6">
+              {filteredClaims.map(c => (
+                <ClaimCard
+                  key={c.id}
+                  claim={c}
+                  userId={user?.id}
+                  userEmail={user?.email}
+                  isAdmin={isAdmin}
+                  onSubmit={submitClaim}
+                  onDelete={deleteClaim}
+                  onConfirmDeclaration={confirmDeclaration}
+                  onUpdateStaffAmount={updateStaffClaimedAmount}
+                />
+              ))}
             </div>
           )}
         </CardContent>
@@ -470,7 +464,16 @@ export function BuyBackClaimsTab() {
   );
 }
 
-function ClaimRow({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onConfirmDeclaration, onUpdateAmount }: {
+/** Helper to get the max monthly amount for a staff detail entry */
+function getStaffMaxAmount(staff: any): number {
+  return calculateStaffMonthlyAmount({
+    allocation_type: staff.allocation_type,
+    allocation_value: staff.allocation_value,
+    staff_role: staff.staff_role,
+  } as BuyBackStaffMember);
+}
+
+function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount }: {
   claim: BuyBackClaim;
   userId?: string;
   userEmail?: string;
@@ -478,13 +481,11 @@ function ClaimRow({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCon
   onSubmit: (id: string) => void;
   onDelete: (id: string) => void;
   onConfirmDeclaration: (id: string, confirmed: boolean) => void;
-  onUpdateAmount: (id: string, amount: number) => void;
+  onUpdateStaffAmount: (claimId: string, staffIndex: number, amount: number) => void;
 }) {
   const isDraft = claim.status === 'draft';
   const canEdit = isDraft && (userId === claim.user_id || isAdmin);
-  const staffNames = (claim.staff_details as any[])
-    .map(s => maskStaffName(s.staff_name, userId, claim.user_id, userEmail))
-    .join(', ');
+  const staffDetails = claim.staff_details as any[];
 
   const statusBadge = (status: string) => {
     const variants: Record<string, string> = {
@@ -496,75 +497,118 @@ function ClaimRow({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCon
     return <Badge className={variants[status] || ''}>{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>;
   };
 
+  const totalCalculated = staffDetails.reduce((sum, s) => sum + getStaffMaxAmount(s), 0);
+  const totalClaimed = staffDetails.reduce((sum, s) => sum + (s.claimed_amount ?? getStaffMaxAmount(s)), 0);
+
   return (
-    <tr className="border-t">
-      <td className="p-2 text-xs">{getPracticeName(claim.practice_key)}</td>
-      <td className="p-2">{format(new Date(claim.claim_month), 'MMMM yyyy')}</td>
-      <td className="p-2 max-w-[200px] truncate" title={staffNames}>{staffNames}</td>
-      <td className="p-2 text-right">{fmtGBP(claim.calculated_amount)}</td>
-      <td className="p-2 text-right">
-        {canEdit ? (
-          <div className="space-y-1">
-            <Input
-              type="number"
-              className="w-28 ml-auto text-right"
-              value={claim.claimed_amount.toFixed(2)}
-              onChange={e => {
-                const val = parseFloat(e.target.value) || 0;
-                onUpdateAmount(claim.id, Math.min(val, claim.calculated_amount));
-              }}
-              min="0"
-              max={claim.calculated_amount}
-              step="0.01"
-            />
-            <p className="text-[10px] text-muted-foreground text-right">
-              Max: {fmtGBP(claim.calculated_amount)}
-            </p>
-          </div>
-        ) : (
-          fmtGBP(claim.claimed_amount)
+    <div className="border rounded-md overflow-hidden">
+      {/* Header */}
+      <div className="bg-muted/50 px-3 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-3 text-sm">
+          <span className="font-medium">{getPracticeName(claim.practice_key)}</span>
+          <span className="text-muted-foreground">—</span>
+          <span>{format(new Date(claim.claim_month), 'MMMM yyyy')}</span>
+          {statusBadge(claim.status)}
+        </div>
+        {canEdit && (
+          <Button size="sm" variant="ghost" onClick={() => onDelete(claim.id)}>
+            <Trash2 className="w-3 h-3 text-destructive" />
+          </Button>
         )}
-      </td>
-      <td className="p-2 text-center">
-        {canEdit ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex flex-col items-center gap-1 cursor-help">
-                  <Checkbox
-                    checked={claim.declaration_confirmed}
-                    onCheckedChange={checked => onConfirmDeclaration(claim.id, !!checked)}
-                  />
-                  <span className="text-[10px] text-muted-foreground">Declaration</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs text-xs">
-                {DECLARATION_TEXT}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : (
-          claim.declaration_confirmed ? '✓' : '✗'
-        )}
-      </td>
-      <td className="p-2 text-center">{statusBadge(claim.status)}</td>
-      <td className="p-2">
-        <div className="flex gap-1">
-          {canEdit && (
-            <>
-              <Button size="sm" variant="default" onClick={() => onSubmit(claim.id)} disabled={!claim.declaration_confirmed} title="Submit for approval">
-                <Send className="w-3 h-3 mr-1" /> Submit
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => onDelete(claim.id)}>
-                <Trash2 className="w-3 h-3 text-destructive" />
-              </Button>
-            </>
-          )}
-          {claim.review_notes && (
-            <span className="text-xs text-muted-foreground italic" title={claim.review_notes}>Note</span>
+      </div>
+
+      {/* Staff lines */}
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b bg-muted/20">
+            <th className="text-left p-2 font-medium">Staff Member</th>
+            <th className="text-left p-2 font-medium">Role</th>
+            <th className="text-left p-2 font-medium">Allocation</th>
+            <th className="text-right p-2 font-medium">Calculated</th>
+            <th className="text-right p-2 font-medium">Claimed</th>
+          </tr>
+        </thead>
+        <tbody>
+          {staffDetails.map((s, idx) => {
+            const maxAmount = getStaffMaxAmount(s);
+            const claimedAmount = s.claimed_amount ?? maxAmount;
+            const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail);
+            return (
+              <tr key={idx} className="border-b">
+                <td className="p-2">{displayName}</td>
+                <td className="p-2">{s.staff_role}</td>
+                <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
+                <td className="p-2 text-right">{fmtGBP(maxAmount)}</td>
+                <td className="p-2 text-right">
+                  {canEdit ? (
+                    <div className="space-y-0.5">
+                      <Input
+                        type="number"
+                        className="w-28 ml-auto text-right"
+                        value={claimedAmount.toFixed(2)}
+                        onChange={e => {
+                          const val = parseFloat(e.target.value) || 0;
+                          onUpdateStaffAmount(claim.id, idx, Math.min(val, maxAmount));
+                        }}
+                        min="0"
+                        max={maxAmount}
+                        step="0.01"
+                      />
+                      <p className="text-[10px] text-muted-foreground text-right">Max: {fmtGBP(maxAmount)}</p>
+                    </div>
+                  ) : (
+                    fmtGBP(claimedAmount)
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+          {/* Total row */}
+          <tr className="bg-muted/30 font-semibold border-t">
+            <td colSpan={3} className="p-2 text-right">Total</td>
+            <td className="p-2 text-right">{fmtGBP(totalCalculated)}</td>
+            <td className="p-2 text-right">{fmtGBP(totalClaimed)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Declaration & Submit */}
+      <div className="px-3 py-3 flex items-center justify-between border-t bg-muted/10">
+        <div className="flex items-center gap-3">
+          {canEdit ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2 cursor-help">
+                    <Checkbox
+                      checked={claim.declaration_confirmed}
+                      onCheckedChange={checked => onConfirmDeclaration(claim.id, !!checked)}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      I confirm all staff listed are working 100% on SDA (Part A) during their funded hours
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs">
+                  {DECLARATION_TEXT}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Declaration: {claim.declaration_confirmed ? '✓ Confirmed' : '✗ Not confirmed'}
+            </span>
           )}
         </div>
-      </td>
-    </tr>
+        {canEdit && (
+          <Button size="sm" onClick={() => onSubmit(claim.id)} disabled={!claim.declaration_confirmed}>
+            <Send className="w-3 h-3 mr-1" /> Submit
+          </Button>
+        )}
+        {claim.review_notes && (
+          <span className="text-xs text-muted-foreground italic ml-2" title={claim.review_notes}>Review note</span>
+        )}
+      </div>
+    </div>
   );
 }
