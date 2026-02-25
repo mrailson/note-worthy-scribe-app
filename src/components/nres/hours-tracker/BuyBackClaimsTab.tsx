@@ -513,27 +513,28 @@ function getStaffMaxAmount(staff: any, claimMonth?: string): number {
 function buildCalcTooltip(staff: any, claimMonth?: string) {
   const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours';
   const allocValue = staff.allocation_value as number;
-  const GP_SESSION_ANNUAL = 11000 * 1.2938;
-  const WTE_ANNUAL = 60000 * 1.2938;
+  const ON_COST_RATE = 0.2938;
+  const GP_SESSION_ANNUAL = 11000;
+  const WTE_ANNUAL_BASE = 60000;
 
-  let annualBase: number;
-  let annualLabel: string;
-  let fullMonthly: number;
+  let baseSalary: number;
+  let baseLabel: string;
 
   if (allocType === 'sessions') {
-    annualBase = allocValue * GP_SESSION_ANNUAL;
-    annualLabel = `${allocValue} session${allocValue !== 1 ? 's' : ''} × £11,000/yr × 1.2938 on-costs`;
-    fullMonthly = annualBase / 12;
+    baseSalary = allocValue * GP_SESSION_ANNUAL;
+    baseLabel = `${allocValue} session${allocValue !== 1 ? 's' : ''} × £11,000/yr`;
   } else if (allocType === 'hours') {
     const wteRatio = allocValue / 37.5;
-    annualBase = wteRatio * WTE_ANNUAL;
-    annualLabel = `${allocValue} hrs/wk ÷ 37.5 = ${parseFloat(wteRatio.toFixed(4))} WTE × £60,000/yr × 1.2938 on-costs`;
-    fullMonthly = annualBase / 12;
+    baseSalary = wteRatio * WTE_ANNUAL_BASE;
+    baseLabel = `${allocValue} hrs/wk ÷ 37.5 = ${parseFloat(wteRatio.toFixed(4))} WTE × £60,000/yr`;
   } else {
-    annualBase = allocValue * WTE_ANNUAL;
-    annualLabel = `${allocValue} WTE × £60,000/yr × 1.2938 on-costs`;
-    fullMonthly = annualBase / 12;
+    baseSalary = allocValue * WTE_ANNUAL_BASE;
+    baseLabel = `${allocValue} WTE × £60,000/yr`;
   }
+
+  const onCostsValue = baseSalary * ON_COST_RATE;
+  const annualBase = baseSalary + onCostsValue;
+  const fullMonthly = annualBase / 12;
 
   let proRataInfo: { daysInMonth: number; workingDays: number; startDay: number; ratio: number } | null = null;
   let finalMonthly = fullMonthly;
@@ -554,7 +555,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string) {
     }
   }
 
-  return { annualBase, annualLabel, fullMonthly, proRataInfo, finalMonthly };
+  return { baseSalary, baseLabel, onCostsValue, annualBase, fullMonthly, proRataInfo, finalMonthly };
 }
 
 /** Hover card showing the full calculation breakdown for a staff line's monthly amount */
@@ -576,11 +577,18 @@ function CalcBreakdownHover({ staff, claimMonth, amount }: { staff: any; claimMo
           </h4>
         </div>
         <div className="p-3 space-y-2 text-xs">
-          {/* Step 1: Annual */}
+          {/* Step 1: Base salary */}
           <div>
-            <p className="text-muted-foreground font-medium mb-0.5">Annual Calculation</p>
-            <p className="text-foreground">{breakdown.annualLabel}</p>
-            <p className="font-semibold">= {fmtGBP(breakdown.annualBase)}/year</p>
+            <p className="text-muted-foreground font-medium mb-0.5">Base Salary</p>
+            <p className="text-foreground">{breakdown.baseLabel}</p>
+            <p className="font-semibold">= {fmtGBP(breakdown.baseSalary)}/year</p>
+          </div>
+          <Separator />
+          {/* Step 2: On-costs */}
+          <div>
+            <p className="text-muted-foreground font-medium mb-0.5">+ 29.38% Employer On-Costs</p>
+            <p className="text-foreground">{fmtGBP(breakdown.baseSalary)} × 29.38% = {fmtGBP(breakdown.onCostsValue)}</p>
+            <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)} + {fmtGBP(breakdown.onCostsValue)} = {fmtGBP(breakdown.annualBase)}/year</p>
           </div>
           <Separator />
           {/* Step 2: Monthly */}
