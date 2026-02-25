@@ -99,8 +99,8 @@ const SDADashboard = () => {
               className="flex items-center gap-2 data-[state=active]:bg-[#005EB8] data-[state=active]:text-white px-4 py-2.5 rounded-lg transition-all"
             >
               <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">Financials</span>
-              <span className="sm:hidden">Financials</span>
+              <span className="hidden sm:inline">Claims &amp; Oversight</span>
+              <span className="sm:hidden">Claims &amp; Oversight</span>
             </TabsTrigger>
           </TabsList>
 
