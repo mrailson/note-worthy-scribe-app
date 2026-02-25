@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import type { BuyBackStaffMember } from './useNRESBuyBackStaff';
 
 export interface BuyBackClaim {
   id: string;
   user_id: string;
   practice_id: string | null;
+  practice_key: string | null;
   claim_month: string;
   staff_details: any[];
   calculated_amount: number;
@@ -22,13 +24,16 @@ export interface BuyBackClaim {
   updated_at: string;
 }
 
+function isAdmin(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return NRES_ADMIN_EMAILS.includes(email.toLowerCase());
+}
+
 /** Calculate monthly amount from staff allocation */
 export function calculateStaffMonthlyAmount(staff: BuyBackStaffMember): number {
   if (staff.allocation_type === 'sessions') {
-    // sessions × 4 hours × hourly rate
     return staff.allocation_value * 4 * staff.hourly_rate;
   }
-  // WTE × 37.5 hours × hourly rate (per week, ~4.33 weeks/month)
   return staff.allocation_value * 37.5 * staff.hourly_rate * 4.33;
 }
 
@@ -39,18 +44,24 @@ export function useNRESBuyBackClaims() {
   const [saving, setSaving] = useState(false);
   const hasFetchedRef = useRef(false);
 
+  const admin = isAdmin(user?.email);
+
   const fetchClaims = useCallback(async (forceRefresh = false) => {
     if (!user?.id) return;
     if (!forceRefresh && hasFetchedRef.current) return;
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('nres_buyback_claims')
         .select('*')
-        .eq('user_id', user.id)
         .order('claim_month', { ascending: false });
 
+      if (!isAdmin(user.email)) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setClaims((data || []) as BuyBackClaim[]);
       hasFetchedRef.current = true;
@@ -60,7 +71,7 @@ export function useNRESBuyBackClaims() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, user?.email]);
 
   useEffect(() => {
     if (user?.id) fetchClaims();
@@ -71,7 +82,8 @@ export function useNRESBuyBackClaims() {
     claimMonth: string,
     staffMembers: BuyBackStaffMember[],
     claimedAmount: number,
-    calculatedAmount: number
+    calculatedAmount: number,
+    practiceKey?: string | null
   ) => {
     if (!user?.id) return null;
     try {
@@ -79,6 +91,7 @@ export function useNRESBuyBackClaims() {
       const staffSnapshot = staffMembers.map(s => ({
         staff_name: s.staff_name,
         staff_role: s.staff_role,
+        staff_category: s.staff_category,
         allocation_type: s.allocation_type,
         allocation_value: s.allocation_value,
         hourly_rate: s.hourly_rate,
@@ -92,6 +105,7 @@ export function useNRESBuyBackClaims() {
           staff_details: staffSnapshot,
           calculated_amount: calculatedAmount,
           claimed_amount: claimedAmount,
+          practice_key: practiceKey || null,
           status: 'draft',
         })
         .select()
@@ -119,13 +133,17 @@ export function useNRESBuyBackClaims() {
         toast.error('You must confirm the declaration before submitting');
         return;
       }
-      const { data, error } = await supabase
+
+      let query = supabase
         .from('nres_buyback_claims')
         .update({ status: 'submitted', submitted_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
+        .eq('id', id);
+
+      if (!admin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query.select().single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
       toast.success('Claim submitted for approval');
@@ -140,13 +158,16 @@ export function useNRESBuyBackClaims() {
   const updateClaimAmount = async (id: string, amount: number) => {
     if (!user?.id) return;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('nres_buyback_claims')
         .update({ claimed_amount: amount })
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
+        .eq('id', id);
+
+      if (!admin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query.select().single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
     } catch (error) {
@@ -157,13 +178,16 @@ export function useNRESBuyBackClaims() {
   const confirmDeclaration = async (id: string, confirmed: boolean) => {
     if (!user?.id) return;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('nres_buyback_claims')
         .update({ declaration_confirmed: confirmed })
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
+        .eq('id', id);
+
+      if (!admin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query.select().single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
     } catch (error) {
@@ -174,11 +198,16 @@ export function useNRESBuyBackClaims() {
   const deleteClaim = async (id: string) => {
     if (!user?.id) return;
     try {
-      const { error } = await supabase
+      let query = supabase
         .from('nres_buyback_claims')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
+
+      if (!admin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { error } = await query;
       if (error) throw error;
       setClaims(prev => prev.filter(c => c.id !== id));
       toast.success('Claim deleted');
@@ -192,6 +221,7 @@ export function useNRESBuyBackClaims() {
     claims,
     loading,
     saving,
+    admin,
     createClaim,
     submitClaim,
     updateClaimAmount,

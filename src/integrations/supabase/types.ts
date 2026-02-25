@@ -6956,6 +6956,7 @@ export type Database = {
           declaration_confirmed: boolean
           id: string
           practice_id: string | null
+          practice_key: string | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -6973,6 +6974,7 @@ export type Database = {
           declaration_confirmed?: boolean
           id?: string
           practice_id?: string | null
+          practice_key?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -6990,6 +6992,7 @@ export type Database = {
           declaration_confirmed?: boolean
           id?: string
           practice_id?: string | null
+          practice_key?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -7018,6 +7021,8 @@ export type Database = {
           id: string
           is_active: boolean
           practice_id: string | null
+          practice_key: string | null
+          staff_category: string
           staff_name: string
           staff_role: string
           updated_at: string
@@ -7031,6 +7036,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           practice_id?: string | null
+          practice_key?: string | null
+          staff_category?: string
           staff_name: string
           staff_role?: string
           updated_at?: string
@@ -7044,6 +7051,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           practice_id?: string | null
+          practice_key?: string | null
+          staff_category?: string
           staff_name?: string
           staff_role?: string
           updated_at?: string
@@ -11428,7 +11437,9 @@ export type Database = {
         Args: { p_complaint_id: string }
         Returns: undefined
       }
-      is_nres_admin: { Args: { user_id: string }; Returns: boolean }
+      is_nres_admin:
+        | { Args: never; Returns: boolean }
+        | { Args: { user_id: string }; Returns: boolean }
       is_nres_claims_admin: { Args: never; Returns: boolean }
       is_pcn_manager: { Args: { _user_id?: string }; Returns: boolean }
       is_pcn_manager_for_practice: {
