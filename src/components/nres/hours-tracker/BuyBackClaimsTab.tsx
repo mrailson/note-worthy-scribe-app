@@ -713,7 +713,7 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
                       <div className="space-y-0.5">
                         <Input
                           type="number"
-                          className="w-28 ml-auto text-right"
+                          className="w-28 ml-auto text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           value={claimedAmount.toFixed(2)}
                           onChange={e => {
                             const val = parseFloat(e.target.value) || 0;
