@@ -96,53 +96,8 @@ export const SDAWorkforceInnovation = () => {
 
   return (
     <div className="space-y-6">
-      {/* Workforce Recruitment Tracker - Interactive Card */}
-      <div 
-        onClick={() => setIsRecruitmentTrackerOpen(true)}
-        className="relative overflow-hidden bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-300 rounded-xl p-5 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all group"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center group-hover:bg-amber-200 transition-colors">
-              <BarChart3 className="w-6 h-6 text-amber-700" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-bold text-slate-900 text-lg">NRES Workforce Recruitment Tracker</h3>
-                <Badge className="bg-amber-500 text-white">Interactive</Badge>
-              </div>
-              <p className="text-sm text-slate-600 max-w-2xl">
-                Live session planning and recruitment status across all 7 practices — track GP, ACP/ANP and buy-back sessions with real-time progress bars, WTE calculations and sortable practice-by-practice comparison. View by individual practice or neighbourhood summary.
-              </p>
-              <p className="text-xs text-slate-400 mt-1">Updated: 23rd February 2026</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-200 rounded-full flex items-center justify-center group-hover:bg-amber-300 transition-colors">
-              <ExternalLink className="w-5 h-5 text-amber-800" />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Recruitment Tracker Fullscreen Modal */}
-      {isRecruitmentTrackerOpen && (
-        <div className="fixed inset-0 z-50 bg-gray-100 overflow-auto">
-          <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
-            <h2 className="font-bold text-slate-900">NRES Workforce Recruitment Tracker</h2>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setIsRecruitmentTrackerOpen(false)}
-              className="gap-2"
-            >
-              <X className="w-4 h-4" />
-              Close
-            </Button>
-          </div>
-          <NRESWorkforceRecruitmentTracker />
-        </div>
-      )}
+
       {/* Update Notice */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
