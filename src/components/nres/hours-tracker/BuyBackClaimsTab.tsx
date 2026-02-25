@@ -92,7 +92,7 @@ function AddStaffForm({ saving, onAdd }: {
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 items-end">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 items-end">
         <div>
           <Label className="text-xs">Category</Label>
           <Select value={category} onValueChange={v => setCategory(v as 'buyback' | 'new_sda')}>
@@ -128,29 +128,30 @@ function AddStaffForm({ saving, onAdd }: {
           </Select>
         </div>
         <div>
+          <Label className="text-xs">Allocation Type</Label>
+          <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours'); setAllocValue(''); }}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sessions">Sessions</SelectItem>
+              <SelectItem value="hours">Hrs/wk</SelectItem>
+              <SelectItem value="wte">WTE</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
           <Label className="text-xs">
             {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : 'WTE Value'}
           </Label>
-          <div className="flex gap-1 items-end">
-            <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours'); setAllocValue(''); }}>
-              <SelectTrigger className="h-9 w-[90px] shrink-0"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sessions">Sessions</SelectItem>
-                <SelectItem value="hours">Hrs/wk</SelectItem>
-                <SelectItem value="wte">WTE</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              type="number"
-              className="h-9 w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              value={allocValue}
-              onChange={e => handleAllocValueChange(e.target.value)}
-              placeholder="0"
-              min="0"
-              max={maxAlloc}
-              step={allocType === 'wte' ? 0.1 : 1}
-            />
-          </div>
+          <Input
+            type="number"
+            className="h-9 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            value={allocValue}
+            onChange={e => handleAllocValueChange(e.target.value)}
+            placeholder="0"
+            min="0"
+            max={maxAlloc}
+            step={allocType === 'wte' ? 0.1 : 1}
+          />
         </div>
         <div className="flex items-end">
           <Button className="h-9" onClick={handleSubmit} disabled={saving || !name.trim() || !practice || !allocValue} size="icon">
