@@ -46,7 +46,7 @@ const BuyBackExplainer = () => {
         <div>
           <h3 className="text-lg font-bold mb-2" style={{ color: colors.primary }}>Key Message: SNO Oversight, Not ICB</h3>
           <p className="text-gray-700 text-base leading-relaxed">
-            The <strong>SNO (Sub-Neighbourhood Lead)</strong> confirms acceptance of buy-back arrangements 
+            The <strong>SNO (Single Nominated Organisation)</strong> confirms acceptance of buy-back arrangements 
             with practices. The ICB is <strong>not</strong> policing these arrangements — this is managed 
             through the <strong>SNO-Practice relationship</strong>.
           </p>
