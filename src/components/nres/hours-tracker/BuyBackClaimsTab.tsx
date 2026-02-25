@@ -527,7 +527,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string) {
   } else if (allocType === 'hours') {
     const wteRatio = allocValue / 37.5;
     annualBase = wteRatio * WTE_ANNUAL;
-    annualLabel = `${allocValue} hrs/wk ÷ 37.5 = ${wteRatio.toFixed(4)} WTE × £60,000/yr × 1.2938 on-costs`;
+    annualLabel = `${allocValue} hrs/wk ÷ 37.5 = ${parseFloat(wteRatio.toFixed(4))} WTE × £60,000/yr × 1.2938 on-costs`;
     fullMonthly = annualBase / 12;
   } else {
     annualBase = allocValue * WTE_ANNUAL;
