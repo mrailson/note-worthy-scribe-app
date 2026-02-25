@@ -135,6 +135,7 @@ export function useNRESBuyBackClaims() {
           allocation_value: s.allocation_value,
           hourly_rate: s.hourly_rate,
           start_date: s.start_date,
+          practice_key: s.practice_key,
           claimed_amount: maxAmount,
         };
       });

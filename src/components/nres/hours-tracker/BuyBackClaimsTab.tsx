@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
@@ -902,6 +902,25 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCo
           {claim.review_notes && <span>Notes: <em className="text-foreground">{claim.review_notes}</em></span>}
         </div>
       )}
+
+      {/* Practice mismatch warning */}
+      {(() => {
+        const mismatched = staffDetails.filter(s => s.practice_key && s.practice_key !== claim.practice_key);
+        if (mismatched.length === 0) return null;
+        return (
+          <div className="px-3 py-2 border-t bg-amber-50 dark:bg-amber-950/30 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+            <div className="text-xs text-amber-800 dark:text-amber-200">
+              <strong>Practice mismatch warning:</strong> The following staff {mismatched.length === 1 ? 'member is' : 'members are'} assigned to a different practice than this claim ({getPracticeName(claim.practice_key)}):
+              <ul className="list-disc list-inside mt-1">
+                {mismatched.map((s, i) => (
+                  <li key={i}>{s.staff_name} — assigned to {getPracticeName(s.practice_key)}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Declaration & Submit */}
       <div className="px-3 py-3 flex items-center justify-between border-t bg-muted/10">
