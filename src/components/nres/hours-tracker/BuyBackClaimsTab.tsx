@@ -16,6 +16,23 @@ import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, Chevr
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
+/** Format a number as £X,XXX.XX */
+function fmtGBP(n: number): string {
+  return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** Build a human-readable calculation breakdown for the live preview */
+function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: number): string {
+  if (allocType === 'sessions') {
+    return `${allocValue} session${allocValue !== 1 ? 's' : ''} × £11,000/yr ÷ 12 months × 1.2938 on-costs`;
+  }
+  if (allocType === 'hours') {
+    const wteRatio = (allocValue / 37.5).toFixed(2);
+    return `${allocValue} hrs/wk ÷ 37.5 = ${wteRatio} WTE × £60,000/yr ÷ 12 months × 1.2938 on-costs`;
+  }
+  return `${allocValue} WTE × £60,000/yr ÷ 12 months × 1.2938 on-costs`;
+}
+
 const DECLARATION_TEXT =
   "I confirm that all staff listed are working 100% on SDA (Part A) during their funded hours, with no LTC (Part B) activity, in accordance with the ICB-approved buy-back rules.";
 
@@ -30,25 +47,23 @@ function AddStaffForm({ saving, onAdd }: {
   const [role, setRole] = useState('GP');
   const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours'>('sessions');
   const [allocValue, setAllocValue] = useState('');
-  const [rate, setRate] = useState('');
   const [category, setCategory] = useState<'buyback' | 'new_sda'>('buyback');
   const [practice, setPractice] = useState<string>('');
 
   const handleSubmit = async () => {
-    if (!name.trim() || !allocValue || !rate || !practice) return;
+    if (!name.trim() || !allocValue || !practice) return;
     await onAdd({
       staff_name: name.trim(),
       staff_role: role,
       allocation_type: allocType,
       allocation_value: parseFloat(allocValue),
-      hourly_rate: parseFloat(rate),
+      hourly_rate: 0,
       is_active: true,
       staff_category: category,
       practice_key: practice,
     });
     setName('');
     setAllocValue('');
-    setRate('');
   };
 
   return (
@@ -105,32 +120,32 @@ function AddStaffForm({ saving, onAdd }: {
           <Label>{allocType === 'sessions' ? 'Sessions' : allocType === 'hours' ? 'Hours/week' : 'WTE'}</Label>
           <Input type="number" value={allocValue} onChange={e => setAllocValue(e.target.value)} placeholder="0" min="0" step="0.1" />
         </div>
-        <div className="flex gap-2 items-end">
-          <div className="flex-1">
-            <Label>£/hr</Label>
-            <Input type="number" value={rate} onChange={e => setRate(e.target.value)} placeholder="0" min="0" step="0.01" />
-          </div>
-          <Button onClick={handleSubmit} disabled={saving || !name.trim() || !practice} size="icon">
+        <div className="flex items-end">
+          <Button onClick={handleSubmit} disabled={saving || !name.trim() || !practice || !allocValue} size="icon">
             <Plus className="w-4 h-4" />
           </Button>
         </div>
       </div>
-      {/* Live monthly amount preview */}
-      {allocValue && parseFloat(allocValue) > 0 && (
-        <div className="rounded-md bg-teal-50 dark:bg-teal-950 border border-teal-200 dark:border-teal-800 px-3 py-2 text-sm">
-          <span className="text-muted-foreground">Max monthly claim: </span>
-          <span className="font-semibold text-teal-800 dark:text-teal-200">
-            £{calculateStaffMonthlyAmount({
-              allocation_type: allocType,
-              allocation_value: parseFloat(allocValue),
-              hourly_rate: parseFloat(rate) || 0,
-            } as BuyBackStaffMember).toFixed(2)}
-          </span>
-          <span className="text-xs text-muted-foreground ml-2">
-            (incl. 29.38% on-costs)
-          </span>
-        </div>
-      )}
+      {/* Live monthly amount preview with calculation breakdown */}
+      {allocValue && parseFloat(allocValue) > 0 && (() => {
+        const val = parseFloat(allocValue);
+        const monthly = calculateStaffMonthlyAmount({
+          allocation_type: allocType,
+          allocation_value: val,
+          hourly_rate: 0,
+        } as BuyBackStaffMember);
+        return (
+          <div className="rounded-md bg-teal-50 dark:bg-teal-950 border border-teal-200 dark:border-teal-800 px-3 py-2 text-sm space-y-1">
+            <div>
+              <span className="text-muted-foreground">Max monthly claim: </span>
+              <span className="font-semibold text-teal-800 dark:text-teal-200">{fmtGBP(monthly)}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {calcBreakdown(allocType, val)} = {fmtGBP(monthly)}/month
+            </p>
+          </div>
+        );
+      })()}
     </>
   );
 }
@@ -296,43 +311,41 @@ export function BuyBackClaimsTab() {
             <div className="border rounded-md overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-2 font-medium">Category</th>
-                    <th className="text-left p-2 font-medium">Practice</th>
-                    <th className="text-left p-2 font-medium">Name</th>
-                    <th className="text-left p-2 font-medium">Role</th>
-                    <th className="text-left p-2 font-medium">Allocation</th>
-                    <th className="text-right p-2 font-medium">Rate</th>
-                    <th className="text-right p-2 font-medium">Monthly</th>
-                    <th className="p-2"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStaff.map(s => {
-                    const displayName = maskStaffName(s.staff_name, user?.id, s.user_id, user?.email);
-                    const monthly = calculateStaffMonthlyAmount(s);
-                    return (
-                      <tr key={s.id} className="border-t">
-                        <td className="p-2">{categoryBadge(s.staff_category)}</td>
-                        <td className="p-2 text-xs">{getPracticeName(s.practice_key)}</td>
-                        <td className="p-2">{displayName}</td>
-                        <td className="p-2">{s.staff_role}</td>
-                        <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
-                        <td className="p-2 text-right">£{s.hourly_rate.toFixed(2)}</td>
-                        <td className="p-2 text-right font-medium">£{monthly.toFixed(2)}</td>
-                        <td className="p-2 text-right">
-                          <Button variant="ghost" size="icon" onClick={() => removeStaff(s.id)}>
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  <tr className="border-t bg-muted/30 font-semibold">
-                    <td colSpan={6} className="p-2 text-right">Total Calculated Monthly</td>
-                    <td className="p-2 text-right">£{totalCalculated.toFixed(2)}</td>
-                    <td></td>
-                  </tr>
+                   <tr>
+                     <th className="text-left p-2 font-medium">Category</th>
+                     <th className="text-left p-2 font-medium">Practice</th>
+                     <th className="text-left p-2 font-medium">Name</th>
+                     <th className="text-left p-2 font-medium">Role</th>
+                     <th className="text-left p-2 font-medium">Allocation</th>
+                     <th className="text-right p-2 font-medium">Monthly</th>
+                     <th className="p-2"></th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   {filteredStaff.map(s => {
+                     const displayName = maskStaffName(s.staff_name, user?.id, s.user_id, user?.email);
+                     const monthly = calculateStaffMonthlyAmount(s);
+                     return (
+                       <tr key={s.id} className="border-t">
+                         <td className="p-2">{categoryBadge(s.staff_category)}</td>
+                         <td className="p-2 text-xs">{getPracticeName(s.practice_key)}</td>
+                         <td className="p-2">{displayName}</td>
+                         <td className="p-2">{s.staff_role}</td>
+                         <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
+                         <td className="p-2 text-right font-medium">{fmtGBP(monthly)}</td>
+                         <td className="p-2 text-right">
+                           <Button variant="ghost" size="icon" onClick={() => removeStaff(s.id)}>
+                             <Trash2 className="w-4 h-4 text-destructive" />
+                           </Button>
+                         </td>
+                       </tr>
+                     );
+                   })}
+                   <tr className="border-t bg-muted/30 font-semibold">
+                     <td colSpan={5} className="p-2 text-right">Total Calculated Monthly</td>
+                     <td className="p-2 text-right">{fmtGBP(totalCalculated)}</td>
+                     <td></td>
+                   </tr>
                 </tbody>
               </table>
             </div>
@@ -453,7 +466,7 @@ function ClaimRow({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCon
       <td className="p-2 text-xs">{getPracticeName(claim.practice_key)}</td>
       <td className="p-2">{format(new Date(claim.claim_month), 'MMMM yyyy')}</td>
       <td className="p-2 max-w-[200px] truncate" title={staffNames}>{staffNames}</td>
-      <td className="p-2 text-right">£{claim.calculated_amount.toFixed(2)}</td>
+      <td className="p-2 text-right">{fmtGBP(claim.calculated_amount)}</td>
       <td className="p-2 text-right">
         {canEdit ? (
           <div className="space-y-1">
@@ -463,7 +476,6 @@ function ClaimRow({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCon
               value={claim.claimed_amount}
               onChange={e => {
                 const val = parseFloat(e.target.value) || 0;
-                // Cannot exceed the calculated maximum
                 onUpdateAmount(claim.id, Math.min(val, claim.calculated_amount));
               }}
               min="0"
@@ -471,11 +483,11 @@ function ClaimRow({ claim, userId, userEmail, isAdmin, onSubmit, onDelete, onCon
               step="0.01"
             />
             <p className="text-[10px] text-muted-foreground text-right">
-              Max: £{claim.calculated_amount.toFixed(2)}
+              Max: {fmtGBP(claim.calculated_amount)}
             </p>
           </div>
         ) : (
-          `£${claim.claimed_amount.toFixed(2)}`
+          fmtGBP(claim.claimed_amount)
         )}
       </td>
       <td className="p-2 text-center">
