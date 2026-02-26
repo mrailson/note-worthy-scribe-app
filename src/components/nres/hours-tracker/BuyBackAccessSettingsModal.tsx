@@ -341,18 +341,28 @@ function RatesAndRolesPanel() {
               <tr>
                 <th className="text-left p-2 font-medium">Role</th>
                 <th className="text-right p-2 font-medium">Base Annual</th>
+                <th className="text-right p-2 font-medium">Staff Pay Rate (Hourly)</th>
                 <th className="text-right p-2 font-medium">On-Costs ({onCostsPctNum}%)</th>
                 <th className="text-right p-2 font-medium">Total Annual</th>
-                <th className="text-right p-2 font-medium">Equiv. Hourly</th>
+                <th className="text-right p-2 font-medium">Equiv. Hourly (incl. On-Costs)</th>
               </tr>
             </thead>
             <tbody>
               {roles.map(role => {
+                const workingHrs = role.working_hours_per_year || 1950;
+                // For sessions-based roles, annual_rate is per session per year
+                // A WTE GP does 9 sessions/wk, so multiply to get full annual salary equivalent
+                const fullAnnualBase = role.allocation_default === 'sessions'
+                  ? role.annual_rate * 9
+                  : role.annual_rate;
+                const staffHourlyRate = workingHrs > 0 ? fullAnnualBase / workingHrs : 0;
                 const onCostsAmt = role.annual_rate * (onCostsPctNum / 100);
                 const totalAnnual = role.annual_rate + onCostsAmt;
-                const hourlyEquiv = role.working_hours_per_year > 0
-                  ? totalAnnual / role.working_hours_per_year
-                  : 0;
+                // Full annual with on-costs for hourly equiv
+                const fullAnnualWithOnCosts = role.allocation_default === 'sessions'
+                  ? totalAnnual * 9
+                  : totalAnnual;
+                const hourlyEquivWithOnCosts = workingHrs > 0 ? fullAnnualWithOnCosts / workingHrs : 0;
                 return (
                   <tr key={role.key} className="border-t">
                     <td className="p-2">
@@ -362,9 +372,10 @@ function RatesAndRolesPanel() {
                       )}
                     </td>
                     <td className="p-2 text-right">{fmtGBP(role.annual_rate)}</td>
+                    <td className="p-2 text-right">{fmtGBP(staffHourlyRate)}/hr</td>
                     <td className="p-2 text-right">{fmtGBP(onCostsAmt)}</td>
                     <td className="p-2 text-right font-medium">{fmtGBP(totalAnnual)}</td>
-                    <td className="p-2 text-right">{fmtGBP(hourlyEquiv)}/hr</td>
+                    <td className="p-2 text-right font-medium">{fmtGBP(hourlyEquivWithOnCosts)}/hr</td>
                   </tr>
                 );
               })}
@@ -372,7 +383,7 @@ function RatesAndRolesPanel() {
           </table>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1">
-          Hourly rate = Total Annual ÷ {roles[0]?.working_hours_per_year || 1950} working hours/year.
+          Staff Pay Rate = Base Annual ÷ {roles[0]?.working_hours_per_year || 1950} hrs/yr. Equiv. Hourly = Total Annual (incl. on-costs) ÷ {roles[0]?.working_hours_per_year || 1950} hrs/yr. GP rates shown per session — hourly equivalents based on 9 sessions/wk.
         </p>
       </div>
 
