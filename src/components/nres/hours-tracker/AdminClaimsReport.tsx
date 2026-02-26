@@ -59,6 +59,7 @@ interface DetailedEntry extends AllEntry {
 }
 
 type SortField = 'work_date' | 'user_name' | 'practice_name' | 'duration_hours' | 'amount' | 'entered_by_name';
+type SummarySortField = 'user_name' | 'practice_name' | 'entry_count' | 'total_hours' | 'total_amount';
 type SortDirection = 'asc' | 'desc';
 
 // Format currency with thousand separators
@@ -90,6 +91,8 @@ export function AdminClaimsReport() {
   const [invoiceFilter, setInvoiceFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('work_date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [summarySortField, setSummarySortField] = useState<SummarySortField>('total_amount');
+  const [summarySortDirection, setSummarySortDirection] = useState<SortDirection>('desc');
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [invoiceDate, setInvoiceDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -327,11 +330,40 @@ export function AdminClaimsReport() {
       }
     });
 
+    const unsortedClaims = Array.from(claimMap.values());
+
     return {
-      userClaims: Array.from(claimMap.values()).sort((a, b) => b.total_amount - a.total_amount),
+      userClaims: unsortedClaims,
       detailedEntries: detailed
     };
   }, [entries, userSettings, userProfiles, claimants, startDate, endDate, filterName, filterPractice, invoiceFilter, sortField, sortDirection]);
+
+  // Sort summary claims
+  const sortedUserClaims = useMemo(() => {
+    const sorted = [...userClaims];
+    sorted.sort((a, b) => {
+      let comparison = 0;
+      switch (summarySortField) {
+        case 'user_name':
+          comparison = a.user_name.localeCompare(b.user_name);
+          break;
+        case 'practice_name':
+          comparison = a.practice_name.localeCompare(b.practice_name);
+          break;
+        case 'entry_count':
+          comparison = a.entry_count - b.entry_count;
+          break;
+        case 'total_hours':
+          comparison = a.total_hours - b.total_hours;
+          break;
+        case 'total_amount':
+          comparison = a.total_amount - b.total_amount;
+          break;
+      }
+      return summarySortDirection === 'desc' ? -comparison : comparison;
+    });
+    return sorted;
+  }, [userClaims, summarySortField, summarySortDirection]);
 
   const grandTotalHours = userClaims.reduce((sum, u) => sum + u.total_hours, 0);
   const grandTotalAmount = userClaims.reduce((sum, u) => sum + u.total_amount, 0);
@@ -426,6 +458,15 @@ export function AdminClaimsReport() {
     } else {
       setSortField(field);
       setSortDirection('desc');
+    }
+  };
+
+  const handleSummarySort = (field: SummarySortField) => {
+    if (summarySortField === field) {
+      setSummarySortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSummarySortField(field);
+      setSummarySortDirection('desc');
     }
   };
 
@@ -684,15 +725,40 @@ export function AdminClaimsReport() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>User Name</TableHead>
-                            <TableHead>Practice</TableHead>
-                            <TableHead className="text-center">Entries</TableHead>
-                            <TableHead className="text-right">Total Hours</TableHead>
-                            <TableHead className="text-right">Total Amount</TableHead>
+                            <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSummarySort('user_name')}>
+                              <div className="flex items-center gap-1">
+                                User Name
+                                <ArrowUpDown className="w-3 h-3" />
+                              </div>
+                            </TableHead>
+                            <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSummarySort('practice_name')}>
+                              <div className="flex items-center gap-1">
+                                Practice
+                                <ArrowUpDown className="w-3 h-3" />
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-center cursor-pointer hover:bg-muted/50" onClick={() => handleSummarySort('entry_count')}>
+                              <div className="flex items-center justify-center gap-1">
+                                Entries
+                                <ArrowUpDown className="w-3 h-3" />
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSummarySort('total_hours')}>
+                              <div className="flex items-center justify-end gap-1">
+                                Total Hours
+                                <ArrowUpDown className="w-3 h-3" />
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSummarySort('total_amount')}>
+                              <div className="flex items-center justify-end gap-1">
+                                Total Amount
+                                <ArrowUpDown className="w-3 h-3" />
+                              </div>
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {userClaims.map((claim) => (
+                          {sortedUserClaims.map((claim) => (
                             <TableRow key={claim.user_id}>
                               <TableCell className="font-medium">{claim.user_name}</TableCell>
                               <TableCell className="text-muted-foreground">{claim.practice_name}</TableCell>
