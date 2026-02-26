@@ -90,6 +90,9 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       bodyContent = `
         <p>A new ${claimLabel.toLowerCase()} has been submitted and requires your review.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
+        <div style="margin:20px 0;text-align:center;">
+          <a href="https://gpnotewell.co.uk" style="display:inline-block;padding:12px 28px;background:#1e40af;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:6px;">Go to Notewell to Review</a>
+        </div>
       `;
       break;
     case 'submission_confirmation': {
@@ -139,6 +142,9 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       bodyContent = `
         <p>This confirms that you have approved the following ${claimLabel.toLowerCase()}.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
+        <div style="margin:20px 0;text-align:center;">
+          <a href="https://gpnotewell.co.uk" style="display:inline-block;padding:12px 28px;background:#16a34a;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:6px;">Go to Notewell</a>
+        </div>
       `;
       break;
     case 'claim_rejected':
@@ -154,6 +160,9 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
         <p>This confirms that you have declined the following ${claimLabel.toLowerCase()}.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
         ${data.reviewNotes ? `<p><strong>Your notes:</strong> ${data.reviewNotes}</p>` : ''}
+        <div style="margin:20px 0;text-align:center;">
+          <a href="https://gpnotewell.co.uk" style="display:inline-block;padding:12px 28px;background:#dc2626;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:6px;">Go to Notewell</a>
+        </div>
       `;
       break;
   }
