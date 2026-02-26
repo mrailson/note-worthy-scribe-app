@@ -30,10 +30,11 @@ const NRESWorkforceRecruitmentTracker = () => {
   const [originalPractices, setOriginalPractices] = useState<RecruitmentPractice[]>([]);
   const [auditOpen, setAuditOpen] = useState(false);
 
-  const SESSION_HOURS = 4.167;
-  const WTE_HOURS = 37.5;
-  const sessionsToHours = (sessions: number) => (sessions * SESSION_HOURS).toFixed(1);
-  const sessionsToWTE = (sessions: number) => ((sessions * SESSION_HOURS) / WTE_HOURS).toFixed(2);
+  // Cost-based GP→ANP/ACP conversion: GP £11k/session, ANP ~£55k/yr FT
+  const GP_SESSION_ANNUAL = 11000;
+  const ACP_ANNUAL_SALARY = 55000;
+  const sessionsToACPWte = (sessions: number) => (sessions * GP_SESSION_ANNUAL / ACP_ANNUAL_SALARY).toFixed(2);
+  const sessionsToACPHours = (sessions: number) => (sessions * GP_SESSION_ANNUAL / ACP_ANNUAL_SALARY * 37.5).toFixed(1);
 
   const activePractices = isEditing ? editPractices : practices;
 
@@ -242,8 +243,8 @@ const NRESWorkforceRecruitmentTracker = () => {
   const StaffRow = ({ staff, type }: { staff: StaffMember; type: string }) => {
     const config = statusConfig[staff.status];
     const isACPRole = type === 'acp' || (type === 'buyBack' && (staff.name.toLowerCase().includes('anp') || staff.name.toLowerCase().includes('acp') || staff.notes?.toLowerCase().includes('anp') || staff.notes?.toLowerCase().includes('acp')));
-    const hoursValue = isACPRole ? sessionsToHours(staff.sessions) : null;
-    const wteValue = isACPRole ? sessionsToWTE(staff.sessions) : null;
+    const hoursValue = isACPRole ? sessionsToACPHours(staff.sessions) : null;
+    const wteValue = isACPRole ? sessionsToACPWte(staff.sessions) : null;
     const roleLabel = type === 'gp' ? 'GP' : type === 'acp' ? 'ACP/ANP' : 'Buy-Back';
 
     return (
@@ -307,7 +308,7 @@ const NRESWorkforceRecruitmentTracker = () => {
           <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
             <span className={`w-6 h-6 ${bgClass} rounded-full flex items-center justify-center ${textClass} text-xs`}>{icon}</span>
             {label} Sessions ({sessionCount})
-            {category === 'acp' && sessionCount > 0 && <span className="text-purple-600 font-normal">= {sessionsToHours(sessionCount)} hrs ({sessionsToWTE(sessionCount)} WTE)</span>}
+            {category === 'acp' && sessionCount > 0 && <span className="text-purple-600 font-normal">= {sessionsToACPWte(sessionCount)} WTE ({sessionsToACPHours(sessionCount)} hrs/wk)</span>}
           </h4>
           {isEditing ? (
             <>
@@ -481,14 +482,14 @@ const NRESWorkforceRecruitmentTracker = () => {
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
               <div className="flex items-center gap-2 mb-3"><span className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-sm">ACP</span><span className="font-semibold text-gray-900">ACP/ANP Sessions</span></div>
               <div className="text-3xl font-bold text-gray-900 mb-1">{neighbourhoodTotals.acp}</div>
-              <div className="text-sm text-gray-500">sessions = <span className="text-purple-600 font-semibold">{sessionsToHours(neighbourhoodTotals.acp)} hrs ({sessionsToWTE(neighbourhoodTotals.acp)} WTE)</span></div>
+              <div className="text-sm text-gray-500">GP-eq sessions = <span className="text-purple-600 font-semibold">{sessionsToACPWte(neighbourhoodTotals.acp)} WTE ({sessionsToACPHours(neighbourhoodTotals.acp)} hrs/wk)</span></div>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
               <div className="flex items-center gap-2 mb-3"><span className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-sm">BB</span><span className="font-semibold text-gray-900">Buy-Back Sessions</span></div>
               <div className="text-3xl font-bold text-gray-900 mb-1">{neighbourhoodTotals.buyBack}</div>
               <div className="text-sm text-gray-500">
                 existing staff via buy-back scheme
-                {neighbourhoodTotals.buyBackACP > 0 && <div className="text-purple-600 font-medium mt-1">incl. ACP/ANP: {neighbourhoodTotals.buyBackACP} sessions = {sessionsToHours(neighbourhoodTotals.buyBackACP)} hrs ({sessionsToWTE(neighbourhoodTotals.buyBackACP)} WTE)</div>}
+                {neighbourhoodTotals.buyBackACP > 0 && <div className="text-purple-600 font-medium mt-1">incl. ACP/ANP: {neighbourhoodTotals.buyBackACP} GP-eq sessions = {sessionsToACPWte(neighbourhoodTotals.buyBackACP)} WTE ({sessionsToACPHours(neighbourhoodTotals.buyBackACP)} hrs/wk)</div>}
               </div>
             </div>
           </div>

@@ -356,7 +356,7 @@ const RecruitmentStatusSection = ({
           <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${iconClass}`}>{icon}</span>
           {label} ({sessionCount} GP-eq sessions)
           {category === "acp" && sessionCount > 0 && (
-            <span className="font-normal text-purple-600">= {sessionCount * 4} hrs/wk · {(sessionCount * 4 / 37.5).toFixed(2)} WTE</span>
+            <span className="font-normal text-purple-600">= {(sessionCount * GP_SESSION_ANNUAL / ACP_ANNUAL_SALARY).toFixed(2)} WTE · {(sessionCount * GP_SESSION_ANNUAL / ACP_ANNUAL_SALARY * 37.5).toFixed(1)} hrs/wk</span>
           )}
         </h4>
 
@@ -460,11 +460,16 @@ const RecruitmentStatusSection = ({
   );
 };
 
+// Cost-based GP→ANP/ACP conversion: GP £11k/session, ANP ~£55k/yr FT
+// 7 GP-eq sessions = 7 × £11k = £77k budget → £77k / £55k = 1.4 ANP WTE
+const GP_SESSION_ANNUAL = 11000;
+const ACP_ANNUAL_SALARY = 55000;
+
 const StaffRowCompact = ({ staff, category = "gp" }: { staff: StaffMember; category?: "gp" | "acp" | "buyBack" }) => {
   const config = statusConfig[staff.status];
   const isACPRole = category === "acp" || (category === "buyBack" && (staff.name.toLowerCase().includes('anp') || staff.name.toLowerCase().includes('acp') || staff.notes?.toLowerCase().includes('anp') || staff.notes?.toLowerCase().includes('acp')));
-  const hours = staff.sessions * 4;
-  const wte = (hours / 37.5).toFixed(2);
+  const acpWte = (staff.sessions * GP_SESSION_ANNUAL / ACP_ANNUAL_SALARY);
+  const acpHoursWk = (acpWte * 37.5).toFixed(1);
 
   const hasLastUpdated = !!staff.lastUpdated && !Number.isNaN(new Date(staff.lastUpdated).getTime());
 
@@ -478,8 +483,8 @@ const StaffRowCompact = ({ staff, category = "gp" }: { staff: StaffMember; categ
             {staff.notes && <InfoTooltip content={staff.notes} />}
             {isACPRole ? (
               <>
-                <span className="font-normal text-purple-600">— {hours} hrs/wk ({wte} WTE)</span>
-                <span className="font-normal text-slate-400">· {staff.sessions} GP-equivalent {staff.sessions === 1 ? "session" : "sessions"}</span>
+                <span className="font-normal text-purple-600">— {acpWte.toFixed(2)} WTE ({acpHoursWk} hrs/wk)</span>
+                <span className="font-normal text-slate-400">· {staff.sessions} GP-eq {staff.sessions === 1 ? "session" : "sessions"}</span>
               </>
             ) : (
               <span className="font-normal text-slate-500">— {staff.sessions} {staff.sessions === 1 ? "session" : "sessions"}</span>
