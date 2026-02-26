@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Search, Plus, Trash2, Settings2, Info } from 'lucide-react';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 import { useNRESUserAccess } from '@/hooks/useNRESUserAccess';
 import { useNRESBuyBackRateSettings, type RoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
@@ -61,16 +61,23 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Buy-Back Settings</DialogTitle>
-          <DialogDescription>Manage access permissions, rates and role types.</DialogDescription>
+      <DialogContent className="max-w-5xl max-h-[calc(100vh-8rem)] overflow-hidden flex flex-col px-8 sm:px-10">
+        <DialogHeader className="border-b border-border pb-4 mb-2">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10">
+              <Settings2 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold">Buy-Back Settings</DialogTitle>
+              <DialogDescription className="mt-0.5">Manage access permissions, rates and role types.</DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="access" className="flex-1 min-h-0 flex flex-col">
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="access">Access Permissions</TabsTrigger>
-            <TabsTrigger value="rates">Rates &amp; Roles</TabsTrigger>
+          <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto">
+            <TabsTrigger value="access" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Access Permissions</TabsTrigger>
+            <TabsTrigger value="rates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Rates &amp; Roles</TabsTrigger>
           </TabsList>
 
           {/* Access Permissions Tab */}
@@ -238,55 +245,57 @@ function RatesAndRolesPanel() {
   }
 
   return (
-    <div className="space-y-6 pb-4">
+    <div className="space-y-6 pb-4 pt-2">
       {/* Section A: On-Costs — split into NI and Pension */}
       <div>
-        <h3 className="font-semibold text-sm mb-2">Employer On-Costs</h3>
+        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Employer On-Costs</h3>
         <p className="text-xs text-muted-foreground mb-3">
           On-costs are the additional employer contributions paid on top of an employee's base salary. They consist of two components:
         </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-xs font-medium">Employer National Insurance</Label>
-            <div className="flex items-center gap-2 mt-1">
-              <Input
-                type="number"
-                className="w-28 h-8 text-sm"
-                value={niPct}
-                onChange={e => setNiPct(e.target.value)}
-                step="0.01"
-                min="0"
-                max="100"
-              />
-              <span className="text-sm text-muted-foreground">%</span>
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs font-medium">Employer National Insurance</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  type="number"
+                  className="w-28 h-9 text-sm bg-white dark:bg-slate-900"
+                  value={niPct}
+                  onChange={e => setNiPct(e.target.value)}
+                  step="0.01"
+                  min="0"
+                  max="100"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Employer NI contributions (Class 1 secondary)
+              </p>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Employer NI contributions (Class 1 secondary)
-            </p>
-          </div>
-          <div>
-            <Label className="text-xs font-medium">Employer Pension Contributions</Label>
-            <div className="flex items-center gap-2 mt-1">
-              <Input
-                type="number"
-                className="w-28 h-8 text-sm"
-                value={pensionPct}
-                onChange={e => setPensionPct(e.target.value)}
-                step="0.01"
-                min="0"
-                max="100"
-              />
-              <span className="text-sm text-muted-foreground">%</span>
+            <div>
+              <Label className="text-xs font-medium">Employer Pension Contributions</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  type="number"
+                  className="w-28 h-9 text-sm bg-white dark:bg-slate-900"
+                  value={pensionPct}
+                  onChange={e => setPensionPct(e.target.value)}
+                  step="0.01"
+                  min="0"
+                  max="100"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                NHS Pension Scheme employer contribution rate
+              </p>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              NHS Pension Scheme employer contribution rate
-            </p>
           </div>
-        </div>
-        <div className="mt-3 rounded-md bg-muted/50 px-3 py-2 text-xs">
-          <span className="font-medium">Combined on-costs rate: </span>
-          <span className="font-semibold">{onCostsPctNum.toFixed(2)}%</span>
-          <span className="text-muted-foreground ml-1">(NI {niPctNum}% + Pension {pensionPctNum}%)</span>
+          <div className="mt-3 rounded-md bg-primary/10 border border-primary/20 px-3 py-2 text-xs">
+            <span className="font-medium">Combined on-costs rate: </span>
+            <span className="font-semibold text-primary">{onCostsPctNum.toFixed(2)}%</span>
+            <span className="text-muted-foreground ml-1">(NI {niPctNum}% + Pension {pensionPctNum}%)</span>
+          </div>
         </div>
       </div>
 
@@ -294,42 +303,42 @@ function RatesAndRolesPanel() {
 
       {/* Section B: Role Management */}
       <div>
-        <h3 className="font-semibold text-sm mb-2">Role Types</h3>
-        <div className="border rounded-md overflow-hidden">
+        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Role Types</h3>
+        <div className="bg-white dark:bg-slate-900 border rounded-lg overflow-hidden">
           <table className="w-full text-xs">
-            <thead className="bg-muted/50">
+            <thead className="bg-slate-100 dark:bg-slate-800">
               <tr>
-                <th className="text-left p-2 font-medium">Role</th>
-                <th className="text-left p-2 font-medium">Base Annual Rate (£)</th>
-                <th className="text-left p-2 font-medium">Default Allocation</th>
-                <th className="p-2 w-10"></th>
+                <th className="text-left px-3 py-2.5 font-medium">Role</th>
+                <th className="text-left px-3 py-2.5 font-medium">Base Annual Rate (£)</th>
+                <th className="text-left px-3 py-2.5 font-medium">Default Allocation</th>
+                <th className="px-3 py-2.5 w-10"></th>
               </tr>
             </thead>
             <tbody>
               {roles.map((role, i) => (
                 <tr key={role.key} className="border-t">
-                  <td className="p-2">
+                  <td className="px-3 py-2.5">
                     <Input
-                      className="h-7 text-xs w-full"
+                      className="h-8 text-xs w-full bg-white dark:bg-slate-900"
                       value={role.label}
                       onChange={e => handleRoleFieldChange(i, 'label', e.target.value)}
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="px-3 py-2.5">
                     <Input
                       type="number"
-                      className="h-7 text-xs w-28 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                      className="h-8 text-xs w-28 bg-white dark:bg-slate-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                       value={role.annual_rate}
                       onChange={e => handleRoleFieldChange(i, 'annual_rate', parseFloat(e.target.value) || 0)}
                       min="0"
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="px-3 py-2.5">
                     <Select
                       value={role.allocation_default}
                       onValueChange={v => handleRoleFieldChange(i, 'allocation_default', v)}
                     >
-                      <SelectTrigger className="h-7 text-xs w-28">
+                      <SelectTrigger className="h-8 text-xs w-28 bg-white dark:bg-slate-900">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -339,7 +348,7 @@ function RatesAndRolesPanel() {
                       </SelectContent>
                     </Select>
                   </td>
-                  <td className="p-2 text-center">
+                  <td className="px-3 py-2.5 text-center">
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteRole(i)}>
                       <Trash2 className="w-3.5 h-3.5 text-destructive" />
                     </Button>
@@ -351,7 +360,7 @@ function RatesAndRolesPanel() {
         </div>
         <div className="flex items-center gap-2 mt-2">
           <Input
-            className="h-8 text-xs w-40"
+            className="h-8 text-xs w-40 bg-white dark:bg-slate-900"
             placeholder="New role name"
             value={newRoleLabel}
             onChange={e => setNewRoleLabel(e.target.value)}
@@ -368,20 +377,20 @@ function RatesAndRolesPanel() {
 
       {/* Section C: Cost Breakdown */}
       <div>
-        <h3 className="font-semibold text-sm mb-2">Cost Breakdown</h3>
-        <div className="border rounded-md overflow-hidden overflow-x-auto">
+        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Cost Breakdown</h3>
+        <div className="bg-white dark:bg-slate-900 border rounded-lg overflow-hidden overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="bg-muted/50">
+            <thead className="bg-slate-100 dark:bg-slate-800">
               <tr>
-                <th className="text-left p-2 font-medium">Role</th>
-                <th className="text-right p-2 font-medium">Base Annual</th>
-                <th className="text-right p-2 font-medium">Staff Pay Rate (Hourly)</th>
-                <th className="text-right p-2 font-medium">Employer NI ({niPctNum}%)</th>
-                <th className="text-right p-2 font-medium">Employer Pension ({pensionPctNum}%)</th>
-                <th className="text-right p-2 font-medium">Total On-Costs</th>
-                <th className="text-right p-2 font-medium">Total Annual</th>
-                <th className="text-right p-2 font-medium">Equiv. Hourly (incl. On-Costs)</th>
-                <th className="text-right p-2 font-medium">Max Monthly Claim</th>
+                <th className="text-left px-3 py-2.5 font-medium">Role</th>
+                <th className="text-right px-3 py-2.5 font-medium">Base Annual</th>
+                <th className="text-right px-3 py-2.5 font-medium">Staff Pay Rate (Hourly)</th>
+                <th className="text-right px-3 py-2.5 font-medium">Employer NI ({niPctNum}%)</th>
+                <th className="text-right px-3 py-2.5 font-medium">Employer Pension ({pensionPctNum}%)</th>
+                <th className="text-right px-3 py-2.5 font-medium">Total On-Costs</th>
+                <th className="text-right px-3 py-2.5 font-medium">Total Annual</th>
+                <th className="text-right px-3 py-2.5 font-medium">Equiv. Hourly (incl. On-Costs)</th>
+                <th className="text-right px-3 py-2.5 font-medium">Max Monthly Claim</th>
               </tr>
             </thead>
             <tbody>
@@ -408,29 +417,32 @@ function RatesAndRolesPanel() {
                   : (maxAlloc * totalAnnual) / 12;
                 return (
                   <tr key={role.key} className="border-t">
-                    <td className="p-2">
+                    <td className="px-3 py-2.5">
                       {role.label}
                       {role.allocation_default === 'sessions' && (
                         <span className="text-muted-foreground ml-1">(per session/yr)</span>
                       )}
                     </td>
-                    <td className="p-2 text-right">{fmtGBP(role.annual_rate)}</td>
-                    <td className="p-2 text-right">{fmtGBP(staffHourlyRate)}/hr</td>
-                    <td className="p-2 text-right">{fmtGBP(niAmt)}</td>
-                    <td className="p-2 text-right">{fmtGBP(pensionAmt)}</td>
-                    <td className="p-2 text-right">{fmtGBP(totalOnCosts)}</td>
-                    <td className="p-2 text-right font-medium">{fmtGBP(totalAnnual)}</td>
-                    <td className="p-2 text-right font-medium">{fmtGBP(hourlyEquivWithOnCosts)}/hr</td>
-                    <td className="p-2 text-right font-semibold text-primary">{fmtGBP(maxMonthly)}/mo</td>
+                    <td className="px-3 py-2.5 text-right">{fmtGBP(role.annual_rate)}</td>
+                    <td className="px-3 py-2.5 text-right">{fmtGBP(staffHourlyRate)}/hr</td>
+                    <td className="px-3 py-2.5 text-right">{fmtGBP(niAmt)}</td>
+                    <td className="px-3 py-2.5 text-right">{fmtGBP(pensionAmt)}</td>
+                    <td className="px-3 py-2.5 text-right">{fmtGBP(totalOnCosts)}</td>
+                    <td className="px-3 py-2.5 text-right font-medium">{fmtGBP(totalAnnual)}</td>
+                    <td className="px-3 py-2.5 text-right font-medium">{fmtGBP(hourlyEquivWithOnCosts)}/hr</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-primary">{fmtGBP(maxMonthly)}/mo</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-1">
-          On-costs = Employer NI ({niPctNum}%) + Employer Pension ({pensionPctNum}%) = {onCostsPctNum.toFixed(2)}% total. Staff Pay Rate = Base Annual ÷ {roles[0]?.working_hours_per_year || 1950} hrs/yr. GP rates shown per session — hourly equivalents based on 9 sessions/wk. Max Monthly = full allocation at maximum capacity.
-        </p>
+        <div className="flex items-start gap-2 mt-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-2">
+          <Info className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
+          <p className="text-[10px] text-muted-foreground">
+            On-costs = Employer NI ({niPctNum}%) + Employer Pension ({pensionPctNum}%) = {onCostsPctNum.toFixed(2)}% total. Staff Pay Rate = Base Annual ÷ {roles[0]?.working_hours_per_year || 1950} hrs/yr. GP rates shown per session — hourly equivalents based on 9 sessions/wk. Max Monthly = full allocation at maximum capacity.
+          </p>
+        </div>
       </div>
 
       {/* Save Button */}
