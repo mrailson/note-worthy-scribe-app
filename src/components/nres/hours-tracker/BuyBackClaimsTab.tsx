@@ -962,7 +962,11 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, ratePar
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7"
-                          onClick={() => onRemoveStaff(claim.id, idx)}
+                          onClick={() => {
+                            if (window.confirm(`Remove ${displayName} from this claim?`)) {
+                              onRemoveStaff(claim.id, idx);
+                            }
+                          }}
                         >
                           <Trash2 className="w-3.5 h-3.5 text-destructive" />
                         </Button>
