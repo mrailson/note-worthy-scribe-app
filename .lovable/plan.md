@@ -1,68 +1,94 @@
 
-
-# Buy-Back Claims Access Control Settings
+# Buy-Back Rate Settings & Role Management
 
 ## Overview
 
-Add a settings cog button alongside the status filter buttons in the Claims History section. Clicking it opens a modal where admins can assign system users to practices with specific access roles: **Submit** (can create/submit claims for a practice), **View** (read-only access to a practice's claims and staff), and **Approver** (can approve/reject claims). Users will only see claims and staff data for practices they are assigned to.
+Add a new **"Rates & Roles"** tab inside the existing Settings cog modal (alongside the current access permissions grid). This tab allows admins to:
+
+1. **Configure base annual rates per role** (e.g. GP = £11,000/session, ANP = £55,000, ACP = £50,000)
+2. **Edit the employer on-costs percentage** (currently fixed at 29.38%)
+3. **Add or delete staff role types** (currently hardcoded as GP, ANP, ACP, Practice Nurse, HCA, Pharmacist, Other)
+4. **View a cost breakdown table** showing annual base, on-costs, total annual cost, and equivalent hourly locum rate per role
 
 ---
 
 ## What Changes
 
-### 1. New Database Table: `nres_buyback_access`
+### 1. New Database Table: `nres_buyback_rate_settings`
 
-Stores per-user, per-practice access assignments:
+A single-row config table storing the rates, on-costs percentage, and role definitions:
 
 ```text
-id              UUID (PK, auto)
-user_id         UUID (references auth.users, not null)
-practice_key    TEXT (not null) — e.g. 'parks', 'brackley'
-access_role     TEXT (not null) — 'submit', 'view', or 'approver'
-granted_by      TEXT (nullable) — email of admin who granted
-granted_at      TIMESTAMPTZ (default now())
-UNIQUE(user_id, practice_key, access_role)
+id              TEXT (PK, default 'default')
+on_costs_pct    NUMERIC (default 29.38)
+roles_config    JSONB — array of { key, label, annual_rate, allocation_default, working_hours_per_year }
+updated_at      TIMESTAMPTZ
+updated_by      UUID
 ```
 
-RLS: Only NRES admins (checked via `NRES_ADMIN_EMAILS` or a security-definer function) can INSERT/UPDATE/DELETE. Authenticated users can SELECT their own rows.
+`roles_config` example:
+```json
+[
+  { "key": "gp", "label": "GP", "annual_rate": 11000, "allocation_default": "sessions", "working_hours_per_year": 1950 },
+  { "key": "anp", "label": "ANP", "annual_rate": 55000, "allocation_default": "hours", "working_hours_per_year": 1950 },
+  { "key": "acp", "label": "ACP", "annual_rate": 50000, "allocation_default": "hours", "working_hours_per_year": 1950 },
+  { "key": "practice_nurse", "label": "Practice Nurse", "annual_rate": 35000, "allocation_default": "hours", "working_hours_per_year": 1950 },
+  { "key": "hca", "label": "HCA", "annual_rate": 25000, "allocation_default": "hours", "working_hours_per_year": 1950 },
+  { "key": "pharmacist", "label": "Pharmacist", "annual_rate": 45000, "allocation_default": "hours", "working_hours_per_year": 1950 }
+]
+```
 
-### 2. New Hook: `useNRESBuyBackAccess`
+Working hours per year defaults to 1,950 (37.5 hrs/wk x 52 weeks) and is used to derive the hourly locum equivalent.
 
-- **Fetches** all access assignments (for admins) or own assignments (for regular users)
-- **Provides** helper functions: `grantAccess(userId, practiceKey, role)`, `revokeAccess(id)`, `getUserPractices(userId)`, `getUserRole(userId, practiceKey)`
-- **Exposes** a derived list of which practices the current user can submit to, view, or approve
+RLS: Admin-only write, authenticated read (same pattern as access table).
 
-### 3. Settings Modal Component: `BuyBackAccessSettingsModal`
+### 2. New Hook: `useNRESBuyBackRateSettings`
 
-Opened via a cog icon button placed inline with the status filter buttons in Claims History.
+- Fetches the rate settings from the new table (falls back to current hardcoded defaults if no row exists)
+- Provides `updateSettings(onCostsPct, rolesConfig)` for saving
+- Exposes derived values: `getAnnualRate(roleKey)`, `getRoleConfig(roleKey)`, `staffRoles` (list of role labels for dropdowns)
 
-**Layout:**
-- Left side: list of system users (from `useNRESUserAccess` — already exists, fetches all NRES-activated users with name, email, practice)
-- Searchable/filterable user list
-- When a user is selected, the right side shows a grid of the 7 practices with checkboxes for each role (Submit / View / Approver)
-- Save changes per user
+### 3. Updated Settings Modal: Add "Rates & Roles" Tab
 
-**Only visible to admins** (checked via `NRES_ADMIN_EMAILS`).
+The existing `BuyBackAccessSettingsModal` gains a second tab:
 
-### 4. Update Data Fetching in Hooks
+- **Tab 1: "Access Permissions"** — the existing user/practice/role grid (no change)
+- **Tab 2: "Rates & Roles"** — new content:
 
-**`useNRESBuyBackStaff.ts`:**
-- Instead of fetching all staff when admin, fetch staff only for practices the user has access to (any role)
-- Use the access assignments to build a `practice_key IN (...)` filter
+**Section A: Employer On-Costs**
+- Editable input for the on-costs percentage (default 29.38%)
 
-**`useNRESBuyBackClaims.ts`:**
-- Same approach — filter claims by the user's assigned practices
-- Admin override remains for users with 'approver' role on a practice
+**Section B: Role Management**
+- Table showing each role with: Label, Base Annual Rate (editable input), Allocation Default (sessions/hours/wte dropdown)
+- "Add Role" button to add a new custom role
+- Delete button per role (with confirmation, prevents deleting if role is in use by active staff)
 
-**`buybackStaffMasking.ts`:**
-- Update `isBuybackApprover` to also check the new access table for 'approver' role (or keep the hardcoded list as a fallback during transition)
+**Section C: Cost Breakdown Table** (read-only, auto-calculated)
 
-### 5. UI Filtering in BuyBackClaimsTab
+| Role | Base Annual | On-Costs (%) | On-Costs (£) | Total Annual | Equiv. Hourly Locum Rate |
+|------|------------|-------------|-------------|-------------|------------------------|
+| GP (per session) | £11,000 | 29.38% | £3,231.80 | £14,231.80 | £7.30/hr |
+| ANP (1.0 WTE) | £55,000 | 29.38% | £16,159.00 | £71,159.00 | £36.49/hr |
+| ACP (1.0 WTE) | £50,000 | 29.38% | £14,690.00 | £64,690.00 | £33.17/hr |
+| ... | ... | ... | ... | ... | ... |
 
-- The practice dropdown (for creating claims) only shows practices the user has 'submit' access to
-- The claims list only shows claims for practices the user is assigned to
-- The staff list only shows staff for assigned practices
-- Approve/reject buttons only appear for users with 'approver' role on that claim's practice
+Hourly rate = Total Annual / Working Hours Per Year (default 1,950).
+
+For GP sessions specifically, the table will note "per session/year" and the hourly equivalent will be calculated as total annual per session / (1,950 / 9) = per session hours.
+
+### 4. Update Calculation Logic
+
+Modify `useNRESBuyBackClaims.ts` to use the configurable rates instead of hardcoded constants:
+
+- Replace `GP_SESSION_ANNUAL = 11000 * 1.2938` with a lookup from rate settings
+- Replace `WTE_ANNUAL = 60000 * 1.2938` with role-specific annual rate x on-costs
+- The `calculateStaffMonthlyAmount` function will accept a rate config parameter
+
+Similarly update `BuyBackClaimsTab.tsx` where `calcBreakdown()` and `buildCalcTooltip()` reference hardcoded values.
+
+### 5. Update Staff Role Dropdown
+
+Replace the hardcoded `STAFF_ROLES` array in `BuyBackClaimsTab.tsx` with the dynamic list from the rate settings hook, so new roles added in settings automatically appear in the "Add Staff" form.
 
 ---
 
@@ -71,44 +97,44 @@ Opened via a cog icon button placed inline with the status filter buttons in Cla
 ### Database Migration
 
 ```sql
-CREATE TABLE public.nres_buyback_access (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  practice_key TEXT NOT NULL,
-  access_role TEXT NOT NULL CHECK (access_role IN ('submit', 'view', 'approver')),
-  granted_by TEXT,
-  granted_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, practice_key, access_role)
+CREATE TABLE public.nres_buyback_rate_settings (
+  id TEXT PRIMARY KEY DEFAULT 'default',
+  on_costs_pct NUMERIC NOT NULL DEFAULT 29.38,
+  roles_config JSONB NOT NULL DEFAULT '[]'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  updated_by UUID REFERENCES auth.users(id)
 );
 
-ALTER TABLE public.nres_buyback_access ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.nres_buyback_rate_settings ENABLE ROW LEVEL SECURITY;
 
--- Users can read their own access
-CREATE POLICY "Users can read own access"
-  ON public.nres_buyback_access FOR SELECT
-  TO authenticated
-  USING (user_id = auth.uid());
+CREATE POLICY "Authenticated can read rate settings"
+  ON public.nres_buyback_rate_settings FOR SELECT
+  TO authenticated USING (true);
 
--- Admins can manage all access (using security definer function)
-CREATE POLICY "Admins can manage access"
-  ON public.nres_buyback_access FOR ALL
+CREATE POLICY "Admins can manage rate settings"
+  ON public.nres_buyback_rate_settings FOR ALL
   TO authenticated
   USING (public.is_nres_admin(auth.uid()))
   WITH CHECK (public.is_nres_admin(auth.uid()));
-```
 
-A `is_nres_admin` security-definer function will check if the user's email is in the admin list (queried from `auth.users`).
+-- Seed default row
+INSERT INTO public.nres_buyback_rate_settings (id, on_costs_pct, roles_config)
+VALUES ('default', 29.38, '[
+  {"key":"gp","label":"GP","annual_rate":11000,"allocation_default":"sessions","working_hours_per_year":1950},
+  {"key":"anp","label":"ANP","annual_rate":55000,"allocation_default":"hours","working_hours_per_year":1950},
+  {"key":"acp","label":"ACP","annual_rate":50000,"allocation_default":"hours","working_hours_per_year":1950},
+  {"key":"practice_nurse","label":"Practice Nurse","annual_rate":35000,"allocation_default":"hours","working_hours_per_year":1950},
+  {"key":"hca","label":"HCA","annual_rate":25000,"allocation_default":"hours","working_hours_per_year":1950},
+  {"key":"pharmacist","label":"Pharmacist","annual_rate":45000,"allocation_default":"hours","working_hours_per_year":1950}
+]'::jsonb);
+```
 
 ### Files to Create
 
-1. `src/hooks/useNRESBuyBackAccess.ts` — fetch/manage access assignments
-2. `src/components/nres/hours-tracker/BuyBackAccessSettingsModal.tsx` — settings modal UI
+1. `src/hooks/useNRESBuyBackRateSettings.ts`
 
 ### Files to Modify
 
-1. **Database migration** — new table, RLS, security-definer function
-2. `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` — add cog button, integrate access filtering
-3. `src/hooks/useNRESBuyBackStaff.ts` — filter by assigned practices
-4. `src/hooks/useNRESBuyBackClaims.ts` — filter by assigned practices
-5. `src/utils/buybackStaffMasking.ts` — extend approver check to use access table
-
+1. `src/components/nres/hours-tracker/BuyBackAccessSettingsModal.tsx` — add Tabs with "Access Permissions" and "Rates & Roles" tabs, rename to `BuyBackSettingsModal` (or keep name, add tab)
+2. `src/hooks/useNRESBuyBackClaims.ts` — replace hardcoded rate constants with configurable lookups
+3. `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` — use dynamic role list from settings; update `calcBreakdown` and `buildCalcTooltip` to use configurable rates
