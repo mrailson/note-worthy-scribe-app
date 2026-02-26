@@ -158,6 +158,17 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   <span className="hidden sm:inline">Home</span>
                 </Button>
               )}
+              {user && (
+                <Button 
+                  onClick={() => navigate('/gp-contract')}
+                  variant="secondary"
+                  size="sm"
+                  className="bg-amber-500/30 hover:bg-amber-500/40 text-white border-amber-400/40 text-xs sm:text-sm px-2 sm:px-4"
+                >
+                  <FileText className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">GP Contract 26/27</span>
+                </Button>
+              )}
             
             {user && (
                 <DropdownMenu>
@@ -552,6 +563,19 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                          Home
                        </Button>
                     </DrawerClose>
+
+                    {user && (
+                      <DrawerClose asChild>
+                        <Button 
+                          variant="ghost" 
+                          className="justify-start bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400"
+                          onClick={() => navigate('/gp-contract')}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          GP Contract 26/27
+                        </Button>
+                      </DrawerClose>
+                    )}
 
                     {!user && (
                       <DrawerClose asChild>
