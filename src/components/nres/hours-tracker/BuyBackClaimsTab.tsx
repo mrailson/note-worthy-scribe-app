@@ -444,7 +444,7 @@ export function BuyBackClaimsTab() {
                 <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-50" asChild>
                   <a href="/buyback-explainer" target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    View Full Explainer Guide
+                    View Buy-Back Explainer Guide
                   </a>
                 </Button>
               </div>
