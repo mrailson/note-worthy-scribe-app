@@ -40,7 +40,12 @@ const EMAIL_TYPE_CONFIG: Record<BuyBackEmailType, { subjectPrefix: string; headi
 };
 
 function formatMonth(claimMonth: string): string {
-  const d = new Date(claimMonth + '-01');
+  // claimMonth is "YYYY-MM" — parse manually to avoid UTC/timezone issues
+  const [yearStr, monthStr] = claimMonth.split('-');
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+  if (isNaN(year) || isNaN(month)) return claimMonth;
+  const d = new Date(year, month - 1, 1);
   return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 }
 
