@@ -12,18 +12,25 @@ import { TrackerReportModal } from './TrackerReportModal';
 import { AdminClaimsReport } from './AdminClaimsReport';
 import { ClaimantsManager } from './ClaimantsManager';
 import { BuyBackClaimsTab } from './BuyBackClaimsTab';
+import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
 import { SDAFinanceGovernance } from '@/components/sda/SDAFinanceGovernance';
 import { SDARisksMitigation } from '@/components/sda/SDARisksMitigation';
 import { useNRESUserSettings } from '@/hooks/useNRESUserSettings';
 import { useNRESHoursTracker } from '@/hooks/useNRESHoursTracker';
 import { useNRESExpenses } from '@/hooks/useNRESExpenses';
 import { useNRESClaimants } from '@/hooks/useNRESClaimants';
-import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle } from 'lucide-react';
+import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings } from 'lucide-react';
 
 export function NRESHoursTracker() {
   const [expensesOpen, setExpensesOpen] = useState(false);
   const [claimantsOpen, setClaimantsOpen] = useState(false);
   
+  const [activeTab, setActiveTab] = useState('time-expenses');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const { 
     hourlyRate, 
     hasRateSet, 
@@ -31,6 +38,8 @@ export function NRESHoursTracker() {
     loading: loadingSettings,
     saveHourlyRate 
   } = useNRESUserSettings();
+
+  const { admin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
 
   const {
     entries,
@@ -64,25 +73,39 @@ export function NRESHoursTracker() {
   }
 
   return (
-    <Tabs defaultValue="time-expenses" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="time-expenses" className="flex items-center gap-2">
-          <Clock className="w-4 h-4" />
-          Time & Expenses
-        </TabsTrigger>
-        <TabsTrigger value="buy-back" className="flex items-center gap-2">
-          <ArrowLeftRight className="w-4 h-4" />
-          SDA Resource &amp; Buy-Back Claims
-        </TabsTrigger>
-        <TabsTrigger value="finance-governance" className="flex items-center gap-2">
-          <PoundSterling className="w-4 h-4" />
-          Finance & Governance
-        </TabsTrigger>
-        <TabsTrigger value="risks" className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4" />
-          Risks & Mitigation
-        </TabsTrigger>
-      </TabsList>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <div className="flex items-center gap-2">
+        <TabsList>
+          <TabsTrigger value="time-expenses" className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Time & Expenses
+          </TabsTrigger>
+          <TabsTrigger value="buy-back" className="flex items-center gap-2">
+            <ArrowLeftRight className="w-4 h-4" />
+            SDA Resource &amp; Buy-Back Claims
+          </TabsTrigger>
+          <TabsTrigger value="finance-governance" className="flex items-center gap-2">
+            <PoundSterling className="w-4 h-4" />
+            Finance & Governance
+          </TabsTrigger>
+          <TabsTrigger value="risks" className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            Risks & Mitigation
+          </TabsTrigger>
+        </TabsList>
+        {activeTab === 'buy-back' && admin && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" className="text-xs" onClick={() => setSettingsOpen(true)}>
+                  <Settings className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">Access Settings</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
 
       <TabsContent value="time-expenses" className="space-y-6">
         {/* Summary Cards */}
@@ -181,6 +204,15 @@ export function NRESHoursTracker() {
       <TabsContent value="risks">
         <SDARisksMitigation />
       </TabsContent>
+
+      {/* Access Settings Modal (lifted from BuyBackClaimsTab) */}
+      <BuyBackAccessSettingsModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        hasAccess={hasAccess}
+        grantAccess={grantAccess}
+        revokeByKey={revokeByKey}
+      />
     </Tabs>
   );
 }

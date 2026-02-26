@@ -5,7 +5,7 @@ import { useNRESBuyBackClaims, calculateStaffMonthlyAmount, type BuyBackClaim, t
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
-import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
+
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Settings } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
@@ -248,7 +248,7 @@ export function BuyBackClaimsTab() {
   const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
 
   const isAdmin = admin;
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  
 
   // New claim state
   const [claimMonth, setClaimMonth] = useState(() => {
@@ -614,16 +614,6 @@ export function BuyBackClaimsTab() {
                   </Badge>
                 </Button>
               ))}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button size="sm" variant="outline" className="text-xs ml-auto" onClick={() => setSettingsOpen(true)}>
-                      <Settings className="w-3.5 h-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">Access Settings</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
           )}
         </CardHeader>
@@ -659,14 +649,6 @@ export function BuyBackClaimsTab() {
         </CardContent>
       </Card>
 
-      {/* Access Settings Modal */}
-      <BuyBackAccessSettingsModal
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        hasAccess={hasAccess}
-        grantAccess={grantAccess}
-        revokeByKey={revokeByKey}
-      />
     </div>
   );
 }
