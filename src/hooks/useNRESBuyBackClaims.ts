@@ -150,13 +150,14 @@ export function useNRESBuyBackClaims() {
     staffMembers: BuyBackStaffMember[],
     claimedAmount: number,
     calculatedAmount: number,
-    practiceKey?: string | null
+    practiceKey?: string | null,
+    rateParams?: RateParams,
   ) => {
     if (!user?.id) return null;
     try {
       setSaving(true);
       const staffSnapshot = staffMembers.map(s => {
-        const maxAmount = calculateStaffMonthlyAmount(s, claimMonth, s.start_date);
+        const maxAmount = calculateStaffMonthlyAmount(s, claimMonth, s.start_date, rateParams);
         return {
           staff_name: s.staff_name,
           staff_role: s.staff_role,
