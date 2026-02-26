@@ -32,23 +32,44 @@ function isAdmin(email: string | null | undefined): boolean {
 }
 
 /**
- * ICB-approved annual cost basis (including 29.38% on-costs):
- *  - GP session: £11,000 + 29.38% = £14,231.80/session/year → monthly = /12
- *  - WTE (37.5 hrs/wk): £60,000 + 29.38% = £77,628.00/year → monthly = /12
- *  - Hours: pro-rata of WTE based on hours ÷ 37.5
+ * ICB-approved annual cost basis (including on-costs).
+ * Defaults used when no rate settings are provided.
  */
-const GP_SESSION_ANNUAL = 11000 * 1.2938;   // £14,231.80
-const WTE_ANNUAL        = 60000 * 1.2938;   // £77,628.00
+const DEFAULT_GP_SESSION_ANNUAL = 11000 * 1.2938;
+const DEFAULT_WTE_ANNUAL        = 60000 * 1.2938;
+
+export interface RateParams {
+  onCostMultiplier: number;
+  getRoleAnnualRate?: (roleLabel: string) => number | undefined;
+}
 
 /** Calculate the maximum monthly claim amount for a staff member */
-export function calculateStaffMonthlyAmount(staff: BuyBackStaffMember | { allocation_type: string; allocation_value: number; staff_role?: string }, claimMonth?: string, startDate?: string | null): number {
+export function calculateStaffMonthlyAmount(
+  staff: BuyBackStaffMember | { allocation_type: string; allocation_value: number; staff_role?: string },
+  claimMonth?: string,
+  startDate?: string | null,
+  rateParams?: RateParams,
+): number {
   let fullMonthly: number;
-  if (staff.allocation_type === 'sessions') {
-    fullMonthly = (staff.allocation_value * GP_SESSION_ANNUAL) / 12;
-  } else if (staff.allocation_type === 'hours') {
-    fullMonthly = ((staff.allocation_value / 37.5) * WTE_ANNUAL) / 12;
+
+  if (rateParams?.getRoleAnnualRate && staff.staff_role) {
+    // Dynamic rates from settings
+    const roleRate = rateParams.getRoleAnnualRate(staff.staff_role);
+    if (roleRate !== undefined) {
+      const annualWithOnCosts = roleRate * rateParams.onCostMultiplier;
+      if (staff.allocation_type === 'sessions') {
+        fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
+      } else if (staff.allocation_type === 'hours') {
+        fullMonthly = ((staff.allocation_value / 37.5) * annualWithOnCosts) / 12;
+      } else {
+        fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
+      }
+    } else {
+      // Fallback for unknown roles
+      fullMonthly = calculateFallback(staff);
+    }
   } else {
-    fullMonthly = (staff.allocation_value * WTE_ANNUAL) / 12;
+    fullMonthly = calculateFallback(staff);
   }
 
   // Pro-rata if start_date falls within the claim month
@@ -72,6 +93,15 @@ export function calculateStaffMonthlyAmount(staff: BuyBackStaffMember | { alloca
   }
 
   return fullMonthly;
+}
+
+function calculateFallback(staff: { allocation_type: string; allocation_value: number }): number {
+  if (staff.allocation_type === 'sessions') {
+    return (staff.allocation_value * DEFAULT_GP_SESSION_ANNUAL) / 12;
+  } else if (staff.allocation_type === 'hours') {
+    return ((staff.allocation_value / 37.5) * DEFAULT_WTE_ANNUAL) / 12;
+  }
+  return (staff.allocation_value * DEFAULT_WTE_ANNUAL) / 12;
 }
 
 export function useNRESBuyBackClaims() {

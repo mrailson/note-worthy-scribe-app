@@ -1,0 +1,120 @@
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+
+export interface RoleConfig {
+  key: string;
+  label: string;
+  annual_rate: number;
+  allocation_default: 'sessions' | 'hours' | 'wte';
+  working_hours_per_year: number;
+}
+
+export interface RateSettings {
+  on_costs_pct: number;
+  roles_config: RoleConfig[];
+}
+
+const DEFAULT_ROLES: RoleConfig[] = [
+  { key: 'gp', label: 'GP', annual_rate: 11000, allocation_default: 'sessions', working_hours_per_year: 1950 },
+  { key: 'anp', label: 'ANP', annual_rate: 55000, allocation_default: 'hours', working_hours_per_year: 1950 },
+  { key: 'acp', label: 'ACP', annual_rate: 50000, allocation_default: 'hours', working_hours_per_year: 1950 },
+  { key: 'practice_nurse', label: 'Practice Nurse', annual_rate: 35000, allocation_default: 'hours', working_hours_per_year: 1950 },
+  { key: 'hca', label: 'HCA', annual_rate: 25000, allocation_default: 'hours', working_hours_per_year: 1950 },
+  { key: 'pharmacist', label: 'Pharmacist', annual_rate: 45000, allocation_default: 'hours', working_hours_per_year: 1950 },
+];
+
+const DEFAULT_ON_COSTS_PCT = 29.38;
+
+export function useNRESBuyBackRateSettings() {
+  const { user } = useAuth();
+  const [settings, setSettings] = useState<RateSettings>({
+    on_costs_pct: DEFAULT_ON_COSTS_PCT,
+    roles_config: DEFAULT_ROLES,
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const hasFetchedRef = useRef(false);
+
+  const fetchSettings = useCallback(async (force = false) => {
+    if (!user?.id) return;
+    if (!force && hasFetchedRef.current) return;
+    try {
+      setLoading(true);
+      const { data, error } = await (supabase as any)
+        .from('nres_buyback_rate_settings')
+        .select('*')
+        .eq('id', 'default')
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data) {
+        setSettings({
+          on_costs_pct: Number(data.on_costs_pct) || DEFAULT_ON_COSTS_PCT,
+          roles_config: (data.roles_config as RoleConfig[]) || DEFAULT_ROLES,
+        });
+      }
+      hasFetchedRef.current = true;
+    } catch (err) {
+      console.error('Error fetching rate settings:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) fetchSettings();
+    return () => { hasFetchedRef.current = false; };
+  }, [user?.id]);
+
+  const updateSettings = useCallback(async (onCostsPct: number, rolesConfig: RoleConfig[]) => {
+    if (!user?.id) return;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_buyback_rate_settings')
+        .upsert({
+          id: 'default',
+          on_costs_pct: onCostsPct,
+          roles_config: rolesConfig,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        });
+
+      if (error) throw error;
+      setSettings({ on_costs_pct: onCostsPct, roles_config: rolesConfig });
+      toast.success('Rate settings saved');
+    } catch (err) {
+      console.error('Error saving rate settings:', err);
+      toast.error('Failed to save rate settings');
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.id]);
+
+  const onCostMultiplier = useMemo(() => 1 + settings.on_costs_pct / 100, [settings.on_costs_pct]);
+
+  const getRoleConfig = useCallback((roleLabel: string): RoleConfig | undefined => {
+    return settings.roles_config.find(r => r.label.toLowerCase() === roleLabel.toLowerCase());
+  }, [settings.roles_config]);
+
+  const getAnnualRate = useCallback((roleLabel: string): number => {
+    const role = getRoleConfig(roleLabel);
+    return role?.annual_rate ?? 0;
+  }, [getRoleConfig]);
+
+  const staffRoles = useMemo(() => settings.roles_config.map(r => r.label), [settings.roles_config]);
+
+  return {
+    settings,
+    loading,
+    saving,
+    updateSettings,
+    onCostMultiplier,
+    getRoleConfig,
+    getAnnualRate,
+    staffRoles,
+    refetch: () => fetchSettings(true),
+  };
+}

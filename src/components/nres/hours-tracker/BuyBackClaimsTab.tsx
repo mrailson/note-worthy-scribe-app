@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNRESBuyBackStaff, type BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
-import { useNRESBuyBackClaims, calculateStaffMonthlyAmount, type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+import { useNRESBuyBackClaims, calculateStaffMonthlyAmount, type BuyBackClaim, type RateParams } from '@/hooks/useNRESBuyBackClaims';
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
+import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,12 +44,13 @@ function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: numb
 const DECLARATION_TEXT =
   "I confirm that all staff listed are working 100% on SDA (Part A) during their funded hours, with no LTC (Part B) activity, in accordance with the ICB-approved buy-back rules.";
 
-const STAFF_ROLES = ['GP', 'ANP', 'ACP', 'Practice Nurse', 'HCA', 'Pharmacist', 'Other'];
+// STAFF_ROLES is now dynamic — see BuyBackClaimsTab below
 
 /** Isolated add-staff form – keeps its own state so typing never loses focus */
-function AddStaffForm({ saving, onAdd }: {
+function AddStaffForm({ saving, onAdd, staffRoles }: {
   saving: boolean;
   onAdd: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
+  staffRoles: string[];
 }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('GP');
@@ -132,7 +134,7 @@ function AddStaffForm({ saving, onAdd }: {
           <Select value={role} onValueChange={handleRoleChange}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {STAFF_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              {staffRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -220,6 +222,8 @@ export function BuyBackClaimsTab() {
   const { activeStaff, loading: loadingStaff, saving: savingStaff, admin, addStaff, updateStaff, removeStaff } = useNRESBuyBackStaff();
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, approveClaim, rejectClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims();
   const { myPractices, mySubmitPractices, myApproverPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
+  const { staffRoles, settings: rateSettings, onCostMultiplier, getAnnualRate, loading: loadingRates } = useNRESBuyBackRateSettings();
+  const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; } };
 
   const isAdmin = admin;
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -236,7 +240,7 @@ export function BuyBackClaimsTab() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const [guideOpen, setGuideOpen] = useState(false);
-  const isLoading = loadingStaff || loadingClaims || loadingAccess;
+  const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
   // Admins with no assignments see everything; otherwise filtered
@@ -403,7 +407,7 @@ export function BuyBackClaimsTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <AddStaffForm saving={savingStaff} onAdd={addStaff} />
+          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} />
 
           {/* Staff list */}
           {filteredStaff.length > 0 && (
@@ -434,7 +438,7 @@ export function BuyBackClaimsTab() {
                          <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
                          <td className="p-2 text-xs">{s.start_date ? format(new Date(s.start_date), 'dd/MM/yyyy') : '—'}</td>
                           <td className="p-2 text-right font-medium">
-                            <CalcBreakdownHover staff={s} amount={monthly} />
+                            <CalcBreakdownHover staff={s} amount={monthly} rateParams={rateParams} />
                           </td>
                          <td className="p-2 text-right">
                            <Button variant="ghost" size="icon" onClick={() => removeStaff(s.id)}>
@@ -558,6 +562,7 @@ export function BuyBackClaimsTab() {
                     (!hasAnyAssignment) ||
                     myApproverPractices.includes(c.practice_key || '')
                   )}
+                  rateParams={rateParams}
                   onSubmit={submitClaim}
                   onDelete={deleteClaim}
                   onConfirmDeclaration={confirmDeclaration}
@@ -595,29 +600,37 @@ function getStaffMaxAmount(staff: any, claimMonth?: string): number {
 }
 
 /** Build a detailed calculation breakdown for hover display */
-function buildCalcTooltip(staff: any, claimMonth?: string) {
+function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RateParams) {
   const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours';
   const allocValue = staff.allocation_value as number;
-  const ON_COST_RATE = 0.2938;
-  const GP_SESSION_ANNUAL = 11000;
-  const WTE_ANNUAL_BASE = 60000;
+  const onCostRate = rateParams ? (rateParams.onCostMultiplier - 1) : 0.2938;
+  const onCostPct = onCostRate * 100;
+
+  // Try to get role-specific annual rate
+  let roleAnnualRate: number | undefined;
+  if (rateParams?.getRoleAnnualRate && staff.staff_role) {
+    roleAnnualRate = rateParams.getRoleAnnualRate(staff.staff_role);
+  }
+
+  const baseRate = roleAnnualRate ?? (allocType === 'sessions' ? 11000 : 60000);
+  const rateLabel = fmtGBP(baseRate);
 
   let baseSalary: number;
   let baseLabel: string;
 
   if (allocType === 'sessions') {
-    baseSalary = allocValue * GP_SESSION_ANNUAL;
-    baseLabel = `${allocValue} session${allocValue !== 1 ? 's' : ''} × £11,000/yr`;
+    baseSalary = allocValue * baseRate;
+    baseLabel = `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${rateLabel}/yr`;
   } else if (allocType === 'hours') {
     const wteRatio = allocValue / 37.5;
-    baseSalary = wteRatio * WTE_ANNUAL_BASE;
-    baseLabel = `${allocValue} hrs/wk ÷ 37.5 = ${parseFloat(wteRatio.toFixed(4))} WTE × £60,000/yr`;
+    baseSalary = wteRatio * baseRate;
+    baseLabel = `${allocValue} hrs/wk ÷ 37.5 = ${parseFloat(wteRatio.toFixed(4))} WTE × ${rateLabel}/yr`;
   } else {
-    baseSalary = allocValue * WTE_ANNUAL_BASE;
-    baseLabel = `${allocValue} WTE × £60,000/yr`;
+    baseSalary = allocValue * baseRate;
+    baseLabel = `${allocValue} WTE × ${rateLabel}/yr`;
   }
 
-  const onCostsValue = baseSalary * ON_COST_RATE;
+  const onCostsValue = baseSalary * onCostRate;
   const annualBase = baseSalary + onCostsValue;
   const fullMonthly = annualBase / 12;
 
@@ -640,12 +653,12 @@ function buildCalcTooltip(staff: any, claimMonth?: string) {
     }
   }
 
-  return { baseSalary, baseLabel, onCostsValue, annualBase, fullMonthly, proRataInfo, finalMonthly };
+  return { baseSalary, baseLabel, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly };
 }
 
 /** Hover card showing the full calculation breakdown for a staff line's monthly amount */
-function CalcBreakdownHover({ staff, claimMonth, amount }: { staff: any; claimMonth?: string; amount: number }) {
-  const breakdown = buildCalcTooltip(staff, claimMonth);
+function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: any; claimMonth?: string; amount: number; rateParams?: RateParams }) {
+  const breakdown = buildCalcTooltip(staff, claimMonth, rateParams);
   return (
     <HoverCard openDelay={200} closeDelay={100}>
       <HoverCardTrigger asChild>
@@ -671,8 +684,8 @@ function CalcBreakdownHover({ staff, claimMonth, amount }: { staff: any; claimMo
           <Separator />
           {/* Step 2: On-costs */}
           <div>
-            <p className="text-muted-foreground font-medium mb-0.5">+ 29.38% Employer On-Costs</p>
-            <p className="text-foreground">{fmtGBP(breakdown.baseSalary)} × 29.38% = {fmtGBP(breakdown.onCostsValue)}</p>
+            <p className="text-muted-foreground font-medium mb-0.5">+ {breakdown.onCostPct.toFixed(2)}% Employer On-Costs</p>
+            <p className="text-foreground">{fmtGBP(breakdown.baseSalary)} × {breakdown.onCostPct.toFixed(2)}% = {fmtGBP(breakdown.onCostsValue)}</p>
             <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)} + {fmtGBP(breakdown.onCostsValue)} = {fmtGBP(breakdown.annualBase)}/year</p>
           </div>
           <Separator />
@@ -709,12 +722,13 @@ function CalcBreakdownHover({ staff, claimMonth, amount }: { staff: any; claimMo
   );
 }
 
-function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject }: {
+function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject }: {
   claim: BuyBackClaim;
   userId?: string;
   userEmail?: string;
   isAdmin: boolean;
   canApproveClaim?: boolean;
+  rateParams?: RateParams;
   onSubmit: (id: string) => void;
   onDelete: (id: string) => void;
   onConfirmDeclaration: (id: string, confirmed: boolean) => void;
@@ -809,7 +823,7 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, onSubmi
                   <td className="p-2">{s.staff_role}</td>
                   <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
                   <td className="p-2 text-right">
-                    <CalcBreakdownHover staff={s} claimMonth={claim.claim_month} amount={maxAmount} />
+                    <CalcBreakdownHover staff={s} claimMonth={claim.claim_month} amount={maxAmount} rateParams={rateParams} />
                   </td>
                   <td className="p-2 text-right">
                     {canEdit ? (
