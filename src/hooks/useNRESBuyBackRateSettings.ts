@@ -16,6 +16,7 @@ export interface RateSettings {
   employer_ni_pct: number;
   employer_pension_pct: number;
   roles_config: RoleConfig[];
+  email_testing_mode: boolean;
 }
 
 const DEFAULT_ROLES: RoleConfig[] = [
@@ -38,6 +39,7 @@ export function useNRESBuyBackRateSettings() {
     employer_ni_pct: DEFAULT_EMPLOYER_NI_PCT,
     employer_pension_pct: DEFAULT_EMPLOYER_PENSION_PCT,
     roles_config: DEFAULT_ROLES,
+    email_testing_mode: false,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -63,6 +65,7 @@ export function useNRESBuyBackRateSettings() {
           employer_ni_pct: niPct,
           employer_pension_pct: pensionPct,
           roles_config: (data.roles_config as RoleConfig[]) || DEFAULT_ROLES,
+          email_testing_mode: data.email_testing_mode ?? false,
         });
       }
       hasFetchedRef.current = true;
@@ -96,7 +99,7 @@ export function useNRESBuyBackRateSettings() {
         });
 
       if (error) throw error;
-      setSettings({ on_costs_pct: totalOnCosts, employer_ni_pct: niPct, employer_pension_pct: pensionPct, roles_config: rolesConfig });
+      setSettings(prev => ({ ...prev, on_costs_pct: totalOnCosts, employer_ni_pct: niPct, employer_pension_pct: pensionPct, roles_config: rolesConfig }));
       toast.success('Rate settings saved');
     } catch (err) {
       console.error('Error saving rate settings:', err);
@@ -119,11 +122,35 @@ export function useNRESBuyBackRateSettings() {
 
   const staffRoles = useMemo(() => settings.roles_config.map(r => r.label), [settings.roles_config]);
 
+  const toggleEmailTestingMode = useCallback(async (enabled: boolean) => {
+    if (!user?.id) return;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_buyback_rate_settings')
+        .upsert({
+          id: 'default',
+          email_testing_mode: enabled,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        });
+      if (error) throw error;
+      setSettings(prev => ({ ...prev, email_testing_mode: enabled }));
+      toast.success(enabled ? 'Email testing mode enabled' : 'Email testing mode disabled');
+    } catch (err) {
+      console.error('Error toggling email testing mode:', err);
+      toast.error('Failed to update email testing mode');
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.id]);
+
   return {
     settings,
     loading,
     saving,
     updateSettings,
+    toggleEmailTestingMode,
     onCostMultiplier,
     getRoleConfig,
     getAnnualRate,

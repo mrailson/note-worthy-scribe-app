@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Plus, Trash2, Settings2, Info } from 'lucide-react';
+import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail } from 'lucide-react';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 import { useNRESUserAccess } from '@/hooks/useNRESUserAccess';
 import { useNRESBuyBackRateSettings, type RoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
+import { useAuth } from '@/contexts/AuthContext';
 import type { BuyBackAccessRole } from '@/hooks/useNRESBuyBackAccess';
 
 const ROLES: { key: BuyBackAccessRole; label: string }[] = [
@@ -78,6 +80,7 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
           <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto">
             <TabsTrigger value="access" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Access Permissions</TabsTrigger>
             <TabsTrigger value="rates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Rates &amp; Roles</TabsTrigger>
+            <TabsTrigger value="email" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Email Settings</TabsTrigger>
           </TabsList>
 
           {/* Access Permissions Tab */}
@@ -176,6 +179,11 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
           {/* Rates & Roles Tab */}
           <TabsContent value="rates" className="flex-1 min-h-0 overflow-y-auto">
             <RatesAndRolesPanel />
+          </TabsContent>
+
+          {/* Email Settings Tab */}
+          <TabsContent value="email" className="flex-1 min-h-0 overflow-y-auto">
+            <EmailSettingsPanel />
           </TabsContent>
         </Tabs>
       </DialogContent>
@@ -451,6 +459,111 @@ function RatesAndRolesPanel() {
           {saving && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
           Save Changes
         </Button>
+      </div>
+    </div>
+  );
+}
+
+const EMAIL_TYPES_TABLE = [
+  { type: 'Claim Submitted', trigger: 'Claim is submitted', recipient: 'All practice approvers' },
+  { type: 'Submission Confirmation', trigger: 'Claim is submitted', recipient: 'The submitting user' },
+  { type: 'Claim Approved', trigger: 'Claim is approved', recipient: 'The submitting user' },
+  { type: 'Approval Confirmation', trigger: 'Claim is approved', recipient: 'The reviewing approver' },
+  { type: 'Claim Declined', trigger: 'Claim is declined', recipient: 'The submitting user' },
+  { type: 'Decline Confirmation', trigger: 'Claim is declined', recipient: 'The reviewing approver' },
+];
+
+function EmailSettingsPanel() {
+  const { settings, loading, saving, toggleEmailTestingMode } = useNRESBuyBackRateSettings();
+  const { user } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const testingMode = settings.email_testing_mode;
+
+  return (
+    <div className="space-y-6 pb-4 pt-2">
+      {/* Testing Mode Toggle */}
+      <div>
+        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Email Testing Mode</h3>
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 mr-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Mail className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Testing Mode</span>
+                <Badge className={testingMode
+                  ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700'
+                  : 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700'
+                }>
+                  {testingMode ? 'Testing' : 'Live'}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {testingMode
+                  ? `All system emails will be redirected to your email (${user?.email}). No emails will reach actual recipients.`
+                  : 'Emails are being sent to their intended recipients (approvers, submitters, etc.).'}
+              </p>
+            </div>
+            <Switch
+              checked={testingMode}
+              onCheckedChange={(checked) => toggleEmailTestingMode(checked)}
+              disabled={saving}
+            />
+          </div>
+          {testingMode && (
+            <div className="mt-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2">
+              <div className="flex items-start gap-2">
+                <Info className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                  <strong>Testing mode is active.</strong> All automated emails from the buy-back claims workflow will be sent to <strong>{user?.email}</strong> instead of their normal recipients. Toggle off when ready to go live.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Email Types Summary */}
+      <div>
+        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Automated Email Types</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          The following emails are sent automatically at key points in the claims workflow.
+        </p>
+        <div className="bg-white dark:bg-slate-900 border rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-100 dark:bg-slate-800">
+              <tr>
+                <th className="text-left px-3 py-2.5 font-medium">Email Type</th>
+                <th className="text-left px-3 py-2.5 font-medium">Trigger</th>
+                <th className="text-left px-3 py-2.5 font-medium">Recipient</th>
+              </tr>
+            </thead>
+            <tbody>
+              {EMAIL_TYPES_TABLE.map((row, i) => (
+                <tr key={i} className="border-t">
+                  <td className="px-3 py-2.5 font-medium">{row.type}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{row.trigger}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">
+                    {testingMode ? (
+                      <span className="text-amber-600 dark:text-amber-400">{user?.email} (testing override)</span>
+                    ) : (
+                      row.recipient
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
