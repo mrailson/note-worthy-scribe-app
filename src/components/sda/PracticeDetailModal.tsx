@@ -288,11 +288,11 @@ const RecruitmentStatusSection = ({
   const pipelinePct = totals.required > 0 ? Math.min((totals.totalPipeline / totals.required) * 100, 100 - filledPct) : 0;
   const outstandingPct = totals.required > 0 ? Math.min((totals.totalOutstanding / totals.required) * 100, 100 - filledPct - pipelinePct) : 0;
 
-  const EditableStaffRow = ({ staff, category, staffIdx }: { staff: StaffMember; category: WorkforceCategory; staffIdx: number }) => {
+  const renderEditableStaffRow = (staff: StaffMember, category: WorkforceCategory, staffIdx: number) => {
     const config = statusConfig[staff.status];
 
     return (
-      <div className={`flex items-center gap-2 p-2 rounded-lg ${config.bgLight} ${config.border} border mb-1.5 text-sm`}>
+      <div key={`${category}-${staffIdx}`} className={`flex items-center gap-2 p-2 rounded-lg ${config.bgLight} ${config.border} border mb-1.5 text-sm`}>
         <input
           className="flex-1 min-w-0 px-2 py-1 text-xs border rounded bg-white"
           placeholder="Name"
@@ -362,9 +362,7 @@ const RecruitmentStatusSection = ({
 
         {isEditing ? (
           <>
-            {staffList.map((staff, index) => (
-              <EditableStaffRow key={`${category}-${index}`} staff={staff} category={category} staffIdx={index} />
-            ))}
+            {staffList.map((staff, index) => renderEditableStaffRow(staff, category, index))}
             <button
               className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 mt-1"
               onClick={() => addStaff(category)}
