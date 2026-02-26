@@ -12,11 +12,12 @@ export function useRecruitmentConfig() {
 
   const fetchConfig = useCallback(async () => {
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('nres_recruitment_config' as any)
         .select('*')
         .eq('id', 'default')
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching recruitment config:', error);
@@ -63,8 +64,8 @@ export function useRecruitmentConfig() {
         return false;
       }
 
-      setPractices(newPractices);
-      setUpdatedAt(new Date().toISOString());
+      // Immediately refetch to ensure all consumers see the latest data
+      await fetchConfig();
       toast.success('Recruitment data saved successfully.');
       return true;
     } catch (err) {
@@ -72,12 +73,13 @@ export function useRecruitmentConfig() {
       toast.error('Failed to save changes.');
       return false;
     }
-  }, [user]);
+  }, [user, fetchConfig]);
 
   return {
     practices,
     updatedAt,
     isLoading,
     updateConfig,
+    refetch: fetchConfig,
   };
 }
