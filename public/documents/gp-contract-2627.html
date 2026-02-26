@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GP Contract 2026/27 – Service Delivery Summary</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+/* ── PRINT PAGE SETUP ── */
+@page {
+  size: A4 portrait;
+  margin: 12mm 14mm;
+}
+
+@media print {
+  body { background: white !important; padding: 0 !important; }
+  .page { box-shadow: none !important; width: 100% !important; }
+  .header, .card-header, .alert-banner, .footer, .stat-pill, .tl-num, .badge, .new-tag, .metric-box, .cont-header, .key-dates {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .card { page-break-inside: avoid; break-inside: avoid; }
+  .page-break { page-break-before: always; break-before: page; height: 0; }
+}
+
+:root {
+  --nhs-blue: #005EB8;
+  --nhs-dark: #003087;
+  --nhs-mid: #0072CE;
+  --nhs-light: #41B6E6;
+  --nhs-aqua: #00A9CE;
+  --green: #009639;
+  --orange: #ED8B00;
+  --white: #FFFFFF;
+  --off-white: #F2F5F9;
+  --light-grey: #E4EAF1;
+  --text-dark: #1A2744;
+  --text-mid: #3D5066;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Figtree', sans-serif;
+  background: #B0BFCF;
+  color: var(--text-dark);
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.page {
+  width: 210mm;
+  background: var(--white);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+}
+
+/* ── HEADER ── */
+.header {
+  background: linear-gradient(135deg, var(--nhs-dark) 0%, var(--nhs-blue) 60%, var(--nhs-mid) 100%);
+  padding: 16px 18px 13px;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Ccircle cx='25' cy='25' r='23' fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1'/%3E%3C/svg%3E") repeat;
+  background-size: 50px 50px;
+}
+.header-top { display:flex; justify-content:space-between; align-items:flex-start; position:relative; z-index:1; }
+.nhs-logo { background:white; color:var(--nhs-blue); font-weight:900; font-size:14px; padding:3px 9px; border-radius:3px; }
+.header-meta { text-align:right; color:rgba(255,255,255,0.65); font-size:8.5px; font-weight:500; line-height:1.7; }
+.header-meta strong { color:var(--nhs-light); display:block; font-size:9px; text-transform:uppercase; letter-spacing:0.7px; }
+.header-title { position:relative; z-index:1; margin-top:9px; }
+.header-title h1 { font-size:23px; font-weight:900; color:white; line-height:1.1; letter-spacing:-0.7px; }
+.header-title h1 span { color:var(--nhs-light); }
+.header-title p { margin-top:4px; color:rgba(255,255,255,0.7); font-size:9.5px; line-height:1.5; }
+.header-stats { display:flex; gap:7px; margin-top:10px; position:relative; z-index:1; flex-wrap:wrap; }
+.stat-pill { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); border-radius:100px; padding:4px 11px; display:flex; align-items:center; gap:7px; }
+.stat-pill .val { font-size:14px; font-weight:800; color:white; font-family:'DM Mono',monospace; }
+.stat-pill .lbl { font-size:7.5px; color:rgba(255,255,255,0.68); font-weight:500; line-height:1.35; max-width:75px; }
+.stat-pill .lbl strong { color:var(--nhs-light); display:block; font-size:8px; font-weight:700; }
+
+/* ── CONTINUED HEADER (pages 2+) ── */
+.cont-header { background:linear-gradient(90deg, var(--nhs-dark) 0%, var(--nhs-blue) 100%); padding:7px 14px; display:flex; justify-content:space-between; align-items:center; }
+.cont-header .nhs-logo { font-size:12px; padding:2px 7px; }
+.cont-header .cont-title { font-size:10px; font-weight:700; color:white; }
+.cont-header .cont-title span { color:var(--nhs-light); }
+.cont-header .cont-pg { font-size:7.5px; color:rgba(255,255,255,0.45); font-family:'DM Mono',monospace; }
+
+/* ── CONTENT AREA ── */
+.content { padding:10px 14px 13px; background:var(--off-white); }
+
+.alert-banner {
+  background:linear-gradient(90deg, #1A2744 0%, #003087 100%);
+  border-radius:6px; padding:8px 12px; display:flex; align-items:flex-start; gap:9px; margin-bottom:10px;
+}
+.alert-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+.alert-text { font-size:8.5px; line-height:1.55; color:rgba(255,255,255,0.85); }
+.alert-text strong { color:var(--nhs-light); font-weight:700; }
+
+.section-label {
+  font-size:7.5px; font-weight:800; text-transform:uppercase; letter-spacing:1px;
+  color:var(--nhs-blue); border-bottom:1px solid var(--nhs-blue); padding-bottom:3px; margin-bottom:8px; margin-top:2px;
+}
+
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.span-2 { grid-column:span 2; }
+
+.card { background:white; border-radius:6px; overflow:hidden; box-shadow:0 1px 5px rgba(0,30,80,0.09); break-inside:avoid; page-break-inside:avoid; }
+.card-header { padding:7px 10px; display:flex; align-items:center; gap:7px; }
+.card-header .icon { width:24px; height:24px; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
+.card-header h2 { font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-dark); line-height:1.2; }
+.card-header h2 span { display:block; font-size:8px; font-weight:500; text-transform:none; letter-spacing:0; color:var(--text-mid); margin-top:1px; }
+
+.card-body { padding:0 10px 9px; }
+
+.rule-item { display:flex; gap:6px; padding:5px 0; border-bottom:1px solid var(--light-grey); align-items:flex-start; }
+.rule-item:last-child { border-bottom:none; }
+.rule-dot { width:6px; height:6px; border-radius:50%; margin-top:4px; flex-shrink:0; }
+.rule-text { font-size:9px; line-height:1.5; color:var(--text-mid); }
+.rule-text strong { color:var(--text-dark); font-weight:700; display:block; font-size:9.5px; margin-bottom:1px; }
+
+.badge { display:inline-block; font-size:7px; font-weight:700; padding:1px 4px; border-radius:3px; margin-left:3px; vertical-align:middle; }
+.new-tag { background:#FFE066; color:#7A5800; font-size:6.5px; font-weight:800; padding:1px 4px; border-radius:2px; text-transform:uppercase; margin-left:3px; vertical-align:middle; }
+
+/* Colour themes */
+.blue .card-header  { background:#EBF3FB; border-bottom:2px solid var(--nhs-blue); }
+.blue .icon         { background:var(--nhs-blue); }
+.blue .rule-dot     { background:var(--nhs-blue); }
+.teal .card-header  { background:#E4F5F9; border-bottom:2px solid var(--nhs-aqua); }
+.teal .icon         { background:var(--nhs-aqua); }
+.teal .rule-dot     { background:var(--nhs-aqua); }
+.green .card-header { background:#E4F4EB; border-bottom:2px solid var(--green); }
+.green .icon        { background:var(--green); }
+.green .rule-dot    { background:var(--green); }
+.orange .card-header{ background:#FEF3E4; border-bottom:2px solid var(--orange); }
+.orange .icon       { background:var(--orange); }
+.orange .rule-dot   { background:var(--orange); }
+.dark .card-header  { background:#1A2744; border-bottom:2px solid #0C1B3A; }
+.dark .card-header h2 { color:white; }
+.dark .card-header h2 span { color:rgba(255,255,255,0.55); }
+.dark .icon         { background:rgba(255,255,255,0.14); }
+.dark .rule-dot     { background:var(--nhs-light); }
+
+/* Metrics */
+.metrics-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; padding:5px 10px 9px; }
+.metric-box { background:var(--off-white); border-radius:5px; padding:5px 3px; text-align:center; }
+.metric-box .m-val { font-size:12px; font-weight:800; color:var(--nhs-blue); line-height:1; }
+.metric-box .m-label { font-size:7px; color:var(--text-mid); margin-top:3px; line-height:1.3; font-weight:500; }
+.metric-box .m-label strong { display:block; color:var(--text-dark); font-weight:700; }
+
+.divider { height:1px; background:var(--light-grey); margin:2px 10px 5px; }
+
+/* PCN numbered items */
+.tl-grid { display:grid; grid-template-columns:1fr 1fr; padding:0 10px 9px; }
+.tl-item { padding:5px 7px 5px 0; border-bottom:1px dashed var(--light-grey); display:flex; gap:5px; align-items:flex-start; }
+.tl-item:nth-child(odd)  { border-right:1px dashed var(--light-grey); padding-right:7px; }
+.tl-item:nth-child(even) { padding-left:7px; }
+.tl-item:nth-last-child(-n+2) { border-bottom:none; }
+.tl-num { width:17px; height:17px; border-radius:50%; background:var(--nhs-blue); color:white; font-size:8.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.tl-text { font-size:8.5px; line-height:1.45; color:var(--text-mid); }
+.tl-text strong { color:var(--text-dark); font-weight:700; display:block; font-size:9px; }
+
+/* Key dates */
+.key-dates { margin-top:9px; background:white; border-radius:6px; padding:9px 12px; border-left:3px solid var(--nhs-blue); box-shadow:0 1px 5px rgba(0,30,80,0.08); }
+.key-dates-title { font-size:8.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--nhs-blue); margin-bottom:5px; }
+.key-dates-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; }
+.kd-item { font-size:8.5px; color:var(--text-mid); line-height:1.4; }
+.kd-item strong { color:var(--text-dark); display:block; font-size:9px; font-weight:700; }
+
+/* Footer */
+.footer { background:var(--nhs-dark); padding:7px 14px; display:flex; align-items:center; justify-content:space-between; }
+.footer-text { font-size:7px; color:rgba(255,255,255,0.5); line-height:1.5; }
+.footer-text strong { color:rgba(255,255,255,0.85); }
+.footer-right { font-family:'DM Mono',monospace; font-size:7px; color:rgba(255,255,255,0.35); white-space:nowrap; margin-left:12px; }
+
+.hl-blue { color:var(--nhs-blue); font-weight:700; }
+.page-break { page-break-before:always; break-before:page; height:0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══════ PAGE 1 ══════ -->
+  <div class="header">
+    <div class="header-top">
+      <div class="nhs-logo">NHS</div>
+      <div class="header-meta">
+        <strong>Published 24 February 2026</strong>
+        Effective from 1 April 2026<br>
+        NHS England · Primary Care Directorate · PRN02353
+      </div>
+    </div>
+    <div class="header-title">
+      <h1>GP Contract <span>2026/27</span> — Service Delivery Summary</h1>
+      <p>Key changes to how general practice must deliver patient care, manage access, work with PCNs and community pharmacy, and measure performance from April 2026.</p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill">
+        <div class="val">£13.86bn</div>
+        <div class="lbl"><strong>Total Contract Value</strong>+£485m uplift (3.6% cash)</div>
+      </div>
+      <div class="stat-pill">
+        <div class="val">£292m</div>
+        <div class="lbl"><strong>GP Reimbursement Scheme</strong>~£47k per practice</div>
+      </div>
+      <div class="stat-pill">
+        <div class="val">Same Day</div>
+        <div class="lbl"><strong>Urgent Access Mandate</strong>Clinically urgent = today</div>
+      </div>
+      <div class="stat-pill">
+        <div class="val">+18 QOF pts</div>
+        <div class="lbl"><strong>New Points</strong>~£25m additional</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="alert-banner">
+      <div class="alert-icon">⚡</div>
+      <div class="alert-text">
+        <strong>New Mandatory Access Requirement from 1 April 2026 — </strong>
+        Practices <strong>must not ask patients to call back on another day</strong>. All clinically urgent requests require a <strong>same-day response</strong>. Non-urgent requests must receive a next-steps update <strong>by end of next working day</strong>. Autonomy to assess urgency rests with the GP or appropriately trained clinician. Practices failing targets must engage ICB improvement support.
+      </div>
+    </div>
+
+    <div class="section-label">Access &amp; Performance Monitoring</div>
+    <div class="grid">
+
+      <div class="card blue">
+        <div class="card-header">
+          <div class="icon">📞</div>
+          <h2>Access Requirements<span>New mandatory obligations from April 2026</span></h2>
+        </div>
+        <div class="card-body">
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>No "call back tomorrow" <span class="new-tag">NEW</span></strong>Must not redirect patients to contact again on another day for any request type.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Clinically urgent = same-day response</strong>Practice determines urgency — GP or appropriately trained clinician must assess.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Non-urgent: next steps confirmed by EOD+1</strong>Patient must know how and when their issue will be managed by end of the next working day.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Online systems open all core hours <span class="new-tag">NEW</span></strong>Cannot cap online consultation volumes or switch systems off during core hours — parity with telephone and walk-in.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Online registration mandatory</strong>All practices must provide online registration. Paper forms entered into the national digital system.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Access info displayed on practice website</strong>Opening times for walk-in, telephone and online must be clearly published.</div></div>
+        </div>
+      </div>
+
+      <div class="card teal">
+        <div class="card-header">
+          <div class="icon">📊</div>
+          <h2>5 New Access Metrics <span class="new-tag">NEW</span><span>Practice-level data collected by NHS England</span></h2>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-box"><div class="m-val">⏱</div><div class="m-label">Call wait<br><strong>8–10am</strong></div></div>
+          <div class="metric-box"><div class="m-val">⏱</div><div class="m-label">Call wait<br><strong>Core hrs</strong></div></div>
+          <div class="metric-box"><div class="m-val">%</div><div class="m-label">Urgent<br><strong>Same day</strong></div></div>
+          <div class="metric-box"><div class="m-val">%</div><div class="m-label">Non-urgent<br><strong>≤1 week</strong></div></div>
+          <div class="metric-box"><div class="m-val">%</div><div class="m-label">Non-urgent<br><strong>≤2 weeks</strong></div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="card-body" style="padding-top:2px">
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text">Cloud-based telephony regulations extended to require data on video and online consultations alongside telephone metrics.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text">Intent is to monitor access and identify inequalities — <em>not</em> to performance manage individual practices.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text">Practices with <strong>unwarranted variation</strong> must engage ICB support services. Data will inform future national policy.</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-text"><strong>Source:</strong> NHS England — Dr Amanda Doyle, National Director for Primary Care &amp; Community Services, 24 February 2026 (PRN02353). All requirements effective 1 April 2026 unless stated.</div>
+    <div class="footer-right">PAGE 1 OF 3</div>
+  </div>
+
+
+  <!-- ══════ PAGE 2 ══════ -->
+  <div class="page-break"></div>
+  <div class="cont-header">
+    <div class="nhs-logo">NHS</div>
+    <div class="cont-title">GP Contract <span>2026/27</span> — Service Delivery Summary</div>
+    <div class="cont-pg">PAGE 2 OF 3</div>
+  </div>
+
+  <div class="content">
+    <div class="section-label">Workforce, Referrals &amp; Pharmacy Interface</div>
+    <div class="grid">
+
+      <div class="card green">
+        <div class="card-header">
+          <div class="icon">👩‍⚕️</div>
+          <h2>Workforce &amp; GP Capacity<span>New reimbursement scheme + ARRS expansion</span></h2>
+        </div>
+        <div class="card-body">
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>£292m GP Reimbursement Scheme <span class="new-tag">NEW</span></strong>Replaces PCN Capacity &amp; Access Payment (CAP). ~£47k per practice to fund extra GP sessions or recruit additional GPs for same-day urgent access.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>ARRS opens to all GPs <span class="new-tag">NEW</span></strong>No longer restricted to newly qualified GPs. Top reimbursement rate raised to top of salaried GP pay range + on-costs.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text">
+            <strong>High GP:patient ratio practices <span class="badge" style="background:#9B59B6;color:white;">TBC</span></strong>
+            Must apply for reimbursement funding via ICB rather than receiving it automatically. Exact threshold <em>not yet defined</em> — further guidance expected in coming weeks. National average is currently <span class="hl-blue">~1 GP per 2,200 patients</span> (WTE), ranging from &lt;1,500 to &gt;3,000 by region.
+          </div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Broader ARRS roles</strong>PCNs can recruit a wider range of clinical roles where agreed with their commissioner.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>GP Staff Survey participation</strong>PCNs must participate in the General Practice Staff Survey and share staff contact details with their ICB.</div></div>
+        </div>
+      </div>
+
+      <div class="card orange">
+        <div class="card-header">
+          <div class="icon">🏥</div>
+          <h2>Advice &amp; Guidance (A&amp;G)<span>Now embedded in core — Enhanced Service retired</span></h2>
+        </div>
+        <div class="card-body">
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>A&amp;G Enhanced Service retired <span class="new-tag">CHANGE</span></strong>Transitions from optional Enhanced Service into <strong>core contract</strong> funding from April 2026.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Mandatory before planned referrals</strong>Practices must use A&amp;G prior to or instead of a planned care referral where clinically appropriate, and must follow locally agreed pathways.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Local referral pathways apply</strong>Must follow ICB-agreed pathways, including single point of access models. NHS England will issue guidance on triage and communication standards.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Trusts required to meet processing standards</strong>NHS England asking trusts to achieve national operational standards to ensure timely specialist advice provision.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Aim: reduce unnecessary referrals</strong>Supports timely specialist input and helps manage planned care demand across the system.</div></div>
+        </div>
+      </div>
+
+      <div class="card teal span-2">
+        <div class="card-header">
+          <div class="icon">💊</div>
+          <h2>Community Pharmacy Interface<span>New patient choice &amp; cross-interface communication requirements</span></h2>
+        </div>
+        <div class="card-body" style="columns:2; column-gap:18px;">
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>Nominated pharmacy on new Rx <span class="new-tag">NEW</span></strong>Must reconfirm patient's nominated pharmacy when issuing a <em>new</em> prescription. Not required for repeat prescriptions.</div></div>
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>Full pharmacy choice on referral tools</strong>Any tool used to refer into community pharmacy services must offer the full choice of pharmacy providers — not a restricted list.</div></div>
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>Dedicated monitored email address <span class="new-tag">NEW</span></strong>Required for pharmacy to contact practice when GP Connect unavailable. Must be shared in the Directory of Services. An existing practice email can be used.</div></div>
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>Supports pharmacy independent prescribing</strong>Email channel covers activities not yet supported within GP Connect, including independent prescribing queries from pharmacists.</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-text"><strong>Source:</strong> NHS England — Dr Amanda Doyle, National Director for Primary Care &amp; Community Services, 24 February 2026 (PRN02353).</div>
+    <div class="footer-right">PAGE 2 OF 3</div>
+  </div>
+
+
+  <!-- ══════ PAGE 3 ══════ -->
+  <div class="page-break"></div>
+  <div class="cont-header">
+    <div class="nhs-logo">NHS</div>
+    <div class="cont-title">GP Contract <span>2026/27</span> — Service Delivery Summary</div>
+    <div class="cont-pg">PAGE 3 OF 3</div>
+  </div>
+
+  <div class="content">
+    <div class="section-label">PCN Responsibilities, QOF &amp; Contract Structure</div>
+    <div class="grid">
+
+      <div class="card dark">
+        <div class="card-header">
+          <div class="icon">🔗</div>
+          <h2>PCN DES: Clarified Duties<span>Vaccinations · Continuity · Neighbourhood · Cancer</span></h2>
+        </div>
+        <div class="tl-grid">
+          <div class="tl-item"><div class="tl-num">1</div><div class="tl-text"><strong>Continuity of Care</strong>Use risk stratification tools to identify cohorts needing continuity. Embed as core PCN practice from April 2026.</div></div>
+          <div class="tl-item"><div class="tl-num">2</div><div class="tl-text"><strong>Neighbourhood Alignment</strong>Collaborate with ICB to align PCN geography to natural communities as defined by ICBs and local authorities.</div></div>
+          <div class="tl-item"><div class="tl-num">3</div><div class="tl-text"><strong>Care Home Vaccinations</strong>Must identify eligible older adult care home residents for seasonal &amp; routine vaccinations (COVID-19, flu). PCNs must ensure arrangements are in place — not necessarily administering directly.</div></div>
+          <div class="tl-item"><div class="tl-num">4</div><div class="tl-text"><strong>Cancer Screening</strong>Proactive responsibilities clarified — referrals, safety netting per NICE guidance. All practices must share data with Lung Cancer Screening Programme.</div></div>
+        </div>
+      </div>
+
+      <div class="card blue">
+        <div class="card-header">
+          <div class="icon">📋</div>
+          <h2>PMS &amp; Contract Structure<span>Sub-contracting alignment &amp; finance</span></h2>
+        </div>
+        <div class="card-body">
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>PMS aligned to GMS <span class="new-tag">CHANGE</span></strong>PMS sub-contracting regulations updated to match GMS — commissioners can object where patient safety, financial risk or delivery of obligations may be affected.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Local Enhanced Services flexibility</strong>ICBs can commission LES via the GP contract or NHS Standard Contract as the contracting vehicle.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>2.5% assumed pay uplift</strong>Core uplift includes 2.5% pay assumption; real-terms growth 1.4%. To be revisited following pay review body recommendations.</div></div>
+          <div class="rule-item"><div class="rule-dot"></div><div class="rule-text"><strong>Updated specifications to follow</strong>Full guidance and updated contract specifications will be published in the coming weeks by NHS England.</div></div>
+        </div>
+      </div>
+
+      <div class="card green span-2">
+        <div class="card-header">
+          <div class="icon">✅</div>
+          <h2>QOF &amp; Enhanced Services: Key Changes <span class="new-tag">UPDATED</span><span>Quality &amp; Outcomes Framework — clinical workload implications from April 2026</span></h2>
+        </div>
+        <div class="card-body" style="columns:2; column-gap:18px;">
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>+18 QOF points (~£25m)</strong>New indicators aligned with NICE guidance on childhood vaccinations, diabetes, obesity and heart failure.</div></div>
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>Childhood vaccination progress payments <span class="new-tag">NEW</span></strong>Practices can earn points for <em>progress</em> toward thresholds (not just hitting them). Lower threshold: 5 percentage points above 2-year baseline. Especially benefits practices in deprived areas.</div></div>
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>MMRV vaccine update</strong>Childhood vaccination indicators updated to reflect the introduction of the MMRV vaccine (VI001, VI002, VI003).</div></div>
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>Obesity Enhanced Service retired <span class="new-tag">CHANGE</span></strong>Replaced by two new QOF targets — referrals into structured weight management programmes and medicines optimisation (including GLP-1 weight loss injections).</div></div>
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>New diabetes indicator</strong>Requires delivery of all 8 NICE recommended diabetes care processes.</div></div>
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>Heart failure: '4 pillars' indicator</strong>Updated to reflect the NICE recommended four pillars of heart failure treatment.</div></div>
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>RSV vaccination mandate <span class="new-tag">NEW</span></strong>Must offer RSV vaccine to all registered older adult care home residents and patients over 80 not previously vaccinated. Item of Service fee per vaccination.</div></div>
+          <div class="rule-item" style="break-inside:avoid;"><div class="rule-dot"></div><div class="rule-text"><strong>QOF indicator streamlining</strong>Several existing indicators combined to reduce bureaucracy and administrative burden on practices.</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="key-dates">
+      <div class="key-dates-title">Key Dates &amp; Next Steps</div>
+      <div class="key-dates-grid">
+        <div class="kd-item"><strong>24 Feb 2026</strong>Contract letter published by NHS England</div>
+        <div class="kd-item"><strong>2 Mar 2026</strong>NHS England GP contract webinar, 5–6pm (sign up via england.nhs.uk/events)</div>
+        <div class="kd-item"><strong>1 Apr 2026</strong>All new contract requirements come into force</div>
+        <div class="kd-item"><strong>Coming weeks</strong>Updated specifications, guidance &amp; GP:patient ratio threshold for reimbursement TBC</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <div class="footer-text">
+      <strong>Source:</strong> NHS England — Dr Amanda Doyle, National Director for Primary Care &amp; Community Services, 24 Feb 2026 (PRN02353). Summary focuses on service delivery; full contract documentation to follow. &nbsp;
+      <span class="new-tag" style="font-size:6.5px;">NEW</span> = new requirement &nbsp;
+      <span class="new-tag" style="font-size:6.5px;">CHANGE</span> = existing requirement amended &nbsp;
+      <span class="badge" style="background:#9B59B6;color:white;font-size:6.5px;">TBC</span> = threshold not yet published
+    </div>
+    <div class="footer-right">PAGE 3 OF 3</div>
+  </div>
+
+</div>
+</body>
+</html>
