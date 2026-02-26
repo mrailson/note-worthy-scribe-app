@@ -384,6 +384,62 @@ export function BuyBackClaimsTab() {
                   forwarded for payment processing.
                 </p>
               </div>
+              <div>
+                <h3 className="font-semibold text-[#003087] mb-2">Maximum Rates per Role</h3>
+                <p className="text-xs text-muted-foreground mb-2">(as configured in Settings)</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="text-left p-2 font-medium">Role</th>
+                        <th className="text-right p-2 font-medium">Base Annual Rate</th>
+                        <th className="text-right p-2 font-medium">Base Hourly Rate</th>
+                        <th className="text-right p-2 font-medium">Employer NI ({rateSettings.employer_ni_pct}%)</th>
+                        <th className="text-right p-2 font-medium">Employer Pension ({rateSettings.employer_pension_pct}%)</th>
+                        <th className="text-right p-2 font-medium">Total Annual (incl. On-Costs)</th>
+                        <th className="text-right p-2 font-medium">
+                          <div className="flex items-center justify-end gap-1">
+                            Max Monthly Claim
+                            <InfoTooltip content="For sessional GPs, the max monthly claim is based on 9 sessions (1 WTE equivalent). The per-session annual rate is multiplied by 9 to give the full-time annual cost, then divided by 12 for the monthly figure." />
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rateSettings.roles_config.map(role => {
+                        const niAmt = role.annual_rate * (rateSettings.employer_ni_pct / 100);
+                        const penAmt = role.annual_rate * (rateSettings.employer_pension_pct / 100);
+                        const totalAnnual = role.annual_rate + niAmt + penAmt;
+                        const fullTimeAnnual = role.allocation_default === 'sessions' ? role.annual_rate * 9 : role.annual_rate;
+                        const hourlyRate = fullTimeAnnual / (37.5 * 52);
+                        const maxAlloc = role.allocation_default === 'sessions' ? 9 : role.allocation_default === 'hours' ? 37.5 : 1;
+                        const maxMonthly = role.allocation_default === 'sessions'
+                          ? (maxAlloc * totalAnnual) / 12
+                          : role.allocation_default === 'hours'
+                          ? ((maxAlloc / 37.5) * totalAnnual) / 12
+                          : (maxAlloc * totalAnnual) / 12;
+                        return (
+                          <tr key={role.key} className="border-t">
+                            <td className="p-2 font-medium">
+                              {role.label}
+                              {role.allocation_default === 'sessions' && <span className="text-muted-foreground font-normal ml-1">(per session/yr)</span>}
+                            </td>
+                            <td className="p-2 text-right">{fmtGBP(role.annual_rate)}</td>
+                            <td className="p-2 text-right">{fmtGBP(hourlyRate)}/hr</td>
+                            <td className="p-2 text-right">{fmtGBP(niAmt)}</td>
+                            <td className="p-2 text-right">{fmtGBP(penAmt)}</td>
+                            <td className="p-2 text-right font-medium">{fmtGBP(totalAnnual)}</td>
+                            <td className="p-2 text-right font-semibold text-primary">{fmtGBP(maxMonthly)}/mo</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  On-costs: Employer NI ({rateSettings.employer_ni_pct}%) + Employer Pension ({rateSettings.employer_pension_pct}%) = {rateSettings.on_costs_pct.toFixed(2)}% total. Max monthly assumes full allocation (9 sessions, 37.5 hrs, or 1.0 WTE). Rates can be updated via Settings.
+                </p>
+              </div>
               <div className="pt-1">
                 <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-50" asChild>
                   <a href="/buyback-explainer" target="_blank" rel="noopener noreferrer">
@@ -392,74 +448,6 @@ export function BuyBackClaimsTab() {
                   </a>
                 </Button>
               </div>
-            </div>
-          </CollapsibleContent>
-        </div>
-      </Collapsible>
-
-      {/* Maximum Rates Quick Reference */}
-      <Collapsible>
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <CollapsibleTrigger asChild>
-            <button className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors text-left">
-              <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Maximum Rates per Role</span>
-                <span className="text-xs text-muted-foreground">(as configured in Settings)</span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="border-t px-3 pb-3">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs mt-2">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="text-left p-2 font-medium">Role</th>
-                      <th className="text-right p-2 font-medium">Base Annual Rate</th>
-                      <th className="text-right p-2 font-medium">Employer NI ({rateSettings.employer_ni_pct}%)</th>
-                      <th className="text-right p-2 font-medium">Employer Pension ({rateSettings.employer_pension_pct}%)</th>
-                      <th className="text-right p-2 font-medium">Total Annual (incl. On-Costs)</th>
-                      <th className="text-right p-2 font-medium">
-                        <div className="flex items-center justify-end gap-1">
-                          Max Monthly Claim
-                          <InfoTooltip content="For sessional GPs, the max monthly claim is based on 9 sessions (1 WTE equivalent). The per-session annual rate is multiplied by 9 to give the full-time annual cost, then divided by 12 for the monthly figure." />
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rateSettings.roles_config.map(role => {
-                      const niAmt = role.annual_rate * (rateSettings.employer_ni_pct / 100);
-                      const penAmt = role.annual_rate * (rateSettings.employer_pension_pct / 100);
-                      const totalAnnual = role.annual_rate + niAmt + penAmt;
-                      const maxAlloc = role.allocation_default === 'sessions' ? 9 : role.allocation_default === 'hours' ? 37.5 : 1;
-                      const maxMonthly = role.allocation_default === 'sessions'
-                        ? (maxAlloc * totalAnnual) / 12
-                        : role.allocation_default === 'hours'
-                        ? ((maxAlloc / 37.5) * totalAnnual) / 12
-                        : (maxAlloc * totalAnnual) / 12;
-                      return (
-                        <tr key={role.key} className="border-t">
-                          <td className="p-2 font-medium">
-                            {role.label}
-                            {role.allocation_default === 'sessions' && <span className="text-muted-foreground font-normal ml-1">(per session/yr)</span>}
-                          </td>
-                          <td className="p-2 text-right">{fmtGBP(role.annual_rate)}</td>
-                          <td className="p-2 text-right">{fmtGBP(niAmt)}</td>
-                          <td className="p-2 text-right">{fmtGBP(penAmt)}</td>
-                          <td className="p-2 text-right font-medium">{fmtGBP(totalAnnual)}</td>
-                          <td className="p-2 text-right font-semibold text-primary">{fmtGBP(maxMonthly)}/mo</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-2">
-                On-costs: Employer NI ({rateSettings.employer_ni_pct}%) + Employer Pension ({rateSettings.employer_pension_pct}%) = {rateSettings.on_costs_pct.toFixed(2)}% total. Max monthly assumes full allocation (9 sessions, 37.5 hrs, or 1.0 WTE). Rates can be updated via Settings.
-              </p>
             </div>
           </CollapsibleContent>
         </div>
