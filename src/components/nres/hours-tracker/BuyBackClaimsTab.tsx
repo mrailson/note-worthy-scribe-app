@@ -118,16 +118,6 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams }: {
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-2 items-end">
         <div>
-          <Label className="text-xs">Category</Label>
-          <Select value={category} onValueChange={v => setCategory(v as 'buyback' | 'new_sda')}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="buyback">Buy-Back</SelectItem>
-              <SelectItem value="new_sda">New SDA</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
           <Label className="text-xs">Practice</Label>
           <Select value={practice} onValueChange={setPractice}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Select" /></SelectTrigger>
@@ -135,6 +125,16 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams }: {
               {NRES_PRACTICE_KEYS.map(k => (
                 <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Category</Label>
+          <Select value={category} onValueChange={v => setCategory(v as 'buyback' | 'new_sda')}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="buyback">Buy-Back</SelectItem>
+              <SelectItem value="new_sda">New SDA</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -494,8 +494,8 @@ export function BuyBackClaimsTab() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                    <tr>
-                     <th className="text-left p-2 font-medium">Category</th>
                      <th className="text-left p-2 font-medium">Practice</th>
+                     <th className="text-left p-2 font-medium">Category</th>
                      <th className="text-left p-2 font-medium">Name</th>
                      <th className="text-left p-2 font-medium">Role</th>
                      <th className="text-left p-2 font-medium">Allocation</th>
@@ -510,8 +510,8 @@ export function BuyBackClaimsTab() {
                      const monthly = calculateStaffMonthlyAmount(s, undefined, undefined, rateParams);
                      return (
                        <tr key={s.id} className="border-t">
-                         <td className="p-2">{categoryBadge(s.staff_category)}</td>
-                         <td className="p-2 text-xs">{getPracticeName(s.practice_key)}</td>
+                          <td className="p-2 text-xs">{getPracticeName(s.practice_key)}</td>
+                          <td className="p-2">{categoryBadge(s.staff_category)}</td>
                          <td className="p-2">{displayName}</td>
                          <td className="p-2">{s.staff_role}</td>
                          <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
