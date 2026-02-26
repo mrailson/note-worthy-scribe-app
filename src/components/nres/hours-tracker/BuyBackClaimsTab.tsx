@@ -30,15 +30,26 @@ function fmtGBP(n: number): string {
 }
 
 /** Build a human-readable calculation breakdown for the live preview */
-function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: number): string {
+function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: number, rateParams?: RateParams, role?: string): string {
+  const niPct = rateParams?.employerNiPct ?? 15;
+  const penPct = rateParams?.employerPensionPct ?? 14.38;
+  const totalPct = niPct + penPct;
+  const onCostsLabel = `${totalPct.toFixed(2)}% on-costs (NI ${niPct}% + Pension ${penPct}%)`;
+
+  let baseRate = '£11,000';
+  if (rateParams?.getRoleAnnualRate && role) {
+    const r = rateParams.getRoleAnnualRate(role);
+    if (r !== undefined) baseRate = fmtGBP(r);
+  }
+
   if (allocType === 'sessions') {
-    return `${allocValue} session${allocValue !== 1 ? 's' : ''} × £11,000/yr ÷ 12 months × 1.2938 on-costs`;
+    return `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${baseRate}/yr ÷ 12 months × ${onCostsLabel}`;
   }
   if (allocType === 'hours') {
     const wteRatio = (allocValue / 37.5).toFixed(2);
-    return `${allocValue} hrs/wk ÷ 37.5 = ${wteRatio} WTE × £60,000/yr ÷ 12 months × 1.2938 on-costs`;
+    return `${allocValue} hrs/wk ÷ 37.5 = ${wteRatio} WTE × ${baseRate}/yr ÷ 12 months × ${onCostsLabel}`;
   }
-  return `${allocValue} WTE × £60,000/yr ÷ 12 months × 1.2938 on-costs`;
+  return `${allocValue} WTE × ${baseRate}/yr ÷ 12 months × ${onCostsLabel}`;
 }
 
 const DECLARATION_TEXT =
@@ -210,7 +221,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams }: {
               <span className="font-semibold text-teal-800 dark:text-teal-200">{fmtGBP(monthly)}</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              {calcBreakdown(allocType, val)} = {fmtGBP(monthly)}/month
+              {calcBreakdown(allocType, val, rateParams, role)} = {fmtGBP(monthly)}/month
             </p>
           </div>
         );
@@ -225,7 +236,7 @@ export function BuyBackClaimsTab() {
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, approveClaim, rejectClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims();
   const { myPractices, mySubmitPractices, myApproverPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
   const { staffRoles, settings: rateSettings, onCostMultiplier, getAnnualRate, loading: loadingRates } = useNRESBuyBackRateSettings();
-  const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; } };
+  const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
 
   const isAdmin = admin;
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -382,7 +393,69 @@ export function BuyBackClaimsTab() {
         </div>
       </Collapsible>
 
-      {/* Practice Filter (admin) */}
+      {/* Maximum Rates Quick Reference */}
+      <Collapsible>
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors text-left">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Maximum Rates per Role</span>
+                <span className="text-xs text-muted-foreground">(as configured in Settings)</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="border-t px-3 pb-3">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs mt-2">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-2 font-medium">Role</th>
+                      <th className="text-right p-2 font-medium">Base Annual Rate</th>
+                      <th className="text-right p-2 font-medium">Employer NI ({rateSettings.employer_ni_pct}%)</th>
+                      <th className="text-right p-2 font-medium">Employer Pension ({rateSettings.employer_pension_pct}%)</th>
+                      <th className="text-right p-2 font-medium">Total Annual (incl. On-Costs)</th>
+                      <th className="text-right p-2 font-medium">Max Monthly Claim</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rateSettings.roles_config.map(role => {
+                      const niAmt = role.annual_rate * (rateSettings.employer_ni_pct / 100);
+                      const penAmt = role.annual_rate * (rateSettings.employer_pension_pct / 100);
+                      const totalAnnual = role.annual_rate + niAmt + penAmt;
+                      const maxAlloc = role.allocation_default === 'sessions' ? 9 : role.allocation_default === 'hours' ? 37.5 : 1;
+                      const maxMonthly = role.allocation_default === 'sessions'
+                        ? (maxAlloc * totalAnnual) / 12
+                        : role.allocation_default === 'hours'
+                        ? ((maxAlloc / 37.5) * totalAnnual) / 12
+                        : (maxAlloc * totalAnnual) / 12;
+                      return (
+                        <tr key={role.key} className="border-t">
+                          <td className="p-2 font-medium">
+                            {role.label}
+                            {role.allocation_default === 'sessions' && <span className="text-muted-foreground font-normal ml-1">(per session/yr)</span>}
+                          </td>
+                          <td className="p-2 text-right">{fmtGBP(role.annual_rate)}</td>
+                          <td className="p-2 text-right">{fmtGBP(niAmt)}</td>
+                          <td className="p-2 text-right">{fmtGBP(penAmt)}</td>
+                          <td className="p-2 text-right font-medium">{fmtGBP(totalAnnual)}</td>
+                          <td className="p-2 text-right font-semibold text-primary">{fmtGBP(maxMonthly)}/mo</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                On-costs: Employer NI ({rateSettings.employer_ni_pct}%) + Employer Pension ({rateSettings.employer_pension_pct}%) = {rateSettings.on_costs_pct.toFixed(2)}% total. Max monthly assumes full allocation (9 sessions, 37.5 hrs, or 1.0 WTE). Rates can be updated via Settings.
+              </p>
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+
       {isAdmin && (
         <div className="flex items-center gap-3">
           <Label className="text-sm font-medium">Filter by Practice:</Label>
@@ -605,10 +678,11 @@ function getStaffMaxAmount(staff: any, claimMonth?: string, rateParams?: RatePar
 function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RateParams) {
   const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours';
   const allocValue = staff.allocation_value as number;
+  const niPct = rateParams?.employerNiPct ?? 15;
+  const pensionPct = rateParams?.employerPensionPct ?? 14.38;
   const onCostRate = rateParams ? (rateParams.onCostMultiplier - 1) : 0.2938;
   const onCostPct = onCostRate * 100;
 
-  // Try to get role-specific annual rate
   let roleAnnualRate: number | undefined;
   if (rateParams?.getRoleAnnualRate && staff.staff_role) {
     roleAnnualRate = rateParams.getRoleAnnualRate(staff.staff_role);
@@ -632,7 +706,9 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     baseLabel = `${allocValue} WTE × ${rateLabel}/yr`;
   }
 
-  const onCostsValue = baseSalary * onCostRate;
+  const niValue = baseSalary * (niPct / 100);
+  const pensionValue = baseSalary * (pensionPct / 100);
+  const onCostsValue = niValue + pensionValue;
   const annualBase = baseSalary + onCostsValue;
   const fullMonthly = annualBase / 12;
 
@@ -655,7 +731,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     }
   }
 
-  return { baseSalary, baseLabel, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly };
+  return { baseSalary, baseLabel, niPct, pensionPct, niValue, pensionValue, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly, baseRate: rateLabel };
 }
 
 /** Hover card showing the full calculation breakdown for a staff line's monthly amount */
@@ -684,11 +760,14 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
             <p className="font-semibold">= {fmtGBP(breakdown.baseSalary)}/year</p>
           </div>
           <Separator />
-          {/* Step 2: On-costs */}
+          {/* Step 2: On-costs split */}
           <div>
-            <p className="text-muted-foreground font-medium mb-0.5">+ {breakdown.onCostPct.toFixed(2)}% Employer On-Costs</p>
-            <p className="text-foreground">{fmtGBP(breakdown.baseSalary)} × {breakdown.onCostPct.toFixed(2)}% = {fmtGBP(breakdown.onCostsValue)}</p>
+            <p className="text-muted-foreground font-medium mb-0.5">+ Employer On-Costs ({breakdown.onCostPct.toFixed(2)}%)</p>
+            <p className="text-foreground">Employer NI ({breakdown.niPct}%): {fmtGBP(breakdown.niValue)}</p>
+            <p className="text-foreground">Employer Pension ({breakdown.pensionPct}%): {fmtGBP(breakdown.pensionValue)}</p>
+            <p className="text-foreground">Total on-costs: {fmtGBP(breakdown.onCostsValue)}</p>
             <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)} + {fmtGBP(breakdown.onCostsValue)} = {fmtGBP(breakdown.annualBase)}/year</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 italic">Rates as configured in Settings</p>
           </div>
           <Separator />
           {/* Step 2: Monthly */}

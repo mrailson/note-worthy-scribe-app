@@ -7047,6 +7047,8 @@ export type Database = {
       }
       nres_buyback_rate_settings: {
         Row: {
+          employer_ni_pct: number
+          employer_pension_pct: number
           id: string
           on_costs_pct: number
           roles_config: Json
@@ -7054,6 +7056,8 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          employer_ni_pct?: number
+          employer_pension_pct?: number
           id?: string
           on_costs_pct?: number
           roles_config?: Json
@@ -7061,6 +7065,8 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          employer_ni_pct?: number
+          employer_pension_pct?: number
           id?: string
           on_costs_pct?: number
           roles_config?: Json
