@@ -483,13 +483,18 @@ export const SDADigitalIntegration = () => {
         {/* Patient Communication Strategy */}
         <div className="mt-6 border border-slate-200 rounded-lg p-4">
           <h3 className="font-semibold text-slate-900 mb-3">Patient Communication Strategy — NHS App Risk Stratification Marker</h3>
-          <img
-            src={patientCommsRiskStrat}
-            alt="NHS App Risk Stratification Marker - Patient Communication Strategy for Blue PCN showing context, challenge, solution template and current outcomes"
-            className="w-full rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={() => setLightboxImage({ src: patientCommsRiskStrat, alt: "Patient Communication Strategy", title: "NHS App Risk Stratification Marker — Patient Comms" })}
-          />
-          <p className="text-xs text-slate-500 mt-2">Governance: Malcolm Railson, Digital and Transformation Lead, Blue PCN | Date: 13 February 2026</p>
+          <div className="flex items-start gap-4">
+            <img
+              src={patientCommsRiskStrat}
+              alt="NHS App Risk Stratification Marker - Patient Communication Strategy for Blue PCN"
+              className="w-48 sm:w-56 rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0"
+              onClick={() => setLightboxImage({ src: patientCommsRiskStrat, alt: "Patient Communication Strategy", title: "NHS App Risk Stratification Marker — Patient Comms" })}
+            />
+            <div className="text-sm text-slate-600 space-y-1">
+              <p>Click image to view full size. Covers context &amp; mandate, NHS App visibility challenge, pre-approved patient communication template, and current outcomes.</p>
+              <p className="text-xs text-slate-500">Governance: Malcolm Railson, Digital and Transformation Lead, Blue PCN | Date: 13 February 2026</p>
+            </div>
+          </div>
         </div>
       </CollapsibleCard>
 
