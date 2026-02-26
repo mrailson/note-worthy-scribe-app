@@ -421,7 +421,12 @@ export function BuyBackClaimsTab() {
                       <th className="text-right p-2 font-medium">Employer NI ({rateSettings.employer_ni_pct}%)</th>
                       <th className="text-right p-2 font-medium">Employer Pension ({rateSettings.employer_pension_pct}%)</th>
                       <th className="text-right p-2 font-medium">Total Annual (incl. On-Costs)</th>
-                      <th className="text-right p-2 font-medium">Max Monthly Claim</th>
+                      <th className="text-right p-2 font-medium">
+                        <div className="flex items-center justify-end gap-1">
+                          Max Monthly Claim
+                          <InfoTooltip content="For sessional GPs, the max monthly claim is based on 9 sessions (1 WTE equivalent). The per-session annual rate is multiplied by 9 to give the full-time annual cost, then divided by 12 for the monthly figure." />
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
