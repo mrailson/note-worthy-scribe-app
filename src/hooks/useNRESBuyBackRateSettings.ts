@@ -13,6 +13,8 @@ export interface RoleConfig {
 
 export interface RateSettings {
   on_costs_pct: number;
+  employer_ni_pct: number;
+  employer_pension_pct: number;
   roles_config: RoleConfig[];
 }
 
@@ -26,11 +28,15 @@ const DEFAULT_ROLES: RoleConfig[] = [
 ];
 
 const DEFAULT_ON_COSTS_PCT = 29.38;
+const DEFAULT_EMPLOYER_NI_PCT = 15;
+const DEFAULT_EMPLOYER_PENSION_PCT = 14.38;
 
 export function useNRESBuyBackRateSettings() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<RateSettings>({
     on_costs_pct: DEFAULT_ON_COSTS_PCT,
+    employer_ni_pct: DEFAULT_EMPLOYER_NI_PCT,
+    employer_pension_pct: DEFAULT_EMPLOYER_PENSION_PCT,
     roles_config: DEFAULT_ROLES,
   });
   const [loading, setLoading] = useState(true);
@@ -50,8 +56,12 @@ export function useNRESBuyBackRateSettings() {
 
       if (error) throw error;
       if (data) {
+        const niPct = Number(data.employer_ni_pct) || DEFAULT_EMPLOYER_NI_PCT;
+        const pensionPct = Number(data.employer_pension_pct) || DEFAULT_EMPLOYER_PENSION_PCT;
         setSettings({
-          on_costs_pct: Number(data.on_costs_pct) || DEFAULT_ON_COSTS_PCT,
+          on_costs_pct: niPct + pensionPct,
+          employer_ni_pct: niPct,
+          employer_pension_pct: pensionPct,
           roles_config: (data.roles_config as RoleConfig[]) || DEFAULT_ROLES,
         });
       }
@@ -68,22 +78,25 @@ export function useNRESBuyBackRateSettings() {
     return () => { hasFetchedRef.current = false; };
   }, [user?.id]);
 
-  const updateSettings = useCallback(async (onCostsPct: number, rolesConfig: RoleConfig[]) => {
+  const updateSettings = useCallback(async (niPct: number, pensionPct: number, rolesConfig: RoleConfig[]) => {
     if (!user?.id) return;
     try {
       setSaving(true);
+      const totalOnCosts = niPct + pensionPct;
       const { error } = await (supabase as any)
         .from('nres_buyback_rate_settings')
         .upsert({
           id: 'default',
-          on_costs_pct: onCostsPct,
+          on_costs_pct: totalOnCosts,
+          employer_ni_pct: niPct,
+          employer_pension_pct: pensionPct,
           roles_config: rolesConfig,
           updated_at: new Date().toISOString(),
           updated_by: user.id,
         });
 
       if (error) throw error;
-      setSettings({ on_costs_pct: onCostsPct, roles_config: rolesConfig });
+      setSettings({ on_costs_pct: totalOnCosts, employer_ni_pct: niPct, employer_pension_pct: pensionPct, roles_config: rolesConfig });
       toast.success('Rate settings saved');
     } catch (err) {
       console.error('Error saving rate settings:', err);

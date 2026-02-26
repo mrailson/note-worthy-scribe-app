@@ -178,19 +178,23 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
 
 function RatesAndRolesPanel() {
   const { settings, loading, saving, updateSettings } = useNRESBuyBackRateSettings();
-  const [onCostsPct, setOnCostsPct] = useState<string>('');
+  const [niPct, setNiPct] = useState<string>('');
+  const [pensionPct, setPensionPct] = useState<string>('');
   const [roles, setRoles] = useState<RoleConfig[]>([]);
   const [initialised, setInitialised] = useState(false);
   const [newRoleLabel, setNewRoleLabel] = useState('');
 
   // Initialise local state from fetched settings
   if (!loading && !initialised) {
-    setOnCostsPct(String(settings.on_costs_pct));
+    setNiPct(String(settings.employer_ni_pct));
+    setPensionPct(String(settings.employer_pension_pct));
     setRoles(settings.roles_config);
     setInitialised(true);
   }
 
-  const onCostsPctNum = parseFloat(onCostsPct) || 0;
+  const niPctNum = parseFloat(niPct) || 0;
+  const pensionPctNum = parseFloat(pensionPct) || 0;
+  const onCostsPctNum = niPctNum + pensionPctNum;
   const onCostMultiplier = 1 + onCostsPctNum / 100;
 
   const handleRoleFieldChange = (index: number, field: keyof RoleConfig, value: any) => {
@@ -200,9 +204,7 @@ function RatesAndRolesPanel() {
   const handleAddRole = () => {
     if (!newRoleLabel.trim()) return;
     const key = newRoleLabel.trim().toLowerCase().replace(/\s+/g, '_');
-    if (roles.some(r => r.key === key)) {
-      return;
-    }
+    if (roles.some(r => r.key === key)) return;
     setRoles(prev => [...prev, {
       key,
       label: newRoleLabel.trim(),
@@ -218,11 +220,12 @@ function RatesAndRolesPanel() {
   };
 
   const handleSave = () => {
-    updateSettings(onCostsPctNum, roles);
+    updateSettings(niPctNum, pensionPctNum, roles);
   };
 
   const hasChanges = initialised && (
-    onCostsPct !== String(settings.on_costs_pct) ||
+    niPct !== String(settings.employer_ni_pct) ||
+    pensionPct !== String(settings.employer_pension_pct) ||
     JSON.stringify(roles) !== JSON.stringify(settings.roles_config)
   );
 
@@ -236,24 +239,55 @@ function RatesAndRolesPanel() {
 
   return (
     <div className="space-y-6 pb-4">
-      {/* Section A: On-Costs */}
+      {/* Section A: On-Costs — split into NI and Pension */}
       <div>
         <h3 className="font-semibold text-sm mb-2">Employer On-Costs</h3>
-        <div className="flex items-center gap-2">
-          <Input
-            type="number"
-            className="w-28 h-8 text-sm"
-            value={onCostsPct}
-            onChange={e => setOnCostsPct(e.target.value)}
-            step="0.01"
-            min="0"
-            max="100"
-          />
-          <span className="text-sm text-muted-foreground">%</span>
-        </div>
-        <p className="text-[10px] text-muted-foreground mt-1">
-          Applied on top of base annual salary (e.g. 29.38% covers NI, pension and other employer costs).
+        <p className="text-xs text-muted-foreground mb-3">
+          On-costs are the additional employer contributions paid on top of an employee's base salary. They consist of two components:
         </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs font-medium">Employer National Insurance</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                type="number"
+                className="w-28 h-8 text-sm"
+                value={niPct}
+                onChange={e => setNiPct(e.target.value)}
+                step="0.01"
+                min="0"
+                max="100"
+              />
+              <span className="text-sm text-muted-foreground">%</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Employer NI contributions (Class 1 secondary)
+            </p>
+          </div>
+          <div>
+            <Label className="text-xs font-medium">Employer Pension Contributions</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                type="number"
+                className="w-28 h-8 text-sm"
+                value={pensionPct}
+                onChange={e => setPensionPct(e.target.value)}
+                step="0.01"
+                min="0"
+                max="100"
+              />
+              <span className="text-sm text-muted-foreground">%</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              NHS Pension Scheme employer contribution rate
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 rounded-md bg-muted/50 px-3 py-2 text-xs">
+          <span className="font-medium">Combined on-costs rate: </span>
+          <span className="font-semibold">{onCostsPctNum.toFixed(2)}%</span>
+          <span className="text-muted-foreground ml-1">(NI {niPctNum}% + Pension {pensionPctNum}%)</span>
+        </div>
       </div>
 
       <Separator />
@@ -335,34 +369,43 @@ function RatesAndRolesPanel() {
       {/* Section C: Cost Breakdown */}
       <div>
         <h3 className="font-semibold text-sm mb-2">Cost Breakdown</h3>
-        <div className="border rounded-md overflow-hidden">
+        <div className="border rounded-md overflow-hidden overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted/50">
               <tr>
                 <th className="text-left p-2 font-medium">Role</th>
                 <th className="text-right p-2 font-medium">Base Annual</th>
                 <th className="text-right p-2 font-medium">Staff Pay Rate (Hourly)</th>
-                <th className="text-right p-2 font-medium">On-Costs ({onCostsPctNum}%)</th>
+                <th className="text-right p-2 font-medium">Employer NI ({niPctNum}%)</th>
+                <th className="text-right p-2 font-medium">Employer Pension ({pensionPctNum}%)</th>
+                <th className="text-right p-2 font-medium">Total On-Costs</th>
                 <th className="text-right p-2 font-medium">Total Annual</th>
                 <th className="text-right p-2 font-medium">Equiv. Hourly (incl. On-Costs)</th>
+                <th className="text-right p-2 font-medium">Max Monthly Claim</th>
               </tr>
             </thead>
             <tbody>
               {roles.map(role => {
                 const workingHrs = role.working_hours_per_year || 1950;
-                // For sessions-based roles, annual_rate is per session per year
-                // A WTE GP does 9 sessions/wk, so multiply to get full annual salary equivalent
                 const fullAnnualBase = role.allocation_default === 'sessions'
                   ? role.annual_rate * 9
                   : role.annual_rate;
                 const staffHourlyRate = workingHrs > 0 ? fullAnnualBase / workingHrs : 0;
-                const onCostsAmt = role.annual_rate * (onCostsPctNum / 100);
-                const totalAnnual = role.annual_rate + onCostsAmt;
-                // Full annual with on-costs for hourly equiv
+                const niAmt = role.annual_rate * (niPctNum / 100);
+                const pensionAmt = role.annual_rate * (pensionPctNum / 100);
+                const totalOnCosts = niAmt + pensionAmt;
+                const totalAnnual = role.annual_rate + totalOnCosts;
                 const fullAnnualWithOnCosts = role.allocation_default === 'sessions'
                   ? totalAnnual * 9
                   : totalAnnual;
                 const hourlyEquivWithOnCosts = workingHrs > 0 ? fullAnnualWithOnCosts / workingHrs : 0;
+                // Max monthly = full allocation at 1.0 WTE / 9 sessions / 37.5 hrs
+                const maxAlloc = role.allocation_default === 'sessions' ? 9 : role.allocation_default === 'hours' ? 37.5 : 1;
+                const maxMonthly = role.allocation_default === 'sessions'
+                  ? (maxAlloc * totalAnnual) / 12
+                  : role.allocation_default === 'hours'
+                  ? ((maxAlloc / 37.5) * totalAnnual) / 12
+                  : (maxAlloc * totalAnnual) / 12;
                 return (
                   <tr key={role.key} className="border-t">
                     <td className="p-2">
@@ -373,9 +416,12 @@ function RatesAndRolesPanel() {
                     </td>
                     <td className="p-2 text-right">{fmtGBP(role.annual_rate)}</td>
                     <td className="p-2 text-right">{fmtGBP(staffHourlyRate)}/hr</td>
-                    <td className="p-2 text-right">{fmtGBP(onCostsAmt)}</td>
+                    <td className="p-2 text-right">{fmtGBP(niAmt)}</td>
+                    <td className="p-2 text-right">{fmtGBP(pensionAmt)}</td>
+                    <td className="p-2 text-right">{fmtGBP(totalOnCosts)}</td>
                     <td className="p-2 text-right font-medium">{fmtGBP(totalAnnual)}</td>
                     <td className="p-2 text-right font-medium">{fmtGBP(hourlyEquivWithOnCosts)}/hr</td>
+                    <td className="p-2 text-right font-semibold text-primary">{fmtGBP(maxMonthly)}/mo</td>
                   </tr>
                 );
               })}
@@ -383,7 +429,7 @@ function RatesAndRolesPanel() {
           </table>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1">
-          Staff Pay Rate = Base Annual ÷ {roles[0]?.working_hours_per_year || 1950} hrs/yr. Equiv. Hourly = Total Annual (incl. on-costs) ÷ {roles[0]?.working_hours_per_year || 1950} hrs/yr. GP rates shown per session — hourly equivalents based on 9 sessions/wk.
+          On-costs = Employer NI ({niPctNum}%) + Employer Pension ({pensionPctNum}%) = {onCostsPctNum.toFixed(2)}% total. Staff Pay Rate = Base Annual ÷ {roles[0]?.working_hours_per_year || 1950} hrs/yr. GP rates shown per session — hourly equivalents based on 9 sessions/wk. Max Monthly = full allocation at maximum capacity.
         </p>
       </div>
 

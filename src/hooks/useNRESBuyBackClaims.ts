@@ -41,6 +41,8 @@ const DEFAULT_WTE_ANNUAL        = 60000 * 1.2938;
 export interface RateParams {
   onCostMultiplier: number;
   getRoleAnnualRate?: (roleLabel: string) => number | undefined;
+  employerNiPct?: number;
+  employerPensionPct?: number;
 }
 
 /** Calculate the maximum monthly claim amount for a staff member */
