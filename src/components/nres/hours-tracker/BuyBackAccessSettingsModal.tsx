@@ -77,20 +77,20 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
         </DialogHeader>
 
         <Tabs defaultValue="access" className="flex-1 min-h-0 flex flex-col">
-          <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto">
+          <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto mb-4">
             <TabsTrigger value="access" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Access Permissions</TabsTrigger>
             <TabsTrigger value="rates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Rates &amp; Roles</TabsTrigger>
             <TabsTrigger value="email" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Email Settings</TabsTrigger>
           </TabsList>
 
           {/* Access Permissions Tab */}
-          <TabsContent value="access" className="flex-1 min-h-0 overflow-hidden">
+          <TabsContent value="access" className="flex-1 min-h-0 overflow-y-auto mt-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="flex gap-4 flex-1 min-h-0 overflow-hidden">
+              <div className="flex gap-4 flex-1 min-h-0 overflow-hidden pb-2">
                 {/* User list */}
                 <div className="w-64 shrink-0 flex flex-col border rounded-md overflow-hidden">
                   <div className="p-2 border-b">
@@ -177,12 +177,12 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
           </TabsContent>
 
           {/* Rates & Roles Tab */}
-          <TabsContent value="rates" className="flex-1 min-h-0 overflow-y-auto">
+          <TabsContent value="rates" className="flex-1 min-h-0 overflow-y-auto mt-0">
             <RatesAndRolesPanel />
           </TabsContent>
 
           {/* Email Settings Tab */}
-          <TabsContent value="email" className="flex-1 min-h-0 overflow-y-auto">
+          <TabsContent value="email" className="flex-1 min-h-0 overflow-y-auto mt-0">
             <EmailSettingsPanel />
           </TabsContent>
         </Tabs>
