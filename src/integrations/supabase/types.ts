@@ -7045,6 +7045,30 @@ export type Database = {
           },
         ]
       }
+      nres_buyback_rate_settings: {
+        Row: {
+          id: string
+          on_costs_pct: number
+          roles_config: Json
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          on_costs_pct?: number
+          roles_config?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          on_costs_pct?: number
+          roles_config?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       nres_buyback_staff: {
         Row: {
           allocation_type: string
