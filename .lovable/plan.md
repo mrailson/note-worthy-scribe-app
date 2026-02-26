@@ -1,62 +1,94 @@
 
 
-# Buy-Back Settings Modal — Design Refresh
+## Plan: Buy-Back Email Notifications with Testing Mode Toggle
 
-## Overview
+### Overview
+Add a third "Email Settings" tab to the Buy-Back Settings modal with a **Testing Mode** toggle. When enabled, all system-generated emails are redirected to the currently logged-in admin user. When disabled, emails go to their intended recipients. Additionally, define and wire in all email notification types across the claims workflow.
 
-Restyle the Buy-Back Settings modal to look more polished and professional, with white input backgrounds, better edge spacing/padding, improved heading hierarchy, and a cleaner tab navigation style.
+---
 
-## Changes (all in `BuyBackAccessSettingsModal.tsx`)
+### Email Types to Create
 
-### 1. Modal Container
-- Add generous internal padding (`px-8 sm:px-10`) matching the NRES SDA modal pattern
-- Increase max-width slightly to `max-w-5xl` to give the cost breakdown table more room
+| Email Type | Trigger Point | Intended Recipient | Description |
+|---|---|---|---|
+| **Claim Submitted** | `submitClaim()` | All approvers for that practice | Notifies approvers a new claim awaits review |
+| **Submission Confirmation** | `submitClaim()` | The submitting user | Confirms their claim was submitted successfully |
+| **Claim Approved** | `approveClaim()` | The submitting user | Notifies the submitter their claim was approved |
+| **Approval Confirmation** | `approveClaim()` | The approver (reviewer) | Confirms to the approver that the approval was recorded |
+| **Claim Rejected** | `rejectClaim()` | The submitting user | Notifies the submitter their claim was declined, with reviewer notes |
+| **Rejection Confirmation** | `rejectClaim()` | The approver (reviewer) | Confirms to the approver that the rejection was recorded |
 
-### 2. Header
-- Replace the plain `DialogTitle` with a styled header featuring a subtle bottom border, larger font size (`text-xl font-bold`), and a muted description beneath
-- Add a small settings icon alongside the title for visual polish
+---
 
-### 3. Tab Navigation
-- Override the default blue pill-style `TabsList` with a clean underline/border-bottom tab style: transparent background, no outer border, with only the active tab getting a bottom border accent (`border-b-2 border-primary`)
-- Tabs will have `bg-transparent` with `data-[state=active]:shadow-none` for a flat, professional look
+### Technical Implementation
 
-### 4. Section Headings
-- Style section headings ("Employer On-Costs", "Role Types", "Cost Breakdown") with a left blue accent border (`border-l-3 border-primary pl-3`) and slightly larger text (`text-sm font-semibold`)
+#### 1. Database: Add `email_testing_mode` column to `nres_buyback_rate_settings`
 
-### 5. Input Styling
-- Add explicit `bg-white dark:bg-slate-900` to all `Input` fields and `SelectTrigger` elements for clear white backgrounds against the modal
-- Slightly increase input heights for better touch targets
+Add a boolean column `email_testing_mode` (default `false`) to the existing settings table. This keeps all Buy-Back settings in one place using the existing singleton row (`id = 'default'`).
 
-### 6. On-Costs Section
-- Add a subtle card wrapper (`bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4`) around the NI and Pension inputs
-- Style the combined rate summary more prominently with a coloured accent
+```sql
+ALTER TABLE nres_buyback_rate_settings
+ADD COLUMN email_testing_mode boolean NOT NULL DEFAULT false;
+```
 
-### 7. Tables
-- Add `bg-white dark:bg-slate-900` to table containers
-- Use slightly more padding in cells (`px-3 py-2.5`)
-- Style header rows with a stronger background (`bg-slate-100 dark:bg-slate-800`)
+#### 2. Hook: Update `useNRESBuyBackRateSettings.ts`
 
-### 8. Cost Breakdown Footer Note
-- Wrap in a subtle info card style rather than plain text
+- Add `email_testing_mode` to the `RateSettings` interface
+- Read and write the new column alongside existing settings
+- Expose a `toggleEmailTestingMode(enabled: boolean)` function
 
-## Technical Details
+#### 3. Settings UI: Add "Email Settings" tab to `BuyBackAccessSettingsModal.tsx`
 
-### File Modified
-- `src/components/nres/hours-tracker/BuyBackAccessSettingsModal.tsx`
+- New third tab alongside "Access Permissions" and "Rates & Roles"
+- Contains:
+  - A **Testing Mode** toggle (Switch component) with clear explanation
+  - A summary table of all 6 email types showing: type name, when it triggers, and who receives it
+  - A visual indicator showing current mode (e.g. green badge "Live" or amber badge "Testing")
 
-### Key Class Changes
+#### 4. New utility: `src/utils/buybackEmailService.ts`
 
-**DialogContent**: `max-w-5xl max-h-[calc(100vh-8rem)]`
+A centralised email service that:
+- Accepts the email type, claim data, and the testing mode flag
+- Resolves the intended recipient(s) by looking up approver emails for the practice from `nres_buyback_access` joined with `profiles`
+- If testing mode is on, overrides all recipients with the current user's email
+- Builds styled HTML email content using NHS branding (consistent with existing Resend emails)
+- Calls `send-email-resend` edge function
+- Returns success/failure
 
-**TabsList**: Override with `bg-transparent border-b border-border rounded-none p-0 h-auto`
+#### 5. Wire emails into `useNRESBuyBackClaims.ts`
 
-**TabsTrigger**: `rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none`
+Update the three key functions to call the email service after successful DB operations:
 
-**Section headings**: `border-l-3 border-primary pl-3 text-sm font-semibold`
+- **`submitClaim()`**: Send "Claim Submitted" to approvers + "Submission Confirmation" to submitter
+- **`approveClaim()`**: Send "Claim Approved" to submitter + "Approval Confirmation" to reviewer
+- **`rejectClaim()`**: Send "Claim Rejected" to submitter + "Rejection Confirmation" to reviewer
 
-**Inputs**: `bg-white dark:bg-slate-900`
+The hook will accept the testing mode flag and current user email as parameters (passed from the parent component which already has access to settings).
 
-**Table wrappers**: `bg-white dark:bg-slate-900 border rounded-lg overflow-hidden`
+#### 6. Approver email resolution
 
-No logic changes — purely visual/CSS class updates.
+Query `nres_buyback_access` for users with `access_role = 'approver'` for the claim's `practice_key`, then join with `profiles` to get their email addresses. This ensures the correct approvers are notified per practice.
+
+---
+
+### Email Template Design
+
+All emails will follow the existing Notewell AI branded template style (`noreply@bluepcn.co.uk`):
+- NHS blue gradient header
+- Clear subject lines, e.g. "Buy-Back Claim Submitted - [Practice] - [Month]"
+- Claim summary: practice, month, total amount, number of staff lines
+- Action-specific content (approval notes, rejection reasons)
+- Footer with timestamp
+
+---
+
+### Files to Create/Modify
+
+| File | Action |
+|---|---|
+| `nres_buyback_rate_settings` table | Add `email_testing_mode` column |
+| `src/hooks/useNRESBuyBackRateSettings.ts` | Read/write new column, expose toggle |
+| `src/components/nres/hours-tracker/BuyBackAccessSettingsModal.tsx` | Add "Email Settings" tab |
+| `src/utils/buybackEmailService.ts` | **New** - centralised email dispatch |
+| `src/hooks/useNRESBuyBackClaims.ts` | Wire email calls into submit/approve/reject |
 
