@@ -7,6 +7,7 @@ import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
+import patientCommsRiskStrat from "@/assets/patient_comms_riskstrat_red_flag.png";
 
 
 const NRESReportingRequirements = lazy(() => import("@/components/sda/NRESReportingRequirements"));
@@ -456,15 +457,39 @@ export const SDADigitalIntegration = () => {
                 <p>Additional protection for patients unable to travel, experiencing anxiety/stress in unfamiliar settings, or where local knowledge (safeguarding, complex family dynamics) is essential.</p>
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-200">
+            <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap gap-2">
               <Button variant="outline" size="sm" asChild>
                 <a href="/documents/NRES_Risk_Stratification_Overview.docx" download>
                   <Download className="h-4 w-4 mr-2" />
-                  Download Full Document (Word)
+                  Full Document (Word)
+                </a>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <a href="/documents/Risk_Stratification_Continuity_of_Care_EMIS.docx" download>
+                  <Download className="h-4 w-4 mr-2" />
+                  EMIS Bulk Loading Guide
+                </a>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <a href="/documents/Risk_Stratification_Continuity_of_Care_SystmOne.docx" download>
+                  <Download className="h-4 w-4 mr-2" />
+                  SystmOne Bulk Loading Guide
                 </a>
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Patient Communication Strategy */}
+        <div className="mt-6 border border-slate-200 rounded-lg p-4">
+          <h3 className="font-semibold text-slate-900 mb-3">Patient Communication Strategy — NHS App Risk Stratification Marker</h3>
+          <img
+            src={patientCommsRiskStrat}
+            alt="NHS App Risk Stratification Marker - Patient Communication Strategy for Blue PCN showing context, challenge, solution template and current outcomes"
+            className="w-full rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => setLightboxImage({ src: patientCommsRiskStrat, alt: "Patient Communication Strategy", title: "NHS App Risk Stratification Marker — Patient Comms" })}
+          />
+          <p className="text-xs text-slate-500 mt-2">Governance: Malcolm Railson, Digital and Transformation Lead, Blue PCN | Date: 13 February 2026</p>
         </div>
       </CollapsibleCard>
 
