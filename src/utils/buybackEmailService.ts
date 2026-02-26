@@ -9,6 +9,14 @@ export type BuyBackEmailType =
   | 'claim_rejected'
   | 'rejection_confirmation';
 
+export interface BuyBackEmailStaffLine {
+  staff_name: string;
+  staff_role: string;
+  allocation_type: string;
+  allocation_value: number;
+  claimed_amount: number;
+}
+
 export interface BuyBackEmailData {
   claimId: string;
   practiceKey: string;
@@ -16,6 +24,7 @@ export interface BuyBackEmailData {
   totalAmount: number;
   staffLineCount: number;
   staffCategories?: string[];
+  staffLines?: BuyBackEmailStaffLine[];
   submitterEmail: string;
   submitterName?: string;
   reviewerEmail?: string;
@@ -83,12 +92,42 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
       `;
       break;
-    case 'submission_confirmation':
+    case 'submission_confirmation': {
+      let staffBreakdown = '';
+      if (data.staffLines && data.staffLines.length > 0) {
+        const rows = data.staffLines.map((s, i) => {
+          const bg = i % 2 === 0 ? '#f9fafb' : '#ffffff';
+          const allocLabel = s.allocation_type === 'sessions' ? 'sessions' : s.allocation_type === 'wte' ? 'WTE' : 'hours';
+          return `
+            <tr style="background:${bg};">
+              <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;">${s.staff_name}</td>
+              <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;">${s.staff_role}</td>
+              <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;text-align:center;">${s.allocation_value} ${allocLabel}</td>
+              <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;text-align:right;font-weight:600;">${formatCurrency(s.claimed_amount)}</td>
+            </tr>`;
+        }).join('');
+        staffBreakdown = `
+          <table width="100%" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;border-collapse:collapse;" cellpadding="0" cellspacing="0">
+            <tr style="background:#1e40af;">
+              <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:left;font-weight:600;">Staff Member</th>
+              <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:left;font-weight:600;">Role</th>
+              <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:center;font-weight:600;">Allocation</th>
+              <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:right;font-weight:600;">Amount</th>
+            </tr>
+            ${rows}
+            <tr style="background:#f0f4ff;">
+              <td colspan="3" style="padding:8px 12px;font-size:12px;font-weight:700;color:#1e40af;border-top:2px solid #1e40af;">Total</td>
+              <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#1e40af;border-top:2px solid #1e40af;text-align:right;">${formatCurrency(data.totalAmount)}</td>
+            </tr>
+          </table>`;
+      }
       bodyContent = `
         <p>Your ${claimLabel.toLowerCase()} has been successfully submitted for approval.</p>
         <p>You will receive an email notification once the claim has been reviewed.</p>
+        ${staffBreakdown}
       `;
       break;
+    }
     case 'claim_approved':
       bodyContent = `
         <p>Your ${claimLabel.toLowerCase()} has been approved.</p>
