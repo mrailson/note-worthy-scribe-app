@@ -592,7 +592,7 @@ Maintain readability but prioritise the requested visual style.`;
       // Call the AI image generation edge function with Gemini Pro 3
       // Use Promise.race for timeout since Supabase client doesn't support AbortController
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Image generation timed out after 120 seconds. Please try again.')), 120000);
+        setTimeout(() => reject(new Error('Image generation timed out after 180 seconds. Please try again.')), 180000);
       });
 
       // Determine orientation - default to landscape
