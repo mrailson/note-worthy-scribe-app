@@ -15,6 +15,7 @@ export interface BuyBackEmailData {
   claimMonth: string;
   totalAmount: number;
   staffLineCount: number;
+  staffCategories?: string[];
   submitterEmail: string;
   submitterName?: string;
   reviewerEmail?: string;
@@ -30,13 +31,25 @@ interface SendEmailPayload {
   from_email?: string;
 }
 
-const EMAIL_TYPE_CONFIG: Record<BuyBackEmailType, { subjectPrefix: string; heading: string; colour: string }> = {
-  claim_submitted: { subjectPrefix: 'New Buy-Back Claim', heading: 'New Claim Awaiting Approval', colour: '#2563eb' },
-  submission_confirmation: { subjectPrefix: 'Claim Submitted', heading: 'Your Claim Has Been Submitted', colour: '#2563eb' },
-  claim_approved: { subjectPrefix: 'Claim Approved', heading: 'Your Claim Has Been Approved', colour: '#16a34a' },
-  approval_confirmation: { subjectPrefix: 'Approval Recorded', heading: 'Approval Confirmation', colour: '#16a34a' },
-  claim_rejected: { subjectPrefix: 'Claim Declined', heading: 'Your Claim Has Been Declined', colour: '#dc2626' },
-  rejection_confirmation: { subjectPrefix: 'Rejection Recorded', heading: 'Rejection Confirmation', colour: '#dc2626' },
+/**
+ * Determine the claim type label based on staff categories.
+ * All buy-back → "Buy-Back Claim", all new_sda → "SDA Staff Claim", mixed → "NRES SDA Staff and Buy-Back Claim"
+ */
+function getClaimTypeLabel(categories?: string[]): string {
+  if (!categories || categories.length === 0) return 'SDA Claim';
+  const unique = [...new Set(categories)];
+  if (unique.length === 1 && unique[0] === 'buyback') return 'Buy-Back Claim';
+  if (unique.length === 1 && unique[0] === 'new_sda') return 'SDA Staff Claim';
+  return 'NRES SDA Staff and Buy-Back Claim';
+}
+
+const EMAIL_TYPE_CONFIG: Record<BuyBackEmailType, { subjectAction: string; heading: (label: string) => string; colour: string }> = {
+  claim_submitted: { subjectAction: 'New', heading: (l) => `New ${l} Awaiting Approval`, colour: '#2563eb' },
+  submission_confirmation: { subjectAction: 'Submitted', heading: (l) => `Your ${l} Has Been Submitted`, colour: '#2563eb' },
+  claim_approved: { subjectAction: 'Approved', heading: (l) => `Your ${l} Has Been Approved`, colour: '#16a34a' },
+  approval_confirmation: { subjectAction: 'Approval Recorded', heading: (l) => `${l} Approval Confirmation`, colour: '#16a34a' },
+  claim_rejected: { subjectAction: 'Declined', heading: (l) => `Your ${l} Has Been Declined`, colour: '#dc2626' },
+  rejection_confirmation: { subjectAction: 'Rejection Recorded', heading: (l) => `${l} Rejection Confirmation`, colour: '#dc2626' },
 };
 
 function formatMonth(claimMonth: string): string {
@@ -55,6 +68,7 @@ function formatCurrency(n: number): string {
 
 function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string {
   const cfg = EMAIL_TYPE_CONFIG[type];
+  const claimLabel = getClaimTypeLabel(data.staffCategories);
   const practiceName = NRES_PRACTICES[data.practiceKey] || data.practiceKey;
   const month = formatMonth(data.claimMonth);
   const amount = formatCurrency(data.totalAmount);
@@ -65,32 +79,32 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
   switch (type) {
     case 'claim_submitted':
       bodyContent = `
-        <p>A new buy-back claim has been submitted and requires your review.</p>
+        <p>A new ${claimLabel.toLowerCase()} has been submitted and requires your review.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
       `;
       break;
     case 'submission_confirmation':
       bodyContent = `
-        <p>Your buy-back claim has been successfully submitted for approval.</p>
+        <p>Your ${claimLabel.toLowerCase()} has been successfully submitted for approval.</p>
         <p>You will receive an email notification once the claim has been reviewed.</p>
       `;
       break;
     case 'claim_approved':
       bodyContent = `
-        <p>Your buy-back claim has been approved.</p>
+        <p>Your ${claimLabel.toLowerCase()} has been approved.</p>
         ${data.reviewerName ? `<p><strong>Approved by:</strong> ${data.reviewerName}</p>` : ''}
         ${data.reviewNotes ? `<p><strong>Notes:</strong> ${data.reviewNotes}</p>` : ''}
       `;
       break;
     case 'approval_confirmation':
       bodyContent = `
-        <p>This confirms that you have approved the following buy-back claim.</p>
+        <p>This confirms that you have approved the following ${claimLabel.toLowerCase()}.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
       `;
       break;
     case 'claim_rejected':
       bodyContent = `
-        <p>Your buy-back claim has been declined.</p>
+        <p>Your ${claimLabel.toLowerCase()} has been declined.</p>
         ${data.reviewerName ? `<p><strong>Reviewed by:</strong> ${data.reviewerName}</p>` : ''}
         ${data.reviewNotes ? `<p><strong>Reason:</strong> ${data.reviewNotes}</p>` : ''}
         <p>Please review the feedback and resubmit if appropriate.</p>
@@ -98,7 +112,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       break;
     case 'rejection_confirmation':
       bodyContent = `
-        <p>This confirms that you have declined the following buy-back claim.</p>
+        <p>This confirms that you have declined the following ${claimLabel.toLowerCase()}.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
         ${data.reviewNotes ? `<p><strong>Your notes:</strong> ${data.reviewNotes}</p>` : ''}
       `;
@@ -123,7 +137,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
             <!-- Status bar -->
             <tr>
               <td style="background:${cfg.colour};padding:12px 32px;">
-                <h2 style="margin:0;color:#ffffff;font-size:16px;font-weight:600;">${cfg.heading}</h2>
+                <h2 style="margin:0;color:#ffffff;font-size:16px;font-weight:600;">${cfg.heading(claimLabel)}</h2>
               </td>
             </tr>
             <!-- Body -->
@@ -167,9 +181,10 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
 
 function buildSubject(type: BuyBackEmailType, data: BuyBackEmailData): string {
   const cfg = EMAIL_TYPE_CONFIG[type];
+  const claimLabel = getClaimTypeLabel(data.staffCategories);
   const practiceName = NRES_PRACTICES[data.practiceKey] || data.practiceKey;
   const month = formatMonth(data.claimMonth);
-  return `${cfg.subjectPrefix} — ${practiceName} — ${month}`;
+  return `${cfg.subjectAction} ${claimLabel} — ${practiceName} — ${month}`;
 }
 
 /**

@@ -233,12 +233,14 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
       // Send emails (non-blocking)
       if (emailConfig && claim.practice_key) {
+        const staffDetails = claim.staff_details as any[] || [];
         const emailData: BuyBackEmailData = {
           claimId: id,
           practiceKey: claim.practice_key,
           claimMonth: claim.claim_month,
           totalAmount: claim.claimed_amount,
-          staffLineCount: (claim.staff_details as any[])?.length || 0,
+          staffLineCount: staffDetails.length,
+          staffCategories: staffDetails.map((s: any) => s.staff_category).filter(Boolean),
           submitterEmail: user.email || '',
           submitterName: emailConfig.currentUserName,
         };
@@ -430,12 +432,14 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
       // Send emails (non-blocking)
       if (emailConfig && claim?.practice_key) {
+        const staffDetails = (claim.staff_details as any[]) || [];
         const emailData: BuyBackEmailData = {
           claimId: id,
           practiceKey: claim.practice_key,
           claimMonth: claim.claim_month,
           totalAmount: claim.claimed_amount,
-          staffLineCount: (claim.staff_details as any[])?.length || 0,
+          staffLineCount: staffDetails.length,
+          staffCategories: staffDetails.map((s: any) => s.staff_category).filter(Boolean),
           submitterEmail: claim.submitted_by_email || '',
           reviewerEmail: user.email || '',
           reviewerName: emailConfig.currentUserName,
@@ -475,12 +479,14 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
       // Send emails (non-blocking)
       if (emailConfig && claim?.practice_key) {
+        const staffDetails = (claim.staff_details as any[]) || [];
         const emailData: BuyBackEmailData = {
           claimId: id,
           practiceKey: claim.practice_key,
           claimMonth: claim.claim_month,
           totalAmount: claim.claimed_amount,
-          staffLineCount: (claim.staff_details as any[])?.length || 0,
+          staffLineCount: staffDetails.length,
+          staffCategories: staffDetails.map((s: any) => s.staff_category).filter(Boolean),
           submitterEmail: claim.submitted_by_email || '',
           reviewerEmail: user.email || '',
           reviewerName: emailConfig.currentUserName,
