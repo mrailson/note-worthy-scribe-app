@@ -6,6 +6,7 @@ import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
+import { InfoTooltip } from '@/components/nres/InfoTooltip';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -177,7 +178,10 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams }: {
           />
         </div>
         <div>
-          <Label className="text-xs">Start Date</Label>
+          <div className="flex items-center gap-1">
+            <Label className="text-xs">Start Date</Label>
+            <InfoTooltip content="Leave blank if the staff member started before the claim month. Only set a date if they started during the claim month — this triggers pro-rata calculation." />
+          </div>
           <Popover>
             <PopoverTrigger asChild>
               <Button
