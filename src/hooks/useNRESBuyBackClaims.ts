@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
+import { sendBuyBackEmail, type BuyBackEmailData } from '@/utils/buybackEmailService';
 import type { BuyBackStaffMember } from './useNRESBuyBackStaff';
 
 export interface BuyBackClaim {
@@ -106,7 +107,13 @@ function calculateFallback(staff: { allocation_type: string; allocation_value: n
   return (staff.allocation_value * DEFAULT_WTE_ANNUAL) / 12;
 }
 
-export function useNRESBuyBackClaims() {
+export interface BuyBackClaimsEmailConfig {
+  emailTestingMode: boolean;
+  currentUserEmail?: string;
+  currentUserName?: string;
+}
+
+export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
   const { user } = useAuth();
   const [claims, setClaims] = useState<BuyBackClaim[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,6 +230,21 @@ export function useNRESBuyBackClaims() {
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
       toast.success('Claim submitted for approval');
+
+      // Send emails (non-blocking)
+      if (emailConfig && claim.practice_key) {
+        const emailData: BuyBackEmailData = {
+          claimId: id,
+          practiceKey: claim.practice_key,
+          claimMonth: claim.claim_month,
+          totalAmount: claim.claimed_amount,
+          staffLineCount: (claim.staff_details as any[])?.length || 0,
+          submitterEmail: user.email || '',
+          submitterName: emailConfig.currentUserName,
+        };
+        sendBuyBackEmail('claim_submitted', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+        sendBuyBackEmail('submission_confirmation', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+      }
     } catch (error) {
       console.error('Error submitting claim:', error);
       toast.error('Failed to submit claim');
@@ -389,6 +411,7 @@ export function useNRESBuyBackClaims() {
     if (!user?.id || !admin) return;
     try {
       setSaving(true);
+      const claim = claims.find(c => c.id === id);
       const { data, error } = await supabase
         .from('nres_buyback_claims')
         .update({
@@ -404,6 +427,23 @@ export function useNRESBuyBackClaims() {
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
       toast.success('Claim approved');
+
+      // Send emails (non-blocking)
+      if (emailConfig && claim?.practice_key) {
+        const emailData: BuyBackEmailData = {
+          claimId: id,
+          practiceKey: claim.practice_key,
+          claimMonth: claim.claim_month,
+          totalAmount: claim.claimed_amount,
+          staffLineCount: (claim.staff_details as any[])?.length || 0,
+          submitterEmail: claim.submitted_by_email || '',
+          reviewerEmail: user.email || '',
+          reviewerName: emailConfig.currentUserName,
+          reviewNotes: notes,
+        };
+        sendBuyBackEmail('claim_approved', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+        sendBuyBackEmail('approval_confirmation', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+      }
     } catch (error) {
       console.error('Error approving claim:', error);
       toast.error('Failed to approve claim');
@@ -416,6 +456,7 @@ export function useNRESBuyBackClaims() {
     if (!user?.id || !admin) return;
     try {
       setSaving(true);
+      const claim = claims.find(c => c.id === id);
       const { data, error } = await supabase
         .from('nres_buyback_claims')
         .update({
@@ -431,6 +472,23 @@ export function useNRESBuyBackClaims() {
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
       toast.success('Claim rejected');
+
+      // Send emails (non-blocking)
+      if (emailConfig && claim?.practice_key) {
+        const emailData: BuyBackEmailData = {
+          claimId: id,
+          practiceKey: claim.practice_key,
+          claimMonth: claim.claim_month,
+          totalAmount: claim.claimed_amount,
+          staffLineCount: (claim.staff_details as any[])?.length || 0,
+          submitterEmail: claim.submitted_by_email || '',
+          reviewerEmail: user.email || '',
+          reviewerName: emailConfig.currentUserName,
+          reviewNotes: notes,
+        };
+        sendBuyBackEmail('claim_rejected', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+        sendBuyBackEmail('rejection_confirmation', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+      }
     } catch (error) {
       console.error('Error rejecting claim:', error);
       toast.error('Failed to reject claim');

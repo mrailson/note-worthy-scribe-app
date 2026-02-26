@@ -7047,6 +7047,7 @@ export type Database = {
       }
       nres_buyback_rate_settings: {
         Row: {
+          email_testing_mode: boolean
           employer_ni_pct: number
           employer_pension_pct: number
           id: string
@@ -7056,6 +7057,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          email_testing_mode?: boolean
           employer_ni_pct?: number
           employer_pension_pct?: number
           id?: string
@@ -7065,6 +7067,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          email_testing_mode?: boolean
           employer_ni_pct?: number
           employer_pension_pct?: number
           id?: string
