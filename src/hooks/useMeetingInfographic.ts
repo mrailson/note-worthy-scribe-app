@@ -556,7 +556,11 @@ export const useMeetingInfographic = () => {
 
     try {
       // Format meeting content for infographic
-      const documentContent = formatMeetingForInfographic(data);
+      // Truncate to 3000 chars max to prevent Gemini 3 Pro timeouts on large meetings
+      const rawContent = formatMeetingForInfographic(data);
+      const documentContent = rawContent.length > 3000 
+        ? rawContent.substring(0, 3000) + '\n\n[Content truncated for infographic generation]'
+        : rawContent;
       
       // Log options received - CRITICAL for debugging custom styles
       console.log('[useMeetingInfographic] Options received:', JSON.stringify(options));
