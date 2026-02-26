@@ -47,10 +47,11 @@ const DECLARATION_TEXT =
 // STAFF_ROLES is now dynamic — see BuyBackClaimsTab below
 
 /** Isolated add-staff form – keeps its own state so typing never loses focus */
-function AddStaffForm({ saving, onAdd, staffRoles }: {
+function AddStaffForm({ saving, onAdd, staffRoles, rateParams }: {
   saving: boolean;
   onAdd: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   staffRoles: string[];
+  rateParams?: RateParams;
 }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('GP');
@@ -200,7 +201,8 @@ function AddStaffForm({ saving, onAdd, staffRoles }: {
           allocation_type: allocType,
           allocation_value: val,
           hourly_rate: 0,
-        } as BuyBackStaffMember);
+          staff_role: role,
+        } as BuyBackStaffMember, undefined, undefined, rateParams);
         return (
           <div className="rounded-md bg-teal-50 dark:bg-teal-950 border border-teal-200 dark:border-teal-800 px-3 py-2 text-sm space-y-1">
             <div>
@@ -262,7 +264,7 @@ export function BuyBackClaimsTab() {
     ? accessFilteredStaff
     : accessFilteredStaff.filter(s => s.practice_key === filterPractice);
 
-  const totalCalculated = filteredStaff.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s), 0);
+  const totalCalculated = filteredStaff.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, undefined, undefined, rateParams), 0);
 
   const handleCreateClaim = async () => {
     if (filteredStaff.length === 0) return;
@@ -271,9 +273,9 @@ export function BuyBackClaimsTab() {
     const monthDate = `${claimMonth}-01`;
     const staffForClaim = filteredStaff.filter(s => s.practice_key === practiceForClaim);
     if (staffForClaim.length === 0) return;
-    const calcAmount = staffForClaim.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, monthDate, s.start_date), 0);
+    const calcAmount = staffForClaim.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, monthDate, s.start_date, rateParams), 0);
     // Pre-populate claimed amount at the calculated max — user can lower but not raise
-    await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim);
+    await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim, rateParams);
   };
 
   // Filter claims by access then practice/status
@@ -407,7 +409,7 @@ export function BuyBackClaimsTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} />
+          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} />
 
           {/* Staff list */}
           {filteredStaff.length > 0 && (
@@ -428,7 +430,7 @@ export function BuyBackClaimsTab() {
                  <tbody>
                    {filteredStaff.map(s => {
                      const displayName = maskStaffName(s.staff_name, user?.id, s.user_id, user?.email);
-                     const monthly = calculateStaffMonthlyAmount(s);
+                     const monthly = calculateStaffMonthlyAmount(s, undefined, undefined, rateParams);
                      return (
                        <tr key={s.id} className="border-t">
                          <td className="p-2">{categoryBadge(s.staff_category)}</td>
@@ -591,12 +593,12 @@ export function BuyBackClaimsTab() {
 }
 
 /** Helper to get the max monthly amount for a staff detail entry, with optional pro-rata */
-function getStaffMaxAmount(staff: any, claimMonth?: string): number {
+function getStaffMaxAmount(staff: any, claimMonth?: string, rateParams?: RateParams): number {
   return calculateStaffMonthlyAmount({
     allocation_type: staff.allocation_type,
     allocation_value: staff.allocation_value,
     staff_role: staff.staff_role,
-  } as BuyBackStaffMember, claimMonth, staff.start_date);
+  } as BuyBackStaffMember, claimMonth, staff.start_date, rateParams);
 }
 
 /** Build a detailed calculation breakdown for hover display */
@@ -759,8 +761,8 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, ratePar
     return <Badge className={variants[status] || ''}>{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>;
   };
 
-  const totalCalculated = staffDetails.reduce((sum, s) => sum + getStaffMaxAmount(s, claim.claim_month), 0);
-  const totalClaimed = staffDetails.reduce((sum, s) => sum + (s.claimed_amount ?? getStaffMaxAmount(s, claim.claim_month)), 0);
+  const totalCalculated = staffDetails.reduce((sum, s) => sum + getStaffMaxAmount(s, claim.claim_month, rateParams), 0);
+  const totalClaimed = staffDetails.reduce((sum, s) => sum + (s.claimed_amount ?? getStaffMaxAmount(s, claim.claim_month, rateParams)), 0);
 
   return (
     <div className="border rounded-md overflow-hidden">
@@ -812,7 +814,7 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, ratePar
         </thead>
         <tbody>
           {staffDetails.map((s, idx) => {
-            const maxAmount = getStaffMaxAmount(s, claim.claim_month);
+            const maxAmount = getStaffMaxAmount(s, claim.claim_month, rateParams);
             const claimedAmount = s.claimed_amount ?? maxAmount;
             const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail);
             const hasNotes = !!s.notes;
