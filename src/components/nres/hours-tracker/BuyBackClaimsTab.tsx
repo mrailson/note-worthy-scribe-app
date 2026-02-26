@@ -520,7 +520,11 @@ export function BuyBackClaimsTab() {
                             <CalcBreakdownHover staff={s} amount={monthly} rateParams={rateParams} />
                           </td>
                          <td className="p-2 text-right">
-                           <Button variant="ghost" size="icon" onClick={() => removeStaff(s.id)}>
+                           <Button variant="ghost" size="icon" onClick={() => {
+                             if (window.confirm(`Remove ${displayName} from the staff list?`)) {
+                               removeStaff(s.id);
+                             }
+                           }}>
                              <Trash2 className="w-4 h-4 text-destructive" />
                            </Button>
                          </td>
