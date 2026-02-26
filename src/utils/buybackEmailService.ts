@@ -117,7 +117,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
             <tr>
               <td style="background:linear-gradient(135deg,#1e40af,#3b82f6);padding:24px 32px;">
                 <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">Notewell AI</h1>
-                <p style="margin:4px 0 0;color:#bfdbfe;font-size:12px;">Buy-Back Claims Management</p>
+                <p style="margin:4px 0 0;color:#ffffff;font-size:13px;font-weight:600;">Notewell SDA Claims Portal</p>
               </td>
             </tr>
             <!-- Status bar -->
