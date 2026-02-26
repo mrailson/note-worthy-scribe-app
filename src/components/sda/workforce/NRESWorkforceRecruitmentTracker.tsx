@@ -279,11 +279,11 @@ const NRESWorkforceRecruitmentTracker = () => {
     );
   };
 
-  // Staff row - edit mode
-  const EditableStaffRow = ({ staff, practiceIdx, category, staffIdx }: { staff: StaffMember; practiceIdx: number; category: 'gp' | 'acp' | 'buyBack'; staffIdx: number }) => {
+  // Staff row - edit mode (plain function, not a component, to preserve input focus)
+  const renderEditableStaffRow = (staff: StaffMember, practiceIdx: number, category: 'gp' | 'acp' | 'buyBack', staffIdx: number) => {
     const config = statusConfig[staff.status];
     return (
-      <div className={`flex items-center gap-2 p-2 rounded-lg ${config.bgLight} ${config.border} border mb-2`}>
+      <div key={`${category}-${staffIdx}`} className={`flex items-center gap-2 p-2 rounded-lg ${config.bgLight} ${config.border} border mb-2`}>
         <input className="flex-1 min-w-0 px-2 py-1 text-sm border rounded bg-white" placeholder="Name" value={staff.name} onChange={e => updateStaffField(practiceIdx, category, staffIdx, 'name', e.target.value)} />
         <input className="w-16 px-2 py-1 text-sm border rounded bg-white text-center" type="number" min={0} value={staff.sessions} onChange={e => updateStaffField(practiceIdx, category, staffIdx, 'sessions', Number(e.target.value))} />
         <select className="px-2 py-1 text-xs border rounded bg-white" value={staff.status} onChange={e => updateStaffField(practiceIdx, category, staffIdx, 'status', e.target.value)}>
@@ -312,7 +312,7 @@ const NRESWorkforceRecruitmentTracker = () => {
           </h4>
           {isEditing ? (
             <>
-              {staffList.map((staff, i) => <EditableStaffRow key={i} staff={staff} practiceIdx={practiceIdx} category={category} staffIdx={i} />)}
+              {staffList.map((staff, i) => renderEditableStaffRow(staff, practiceIdx, category, i))}
               <button className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 mt-1" onClick={() => addStaff(practiceIdx, category)}>
                 <Plus className="h-3 w-3" /> Add {label}
               </button>
