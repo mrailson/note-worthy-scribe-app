@@ -11,9 +11,10 @@ import { WorkflowModal } from "@/components/nres/WorkflowModal";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
+import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
 import { HubConsultation } from "@/types/nresTypes";
-import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell, Clock } from "lucide-react";
+import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell, Clock, FolderLock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,10 @@ const NRESDashboard = () => {
             <TabsTrigger value="hours-tracker" className="gap-2">
               <Clock className="w-4 h-4" />
               Claims &amp; Oversight
+            </TabsTrigger>
+            <TabsTrigger value="document-vault" className="gap-2">
+              <FolderLock className="w-4 h-4" />
+              Document Vault
             </TabsTrigger>
           </TabsList>
 
@@ -214,6 +219,10 @@ const NRESDashboard = () => {
 
           <TabsContent value="hours-tracker">
             <NRESHoursTracker />
+          </TabsContent>
+
+          <TabsContent value="document-vault">
+            <NRESDocumentVault />
           </TabsContent>
         </Tabs>
       </div>
