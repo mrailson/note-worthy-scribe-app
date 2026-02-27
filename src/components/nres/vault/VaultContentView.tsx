@@ -697,10 +697,11 @@ export const VaultContentView = ({
           <DialogHeader>
             <DialogTitle>Rename {renameTarget?.type === 'folder' ? 'Folder' : 'File'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="px-8 sm:px-10 py-6 space-y-3">
             <Label htmlFor="rename-input">New name</Label>
             <Input
               id="rename-input"
+              className="bg-white dark:bg-white/10"
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
@@ -720,11 +721,12 @@ export const VaultContentView = ({
           <DialogHeader>
             <DialogTitle>Edit Description</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="px-8 sm:px-10 py-6 space-y-3">
             <Label>File: <span className="font-normal text-muted-foreground">{descriptionTarget?.name}</span></Label>
             <Label htmlFor="description-input">Description</Label>
             <Textarea
               id="description-input"
+              className="bg-white dark:bg-white/10"
               value={descriptionValue}
               onChange={(e) => setDescriptionValue(e.target.value)}
               placeholder="Add a description to help identify this file..."
@@ -745,10 +747,11 @@ export const VaultContentView = ({
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="px-8 sm:px-10 py-6 space-y-3">
             <Label htmlFor="new-folder-name">Folder Name</Label>
             <Input
               id="new-folder-name"
+              className="bg-white dark:bg-white/10"
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder="Enter folder name"
