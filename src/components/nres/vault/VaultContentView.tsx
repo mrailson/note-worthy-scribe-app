@@ -187,9 +187,14 @@ export const VaultContentView = ({
   useEffect(() => {
     if (viewMode === 'tree') {
       const rootKey = currentFolderId || '__root__';
-      // Reset all cached tree children and repopulate root level
-      // This ensures uploads/deletes in subfolders are reflected
-      setTreeChildren({ [rootKey]: { folders, files } });
+      setTreeChildren(prev => ({
+        ...prev,
+        [rootKey]: { folders, files },
+      }));
+      // Reload all currently expanded nodes to pick up uploads/deletes
+      expandedNodes.forEach(nodeId => {
+        loadTreeChildren(nodeId);
+      });
     }
   }, [viewMode, folders, files, currentFolderId]);
 
@@ -760,30 +765,28 @@ export const VaultContentView = ({
     next.add(folderId);
     setExpandedNodes(next);
 
-    // Load children if not cached
-    if (!treeChildren[folderId]) {
-      const [{ data: childFolders }, { data: childFiles }] = await Promise.all([
-        supabase
-          .from('shared_drive_folders')
-          .select('id, name, parent_id, created_by, created_at, updated_at, path')
-          .eq('scope', 'nres_vault')
-          .eq('parent_id', folderId)
-          .order('name'),
-        supabase
-          .from('shared_drive_files')
-          .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description')
-          .eq('scope', 'nres_vault')
-          .eq('folder_id', folderId)
-          .order('name'),
-      ]);
-      setTreeChildren(prev => ({
-        ...prev,
-        [folderId]: {
-          folders: (childFolders || []) as VaultFolder[],
-          files: (childFiles || []) as VaultFile[],
-        },
-      }));
-    }
+    // Always load/reload children for fresh data
+    const [{ data: childFolders }, { data: childFiles }] = await Promise.all([
+      supabase
+        .from('shared_drive_folders')
+        .select('id, name, parent_id, created_by, created_at, updated_at, path')
+        .eq('scope', 'nres_vault')
+        .eq('parent_id', folderId)
+        .order('name'),
+      supabase
+        .from('shared_drive_files')
+        .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description')
+        .eq('scope', 'nres_vault')
+        .eq('folder_id', folderId)
+        .order('name'),
+    ]);
+    setTreeChildren(prev => ({
+      ...prev,
+      [folderId]: {
+        folders: (childFolders || []) as VaultFolder[],
+        files: (childFiles || []) as VaultFile[],
+      },
+    }));
   };
 
   const renderTreeNode = (folder: VaultFolder, depth: number) => {
