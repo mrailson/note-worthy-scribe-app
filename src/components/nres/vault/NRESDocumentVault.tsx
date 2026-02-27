@@ -36,7 +36,7 @@ export const NRESDocumentVault = () => {
     name: string;
   } | null>(null);
   const [clipboard, setClipboard] = useState<ClipboardState | null>(null);
-  const [viewMode, setViewMode] = useState<VaultViewMode>('details');
+  const [viewMode, setViewMode] = useState<VaultViewMode>('tree');
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Data queries
