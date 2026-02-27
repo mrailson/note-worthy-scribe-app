@@ -645,7 +645,7 @@ export const VaultContentView = ({
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
-            className="min-h-[200px] rounded-lg border bg-background p-3 select-none"
+            className="min-h-[500px] rounded-lg border bg-background p-3 select-none"
             onClick={(e) => { if (e.target === e.currentTarget) clearSelection(); }}
           >
             {totalItems === 0 ? (
