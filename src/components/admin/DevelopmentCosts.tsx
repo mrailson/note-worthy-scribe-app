@@ -54,9 +54,11 @@ interface DevelopmentCost {
 const COST_CATEGORIES = [
   'Lovable Platform',
   'AI API Costs',
+  'Cloud Services',
   'Supabase',
   'Domain & Hosting',
   'Design & Assets',
+  'Development Tools',
   'Development Time',
   'Consulting',
   'Testing',
