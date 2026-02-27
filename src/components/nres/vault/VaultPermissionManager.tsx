@@ -111,7 +111,7 @@ export const VaultPermissionManager = ({
 
   // Fetch vault user groups
   const { data: vaultGroups = [] } = useQuery({
-    queryKey: ['nres-vault-groups'],
+    queryKey: ['nres-vault-groups', 'permission-manager'],
     queryFn: async () => {
       const { data: groupsData, error } = await supabase
         .from('nres_vault_user_groups')

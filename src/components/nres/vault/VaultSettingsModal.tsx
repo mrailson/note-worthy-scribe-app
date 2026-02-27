@@ -130,7 +130,7 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
 
   // Fetch vault groups with members
   const { data: groups = [] } = useQuery({
-    queryKey: ['nres-vault-groups'],
+    queryKey: ['nres-vault-groups', 'settings-modal'],
     queryFn: async (): Promise<VaultGroup[]> => {
       const { data: groupsData, error } = await supabase
         .from('nres_vault_user_groups')
@@ -305,7 +305,7 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
     setEditingGroup(group);
     setGroupName(group.name);
     setGroupDescription(group.description || '');
-    setSelectedGroupMembers(group.members.map((m) => m.user_id));
+    setSelectedGroupMembers((group.members || []).map((m) => m.user_id));
     setIsCreatingGroup(true);
   };
 
