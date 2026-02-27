@@ -191,10 +191,6 @@ export const VaultContentView = ({
         ...prev,
         [rootKey]: { folders, files },
       }));
-      // Reload all currently expanded nodes to pick up uploads/deletes
-      expandedNodes.forEach(nodeId => {
-        loadTreeChildren(nodeId);
-      });
     }
   }, [viewMode, folders, files, currentFolderId]);
 
