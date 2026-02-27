@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, FileText, Folder, Download, Eye, Pencil, Trash2, Upload, FolderPlus, Copy, Move, Shield, RefreshCw, FileDown, Sheet } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Folder, Download, Eye, Pencil, Trash2, Upload, FolderPlus, Copy, Move, Shield, RefreshCw, FileDown, Sheet, Mail } from 'lucide-react';
 import { useVaultAuditLogs, VaultAuditRecord } from '@/hooks/useNRESVaultAudit';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +25,7 @@ const ACTION_CONFIG: Record<string, { label: string; icon: React.ElementType; co
   add_permission: { label: 'Added Permission', icon: Shield, color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
   remove_permission: { label: 'Removed Permission', icon: Shield, color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
   navigate_folder: { label: 'Opened Folder', icon: Folder, color: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300' },
+  emailed_to_self: { label: 'Emailed to Self', icon: Mail, color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' },
 };
 
 const PAGE_SIZE = 50;
