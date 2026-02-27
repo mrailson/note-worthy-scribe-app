@@ -214,45 +214,40 @@ export const NRESDocumentVault = () => {
             <>
               <VaultBreadcrumbs items={breadcrumbs} onNavigate={handleNavigate} />
               {currentFolderId === null && (
-                <div className="rounded-lg border border-border/60 bg-gradient-to-br from-muted/40 to-muted/20 px-5 py-4 text-sm text-muted-foreground space-y-3">
-                  <p className="text-base font-semibold text-foreground">
-                    Welcome to the Document Vault
-                  </p>
-                  <p>Your secure, centralised store for practice documents and files.</p>
-
-                  <div>
-                    <p className="font-medium text-foreground mb-1.5">What to store here:</p>
-                    <ul className="list-disc list-inside space-y-0.5 ml-1">
-                      <li>Policies, procedures &amp; protocols</li>
-                      <li>Meeting agendas, minutes &amp; action logs</li>
-                      <li>Training materials &amp; guides</li>
-                      <li>Templates &amp; standard forms</li>
-                      <li>Reports &amp; audits (anonymised/aggregated)</li>
-                    </ul>
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-foreground">Welcome to the Document Vault <span className="font-normal text-muted-foreground">— your secure, centralised store for practice documents and files.</span></p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs space-y-1.5">
+                      <p className="font-medium text-foreground text-sm">What to store here</p>
+                      <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                        <li>Policies, procedures &amp; protocols</li>
+                        <li>Meeting agendas, minutes &amp; action logs</li>
+                        <li>Training materials &amp; guides</li>
+                        <li>Templates &amp; standard forms</li>
+                        <li>Reports &amp; audits (anonymised/aggregated)</li>
+                      </ul>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs space-y-1.5">
+                      <p className="font-medium text-foreground text-sm">Document hygiene tips</p>
+                      <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                        <li>Use clear naming (e.g. <span className="font-mono text-[10px]">NRES_Policy_InfectionControl_v1.2_Jan2026</span>)</li>
+                        <li>Archive outdated versions rather than deleting</li>
+                        <li>Finalise documents before uploading to shared folders</li>
+                      </ul>
+                      <p className="text-muted-foreground/80 italic pt-1">Access is role-based and audit-logged.</p>
+                    </div>
+                    <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs space-y-1.5">
+                      <p className="font-medium text-destructive text-sm">Important notice</p>
+                      <p className="text-destructive/90">This vault is for operational and governance documents. <span className="font-semibold">Do not upload patient identifiable information</span> — clinical records should remain in your clinical system (EMIS/TPP).</p>
+                      <p className="text-muted-foreground/80 pt-1 border-t border-border/40">
+                        {viewMode === 'tree' ? (
+                          <>Use <span className="font-medium text-foreground">expand arrows</span> to browse, or right-click for options.</>
+                        ) : (
+                          <><span className="font-medium text-foreground">Double-click</span> folders to open. Use breadcrumbs to navigate back.</>
+                        )}
+                      </p>
+                    </div>
                   </div>
-
-                  <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-destructive text-xs">
-                    <span className="font-semibold">Please note:</span> This vault is designed for operational and governance documents. Do not upload patient identifiable information — clinical records should remain in your clinical system (EMIS/TPP).
-                  </div>
-
-                  <div>
-                    <p className="font-medium text-foreground mb-1.5">Tips for good document hygiene:</p>
-                    <ul className="list-disc list-inside space-y-0.5 ml-1 text-xs">
-                      <li>Use clear, consistent file naming (e.g. <span className="font-mono text-foreground/80">NRES_Policy_InfectionControl_v1.2_Jan2026</span>)</li>
-                      <li>Keep documents current — archive outdated versions rather than deleting</li>
-                      <li>Check documents are finalised before uploading drafts to shared folders</li>
-                    </ul>
-                  </div>
-
-                  <p className="text-xs italic">Access is role-based and audit-logged. If you need different permissions, contact your administrator.</p>
-
-                  <p className="text-xs text-muted-foreground/80 pt-1 border-t border-border/40">
-                    {viewMode === 'tree' ? (
-                      <>Use the <span className="font-medium text-foreground">expand arrows</span> to browse folders, or right-click items for more options.</>
-                    ) : (
-                      <><span className="font-medium text-foreground">Double-click</span> any folder to open it. Use the breadcrumbs above to navigate back, or right-click items for more options.</>
-                    )}
-                  </p>
                 </div>
               )}
             </>
