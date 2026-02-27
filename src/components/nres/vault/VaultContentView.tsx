@@ -1130,7 +1130,7 @@ export const VaultContentView = ({
 
       {/* Delete confirmation - cautious */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(''); } }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <TriangleAlert className="h-5 w-5" />
@@ -1150,7 +1150,7 @@ export const VaultContentView = ({
               <div className="px-8 sm:px-10 py-4 space-y-4">
                 <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-2 text-sm">
                   <p className="font-semibold text-destructive">⚠️ Warning: This action is non-recoverable</p>
-                  <p>You are about to permanently delete "<span className="font-medium">{deleteTarget?.name}</span>".</p>
+                  <p>You are about to permanently delete "<span className="font-medium break-all">{deleteTarget?.name}</span>".</p>
                   {deleteTarget?.type === 'folder' && (
                     <p>This will also permanently delete <strong>all files and sub-folders</strong> contained within it.</p>
                   )}
