@@ -771,12 +771,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                     Admin Dashboard
                                   </Button>
                                 </DrawerClose>
-                                <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/notebook-studio')}>
-                                    <Presentation className="h-4 w-4 mr-2" />
-                                    Notewell Studio
-                                  </Button>
-                                </DrawerClose>
                               </CollapsibleContent>
                             </Collapsible>
                           )}
