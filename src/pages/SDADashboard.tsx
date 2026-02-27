@@ -8,6 +8,7 @@ import { SDAWorkforceInnovation } from "@/components/sda/SDAWorkforceInnovation"
 
 
 import { SDAEvidenceLibrary } from "@/components/sda/SDAEvidenceLibrary";
+import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
 import { 
@@ -16,6 +17,7 @@ import {
   Monitor, 
   Users, 
   FolderOpen,
+  FolderLock,
   Clock
 } from "lucide-react";
 import { NRESPeopleProvider } from "@/contexts/NRESPeopleContext";
@@ -100,7 +102,15 @@ const SDADashboard = () => {
             >
               <Clock className="w-4 h-4" />
               <span className="hidden sm:inline">Claims &amp; Oversight</span>
-              <span className="sm:hidden">Claims &amp; Oversight</span>
+              <span className="sm:hidden">Claims</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="document-vault" 
+              className="flex items-center gap-2 data-[state=active]:bg-[#005EB8] data-[state=active]:text-white px-4 py-2.5 rounded-lg transition-all"
+            >
+              <FolderLock className="w-4 h-4" />
+              <span className="hidden sm:inline">Document Vault</span>
+              <span className="sm:hidden">Vault</span>
             </TabsTrigger>
           </TabsList>
 
@@ -122,6 +132,9 @@ const SDADashboard = () => {
             </TabsContent>
             <TabsContent value="hours" className="mt-0">
               <NRESHoursTracker />
+            </TabsContent>
+            <TabsContent value="document-vault" className="mt-0">
+              <NRESDocumentVault />
             </TabsContent>
           </div>
         </Tabs>
