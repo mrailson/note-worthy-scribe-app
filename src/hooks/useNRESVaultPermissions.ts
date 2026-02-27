@@ -38,6 +38,16 @@ export const useIsVaultAdmin = () => {
     queryFn: async (): Promise<boolean> => {
       if (!user?.id) return false;
 
+      // Check nres_vault_admins table first
+      const { data: vaultAdmin } = await supabase
+        .from('nres_vault_admins')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (vaultAdmin) return true;
+
+      // Fallback to system-level roles
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')

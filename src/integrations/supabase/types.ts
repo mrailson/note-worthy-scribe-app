@@ -7443,6 +7443,54 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_vault_admins: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          id: string
+          is_admin: boolean
+          is_super_admin: boolean
+          user_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          is_super_admin?: boolean
+          user_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          is_super_admin?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nres_vault_settings: {
+        Row: {
+          created_at: string
+          id: string
+          max_file_size_mb: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_file_size_mb?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_file_size_mb?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pcn_manager_practices: {
         Row: {
           assigned_at: string | null
