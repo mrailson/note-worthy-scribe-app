@@ -646,9 +646,9 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 </DrawerClose>
                               )}
                               <DrawerClose asChild>
-                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/lg-capture')}>
-                                  <ImageIcon className="h-4 w-4 mr-2" />
-                                  LG Capture
+                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/bp-calculator')}>
+                                  <Heart className="h-4 w-4 mr-2" />
+                                  BP Average
                                 </Button>
                               </DrawerClose>
                               {hasServiceAccess('nres') && (
@@ -718,6 +718,16 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 </DrawerClose>
                                )}
                                
+                               {/* User Settings - moved here from Account section */}
+                               {!isOakLaneNonAdmin && (
+                                 <DrawerClose asChild>
+                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/settings')}>
+                                     <Settings className="h-4 w-4 mr-2" />
+                                     User Settings
+                                   </Button>
+                                 </DrawerClose>
+                               )}
+
                                {/* Show Organisation Management for practice_manager, pcn_manager, or system admin */}
                                {!isOakLaneNonAdmin && (isPracticeManager || isPcnManager || isSystemAdmin) && (
                                  <DrawerClose asChild>
@@ -779,16 +789,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 My Profile
                               </Button>
                             </DrawerClose>
-
-                            {/* Hide User Settings for Oak Lane non-admin users */}
-                            {!isOakLaneNonAdmin && (
-                              <DrawerClose asChild>
-                                <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/settings')}>
-                                  <Settings className="h-4 w-4 mr-2" />
-                                  User Settings
-                                </Button>
-                              </DrawerClose>
-                            )}
 
                             <DrawerClose asChild>
                               <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/training-videos')}>
