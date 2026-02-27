@@ -84,9 +84,9 @@ export const useVaultBreadcrumbs = (folderId: string | null) => {
   return useQuery({
     queryKey: ['nres-vault-breadcrumbs', folderId],
     queryFn: async (): Promise<BreadcrumbItem[]> => {
-      if (!folderId) return [{ id: null, name: 'Document Vault' }];
+      if (!folderId) return [{ id: null, name: 'Document Vault Home' }];
 
-      const crumbs: BreadcrumbItem[] = [{ id: null, name: 'Document Vault' }];
+      const crumbs: BreadcrumbItem[] = [{ id: null, name: 'Document Vault Home' }];
       let currentId: string | null = folderId;
 
       while (currentId) {
