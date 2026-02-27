@@ -80,7 +80,7 @@ const NRESDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="document-vault" className="gap-2">
               <FolderLock className="w-4 h-4" />
-              Document Vault
+              Document Vault Home
             </TabsTrigger>
           </TabsList>
 

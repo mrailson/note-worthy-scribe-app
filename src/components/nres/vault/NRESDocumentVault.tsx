@@ -126,7 +126,7 @@ export const NRESDocumentVault = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-lg">
               <FolderLock className="h-5 w-5" />
-              Document Vault
+              Document Vault Home
             </CardTitle>
             <div className="flex items-center border rounded-md">
               <Tooltip>
