@@ -222,6 +222,53 @@ export const useUploadVaultFile = () => {
   });
 };
 
+export const useReplaceVaultFile = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ fileId, oldFilePath, newFile }: { fileId: string; oldFilePath: string; newFile: File }) => {
+      if (!user?.id) throw new Error('Not authenticated');
+
+      // Upload new file to a new storage path
+      const timestamp = Date.now();
+      const ext = newFile.name.split('.').pop();
+      const storagePath = `nres-vault/${user.id}/${timestamp}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('shared-drive')
+        .upload(storagePath, newFile);
+
+      if (uploadError) throw uploadError;
+
+      // Remove old file from storage
+      await supabase.storage.from('shared-drive').remove([oldFilePath]);
+
+      // Update the DB record with new file details
+      const { error } = await supabase
+        .from('shared_drive_files')
+        .update({
+          name: newFile.name,
+          original_name: newFile.name,
+          file_path: storagePath,
+          file_size: newFile.size,
+          file_type: ext || null,
+          mime_type: newFile.type || null,
+        })
+        .eq('id', fileId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
+      toast.success('File replaced successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to replace file', { description: error.message });
+    },
+  });
+};
+
 export const useDeleteVaultItem = () => {
   const queryClient = useQueryClient();
 
