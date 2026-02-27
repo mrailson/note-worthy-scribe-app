@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
+// eslint-disable-next-line -- TriangleAlert replaces deprecated AlertTriangle
 import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical, Info, TriangleAlert } from 'lucide-react';
 import {
   ContextMenu,
