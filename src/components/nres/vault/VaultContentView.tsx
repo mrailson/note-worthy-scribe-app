@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 // eslint-disable-next-line -- TriangleAlert replaces deprecated AlertTriangle
-import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical, Info, TriangleAlert } from 'lucide-react';
+import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical, Info, TriangleAlert, Mail } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -257,6 +257,52 @@ export const VaultContentView = ({
     }
   };
 
+  const handleEmailToMe = async (file: VaultFile) => {
+    try {
+      if (!user?.email) {
+        toast.error('Unable to send email', { description: 'No email address found for your account.' });
+        return;
+      }
+      // Download the file as blob
+      const { data: blob, error: dlError } = await supabase.storage
+        .from('shared-drive')
+        .download(file.file_path);
+      if (dlError) throw dlError;
+
+      // Convert to base64
+      const arrayBuffer = await blob.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      const chunkSize = 8192;
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.slice(i, Math.min(i + chunkSize, bytes.length));
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      const base64 = btoa(binary);
+
+      const fileName = file.original_name || file.name;
+
+      const { error } = await supabase.functions.invoke('send-email-resend', {
+        body: {
+          to_email: user.email,
+          subject: `Document Vault: ${fileName}`,
+          html_content: `<p>Hi,</p><p>Please find the attached file <strong>${fileName}</strong> from the NRES Document Vault.</p><p>Kind regards,<br/>Notewell AI</p>`,
+          attachments: [{
+            filename: fileName,
+            content: base64,
+            type: file.mime_type || 'application/octet-stream',
+          }],
+        },
+      });
+
+      if (error) throw error;
+
+      if (user.id) logVaultAction(user.id, { action: 'download_file', target_type: 'file', target_id: file.id, target_name: file.name, details: { method: 'emailed_to_self' } });
+    } catch (err: any) {
+      toast.error('Failed to email file', { description: err.message });
+    }
+  };
+
   const handleRenameSubmit = () => {
     if (renameTarget && renameValue.trim()) {
       onRename(renameTarget.id, renameTarget.type, renameValue.trim());
@@ -402,9 +448,14 @@ export const VaultContentView = ({
           <FolderOpen className="h-4 w-4 mr-2" />Open
         </ContextMenuItem>
       ) : file ? (
-        <ContextMenuItem onClick={() => handleDownload(file)}>
-          <Download className="h-4 w-4 mr-2" />Download
-        </ContextMenuItem>
+        <>
+          <ContextMenuItem onClick={() => handleDownload(file)}>
+            <Download className="h-4 w-4 mr-2" />Download
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => handleEmailToMe(file)}>
+            <Mail className="h-4 w-4 mr-2" />Email to Me
+          </ContextMenuItem>
+        </>
       ) : null}
       <ContextMenuSeparator />
       <ContextMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
@@ -461,9 +512,14 @@ export const VaultContentView = ({
             <FolderOpen className="h-4 w-4 mr-2" />Open
           </DropdownMenuItem>
         ) : file ? (
-          <DropdownMenuItem onClick={() => handleDownload(file)}>
-            <Download className="h-4 w-4 mr-2" />Download
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem onClick={() => handleDownload(file)}>
+              <Download className="h-4 w-4 mr-2" />Download
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEmailToMe(file)}>
+              <Mail className="h-4 w-4 mr-2" />Email to Me
+            </DropdownMenuItem>
+          </>
         ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
