@@ -1222,6 +1222,25 @@ export const VaultContentView = ({
                   onClick={() => {
                     if (deleteTarget && (isOwner || deleteConfirmText === 'DELETE')) {
                       onDelete(deleteTarget.id, deleteTarget.type, deleteTarget.filePath, deleteTarget.name);
+                      // Immediately remove from tree cache so UI updates without navigation
+                      if (viewMode === 'tree') {
+                        setTreeChildren(prev => {
+                          const updated = { ...prev };
+                          for (const key of Object.keys(updated)) {
+                            const entry = updated[key];
+                            if (deleteTarget.type === 'folder') {
+                              updated[key] = { ...entry, folders: entry.folders.filter(f => f.id !== deleteTarget.id) };
+                            } else {
+                              updated[key] = { ...entry, files: entry.files.filter(f => f.id !== deleteTarget.id) };
+                            }
+                          }
+                          // Also remove the deleted folder's own children cache
+                          if (deleteTarget.type === 'folder') {
+                            delete updated[deleteTarget.id];
+                          }
+                          return updated;
+                        });
+                      }
                       setDeleteTarget(null);
                       setDeleteConfirmText('');
                     }
