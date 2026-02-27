@@ -373,7 +373,7 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto">
+      <DialogContent className="sm:max-w-5xl max-h-[calc(100vh-8rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
