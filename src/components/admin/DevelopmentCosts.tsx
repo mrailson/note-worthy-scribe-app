@@ -687,6 +687,20 @@ export const DevelopmentCosts = () => {
                     );
                   })}
                 </TableBody>
+                <tfoot>
+                  <TableRow className="bg-muted/50 font-semibold border-t-2">
+                    <TableCell colSpan={5} className="text-sm">
+                      Total: {sortedCosts.length} {sortedCosts.length === 1 ? 'entry' : 'entries'}
+                    </TableCell>
+                    <TableCell className="text-right text-sm">
+                      {filteredTotalHours > 0 ? `${filteredTotalHours.toFixed(1)}h` : '-'}
+                    </TableCell>
+                    <TableCell className="text-right text-sm">
+                      £{filteredTotalCosts.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell colSpan={2} />
+                  </TableRow>
+                </tfoot>
               </Table>
             </div>
           )}
