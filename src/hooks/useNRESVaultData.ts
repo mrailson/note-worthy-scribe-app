@@ -164,7 +164,7 @@ export const useCreateVaultFolder = () => {
       if (error) throw error;
 
       // Auto-assign owner permission so folder is private by default
-      await supabase
+      const { error: permissionError } = await supabase
         .from('shared_drive_permissions')
         .insert({
           target_id: data.id,
@@ -175,6 +175,11 @@ export const useCreateVaultFolder = () => {
           is_inherited: false,
           actions: ['view', 'edit', 'delete', 'share', 'upload'] as any,
         });
+
+      if (permissionError) {
+        await supabase.from('shared_drive_folders').delete().eq('id', data.id);
+        throw new Error(`Failed to apply private owner permission: ${permissionError.message}`);
+      }
 
       return data;
     },

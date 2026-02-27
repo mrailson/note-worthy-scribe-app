@@ -365,8 +365,8 @@ export const VaultPermissionManager = ({
             Manage Access
           </DialogTitle>
           <DialogDescription>
-            Control who can access "<span className="font-medium">{targetName}</span>".
-            By default, all NRES users have full access. Adding permissions here overrides the default.
+            Items with no explicit permissions follow the NRES default access.
+            Once permissions are set, access is restricted to listed users and vault admins.
           </DialogDescription>
         </DialogHeader>
 
@@ -687,21 +687,34 @@ export const VaultPermissionManager = ({
               </div>
             </div>
 
-            {/* Default access row — always visible */}
-            <div className="flex items-center justify-between px-3 py-2.5 rounded-md bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/40 text-sm">
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                <div className="min-w-0">
-                  <span className="font-medium block">All NRES Users</span>
-                  <span className="text-xs text-muted-foreground block">
-                    Default read access for all NRES Dashboard users
-                  </span>
+            {(!permissions || permissions.length === 0) ? (
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-md bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/40 text-sm">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <Users className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="font-medium block">All NRES Users</span>
+                    <span className="text-xs text-muted-foreground block">
+                      Default access applies because no explicit permissions are set
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 shrink-0">
+                  Default
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-md bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/40 text-sm">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="font-medium block">Restricted Access</span>
+                    <span className="text-xs text-muted-foreground block">
+                      Only listed users and vault admins can access this item
+                    </span>
+                  </div>
                 </div>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 shrink-0">
-                Viewer
-              </span>
-            </div>
+            )}
 
             {isLoading ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Loading...</p>
