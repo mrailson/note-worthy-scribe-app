@@ -183,14 +183,15 @@ export const VaultContentView = ({
 
   const handleDownload = async (file: VaultFile) => {
     try {
-      const { data, error } = await supabase.storage.from('shared-drive').download(file.file_path);
+      const { data, error } = await supabase.storage
+        .from('shared-drive')
+        .createSignedUrl(file.file_path, 3600);
       if (error) throw error;
-      const url = URL.createObjectURL(data);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = data.signedUrl;
       a.download = file.original_name || file.name;
+      a.target = '_blank';
       a.click();
-      URL.revokeObjectURL(url);
     } catch (err: any) {
       toast.error('Download failed', { description: err.message });
     }
