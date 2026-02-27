@@ -1084,7 +1084,7 @@ export const VaultContentView = ({
             <DialogTitle>Edit Description</DialogTitle>
           </DialogHeader>
           <div className="px-8 sm:px-10 py-6 space-y-3">
-            <Label>File: <span className="font-normal text-muted-foreground">{descriptionTarget?.name}</span></Label>
+            <Label>File: <span className="font-normal text-muted-foreground truncate block max-w-full" title={descriptionTarget?.name}>{descriptionTarget?.name}</span></Label>
             <Label htmlFor="description-input">Description</Label>
             <Textarea
               id="description-input"
