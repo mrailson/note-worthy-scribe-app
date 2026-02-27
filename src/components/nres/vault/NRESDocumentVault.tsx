@@ -204,8 +204,11 @@ export const NRESDocumentVault = () => {
                 <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                   <p>
                     Welcome to the Document Vault — your secure, centralised store for practice documents and files.
-                    <span className="font-medium text-foreground"> Double-click</span> any folder to open it, just like Windows Explorer.
-                    Use the breadcrumbs above to navigate back, or right-click items for more options.
+                    {viewMode === 'tree' ? (
+                      <> Use the <span className="font-medium text-foreground">expand arrows</span> to browse folders in the tree, or right-click items for more options.</>
+                    ) : (
+                      <><span className="font-medium text-foreground"> Double-click</span> any folder to open it, just like Windows Explorer. Use the breadcrumbs above to navigate back, or right-click items for more options.</>
+                    )}
                   </p>
                 </div>
               )}
