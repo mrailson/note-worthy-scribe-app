@@ -319,7 +319,7 @@ export const VaultPermissionManager = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[70vh]">
+        <ScrollArea className="max-h-[70vh] overflow-y-auto">
         <div className="px-8 sm:px-10 py-6 space-y-6">
           {/* Add permissions section */}
           <div className="space-y-4">
@@ -535,43 +535,41 @@ export const VaultPermissionManager = ({
               <Label className="text-base font-semibold">Current Permissions</Label>
               <div className="flex items-center gap-2">
                 {permissions && permissions.length > 0 && (
-                  <>
-                    <Badge variant="secondary" className="text-xs">
-                      {permissions.length} user{permissions.length !== 1 ? 's' : ''}
-                    </Badge>
-                    {showRemoveAllConfirm ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-muted-foreground">Are you sure?</span>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => removeAllPermissions.mutate()}
-                          disabled={removeAllPermissions.isPending}
-                        >
-                          Remove All
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => setShowRemoveAllConfirm(false)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs text-destructive hover:text-destructive"
-                        onClick={() => setShowRemoveAllConfirm(true)}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Remove All
-                      </Button>
-                    )}
-                  </>
+                  <Badge variant="secondary" className="text-xs">
+                    {permissions.length} user{permissions.length !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+                {showRemoveAllConfirm ? (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">Are you sure?</span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => removeAllPermissions.mutate()}
+                      disabled={removeAllPermissions.isPending}
+                    >
+                      Remove All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setShowRemoveAllConfirm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-destructive hover:text-destructive"
+                    onClick={() => setShowRemoveAllConfirm(true)}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Remove All
+                  </Button>
                 )}
               </div>
             </div>
