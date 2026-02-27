@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { UAParser } from 'ua-parser-js';
 
 export type VaultAuditAction =
   | 'create_folder'
@@ -29,6 +30,31 @@ interface AuditLogEntry {
   details?: Record<string, unknown>;
 }
 
+const getBrowserInfo = (): string => {
+  try {
+    const result = UAParser(navigator.userAgent);
+    const browser = result.browser;
+    const os = result.os;
+    const device = result.device;
+    const parts: string[] = [];
+    if (browser.name) parts.push(`${browser.name}${browser.version ? ' ' + browser.version : ''}`);
+    if (os.name) parts.push(`${os.name}${os.version ? ' ' + os.version : ''}`);
+    if (device.type) parts.push(device.type);
+    return parts.join(' / ') || navigator.userAgent.slice(0, 100);
+  } catch {
+    return navigator.userAgent.slice(0, 100);
+  }
+};
+
+const fetchClientIp = async (): Promise<string | null> => {
+  try {
+    const { data } = await supabase.functions.invoke('get-client-info');
+    return data?.ip || null;
+  } catch {
+    return null;
+  }
+};
+
 export const useVaultAuditLog = () => {
   const { user } = useAuth();
 
@@ -36,12 +62,11 @@ export const useVaultAuditLog = () => {
     mutationFn: async (entry: AuditLogEntry) => {
       if (!user?.id) return;
 
-      // Get user profile info
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, email')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const [profileResult, ip] = await Promise.all([
+        supabase.from('profiles').select('full_name, email').eq('user_id', user.id).maybeSingle(),
+        fetchClientIp(),
+      ]);
+      const profile = profileResult.data;
 
       await supabase.from('nres_vault_audit_log').insert({
         user_id: user.id,
@@ -52,6 +77,8 @@ export const useVaultAuditLog = () => {
         target_id: entry.target_id || null,
         target_name: entry.target_name || null,
         details: entry.details || null,
+        browser_info: getBrowserInfo(),
+        ip_address: ip,
       } as any);
     },
   });
@@ -63,11 +90,11 @@ export const logVaultAction = async (
   entry: AuditLogEntry
 ) => {
   try {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, email')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const [profileResult, ip] = await Promise.all([
+      supabase.from('profiles').select('full_name, email').eq('user_id', userId).maybeSingle(),
+      fetchClientIp(),
+    ]);
+    const profile = profileResult.data;
 
     await supabase.from('nres_vault_audit_log').insert({
       user_id: userId,
@@ -78,6 +105,8 @@ export const logVaultAction = async (
       target_id: entry.target_id || null,
       target_name: entry.target_name || null,
       details: entry.details || null,
+      browser_info: getBrowserInfo(),
+      ip_address: ip,
     } as any);
   } catch (e) {
     console.error('Audit log failed:', e);
@@ -94,6 +123,8 @@ export interface VaultAuditRecord {
   target_id: string | null;
   target_name: string | null;
   details: Record<string, unknown> | null;
+  browser_info: string | null;
+  ip_address: string | null;
   created_at: string;
 }
 

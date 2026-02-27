@@ -64,6 +64,8 @@ const formatLogsForExport = (logs: VaultAuditRecord[]) =>
     'Action': getActionLabel(log.action),
     'Item Type': log.target_type === 'folder' ? 'Folder' : 'File',
     'Item Name': log.target_name || '',
+    'Browser': log.browser_info || '',
+    'IP Address': log.ip_address || '',
   }));
 
 const handleExportWord = async () => {
@@ -73,7 +75,7 @@ const handleExportWord = async () => {
     const rows = formatLogsForExport(logs);
     const { Document, Packer, Table, TableRow, TableCell, Paragraph, TextRun, WidthType, AlignmentType, BorderStyle, HeadingLevel } = await import('docx');
 
-    const headers = ['Date & Time', 'User Name', 'User Email', 'Action', 'Item Type', 'Item Name'];
+    const headers = ['Date & Time', 'User Name', 'User Email', 'Action', 'Item Type', 'Item Name', 'Browser', 'IP Address'];
 
     const headerRow = new TableRow({
       tableHeader: true,
@@ -150,7 +152,7 @@ const handleExportExcel = async () => {
     const rows = formatLogsForExport(logs);
     const XLSX = await import('xlsx-js-style');
 
-    const headers = ['Date & Time', 'User Name', 'User Email', 'Action', 'Item Type', 'Item Name'];
+    const headers = ['Date & Time', 'User Name', 'User Email', 'Action', 'Item Type', 'Item Name', 'Browser', 'IP Address'];
     const headerStyle = {
       font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Calibri', sz: 11 },
       fill: { fgColor: { rgb: '003087' } },
@@ -185,6 +187,8 @@ const handleExportExcel = async () => {
       { wch: 20 },
       { wch: 12 },
       { wch: 35 },
+      { wch: 30 },
+      { wch: 16 },
     ];
 
     const wb = XLSX.utils.book_new();
@@ -236,6 +240,8 @@ export const VaultAuditLogTab = () => {
                 <th className="text-left px-3 py-2 font-medium">User</th>
                 <th className="text-left px-3 py-2 font-medium">Action</th>
                 <th className="text-left px-3 py-2 font-medium">Item</th>
+                <th className="text-left px-3 py-2 font-medium">Browser</th>
+                <th className="text-left px-3 py-2 font-medium">IP Address</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -274,6 +280,12 @@ export const VaultAuditLogTab = () => {
                           <span className="truncate text-xs max-w-[150px]">{log.target_name}</span>
                         </div>
                       )}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap truncate max-w-[180px]" title={log.browser_info || ''}>
+                      {log.browser_info || '—'}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap font-mono">
+                      {log.ip_address || '—'}
                     </td>
                   </tr>
                 );

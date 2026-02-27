@@ -7473,9 +7473,11 @@ export type Database = {
       nres_vault_audit_log: {
         Row: {
           action: string
+          browser_info: string | null
           created_at: string
           details: Json | null
           id: string
+          ip_address: string | null
           target_id: string | null
           target_name: string | null
           target_type: string
@@ -7485,9 +7487,11 @@ export type Database = {
         }
         Insert: {
           action: string
+          browser_info?: string | null
           created_at?: string
           details?: Json | null
           id?: string
+          ip_address?: string | null
           target_id?: string | null
           target_name?: string | null
           target_type: string
@@ -7497,9 +7501,11 @@ export type Database = {
         }
         Update: {
           action?: string
+          browser_info?: string | null
           created_at?: string
           details?: Json | null
           id?: string
+          ip_address?: string | null
           target_id?: string | null
           target_name?: string | null
           target_type?: string
