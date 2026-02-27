@@ -86,7 +86,7 @@ export const useVaultBreadcrumbs = (folderId: string | null) => {
     queryFn: async (): Promise<BreadcrumbItem[]> => {
       if (!folderId) return [{ id: null, name: 'Document Vault Home' }];
 
-      const crumbs: BreadcrumbItem[] = [{ id: null, name: 'Document Vault Home' }];
+      const ancestors: BreadcrumbItem[] = [];
       let currentId: string | null = folderId;
 
       while (currentId) {
@@ -97,14 +97,13 @@ export const useVaultBreadcrumbs = (folderId: string | null) => {
           .single();
 
         if (!data) break;
-        crumbs.splice(1, 0, { id: data.id, name: data.name });
+        ancestors.push({ id: data.id, name: data.name });
         currentId = data.parent_id;
       }
 
-      // Reverse the inserted items so they're in correct order
-      const root = crumbs[0];
-      const rest = crumbs.slice(1).reverse();
-      return [root, ...rest];
+      // ancestors is [current, parent, grandparent, ...] — reverse to get root-first
+      ancestors.reverse();
+      return [{ id: null, name: 'Document Vault Home' }, ...ancestors];
     },
     enabled: true,
   });
