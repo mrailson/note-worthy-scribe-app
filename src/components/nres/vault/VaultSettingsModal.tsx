@@ -44,6 +44,7 @@ interface VaultSettingsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Collapsible group card component
 const GroupCard = ({ group, onEdit, onDelete }: { group: VaultGroup; onEdit: () => void; onDelete: () => void }) => {
   const [expanded, setExpanded] = useState(false);
   return (
