@@ -74,8 +74,12 @@ export const NRESDocumentVault = () => {
     }
   }, [uploadFile, currentFolderId, queryClient]);
 
-  const handleDelete = useCallback((id: string, type: 'folder' | 'file', filePath?: string, name?: string) => {
-    deleteItem.mutate({ id, type, filePath, name });
+  const handleDelete = useCallback(async (id: string, type: 'folder' | 'file', filePath?: string, name?: string) => {
+    try {
+      await deleteItem.mutateAsync({ id, type, filePath, name });
+    } catch (error) {
+      console.error('Delete failed:', error);
+    }
   }, [deleteItem]);
 
   const handleManageAccess = useCallback((id: string, type: 'folder' | 'file', name: string) => {
