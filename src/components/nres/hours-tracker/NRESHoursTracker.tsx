@@ -15,6 +15,7 @@ import { BuyBackClaimsTab } from './BuyBackClaimsTab';
 import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
 import { SDAFinanceGovernance } from '@/components/sda/SDAFinanceGovernance';
 import { SDARisksMitigation } from '@/components/sda/SDARisksMitigation';
+import { SDAEvidenceLibrary } from '@/components/sda/SDAEvidenceLibrary';
 import { useNRESUserSettings } from '@/hooks/useNRESUserSettings';
 import { useNRESHoursTracker } from '@/hooks/useNRESHoursTracker';
 import { useNRESExpenses } from '@/hooks/useNRESExpenses';
@@ -22,7 +23,7 @@ import { useNRESClaimants } from '@/hooks/useNRESClaimants';
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen } from 'lucide-react';
 
 export function NRESHoursTracker() {
   const [expensesOpen, setExpensesOpen] = useState(false);
@@ -91,6 +92,10 @@ export function NRESHoursTracker() {
           <TabsTrigger value="risks" className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4" />
             Risks & Mitigation
+          </TabsTrigger>
+          <TabsTrigger value="evidence" className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4" />
+            Evidence Library
           </TabsTrigger>
         </TabsList>
         {activeTab === 'buy-back' && admin && (
@@ -203,6 +208,10 @@ export function NRESHoursTracker() {
 
       <TabsContent value="risks">
         <SDARisksMitigation />
+      </TabsContent>
+
+      <TabsContent value="evidence">
+        <SDAEvidenceLibrary />
       </TabsContent>
 
       {/* Access Settings Modal (lifted from BuyBackClaimsTab) */}
