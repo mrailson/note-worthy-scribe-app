@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Home, FolderOpen } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -17,11 +17,13 @@ export const VaultBreadcrumbs = ({ items, onNavigate }: VaultBreadcrumbsProps) =
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
         const isFirst = index === 0;
+        const Icon = isFirst ? Home : FolderOpen;
         return (
           <div key={item.id ?? 'root'} className="flex items-center gap-1 shrink-0">
             {index > 0 && <ChevronRight className="h-3 w-3" />}
             {isLast ? (
-              <span className="font-medium text-foreground truncate max-w-[200px]">
+              <span className="font-medium text-foreground truncate max-w-[200px] flex items-center gap-1.5">
+                <Icon className="h-3.5 w-3.5 shrink-0" />
                 {item.name}
               </span>
             ) : isFirst ? (
@@ -29,8 +31,9 @@ export const VaultBreadcrumbs = ({ items, onNavigate }: VaultBreadcrumbsProps) =
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => onNavigate(item.id)}
-                    className="hover:text-foreground hover:underline transition-colors truncate max-w-[200px]"
+                    className="hover:text-foreground hover:underline transition-colors truncate max-w-[200px] flex items-center gap-1.5"
                   >
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
                     {item.name}
                   </button>
                 </TooltipTrigger>
@@ -41,8 +44,9 @@ export const VaultBreadcrumbs = ({ items, onNavigate }: VaultBreadcrumbsProps) =
             ) : (
               <button
                 onClick={() => onNavigate(item.id)}
-                className="hover:text-foreground hover:underline transition-colors truncate max-w-[200px]"
+                className="hover:text-foreground hover:underline transition-colors truncate max-w-[200px] flex items-center gap-1.5"
               >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
                 {item.name}
               </button>
             )}
