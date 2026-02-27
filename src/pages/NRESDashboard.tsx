@@ -69,7 +69,7 @@ const NRESDashboard = () => {
       <div className={`container mx-auto py-6 space-y-4 ${isIPhone ? 'px-2' : 'px-4 space-y-6'}`}>
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 flex-wrap h-auto gap-1">
             <TabsTrigger value="dashboard" className="gap-2">
               <LayoutGrid className="w-4 h-4" />
               Dashboard
