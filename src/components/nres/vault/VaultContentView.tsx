@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
-import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical, Info } from 'lucide-react';
+import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical, Info, AlertTriangle } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -14,16 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
@@ -169,6 +159,7 @@ export const VaultContentView = ({
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string; type: 'folder' | 'file'; name: string; filePath?: string;
   } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [renameTarget, setRenameTarget] = useState<{
     id: string; type: 'folder' | 'file'; currentName: string;
   } | null>(null);
@@ -757,33 +748,57 @@ export const VaultContentView = ({
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleteTarget?.type === 'folder' ? 'Folder' : 'File'}</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{deleteTarget?.name}"?
-              {deleteTarget?.type === 'folder' && ' This will also delete all contents within it.'}
-              {' '}This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      {/* Delete confirmation - cautious */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              {deleteTarget?.type === 'folder' ? 'Delete Folder & All Contents' : 'Delete File'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-8 sm:px-10 py-4 space-y-4">
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-2 text-sm">
+              <p className="font-semibold text-destructive">⚠️ Warning: This action is non-recoverable</p>
+              <p>You are about to permanently delete "<span className="font-medium">{deleteTarget?.name}</span>".</p>
+              {deleteTarget?.type === 'folder' && (
+                <p>This will also permanently delete <strong>all files and sub-folders</strong> contained within it.</p>
+              )}
+              <p className="text-muted-foreground">This action is fully audited and cannot be reversed. Deleted items cannot be restored.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm" className="text-sm">
+                To confirm, type <span className="font-mono font-bold text-destructive">DELETE</span> below:
+              </Label>
+              <Input
+                id="delete-confirm"
+                className="bg-white dark:bg-white/10"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type DELETE to confirm"
+                autoFocus
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirmText(''); }}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirmText !== 'DELETE'}
               onClick={() => {
-                if (deleteTarget) {
+                if (deleteTarget && deleteConfirmText === 'DELETE') {
                   onDelete(deleteTarget.id, deleteTarget.type, deleteTarget.filePath);
                   setDeleteTarget(null);
+                  setDeleteConfirmText('');
                 }
               }}
             >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              Permanently Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
