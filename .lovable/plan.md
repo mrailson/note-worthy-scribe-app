@@ -1,20 +1,26 @@
 
-# Add "Remove All Permissions" Button
+## Add Drag-and-Drop File Upload to the Document Vault
 
-## What changes
-Add a "Remove All" button next to the "Current Permissions" heading that deletes all explicit permission entries for the current folder/file in one action, with a confirmation prompt to prevent accidental clicks.
+### What will change
+The grey content area of the Document Vault will support drag-and-drop file uploads. Users will be able to drag files from their desktop and drop them directly into the vault area. A visual overlay will appear when files are dragged over, guiding the user. The empty folder message will also be updated to mention drag-and-drop as an option.
 
-## Details
+### Implementation
 
-### File: `src/components/nres/vault/VaultPermissionManager.tsx`
+**File: `src/components/nres/vault/VaultContentView.tsx`**
 
-1. **Add a "Remove All" mutation** -- a new `useMutation` that deletes all `shared_drive_permissions` rows matching the current `targetId` and `targetType`. On success, invalidate the relevant query keys and show a success toast.
+1. **Add drag-and-drop state and handlers** -- introduce `isDragOver` state and `onDragEnter`, `onDragLeave`, `onDragOver`, `onDrop` handlers on the main content `div` (the grey area, around line 651).
 
-2. **Add a confirmation state** -- a simple `showRemoveAllConfirm` boolean state. Clicking "Remove All" shows an inline confirmation (e.g. "Are you sure? Remove All / Cancel") rather than immediately deleting, to prevent accidental removal.
+2. **Visual drag overlay** -- when `isDragOver` is true and `canUpload` is true, render a semi-transparent overlay with an Upload icon and "Drop files here to upload" text over the content area.
 
-3. **Add the button to the UI** -- in the "Current Permissions" header row (line 513), next to the existing badge count, add a small destructive "Remove All" button (only visible when there are existing permissions). When confirmed, it calls the bulk delete mutation.
+3. **Handle the drop** -- on drop, extract files from `e.dataTransfer.files` and call the existing `onUploadFiles(Array.from(files))` callback.
+
+4. **Update empty-state text** -- change the empty folder message from "Right-click to create a folder or upload files" to "Drag and drop files here, or right-click for more options".
+
+5. **Handle paste** -- add a `onPaste` handler on the content div that checks `e.clipboardData.files` and, if files are present, calls `onUploadFiles`.
 
 ### Technical detail
-- The bulk delete query: `supabase.from('shared_drive_permissions').delete().eq('target_id', targetId).eq('target_type', targetType)`
-- This only removes explicit overrides; the default "All NRES Users -- Viewer" row is a visual indicator and is unaffected.
-- The button will use `variant="ghost"` with destructive text styling and a `Trash2` icon, sized small to sit inline with the heading.
+
+- A drag counter ref will track nested drag enter/leave events to prevent flicker.
+- The overlay will use `absolute` positioning within a `relative` wrapper, with a `pointer-events-none` style so it doesn't block the drop.
+- All logic stays within `VaultContentView.tsx` -- no new files needed.
+- The existing `onUploadFiles` prop already accepts `File[]`, so no interface changes are required.
