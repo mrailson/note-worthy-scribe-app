@@ -227,6 +227,8 @@ export const VaultPermissionManager = ({
     setSelectedUserIds(new Set());
   };
 
+  const [showRemoveAllConfirm, setShowRemoveAllConfirm] = useState(false);
+
   const removePermission = useMutation({
     mutationFn: async (permissionId: string) => {
       const { error } = await supabase
@@ -242,6 +244,25 @@ export const VaultPermissionManager = ({
     },
     onError: (err: any) =>
       toast.error('Failed to remove permission', { description: err.message }),
+  });
+
+  const removeAllPermissions = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('shared_drive_permissions')
+        .delete()
+        .eq('target_id', targetId)
+        .eq('target_type', targetType as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vault-permissions', targetId] });
+      queryClient.invalidateQueries({ queryKey: ['nres-vault'] });
+      setShowRemoveAllConfirm(false);
+      toast.success('All permissions removed');
+    },
+    onError: (err: any) =>
+      toast.error('Failed to remove permissions', { description: err.message }),
   });
 
   const permissionLevelLabel = (level: string) => {
@@ -512,11 +533,47 @@ export const VaultPermissionManager = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-base font-semibold">Current Permissions</Label>
-              {permissions && permissions.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {permissions.length} user{permissions.length !== 1 ? 's' : ''}
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                {permissions && permissions.length > 0 && (
+                  <>
+                    <Badge variant="secondary" className="text-xs">
+                      {permissions.length} user{permissions.length !== 1 ? 's' : ''}
+                    </Badge>
+                    {showRemoveAllConfirm ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground">Are you sure?</span>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => removeAllPermissions.mutate()}
+                          disabled={removeAllPermissions.isPending}
+                        >
+                          Remove All
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => setShowRemoveAllConfirm(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-destructive hover:text-destructive"
+                        onClick={() => setShowRemoveAllConfirm(true)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Remove All
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Default access row — always visible */}
