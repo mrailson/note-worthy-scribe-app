@@ -20,7 +20,8 @@ export type VaultAuditAction =
   | 'manage_access'
   | 'add_permission'
   | 'remove_permission'
-  | 'navigate_folder';
+  | 'navigate_folder'
+  | 'emailed_to_self';
 
 interface AuditLogEntry {
   action: VaultAuditAction;

@@ -315,7 +315,7 @@ export const VaultContentView = ({
 
       if (error) throw error;
 
-      if (user.id) logVaultAction(user.id, { action: 'download_file', target_type: 'file', target_id: file.id, target_name: file.name, details: { method: 'emailed_to_self' } });
+      if (user.id) logVaultAction(user.id, { action: 'emailed_to_self', target_type: 'file', target_id: file.id, target_name: file.name });
     } catch (err: any) {
       toast.error('Failed to email file', { description: err.message });
     }
