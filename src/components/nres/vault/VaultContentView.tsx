@@ -18,6 +18,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -1067,6 +1068,7 @@ export const VaultContentView = ({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Rename {renameTarget?.type === 'folder' ? 'Folder' : 'File'}</DialogTitle>
+            <DialogDescription>Enter a new name below.</DialogDescription>
           </DialogHeader>
           <div className="px-8 sm:px-10 py-6 space-y-3">
             <Label htmlFor="rename-input">New name</Label>
@@ -1091,6 +1093,7 @@ export const VaultContentView = ({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Description</DialogTitle>
+            <DialogDescription>Update the description for this item.</DialogDescription>
           </DialogHeader>
           <div className="px-8 sm:px-10 py-6 space-y-3">
             <Label>File: <span className="font-normal text-muted-foreground truncate block max-w-full" title={descriptionTarget?.name}>{descriptionTarget?.name}</span></Label>
@@ -1117,6 +1120,7 @@ export const VaultContentView = ({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
+            <DialogDescription>Enter a name for the new folder.</DialogDescription>
           </DialogHeader>
           <div className="px-8 sm:px-10 py-6 space-y-3">
             <Label htmlFor="new-folder-name">Folder Name</Label>
@@ -1145,6 +1149,7 @@ export const VaultContentView = ({
               <TriangleAlert className="h-5 w-5" />
               {deleteTarget?.type === 'folder' ? 'Delete Folder & All Contents' : 'Delete File'}
             </DialogTitle>
+            <DialogDescription>This action cannot be undone.</DialogDescription>
           </DialogHeader>
           {(() => {
             const isOwner = (() => {
