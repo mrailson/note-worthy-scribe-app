@@ -1,29 +1,48 @@
 
+You’re absolutely right: the issue is route/component mismatch, not the tab wrapping.
 
-# Fix: Document Vault Tab Not Visible
+## What I found
+- `/NRESDashboard` currently renders **`SDADashboard`** (in `src/App.tsx`).
+- The Document Vault was added to **`NRESDashboard.tsx`**, which is used by `/nres` (legacy/admin-style route), not your active dashboard.
+- So you won’t see Document Vault on `/NRESDashboard` until it is added inside `SDADashboard.tsx`.
 
-## Problem
-The "Document Vault" tab IS in the code and renders correctly, but on your screen width the tab bar overflows and the `no-scrollbar` CSS class hides the scrollbar. This means the third tab is off-screen to the right with no visual cue that you can scroll to it.
+## Implementation approach
+1. **Keep `/NRESDashboard` as the primary route** (as requested).
+2. **Add Document Vault to `SDADashboard.tsx`** (the dashboard you are actually using):
+   - Import `NRESDocumentVault`.
+   - Add a new top-level tab trigger (e.g. `value="document-vault"`).
+   - Add matching `<TabsContent value="document-vault">` rendering `<NRESDocumentVault />`.
+   - Add icon (`FolderLock`) and compact mobile label (`Vault`) to match existing SDA tab style.
+3. **Do not change backend logic**:
+   - Existing vault hooks, permissions, inheritance, and RLS remain as already implemented.
+   - No new DB migration needed for this visibility fix.
+4. **Optional clean-up (recommended after this fix)**:
+   - Keep vault in both `/nres` and `/NRESDashboard` for now to avoid breakage.
+   - In a follow-up, we can retire or relabel the legacy `/nres` route to prevent future confusion.
 
-## Solution
-Make the NRES Dashboard's main tab list wrap or display more compactly so all three tabs are always visible without scrolling.
+## Files to update
+- `src/pages/SDADashboard.tsx`
+  - Add imports: `NRESDocumentVault`, `FolderLock`.
+  - Add new `TabsTrigger`.
+  - Add corresponding `TabsContent`.
+- No other file changes required for the immediate fix.
 
-### Changes
+## Validation steps
+1. Open `/NRESDashboard`.
+2. Confirm **Document Vault** appears in the same top tab row as Executive Summary / Evidence Library / Claims & Oversight.
+3. Open Document Vault tab and verify:
+   - Folder list loads.
+   - Create folder works.
+   - Upload works.
+   - Search only returns accessible items.
+4. Quick regression:
+   - Existing tabs still switch correctly.
+   - Claims & Oversight behaviour unchanged.
 
-**1. Update `NRESDashboard.tsx` - Add `flex-wrap` to the TabsList**
-- Add a className override to the `TabsList` in the NRES Dashboard to allow wrapping, e.g. `className="flex-wrap h-auto"` so all three tabs are visible on narrower screens.
-- Alternatively, shorten the tab labels on smaller screens (e.g. "Vault" instead of "Document Vault") to fit.
-
-**2. Approach: Allow the tab bar to wrap**
-- Override the `TabsList` with `className="flex-wrap h-auto gap-1"` so that on narrow screens, tabs wrap to a second row rather than being hidden off-screen.
-- This is a single-line change and consistent with how the sub-tabs in Claims & Oversight already work.
-
-### Technical Detail
-
-```tsx
-// In NRESDashboard.tsx, line 72
-<TabsList className="mb-4 flex-wrap h-auto gap-1">
+## Technical note
+This is the key mismatch in routing today:
+```text
+/nres           -> NRESDashboard (where vault was added)
+/NRESDashboard  -> SDADashboard  (where user is working)
 ```
-
-This ensures all three tabs (Dashboard, Claims & Oversight, Document Vault) are always visible regardless of screen width.
-
+So the fix is to integrate the vault into `SDADashboard.tsx`.
