@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logVaultAction } from './useNRESVaultAudit';
 
 export interface VaultFolder {
   id: string;
@@ -183,9 +184,10 @@ export const useCreateVaultFolder = () => {
 
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
       toast.success(`Folder "${variables.name}" created`);
+      if (user?.id) logVaultAction(user.id, { action: 'create_folder', target_type: 'folder', target_id: data.id, target_name: variables.name });
     },
     onError: (error: any) => {
       toast.error('Failed to create folder', { description: error.message });
@@ -230,9 +232,10 @@ export const useUploadVaultFile = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
       toast.success('File uploaded successfully');
+      if (user?.id) logVaultAction(user.id, { action: 'upload_file', target_type: 'file', target_id: data?.id, target_name: variables.file.name });
     },
     onError: (error: any) => {
       toast.error('Failed to upload file', { description: error.message });
@@ -277,9 +280,10 @@ export const useReplaceVaultFile = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
       toast.success('File replaced successfully');
+      if (user?.id) logVaultAction(user.id, { action: 'replace_file', target_type: 'file', target_id: variables.fileId, target_name: variables.newFile.name });
     },
     onError: (error: any) => {
       toast.error('Failed to replace file', { description: error.message });
@@ -289,9 +293,10 @@ export const useReplaceVaultFile = () => {
 
 export const useDeleteVaultItem = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, type, filePath }: { id: string; type: 'folder' | 'file'; filePath?: string }) => {
+    mutationFn: async ({ id, type, filePath, name }: { id: string; type: 'folder' | 'file'; filePath?: string; name?: string }) => {
       if (type === 'file') {
         if (filePath) {
           await supabase.storage.from('shared-drive').remove([filePath]);
@@ -302,11 +307,13 @@ export const useDeleteVaultItem = () => {
         const { error } = await supabase.from('shared_drive_folders').delete().eq('id', id);
         if (error) throw error;
       }
+      return { id, type, name };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
       toast.success('Item deleted');
+      if (user?.id) logVaultAction(user.id, { action: result.type === 'folder' ? 'delete_folder' : 'delete_file', target_type: result.type, target_id: result.id, target_name: result.name });
     },
     onError: (error: any) => {
       toast.error('Failed to delete', { description: error.message });
@@ -316,6 +323,7 @@ export const useDeleteVaultItem = () => {
 
 export const useRenameVaultItem = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, type, newName }: { id: string; type: 'folder' | 'file'; newName: string }) => {
@@ -326,11 +334,13 @@ export const useRenameVaultItem = () => {
         const { error } = await supabase.from('shared_drive_files').update({ name: newName, original_name: newName }).eq('id', id);
         if (error) throw error;
       }
+      return { id, type, newName };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
       toast.success('Item renamed');
+      if (user?.id) logVaultAction(user.id, { action: result.type === 'folder' ? 'rename_folder' : 'rename_file', target_type: result.type, target_id: result.id, target_name: result.newName });
     },
     onError: (error: any) => {
       toast.error('Failed to rename', { description: error.message });
@@ -340,6 +350,7 @@ export const useRenameVaultItem = () => {
 
 export const useMoveVaultItem = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, type, targetFolderId }: { id: string; type: 'folder' | 'file'; targetFolderId: string | null }) => {
@@ -350,11 +361,13 @@ export const useMoveVaultItem = () => {
         const { error } = await supabase.from('shared_drive_files').update({ folder_id: targetFolderId }).eq('id', id);
         if (error) throw error;
       }
+      return { id, type };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
       toast.success('Item moved');
+      if (user?.id) logVaultAction(user.id, { action: result.type === 'folder' ? 'move_folder' : 'move_file', target_type: result.type, target_id: result.id });
     },
     onError: (error: any) => {
       toast.error('Failed to move', { description: error.message });
@@ -409,9 +422,10 @@ export const useCopyVaultFile = () => {
         });
       if (insertError) throw insertError;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
       toast.success('File copied');
+      if (user?.id) logVaultAction(user.id, { action: 'copy_file', target_type: 'file', target_id: variables.fileId });
     },
     onError: (error: any) => {
       toast.error('Failed to copy file', { description: error.message });
@@ -421,6 +435,7 @@ export const useCopyVaultFile = () => {
 
 export const useUpdateFileDescription = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ fileId, description }: { fileId: string; description: string }) => {
@@ -430,10 +445,11 @@ export const useUpdateFileDescription = () => {
         .eq('id', fileId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
       queryClient.invalidateQueries({ queryKey: ['nres-vault-search'] });
       toast.success('Description updated');
+      if (user?.id) logVaultAction(user.id, { action: 'edit_description', target_type: 'file', target_id: variables.fileId });
     },
     onError: (error: any) => {
       toast.error('Failed to update description', { description: error.message });

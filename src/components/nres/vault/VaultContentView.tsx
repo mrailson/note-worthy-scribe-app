@@ -41,6 +41,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { VaultFolder, VaultFile } from '@/hooks/useNRESVaultData';
 import { useUpdateFileDescription, useReplaceVaultFile } from '@/hooks/useNRESVaultData';
+import { logVaultAction } from '@/hooks/useNRESVaultAudit';
+import { useAuth } from '@/contexts/AuthContext';
 import { format, isToday, isYesterday, startOfDay } from 'date-fns';
 
 export type VaultViewMode = 'icons' | 'details';
@@ -57,7 +59,7 @@ interface VaultContentViewProps {
   onNavigateToFolder: (folderId: string) => void;
   onNavigateUp: () => void;
   currentFolderId: string | null;
-  onDelete: (id: string, type: 'folder' | 'file', filePath?: string) => void;
+  onDelete: (id: string, type: 'folder' | 'file', filePath?: string, name?: string) => void;
   onManageAccess: (id: string, type: 'folder' | 'file', name: string) => void;
   onCopy: (items: ClipboardState['items']) => void;
   onCut: (items: ClipboardState['items']) => void;
@@ -156,6 +158,7 @@ export const VaultContentView = ({
   canUpload,
   isLoading,
 }: VaultContentViewProps) => {
+  const { user } = useAuth();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string; type: 'folder' | 'file'; name: string; filePath?: string;
@@ -205,6 +208,7 @@ export const VaultContentView = ({
       a.download = file.original_name || file.name;
       a.target = '_blank';
       a.click();
+      if (user?.id) logVaultAction(user.id, { action: 'download_file', target_type: 'file', target_id: file.id, target_name: file.name });
     } catch (err: any) {
       toast.error('Download failed', { description: err.message });
     }
@@ -789,7 +793,7 @@ export const VaultContentView = ({
               disabled={deleteConfirmText !== 'DELETE'}
               onClick={() => {
                 if (deleteTarget && deleteConfirmText === 'DELETE') {
-                  onDelete(deleteTarget.id, deleteTarget.type, deleteTarget.filePath);
+                  onDelete(deleteTarget.id, deleteTarget.type, deleteTarget.filePath, deleteTarget.name);
                   setDeleteTarget(null);
                   setDeleteConfirmText('');
                 }

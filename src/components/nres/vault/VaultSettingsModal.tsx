@@ -8,7 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Settings, UserPlus, Trash2, Crown, ShieldCheck, Users, Pencil, Plus } from 'lucide-react';
+import { Settings, UserPlus, Trash2, Crown, ShieldCheck, Users, Pencil, Plus, ClipboardList } from 'lucide-react';
+import { VaultAuditLogTab } from './VaultAuditLogTab';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -322,7 +323,7 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[calc(100vh-8rem)] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
@@ -339,6 +340,10 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
             <TabsTrigger value="groups" className="flex-1">
               <Users className="h-3.5 w-3.5 mr-1.5" />
               Groups
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex-1">
+              <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+              Audit Log
             </TabsTrigger>
           </TabsList>
 
@@ -591,6 +596,10 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="audit">
+            <VaultAuditLogTab />
           </TabsContent>
         </Tabs>
 

@@ -68,8 +68,8 @@ export const NRESDocumentVault = () => {
     });
   }, [uploadFile, currentFolderId]);
 
-  const handleDelete = useCallback((id: string, type: 'folder' | 'file', filePath?: string) => {
-    deleteItem.mutate({ id, type, filePath });
+  const handleDelete = useCallback((id: string, type: 'folder' | 'file', filePath?: string, name?: string) => {
+    deleteItem.mutate({ id, type, filePath, name });
   }, [deleteItem]);
 
   const handleManageAccess = useCallback((id: string, type: 'folder' | 'file', name: string) => {
