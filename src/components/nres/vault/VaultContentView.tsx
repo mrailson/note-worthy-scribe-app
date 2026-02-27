@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
-import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical, Info, AlertTriangle } from 'lucide-react';
+import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical, Info, TriangleAlert } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -753,7 +753,7 @@ export const VaultContentView = ({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
+              <TriangleAlert className="h-5 w-5" />
               {deleteTarget?.type === 'folder' ? 'Delete Folder & All Contents' : 'Delete File'}
             </DialogTitle>
           </DialogHeader>
