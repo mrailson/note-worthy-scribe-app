@@ -505,10 +505,10 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            {group.members.length === 0 ? (
+                            {(group.members || []).length === 0 ? (
                               <span className="text-xs text-muted-foreground italic">No members</span>
                             ) : (
-                              group.members.map((m) => (
+                              (group.members || []).map((m) => (
                                 <Badge key={m.user_id} variant="secondary" className="text-[10px]">
                                   {m.full_name || m.email || 'Unknown'}
                                 </Badge>
