@@ -65,7 +65,7 @@ interface VaultContentViewProps {
   onCut: (items: ClipboardState['items']) => void;
   onPaste: () => void;
   onRename: (id: string, type: 'folder' | 'file', newName: string) => void;
-  onCreateFolder: (name: string) => void;
+  onCreateFolder: (name: string, parentId?: string | null) => void;
   onUploadFiles: (files: File[]) => void;
   onRefresh: () => void;
   clipboard: ClipboardState | null;
@@ -170,6 +170,7 @@ export const VaultContentView = ({
   const [renameValue, setRenameValue] = useState('');
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderParentId, setNewFolderParentId] = useState<string | null>(null);
   const [descriptionTarget, setDescriptionTarget] = useState<{ id: string; name: string; currentDescription: string } | null>(null);
   const [descriptionValue, setDescriptionValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -324,10 +325,28 @@ export const VaultContentView = ({
     }
   };
 
+  const loadTreeChildren = async (folderId: string) => {
+    const [{ data: childFolders }, { data: childFiles }] = await Promise.all([
+      supabase.from('shared_drive_folders').select('id, name, parent_id, created_by, created_at, updated_at, path').eq('scope', 'nres_vault').eq('parent_id', folderId).order('name'),
+      supabase.from('shared_drive_files').select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description').eq('scope', 'nres_vault').eq('folder_id', folderId).order('name'),
+    ]);
+    setTreeChildren(prev => ({
+      ...prev,
+      [folderId]: { folders: (childFolders || []) as VaultFolder[], files: (childFiles || []) as VaultFile[] },
+    }));
+  };
+
   const handleCreateFolderSubmit = () => {
     if (newFolderName.trim()) {
-      onCreateFolder(newFolderName.trim());
+      const targetParentId = newFolderParentId;
+      onCreateFolder(newFolderName.trim(), targetParentId);
+      // Reload tree cache for the target parent after a brief delay for DB write
+      if (targetParentId) {
+        setExpandedNodes(prev => new Set(prev).add(targetParentId));
+        setTimeout(() => loadTreeChildren(targetParentId), 600);
+      }
       setNewFolderName('');
+      setNewFolderParentId(null);
       setFolderDialogOpen(false);
     }
   };
@@ -458,9 +477,16 @@ export const VaultContentView = ({
   ) => (
     <ContextMenuContent>
       {type === 'folder' ? (
-        <ContextMenuItem onClick={() => handleDoubleClickFolder(id)}>
-          <FolderOpen className="h-4 w-4 mr-2" />Open
-        </ContextMenuItem>
+        <>
+          <ContextMenuItem onClick={() => handleDoubleClickFolder(id)}>
+            <FolderOpen className="h-4 w-4 mr-2" />Open
+          </ContextMenuItem>
+          {canUpload && (
+            <ContextMenuItem onClick={() => { setNewFolderParentId(id); setFolderDialogOpen(true); }}>
+              <FolderPlus className="h-4 w-4 mr-2" />New Folder Here
+            </ContextMenuItem>
+          )}
+        </>
       ) : file ? (
         <>
           <ContextMenuItem onClick={() => handleDownload(file)}>
@@ -522,9 +548,16 @@ export const VaultContentView = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         {type === 'folder' ? (
-          <DropdownMenuItem onClick={() => handleDoubleClickFolder(id)}>
-            <FolderOpen className="h-4 w-4 mr-2" />Open
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem onClick={() => handleDoubleClickFolder(id)}>
+              <FolderOpen className="h-4 w-4 mr-2" />Open
+            </DropdownMenuItem>
+            {canUpload && (
+              <DropdownMenuItem onClick={() => { setNewFolderParentId(id); setFolderDialogOpen(true); }}>
+                <FolderPlus className="h-4 w-4 mr-2" />New Folder Here
+              </DropdownMenuItem>
+            )}
+          </>
         ) : file ? (
           <>
             <DropdownMenuItem onClick={() => handleDownload(file)}>
@@ -573,7 +606,7 @@ export const VaultContentView = ({
     <ContextMenuContent>
       {canUpload && (
         <>
-          <ContextMenuItem onClick={() => setFolderDialogOpen(true)}>
+          <ContextMenuItem onClick={() => { setNewFolderParentId(null); setFolderDialogOpen(true); }}>
             <FolderPlus className="h-4 w-4 mr-2" />New Folder
           </ContextMenuItem>
           <ContextMenuItem onClick={() => fileInputRef.current?.click()}>
