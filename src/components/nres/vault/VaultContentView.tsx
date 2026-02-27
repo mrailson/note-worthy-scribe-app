@@ -511,14 +511,18 @@ export const VaultContentView = ({
           </ContextMenuItem>
         </>
       ) : null}
-      <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
-        <PencilLine className="h-4 w-4 mr-2" />Rename
-      </ContextMenuItem>
-      {type === 'file' && file && (
-        <ContextMenuItem onClick={() => { setDescriptionTarget({ id, name, currentDescription: file.description || '' }); setDescriptionValue(file.description || ''); }}>
-          <Info className="h-4 w-4 mr-2" />Edit Description
-        </ContextMenuItem>
+      {canUpload && (
+        <>
+          <ContextMenuSeparator />
+          <ContextMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
+            <PencilLine className="h-4 w-4 mr-2" />Rename
+          </ContextMenuItem>
+          {type === 'file' && file && (
+            <ContextMenuItem onClick={() => { setDescriptionTarget({ id, name, currentDescription: file.description || '' }); setDescriptionValue(file.description || ''); }}>
+              <Info className="h-4 w-4 mr-2" />Edit Description
+            </ContextMenuItem>
+          )}
+        </>
       )}
       {type === 'file' && filePath && canUpload && (
         <ContextMenuItem onClick={() => { setReplaceTarget({ id, filePath }); replaceInputRef.current?.click(); }}>
@@ -587,14 +591,18 @@ export const VaultContentView = ({
             </DropdownMenuItem>
           </>
         ) : null}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
-          <PencilLine className="h-4 w-4 mr-2" />Rename
-        </DropdownMenuItem>
-        {type === 'file' && file && (
-          <DropdownMenuItem onClick={() => { setDescriptionTarget({ id, name, currentDescription: file.description || '' }); setDescriptionValue(file.description || ''); }}>
-            <Info className="h-4 w-4 mr-2" />Edit Description
-          </DropdownMenuItem>
+        {canUpload && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
+              <PencilLine className="h-4 w-4 mr-2" />Rename
+            </DropdownMenuItem>
+            {type === 'file' && file && (
+              <DropdownMenuItem onClick={() => { setDescriptionTarget({ id, name, currentDescription: file.description || '' }); setDescriptionValue(file.description || ''); }}>
+                <Info className="h-4 w-4 mr-2" />Edit Description
+              </DropdownMenuItem>
+            )}
+          </>
         )}
         {type === 'file' && filePath && canUpload && (
           <DropdownMenuItem onClick={() => { setReplaceTarget({ id, filePath }); setTimeout(() => replaceInputRef.current?.click(), 0); }}>
