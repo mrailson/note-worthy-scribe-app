@@ -140,9 +140,9 @@ export const NRESDocumentVault = () => {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FolderLock className="h-5 w-5" />
-              Document Vault Home
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <FolderLock className="h-5 w-5 shrink-0" />
+              <span>Welcome to the Document Vault <span className="font-normal text-muted-foreground">— your secure, centralised store for practice documents and files.</span></span>
             </CardTitle>
             <div className="flex items-center gap-2">
               {isAdmin && (
@@ -206,8 +206,7 @@ export const NRESDocumentVault = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           {!isSearching && currentFolderId === null && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Welcome to the Document Vault <span className="font-normal text-muted-foreground">— your secure, centralised store for practice documents and files.</span></p>
+            <div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs space-y-1.5">
                   <p className="font-medium text-foreground text-sm">What to store here</p>
