@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderLock, LayoutGrid, List, Settings } from 'lucide-react';
+import { FolderLock, LayoutGrid, List, GitBranch, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { VaultToolbar } from './VaultToolbar';
@@ -165,13 +165,26 @@ export const NRESDocumentVault = () => {
                     <Button
                       variant={viewMode === 'details' ? 'secondary' : 'ghost'}
                       size="icon"
-                      className="h-8 w-8 rounded-l-none"
+                      className="h-8 w-8 rounded-none border-x-0"
                       onClick={() => setViewMode('details')}
                     >
                       <List className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Details</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={viewMode === 'tree' ? 'secondary' : 'ghost'}
+                      size="icon"
+                      className="h-8 w-8 rounded-l-none"
+                      onClick={() => setViewMode('tree')}
+                    >
+                      <GitBranch className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Tree</TooltipContent>
                 </Tooltip>
               </div>
             </div>

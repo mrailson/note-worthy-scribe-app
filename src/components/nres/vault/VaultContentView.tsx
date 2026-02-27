@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 // eslint-disable-next-line -- TriangleAlert replaces deprecated AlertTriangle
-import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical, Info, TriangleAlert, Mail } from 'lucide-react';
+import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ChevronRight, ArrowUp, MoreVertical, Info, TriangleAlert, Mail } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -45,7 +45,7 @@ import { logVaultAction } from '@/hooks/useNRESVaultAudit';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, isToday, isYesterday, startOfDay } from 'date-fns';
 
-export type VaultViewMode = 'icons' | 'details';
+export type VaultViewMode = 'icons' | 'details' | 'tree';
 
 export interface ClipboardState {
   items: Array<{ id: string; type: 'folder' | 'file'; name: string; filePath?: string }>;
@@ -176,6 +176,20 @@ export const VaultContentView = ({
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Tree view state (must be before any early returns)
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [treeChildren, setTreeChildren] = useState<Record<string, { folders: VaultFolder[]; files: VaultFile[] }>>({});
+
+  useEffect(() => {
+    if (viewMode === 'tree') {
+      const rootKey = currentFolderId || '__root__';
+      setTreeChildren(prev => ({
+        ...prev,
+        [rootKey]: { folders, files },
+      }));
+    }
+  }, [viewMode, folders, files, currentFolderId]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -675,6 +689,192 @@ export const VaultContentView = ({
     </table>
   );
 
+  // ── Tree View ──
+
+  const toggleTreeNode = async (folderId: string) => {
+    const next = new Set(expandedNodes);
+    if (next.has(folderId)) {
+      next.delete(folderId);
+      setExpandedNodes(next);
+      return;
+    }
+    next.add(folderId);
+    setExpandedNodes(next);
+
+    // Load children if not cached
+    if (!treeChildren[folderId]) {
+      const [{ data: childFolders }, { data: childFiles }] = await Promise.all([
+        supabase
+          .from('shared_drive_folders')
+          .select('id, name, parent_id, created_by, created_at, updated_at, path')
+          .eq('scope', 'nres_vault')
+          .eq('parent_id', folderId)
+          .order('name'),
+        supabase
+          .from('shared_drive_files')
+          .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description')
+          .eq('scope', 'nres_vault')
+          .eq('folder_id', folderId)
+          .order('name'),
+      ]);
+      setTreeChildren(prev => ({
+        ...prev,
+        [folderId]: {
+          folders: (childFolders || []) as VaultFolder[],
+          files: (childFiles || []) as VaultFile[],
+        },
+      }));
+    }
+  };
+
+  const renderTreeNode = (folder: VaultFolder, depth: number) => {
+    const isExpanded = expandedNodes.has(folder.id);
+    const children = treeChildren[folder.id];
+    const isCut = isCutItem(folder.id);
+    const isSelected = selectedItems.has(folder.id);
+
+    return (
+      <div key={folder.id}>
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <div
+              className={`flex items-center gap-1 py-1 px-2 rounded cursor-pointer transition-colors text-sm
+                ${isSelected ? 'bg-primary/15' : 'hover:bg-muted/40'}
+                ${isCut ? 'opacity-40' : ''}`}
+              style={{ paddingLeft: `${depth * 20 + 8}px` }}
+              onClick={(e) => { e.stopPropagation(); handleSelect(folder.id, e); }}
+              onDoubleClick={() => handleDoubleClickFolder(folder.id)}
+            >
+              <button
+                className="p-0.5 rounded hover:bg-muted/60 transition-colors shrink-0"
+                onClick={(e) => { e.stopPropagation(); toggleTreeNode(folder.id); }}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+              </button>
+              <Folder
+                className="h-4 w-4 shrink-0 text-amber-500"
+                fill="currentColor"
+                strokeWidth={1}
+              />
+              <span className="truncate">{folder.name}</span>
+              <div className="ml-auto opacity-0 group-hover:opacity-100">
+                {renderItemDropdownMenu(folder.id, 'folder', folder.name)}
+              </div>
+            </div>
+          </ContextMenuTrigger>
+          {renderItemContextMenu(folder.id, 'folder', folder.name)}
+        </ContextMenu>
+
+        {isExpanded && children && (
+          <div>
+            {children.folders.map(child => renderTreeNode(child, depth + 1))}
+            {children.files.map(file => {
+              const IconComp = getFileIcon(file.file_type);
+              const iconColour = getFileIconColour(file.file_type);
+              const displayName = file.original_name || file.name;
+              const isFileSelected = selectedItems.has(file.id);
+              const isFileCut = isCutItem(file.id);
+
+              return (
+                <ContextMenu key={file.id}>
+                  <ContextMenuTrigger asChild>
+                    <div
+                      className={`flex items-center gap-1.5 py-1 px-2 rounded cursor-pointer transition-colors text-sm group
+                        ${isFileSelected ? 'bg-primary/15' : 'hover:bg-muted/40'}
+                        ${isFileCut ? 'opacity-40' : ''}`}
+                      style={{ paddingLeft: `${(depth + 1) * 20 + 28}px` }}
+                      onClick={(e) => { e.stopPropagation(); handleSelect(file.id, e); }}
+                      onDoubleClick={() => handleDownload(file)}
+                    >
+                      <IconComp className={`h-4 w-4 shrink-0 ${iconColour}`} strokeWidth={1.5} />
+                      {renderFileHoverCard(file,
+                        <span className="truncate">{displayName}</span>
+                      )}
+                      <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+                        {formatFileSize(file.file_size)}
+                      </span>
+                      <div className="opacity-0 group-hover:opacity-100 shrink-0">
+                        {renderItemDropdownMenu(file.id, 'file', displayName, file.file_path, file)}
+                      </div>
+                    </div>
+                  </ContextMenuTrigger>
+                  {renderItemContextMenu(file.id, 'file', displayName, file.file_path, file)}
+                </ContextMenu>
+              );
+            })}
+            {children.folders.length === 0 && children.files.length === 0 && (
+              <div
+                className="text-xs text-muted-foreground italic py-1"
+                style={{ paddingLeft: `${(depth + 1) * 20 + 28}px` }}
+              >
+                Empty folder
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderTreeView = () => {
+    const rootKey = currentFolderId || '__root__';
+    const rootChildren = treeChildren[rootKey];
+    if (!rootChildren) return null;
+
+    return (
+      <div className="space-y-0.5">
+        {currentFolderId && (
+          <div
+            className="flex items-center gap-2 py-1 px-2 rounded cursor-pointer hover:bg-muted/40 text-sm text-muted-foreground"
+            onClick={onNavigateUp}
+          >
+            <ArrowUp className="h-4 w-4 shrink-0" />
+            <span>..</span>
+          </div>
+        )}
+        {rootChildren.folders.map(folder => renderTreeNode(folder, 0))}
+        {rootChildren.files.map(file => {
+          const IconComp = getFileIcon(file.file_type);
+          const iconColour = getFileIconColour(file.file_type);
+          const displayName = file.original_name || file.name;
+          const isFileSelected = selectedItems.has(file.id);
+          const isFileCut = isCutItem(file.id);
+
+          return (
+            <ContextMenu key={file.id}>
+              <ContextMenuTrigger asChild>
+                <div
+                  className={`flex items-center gap-1.5 py-1 px-2 rounded cursor-pointer transition-colors text-sm group
+                    ${isFileSelected ? 'bg-primary/15' : 'hover:bg-muted/40'}
+                    ${isFileCut ? 'opacity-40' : ''}`}
+                  style={{ paddingLeft: '28px' }}
+                  onClick={(e) => { e.stopPropagation(); handleSelect(file.id, e); }}
+                  onDoubleClick={() => handleDownload(file)}
+                >
+                  <IconComp className={`h-4 w-4 shrink-0 ${iconColour}`} strokeWidth={1.5} />
+                  {renderFileHoverCard(file,
+                    <span className="truncate">{displayName}</span>
+                  )}
+                  <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+                    {formatFileSize(file.file_size)}
+                  </span>
+                  <div className="opacity-0 group-hover:opacity-100 shrink-0">
+                    {renderItemDropdownMenu(file.id, 'file', displayName, file.file_path, file)}
+                  </div>
+                </div>
+              </ContextMenuTrigger>
+              {renderItemContextMenu(file.id, 'file', displayName, file.file_path, file)}
+            </ContextMenu>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderIconsView = () => (
     <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))' }}>
       {currentFolderId && (
@@ -770,6 +970,8 @@ export const VaultContentView = ({
                 <p className="text-sm">This folder is empty</p>
                 <p className="text-xs mt-1">Drag and drop files here, or right-click for more options</p>
               </div>
+            ) : viewMode === 'tree' ? (
+              renderTreeView()
             ) : viewMode === 'details' ? (
               renderDetailsView()
             ) : (
