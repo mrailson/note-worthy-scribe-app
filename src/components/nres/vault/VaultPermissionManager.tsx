@@ -21,7 +21,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Shield, Trash2, UserPlus, Users, Building2, Check } from 'lucide-react';
+import { Shield, Trash2, UserPlus, Users, Building2, Check, FolderOpen } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -61,6 +61,8 @@ export const VaultPermissionManager = ({
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [multiLevel, setMultiLevel] = useState('viewer');
   const [activeTab, setActiveTab] = useState('individual');
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [groupLevel, setGroupLevel] = useState('viewer');
 
   // Fetch existing permissions for this item
   const { data: permissions, isLoading } = useQuery({
@@ -103,6 +105,32 @@ export const VaultPermissionManager = ({
         user_email: profileMap.get(p.user_id)?.email || '',
         practice_name: practiceMap.get(p.user_id) || null,
       })) as ExistingPermission[];
+    },
+    enabled: open,
+  });
+
+  // Fetch vault user groups
+  const { data: vaultGroups = [] } = useQuery({
+    queryKey: ['nres-vault-groups'],
+    queryFn: async () => {
+      const { data: groupsData, error } = await supabase
+        .from('nres_vault_user_groups')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+
+      const groupIds = (groupsData || []).map((g: any) => g.id);
+      if (!groupIds.length) return (groupsData || []).map((g: any) => ({ ...g, memberIds: [] as string[] }));
+
+      const { data: membersData } = await supabase
+        .from('nres_vault_user_group_members')
+        .select('group_id, user_id')
+        .in('group_id', groupIds);
+
+      return (groupsData || []).map((g: any) => ({
+        ...g,
+        memberIds: (membersData || []).filter((m: any) => m.group_id === g.id).map((m: any) => m.user_id),
+      }));
     },
     enabled: open,
   });
@@ -205,6 +233,29 @@ export const VaultPermissionManager = ({
     }
     setSelectedUserIds(new Set());
     toast.success(`Permission set for ${count} user${count !== 1 ? 's' : ''}`);
+  };
+
+  const handleAddByGroup = async () => {
+    if (!selectedGroupId) return;
+    const group = vaultGroups.find((g: any) => g.id === selectedGroupId);
+    if (!group) return;
+
+    const usersToAdd = group.memberIds.filter(
+      (id: string) => !existingUserIds.has(id) && id !== user?.id
+    );
+
+    if (usersToAdd.length === 0) {
+      toast.info('All members of this group already have permissions set');
+      return;
+    }
+
+    let count = 0;
+    for (const userId of usersToAdd) {
+      await addPermission.mutateAsync({ userId, level: groupLevel });
+      count++;
+    }
+    setSelectedGroupId('');
+    toast.success(`Permission set for ${count} user${count !== 1 ? 's' : ''} from ${group.name}`);
   };
 
   const toggleUserSelection = (userId: string) => {
@@ -326,7 +377,7 @@ export const VaultPermissionManager = ({
             <Label className="text-base font-semibold">Add Permissions</Label>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3 h-9">
+              <TabsList className="grid w-full grid-cols-4 h-9">
                 <TabsTrigger value="individual" className="text-xs gap-1.5">
                   <UserPlus className="h-3.5 w-3.5" />
                   Individual
@@ -334,6 +385,10 @@ export const VaultPermissionManager = ({
                 <TabsTrigger value="practice" className="text-xs gap-1.5">
                   <Building2 className="h-3.5 w-3.5" />
                   By Practice
+                </TabsTrigger>
+                <TabsTrigger value="group" className="text-xs gap-1.5">
+                  <FolderOpen className="h-3.5 w-3.5" />
+                  By Group
                 </TabsTrigger>
                 <TabsTrigger value="multiple" className="text-xs gap-1.5">
                   <Users className="h-3.5 w-3.5" />
@@ -441,6 +496,64 @@ export const VaultPermissionManager = ({
                     access for all users from{' '}
                     <span className="font-medium">{selectedPractice}</span> who don't already have
                     a permission set.
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* By Group */}
+              <TabsContent value="group" className="mt-4 space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Assign the same permission level to all members of a user group.
+                </p>
+                {vaultGroups.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No groups created yet. Create groups in Vault Settings.
+                  </p>
+                ) : (
+                  <div className="flex gap-2">
+                    <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                      <SelectTrigger className="flex-1 bg-white dark:bg-background">
+                        <SelectValue placeholder="Select group..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vaultGroups.map((g: any) => (
+                          <SelectItem key={g.id} value={g.id}>
+                            <span>{g.name}</span>
+                            <span className="text-muted-foreground ml-1">
+                              ({g.memberIds.length} member{g.memberIds.length !== 1 ? 's' : ''})
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={groupLevel} onValueChange={setGroupLevel}>
+                      <SelectTrigger className="w-[130px] bg-white dark:bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="viewer">Viewer</SelectItem>
+                        <SelectItem value="editor">Editor</SelectItem>
+                        <SelectItem value="no_access">No Access</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={handleAddByGroup}
+                      disabled={!selectedGroupId || addPermission.isPending}
+                      size="sm"
+                      className="shrink-0"
+                    >
+                      <FolderOpen className="h-4 w-4 mr-1.5" />
+                      Assign
+                    </Button>
+                  </div>
+                )}
+                {selectedGroupId && (
+                  <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
+                    This will set{' '}
+                    <span className="font-medium">{permissionLevelLabel(groupLevel)}</span>{' '}
+                    access for all members of{' '}
+                    <span className="font-medium">{vaultGroups.find((g: any) => g.id === selectedGroupId)?.name}</span>{' '}
+                    who don't already have a permission set.
                   </div>
                 )}
               </TabsContent>
