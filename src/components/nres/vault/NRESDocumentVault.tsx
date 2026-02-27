@@ -234,7 +234,7 @@ export const NRESDocumentVault = () => {
             onCut={handleCut}
             onPaste={handlePaste}
             onRename={handleRename}
-            onCreateFolder={(name) => createFolder.mutate({ name, parentId: currentFolderId })}
+            onCreateFolder={(name, parentId) => createFolder.mutate({ name, parentId: parentId !== undefined ? parentId : currentFolderId })}
             onUploadFiles={handleUploadFiles}
             onRefresh={handleRefresh}
             clipboard={clipboard}
