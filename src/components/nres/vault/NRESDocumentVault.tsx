@@ -62,9 +62,10 @@ export const NRESDocumentVault = () => {
     setSearchQuery('');
   }, []);
 
-  const handleUploadFiles = useCallback((fileList: File[]) => {
+  const handleUploadFiles = useCallback((fileList: File[], targetFolderId?: string | null) => {
+    const folderId = targetFolderId !== undefined ? targetFolderId : currentFolderId;
     fileList.forEach((file) => {
-      uploadFile.mutate({ file, folderId: currentFolderId });
+      uploadFile.mutate({ file, folderId });
     });
   }, [uploadFile, currentFolderId]);
 

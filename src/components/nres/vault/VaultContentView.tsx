@@ -66,7 +66,7 @@ interface VaultContentViewProps {
   onPaste: () => void;
   onRename: (id: string, type: 'folder' | 'file', newName: string) => void;
   onCreateFolder: (name: string, parentId?: string | null) => void;
-  onUploadFiles: (files: File[]) => void;
+  onUploadFiles: (files: File[], targetFolderId?: string | null) => void;
   onRefresh: () => void;
   clipboard: ClipboardState | null;
   canDeleteItems: boolean;
@@ -171,6 +171,8 @@ export const VaultContentView = ({
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderParentId, setNewFolderParentId] = useState<string | null>(null);
+  const [uploadTargetFolderId, setUploadTargetFolderId] = useState<string | null>(null);
+  const targetUploadInputRef = useRef<HTMLInputElement>(null);
   const [descriptionTarget, setDescriptionTarget] = useState<{ id: string; name: string; currentDescription: string } | null>(null);
   const [descriptionValue, setDescriptionValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -409,6 +411,13 @@ export const VaultContentView = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleTargetedFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = Array.from(e.target.files || []);
+    if (fileList.length > 0) onUploadFiles(fileList, uploadTargetFolderId);
+    setUploadTargetFolderId(null);
+    if (targetUploadInputRef.current) targetUploadInputRef.current.value = '';
+  };
+
   const handleReplaceFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && replaceTarget) {
@@ -481,10 +490,15 @@ export const VaultContentView = ({
           <ContextMenuItem onClick={() => handleDoubleClickFolder(id)}>
             <FolderOpen className="h-4 w-4 mr-2" />Open
           </ContextMenuItem>
-          {canUpload && (
-            <ContextMenuItem onClick={() => { setNewFolderParentId(id); setFolderDialogOpen(true); }}>
-              <FolderPlus className="h-4 w-4 mr-2" />New Folder Here
-            </ContextMenuItem>
+           {canUpload && (
+            <>
+              <ContextMenuItem onClick={() => { setNewFolderParentId(id); setFolderDialogOpen(true); }}>
+                <FolderPlus className="h-4 w-4 mr-2" />New Folder Here
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => { setUploadTargetFolderId(id); setTimeout(() => targetUploadInputRef.current?.click(), 0); }}>
+                <Upload className="h-4 w-4 mr-2" />Upload Files Here
+              </ContextMenuItem>
+            </>
           )}
         </>
       ) : file ? (
@@ -553,9 +567,14 @@ export const VaultContentView = ({
               <FolderOpen className="h-4 w-4 mr-2" />Open
             </DropdownMenuItem>
             {canUpload && (
-              <DropdownMenuItem onClick={() => { setNewFolderParentId(id); setFolderDialogOpen(true); }}>
-                <FolderPlus className="h-4 w-4 mr-2" />New Folder Here
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem onClick={() => { setNewFolderParentId(id); setFolderDialogOpen(true); }}>
+                  <FolderPlus className="h-4 w-4 mr-2" />New Folder Here
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setUploadTargetFolderId(id); setTimeout(() => targetUploadInputRef.current?.click(), 0); }}>
+                  <Upload className="h-4 w-4 mr-2" />Upload Files Here
+                </DropdownMenuItem>
+              </>
             )}
           </>
         ) : file ? (
@@ -1023,6 +1042,7 @@ export const VaultContentView = ({
 
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
+      <input ref={targetUploadInputRef} type="file" multiple className="hidden" onChange={handleTargetedFileSelect} />
       <input ref={replaceInputRef} type="file" className="hidden" onChange={handleReplaceFileSelect} />
 
       {/* Rename dialog */}
