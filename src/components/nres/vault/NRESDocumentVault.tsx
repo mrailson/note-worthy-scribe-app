@@ -62,12 +62,17 @@ export const NRESDocumentVault = () => {
     setSearchQuery('');
   }, []);
 
-  const handleUploadFiles = useCallback((fileList: File[], targetFolderId?: string | null) => {
+  const handleUploadFiles = useCallback(async (fileList: File[], targetFolderId?: string | null) => {
     const folderId = targetFolderId !== undefined ? targetFolderId : currentFolderId;
-    fileList.forEach((file) => {
-      uploadFile.mutate({ file, folderId });
-    });
-  }, [uploadFile, currentFolderId]);
+    try {
+      await Promise.all(fileList.map((file) => uploadFile.mutateAsync({ file, folderId })));
+      // Force immediate refetch after all uploads complete
+      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
+      queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
+    } catch {
+      // Individual errors already handled by mutation's onError
+    }
+  }, [uploadFile, currentFolderId, queryClient]);
 
   const handleDelete = useCallback((id: string, type: 'folder' | 'file', filePath?: string, name?: string) => {
     deleteItem.mutate({ id, type, filePath, name });
