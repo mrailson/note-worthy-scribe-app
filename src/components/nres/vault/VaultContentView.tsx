@@ -241,13 +241,16 @@ export const VaultContentView = ({
     try {
       const { data, error } = await supabase.storage
         .from('shared-drive')
-        .createSignedUrl(file.file_path, 3600);
+        .download(file.file_path);
       if (error) throw error;
+      const url = URL.createObjectURL(data);
       const a = document.createElement('a');
-      a.href = data.signedUrl;
+      a.href = url;
       a.download = file.original_name || file.name;
-      a.target = '_blank';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
       if (user?.id) logVaultAction(user.id, { action: 'download_file', target_type: 'file', target_id: file.id, target_name: file.name });
     } catch (err: any) {
       toast.error('Download failed', { description: err.message });
