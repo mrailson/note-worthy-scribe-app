@@ -358,7 +358,7 @@ export const VaultPermissionManager = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -371,7 +371,7 @@ export const VaultPermissionManager = ({
         </DialogHeader>
 
 
-        <div className="px-8 sm:px-10 py-6 space-y-6">
+        <div className="px-8 sm:px-10 py-6 space-y-6 overflow-y-auto flex-1 min-h-0">
           {/* Add permissions section */}
           <div className="space-y-4">
             <Label className="text-base font-semibold">Add Permissions</Label>
@@ -719,7 +719,7 @@ export const VaultPermissionManager = ({
             {isLoading ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Loading...</p>
             ) : permissions && permissions.length > 0 ? (
-              <ScrollArea className="max-h-[250px]">
+              <div className="max-h-[300px] overflow-y-auto rounded-md border border-border/50 p-1">
                 <div className="space-y-3">
                   {groupedPermissions.map((group) => (
                     <div key={group.name}>
@@ -773,7 +773,7 @@ export const VaultPermissionManager = ({
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             ) : null}
           </div>
         </div>
