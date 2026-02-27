@@ -162,6 +162,20 @@ export const useCreateVaultFolder = () => {
         .single();
 
       if (error) throw error;
+
+      // Auto-assign owner permission so folder is private by default
+      await supabase
+        .from('shared_drive_permissions')
+        .insert({
+          target_id: data.id,
+          target_type: 'folder' as any,
+          user_id: user.id,
+          permission_level: 'owner' as any,
+          granted_by: user.id,
+          is_inherited: false,
+          actions: ['view', 'edit', 'delete', 'share', 'upload'] as any,
+        });
+
       return data;
     },
     onSuccess: (_, variables) => {
