@@ -247,3 +247,108 @@ export const useDeleteVaultItem = () => {
     },
   });
 };
+
+export const useRenameVaultItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, type, newName }: { id: string; type: 'folder' | 'file'; newName: string }) => {
+      if (type === 'folder') {
+        const { error } = await supabase.from('shared_drive_folders').update({ name: newName }).eq('id', id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('shared_drive_files').update({ name: newName, original_name: newName }).eq('id', id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
+      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
+      toast.success('Item renamed');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to rename', { description: error.message });
+    },
+  });
+};
+
+export const useMoveVaultItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, type, targetFolderId }: { id: string; type: 'folder' | 'file'; targetFolderId: string | null }) => {
+      if (type === 'folder') {
+        const { error } = await supabase.from('shared_drive_folders').update({ parent_id: targetFolderId }).eq('id', id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('shared_drive_files').update({ folder_id: targetFolderId }).eq('id', id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
+      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
+      toast.success('Item moved');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to move', { description: error.message });
+    },
+  });
+};
+
+export const useCopyVaultFile = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ fileId, targetFolderId }: { fileId: string; targetFolderId: string | null }) => {
+      if (!user?.id) throw new Error('Not authenticated');
+
+      // Get original file record
+      const { data: original, error: fetchError } = await supabase
+        .from('shared_drive_files')
+        .select('*')
+        .eq('id', fileId)
+        .single();
+      if (fetchError || !original) throw fetchError || new Error('File not found');
+
+      // Download from storage
+      const { data: blob, error: dlError } = await supabase.storage
+        .from('shared-drive')
+        .download(original.file_path);
+      if (dlError) throw dlError;
+
+      // Upload copy
+      const timestamp = Date.now();
+      const ext = original.name.split('.').pop();
+      const newPath = `nres-vault/${user.id}/${timestamp}.${ext}`;
+      const { error: upError } = await supabase.storage
+        .from('shared-drive')
+        .upload(newPath, blob);
+      if (upError) throw upError;
+
+      // Insert new record
+      const { error: insertError } = await supabase
+        .from('shared_drive_files')
+        .insert({
+          name: original.name,
+          original_name: original.original_name,
+          folder_id: targetFolderId,
+          file_path: newPath,
+          file_size: original.file_size,
+          file_type: original.file_type,
+          mime_type: original.mime_type,
+          created_by: user.id,
+          scope: 'nres_vault',
+        });
+      if (insertError) throw insertError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
+      toast.success('File copied');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to copy file', { description: error.message });
+    },
+  });
+};
