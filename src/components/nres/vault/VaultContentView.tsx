@@ -342,14 +342,18 @@ export const VaultContentView = ({
     }));
   };
 
-  const handleCreateFolderSubmit = () => {
+  const handleCreateFolderSubmit = async () => {
     if (newFolderName.trim()) {
       const targetParentId = newFolderParentId;
-      onCreateFolder(newFolderName.trim(), targetParentId);
-      // Reload tree cache for the target parent after a brief delay for DB write
-      if (targetParentId) {
-        setExpandedNodes(prev => new Set(prev).add(targetParentId));
-        setTimeout(() => loadTreeChildren(targetParentId), 600);
+      try {
+        onCreateFolder(newFolderName.trim(), targetParentId);
+        // Reload tree cache for the target parent after a brief delay for DB write
+        if (targetParentId) {
+          setExpandedNodes(prev => new Set(prev).add(targetParentId));
+          setTimeout(() => loadTreeChildren(targetParentId), 600);
+        }
+      } catch (error) {
+        console.error("Unexpected error during folder creation:", error);
       }
       setNewFolderName('');
       setNewFolderParentId(null);
