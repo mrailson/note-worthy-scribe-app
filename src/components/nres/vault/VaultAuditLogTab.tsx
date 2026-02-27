@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, FileText, Folder, Download, Eye, Pencil, Trash2, Upload, FolderPlus, Copy, Move, Shield, RefreshCw } from 'lucide-react';
-import { useVaultAuditLogs } from '@/hooks/useNRESVaultAudit';
+import { ChevronLeft, ChevronRight, FileText, Folder, Download, Eye, Pencil, Trash2, Upload, FolderPlus, Copy, Move, Shield, RefreshCw, FileDown, Sheet } from 'lucide-react';
+import { useVaultAuditLogs, VaultAuditRecord } from '@/hooks/useNRESVaultAudit';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const ACTION_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   create_folder: { label: 'Created Folder', icon: FolderPlus, color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
@@ -27,6 +29,174 @@ const ACTION_CONFIG: Record<string, { label: string; icon: React.ElementType; co
 
 const PAGE_SIZE = 50;
 
+const fetchAllAuditLogs = async (): Promise<VaultAuditRecord[]> => {
+  const allLogs: VaultAuditRecord[] = [];
+  let from = 0;
+  const batchSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('nres_vault_audit_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, from + batchSize - 1);
+
+    if (error) throw error;
+    if (data && data.length > 0) {
+      allLogs.push(...(data as VaultAuditRecord[]));
+      from += batchSize;
+      hasMore = data.length === batchSize;
+    } else {
+      hasMore = false;
+    }
+  }
+  return allLogs;
+};
+
+const getActionLabel = (action: string) => ACTION_CONFIG[action]?.label || action;
+
+const formatLogsForExport = (logs: VaultAuditRecord[]) =>
+  logs.map((log) => ({
+    'Date & Time': format(new Date(log.created_at), 'dd/MM/yyyy HH:mm'),
+    'User Name': log.user_name || 'Unknown',
+    'User Email': log.user_email || '',
+    'Action': getActionLabel(log.action),
+    'Item Type': log.target_type === 'folder' ? 'Folder' : 'File',
+    'Item Name': log.target_name || '',
+  }));
+
+const handleExportWord = async () => {
+  try {
+    toast.info('Preparing Word export…');
+    const logs = await fetchAllAuditLogs();
+    const rows = formatLogsForExport(logs);
+    const { Document, Packer, Table, TableRow, TableCell, Paragraph, TextRun, WidthType, AlignmentType, BorderStyle, HeadingLevel } = await import('docx');
+
+    const headers = ['Date & Time', 'User Name', 'User Email', 'Action', 'Item Type', 'Item Name'];
+
+    const headerRow = new TableRow({
+      tableHeader: true,
+      children: headers.map(
+        (h) =>
+          new TableCell({
+            shading: { fill: '003087' },
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 20, font: 'Calibri' })] })],
+          })
+      ),
+    });
+
+    const dataRows = rows.map(
+      (row) =>
+        new TableRow({
+          children: headers.map(
+            (h) =>
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: row[h as keyof typeof row] || '', size: 18, font: 'Calibri' })] })],
+              })
+          ),
+        })
+    );
+
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              heading: HeadingLevel.HEADING_1,
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun({ text: 'NRES Document Vault — Audit Report', bold: true, size: 32, color: '003087', font: 'Calibri' })],
+            }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 300 },
+              children: [new TextRun({ text: `Generated: ${format(new Date(), 'dd MMMM yyyy, HH:mm')} · ${rows.length} events`, size: 20, color: '666666', font: 'Calibri' })],
+            }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [headerRow, ...dataRows],
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+                left: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+                right: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+                insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+                insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+              },
+            }),
+          ],
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `NRES_Vault_Audit_Report_${format(new Date(), 'yyyyMMdd_HHmm')}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Word report downloaded');
+  } catch (e) {
+    console.error('Word export failed:', e);
+    toast.error('Failed to generate Word report');
+  }
+};
+
+const handleExportExcel = async () => {
+  try {
+    toast.info('Preparing Excel export…');
+    const logs = await fetchAllAuditLogs();
+    const rows = formatLogsForExport(logs);
+    const XLSX = await import('xlsx-js-style');
+
+    const headers = ['Date & Time', 'User Name', 'User Email', 'Action', 'Item Type', 'Item Name'];
+    const headerStyle = {
+      font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Calibri', sz: 11 },
+      fill: { fgColor: { rgb: '003087' } },
+      alignment: { horizontal: 'center' as const },
+      border: {
+        top: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
+        bottom: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
+        left: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
+        right: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
+      },
+    };
+    const cellStyle = {
+      font: { name: 'Calibri', sz: 10 },
+      border: {
+        top: { style: 'thin' as const, color: { rgb: 'EEEEEE' } },
+        bottom: { style: 'thin' as const, color: { rgb: 'EEEEEE' } },
+        left: { style: 'thin' as const, color: { rgb: 'EEEEEE' } },
+        right: { style: 'thin' as const, color: { rgb: 'EEEEEE' } },
+      },
+    };
+
+    const wsData = [
+      headers.map((h) => ({ v: h, s: headerStyle })),
+      ...rows.map((row) => headers.map((h) => ({ v: row[h as keyof typeof row] || '', s: cellStyle }))),
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [
+      { wch: 18 },
+      { wch: 22 },
+      { wch: 30 },
+      { wch: 20 },
+      { wch: 12 },
+      { wch: 35 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Audit Log');
+    XLSX.writeFile(wb, `NRES_Vault_Audit_Report_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`);
+    toast.success('Excel report downloaded');
+  } catch (e) {
+    console.error('Excel export failed:', e);
+    toast.error('Failed to generate Excel report');
+  }
+};
+
 export const VaultAuditLogTab = () => {
   const [page, setPage] = useState(0);
   const { data, isLoading } = useVaultAuditLogs(page, PAGE_SIZE);
@@ -41,6 +211,16 @@ export const VaultAuditLogTab = () => {
         <p className="text-sm text-muted-foreground">
           {totalCount} audit event{totalCount !== 1 ? 's' : ''} recorded
         </p>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={handleExportWord}>
+            <FileDown className="h-3.5 w-3.5" />
+            Word
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={handleExportExcel}>
+            <Sheet className="h-3.5 w-3.5" />
+            Excel
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
