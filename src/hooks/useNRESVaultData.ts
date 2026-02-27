@@ -186,7 +186,7 @@ export const useCreateVaultFolder = () => {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
-      toast.success(`Folder "${variables.name}" created`);
+      // toast removed
       if (user?.id) logVaultAction(user.id, { action: 'create_folder', target_type: 'folder', target_id: data.id, target_name: variables.name });
     },
     onError: (error: any) => {
@@ -234,7 +234,7 @@ export const useUploadVaultFile = () => {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      toast.success('File uploaded successfully');
+      // toast removed
       if (user?.id) logVaultAction(user.id, { action: 'upload_file', target_type: 'file', target_id: data?.id, target_name: variables.file.name });
     },
     onError: (error: any) => {
@@ -282,7 +282,7 @@ export const useReplaceVaultFile = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      toast.success('File replaced successfully');
+      // toast removed
       if (user?.id) logVaultAction(user.id, { action: 'replace_file', target_type: 'file', target_id: variables.fileId, target_name: variables.newFile.name });
     },
     onError: (error: any) => {
@@ -312,7 +312,7 @@ export const useDeleteVaultItem = () => {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      toast.success('Item deleted');
+      // toast removed
       if (user?.id) logVaultAction(user.id, { action: result.type === 'folder' ? 'delete_folder' : 'delete_file', target_type: result.type, target_id: result.id, target_name: result.name });
     },
     onError: (error: any) => {
@@ -339,7 +339,7 @@ export const useRenameVaultItem = () => {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      toast.success('Item renamed');
+      // toast removed
       if (user?.id) logVaultAction(user.id, { action: result.type === 'folder' ? 'rename_folder' : 'rename_file', target_type: result.type, target_id: result.id, target_name: result.newName });
     },
     onError: (error: any) => {
@@ -366,7 +366,7 @@ export const useMoveVaultItem = () => {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      toast.success('Item moved');
+      // toast removed
       if (user?.id) logVaultAction(user.id, { action: result.type === 'folder' ? 'move_folder' : 'move_file', target_type: result.type, target_id: result.id });
     },
     onError: (error: any) => {
@@ -424,7 +424,7 @@ export const useCopyVaultFile = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      toast.success('File copied');
+      // toast removed
       if (user?.id) logVaultAction(user.id, { action: 'copy_file', target_type: 'file', target_id: variables.fileId });
     },
     onError: (error: any) => {
@@ -448,7 +448,7 @@ export const useUpdateFileDescription = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
       queryClient.invalidateQueries({ queryKey: ['nres-vault-search'] });
-      toast.success('Description updated');
+      // toast removed
       if (user?.id) logVaultAction(user.id, { action: 'edit_description', target_type: 'file', target_id: variables.fileId });
     },
     onError: (error: any) => {

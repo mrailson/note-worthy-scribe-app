@@ -78,12 +78,12 @@ export const NRESDocumentVault = () => {
 
   const handleCopy = useCallback((items: ClipboardState['items']) => {
     setClipboard({ items, operation: 'copy' });
-    toast.success(`${items.length} item${items.length > 1 ? 's' : ''} copied`);
+    // toast removed
   }, []);
 
   const handleCut = useCallback((items: ClipboardState['items']) => {
     setClipboard({ items, operation: 'cut' });
-    toast.success(`${items.length} item${items.length > 1 ? 's' : ''} cut`);
+    // toast removed
   }, []);
 
   const handlePaste = useCallback(() => {
@@ -96,7 +96,7 @@ export const NRESDocumentVault = () => {
         copyFile.mutate({ fileId: item.id, targetFolderId: currentFolderId });
       } else {
         // Copying folders not supported yet - just inform the user
-        toast.info('Folder copying is not yet supported');
+        // Folder copying not yet supported — silent
       }
     });
 
