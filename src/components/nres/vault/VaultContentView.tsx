@@ -187,10 +187,9 @@ export const VaultContentView = ({
   useEffect(() => {
     if (viewMode === 'tree') {
       const rootKey = currentFolderId || '__root__';
-      setTreeChildren(prev => ({
-        ...prev,
-        [rootKey]: { folders, files },
-      }));
+      // Reset all cached tree children and repopulate root level
+      // This ensures uploads/deletes in subfolders are reflected
+      setTreeChildren({ [rootKey]: { folders, files } });
     }
   }, [viewMode, folders, files, currentFolderId]);
 
