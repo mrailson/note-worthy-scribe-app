@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Settings, UserPlus, Trash2, Crown, ShieldCheck, Users, Pencil, Plus, ClipboardList } from 'lucide-react';
+import { Settings, UserPlus, Trash2, Crown, ShieldCheck, Users, Pencil, Plus, ClipboardList, ChevronDown, ChevronRight } from 'lucide-react';
 import { VaultAuditLogTab } from './VaultAuditLogTab';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,6 +43,55 @@ interface VaultSettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const GroupCard = ({ group, onEdit, onDelete }: { group: VaultGroup; onEdit: () => void; onDelete: () => void }) => {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="p-3 rounded-md border bg-muted/30 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-medium">{group.name}</span>
+          {group.description && (
+            <p className="text-xs text-muted-foreground">{group.description}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {(group.members || []).length} member{(group.members || []).length !== 1 ? 's' : ''}
+      </button>
+      {expanded && (
+        <div className="flex flex-wrap gap-1 pt-1">
+          {(group.members || []).length === 0 ? (
+            <span className="text-xs text-muted-foreground italic">No members</span>
+          ) : (
+            (group.members || []).map((m) => (
+              <Badge key={m.user_id} variant="secondary" className="text-[10px]">
+                {m.full_name || m.email || 'Unknown'}
+              </Badge>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalProps) => {
   const { user } = useAuth();
@@ -331,7 +380,7 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6 sm:px-8 pb-2">
           <TabsList className="w-full">
             <TabsTrigger value="settings" className="flex-1">
               <Settings className="h-3.5 w-3.5 mr-1.5" />
@@ -487,40 +536,12 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
                   ) : (
                     <div className="space-y-2">
                       {groups.map((group) => (
-                        <div key={group.id} className="p-3 rounded-md border bg-muted/30 space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-sm font-medium">{group.name}</span>
-                              {group.description && (
-                                <p className="text-xs text-muted-foreground">{group.description}</p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEditGroup(group)}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-destructive hover:text-destructive"
-                                onClick={() => deleteGroup.mutate(group.id)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {(group.members || []).length === 0 ? (
-                              <span className="text-xs text-muted-foreground italic">No members</span>
-                            ) : (
-                              (group.members || []).map((m) => (
-                                <Badge key={m.user_id} variant="secondary" className="text-[10px]">
-                                  {m.full_name || m.email || 'Unknown'}
-                                </Badge>
-                              ))
-                            )}
-                          </div>
-                        </div>
+                        <GroupCard
+                          key={group.id}
+                          group={group}
+                          onEdit={() => startEditGroup(group)}
+                          onDelete={() => deleteGroup.mutate(group.id)}
+                        />
                       ))}
                     </div>
                   )}
