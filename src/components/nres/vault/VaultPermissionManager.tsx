@@ -365,8 +365,7 @@ export const VaultPermissionManager = ({
             Manage Access
           </DialogTitle>
           <DialogDescription>
-            Items with no explicit permissions follow the NRES default access.
-            Once permissions are set, access is restricted to listed users and vault admins.
+            New files and folders are private by default — only visible to the creator and vault admins until permissions are added below.
           </DialogDescription>
         </DialogHeader>
 
