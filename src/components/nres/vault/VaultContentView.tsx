@@ -65,7 +65,7 @@ interface VaultContentViewProps {
   onCopy: (items: ClipboardState['items']) => void;
   onCut: (items: ClipboardState['items']) => void;
   onPaste: () => void;
-  onRename: (id: string, type: 'folder' | 'file', newName: string) => void;
+  onRename: (id: string, type: 'folder' | 'file', newName: string) => void | Promise<void>;
   onCreateFolder: (name: string, parentId?: string | null) => void;
   onUploadFiles: (files: File[], targetFolderId?: string | null) => void | Promise<void>;
   onRefresh: () => void;
@@ -321,10 +321,31 @@ export const VaultContentView = ({
     }
   };
 
-  const handleRenameSubmit = () => {
+  const handleRenameSubmit = async () => {
     if (renameTarget && renameValue.trim()) {
-      onRename(renameTarget.id, renameTarget.type, renameValue.trim());
+      const { id, type } = renameTarget;
+      const newName = renameValue.trim();
       setRenameTarget(null);
+      try {
+        await onRename(id, type, newName);
+        // Update tree cache so renamed item shows immediately
+        if (viewMode === 'tree') {
+          setTreeChildren(prev => {
+            const updated = { ...prev };
+            for (const key of Object.keys(updated)) {
+              const entry = updated[key];
+              if (type === 'folder') {
+                updated[key] = { ...entry, folders: entry.folders.map(f => f.id === id ? { ...f, name: newName } : f) };
+              } else {
+                updated[key] = { ...entry, files: entry.files.map(f => f.id === id ? { ...f, name: newName, original_name: newName } : f) };
+              }
+            }
+            return updated;
+          });
+        }
+      } catch (error) {
+        console.error('Rename failed:', error);
+      }
     }
   };
 

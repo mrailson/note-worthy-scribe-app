@@ -115,8 +115,12 @@ export const NRESDocumentVault = () => {
     }
   }, [clipboard, currentFolderId, moveItem, copyFile]);
 
-  const handleRename = useCallback((id: string, type: 'folder' | 'file', newName: string) => {
-    renameItem.mutate({ id, type, newName });
+  const handleRename = useCallback(async (id: string, type: 'folder' | 'file', newName: string) => {
+    try {
+      await renameItem.mutateAsync({ id, type, newName });
+    } catch (error) {
+      console.error('Rename failed:', error);
+    }
   }, [renameItem]);
 
   const handleRefresh = useCallback(() => {
