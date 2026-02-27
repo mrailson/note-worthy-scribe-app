@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
-import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp } from 'lucide-react';
+import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -7,6 +7,13 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -324,6 +331,72 @@ export const VaultContentView = ({
     </ContextMenuContent>
   );
 
+  const renderItemDropdownMenu = (
+    id: string,
+    type: 'folder' | 'file',
+    name: string,
+    filePath?: string,
+    file?: VaultFile
+  ) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="p-1 rounded hover:bg-muted/80 transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        {type === 'folder' ? (
+          <DropdownMenuItem onClick={() => handleDoubleClickFolder(id)}>
+            <FolderOpen className="h-4 w-4 mr-2" />Open
+          </DropdownMenuItem>
+        ) : file ? (
+          <DropdownMenuItem onClick={() => handleDownload(file)}>
+            <Download className="h-4 w-4 mr-2" />Download
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => {
+          const items = selectedItems.has(id) && selectedItems.size > 1
+            ? getSelectedClipboardItems()
+            : [{ id, type, name, filePath }];
+          onCopy(items);
+        }}>
+          <Copy className="h-4 w-4 mr-2" />Copy
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {
+          const items = selectedItems.has(id) && selectedItems.size > 1
+            ? getSelectedClipboardItems()
+            : [{ id, type, name, filePath }];
+          onCut(items);
+        }}>
+          <Scissors className="h-4 w-4 mr-2" />Cut
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
+          <PencilLine className="h-4 w-4 mr-2" />Rename
+        </DropdownMenuItem>
+        {canManageAccessItems && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onManageAccess(id, type, name)}>
+              <Shield className="h-4 w-4 mr-2" />Manage Access
+            </DropdownMenuItem>
+          </>
+        )}
+        {canDeleteItems && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget({ id, type, name, filePath })}>
+              <Trash2 className="h-4 w-4 mr-2" />Delete
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const emptySpaceContextMenu = (
     <ContextMenuContent>
       {canUpload && (
@@ -383,6 +456,9 @@ export const VaultContentView = ({
             <td className="py-1.5 px-2 text-muted-foreground text-right whitespace-nowrap hidden sm:table-cell">
               {item.type === 'file' ? formatFileSize(item.fileSize) : ''}
             </td>
+            <td className="py-1 px-1 w-8">
+              {renderItemDropdownMenu(item.id, item.type, item.name, item.filePath, item.file)}
+            </td>
           </tr>
         </ContextMenuTrigger>
         {renderItemContextMenu(item.id, item.type, item.name, item.filePath, item.file)}
@@ -398,6 +474,7 @@ export const VaultContentView = ({
           <th className="text-left py-1.5 px-2 font-medium text-foreground whitespace-nowrap hidden sm:table-cell">Date modified</th>
           <th className="text-left py-1.5 px-2 font-medium text-foreground whitespace-nowrap hidden md:table-cell">Type</th>
           <th className="text-right py-1.5 px-2 font-medium text-foreground hidden sm:table-cell">Size</th>
+          <th className="w-8" />
         </tr>
       </thead>
       <tbody>
@@ -416,12 +493,13 @@ export const VaultContentView = ({
             <td className="py-1.5 px-2 hidden sm:table-cell" />
             <td className="py-1.5 px-2 hidden md:table-cell" />
             <td className="py-1.5 px-2 hidden sm:table-cell" />
+            <td className="py-1 px-1" />
           </tr>
         )}
         {groupedItems.map(group => (
           <>
             <tr key={`group-${group.label}`}>
-              <td colSpan={4} className="pt-3 pb-1 px-2">
+              <td colSpan={5} className="pt-3 pb-1 px-2">
                 <div className="flex items-center gap-1.5">
                   <ChevronDown className="h-3.5 w-3.5 text-primary" />
                   <span className="text-xs font-semibold text-primary">{group.label}</span>
@@ -451,12 +529,15 @@ export const VaultContentView = ({
         <ContextMenu key={folder.id}>
           <ContextMenuTrigger asChild>
             <div
-              className={`flex flex-col items-center gap-1 p-2 rounded cursor-pointer transition-colors
+              className={`relative flex flex-col items-center gap-1 p-2 rounded cursor-pointer transition-colors
                 ${selectedItems.has(folder.id) ? 'bg-primary/15 ring-1 ring-primary/40' : 'hover:bg-muted/60'}
-                ${isCutItem(folder.id) ? 'opacity-40' : ''}`}
+                ${isCutItem(folder.id) ? 'opacity-40' : ''} group`}
               onClick={(e) => { e.stopPropagation(); handleSelect(folder.id, e); }}
               onDoubleClick={() => handleDoubleClickFolder(folder.id)}
             >
+              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {renderItemDropdownMenu(folder.id, 'folder', folder.name)}
+              </div>
               <Folder className="h-10 w-10 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1} />
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -478,12 +559,15 @@ export const VaultContentView = ({
           <ContextMenu key={file.id}>
             <ContextMenuTrigger asChild>
               <div
-                className={`flex flex-col items-center gap-1 p-2 rounded cursor-pointer transition-colors
+                className={`relative flex flex-col items-center gap-1 p-2 rounded cursor-pointer transition-colors
                   ${selectedItems.has(file.id) ? 'bg-primary/15 ring-1 ring-primary/40' : 'hover:bg-muted/60'}
-                  ${isCutItem(file.id) ? 'opacity-40' : ''}`}
+                  ${isCutItem(file.id) ? 'opacity-40' : ''} group`}
                 onClick={(e) => { e.stopPropagation(); handleSelect(file.id, e); }}
                 onDoubleClick={() => handleDownload(file)}
               >
+                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {renderItemDropdownMenu(file.id, 'file', displayName, file.file_path, file)}
+                </div>
                 <IconComp className={`h-10 w-10 shrink-0 ${iconColour}`} strokeWidth={1} />
                 <Tooltip>
                   <TooltipTrigger asChild>
