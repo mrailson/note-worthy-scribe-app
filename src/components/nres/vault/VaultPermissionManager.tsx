@@ -240,7 +240,7 @@ export const VaultPermissionManager = ({
     const group = vaultGroups.find((g: any) => g.id === selectedGroupId);
     if (!group) return;
 
-    const usersToAdd = group.memberIds.filter(
+    const usersToAdd = (group.memberIds || []).filter(
       (id: string) => !existingUserIds.has(id) && id !== user?.id
     );
 
@@ -520,7 +520,7 @@ export const VaultPermissionManager = ({
                           <SelectItem key={g.id} value={g.id}>
                             <span>{g.name}</span>
                             <span className="text-muted-foreground ml-1">
-                              ({g.memberIds.length} member{g.memberIds.length !== 1 ? 's' : ''})
+                              ({(g.memberIds || []).length} member{(g.memberIds || []).length !== 1 ? 's' : ''})
                             </span>
                           </SelectItem>
                         ))}
