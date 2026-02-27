@@ -26,6 +26,7 @@ export interface VaultFile {
   created_at: string;
   updated_at: string;
   tags: string[];
+  description: string | null;
 }
 
 export interface BreadcrumbItem {
@@ -62,7 +63,7 @@ export const useVaultFiles = (folderId: string | null) => {
     queryFn: async () => {
       let query = supabase
         .from('shared_drive_files')
-        .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags')
+        .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description')
         .eq('scope', 'nres_vault')
         .order('name');
 
@@ -124,7 +125,7 @@ export const useVaultSearch = (searchQuery: string) => {
           .limit(20),
         supabase
           .from('shared_drive_files')
-          .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags')
+          .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description')
           .eq('scope', 'nres_vault')
           .ilike('name', `%${searchQuery}%`)
           .limit(20),
@@ -349,6 +350,28 @@ export const useCopyVaultFile = () => {
     },
     onError: (error: any) => {
       toast.error('Failed to copy file', { description: error.message });
+    },
+  });
+};
+
+export const useUpdateFileDescription = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ fileId, description }: { fileId: string; description: string }) => {
+      const { error } = await supabase
+        .from('shared_drive_files')
+        .update({ description: description || null, updated_at: new Date().toISOString() })
+        .eq('id', fileId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
+      queryClient.invalidateQueries({ queryKey: ['nres-vault-search'] });
+      toast.success('Description updated');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update description', { description: error.message });
     },
   });
 };
