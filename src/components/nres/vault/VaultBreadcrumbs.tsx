@@ -1,4 +1,9 @@
 import { ChevronRight } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { BreadcrumbItem } from '@/hooks/useNRESVaultData';
 
 interface VaultBreadcrumbsProps {
@@ -11,6 +16,7 @@ export const VaultBreadcrumbs = ({ items, onNavigate }: VaultBreadcrumbsProps) =
     <nav className="flex items-center gap-1 text-sm text-muted-foreground overflow-x-auto">
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
+        const isFirst = index === 0;
         return (
           <div key={item.id ?? 'root'} className="flex items-center gap-1 shrink-0">
             {index > 0 && <ChevronRight className="h-3 w-3" />}
@@ -18,6 +24,20 @@ export const VaultBreadcrumbs = ({ items, onNavigate }: VaultBreadcrumbsProps) =
               <span className="font-medium text-foreground truncate max-w-[200px]">
                 {item.name}
               </span>
+            ) : isFirst ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onNavigate(item.id)}
+                    className="hover:text-foreground hover:underline transition-colors truncate max-w-[200px]"
+                  >
+                    {item.name}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Double-click a folder to open it</p>
+                </TooltipContent>
+              </Tooltip>
             ) : (
               <button
                 onClick={() => onNavigate(item.id)}

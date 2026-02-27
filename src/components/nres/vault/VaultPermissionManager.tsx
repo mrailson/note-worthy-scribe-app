@@ -307,7 +307,7 @@ export const VaultPermissionManager = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -319,7 +319,7 @@ export const VaultPermissionManager = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[70vh] overflow-y-auto">
+
         <div className="px-8 sm:px-10 py-6 space-y-6">
           {/* Add permissions section */}
           <div className="space-y-4">
@@ -651,7 +651,6 @@ export const VaultPermissionManager = ({
             ) : null}
           </div>
         </div>
-        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
