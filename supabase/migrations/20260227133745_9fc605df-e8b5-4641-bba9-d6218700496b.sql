@@ -1,0 +1,1 @@
+ALTER TABLE public.shared_drive_files ADD COLUMN description TEXT DEFAULT NULL;

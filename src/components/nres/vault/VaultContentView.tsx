@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
-import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical } from 'lucide-react';
+import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp, MoreVertical, Info } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -31,9 +31,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import {
   Tooltip,
   TooltipContent,
@@ -42,6 +49,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { VaultFolder, VaultFile } from '@/hooks/useNRESVaultData';
+import { useUpdateFileDescription } from '@/hooks/useNRESVaultData';
 import { format, isToday, isYesterday, startOfDay } from 'date-fns';
 
 export type VaultViewMode = 'icons' | 'details';
@@ -167,7 +175,10 @@ export const VaultContentView = ({
   const [renameValue, setRenameValue] = useState('');
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [descriptionTarget, setDescriptionTarget] = useState<{ id: string; name: string; currentDescription: string } | null>(null);
+  const [descriptionValue, setDescriptionValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const updateDescription = useUpdateFileDescription();
 
   const isCutItem = (id: string) => clipboard?.operation === 'cut' && clipboard.items.some(i => i.id === id);
 
@@ -217,6 +228,58 @@ export const VaultContentView = ({
       setNewFolderName('');
       setFolderDialogOpen(false);
     }
+  };
+
+  const handleDescriptionSubmit = () => {
+    if (descriptionTarget) {
+      updateDescription.mutate({ fileId: descriptionTarget.id, description: descriptionValue.trim() });
+      setDescriptionTarget(null);
+    }
+  };
+
+  const renderFileHoverCard = (file: VaultFile, children: React.ReactNode) => {
+    const displayName = file.original_name || file.name;
+    return (
+      <HoverCard openDelay={400} closeDelay={100}>
+        <HoverCardTrigger asChild>
+          {children}
+        </HoverCardTrigger>
+        <HoverCardContent className="w-72 p-0" side="right" align="start" sideOffset={8}>
+          <div className="p-2.5 bg-muted/50 border-b">
+            <h4 className="font-semibold text-sm truncate flex items-center gap-1.5">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              {displayName}
+            </h4>
+          </div>
+          <div className="p-2.5 space-y-2 text-xs">
+            {file.description && (
+              <>
+                <p className="text-foreground leading-relaxed">{file.description}</p>
+                <Separator />
+              </>
+            )}
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Type:</span>
+                <span>{getFileTypeName(file.file_type, file.mime_type)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Size:</span>
+                <span>{formatFileSize(file.file_size)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Uploaded:</span>
+                <span>{format(new Date(file.created_at), 'dd/MM/yyyy HH:mm')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Last Modified:</span>
+                <span>{format(new Date(file.updated_at), 'dd/MM/yyyy HH:mm')}</span>
+              </div>
+            </div>
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    );
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -312,6 +375,11 @@ export const VaultContentView = ({
       <ContextMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
         <PencilLine className="h-4 w-4 mr-2" />Rename
       </ContextMenuItem>
+      {type === 'file' && file && (
+        <ContextMenuItem onClick={() => { setDescriptionTarget({ id, name, currentDescription: file.description || '' }); setDescriptionValue(file.description || ''); }}>
+          <Info className="h-4 w-4 mr-2" />Edit Description
+        </ContextMenuItem>
+      )}
       {canManageAccessItems && (
         <>
           <ContextMenuSeparator />
@@ -377,6 +445,11 @@ export const VaultContentView = ({
         <DropdownMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
           <PencilLine className="h-4 w-4 mr-2" />Rename
         </DropdownMenuItem>
+        {type === 'file' && file && (
+          <DropdownMenuItem onClick={() => { setDescriptionTarget({ id, name, currentDescription: file.description || '' }); setDescriptionValue(file.description || ''); }}>
+            <Info className="h-4 w-4 mr-2" />Edit Description
+          </DropdownMenuItem>
+        )}
         {canManageAccessItems && (
           <>
             <DropdownMenuSeparator />
@@ -444,7 +517,11 @@ export const VaultContentView = ({
                   className={`h-4 w-4 shrink-0 ${iconColour}`}
                   {...(item.type === 'folder' ? { fill: 'currentColor', strokeWidth: 1 } : { strokeWidth: 1.5 })}
                 />
-                <span className="truncate">{item.name}</span>
+                {item.type === 'file' && item.file ? (
+                  renderFileHoverCard(item.file, <span className="truncate">{item.name}</span>)
+                ) : (
+                  <span className="truncate">{item.name}</span>
+                )}
               </div>
             </td>
             <td className="py-1.5 px-2 text-muted-foreground whitespace-nowrap hidden sm:table-cell">
@@ -569,12 +646,9 @@ export const VaultContentView = ({
                   {renderItemDropdownMenu(file.id, 'file', displayName, file.file_path, file)}
                 </div>
                 <IconComp className={`h-10 w-10 shrink-0 ${iconColour}`} strokeWidth={1} />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-xs text-center leading-tight truncate w-full">{displayName}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>{displayName}</TooltipContent>
-                </Tooltip>
+                {renderFileHoverCard(file,
+                  <span className="text-xs text-center leading-tight truncate w-full">{displayName}</span>
+                )}
               </div>
             </ContextMenuTrigger>
             {renderItemContextMenu(file.id, 'file', displayName, file.file_path, file)}
@@ -636,6 +710,31 @@ export const VaultContentView = ({
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameTarget(null)}>Cancel</Button>
             <Button onClick={handleRenameSubmit} disabled={!renameValue.trim()}>Rename</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Description dialog */}
+      <Dialog open={!!descriptionTarget} onOpenChange={(open) => !open && setDescriptionTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Description</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>File: <span className="font-normal text-muted-foreground">{descriptionTarget?.name}</span></Label>
+            <Label htmlFor="description-input">Description</Label>
+            <Textarea
+              id="description-input"
+              value={descriptionValue}
+              onChange={(e) => setDescriptionValue(e.target.value)}
+              placeholder="Add a description to help identify this file..."
+              rows={3}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDescriptionTarget(null)}>Cancel</Button>
+            <Button onClick={handleDescriptionSubmit}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
