@@ -244,7 +244,7 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-settings'] });
-      toast.success('Maximum file size updated');
+      // toast removed
     },
     onError: () => toast.error('Failed to update settings'),
   });
@@ -268,7 +268,7 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-admins'] });
       setSelectedUserId('');
-      toast.success('Admin added successfully');
+      // toast removed
     },
     onError: (err: any) => toast.error(err.message || 'Failed to add admin'),
   });
@@ -281,7 +281,7 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-admins'] });
-      toast.success('Admin removed');
+      // toast removed
     },
     onError: () => toast.error('Failed to remove admin'),
   });
@@ -326,7 +326,7 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-groups'] });
       resetGroupForm();
-      toast.success(editingGroup ? 'Group updated' : 'Group created');
+      // toast removed
     },
     onError: (err: any) => toast.error(err.message || 'Failed to save group'),
   });
@@ -339,7 +339,7 @@ export const VaultSettingsModal = ({ open, onOpenChange }: VaultSettingsModalPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['nres-vault-groups'] });
-      toast.success('Group deleted');
+      // toast removed
     },
     onError: () => toast.error('Failed to delete group'),
   });

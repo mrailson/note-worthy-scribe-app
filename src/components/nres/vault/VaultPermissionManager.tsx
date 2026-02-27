@@ -197,7 +197,7 @@ export const VaultPermissionManager = ({
     if (!selectedUserId) return;
     await addPermission.mutateAsync({ userId: selectedUserId, level: selectedLevel });
     setSelectedUserId('');
-    toast.success('Permission added');
+    // toast removed
   };
 
   const handleAddByPractice = async () => {
@@ -210,7 +210,7 @@ export const VaultPermissionManager = ({
     );
 
     if (usersToAdd.length === 0) {
-      toast.info('All users from this practice already have permissions set');
+      // toast removed
       return;
     }
 
@@ -220,7 +220,7 @@ export const VaultPermissionManager = ({
       count++;
     }
     setSelectedPractice('');
-    toast.success(`Permission set for ${count} user${count !== 1 ? 's' : ''} from ${practice.name}`);
+    // toast removed
   };
 
   const handleAddMultiple = async () => {
@@ -232,7 +232,7 @@ export const VaultPermissionManager = ({
       count++;
     }
     setSelectedUserIds(new Set());
-    toast.success(`Permission set for ${count} user${count !== 1 ? 's' : ''}`);
+    // toast removed
   };
 
   const handleAddByGroup = async () => {
@@ -245,7 +245,7 @@ export const VaultPermissionManager = ({
     );
 
     if (usersToAdd.length === 0) {
-      toast.info('All members of this group already have permissions set');
+      // toast removed
       return;
     }
 
@@ -255,7 +255,7 @@ export const VaultPermissionManager = ({
       count++;
     }
     setSelectedGroupId('');
-    toast.success(`Permission set for ${count} user${count !== 1 ? 's' : ''} from ${group.name}`);
+    // toast removed
   };
 
   const toggleUserSelection = (userId: string) => {
@@ -291,7 +291,7 @@ export const VaultPermissionManager = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vault-permissions', targetId] });
       queryClient.invalidateQueries({ queryKey: ['nres-vault'] });
-      toast.success('Permission removed');
+      // toast removed
     },
     onError: (err: any) =>
       toast.error('Failed to remove permission', { description: err.message }),
@@ -310,7 +310,7 @@ export const VaultPermissionManager = ({
       queryClient.invalidateQueries({ queryKey: ['vault-permissions', targetId] });
       queryClient.invalidateQueries({ queryKey: ['nres-vault'] });
       setShowRemoveAllConfirm(false);
-      toast.success('All permissions removed');
+      // toast removed
     },
     onError: (err: any) =>
       toast.error('Failed to remove permissions', { description: err.message }),
