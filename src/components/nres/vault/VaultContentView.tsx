@@ -49,7 +49,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { VaultFolder, VaultFile } from '@/hooks/useNRESVaultData';
-import { useUpdateFileDescription } from '@/hooks/useNRESVaultData';
+import { useUpdateFileDescription, useReplaceVaultFile } from '@/hooks/useNRESVaultData';
 import { format, isToday, isYesterday, startOfDay } from 'date-fns';
 
 export type VaultViewMode = 'icons' | 'details';
@@ -178,7 +178,10 @@ export const VaultContentView = ({
   const [descriptionTarget, setDescriptionTarget] = useState<{ id: string; name: string; currentDescription: string } | null>(null);
   const [descriptionValue, setDescriptionValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replaceTarget, setReplaceTarget] = useState<{ id: string; filePath: string } | null>(null);
   const updateDescription = useUpdateFileDescription();
+  const replaceFile = useReplaceVaultFile();
 
   const isCutItem = (id: string) => clipboard?.operation === 'cut' && clipboard.items.some(i => i.id === id);
 
@@ -288,6 +291,15 @@ export const VaultContentView = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleReplaceFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && replaceTarget) {
+      replaceFile.mutate({ fileId: replaceTarget.id, oldFilePath: replaceTarget.filePath, newFile: file });
+      setReplaceTarget(null);
+    }
+    if (replaceInputRef.current) replaceInputRef.current.value = '';
+  };
+
   const clearSelection = useCallback(() => setSelectedItems(new Set()), []);
 
   const totalItems = folders.length + files.length;
@@ -364,6 +376,11 @@ export const VaultContentView = ({
           <Info className="h-4 w-4 mr-2" />Edit Description
         </ContextMenuItem>
       )}
+      {type === 'file' && filePath && canUpload && (
+        <ContextMenuItem onClick={() => { setReplaceTarget({ id, filePath }); replaceInputRef.current?.click(); }}>
+          <RefreshCw className="h-4 w-4 mr-2" />Replace with New Version
+        </ContextMenuItem>
+      )}
       {canManageAccessItems && (
         <>
           <ContextMenuSeparator />
@@ -416,6 +433,11 @@ export const VaultContentView = ({
         {type === 'file' && file && (
           <DropdownMenuItem onClick={() => { setDescriptionTarget({ id, name, currentDescription: file.description || '' }); setDescriptionValue(file.description || ''); }}>
             <Info className="h-4 w-4 mr-2" />Edit Description
+          </DropdownMenuItem>
+        )}
+        {type === 'file' && filePath && canUpload && (
+          <DropdownMenuItem onClick={() => { setReplaceTarget({ id, filePath }); setTimeout(() => replaceInputRef.current?.click(), 0); }}>
+            <RefreshCw className="h-4 w-4 mr-2" />Replace with New Version
           </DropdownMenuItem>
         )}
         {canManageAccessItems && (
@@ -658,6 +680,7 @@ export const VaultContentView = ({
 
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
+      <input ref={replaceInputRef} type="file" className="hidden" onChange={handleReplaceFileSelect} />
 
       {/* Rename dialog */}
       <Dialog open={!!renameTarget} onOpenChange={(open) => !open && setRenameTarget(null)}>
