@@ -1086,7 +1086,7 @@ export const VaultContentView = ({
 
       {/* Rename dialog */}
       <Dialog open={!!renameTarget} onOpenChange={(open) => !open && setRenameTarget(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Rename {renameTarget?.type === 'folder' ? 'Folder' : 'File'}</DialogTitle>
             <DialogDescription>Enter a new name below.</DialogDescription>
@@ -1111,7 +1111,7 @@ export const VaultContentView = ({
 
       {/* Edit Description dialog */}
       <Dialog open={!!descriptionTarget} onOpenChange={(open) => !open && setDescriptionTarget(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Edit Description</DialogTitle>
             <DialogDescription>Update the description for this item.</DialogDescription>
@@ -1138,7 +1138,7 @@ export const VaultContentView = ({
 
       {/* New Folder dialog */}
       <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
             <DialogDescription>Enter a name for the new folder.</DialogDescription>
@@ -1164,7 +1164,7 @@ export const VaultContentView = ({
 
       {/* Delete confirmation - cautious */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(''); } }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <TriangleAlert className="h-5 w-5" />
