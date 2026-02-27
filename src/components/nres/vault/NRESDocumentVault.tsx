@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderLock, LayoutGrid, List } from 'lucide-react';
+import { FolderLock, LayoutGrid, List, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { VaultToolbar } from './VaultToolbar';
 import { VaultContentView, ClipboardState, VaultViewMode } from './VaultContentView';
 import { VaultBreadcrumbs } from './VaultBreadcrumbs';
 import { VaultPermissionManager } from './VaultPermissionManager';
+import { VaultSettingsModal } from './VaultSettingsModal';
 import {
   useVaultFolders,
   useVaultFiles,
@@ -36,6 +37,7 @@ export const NRESDocumentVault = () => {
   } | null>(null);
   const [clipboard, setClipboard] = useState<ClipboardState | null>(null);
   const [viewMode, setViewMode] = useState<VaultViewMode>('details');
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Data queries
   const { data: folders = [], isLoading: foldersLoading } = useVaultFolders(currentFolderId);
@@ -128,33 +130,50 @@ export const NRESDocumentVault = () => {
               <FolderLock className="h-5 w-5" />
               Document Vault Home
             </CardTitle>
-            <div className="flex items-center border rounded-md">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={viewMode === 'icons' ? 'secondary' : 'ghost'}
-                    size="icon"
-                    className="h-8 w-8 rounded-r-none"
-                    onClick={() => setViewMode('icons')}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Icons</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={viewMode === 'details' ? 'secondary' : 'ghost'}
-                    size="icon"
-                    className="h-8 w-8 rounded-l-none"
-                    onClick={() => setViewMode('details')}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Details</TooltipContent>
-              </Tooltip>
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setSettingsOpen(true)}
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Vault Settings</TooltipContent>
+                </Tooltip>
+              )}
+              <div className="flex items-center border rounded-md">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={viewMode === 'icons' ? 'secondary' : 'ghost'}
+                      size="icon"
+                      className="h-8 w-8 rounded-r-none"
+                      onClick={() => setViewMode('icons')}
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Icons</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={viewMode === 'details' ? 'secondary' : 'ghost'}
+                      size="icon"
+                      className="h-8 w-8 rounded-l-none"
+                      onClick={() => setViewMode('details')}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Details</TooltipContent>
+                </Tooltip>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -212,6 +231,8 @@ export const NRESDocumentVault = () => {
           targetName={permissionTarget.name}
         />
       )}
+
+      <VaultSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>
   );
 };
