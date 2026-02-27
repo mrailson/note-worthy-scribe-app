@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
-import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown } from 'lucide-react';
+import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown, ArrowUp } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -49,6 +49,8 @@ interface VaultContentViewProps {
   files: VaultFile[];
   viewMode: VaultViewMode;
   onNavigateToFolder: (folderId: string) => void;
+  onNavigateUp: () => void;
+  currentFolderId: string | null;
   onDelete: (id: string, type: 'folder' | 'file', filePath?: string) => void;
   onManageAccess: (id: string, type: 'folder' | 'file', name: string) => void;
   onCopy: (items: ClipboardState['items']) => void;
@@ -131,6 +133,8 @@ export const VaultContentView = ({
   files,
   viewMode,
   onNavigateToFolder,
+  onNavigateUp,
+  currentFolderId,
   onDelete,
   onManageAccess,
   onCopy,
@@ -396,6 +400,23 @@ export const VaultContentView = ({
         </tr>
       </thead>
       <tbody>
+        {currentFolderId && (
+          <tr
+            className="border-b border-border/40 cursor-pointer hover:bg-muted/40 text-sm"
+            onDoubleClick={onNavigateUp}
+            onClick={onNavigateUp}
+          >
+            <td className="py-1.5 px-2">
+              <div className="flex items-center gap-2">
+                <ArrowUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-muted-foreground">..</span>
+              </div>
+            </td>
+            <td className="py-1.5 px-2 hidden sm:table-cell" />
+            <td className="py-1.5 px-2 hidden md:table-cell" />
+            <td className="py-1.5 px-2 hidden sm:table-cell" />
+          </tr>
+        )}
         {groupedItems.map(group => (
           <>
             <tr key={`group-${group.label}`}>
@@ -415,6 +436,16 @@ export const VaultContentView = ({
 
   const renderIconsView = () => (
     <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))' }}>
+      {currentFolderId && (
+        <div
+          className="flex flex-col items-center gap-1 p-2 rounded cursor-pointer transition-colors hover:bg-muted/60"
+          onClick={onNavigateUp}
+          onDoubleClick={onNavigateUp}
+        >
+          <ArrowUp className="h-10 w-10 text-muted-foreground shrink-0" strokeWidth={1} />
+          <span className="text-xs text-center text-muted-foreground">..</span>
+        </div>
+      )}
       {folders.map(folder => (
         <ContextMenu key={folder.id}>
           <ContextMenuTrigger asChild>

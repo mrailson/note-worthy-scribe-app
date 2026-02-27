@@ -179,6 +179,12 @@ export const NRESDocumentVault = () => {
             files={displayFiles}
             viewMode={viewMode}
             onNavigateToFolder={(id) => handleNavigate(id)}
+            onNavigateUp={() => {
+              // Find parent of current folder from breadcrumbs
+              const parentCrumb = breadcrumbs.length >= 2 ? breadcrumbs[breadcrumbs.length - 2] : null;
+              handleNavigate(parentCrumb?.id ?? null);
+            }}
+            currentFolderId={currentFolderId}
             onDelete={handleDelete}
             onManageAccess={handleManageAccess}
             onCopy={handleCopy}
