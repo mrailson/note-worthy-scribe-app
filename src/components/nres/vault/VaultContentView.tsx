@@ -66,7 +66,7 @@ interface VaultContentViewProps {
   onPaste: () => void;
   onRename: (id: string, type: 'folder' | 'file', newName: string) => void;
   onCreateFolder: (name: string, parentId?: string | null) => void;
-  onUploadFiles: (files: File[], targetFolderId?: string | null) => void;
+  onUploadFiles: (files: File[], targetFolderId?: string | null) => void | Promise<void>;
   onRefresh: () => void;
   clipboard: ClipboardState | null;
   canDeleteItems: boolean;
@@ -415,9 +415,16 @@ export const VaultContentView = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleTargetedFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTargetedFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = Array.from(e.target.files || []);
-    if (fileList.length > 0) onUploadFiles(fileList, uploadTargetFolderId);
+    const targetId = uploadTargetFolderId;
+    if (fileList.length > 0) {
+      await onUploadFiles(fileList, targetId);
+      // Reload tree children for the target folder so new files appear immediately
+      if (targetId && viewMode === 'tree') {
+        await loadTreeChildren(targetId);
+      }
+    }
     setUploadTargetFolderId(null);
     if (targetUploadInputRef.current) targetUploadInputRef.current.value = '';
   };
