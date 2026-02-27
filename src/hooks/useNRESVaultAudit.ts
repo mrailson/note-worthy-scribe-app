@@ -125,7 +125,7 @@ export interface VaultAuditRecord {
   target_name: string | null;
   details: Record<string, unknown> | null;
   browser_info: string | null;
-  ip_address: string | null;
+  // ip_address removed from display
   created_at: string;
 }
 
