@@ -8991,6 +8991,7 @@ export type Database = {
           mime_type: string | null
           name: string
           original_name: string
+          scope: string
           tags: string[] | null
           updated_at: string
         }
@@ -9005,6 +9006,7 @@ export type Database = {
           mime_type?: string | null
           name: string
           original_name: string
+          scope?: string
           tags?: string[] | null
           updated_at?: string
         }
@@ -9019,6 +9021,7 @@ export type Database = {
           mime_type?: string | null
           name?: string
           original_name?: string
+          scope?: string
           tags?: string[] | null
           updated_at?: string
         }
@@ -9040,6 +9043,7 @@ export type Database = {
           name: string
           parent_id: string | null
           path: string
+          scope: string
           updated_at: string
         }
         Insert: {
@@ -9049,6 +9053,7 @@ export type Database = {
           name: string
           parent_id?: string | null
           path: string
+          scope?: string
           updated_at?: string
         }
         Update: {
@@ -9058,6 +9063,7 @@ export type Database = {
           name?: string
           parent_id?: string | null
           path?: string
+          scope?: string
           updated_at?: string
         }
         Relationships: [
@@ -10841,6 +10847,10 @@ export type Database = {
         }
         Returns: string
       }
+      can_access_nres_vault_item: {
+        Args: { p_target_id: string; p_target_type: string; p_user_id: string }
+        Returns: boolean
+      }
       can_manage_surveys: {
         Args: { _practice_id: string; _user_id: string }
         Returns: boolean
@@ -10852,6 +10862,10 @@ export type Database = {
       can_view_consultation_examples: {
         Args: { _user_id?: string }
         Returns: boolean
+      }
+      check_nres_vault_permission: {
+        Args: { p_target_id: string; p_target_type: string; p_user_id: string }
+        Returns: string
       }
       check_transcript_integrity: {
         Args: { p_meeting_id: string }
@@ -11478,6 +11492,7 @@ export type Database = {
         Returns: boolean
       }
       has_nres_access: { Args: { check_user_id?: string }; Returns: boolean }
+      has_nres_vault_access: { Args: { p_user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
