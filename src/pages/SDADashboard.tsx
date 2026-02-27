@@ -7,7 +7,7 @@ import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
 import { SDAWorkforceInnovation } from "@/components/sda/SDAWorkforceInnovation";
 
 
-import { SDAEvidenceLibrary } from "@/components/sda/SDAEvidenceLibrary";
+
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
@@ -16,7 +16,6 @@ import {
   Building2, 
   Monitor, 
   Users, 
-  FolderOpen,
   FolderLock,
   Clock
 } from "lucide-react";
@@ -88,14 +87,6 @@ const SDADashboard = () => {
               <span className="hidden sm:inline">Workforce</span>
               <span className="sm:hidden">Workforce</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="evidence" 
-              className="flex items-center gap-2 data-[state=active]:bg-[#005EB8] data-[state=active]:text-white px-4 py-2.5 rounded-lg transition-all"
-            >
-              <FolderOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">Evidence Library</span>
-              <span className="sm:hidden">Evidence</span>
-            </TabsTrigger>
             <TabsTrigger 
               value="hours" 
               className="flex items-center gap-2 data-[state=active]:bg-[#005EB8] data-[state=active]:text-white px-4 py-2.5 rounded-lg transition-all"
@@ -126,9 +117,6 @@ const SDADashboard = () => {
             </TabsContent>
             <TabsContent value="workforce" className="mt-0">
               <SDAWorkforceInnovation />
-            </TabsContent>
-            <TabsContent value="evidence" className="mt-0">
-              <SDAEvidenceLibrary />
             </TabsContent>
             <TabsContent value="hours" className="mt-0">
               <NRESHoursTracker />
