@@ -243,7 +243,13 @@ export const NRESDocumentVault = () => {
             onCut={handleCut}
             onPaste={handlePaste}
             onRename={handleRename}
-            onCreateFolder={(name, parentId) => createFolder.mutate({ name, parentId: parentId !== undefined ? parentId : currentFolderId })}
+            onCreateFolder={(name, parentId) => {
+              try {
+                createFolder.mutate({ name, parentId: parentId !== undefined ? parentId : currentFolderId });
+              } catch (error) {
+                console.error("Unexpected error during folder creation:", error);
+              }
+            }}
             onUploadFiles={handleUploadFiles}
             onRefresh={handleRefresh}
             clipboard={clipboard}

@@ -140,7 +140,18 @@ const App = () => {
     cleanupStaleStorage();
     const observer = getSafeDOMObserver();
     observer.start();
-    return () => observer.destroy();
+
+    // Global safety net for unhandled promise rejections to prevent white-screen crashes
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      console.error("Unhandled promise rejection:", event.reason);
+      event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", handleRejection);
+
+    return () => {
+      observer.destroy();
+      window.removeEventListener("unhandledrejection", handleRejection);
+    };
   }, []);
 
   return (
