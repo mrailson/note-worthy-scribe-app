@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderLock } from 'lucide-react';
+import { FolderLock, LayoutGrid, List } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { VaultToolbar } from './VaultToolbar';
-import { VaultContentView, ClipboardState } from './VaultContentView';
+import { VaultContentView, ClipboardState, VaultViewMode } from './VaultContentView';
 import { VaultBreadcrumbs } from './VaultBreadcrumbs';
 import { VaultPermissionManager } from './VaultPermissionManager';
 import {
@@ -33,6 +35,7 @@ export const NRESDocumentVault = () => {
     name: string;
   } | null>(null);
   const [clipboard, setClipboard] = useState<ClipboardState | null>(null);
+  const [viewMode, setViewMode] = useState<VaultViewMode>('details');
 
   // Data queries
   const { data: folders = [], isLoading: foldersLoading } = useVaultFolders(currentFolderId);
@@ -120,10 +123,40 @@ export const NRESDocumentVault = () => {
     <>
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FolderLock className="h-5 w-5" />
-            Document Vault
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FolderLock className="h-5 w-5" />
+              Document Vault
+            </CardTitle>
+            <div className="flex items-center border rounded-md">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={viewMode === 'icons' ? 'secondary' : 'ghost'}
+                    size="icon"
+                    className="h-8 w-8 rounded-r-none"
+                    onClick={() => setViewMode('icons')}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Icons</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={viewMode === 'details' ? 'secondary' : 'ghost'}
+                    size="icon"
+                    className="h-8 w-8 rounded-l-none"
+                    onClick={() => setViewMode('details')}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Details</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <VaultToolbar
@@ -144,6 +177,7 @@ export const NRESDocumentVault = () => {
           <VaultContentView
             folders={displayFolders}
             files={displayFiles}
+            viewMode={viewMode}
             onNavigateToFolder={(id) => handleNavigate(id)}
             onDelete={handleDelete}
             onManageAccess={handleManageAccess}

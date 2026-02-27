@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
-import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen } from 'lucide-react';
+import { useState, useCallback, useRef, useMemo } from 'react';
+import { Folder, FileText, FileImage, FileSpreadsheet, File, Download, Trash2, Shield, Copy, Scissors, ClipboardPaste, FolderPlus, Upload, RefreshCw, PencilLine, FolderOpen, ChevronDown } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -35,6 +35,9 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { VaultFolder, VaultFile } from '@/hooks/useNRESVaultData';
+import { format, isToday, isYesterday, startOfDay } from 'date-fns';
+
+export type VaultViewMode = 'icons' | 'details';
 
 export interface ClipboardState {
   items: Array<{ id: string; type: 'folder' | 'file'; name: string; filePath?: string }>;
@@ -44,6 +47,7 @@ export interface ClipboardState {
 interface VaultContentViewProps {
   folders: VaultFolder[];
   files: VaultFile[];
+  viewMode: VaultViewMode;
   onNavigateToFolder: (folderId: string) => void;
   onDelete: (id: string, type: 'folder' | 'file', filePath?: string) => void;
   onManageAccess: (id: string, type: 'folder' | 'file', name: string) => void;
@@ -78,9 +82,54 @@ const getFileIconColour = (fileType: string | null) => {
   return 'text-muted-foreground';
 };
 
+const getFileTypeName = (fileType: string | null, mimeType: string | null): string => {
+  const type = (fileType || '').toLowerCase();
+  if (['doc', 'docx'].includes(type)) return 'Microsoft Word D…';
+  if (['xls', 'xlsx'].includes(type)) return 'Microsoft Excel S…';
+  if (['ppt', 'pptx'].includes(type)) return 'Microsoft PowerP…';
+  if (['pdf'].includes(type)) return 'PDF File';
+  if (['png'].includes(type)) return 'PNG File';
+  if (['jpg', 'jpeg'].includes(type)) return 'JPEG Image';
+  if (['gif'].includes(type)) return 'GIF Image';
+  if (['svg'].includes(type)) return 'SVG Image';
+  if (['txt'].includes(type)) return 'Text File';
+  if (['csv'].includes(type)) return 'CSV File';
+  if (['zip'].includes(type)) return 'ZIP Archive';
+  if (type) return `${type.toUpperCase()} File`;
+  return 'File';
+};
+
+const formatFileSize = (bytes: number | null): string => {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const getDateGroupLabel = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  if (isToday(date)) return 'Today';
+  if (isYesterday(date)) return 'Yesterday';
+  return format(date, 'dd/MM/yyyy');
+};
+
+interface UnifiedItem {
+  id: string;
+  type: 'folder' | 'file';
+  name: string;
+  date: string;
+  fileType: string | null;
+  mimeType: string | null;
+  fileSize: number | null;
+  filePath?: string;
+  folder?: VaultFolder;
+  file?: VaultFile;
+}
+
 export const VaultContentView = ({
   folders,
   files,
+  viewMode,
   onNavigateToFolder,
   onDelete,
   onManageAccess,
@@ -169,13 +218,42 @@ export const VaultContentView = ({
   const totalItems = folders.length + files.length;
   const selectedCount = selectedItems.size;
 
-  // Build selected items for clipboard
   const getSelectedClipboardItems = useCallback(() => {
     const items: ClipboardState['items'] = [];
     folders.forEach(f => { if (selectedItems.has(f.id)) items.push({ id: f.id, type: 'folder', name: f.name }); });
     files.forEach(f => { if (selectedItems.has(f.id)) items.push({ id: f.id, type: 'file', name: f.original_name || f.name, filePath: f.file_path }); });
     return items;
   }, [selectedItems, folders, files]);
+
+  // Build grouped items for details view
+  const groupedItems = useMemo(() => {
+    const allItems: UnifiedItem[] = [
+      ...folders.map(f => ({
+        id: f.id, type: 'folder' as const, name: f.name,
+        date: f.updated_at, fileType: null, mimeType: null, fileSize: null, folder: f,
+      })),
+      ...files.map(f => ({
+        id: f.id, type: 'file' as const, name: f.original_name || f.name,
+        date: f.updated_at, fileType: f.file_type, mimeType: f.mime_type,
+        fileSize: f.file_size, filePath: f.file_path, file: f,
+      })),
+    ];
+    // Sort by date descending
+    allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Group by date label
+    const groups: Array<{ label: string; items: UnifiedItem[] }> = [];
+    let currentLabel = '';
+    allItems.forEach(item => {
+      const label = getDateGroupLabel(item.date);
+      if (label !== currentLabel) {
+        currentLabel = label;
+        groups.push({ label, items: [] });
+      }
+      groups[groups.length - 1].items.push(item);
+    });
+    return groups;
+  }, [folders, files]);
 
   if (isLoading) {
     return (
@@ -241,9 +319,157 @@ export const VaultContentView = ({
     </ContextMenuContent>
   );
 
+  const emptySpaceContextMenu = (
+    <ContextMenuContent>
+      {canUpload && (
+        <>
+          <ContextMenuItem onClick={() => setFolderDialogOpen(true)}>
+            <FolderPlus className="h-4 w-4 mr-2" />New Folder
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => fileInputRef.current?.click()}>
+            <Upload className="h-4 w-4 mr-2" />Upload Files
+          </ContextMenuItem>
+        </>
+      )}
+      <ContextMenuItem onClick={onPaste} disabled={!clipboard}>
+        <ClipboardPaste className="h-4 w-4 mr-2" />Paste
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={onRefresh}>
+        <RefreshCw className="h-4 w-4 mr-2" />Refresh
+      </ContextMenuItem>
+    </ContextMenuContent>
+  );
+
+  const renderDetailsRow = (item: UnifiedItem) => {
+    const IconComp = item.type === 'folder' ? Folder : getFileIcon(item.fileType);
+    const iconColour = item.type === 'folder' ? 'text-amber-500' : getFileIconColour(item.fileType);
+    const isSelected = selectedItems.has(item.id);
+    const isCut = isCutItem(item.id);
+
+    return (
+      <ContextMenu key={item.id}>
+        <ContextMenuTrigger asChild>
+          <tr
+            className={`border-b border-border/40 cursor-pointer transition-colors text-sm
+              ${isSelected ? 'bg-primary/15' : 'hover:bg-muted/40'}
+              ${isCut ? 'opacity-40' : ''}`}
+            onClick={(e) => { e.stopPropagation(); handleSelect(item.id, e); }}
+            onDoubleClick={() => {
+              if (item.type === 'folder') handleDoubleClickFolder(item.id);
+              else if (item.file) handleDownload(item.file);
+            }}
+          >
+            <td className="py-1.5 px-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <IconComp
+                  className={`h-4 w-4 shrink-0 ${iconColour}`}
+                  {...(item.type === 'folder' ? { fill: 'currentColor', strokeWidth: 1 } : { strokeWidth: 1.5 })}
+                />
+                <span className="truncate">{item.name}</span>
+              </div>
+            </td>
+            <td className="py-1.5 px-2 text-muted-foreground whitespace-nowrap hidden sm:table-cell">
+              {format(new Date(item.date), 'dd/MM/yyyy HH:mm')}
+            </td>
+            <td className="py-1.5 px-2 text-muted-foreground whitespace-nowrap hidden md:table-cell">
+              {item.type === 'folder' ? 'File folder' : getFileTypeName(item.fileType, item.mimeType)}
+            </td>
+            <td className="py-1.5 px-2 text-muted-foreground text-right whitespace-nowrap hidden sm:table-cell">
+              {item.type === 'file' ? formatFileSize(item.fileSize) : ''}
+            </td>
+          </tr>
+        </ContextMenuTrigger>
+        {renderItemContextMenu(item.id, item.type, item.name, item.filePath, item.file)}
+      </ContextMenu>
+    );
+  };
+
+  const renderDetailsView = () => (
+    <table className="w-full text-sm border-collapse">
+      <thead>
+        <tr className="border-b-2 border-border/60">
+          <th className="text-left py-1.5 px-2 font-medium text-foreground">Name</th>
+          <th className="text-left py-1.5 px-2 font-medium text-foreground whitespace-nowrap hidden sm:table-cell">Date modified</th>
+          <th className="text-left py-1.5 px-2 font-medium text-foreground whitespace-nowrap hidden md:table-cell">Type</th>
+          <th className="text-right py-1.5 px-2 font-medium text-foreground hidden sm:table-cell">Size</th>
+        </tr>
+      </thead>
+      <tbody>
+        {groupedItems.map(group => (
+          <>
+            <tr key={`group-${group.label}`}>
+              <td colSpan={4} className="pt-3 pb-1 px-2">
+                <div className="flex items-center gap-1.5">
+                  <ChevronDown className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-semibold text-primary">{group.label}</span>
+                </div>
+              </td>
+            </tr>
+            {group.items.map(renderDetailsRow)}
+          </>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const renderIconsView = () => (
+    <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))' }}>
+      {folders.map(folder => (
+        <ContextMenu key={folder.id}>
+          <ContextMenuTrigger asChild>
+            <div
+              className={`flex flex-col items-center gap-1 p-2 rounded cursor-pointer transition-colors
+                ${selectedItems.has(folder.id) ? 'bg-primary/15 ring-1 ring-primary/40' : 'hover:bg-muted/60'}
+                ${isCutItem(folder.id) ? 'opacity-40' : ''}`}
+              onClick={(e) => { e.stopPropagation(); handleSelect(folder.id, e); }}
+              onDoubleClick={() => handleDoubleClickFolder(folder.id)}
+            >
+              <Folder className="h-10 w-10 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1} />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-center leading-tight truncate w-full">{folder.name}</span>
+                </TooltipTrigger>
+                <TooltipContent>{folder.name}</TooltipContent>
+              </Tooltip>
+            </div>
+          </ContextMenuTrigger>
+          {renderItemContextMenu(folder.id, 'folder', folder.name)}
+        </ContextMenu>
+      ))}
+
+      {files.map(file => {
+        const IconComp = getFileIcon(file.file_type);
+        const iconColour = getFileIconColour(file.file_type);
+        const displayName = file.original_name || file.name;
+        return (
+          <ContextMenu key={file.id}>
+            <ContextMenuTrigger asChild>
+              <div
+                className={`flex flex-col items-center gap-1 p-2 rounded cursor-pointer transition-colors
+                  ${selectedItems.has(file.id) ? 'bg-primary/15 ring-1 ring-primary/40' : 'hover:bg-muted/60'}
+                  ${isCutItem(file.id) ? 'opacity-40' : ''}`}
+                onClick={(e) => { e.stopPropagation(); handleSelect(file.id, e); }}
+                onDoubleClick={() => handleDownload(file)}
+              >
+                <IconComp className={`h-10 w-10 shrink-0 ${iconColour}`} strokeWidth={1} />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs text-center leading-tight truncate w-full">{displayName}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>{displayName}</TooltipContent>
+                </Tooltip>
+              </div>
+            </ContextMenuTrigger>
+            {renderItemContextMenu(file.id, 'file', displayName, file.file_path, file)}
+          </ContextMenu>
+        );
+      })}
+    </div>
+  );
+
   return (
     <>
-      {/* Empty space context menu wraps the grid area */}
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
@@ -256,83 +482,14 @@ export const VaultContentView = ({
                 <p className="text-sm">This folder is empty</p>
                 <p className="text-xs mt-1">Right-click to create a folder or upload files</p>
               </div>
+            ) : viewMode === 'details' ? (
+              renderDetailsView()
             ) : (
-              <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))' }}>
-                {folders.map(folder => (
-                  <ContextMenu key={folder.id}>
-                    <ContextMenuTrigger asChild>
-                      <div
-                        className={`flex flex-col items-center gap-1 p-2 rounded cursor-pointer transition-colors
-                          ${selectedItems.has(folder.id) ? 'bg-primary/15 ring-1 ring-primary/40' : 'hover:bg-muted/60'}
-                          ${isCutItem(folder.id) ? 'opacity-40' : ''}`}
-                        onClick={(e) => { e.stopPropagation(); handleSelect(folder.id, e); }}
-                        onDoubleClick={() => handleDoubleClickFolder(folder.id)}
-                      >
-                        <Folder className="h-10 w-10 text-amber-500 shrink-0" fill="currentColor" strokeWidth={1} />
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-xs text-center leading-tight truncate w-full">{folder.name}</span>
-                          </TooltipTrigger>
-                          <TooltipContent>{folder.name}</TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </ContextMenuTrigger>
-                    {renderItemContextMenu(folder.id, 'folder', folder.name)}
-                  </ContextMenu>
-                ))}
-
-                {files.map(file => {
-                  const IconComp = getFileIcon(file.file_type);
-                  const iconColour = getFileIconColour(file.file_type);
-                  const displayName = file.original_name || file.name;
-                  return (
-                    <ContextMenu key={file.id}>
-                      <ContextMenuTrigger asChild>
-                        <div
-                          className={`flex flex-col items-center gap-1 p-2 rounded cursor-pointer transition-colors
-                            ${selectedItems.has(file.id) ? 'bg-primary/15 ring-1 ring-primary/40' : 'hover:bg-muted/60'}
-                            ${isCutItem(file.id) ? 'opacity-40' : ''}`}
-                          onClick={(e) => { e.stopPropagation(); handleSelect(file.id, e); }}
-                          onDoubleClick={() => handleDownload(file)}
-                        >
-                          <IconComp className={`h-10 w-10 shrink-0 ${iconColour}`} strokeWidth={1} />
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-xs text-center leading-tight truncate w-full">{displayName}</span>
-                            </TooltipTrigger>
-                            <TooltipContent>{displayName}</TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </ContextMenuTrigger>
-                      {renderItemContextMenu(file.id, 'file', displayName, file.file_path, file)}
-                    </ContextMenu>
-                  );
-                })}
-              </div>
+              renderIconsView()
             )}
           </div>
         </ContextMenuTrigger>
-
-        {/* Empty-space context menu */}
-        <ContextMenuContent>
-          {canUpload && (
-            <>
-              <ContextMenuItem onClick={() => setFolderDialogOpen(true)}>
-                <FolderPlus className="h-4 w-4 mr-2" />New Folder
-              </ContextMenuItem>
-              <ContextMenuItem onClick={() => fileInputRef.current?.click()}>
-                <Upload className="h-4 w-4 mr-2" />Upload Files
-              </ContextMenuItem>
-            </>
-          )}
-          <ContextMenuItem onClick={onPaste} disabled={!clipboard}>
-            <ClipboardPaste className="h-4 w-4 mr-2" />Paste
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={onRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />Refresh
-          </ContextMenuItem>
-        </ContextMenuContent>
+        {emptySpaceContextMenu}
       </ContextMenu>
 
       {/* Status bar */}
