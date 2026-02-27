@@ -1140,10 +1140,21 @@ export const VaultContentView = ({
           {(() => {
             const isOwner = (() => {
               if (!deleteTarget || !user?.id) return false;
+              // Check current-level items
               if (deleteTarget.type === 'folder') {
-                return folders.some(f => f.id === deleteTarget.id && f.created_by === user.id);
+                if (folders.some(f => f.id === deleteTarget.id && f.created_by === user.id)) return true;
+              } else {
+                if (files.some(f => f.id === deleteTarget.id && f.created_by === user.id)) return true;
               }
-              return files.some(f => f.id === deleteTarget.id && f.created_by === user.id);
+              // Check tree-cached children
+              for (const children of Object.values(treeChildren)) {
+                if (deleteTarget.type === 'folder') {
+                  if (children.folders.some(f => f.id === deleteTarget.id && f.created_by === user.id)) return true;
+                } else {
+                  if (children.files.some(f => f.id === deleteTarget.id && f.created_by === user.id)) return true;
+                }
+              }
+              return false;
             })();
 
             return (
@@ -1181,9 +1192,18 @@ export const VaultContentView = ({
               const isOwner = (() => {
                 if (!deleteTarget || !user?.id) return false;
                 if (deleteTarget.type === 'folder') {
-                  return folders.some(f => f.id === deleteTarget.id && f.created_by === user.id);
+                  if (folders.some(f => f.id === deleteTarget.id && f.created_by === user.id)) return true;
+                } else {
+                  if (files.some(f => f.id === deleteTarget.id && f.created_by === user.id)) return true;
                 }
-                return files.some(f => f.id === deleteTarget.id && f.created_by === user.id);
+                for (const children of Object.values(treeChildren)) {
+                  if (deleteTarget.type === 'folder') {
+                    if (children.folders.some(f => f.id === deleteTarget.id && f.created_by === user.id)) return true;
+                  } else {
+                    if (children.files.some(f => f.id === deleteTarget.id && f.created_by === user.id)) return true;
+                  }
+                }
+                return false;
               })();
 
               return (
