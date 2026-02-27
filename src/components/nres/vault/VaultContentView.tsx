@@ -356,22 +356,6 @@ export const VaultContentView = ({
         </ContextMenuItem>
       ) : null}
       <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => {
-        const items = selectedItems.has(id) && selectedItems.size > 1
-          ? getSelectedClipboardItems()
-          : [{ id, type, name, filePath }];
-        onCopy(items);
-      }}>
-        <Copy className="h-4 w-4 mr-2" />Copy
-      </ContextMenuItem>
-      <ContextMenuItem onClick={() => {
-        const items = selectedItems.has(id) && selectedItems.size > 1
-          ? getSelectedClipboardItems()
-          : [{ id, type, name, filePath }];
-        onCut(items);
-      }}>
-        <Scissors className="h-4 w-4 mr-2" />Cut
-      </ContextMenuItem>
       <ContextMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
         <PencilLine className="h-4 w-4 mr-2" />Rename
       </ContextMenuItem>
@@ -426,22 +410,6 @@ export const VaultContentView = ({
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => {
-          const items = selectedItems.has(id) && selectedItems.size > 1
-            ? getSelectedClipboardItems()
-            : [{ id, type, name, filePath }];
-          onCopy(items);
-        }}>
-          <Copy className="h-4 w-4 mr-2" />Copy
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => {
-          const items = selectedItems.has(id) && selectedItems.size > 1
-            ? getSelectedClipboardItems()
-            : [{ id, type, name, filePath }];
-          onCut(items);
-        }}>
-          <Scissors className="h-4 w-4 mr-2" />Cut
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => { setRenameTarget({ id, type, currentName: name }); setRenameValue(name); }}>
           <PencilLine className="h-4 w-4 mr-2" />Rename
         </DropdownMenuItem>
