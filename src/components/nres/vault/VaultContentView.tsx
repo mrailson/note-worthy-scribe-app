@@ -174,6 +174,46 @@ export const VaultContentView = ({
   const [descriptionValue, setDescriptionValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes('Files')) setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) setIsDragOver(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragOver(false);
+    if (!canUpload) return;
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length > 0) onUploadFiles(droppedFiles);
+  }, [canUpload, onUploadFiles]);
+
+  const handlePasteFiles = useCallback((e: React.ClipboardEvent) => {
+    if (!canUpload) return;
+    const pastedFiles = Array.from(e.clipboardData.files);
+    if (pastedFiles.length > 0) {
+      e.preventDefault();
+      onUploadFiles(pastedFiles);
+    }
+  }, [canUpload, onUploadFiles]);
   const [replaceTarget, setReplaceTarget] = useState<{ id: string; filePath: string } | null>(null);
   const updateDescription = useUpdateFileDescription();
   const replaceFile = useReplaceVaultFile();
@@ -649,14 +689,27 @@ export const VaultContentView = ({
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
-            className="min-h-[500px] rounded-lg border bg-background p-3 select-none"
+            className="relative min-h-[500px] rounded-lg border bg-background p-3 select-none"
             onClick={(e) => { if (e.target === e.currentTarget) clearSelection(); }}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onPaste={handlePasteFiles}
+            tabIndex={0}
           >
+            {/* Drag-over overlay */}
+            {isDragOver && canUpload && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/10 pointer-events-none">
+                <Upload className="h-10 w-10 text-primary mb-2" />
+                <p className="text-sm font-medium text-primary">Drop files here to upload</p>
+              </div>
+            )}
             {totalItems === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Folder className="h-12 w-12 mb-3 opacity-30" />
                 <p className="text-sm">This folder is empty</p>
-                <p className="text-xs mt-1">Right-click to create a folder or upload files</p>
+                <p className="text-xs mt-1">Drag and drop files here, or right-click for more options</p>
               </div>
             ) : viewMode === 'details' ? (
               renderDetailsView()
