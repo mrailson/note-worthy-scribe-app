@@ -298,6 +298,7 @@ export const VaultPermissionManager = ({
           </DialogDescription>
         </DialogHeader>
 
+        <ScrollArea className="max-h-[70vh]">
         <div className="px-8 sm:px-10 py-6 space-y-6">
           {/* Add permissions section */}
           <div className="space-y-4">
@@ -518,13 +519,25 @@ export const VaultPermissionManager = ({
               )}
             </div>
 
+            {/* Default access row — always visible */}
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-md bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/40 text-sm">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <div className="min-w-0">
+                  <span className="font-medium block">All NRES Users</span>
+                  <span className="text-xs text-muted-foreground block">
+                    Default read access for all NRES Dashboard users
+                  </span>
+                </div>
+              </div>
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 shrink-0">
+                Viewer
+              </span>
+            </div>
+
             {isLoading ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Loading...</p>
-            ) : permissions?.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-6 text-center bg-muted/30 rounded-lg border border-dashed">
-                No specific permissions set. All NRES users have full access.
-              </div>
-            ) : (
+            ) : permissions && permissions.length > 0 ? (
               <ScrollArea className="max-h-[250px]">
                 <div className="space-y-3">
                   {groupedPermissions.map((group) => (
@@ -580,9 +593,10 @@ export const VaultPermissionManager = ({
                   ))}
                 </div>
               </ScrollArea>
-            )}
+            ) : null}
           </div>
         </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
