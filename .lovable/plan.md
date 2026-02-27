@@ -1,25 +1,20 @@
 
-# Fix Manage Access Modal: Scrolling and Default Access
+# Add "Remove All Permissions" Button
 
-## Issues
-1. **No scroll on the modal body** -- the modal content overflows but the body area is not scrollable, so users cannot reach content below the fold.
-2. **No default "All NRES Users" read access indicator** -- there should be a visible, persistent entry showing that all logged-in NRES Dashboard users have Viewer (read) access by default, until the user explicitly changes it.
+## What changes
+Add a "Remove All" button next to the "Current Permissions" heading that deletes all explicit permission entries for the current folder/file in one action, with a confirmation prompt to prevent accidental clicks.
 
-## Changes
+## Details
 
-### 1. Make modal body scrollable (`VaultPermissionManager.tsx`)
-- Wrap the main content `div` (currently `px-8 sm:px-10 py-6 space-y-6`) inside a `ScrollArea` with a max height (e.g. `max-h-[70vh]`) so the entire modal body scrolls when content exceeds the viewport.
-- This ensures the "Add Permissions" section, divider, and "Current Permissions" list are all accessible via scroll.
+### File: `src/components/nres/vault/VaultPermissionManager.tsx`
 
-### 2. Add default "All NRES Users -- Viewer" entry (`VaultPermissionManager.tsx`)
-- In the "Current Permissions" section, always render a top-level read-only row before any explicit permissions:
-  - **Label**: "All NRES Users" with a `Users` icon
-  - **Badge**: "Viewer" (blue) 
-  - **Note**: Small helper text like "Default access for all NRES Dashboard users"
-  - This row is **not deletable** -- it serves as a visual indicator of the baseline access level
-- This row appears regardless of whether explicit permissions exist, reinforcing that all NRES users can read by default unless overridden with "No Access".
+1. **Add a "Remove All" mutation** -- a new `useMutation` that deletes all `shared_drive_permissions` rows matching the current `targetId` and `targetType`. On success, invalidate the relevant query keys and show a success toast.
 
-### Technical Detail
-- The `ScrollArea` component is already imported in the file.
-- The modal body `div` at line 301 will be wrapped: `<ScrollArea className="max-h-[70vh]"><div className="px-8 sm:px-10 py-6 space-y-6">...existing content...</div></ScrollArea>`
-- A new static row will be inserted at the top of the "Current Permissions" list, styled consistently with existing permission rows but with a distinct "default" visual treatment (e.g. subtle background, no delete button).
+2. **Add a confirmation state** -- a simple `showRemoveAllConfirm` boolean state. Clicking "Remove All" shows an inline confirmation (e.g. "Are you sure? Remove All / Cancel") rather than immediately deleting, to prevent accidental removal.
+
+3. **Add the button to the UI** -- in the "Current Permissions" header row (line 513), next to the existing badge count, add a small destructive "Remove All" button (only visible when there are existing permissions). When confirmed, it calls the bulk delete mutation.
+
+### Technical detail
+- The bulk delete query: `supabase.from('shared_drive_permissions').delete().eq('target_id', targetId).eq('target_type', targetType)`
+- This only removes explicit overrides; the default "All NRES Users -- Viewer" row is a visual indicator and is unaffected.
+- The button will use `variant="ghost"` with destructive text styling and a `Trash2` icon, sized small to sit inline with the heading.
