@@ -815,45 +815,71 @@ export const VaultContentView = ({
               {deleteTarget?.type === 'folder' ? 'Delete Folder & All Contents' : 'Delete File'}
             </DialogTitle>
           </DialogHeader>
-          <div className="px-8 sm:px-10 py-4 space-y-4">
-            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-2 text-sm">
-              <p className="font-semibold text-destructive">⚠️ Warning: This action is non-recoverable</p>
-              <p>You are about to permanently delete "<span className="font-medium">{deleteTarget?.name}</span>".</p>
-              {deleteTarget?.type === 'folder' && (
-                <p>This will also permanently delete <strong>all files and sub-folders</strong> contained within it.</p>
-              )}
-              <p className="text-muted-foreground">This action is fully audited and cannot be reversed. Deleted items cannot be restored.</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="delete-confirm" className="text-sm">
-                To confirm, type <span className="font-mono font-bold text-destructive">DELETE</span> below:
-              </Label>
-              <Input
-                id="delete-confirm"
-                className="bg-white dark:bg-white/10"
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="Type DELETE to confirm"
-                autoFocus
-                autoComplete="off"
-              />
-            </div>
-          </div>
+          {(() => {
+            const isOwner = (() => {
+              if (!deleteTarget || !user?.id) return false;
+              if (deleteTarget.type === 'folder') {
+                return folders.some(f => f.id === deleteTarget.id && f.created_by === user.id);
+              }
+              return files.some(f => f.id === deleteTarget.id && f.created_by === user.id);
+            })();
+
+            return (
+              <div className="px-8 sm:px-10 py-4 space-y-4">
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-2 text-sm">
+                  <p className="font-semibold text-destructive">⚠️ Warning: This action is non-recoverable</p>
+                  <p>You are about to permanently delete "<span className="font-medium">{deleteTarget?.name}</span>".</p>
+                  {deleteTarget?.type === 'folder' && (
+                    <p>This will also permanently delete <strong>all files and sub-folders</strong> contained within it.</p>
+                  )}
+                  <p className="text-muted-foreground">This action is fully audited and cannot be reversed. Deleted items cannot be restored.</p>
+                </div>
+                {!isOwner && (
+                  <div className="space-y-2">
+                    <Label htmlFor="delete-confirm" className="text-sm">
+                      To confirm, type <span className="font-mono font-bold text-destructive">DELETE</span> below:
+                    </Label>
+                    <Input
+                      id="delete-confirm"
+                      className="bg-white dark:bg-white/10"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="Type DELETE to confirm"
+                      autoFocus
+                      autoComplete="off"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirmText(''); }}>Cancel</Button>
-            <Button
-              variant="destructive"
-              disabled={deleteConfirmText !== 'DELETE'}
-              onClick={() => {
-                if (deleteTarget && deleteConfirmText === 'DELETE') {
-                  onDelete(deleteTarget.id, deleteTarget.type, deleteTarget.filePath, deleteTarget.name);
-                  setDeleteTarget(null);
-                  setDeleteConfirmText('');
+            {(() => {
+              const isOwner = (() => {
+                if (!deleteTarget || !user?.id) return false;
+                if (deleteTarget.type === 'folder') {
+                  return folders.some(f => f.id === deleteTarget.id && f.created_by === user.id);
                 }
-              }}
-            >
-              Permanently Delete
-            </Button>
+                return files.some(f => f.id === deleteTarget.id && f.created_by === user.id);
+              })();
+
+              return (
+                <Button
+                  variant="destructive"
+                  disabled={!isOwner && deleteConfirmText !== 'DELETE'}
+                  onClick={() => {
+                    if (deleteTarget && (isOwner || deleteConfirmText === 'DELETE')) {
+                      onDelete(deleteTarget.id, deleteTarget.type, deleteTarget.filePath, deleteTarget.name);
+                      setDeleteTarget(null);
+                      setDeleteConfirmText('');
+                    }
+                  }}
+                >
+                  Permanently Delete
+                </Button>
+              );
+            })()}
           </DialogFooter>
         </DialogContent>
       </Dialog>
