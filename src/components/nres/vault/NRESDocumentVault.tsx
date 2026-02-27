@@ -184,7 +184,18 @@ export const NRESDocumentVault = () => {
           />
 
           {!isSearching && (
-            <VaultBreadcrumbs items={breadcrumbs} onNavigate={handleNavigate} />
+            <>
+              <VaultBreadcrumbs items={breadcrumbs} onNavigate={handleNavigate} />
+              {currentFolderId === null && (
+                <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                  <p>
+                    Welcome to the Document Vault — your secure, centralised store for practice documents and files.
+                    <span className="font-medium text-foreground"> Double-click</span> any folder to open it, just like Windows Explorer.
+                    Use the breadcrumbs above to navigate back, or right-click items for more options.
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           {isSearching && (
