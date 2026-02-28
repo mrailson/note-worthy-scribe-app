@@ -1,4 +1,7 @@
-import "./shims/postmessage-dev-guard";
+// Only load postMessage dev guard in development to avoid production side effects
+if (import.meta.env.DEV) {
+  import("./shims/postmessage-dev-guard");
+}
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

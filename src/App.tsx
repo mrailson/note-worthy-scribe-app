@@ -143,6 +143,12 @@ const App = () => {
 
     // Global safety net for unhandled promise rejections to prevent white-screen crashes
     const handleRejection = (event: PromiseRejectionEvent) => {
+      // Filter out extension/runtime message-channel noise
+      const msg = String(event.reason?.message || event.reason || '');
+      if (msg.includes('A listener indicated an asynchronous response by returning true')) {
+        event.preventDefault();
+        return;
+      }
       console.error("Unhandled promise rejection:", event.reason);
       event.preventDefault();
     };

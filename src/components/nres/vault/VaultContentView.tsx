@@ -165,6 +165,29 @@ export const VaultContentView = ({
     id: string; type: 'folder' | 'file'; name: string; filePath?: string;
   } | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  // Radix body-lock cleanup helper – prevents stale pointer-events:none after dialog/menu dismissal
+  const cleanupBodyInteractionLocks = useCallback(() => {
+    const run = () => {
+      const body = document.body;
+      // Only clean up if no Radix dialog/menu overlay is still present
+      const hasOpenOverlay = body.querySelector('[data-radix-dialog-overlay]') ||
+        body.querySelector('[data-radix-menu-content]') ||
+        body.querySelector('[role="dialog"][data-state="open"]');
+      if (!hasOpenOverlay) {
+        body.style.removeProperty('pointer-events');
+        body.style.removeProperty('overflow');
+        body.removeAttribute('data-scroll-locked');
+        // Also clean up any Radix-injected style element for scroll lock
+        const scrollLockStyle = document.head.querySelector('style[data-radix-scroll-lock]');
+        if (scrollLockStyle) scrollLockStyle.remove();
+      }
+    };
+    // Run after animation frames settle
+    requestAnimationFrame(() => {
+      setTimeout(run, 100);
+    });
+  }, []);
   const [renameTarget, setRenameTarget] = useState<{
     id: string; type: 'folder' | 'file'; currentName: string;
   } | null>(null);
@@ -573,7 +596,11 @@ export const VaultContentView = ({
       {canDeleteItems && (
         <>
           <ContextMenuSeparator />
-          <ContextMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget({ id, type, name, filePath })}>
+          <ContextMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => {
+            e.preventDefault();
+            // Defer opening delete dialog until after menu has fully closed
+            setTimeout(() => setDeleteTarget({ id, type, name, filePath }), 0);
+          }}>
             <Trash2 className="h-4 w-4 mr-2" />Delete
           </ContextMenuItem>
         </>
@@ -588,7 +615,7 @@ export const VaultContentView = ({
     filePath?: string,
     file?: VaultFile
   ) => (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button
           className="p-1 rounded hover:bg-muted/80 transition-colors"
@@ -653,7 +680,11 @@ export const VaultContentView = ({
         {canDeleteItems && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget({ id, type, name, filePath })}>
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => {
+              e.preventDefault();
+              // Defer opening delete dialog until after dropdown has fully closed
+              setTimeout(() => setDeleteTarget({ id, type, name, filePath }), 0);
+            }}>
               <Trash2 className="h-4 w-4 mr-2" />Delete
             </DropdownMenuItem>
           </>
@@ -1163,7 +1194,7 @@ export const VaultContentView = ({
       </Dialog>
 
       {/* Delete confirmation - cautious */}
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(''); } }}>
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(''); cleanupBodyInteractionLocks(); } }}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
@@ -1222,7 +1253,7 @@ export const VaultContentView = ({
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirmText(''); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirmText(''); cleanupBodyInteractionLocks(); }}>Cancel</Button>
             {(() => {
               const isOwner = (() => {
                 if (!deleteTarget || !user?.id) return false;
@@ -1253,6 +1284,7 @@ export const VaultContentView = ({
                       // Close dialog immediately so UI stays responsive
                       setDeleteTarget(null);
                       setDeleteConfirmText('');
+                      cleanupBodyInteractionLocks();
 
                       // Update tree cache synchronously for instant visual feedback
                       if (viewMode === 'tree') {
