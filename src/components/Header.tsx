@@ -218,21 +218,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           Ask AI
                         </DropdownMenuItem>
                       )}
-                      {isServiceVisible('ai4pm_service') && (
-                        <DropdownMenuItem 
-                          onClick={() => {
-                            if (location.pathname === '/ai4gp') {
-                              window.dispatchEvent(new CustomEvent('open-translation-panel'));
-                            } else {
-                              navigate('/ai4gp?panel=translation');
-                            }
-                          }}
-                          className="cursor-pointer py-3"
-                        >
-                          <Languages className="h-4 w-4 mr-2" />
-                          Translation Service
-                        </DropdownMenuItem>
-                      )}
                      {hasModuleAccess('meeting_recorder') && isServiceVisible('meeting_notes') && (
                        <DropdownMenuItem 
                           onClick={() => navigate('/')}
@@ -423,6 +408,21 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           >
                             <FileText className="h-4 w-4 mr-2" />
                             Practice Policies
+                          </DropdownMenuItem>
+                        )}
+                        {isServiceVisible('ai4pm_service') && (
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              if (location.pathname === '/ai4gp') {
+                                window.dispatchEvent(new CustomEvent('open-translation-panel'));
+                              } else {
+                                navigate('/ai4gp?panel=translation');
+                              }
+                            }}
+                            className="cursor-pointer py-3"
+                          >
+                            <Languages className="h-4 w-4 mr-2" />
+                            Translation Service
                           </DropdownMenuItem>
                         )}
                   </DropdownMenuContent>
