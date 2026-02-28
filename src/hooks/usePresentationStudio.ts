@@ -65,7 +65,7 @@ const DEFAULT_SETTINGS: PresentationStudioSettings = {
   includeVoiceover: false,
   voiceId: 'JBFqnCBsd6RMkjVDRZzb', // George - British Male Professional
   customInstructions: '',
-  useStockLibraryImages: true,
+  useStockLibraryImages: false,
 };
 
 // Keys for persisted settings (Branding & Slides tabs)
@@ -163,9 +163,15 @@ const loadPersistedHistory = (userId: string): PresentationHistoryItem[] => {
 
 const savePersistedHistory = (userId: string, history: PresentationHistoryItem[]) => {
   try {
-    // Keep last 5 items for quick retrieval; strip pptxBase64 (too large) but preserve downloadUrl
+    // Keep last 5 items for quick retrieval; strip large binary data to avoid quota issues
     const lightweight = history.slice(0, 5).map(item => ({
       ...item,
+      settings: item.settings ? {
+        ...item.settings,
+        supportingDocuments: undefined, // Large base64 content
+        pastedContent: undefined, // Can be large
+        logoImage: undefined, // Base64 logo data
+      } : item.settings,
       result: {
         ...item.result,
         pptxBase64: undefined, // Too large for localStorage
@@ -175,6 +181,24 @@ const savePersistedHistory = (userId: string, history: PresentationHistoryItem[]
     localStorage.setItem(getHistoryKey(userId), JSON.stringify(lightweight));
   } catch (e) {
     console.warn('Failed to save presentation history:', e);
+    // If quota exceeded, try saving fewer items
+    try {
+      const minimal = history.slice(0, 3).map(item => ({
+        id: item.id,
+        timestamp: item.timestamp,
+        settings: { topic: item.settings?.topic },
+        result: {
+          title: item.result.title,
+          slideCount: item.result.slideCount,
+          downloadUrl: item.result.downloadUrl,
+          gammaUrl: item.result.gammaUrl,
+          generatedAt: item.result.generatedAt,
+        },
+      }));
+      localStorage.setItem(getHistoryKey(userId), JSON.stringify(minimal));
+    } catch {
+      console.warn('Failed to save even minimal presentation history');
+    }
   }
 };
 
