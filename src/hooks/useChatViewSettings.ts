@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { ChatViewSettings, DEFAULT_CHAT_VIEW_SETTINGS } from '@/types/chatViewSettings';
 
 const STORAGE_KEY = 'ai4gp-chat-view-settings';
+const CONTAINER_FULL_MIGRATION_KEY = 'ai4gp-container-full-migrated-v1';
 
 export function useChatViewSettings() {
   const [settings, setSettingsState] = useState<ChatViewSettings>(() => {
@@ -9,8 +10,13 @@ export function useChatViewSettings() {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Merge with defaults to handle new options gracefully
-        return { ...DEFAULT_CHAT_VIEW_SETTINGS, ...parsed };
+        const merged = { ...DEFAULT_CHAT_VIEW_SETTINGS, ...parsed };
+        // One-time migration: force containerSize to 'full' for all existing users
+        if (!localStorage.getItem(CONTAINER_FULL_MIGRATION_KEY)) {
+          merged.containerSize = 'full';
+          localStorage.setItem(CONTAINER_FULL_MIGRATION_KEY, '1');
+        }
+        return merged;
       }
     } catch (error) {
       console.error('Failed to load chat view settings:', error);
