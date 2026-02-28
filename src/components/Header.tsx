@@ -210,34 +210,28 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     className="bg-background border border-border shadow-lg w-48 z-50"
                   >
                       {isServiceVisible('ai4pm_service') && (
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Ask AI
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent className="bg-background border border-border shadow-lg w-48 z-50">
-                            <DropdownMenuItem 
-                              onClick={() => navigate('/ai4gp')}
-                              className="cursor-pointer py-3"
-                            >
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Ask AI
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => {
-                                if (location.pathname === '/ai4gp') {
-                                  window.dispatchEvent(new CustomEvent('open-translation-panel'));
-                                } else {
-                                  navigate('/ai4gp?panel=translation');
-                                }
-                              }}
-                              className="cursor-pointer py-3"
-                            >
-                              <Languages className="h-4 w-4 mr-2" />
-                              Translation Service
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
+                        <DropdownMenuItem 
+                          onClick={() => navigate('/ai4gp')}
+                          className="cursor-pointer py-3"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Ask AI
+                        </DropdownMenuItem>
+                      )}
+                      {isServiceVisible('ai4pm_service') && (
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            if (location.pathname === '/ai4gp') {
+                              window.dispatchEvent(new CustomEvent('open-translation-panel'));
+                            } else {
+                              navigate('/ai4gp?panel=translation');
+                            }
+                          }}
+                          className="cursor-pointer py-3"
+                        >
+                          <Languages className="h-4 w-4 mr-2" />
+                          Translation Service
+                        </DropdownMenuItem>
                       )}
                      {hasModuleAccess('meeting_recorder') && isServiceVisible('meeting_notes') && (
                        <DropdownMenuItem 
