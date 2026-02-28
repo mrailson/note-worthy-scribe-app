@@ -23,7 +23,7 @@ import { useNRESClaimants } from '@/hooks/useNRESClaimants';
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info } from 'lucide-react';
 
 export function NRESHoursTracker() {
   const [expensesOpen, setExpensesOpen] = useState(false);
@@ -113,8 +113,23 @@ export function NRESHoursTracker() {
       </div>
 
       <TabsContent value="time-expenses" className="space-y-6">
+        {/* Explainer Banner */}
+        <div className="flex gap-3 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-4">
+          <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-foreground space-y-2">
+            <p className="font-semibold">Pre Go-Live Time Reclaim</p>
+            <p>
+              This facility is for reclaiming time spent by Practice Managers, Member Practice GPs, and PCN Support staff involved in preparing the NRES neighbourhood project before go-live. The maximum budget for this programme is <strong>£30,000</strong>. Hours are claimed at agreed rates:
+            </p>
+            <ul className="list-disc list-inside space-y-1 ml-1">
+              <li><strong>Attending GP</strong> (NRES business): £100 per hour</li>
+              <li><strong>Practice Manager / PCN Support</strong>: £50 per hour</li>
+            </ul>
+          </div>
+        </div>
+
         {/* Summary Cards */}
-        <TrackerSummary 
+        <TrackerSummary
           totalHours={totalHours}
           totalExpenses={totalExpenses}
           hourlyRate={hourlyRate}
