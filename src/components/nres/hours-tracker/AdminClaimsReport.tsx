@@ -85,7 +85,7 @@ export function AdminClaimsReport() {
   const [claimants, setClaimants] = useState<Record<string, ClaimantInfo>>({});
   const [startDate, setStartDate] = useState('2020-01-01');
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [viewMode, setViewMode] = useState<'summary' | 'detailed'>('summary');
+  const [viewMode, setViewMode] = useState<'summary' | 'detailed' | 'practice'>('summary');
   const [filterName, setFilterName] = useState<string>('all');
   const [filterPractice, setFilterPractice] = useState<string>('all');
   const [invoiceFilter, setInvoiceFilter] = useState<string>('all');
@@ -367,6 +367,35 @@ export function AdminClaimsReport() {
 
   const grandTotalHours = userClaims.reduce((sum, u) => sum + u.total_hours, 0);
   const grandTotalAmount = userClaims.reduce((sum, u) => sum + u.total_amount, 0);
+
+  // Practice summary view - group by practice, merging Oak Lane into Brackley & Towcester PCN
+  const practiceSummary = useMemo(() => {
+    const practiceMap = new Map<string, { practice: string; claimCount: number; totalHours: number; totalAmount: number }>();
+    
+    userClaims.forEach(claim => {
+      // Merge Oak Lane into Brackley & Towcester PCN
+      let practiceName = claim.practice_name;
+      if (practiceName?.toLowerCase().includes('oak lane')) {
+        practiceName = 'Brackley & Towcester PCN';
+      }
+      
+      const existing = practiceMap.get(practiceName);
+      if (existing) {
+        existing.claimCount += claim.entry_count;
+        existing.totalHours += claim.total_hours;
+        existing.totalAmount += claim.total_amount;
+      } else {
+        practiceMap.set(practiceName, {
+          practice: practiceName,
+          claimCount: claim.entry_count,
+          totalHours: claim.total_hours,
+          totalAmount: claim.total_amount
+        });
+      }
+    });
+    
+    return Array.from(practiceMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
+  }, [userClaims]);
 
   // Selectable entries (uninvoiced only)
   const selectableEntries = useMemo(() => 
@@ -702,7 +731,7 @@ export function AdminClaimsReport() {
                 )}
 
                 {/* View Mode Tabs */}
-                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'summary' | 'detailed')}>
+                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'summary' | 'detailed' | 'practice')}>
                   <div className="flex items-center justify-between">
                     <TabsList>
                       <TabsTrigger value="summary" className="gap-2">
@@ -712,6 +741,10 @@ export function AdminClaimsReport() {
                       <TabsTrigger value="detailed" className="gap-2">
                         <List className="w-4 h-4" />
                         Detailed
+                      </TabsTrigger>
+                      <TabsTrigger value="practice" className="gap-2">
+                        <Users className="w-4 h-4" />
+                        By Practice
                       </TabsTrigger>
                     </TabsList>
                     <span className="text-sm text-muted-foreground">
@@ -985,6 +1018,38 @@ export function AdminClaimsReport() {
                             <TableCell></TableCell>
                             <TableCell></TableCell>
                             <TableCell></TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </TabsContent>
+
+                  {/* Practice Summary View */}
+                  <TabsContent value="practice">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Practice</TableHead>
+                            <TableHead className="text-center">Claims</TableHead>
+                            <TableHead className="text-right">Total Hours</TableHead>
+                            <TableHead className="text-right">Total Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {practiceSummary.map(row => (
+                            <TableRow key={row.practice}>
+                              <TableCell className="font-medium">{row.practice}</TableCell>
+                              <TableCell className="text-center">{row.claimCount}</TableCell>
+                              <TableCell className="text-right">{row.totalHours.toFixed(2)}</TableCell>
+                              <TableCell className="text-right font-medium">£{formatCurrency(row.totalAmount)}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="border-t-2 font-bold bg-muted/50">
+                            <TableCell>Grand Total</TableCell>
+                            <TableCell className="text-center">{practiceSummary.reduce((s, r) => s + r.claimCount, 0)}</TableCell>
+                            <TableCell className="text-right">{practiceSummary.reduce((s, r) => s + r.totalHours, 0).toFixed(2)}</TableCell>
+                            <TableCell className="text-right">£{formatCurrency(practiceSummary.reduce((s, r) => s + r.totalAmount, 0))}</TableCell>
                           </TableRow>
                         </TableBody>
                       </Table>
