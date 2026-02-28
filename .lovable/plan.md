@@ -1,26 +1,45 @@
 
-## Add Drag-and-Drop File Upload to the Document Vault
 
-### What will change
-The grey content area of the Document Vault will support drag-and-drop file uploads. Users will be able to drag files from their desktop and drop them directly into the vault area. A visual overlay will appear when files are dragged over, guiding the user. The empty folder message will also be updated to mention drag-and-drop as an option.
+## Fix: Document Vault UI Freeze on File Deletion
 
-### Implementation
+### Problem
+When deleting a file in the production Document Vault, the UI freezes and requires a page refresh. This works fine in the test environment, suggesting the issue relates to production data volume or edge function latency.
 
-**File: `src/components/nres/vault/VaultContentView.tsx`**
+### Root Cause Analysis
+The freeze is caused by multiple competing operations happening simultaneously when the delete button is clicked:
 
-1. **Add drag-and-drop state and handlers** -- introduce `isDragOver` state and `onDragEnter`, `onDragLeave`, `onDragOver`, `onDrop` handlers on the main content `div` (the grey area, around line 651).
+1. **The delete mutation** calls Supabase storage removal + database delete
+2. **The `onSuccess` callback** immediately fires `queryClient.invalidateQueries()` for both folders AND files, triggering re-fetches
+3. **The audit log** (`logVaultAction`) runs inside `onSuccess` and calls two async operations in parallel: a profile lookup AND the `get-client-info` edge function (which may cold-start in production, taking several seconds)
+4. **The tree cache update** (lines 1252-1268) iterates over all cached tree nodes synchronously
+5. All of this happens while the dialog is closing and React is re-rendering
 
-2. **Visual drag overlay** -- when `isDragOver` is true and `canUpload` is true, render a semi-transparent overlay with an Upload icon and "Drop files here to upload" text over the content area.
+In production, with more data and potential edge function cold starts, these competing operations overwhelm the UI thread.
 
-3. **Handle the drop** -- on drop, extract files from `e.dataTransfer.files` and call the existing `onUploadFiles(Array.from(files))` callback.
+### Solution
 
-4. **Update empty-state text** -- change the empty folder message from "Right-click to create a folder or upload files" to "Drag and drop files here, or right-click for more options".
+**1. Make the audit log fully non-blocking in the delete mutation** (`useNRESVaultData.ts`)
+- Wrap the `logVaultAction` call in a `setTimeout(..., 0)` or use `.catch()` without awaiting, ensuring it never blocks query invalidation or UI updates
 
-5. **Handle paste** -- add a `onPaste` handler on the content div that checks `e.clipboardData.files` and, if files are present, calls `onUploadFiles`.
+**2. Separate dialog closure from the delete operation** (`VaultContentView.tsx`)
+- Close the delete dialog and clear state immediately on click
+- Then trigger the delete operation after a microtask yield, preventing the dialog animation and delete mutation from competing for the main thread
 
-### Technical detail
+**3. Add a small yield before query invalidation** (`useNRESVaultData.ts`)
+- Insert a `setTimeout` before `invalidateQueries` to let React finish the dialog close animation first
 
-- A drag counter ref will track nested drag enter/leave events to prevent flicker.
-- The overlay will use `absolute` positioning within a `relative` wrapper, with a `pointer-events-none` style so it doesn't block the drop.
-- All logic stays within `VaultContentView.tsx` -- no new files needed.
-- The existing `onUploadFiles` prop already accepts `File[]`, so no interface changes are required.
+### Technical Changes
+
+**File: `src/hooks/useNRESVaultData.ts`** (lines ~312-317)
+- In the `onSuccess` handler of `useDeleteVaultItem`, wrap the audit log in a `queueMicrotask` or `setTimeout` so it runs after the UI has updated
+- Keep `invalidateQueries` as-is but ensure it does not compete with the audit log
+
+**File: `src/components/nres/vault/VaultContentView.tsx`** (lines ~1248-1272)
+- Restructure the delete button handler to:
+  1. Capture the delete target details
+  2. Close the dialog immediately (`setDeleteTarget(null)`, `setDeleteConfirmText('')`)
+  3. Update tree cache if in tree view
+  4. Call `onDelete` after a `requestAnimationFrame` or `setTimeout(0)` yield
+
+This ensures the UI remains responsive by separating the visual updates (dialog close, tree cache cleanup) from the async network operations (storage delete, DB delete, audit log, query refetch).
+
