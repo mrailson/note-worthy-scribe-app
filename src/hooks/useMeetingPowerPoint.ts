@@ -190,7 +190,7 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
           supportingContent,
           customInstructions,
           audience: 'healthcare professionals and NHS executives',
-          useStockLibraryImages: true,
+          useStockLibraryImages: false,
         },
       });
 
