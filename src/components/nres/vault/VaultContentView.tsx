@@ -1247,28 +1247,36 @@ export const VaultContentView = ({
                   disabled={!isOwner && deleteConfirmText !== 'DELETE'}
                   onClick={() => {
                     if (deleteTarget && (isOwner || deleteConfirmText === 'DELETE')) {
-                      onDelete(deleteTarget.id, deleteTarget.type, deleteTarget.filePath, deleteTarget.name);
-                      // Immediately remove from tree cache so UI updates without navigation
+                      // Capture details before clearing state
+                      const target = { ...deleteTarget };
+
+                      // Close dialog immediately so UI stays responsive
+                      setDeleteTarget(null);
+                      setDeleteConfirmText('');
+
+                      // Update tree cache synchronously for instant visual feedback
                       if (viewMode === 'tree') {
                         setTreeChildren(prev => {
                           const updated = { ...prev };
                           for (const key of Object.keys(updated)) {
                             const entry = updated[key];
-                            if (deleteTarget.type === 'folder') {
-                              updated[key] = { ...entry, folders: entry.folders.filter(f => f.id !== deleteTarget.id) };
+                            if (target.type === 'folder') {
+                              updated[key] = { ...entry, folders: entry.folders.filter(f => f.id !== target.id) };
                             } else {
-                              updated[key] = { ...entry, files: entry.files.filter(f => f.id !== deleteTarget.id) };
+                              updated[key] = { ...entry, files: entry.files.filter(f => f.id !== target.id) };
                             }
                           }
-                          // Also remove the deleted folder's own children cache
-                          if (deleteTarget.type === 'folder') {
-                            delete updated[deleteTarget.id];
+                          if (target.type === 'folder') {
+                            delete updated[target.id];
                           }
                           return updated;
                         });
                       }
-                      setDeleteTarget(null);
-                      setDeleteConfirmText('');
+
+                      // Yield to let React flush the dialog close before firing the mutation
+                      requestAnimationFrame(() => {
+                        onDelete(target.id, target.type, target.filePath, target.name);
+                      });
                     }
                   }}
                 >
