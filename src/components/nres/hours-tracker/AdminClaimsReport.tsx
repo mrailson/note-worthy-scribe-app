@@ -94,6 +94,8 @@ export function AdminClaimsReport() {
   const [summarySortField, setSummarySortField] = useState<SummarySortField>('total_amount');
   const [summarySortDirection, setSummarySortDirection] = useState<SortDirection>('desc');
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+  const [practiceSortField, setPracticeSortField] = useState<'practice' | 'claimCount' | 'totalHours' | 'totalAmount'>('totalAmount');
+  const [practiceSortDirection, setPracticeSortDirection] = useState<SortDirection>('desc');
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [invoiceDate, setInvoiceDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [markingInvoiced, setMarkingInvoiced] = useState(false);
@@ -394,8 +396,19 @@ export function AdminClaimsReport() {
       }
     });
     
-    return Array.from(practiceMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
-  }, [userClaims]);
+    const sorted = Array.from(practiceMap.values());
+    sorted.sort((a, b) => {
+      let comparison = 0;
+      switch (practiceSortField) {
+        case 'practice': comparison = a.practice.localeCompare(b.practice); break;
+        case 'claimCount': comparison = a.claimCount - b.claimCount; break;
+        case 'totalHours': comparison = a.totalHours - b.totalHours; break;
+        case 'totalAmount': comparison = a.totalAmount - b.totalAmount; break;
+      }
+      return practiceSortDirection === 'desc' ? -comparison : comparison;
+    });
+    return sorted;
+  }, [userClaims, practiceSortField, practiceSortDirection]);
 
   // Selectable entries (uninvoiced only)
   const selectableEntries = useMemo(() => 
@@ -1030,10 +1043,18 @@ export function AdminClaimsReport() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Practice</TableHead>
-                            <TableHead className="text-center">Claims</TableHead>
-                            <TableHead className="text-right">Total Hours</TableHead>
-                            <TableHead className="text-right">Total Amount</TableHead>
+                            <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => { if (practiceSortField === 'practice') setPracticeSortDirection(d => d === 'asc' ? 'desc' : 'asc'); else { setPracticeSortField('practice'); setPracticeSortDirection('asc'); } }}>
+                              <div className="flex items-center gap-1">Practice <ArrowUpDown className="w-3 h-3" /></div>
+                            </TableHead>
+                            <TableHead className="text-center cursor-pointer hover:bg-muted/50" onClick={() => { if (practiceSortField === 'claimCount') setPracticeSortDirection(d => d === 'asc' ? 'desc' : 'asc'); else { setPracticeSortField('claimCount'); setPracticeSortDirection('desc'); } }}>
+                              <div className="flex items-center justify-center gap-1">Claims <ArrowUpDown className="w-3 h-3" /></div>
+                            </TableHead>
+                            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => { if (practiceSortField === 'totalHours') setPracticeSortDirection(d => d === 'asc' ? 'desc' : 'asc'); else { setPracticeSortField('totalHours'); setPracticeSortDirection('desc'); } }}>
+                              <div className="flex items-center justify-end gap-1">Total Hours <ArrowUpDown className="w-3 h-3" /></div>
+                            </TableHead>
+                            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => { if (practiceSortField === 'totalAmount') setPracticeSortDirection(d => d === 'asc' ? 'desc' : 'asc'); else { setPracticeSortField('totalAmount'); setPracticeSortDirection('desc'); } }}>
+                              <div className="flex items-center justify-end gap-1">Total Amount <ArrowUpDown className="w-3 h-3" /></div>
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
