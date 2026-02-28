@@ -73,7 +73,7 @@ export const useGammaPowerPointWithVoiceover = () => {
     title?: string,
     voiceId: string = 'JBFqnCBsd6RMkjVDRZzb', // George - British Male Professional
     slideCount: number = 4,
-    useStockLibraryImages: boolean = true
+    useStockLibraryImages: boolean = false
   ) => {
     if (!content?.trim()) {
       toast.error('No content to generate presentation from');
