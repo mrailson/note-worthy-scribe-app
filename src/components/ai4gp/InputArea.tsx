@@ -17,7 +17,7 @@ import { InputTipsHover } from './InputTipsHover';
 import { ChatCameraModal } from './ChatCameraModal';
 import { ChatQRCaptureModal } from './ChatQRCaptureModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import careUseGuidanceImage from '@/assets/ai-care-use-guidance.png';
+import { AskAIGuidancePanel } from './AskAIGuidancePanel';
 
 // Role-based placeholder tips
 const CLINICAL_TIPS = [
@@ -630,11 +630,11 @@ ${pastedText.trim()}
       
       {/* Care Use Guide Modal */}
       <Dialog open={showCareUseGuide} onOpenChange={setShowCareUseGuide}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 overflow-hidden [&>button]:hidden">
+        <DialogContent className="max-w-[95vw] sm:max-w-[860px] max-h-[90vh] p-0 overflow-hidden [&>button]:hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>Notewell AI Care Use Guidance</DialogTitle>
           </DialogHeader>
-          <div className="relative w-full h-full flex items-center justify-center bg-background p-4">
+          <div className="relative w-full h-full overflow-y-auto">
             <Button
               variant="ghost"
               size="icon"
@@ -643,11 +643,7 @@ ${pastedText.trim()}
             >
               <X className="w-5 h-5" />
             </Button>
-            <img 
-              src={careUseGuidanceImage} 
-              alt="Notewell AI Practice Managers Care Use Guidance" 
-              className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-            />
+            <AskAIGuidancePanel />
           </div>
         </DialogContent>
       </Dialog>
