@@ -310,10 +310,17 @@ export const useDeleteVaultItem = () => {
       return { id, type, name };
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      // toast removed
-      if (user?.id) logVaultAction(user.id, { action: result.type === 'folder' ? 'delete_folder' : 'delete_file', target_type: result.type, target_id: result.id, target_name: result.name });
+      // Yield before invalidation so React can finish dialog close animation
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
+        queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
+      }, 0);
+      // Fire-and-forget audit log – never blocks UI
+      if (user?.id) {
+        queueMicrotask(() => {
+          logVaultAction(user.id, { action: result.type === 'folder' ? 'delete_folder' : 'delete_file', target_type: result.type, target_id: result.id, target_name: result.name });
+        });
+      }
     },
     onError: (error: any) => {
       toast.error('Failed to delete', { description: error.message });
