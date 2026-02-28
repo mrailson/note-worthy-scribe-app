@@ -47,7 +47,7 @@ const DEFAULT_SETTINGS: PresentationStudioSettings = {
   useCustomColours: false,
   
   // Branding & Logo
-  includeBranding: true,
+  includeBranding: false,
   brandingLevel: 'name-contact',
   customPracticeName: '',
   logoImage: null,
@@ -412,9 +412,22 @@ export function usePresentationStudio() {
   const generatePresentation = useCallback(async () => {
     const { settings } = stateRef.current;
     
-    if (!settings.topic.trim() && settings.supportingDocuments.length === 0 && !settings.pastedContent?.trim()) {
+    const hasDocs = settings.supportingDocuments.length > 0;
+    const hasPastedContent = !!settings.pastedContent?.trim();
+    const hasTopic = !!settings.topic.trim();
+
+    if (!hasTopic && !hasDocs && !hasPastedContent) {
       toast.error('Please provide a topic, upload documents, or paste content');
       return null;
+    }
+
+    // If no topic but content exists, auto-set to summarise mode
+    if (!hasTopic && (hasDocs || hasPastedContent)) {
+      const autoTopic = hasDocs
+        ? `Summary of ${settings.supportingDocuments.filter(d => d.selected !== false).map(d => d.name).join(', ')}`
+        : 'Summary of provided content';
+      settings.topic = autoTopic;
+      settings.presentationType = 'executive-overview';
     }
 
     setState(prev => ({
