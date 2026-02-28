@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderLock, LayoutGrid, List, GitBranch, Settings } from 'lucide-react';
+import { FolderLock, FolderOpen, LayoutGrid, List, GitBranch, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { VaultToolbar } from './VaultToolbar';
@@ -217,6 +217,14 @@ export const NRESDocumentVault = () => {
                     <li>Templates &amp; standard forms</li>
                     <li>Reports &amp; audits (anonymised/aggregated)</li>
                   </ul>
+                  <a
+                    href="/documents/NRES_Document_Vault_Folder_Structure.docx"
+                    download
+                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#005EB8] hover:text-[#003087] hover:underline transition-colors pt-1 border-t border-border/40 mt-1"
+                  >
+                    <FolderOpen className="h-3.5 w-3.5" />
+                    Proposed Folder Structure &amp; Access Matrix
+                  </a>
                 </div>
                 <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs space-y-1.5">
                   <p className="font-medium text-foreground text-sm">Document hygiene tips</p>
