@@ -1,0 +1,1 @@
+INSERT INTO practice_details (user_id, practice_name) VALUES ('255c3f94-fcd8-4203-81bc-c7640f234c04', 'The Parks Medical Practice');
