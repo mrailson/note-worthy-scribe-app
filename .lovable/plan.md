@@ -1,45 +1,62 @@
 
+I’ve re-investigated this and the evidence now points to a different root cause than backend latency.
 
-## Fix: Document Vault UI Freeze on File Deletion
+What I found:
+- Deletions are actually succeeding server-side (recent `delete_file` audit entries are written, and `get-client-info` is also responding).
+- That means the lock is most likely front-end interaction lock, not a failed delete query.
+- Your exact symptom (page becomes unclickable until refresh) aligns closely with known Radix `Dialog`/`DropdownMenu`/`ContextMenu` layer cleanup bugs where `body` can be left with `pointer-events: none`.
+- The console error (`A listener indicated an asynchronous response...`) is commonly extension/runtime message noise and is often unrelated to app business logic. It can still be filtered so it stops obscuring real faults.
 
-### Problem
-When deleting a file in the production Document Vault, the UI freezes and requires a page refresh. This works fine in the test environment, suggesting the issue relates to production data volume or edge function latency.
+Implementation plan:
 
-### Root Cause Analysis
-The freeze is caused by multiple competing operations happening simultaneously when the delete button is clicked:
+1) Fix the modal/menu interaction race in Document Vault delete flow
+- File: `src/components/nres/vault/VaultContentView.tsx`
+- Replace the current “open delete dialog directly from menu item” pattern with a safer sequence:
+  1. Close menu first
+  2. Open delete confirmation on next tick
+- For menu actions that open delete confirmation, use `onSelect` + `event.preventDefault()` (rather than `onClick`) to avoid overlapping dismissable layers.
+- Set `modal={false}` on the relevant `DropdownMenu`/`ContextMenu` roots in this component to reduce global body-lock side effects from nested overlays.
 
-1. **The delete mutation** calls Supabase storage removal + database delete
-2. **The `onSuccess` callback** immediately fires `queryClient.invalidateQueries()` for both folders AND files, triggering re-fetches
-3. **The audit log** (`logVaultAction`) runs inside `onSuccess` and calls two async operations in parallel: a profile lookup AND the `get-client-info` edge function (which may cold-start in production, taking several seconds)
-4. **The tree cache update** (lines 1252-1268) iterates over all cached tree nodes synchronously
-5. All of this happens while the dialog is closing and React is re-rendering
+2) Add explicit body-lock cleanup when delete dialog closes
+- File: `src/components/nres/vault/VaultContentView.tsx`
+- Add a small `cleanupBodyInteractionLocks()` helper called on every delete-dialog close path (Cancel, successful delete, outside close):
+  - remove `pointer-events` from `document.body` if no open dialog remains
+  - clear stale `overflow` and `data-scroll-locked` only when safe
+- Run cleanup in `requestAnimationFrame` + short timeout to catch animation-end races.
 
-In production, with more data and potential edge function cold starts, these competing operations overwhelm the UI thread.
+3) Reduce synchronous work during delete click (further hardening)
+- File: `src/components/nres/vault/VaultContentView.tsx`
+- Keep the immediate-close behaviour already added.
+- Optimise tree cache update so it no longer scans every cached node on delete:
+  - include parent context in `deleteTarget`
+  - update only the affected branch/root list
+- This reduces any remaining main-thread spikes when deleting in tree mode.
 
-### Solution
+4) Keep server-side delete path non-blocking, but protect UX if refetch is slow
+- File: `src/hooks/useNRESVaultData.ts`
+- Keep async invalidation/audit decoupling.
+- Ensure UI never depends on mutation completion to stay interactive.
+- (No database schema changes required.)
 
-**1. Make the audit log fully non-blocking in the delete mutation** (`useNRESVaultData.ts`)
-- Wrap the `logVaultAction` call in a `setTimeout(..., 0)` or use `.catch()` without awaiting, ensuring it never blocks query invalidation or UI updates
+5) Filter known extension-only promise noise without hiding real errors
+- File: `src/App.tsx`
+- In the global `unhandledrejection` handler, if the message contains:
+  - `A listener indicated an asynchronous response by returning true...`
+  then `preventDefault()` and return early (no error spam).
+- Preserve logging for all other promise rejections.
 
-**2. Separate dialog closure from the delete operation** (`VaultContentView.tsx`)
-- Close the delete dialog and clear state immediately on click
-- Then trigger the delete operation after a microtask yield, preventing the dialog animation and delete mutation from competing for the main thread
+6) Stop shipping the development postMessage shim to production
+- File: `src/main.tsx` (and/or shim import strategy)
+- `postmessage-dev-guard` is labelled a development guard but is imported unconditionally.
+- Gate it to development builds only (`import.meta.env.DEV`) to avoid production message-channel side effects.
 
-**3. Add a small yield before query invalidation** (`useNRESVaultData.ts`)
-- Insert a `setTimeout` before `invalidateQueries` to let React finish the dialog close animation first
-
-### Technical Changes
-
-**File: `src/hooks/useNRESVaultData.ts`** (lines ~312-317)
-- In the `onSuccess` handler of `useDeleteVaultItem`, wrap the audit log in a `queueMicrotask` or `setTimeout` so it runs after the UI has updated
-- Keep `invalidateQueries` as-is but ensure it does not compete with the audit log
-
-**File: `src/components/nres/vault/VaultContentView.tsx`** (lines ~1248-1272)
-- Restructure the delete button handler to:
-  1. Capture the delete target details
-  2. Close the dialog immediately (`setDeleteTarget(null)`, `setDeleteConfirmText('')`)
-  3. Update tree cache if in tree view
-  4. Call `onDelete` after a `requestAnimationFrame` or `setTimeout(0)` yield
-
-This ensures the UI remains responsive by separating the visual updates (dialog close, tree cache cleanup) from the async network operations (storage delete, DB delete, audit log, query refetch).
-
+Validation plan (end-to-end):
+- Repeat delete flow from:
+  - kebab menu in details view
+  - right-click context menu in tree view
+- Confirm after each delete:
+  - page remains fully clickable (no “frozen” UI)
+  - item is removed and stays removed after refresh
+  - no stale `body` lock (`pointer-events`, `data-scroll-locked`)
+  - audit row is still written (`delete_file`)
+- Run this several times consecutively on `/NRESDashboard` and `/nres` to verify no cumulative lock state.
