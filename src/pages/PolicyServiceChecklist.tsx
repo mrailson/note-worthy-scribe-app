@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const categoryOrder = [
   'Clinical',
@@ -43,6 +45,7 @@ const priorityColors: Record<string, string> = {
 
 const PolicyServiceChecklist = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { policies, isLoading } = usePolicyReferenceLibrary();
   const { completions, isPolicyCompleted, getCompletionByPolicyId, getDaysUntilReview } = usePolicyCompletions();
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,6 +54,29 @@ const PolicyServiceChecklist = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
+
+  // Fetch practice logo URL
+  useEffect(() => {
+    const fetchLogo = async () => {
+      if (!user) return;
+      try {
+        const { data } = await supabase
+          .from('practice_details')
+          .select('logo_url, practice_logo_url')
+          .eq('user_id', user.id)
+          .order('is_default', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data) {
+          setPracticeLogoUrl(data.practice_logo_url || data.logo_url || null);
+        }
+      } catch (error) {
+        console.error('Error fetching practice logo:', error);
+      }
+    };
+    fetchLogo();
+  }, [user]);
 
   const handleDownload = async (completion: PolicyCompletion) => {
     setDownloadingId(completion.id);
@@ -67,7 +93,10 @@ const PolicyServiceChecklist = () => {
         completion.policy_content,
         metadata,
         completion.policy_title,
-        {}
+        {
+          showLogo: true,
+          logoUrl: practiceLogoUrl || undefined,
+        }
       );
       toast.success("Policy downloaded successfully");
     } catch (error) {
