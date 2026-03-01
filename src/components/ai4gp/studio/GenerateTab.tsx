@@ -158,22 +158,10 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </Button>
-              {onSaveToGallery && (
-                <Button 
-                  variant={savedImageId ? "default" : "outline"} 
-                  onClick={handleSaveToGallery}
-                  disabled={isSaving || !!savedImageId}
-                >
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : savedImageId ? (
-                    <Check className="h-4 w-4 mr-2" />
-                  ) : (
-                    <Star className="h-4 w-4 mr-2" />
-                  )}
-                  {savedImageId ? 'Saved to Gallery' : 'Save to Gallery'}
-                </Button>
-              )}
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Check className="h-4 w-4 text-green-600" />
+                <span>Auto-saved to Gallery</span>
+              </div>
               <Button variant="outline" onClick={handleOpenFullSize}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 Open Full Size

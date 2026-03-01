@@ -47,10 +47,13 @@ import {
   Check,
   Maximize2,
   PenLine,
+  LayoutGrid,
+  GalleryHorizontal,
 } from 'lucide-react';
 import { useImageGallery, UserGeneratedImage } from '@/hooks/useImageGallery';
 import { useImageDefaults, TEMPLATE_TYPES } from '@/hooks/useImageDefaults';
 import { ImageLightbox } from './ImageLightbox';
+import { ImageSlideshowView } from './ImageSlideshowView';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -98,6 +101,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'slideshow'>('grid');
 
   // Filter images based on current view
   const getFilteredImages = () => {
@@ -277,6 +281,26 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    <div className="flex border rounded-md">
+                      <Button
+                        variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                        size="sm"
+                        className="rounded-r-none px-2"
+                        onClick={() => setViewMode('grid')}
+                        title="Grid view"
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={viewMode === 'slideshow' ? 'default' : 'ghost'}
+                        size="sm"
+                        className="rounded-l-none px-2"
+                        onClick={() => setViewMode('slideshow')}
+                        title="Slideshow view"
+                      >
+                        <GalleryHorizontal className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {activeTab === 'categories' && categories.length > 0 && (
@@ -303,42 +327,55 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                 </div>
 
                 <ScrollArea className="flex-1">
-                  <TabsContent value="all" className="mt-0 p-3">
-                    <ImageGrid
-                      images={filteredImages}
-                      isLoading={isLoading}
-                      selectedImage={selectedImage}
-                      onSelect={handleSelectImage}
-                      onDoubleClick={handleOpenLightbox}
-                      onToggleFavourite={toggleFavourite}
-                      isDefaultFor={isDefaultFor}
-                    />
-                  </TabsContent>
+                  {viewMode === 'slideshow' ? (
+                    <div className="mt-0 p-3">
+                      <ImageSlideshowView
+                        images={filteredImages}
+                        selectedImage={selectedImage}
+                        onSelect={handleSelectImage}
+                        onToggleFavourite={toggleFavourite}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <TabsContent value="all" className="mt-0 p-3">
+                        <ImageGrid
+                          images={filteredImages}
+                          isLoading={isLoading}
+                          selectedImage={selectedImage}
+                          onSelect={handleSelectImage}
+                          onDoubleClick={handleOpenLightbox}
+                          onToggleFavourite={toggleFavourite}
+                          isDefaultFor={isDefaultFor}
+                        />
+                      </TabsContent>
 
-                  <TabsContent value="favourites" className="mt-0 p-3">
-                    <ImageGrid
-                      images={filteredImages}
-                      isLoading={isLoading}
-                      selectedImage={selectedImage}
-                      onSelect={handleSelectImage}
-                      onDoubleClick={handleOpenLightbox}
-                      onToggleFavourite={toggleFavourite}
-                      isDefaultFor={isDefaultFor}
-                      emptyMessage="No favourite images yet. Star images to add them here."
-                    />
-                  </TabsContent>
+                      <TabsContent value="favourites" className="mt-0 p-3">
+                        <ImageGrid
+                          images={filteredImages}
+                          isLoading={isLoading}
+                          selectedImage={selectedImage}
+                          onSelect={handleSelectImage}
+                          onDoubleClick={handleOpenLightbox}
+                          onToggleFavourite={toggleFavourite}
+                          isDefaultFor={isDefaultFor}
+                          emptyMessage="No favourite images yet. Star images to add them here."
+                        />
+                      </TabsContent>
 
-                  <TabsContent value="categories" className="mt-0 p-3">
-                    <ImageGrid
-                      images={filteredImages}
-                      isLoading={isLoading}
-                      selectedImage={selectedImage}
-                      onSelect={handleSelectImage}
-                      onDoubleClick={handleOpenLightbox}
-                      onToggleFavourite={toggleFavourite}
-                      isDefaultFor={isDefaultFor}
-                    />
-                  </TabsContent>
+                      <TabsContent value="categories" className="mt-0 p-3">
+                        <ImageGrid
+                          images={filteredImages}
+                          isLoading={isLoading}
+                          selectedImage={selectedImage}
+                          onSelect={handleSelectImage}
+                          onDoubleClick={handleOpenLightbox}
+                          onToggleFavourite={toggleFavourite}
+                          isDefaultFor={isDefaultFor}
+                        />
+                      </TabsContent>
+                    </>
+                  )}
                 </ScrollArea>
               </Tabs>
             </div>
@@ -686,7 +723,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
             <img
               src={image.image_url}
               alt={image.alt_text || 'Generated image'}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain bg-muted/50"
               loading="lazy"
             />
 

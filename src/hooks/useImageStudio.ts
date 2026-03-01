@@ -446,6 +446,11 @@ export function useImageStudio() {
           activeTab: 'generate',
         }));
 
+        // Auto-save to gallery in background (fire-and-forget)
+        saveToGallery(result).catch(err => {
+          console.warn('Auto-save to gallery failed:', err);
+        });
+
         toast.success('Image generated successfully!');
         return result;
       }
