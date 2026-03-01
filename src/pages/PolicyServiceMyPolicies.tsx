@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
 import { format, parseISO, differenceInDays } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,10 +47,34 @@ import { PolicyDocumentPreview } from "@/components/policy/PolicyDocumentPreview
 
 const PolicyServiceMyPolicies = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { completions, isLoading, getDaysUntilReview, deleteCompletion } = usePolicyCompletions();
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [previewPolicy, setPreviewPolicy] = useState<typeof completions[0] | null>(null);
+  const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
+
+  // Fetch practice logo URL
+  useEffect(() => {
+    const fetchLogo = async () => {
+      if (!user) return;
+      try {
+        const { data } = await supabase
+          .from('practice_details')
+          .select('logo_url, practice_logo_url')
+          .eq('user_id', user.id)
+          .order('is_default', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data) {
+          setPracticeLogoUrl(data.practice_logo_url || data.logo_url || null);
+        }
+      } catch (error) {
+        console.error('Error fetching practice logo:', error);
+      }
+    };
+    fetchLogo();
+  }, [user]);
 
   const filteredCompletions = completions.filter(c =>
     c.policy_title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -76,7 +102,10 @@ const PolicyServiceMyPolicies = () => {
         completion.policy_content,
         metadata,
         completion.policy_title,
-        {}
+        {
+          showLogo: true,
+          logoUrl: practiceLogoUrl || undefined,
+        }
       );
       toast.success("Policy downloaded successfully");
     } catch (error) {
