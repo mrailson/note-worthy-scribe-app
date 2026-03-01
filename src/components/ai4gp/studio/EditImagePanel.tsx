@@ -9,7 +9,7 @@ import {
   X, 
   Download, 
   RefreshCw, 
-  Save,
+  Check,
   ExternalLink,
   Loader2,
   Image as ImageIcon,
@@ -140,6 +140,13 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
     if (result) {
       setEditResult(result);
       setSavedImageId(null);
+      // Auto-save to gallery in background
+      onSaveToGallery(result).then(id => {
+        if (id) {
+          setSavedImageId(id);
+          onGallerySaved?.();
+        }
+      }).catch(err => console.warn('Auto-save failed:', err));
     }
   };
 
@@ -462,23 +469,18 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
               Download
             </Button>
             
-            <Button
-              variant="outline"
-              onClick={handleSave}
-              disabled={isSaving || !!savedImageId}
-              className="flex-1 min-w-[120px]"
-            >
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground flex-1 min-w-[120px] justify-center">
               {isSaving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : savedImageId ? (
-                <>✓ Saved</>
-              ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save to Gallery
+                  <Check className="h-4 w-4 text-green-600" />
+                  <span>Auto-saved to Gallery</span>
                 </>
+              ) : (
+                <span>Saving to Gallery...</span>
               )}
-            </Button>
+            </div>
             
             <Button
               variant="outline"
