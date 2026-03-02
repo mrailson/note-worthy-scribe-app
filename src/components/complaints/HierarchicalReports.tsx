@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,12 @@ const PracticeReports: ReportCard[] = [
     description: "Overall patient feedback and recommendations",
     icon: FileText,
     reportId: "patient-feedback"
+  },
+  {
+    title: "KO41b Annual Return",
+    description: "Statutory annual return of written complaints to NHS England (SDCS)",
+    icon: BarChart3,
+    reportId: "ko41b-annual-return"
   }
 ];
 
@@ -258,7 +265,13 @@ export const HierarchicalReports = () => {
   const [isRuralEastSouthExpanded, setIsRuralEastSouthExpanded] = useState(false);
   const [isWellingboroughExpanded, setIsWellingboroughExpanded] = useState(false);
 
+  const navigate = useNavigate();
+
   const handleReportClick = (reportId: string) => {
+    if (reportId === "ko41b-annual-return") {
+      navigate("/complaints/ko41b-report");
+      return;
+    }
     const reportDetail = mockReportData[reportId];
     if (reportDetail) {
       setSelectedReport(reportDetail);
