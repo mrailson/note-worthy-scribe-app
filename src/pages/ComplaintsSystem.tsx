@@ -1676,6 +1676,10 @@ const ComplaintsSystem = () => {
                     <Settings className="h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/complaints/ko41b-report')} className="flex items-center gap-2 cursor-pointer">
+                    <FileOutput className="h-4 w-4" />
+                    <span>KO41b Annual Return</span>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
