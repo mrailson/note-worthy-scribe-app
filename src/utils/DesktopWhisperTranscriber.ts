@@ -34,6 +34,7 @@ export class DesktopWhisperTranscriber {
     return this.stream;
   }
   private isRecording = false;
+  private stopped = false; // Guard: prevents DB writes after stopTranscription() is called
   private audioChunks: Blob[] = [];
   private transcriptionTimeout: NodeJS.Timeout | null = null;
   private overlapBuffer: Blob[] = [];
@@ -831,10 +832,13 @@ export class DesktopWhisperTranscriber {
     if (this.audioChunks.length === 0) return;
 
     const chunkProcessingStartTime = Date.now();
+    
+    // Capture meetingId at start so late-arriving chunks use the correct meeting
+    const capturedMeetingId = this.meetingId;
 
     try {
       const currentChunkNumber = chunkNumber ?? this.chunkCount;
-      console.log(`🖥️ Processing audio chunk ${currentChunkNumber} - audioChunks: ${this.audioChunks.length}, meetingId: ${this.meetingId}`);
+      console.log(`🖥️ Processing audio chunk ${currentChunkNumber} - audioChunks: ${this.audioChunks.length}, meetingId: ${capturedMeetingId}`);
       
       // No overlap buffer - process chunks as-is for timestamp-based deduplication
       const audioBlob = new Blob(this.audioChunks, { type: this.audioChunks[0].type });
@@ -1036,7 +1040,10 @@ export class DesktopWhisperTranscriber {
         console.log(`📝 Final transcript length: ${this.finalTranscript.length} chars`);
         
         // Store in database if meeting ID is set - use timestamp-based segments
-        if (this.meetingId) {
+        // Guard: skip DB write if transcriber has been stopped (prevents crossover into next meeting)
+        if (this.stopped) {
+          console.log(`🛑 Skipping DB write for chunk ${currentChunkNumber} -- transcriber stopped (crossover prevention)`);
+        } else if (capturedMeetingId) {
           try {
             // DIAGNOSTIC FIX: Create synthetic segment if missing
             if (!data.segments || data.segments.length === 0) {
@@ -1072,7 +1079,7 @@ export class DesktopWhisperTranscriber {
               const { error: dbError } = await supabase
                 .from('meeting_transcription_chunks')
                 .insert({
-                  meeting_id: this.meetingId,
+                  meeting_id: capturedMeetingId,
                   session_id: this.sessionId,
                   chunk_number: currentChunkNumber,
                   transcription_text: JSON.stringify(newSegments), // Store segments as JSON
@@ -1102,7 +1109,7 @@ export class DesktopWhisperTranscriber {
               await supabase
                 .from('meeting_transcription_chunks')
                 .insert({
-                  meeting_id: this.meetingId,
+                  meeting_id: capturedMeetingId,
                   session_id: this.sessionId,
                   chunk_number: currentChunkNumber,
                   transcription_text: JSON.stringify([]), // Empty segments array
@@ -1168,6 +1175,9 @@ export class DesktopWhisperTranscriber {
 
   async stopTranscription(): Promise<void> {
     console.log('🛑 Stopping desktop Whisper transcription...');
+    
+    // CRITICAL: Set stopped flag FIRST to prevent late DB writes from bleeding into next meeting
+    this.stopped = true;
     
     // CRITICAL: Set isRecording to false FIRST to prevent race conditions
     // This ensures no new chunks are started while we process the final one

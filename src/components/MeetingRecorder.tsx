@@ -207,6 +207,9 @@ export const MeetingRecorder = ({
   // Synchronous guard to prevent duplicate stop flows
   const stopInProgressRef = useRef(false);
   
+  // Generation counter: incremented on every stop to fence stale transcript callbacks
+  const recordingGenerationRef = useRef(0);
+  
   // Update removed segments periodically
   useEffect(() => {
     const interval = setInterval(() => {
@@ -2524,6 +2527,13 @@ export const MeetingRecorder = ({
     // Skip empty transcripts
     if (!data.text || !data.text.trim()) return;
     
+    // Generation guard: skip if a stop has occurred since this callback was created
+    const capturedGeneration = recordingGenerationRef.current;
+    if (!isRecordingRef.current) {
+      console.log(`🛑 handleBrowserTranscript: recording stopped (generation ${capturedGeneration}), skipping`);
+      return;
+    }
+    
     const trimmedText = data.text.trim();
     
     // --- Deduplication gate ---
@@ -2597,6 +2607,12 @@ export const MeetingRecorder = ({
     // CRITICAL FIX: Actually persist iOS chunks to database (was previously simulated)
     // This enables consolidation to work and meeting transcript to be saved
     const persistIOSChunk = async () => {
+      // Generation guard: if a stop has occurred since this chunk was captured, skip
+      if (capturedGeneration !== recordingGenerationRef.current) {
+        console.log(`🛑 Stale iOS chunk (generation ${capturedGeneration} vs ${recordingGenerationRef.current}), skipping DB persist`);
+        return;
+      }
+      
       const currentMeetingId = sessionStorage.getItem('currentMeetingId');
       const currentSessionId = sessionStorage.getItem('currentSessionId');
       
@@ -4582,6 +4598,23 @@ export const MeetingRecorder = ({
       return;
     }
     stopInProgressRef.current = true;
+    
+    // CROSSOVER PREVENTION: Increment generation counter immediately (before any async work)
+    // This causes all in-flight transcript callbacks to detect staleness and drop
+    recordingGenerationRef.current++;
+    console.log(`🔒 Recording generation incremented to ${recordingGenerationRef.current} -- stale callbacks will be dropped`);
+    
+    // CROSSOVER PREVENTION: Clear real-time transcript buffers immediately
+    // so they don't bleed into the next meeting
+    assemblyPreview.clearTranscript();
+    deepgramPreview.clearTranscript();
+    
+    // CROSSOVER PREVENTION: Capture and then remove sessionStorage meeting ID synchronously
+    // Late-arriving callbacks can no longer read a stale meeting ID
+    const capturedMeetingId = sessionStorage.getItem('currentMeetingId');
+    sessionStorage.removeItem('currentMeetingId');
+    console.log(`🔒 Captured meetingId ${capturedMeetingId} and cleared sessionStorage`);
+    
     if (!isStoppingRecording) setIsStoppingRecording(true);
     setStopRecordingStep('Stopping recording...');
     
@@ -4594,7 +4627,7 @@ export const MeetingRecorder = ({
     
     // CRITICAL: If client state shows low word count OR server triggered the stop,
     // query the database for actual word count AND duration - client state may be stale/empty
-    const currentMeetingIdForCheck = sessionStorage.getItem('currentMeetingId');
+    const currentMeetingIdForCheck = capturedMeetingId;
     if ((effectiveWords < 100 || isServerTriggered || capturedDuration < 5) && currentMeetingIdForCheck) {
       try {
         console.log('🔍 Checking database for actual word count and duration...');
@@ -4736,7 +4769,7 @@ export const MeetingRecorder = ({
       
       // Stop backup recorder (short meeting = no successful transcript)
       if (isBackupActive) {
-        stopBackup(false, user?.id, sessionStorage.getItem('currentMeetingId') || undefined).catch(err =>
+        stopBackup(false, user?.id, capturedMeetingId || undefined).catch(err =>
           console.warn('[MeetingRecorder] Backup stop error:', err)
         );
       }
@@ -4751,7 +4784,7 @@ export const MeetingRecorder = ({
       localStorage.removeItem('unsaved_meeting');
       
       // Delete orphaned meeting record from database for short recordings
-      const meetingIdToDelete = sessionStorage.getItem('currentMeetingId');
+      const meetingIdToDelete = capturedMeetingId;
       if (meetingIdToDelete) {
         console.log(`🗑️ Deleting short meeting record: ${meetingIdToDelete}`);
         
@@ -4944,7 +4977,7 @@ export const MeetingRecorder = ({
     
       // Stop backup recorder — transcript is considered successful if we got past the short-meeting gate
       if (isBackupActive) {
-        const currentMeetingIdForBackup = sessionStorage.getItem('currentMeetingId') || undefined;
+        const currentMeetingIdForBackup = capturedMeetingId || undefined;
         stopBackup(true, user?.id, currentMeetingIdForBackup).catch(err =>
           console.warn('[MeetingRecorder] Backup stop error:', err)
         );
@@ -4995,7 +5028,7 @@ export const MeetingRecorder = ({
     console.log('🔍 Consolidating chunks from database...');
     
     // Get the current meeting ID for chunk consolidation
-    const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+    const currentMeetingId = capturedMeetingId;
     
     // Wait 2 seconds for in-flight chunks to save
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -5204,9 +5237,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       // 1. Update existing meeting record with final data
       setStopRecordingStep('Updating database...');
       
-      const meetingId = sessionStorage.getItem('currentMeetingId');
+      const meetingId = capturedMeetingId;
       if (!meetingId) {
-        throw new Error('No meeting ID found in session storage');
+        throw new Error('No meeting ID captured at stop start');
       }
 
       // Check if this was a continuation - combine durations
