@@ -126,6 +126,7 @@ const InspectionCapture = lazy(() => import("./pages/InspectionCapture"));
 const AudioUploadCapture = lazy(() => import("./pages/AudioUploadCapture"));
 const BuyBackExplainer = lazy(() => import("./pages/BuyBackExplainer"));
 const GPContract = lazy(() => import("./pages/GPContract"));
+const KO41bReport = lazy(() => import("./pages/KO41bReport"));
 
 // Global loading fallback
 const PageLoader = () => (
@@ -225,6 +226,7 @@ const App = () => {
                 <Route path="/fridge-temp/:id" element={<FridgeTemperatureEntry />} />
                 <Route path="/public/fridge-temp/:id" element={<FridgeTemperatureEntry />} />
                 <Route path="/complaints" element={<ComplaintsSystem />} />
+                <Route path="/complaints/ko41b-report" element={<KO41bReport />} />
                 <Route path="/complaints/:id" element={<ComplaintDetails />} />
                 <Route path="/compliments/:id" element={<ComplimentDetails />} />
                 <Route path="/complaints/:id/ai-report" element={<ComplaintAIReport />} />
