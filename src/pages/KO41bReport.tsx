@@ -165,8 +165,8 @@ const KO41bReport = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm">
-                  The submission window is typically <strong>May to July</strong> each year. For 2024-25, the window is
-                  <strong> 19 May 2025 to 11 July 2025</strong>.
+                  The submission window is typically <strong>May to July</strong> each year. For 2025-26, the window is
+                  <strong> 18 May 2026 to 10 July 2026</strong>.
                 </CardContent>
               </Card>
             </div>
