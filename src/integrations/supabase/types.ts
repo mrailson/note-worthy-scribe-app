@@ -7244,6 +7244,7 @@ export type Database = {
           description: string | null
           expense_date: string
           id: string
+          practice_id: string | null
           receipt_reference: string | null
           updated_at: string
           user_id: string
@@ -7255,6 +7256,7 @@ export type Database = {
           description?: string | null
           expense_date: string
           id?: string
+          practice_id?: string | null
           receipt_reference?: string | null
           updated_at?: string
           user_id: string
@@ -7266,11 +7268,20 @@ export type Database = {
           description?: string | null
           expense_date?: string
           id?: string
+          practice_id?: string | null
           receipt_reference?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nres_expenses_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nres_hours_entries: {
         Row: {
@@ -7286,6 +7297,7 @@ export type Database = {
           invoice_status: string | null
           invoiced_by: string | null
           invoiced_date: string | null
+          practice_id: string | null
           start_time: string
           updated_at: string
           user_id: string
@@ -7304,6 +7316,7 @@ export type Database = {
           invoice_status?: string | null
           invoiced_by?: string | null
           invoiced_date?: string | null
+          practice_id?: string | null
           start_time: string
           updated_at?: string
           user_id: string
@@ -7322,12 +7335,21 @@ export type Database = {
           invoice_status?: string | null
           invoiced_by?: string | null
           invoiced_date?: string | null
+          practice_id?: string | null
           start_time?: string
           updated_at?: string
           user_id?: string
           work_date?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nres_hours_entries_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nres_recruitment_audit: {
         Row: {

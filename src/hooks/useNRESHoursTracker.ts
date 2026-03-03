@@ -15,23 +15,48 @@ export function useNRESHoursTracker() {
   const [entries, setEntries] = useState<NRESHoursEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [practiceId, setPracticeId] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
+
+  // Resolve the user's practice ID once
+  const resolvePracticeId = useCallback(async (): Promise<string | null> => {
+    if (practiceId) return practiceId;
+    if (!user?.id) return null;
+    try {
+      const { data } = await supabase.rpc('get_user_practice_ids', { p_user_id: user.id });
+      if (data && data.length > 0) {
+        setPracticeId(data[0]);
+        return data[0];
+      }
+    } catch (err) {
+      console.error('Error resolving practice ID:', err);
+    }
+    return null;
+  }, [user?.id, practiceId]);
 
   const fetchEntries = useCallback(async (forceRefresh = false) => {
     if (!user?.id) return;
-    
-    // Prevent duplicate fetches on initial load
     if (!forceRefresh && hasFetchedRef.current) return;
-    
+
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const pId = await resolvePracticeId();
+
+      // Build query – if we have a practice ID, fetch all practice entries;
+      // otherwise fall back to user's own entries only
+      let query = supabase
         .from('nres_hours_entries')
         .select('*')
-        .eq('user_id', user.id)
         .order('work_date', { ascending: false })
         .order('start_time', { ascending: false });
 
+      if (pId) {
+        query = query.eq('practice_id', pId);
+      } else {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setEntries((data || []).map(castEntry));
       hasFetchedRef.current = true;
@@ -41,7 +66,7 @@ export function useNRESHoursTracker() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, resolvePracticeId]);
 
   useEffect(() => {
     if (user?.id) {
@@ -57,12 +82,14 @@ export function useNRESHoursTracker() {
 
     try {
       setSaving(true);
+      const pId = await resolvePracticeId();
       const { data, error } = await supabase
         .from('nres_hours_entries')
         .insert({
           ...entry,
           user_id: user.id,
-          entered_by: user.id // Track who entered this entry
+          entered_by: user.id,
+          practice_id: pId
         })
         .select()
         .single();
@@ -89,7 +116,6 @@ export function useNRESHoursTracker() {
         .from('nres_hours_entries')
         .update(updates)
         .eq('id', id)
-        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -113,8 +139,7 @@ export function useNRESHoursTracker() {
       const { error } = await supabase
         .from('nres_hours_entries')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (error) throw error;
       setEntries(prev => prev.filter(e => e.id !== id));
