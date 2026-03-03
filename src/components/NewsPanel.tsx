@@ -175,7 +175,7 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
         .from('news_articles')
         .select('*')
         .order('published_at', { ascending: false })
-        .limit(60);
+        .limit(9);
 
       console.log('Fetch result:', { data, error });
 
