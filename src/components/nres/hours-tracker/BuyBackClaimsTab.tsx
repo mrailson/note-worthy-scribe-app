@@ -399,6 +399,12 @@ export function BuyBackClaimsTab() {
                         <th className="text-left p-2 font-medium">Role</th>
                         <th className="text-right p-2 font-medium">Base Annual Rate</th>
                         <th className="text-right p-2 font-medium">Base Hourly Rate</th>
+                        <th className="text-right p-2 font-medium">
+                          <div className="flex items-center justify-end gap-1">
+                            Hourly Rate (incl. On-Costs)
+                            <InfoTooltip content={`Base hourly rate × ${onCostMultiplier.toFixed(4)} (1 + ${rateSettings.on_costs_pct.toFixed(2)}% on-costs)`} />
+                          </div>
+                        </th>
                         <th className="text-right p-2 font-medium">Employer NI ({rateSettings.employer_ni_pct}%)</th>
                         <th className="text-right p-2 font-medium">Employer Pension ({rateSettings.employer_pension_pct}%)</th>
                         <th className="text-right p-2 font-medium">Total Annual (incl. On-Costs)</th>
@@ -431,6 +437,7 @@ export function BuyBackClaimsTab() {
                             </td>
                             <td className="p-2 text-right">{fmtGBP(role.annual_rate)}</td>
                             <td className="p-2 text-right">{fmtGBP(hourlyRate)}/hr</td>
+                            <td className="p-2 text-right font-medium">{fmtGBP(hourlyRate * onCostMultiplier)}/hr</td>
                             <td className="p-2 text-right">{fmtGBP(niAmt)}</td>
                             <td className="p-2 text-right">{fmtGBP(penAmt)}</td>
                             <td className="p-2 text-right font-medium">{fmtGBP(totalAnnual)}</td>
