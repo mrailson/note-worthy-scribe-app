@@ -436,7 +436,7 @@ export function BuyBackClaimsTab() {
                                 {role.label}
                                 {role.allocation_default === 'sessions' && <span className="text-muted-foreground font-normal ml-1">(per session/yr)</span>}
                                 {role.key === 'acp' && (
-                                  <InfoTooltip content="ACP (Advanced Clinical Practitioner) is a role, not a profession. ACPs hold a Master's-level qualification and work across all four pillars: clinical practice, leadership, education, and research. ANPs (Advanced Nurse Practitioners) are nurses who may be working towards or have achieved ACP status. Not all ANPs are ACPs — the ACP credential requires formal accreditation (e.g. via the Centre for Advancing Practice). The higher ACP rate reflects this additional scope and qualification." />
+                                  <InfoTooltip content="ACP requires a Level 7 (Master's degree) qualification — this is the key distinction. ACP is a role, not a profession, and demands formal accreditation (e.g. via the Centre for Advancing Practice) across all four pillars: clinical practice, leadership, education, and research. Being an ANP alone does not make someone an ACP. Many ANPs are working towards ACP status but have not yet completed the Master's-level training or achieved accreditation. The higher ACP rate reflects this Level 7 qualification and broader scope of practice." />
                                 )}
                               </div>
                             </td>
