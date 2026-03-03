@@ -23,7 +23,7 @@ export const NewsTicker = () => {
         .select('id, title, source, url, image_url, published_at')
         .eq('is_published', true)
         .order('published_at', { ascending: false })
-        .limit(10);
+        .limit(9);
 
       if (!error && data) {
         setArticles(data);
