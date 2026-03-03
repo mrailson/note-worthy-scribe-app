@@ -62,16 +62,28 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
     const id = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const isImage = file.type.startsWith('image/');
     
-    // For images, just create a preview
+    // For images, create a preview AND extract text via OCR
     if (isImage) {
       return new Promise((resolve) => {
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
+          const preview = reader.result as string;
+          // Also attempt OCR text extraction
+          let content: string | undefined;
+          try {
+            const processed = await FileProcessorManager.processFile(file);
+            if (processed.content && !processed.content.includes('No text found')) {
+              content = processed.content;
+            }
+          } catch (e) {
+            console.warn('Image OCR extraction failed, continuing with preview only:', e);
+          }
           resolve({
             id,
             name: file.name,
             type: file.type,
-            preview: reader.result as string,
+            preview,
+            content,
           });
         };
         reader.readAsDataURL(file);
@@ -114,8 +126,11 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
         if (f.content && !f.content.startsWith('[Document:')) {
           // Successfully extracted content - add it
           newContentParts.push(`--- Content from ${f.name} ---\n${f.content}\n--- End of ${f.name} ---`);
+        } else if (f.preview && f.content) {
+          // Image with OCR-extracted text
+          newContentParts.push(`--- Content extracted from image: ${f.name} ---\n${f.content}\n--- End of ${f.name} ---`);
         } else if (f.preview) {
-          // Image file - just add reference
+          // Image file without extractable text
           newContentParts.push(`[Image attached: ${f.name}]`);
         } else {
           // Fallback for failed extraction
