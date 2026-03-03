@@ -432,8 +432,13 @@ export function BuyBackClaimsTab() {
                         return (
                           <tr key={role.key} className="border-t">
                             <td className="p-2 font-medium">
-                              {role.label}
-                              {role.allocation_default === 'sessions' && <span className="text-muted-foreground font-normal ml-1">(per session/yr)</span>}
+                              <div className="flex items-center gap-1">
+                                {role.label}
+                                {role.allocation_default === 'sessions' && <span className="text-muted-foreground font-normal ml-1">(per session/yr)</span>}
+                                {role.key === 'acp' && (
+                                  <InfoTooltip content="ACP (Advanced Clinical Practitioner) is a role, not a profession. ACPs hold a Master's-level qualification and work across all four pillars: clinical practice, leadership, education, and research. ANPs (Advanced Nurse Practitioners) are nurses who may be working towards or have achieved ACP status. Not all ANPs are ACPs — the ACP credential requires formal accreditation (e.g. via the Centre for Advancing Practice). The higher ACP rate reflects this additional scope and qualification." />
+                                )}
+                              </div>
                             </td>
                             <td className="p-2 text-right">{fmtGBP(role.annual_rate)}</td>
                             <td className="p-2 text-right">{fmtGBP(hourlyRate)}/hr</td>
