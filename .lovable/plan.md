@@ -1,96 +1,41 @@
 
 
-# Prevent Transcript Crossover Between Consecutive Meetings
+## Plan: Enable Excel File Uploads in Image Studio with Table-Preserving Processing
 
-## Problem
-When a user ends one meeting and quickly starts another, late-arriving transcription chunks from the first meeting can bleed into the second meeting's transcript. This happened to Jessica where Angela's performance feedback appeared at the start of Dr. Abbey's meeting transcript.
+### What This Does
+Allows Excel files (.xls, .xlsx) to be uploaded as supporting information in Image Studio's Context tab, with the extracted content preserving table structure (headers, rows, columns) so the AI can interpret data properly for infographic/chart generation.
 
-## Root Cause
-1. `DesktopWhisperTranscriber.processAudioChunks()` runs asynchronously after `stopTranscription()` begins -- it can still write to the database using `this.meetingId` even after the stop flow has started
-2. `persistIOSChunk()` in `MeetingRecorder.tsx` reads `sessionStorage.getItem('currentMeetingId')` at persist time, not at capture time -- if a new meeting has started, it writes to the wrong meeting
-3. Real-time transcript buffers (`assemblyPreview`, `deepgramPreview`) are only cleared in `resetMeeting()`, which runs after the async stop flow completes
+### Current State
+- The `ExcelProcessor` already exists and converts Excel to CSV format — but CSV loses structural context for AI prompts.
+- The Image Studio `ContextTab.tsx` uses `react-dropzone` with its own accepted file types — Excel is **not currently listed** in its accept config.
+- The `FileProcessorManager` already maps `.xls`/`.xlsx` to the `ExcelProcessor`.
 
-## Solution: Three Guard Rails
+### Changes Required
 
-### 1. Add `stopped` flag to `DesktopWhisperTranscriber`
+#### 1. Update `ExcelProcessor.ts` — Preserve table structure
+- Enhance the output format to use **Markdown tables** instead of raw CSV, so the AI receives structured, readable tabular data.
+- Each sheet will output a proper Markdown table with headers and aligned columns.
+- This makes data immediately usable for infographic/chart generation prompts.
 
-**File**: `src/utils/DesktopWhisperTranscriber.ts`
+#### 2. Update `ContextTab.tsx` — Add Excel to accepted file types
+- Add `application/vnd.ms-excel` (`.xls`) and `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (`.xlsx`) to the dropzone's `accept` configuration.
+- Update the helper text from "PDF, Word, PowerPoint, Excel, Images" (it already mentions Excel but doesn't actually accept it) to ensure it works.
 
-- Add a `private stopped = false` property
-- Set `this.stopped = true` at the very start of `stopTranscription()` (before any async work)
-- In `processAudioChunks()`, check `if (this.stopped)` before the database insert (lines ~1039-1115) and skip the write if true
-- Also capture `this.meetingId` into a local variable at the start of `processAudioChunks()` so even if the instance is reused, the chunk is tagged with the correct meeting
+### Technical Detail
 
-### 2. Add generation counter to `MeetingRecorder.tsx`
+**ExcelProcessor enhanced output format:**
+```
+EXCEL SPREADSHEET DATA FROM: results.xlsx
 
-**File**: `src/components/MeetingRecorder.tsx`
+=== Sheet 1: Patient Survey Results ===
 
-- Add `const recordingGenerationRef = useRef(0)` near other refs
-- Increment `recordingGenerationRef.current++` at the very start of `stopRecording()` (before any async work)
-- In `persistIOSChunk()`: capture the generation at the point `handleBrowserTranscript` is called, and compare it before persisting. If stale, log and skip
-- In `handleBrowserTranscript`: capture the generation when the callback fires and skip the entire function body if the generation has moved on
+| Question | Yes | No | Unsure |
+|----------|-----|-----|--------|
+| Satisfied with care | 85% | 10% | 5% |
+| Would recommend | 90% | 5% | 5% |
 
-### 3. Clear real-time buffers and sessionStorage immediately on stop
-
-**File**: `src/components/MeetingRecorder.tsx`
-
-- At the start of `stopRecording()` (right after incrementing the generation counter):
-  - Call `assemblyPreview.clearTranscript()` and `deepgramPreview.clearTranscript()` immediately
-  - Capture `sessionStorage.getItem('currentMeetingId')` into a local variable for use throughout the stop flow
-  - Then call `sessionStorage.removeItem('currentMeetingId')` synchronously so no stale callbacks can read it
-
-## Technical Details
-
-### DesktopWhisperTranscriber changes
-
-```text
-// New property
-private stopped = false;
-
-// At start of stopTranscription():
-this.stopped = true;
-
-// In processAudioChunks(), before DB insert block (~line 1039):
-if (this.stopped) {
-  console.log('Skipping DB write -- transcriber stopped');
-  // Still send to UI callback so final text isn't lost from display
-  // but don't persist to database
-}
+Summary: 2 columns, 3 rows of data
 ```
 
-### MeetingRecorder generation counter
-
-```text
-// New ref
-const recordingGenerationRef = useRef(0);
-
-// At start of stopRecording():
-recordingGenerationRef.current++;
-const stopGeneration = recordingGenerationRef.current;
-
-// In handleBrowserTranscript:
-const capturedGeneration = recordingGenerationRef.current;
-// ... later in persistIOSChunk:
-if (capturedGeneration !== recordingGenerationRef.current) {
-  console.log('Stale iOS chunk -- generation mismatch, skipping');
-  return;
-}
-```
-
-### Buffer clearing in stopRecording
-
-```text
-// At start of stopRecording(), before async work:
-assemblyPreview.clearTranscript();
-deepgramPreview.clearTranscript();
-const capturedMeetingId = sessionStorage.getItem('currentMeetingId');
-sessionStorage.removeItem('currentMeetingId');
-// Use capturedMeetingId (local var) for the rest of the stop flow
-```
-
-## Impact Assessment
-- **No effect on existing meetings or data** -- these are purely runtime guards
-- **No database schema changes** -- only application code
-- **Backward compatible** -- the `stopped` flag defaults to `false`, so existing single-meeting flows are unaffected
-- **Files modified**: 2 (`DesktopWhisperTranscriber.ts`, `MeetingRecorder.tsx`)
+This Markdown table format is directly interpretable by the AI models for generating charts, infographics, and data visualisations.
 
