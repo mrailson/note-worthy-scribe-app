@@ -9,22 +9,44 @@ export function useNRESExpenses() {
   const [expenses, setExpenses] = useState<NRESExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [practiceId, setPracticeId] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
+
+  const resolvePracticeId = useCallback(async (): Promise<string | null> => {
+    if (practiceId) return practiceId;
+    if (!user?.id) return null;
+    try {
+      const { data } = await supabase.rpc('get_user_practice_ids', { p_user_id: user.id });
+      if (data && data.length > 0) {
+        setPracticeId(data[0]);
+        return data[0];
+      }
+    } catch (err) {
+      console.error('Error resolving practice ID:', err);
+    }
+    return null;
+  }, [user?.id, practiceId]);
 
   const fetchExpenses = useCallback(async (forceRefresh = false) => {
     if (!user?.id) return;
-    
-    // Prevent duplicate fetches on initial load
     if (!forceRefresh && hasFetchedRef.current) return;
-    
+
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const pId = await resolvePracticeId();
+
+      let query = supabase
         .from('nres_expenses')
         .select('*')
-        .eq('user_id', user.id)
         .order('expense_date', { ascending: false });
 
+      if (pId) {
+        query = query.eq('practice_id', pId);
+      } else {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setExpenses(data || []);
       hasFetchedRef.current = true;
@@ -34,7 +56,7 @@ export function useNRESExpenses() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, resolvePracticeId]);
 
   useEffect(() => {
     if (user?.id) {
@@ -43,18 +65,20 @@ export function useNRESExpenses() {
     return () => {
       hasFetchedRef.current = false;
     };
-  }, [user?.id]); // Only depend on user?.id
+  }, [user?.id]);
 
   const addExpense = async (expense: Omit<NRESExpense, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user?.id) return;
 
     try {
       setSaving(true);
+      const pId = await resolvePracticeId();
       const { data, error } = await supabase
         .from('nres_expenses')
         .insert({
           ...expense,
-          user_id: user.id
+          user_id: user.id,
+          practice_id: pId
         })
         .select()
         .single();
@@ -81,7 +105,6 @@ export function useNRESExpenses() {
         .from('nres_expenses')
         .update(updates)
         .eq('id', id)
-        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -105,8 +128,7 @@ export function useNRESExpenses() {
       const { error } = await supabase
         .from('nres_expenses')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (error) throw error;
       setExpenses(prev => prev.filter(e => e.id !== id));
