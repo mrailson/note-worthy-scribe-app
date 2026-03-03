@@ -603,9 +603,9 @@ ${realDetails.map(d => `• ${d}`).join('\n')}
         if (refMode === 'style-reference') {
           referenceSection = `\nREFERENCE IMAGE: Use the provided image(s) as STYLE REFERENCE. Create a new image inspired by the style, layout, and feel of the reference.${realDetailsBlock}`;
         } else if (refMode === 'edit-source') {
-          referenceSection = `\nEDIT REQUEST: Modify the provided image according to these instructions: ${refInstructions || 'Apply the style and content requirements to edit this image.'}${realDetailsBlock}`;
+          referenceSection = `\nEDIT REQUEST: Modify the provided image according to these instructions: ${refInstructions || 'Apply the style and content requirements to edit this image.'}\n\nIMPORTANT: You MUST maintain the original image's aspect ratio and orientation (landscape/portrait/square). Do NOT change a landscape image to portrait or vice versa unless the user's instructions explicitly request a different aspect ratio or orientation.${realDetailsBlock}`;
         } else if (refMode === 'update-previous') {
-          referenceSection = `\nUPDATE REQUEST: This is a previously generated image. Apply these changes: ${refInstructions || 'Refine and improve the image based on the new settings.'}${realDetailsBlock}`;
+          referenceSection = `\nUPDATE REQUEST: This is a previously generated image. Apply these changes: ${refInstructions || 'Refine and improve the image based on the new settings.'}\n\nIMPORTANT: You MUST maintain the original image's aspect ratio and orientation (landscape/portrait/square). Do NOT change a landscape image to portrait or vice versa unless the user's instructions explicitly request a different aspect ratio or orientation.${realDetailsBlock}`;
         }
         
         if (refInstructions && refMode !== 'style-reference') {
