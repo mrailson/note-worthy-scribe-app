@@ -79,7 +79,7 @@ export function NRESHoursTracker() {
         <TabsList>
           <TabsTrigger value="time-expenses" className="flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            Time & Expenses
+            Pre Go-Live Time & Expenses
           </TabsTrigger>
           <TabsTrigger value="buy-back" className="flex items-center gap-2">
             <ArrowLeftRight className="w-4 h-4" />
