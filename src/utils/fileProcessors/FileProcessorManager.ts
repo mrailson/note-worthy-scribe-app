@@ -23,6 +23,8 @@ export class FileProcessorManager {
     '.eml': 'text',
     '.msg': 'text',
     '.csv': 'text',
+    '.html': 'text',
+    '.htm': 'text',
     
     // Word documents
     '.doc': 'word',

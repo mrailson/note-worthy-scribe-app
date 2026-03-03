@@ -14,7 +14,7 @@ interface SimpleFileUploadProps {
 
 export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
   onFileUpload,
-  accept = '.pdf,.doc,.docx,.xlsx,.xls,.csv,.txt,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif,.ppt,.pptx,.mp3,.mp4,.wav,.m4a,.webm,.ogg,.mov,.avi,.mkv,.flac,.aac,.opus,.amr,.3gp',
+  accept = '.pdf,.doc,.docx,.xlsx,.xls,.csv,.txt,.html,.htm,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif,.ppt,.pptx,.mp3,.mp4,.wav,.m4a,.webm,.ogg,.mov,.avi,.mkv,.flac,.aac,.opus,.amr,.3gp',
   maxSize = 30,
   className = '',
   multiple = true
@@ -53,6 +53,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
       // Text
       'text/plain': ['.txt'],
+      'text/html': ['.html', '.htm'],
       // Images
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png'],
