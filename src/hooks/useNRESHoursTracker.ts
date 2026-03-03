@@ -40,23 +40,15 @@ export function useNRESHoursTracker() {
 
     try {
       setLoading(true);
-      const pId = await resolvePracticeId();
 
-      // Build query – if we have a practice ID, fetch all practice entries;
-      // otherwise fall back to user's own entries only
-      let query = supabase
+      // RLS handles visibility (own entries + practice + PCN entries)
+      // No client-side practice_id filter needed
+      const { data, error } = await supabase
         .from('nres_hours_entries')
         .select('*')
         .order('work_date', { ascending: false })
         .order('start_time', { ascending: false });
 
-      if (pId) {
-        query = query.eq('practice_id', pId);
-      } else {
-        query = query.eq('user_id', user.id);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       setEntries((data || []).map(castEntry));
       hasFetchedRef.current = true;
@@ -66,7 +58,7 @@ export function useNRESHoursTracker() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, resolvePracticeId]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id) {
