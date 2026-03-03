@@ -33,20 +33,13 @@ export function useNRESExpenses() {
 
     try {
       setLoading(true);
-      const pId = await resolvePracticeId();
 
-      let query = supabase
+      // RLS handles visibility (own entries + practice + PCN entries)
+      const { data, error } = await supabase
         .from('nres_expenses')
         .select('*')
         .order('expense_date', { ascending: false });
 
-      if (pId) {
-        query = query.eq('practice_id', pId);
-      } else {
-        query = query.eq('user_id', user.id);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       setExpenses(data || []);
       hasFetchedRef.current = true;
@@ -56,7 +49,7 @@ export function useNRESExpenses() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, resolvePracticeId]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id) {

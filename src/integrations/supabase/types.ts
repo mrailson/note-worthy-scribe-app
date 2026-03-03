@@ -11649,6 +11649,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_visible_practice_ids: {
+        Args: { p_user_id: string }
+        Returns: string[]
+      }
       grant_user_module: {
         Args: {
           p_granted_by?: string
