@@ -1,0 +1,1 @@
+UPDATE policy_generation_jobs SET status = 'pending', error_message = NULL, updated_at = now() WHERE id = 'ad95106b-461b-49bc-a662-12ebb77b61da';
