@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Mail, Eye, Send, Code, RotateCcw } from "lucide-react";
+import { Mail, Eye, Send, Pencil, RotateCcw } from "lucide-react";
+import { EmailWysiwygEditor } from "./EmailWysiwygEditor";
 
 export interface EmailComposeData {
   senderName: string;
@@ -298,10 +298,10 @@ export function EmailComposeModal({ open, onOpenChange, data, onSend, sending = 
                 {editMode === 'preview' ? (
                   <Eye className="h-4 w-4 text-muted-foreground" />
                 ) : (
-                  <Code className="h-4 w-4 text-muted-foreground" />
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
                 )}
                 <span className="text-sm font-medium text-muted-foreground">
-                  {editMode === 'preview' ? 'Email Preview' : 'Edit HTML'}
+                  {editMode === 'preview' ? 'Email Preview' : 'Edit Email'}
                 </span>
                 {isEdited && (
                   <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">Edited</span>
@@ -316,8 +316,8 @@ export function EmailComposeModal({ open, onOpenChange, data, onSend, sending = 
                 )}
                 {editMode === 'preview' ? (
                   <Button variant="ghost" size="sm" onClick={handleSwitchToEdit} className="h-7 text-xs gap-1">
-                    <Code className="h-3 w-3" />
-                    Edit HTML
+                    <Pencil className="h-3 w-3" />
+                    Edit
                   </Button>
                 ) : (
                   <Button variant="ghost" size="sm" onClick={() => setEditMode('preview')} className="h-7 text-xs gap-1">
@@ -337,11 +337,9 @@ export function EmailComposeModal({ open, onOpenChange, data, onSend, sending = 
                 style={{ minHeight: 400 }}
               />
             ) : (
-              <Textarea
-                value={customHtml ?? generatedHtml}
-                onChange={(e) => setCustomHtml(e.target.value)}
-                className="flex-1 w-full font-mono text-xs border-0 rounded-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                style={{ minHeight: 400 }}
+              <EmailWysiwygEditor
+                html={customHtml ?? generatedHtml}
+                onChange={(html) => setCustomHtml(html)}
               />
             )}
           </div>
