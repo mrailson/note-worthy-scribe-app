@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ export interface EmailComposeData {
   staffName: string;
   staffEmail: string;
   staffRole: string;
+  notes?: string | null;
   complaintReference: string;
   complaintTitle: string;
   complaintDescription: string;
@@ -155,16 +156,20 @@ export function EmailComposeModal({ open, onOpenChange, data, onSend, sending = 
   const [toggles, setToggles] = useState<EmailToggles>({
     includeDescription: true,
     includePatientName: true,
-    includeAcknowledgement: true,
+    includeAcknowledgement: !!data.acknowledgementText,
     includeDeadline: true,
   });
 
-  // Keep sender name in sync when data changes (modal re-opens)
-  const [prevSenderName, setPrevSenderName] = useState(data.senderName);
-  if (data.senderName !== prevSenderName) {
-    setPrevSenderName(data.senderName);
+  useEffect(() => {
+    if (!open) return;
     setSenderName(data.senderName);
-  }
+    setToggles({
+      includeDescription: true,
+      includePatientName: true,
+      includeAcknowledgement: !!data.acknowledgementText,
+      includeDeadline: true,
+    });
+  }, [open, data.senderName, data.acknowledgementText]);
 
   const previewHtml = useMemo(
     () => generateEmailHtml(data, toggles, senderName),

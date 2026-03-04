@@ -296,6 +296,7 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         staffName: newParty.name,
         staffEmail: newParty.email,
         staffRole: newParty.role,
+        notes: newParty.notes || null,
         complaintReference: complaint.reference_number,
         complaintTitle: complaint.complaint_title,
         complaintDescription: complaint.complaint_description || '',
@@ -309,7 +310,8 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
           ? new Date(ack.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
           : null,
       });
-      setShowComposeModal(true);
+      setShowRequestDialog(false);
+      setTimeout(() => setShowComposeModal(true), 0);
     } catch (error) {
       console.error('Error preparing compose modal:', error);
       toast.error('Failed to load complaint details for email preview');
@@ -331,7 +333,7 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
             staffName: composeData.staffName,
             staffEmail: composeData.staffEmail,
             staffRole: composeData.staffRole,
-            notes: newParty.notes || null
+            notes: composeData.notes || null
           }],
           senderName,
           includeDescription: toggles.includeDescription,
@@ -554,9 +556,9 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         </CardContent>
       </Card>
 
-      <Dialog open={showRequestDialog && !showComposeModal} onOpenChange={(open) => {
+      <Dialog open={showRequestDialog} onOpenChange={(open) => {
         setShowRequestDialog(open);
-        if (!open && !showComposeModal) {
+        if (!open) {
           setNewParty({ name: "", email: "", role: "", notes: "" });
           setSelectedTeamMemberId("");
         }
