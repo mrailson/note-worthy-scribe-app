@@ -55,7 +55,7 @@ const PolicyServiceCreate = () => {
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [wasEnhanced, setWasEnhanced] = useState(false);
   const [enhancementWarning, setEnhancementWarning] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(90);
+  const [countdown, setCountdown] = useState(180);
   
   const { generatePolicy, isGenerating, isEnhancing } = usePolicyGeneration();
   const { saveCompletion } = usePolicyCompletions();
@@ -64,7 +64,7 @@ const PolicyServiceCreate = () => {
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isGenerating || isEnhancing) {
-      setCountdown(90);
+      setCountdown(180);
       interval = setInterval(() => {
         setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
       }, 1000);
