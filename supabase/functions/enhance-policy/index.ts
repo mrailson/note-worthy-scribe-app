@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const POLICY_ENHANCEMENT_SYSTEM_PROMPT = `You are an NHS primary care policy expert preparing GP practices for CQC inspection. Your task is to review and enhance generated policies to ensure full regulatory compliance.
@@ -194,283 +194,265 @@ Return the enhanced policy as a complete, ready-to-use document with:
 Flag any critical compliance gaps that cannot be addressed without practice-specific information.`;
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
-    // Create service role client to read system settings
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
-    // Check which model to use from system settings
-    let settingData: any = null;
-    try {
-      const { data } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'policy_enhancement_model')
-        .single();
-      settingData = data;
-    } catch (e) {
-      console.log('Could not read model setting, defaulting to Claude:', e);
-    }
+  // SSE stream setup — keepalive pings prevent the Supabase gateway 60s timeout
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (data: string) => {
+        controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+      };
+      const sendJson = (obj: Record<string, any>) => send(JSON.stringify(obj));
 
-    const { generatedPolicy, policyType, practiceName, odsCode } = await req.json();
+      // Keepalive ping every 10 seconds
+      const pingInterval = setInterval(() => {
+        try { sendJson({ type: 'ping' }); } catch { /* stream closed */ }
+      }, 10_000);
 
-    if (!generatedPolicy || !policyType) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: generatedPolicy and policyType" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+      try {
+        const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+        const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const modelSetting = (settingData?.setting_value as { model?: string })?.model || 'claude';
-    const modelNames: Record<string, string> = {
-      claude: 'Claude Sonnet 4',
-      gemini: 'Gemini 3 Flash',
-      openai: 'OpenAI GPT-5'
-    };
-    console.log(`Enhancing policy: ${policyType} for ${practiceName || 'Unknown Practice'} using ${modelNames[modelSetting] || modelSetting}`);
+        // Read model setting
+        let settingData: any = null;
+        try {
+          const { data } = await supabase
+            .from('system_settings')
+            .select('setting_value')
+            .eq('setting_key', 'policy_enhancement_model')
+            .single();
+          settingData = data;
+        } catch (e) {
+          console.log('Could not read model setting, defaulting to Claude:', e);
+        }
 
-    const userMessage = `Please review and enhance the following ${policyType} policy for ${practiceName || '[PRACTICE NAME]'} (ODS: ${odsCode || '[ODS CODE]'}).
+        const { generatedPolicy, policyType, practiceName, odsCode } = await req.json();
+
+        if (!generatedPolicy || !policyType) {
+          sendJson({ type: 'error', error: 'Missing required fields: generatedPolicy and policyType' });
+          clearInterval(pingInterval);
+          controller.close();
+          return;
+        }
+
+        const modelSetting = (settingData?.setting_value as { model?: string })?.model || 'claude';
+        const modelNames: Record<string, string> = {
+          claude: 'Claude Sonnet 4',
+          gemini: 'Gemini 3 Flash',
+          openai: 'OpenAI GPT-5'
+        };
+        console.log(`Enhancing policy: ${policyType} for ${practiceName || 'Unknown Practice'} using ${modelNames[modelSetting] || modelSetting}`);
+
+        const userMessage = `Please review and enhance the following ${policyType} policy for ${practiceName || '[PRACTICE NAME]'} (ODS: ${odsCode || '[ODS CODE]'}).
 
 Ensure it meets all CQC KLOE requirements, applies all known guidance changes listed at the top of your instructions, and includes current regulatory references.
 
 ${generatedPolicy}`;
 
-    let enhancedPolicy: string;
-    let modelUsed: string;
-    let usage: any;
+        let enhancedPolicy: string;
+        let modelUsed: string;
+        let usage: any;
 
-    if (modelSetting === 'gemini') {
-      // Use Gemini via Lovable AI Gateway
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) {
-        console.error("LOVABLE_API_KEY is not configured");
-        return new Response(
-          JSON.stringify({ error: "API key not configured", enhanced: false }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+        if (modelSetting === 'gemini' || modelSetting === 'openai') {
+          // Use Lovable AI Gateway for both Gemini and OpenAI
+          const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+          if (!LOVABLE_API_KEY) {
+            sendJson({ type: 'error', error: 'API key not configured' });
+            clearInterval(pingInterval);
+            controller.close();
+            return;
+          }
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: POLICY_ENHANCEMENT_SYSTEM_PROMPT },
-            { role: "user", content: userMessage },
-          ],
-        }),
-      });
+          const model = modelSetting === 'gemini' ? 'google/gemini-3-flash-preview' : 'openai/gpt-5';
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Gemini API error:", response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(
-            JSON.stringify({ error: "Rate limits exceeded, please try again later.", enhanced: false }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        if (response.status === 402) {
-          return new Response(
-            JSON.stringify({ error: "Payment required, please add funds to your workspace.", enhanced: false }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        return new Response(
-          JSON.stringify({
-            enhanced: false,
-            enhancedPolicy: generatedPolicy,
-            warning: "Enhancement service temporarily unavailable. Original policy returned.",
-            error: `API error: ${response.status}`,
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const data = await response.json();
-      enhancedPolicy = data.choices?.[0]?.message?.content || generatedPolicy;
-      modelUsed = "google/gemini-3-flash-preview";
-      usage = data.usage;
-    } else if (modelSetting === 'openai') {
-      // Use OpenAI GPT-5 via Lovable AI Gateway
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) {
-        console.error("LOVABLE_API_KEY is not configured");
-        return new Response(
-          JSON.stringify({ error: "API key not configured", enhanced: false }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-5",
-          messages: [
-            { role: "system", content: POLICY_ENHANCEMENT_SYSTEM_PROMPT },
-            { role: "user", content: userMessage },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("OpenAI API error:", response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(
-            JSON.stringify({ error: "Rate limits exceeded, please try again later.", enhanced: false }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        if (response.status === 402) {
-          return new Response(
-            JSON.stringify({ error: "Payment required, please add funds to your workspace.", enhanced: false }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        return new Response(
-          JSON.stringify({
-            enhanced: false,
-            enhancedPolicy: generatedPolicy,
-            warning: "Enhancement service temporarily unavailable. Original policy returned.",
-            error: `API error: ${response.status}`,
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const data = await response.json();
-      enhancedPolicy = data.choices?.[0]?.message?.content || generatedPolicy;
-      modelUsed = "openai/gpt-5";
-      usage = data.usage;
-    } else {
-      // Use Claude via Anthropic API (default)
-      const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-      if (!ANTHROPIC_API_KEY) {
-        console.error("ANTHROPIC_API_KEY is not configured");
-        return new Response(
-          JSON.stringify({ error: "API key not configured", enhanced: false }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 16000,
-          stream: true,
-          system: POLICY_ENHANCEMENT_SYSTEM_PROMPT,
-          messages: [
-            {
-              role: "user",
-              content: userMessage,
+          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
             },
-          ],
-        }),
-      });
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: "system", content: POLICY_ENHANCEMENT_SYSTEM_PROMPT },
+                { role: "user", content: userMessage },
+              ],
+              stream: true,
+            }),
+          });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Anthropic API error:", response.status, errorText);
-        
-        return new Response(
-          JSON.stringify({
-            enhanced: false,
-            enhancedPolicy: generatedPolicy,
-            warning: "Enhancement service temporarily unavailable. Original policy returned.",
-            error: `API error: ${response.status}`,
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`${modelSetting} API error:`, response.status, errorText);
 
-      // Collect streamed content to prevent gateway timeout
-      let streamedContent = '';
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      // usage is declared in outer scope
+            if (response.status === 429 || response.status === 402) {
+              sendJson({
+                type: 'result',
+                data: {
+                  enhanced: false,
+                  enhancedPolicy: generatedPolicy,
+                  warning: response.status === 429
+                    ? 'Rate limits exceeded, please try again later.'
+                    : 'Payment required, please add funds to your workspace.',
+                },
+              });
+            } else {
+              sendJson({
+                type: 'result',
+                data: {
+                  enhanced: false,
+                  enhancedPolicy: generatedPolicy,
+                  warning: 'Enhancement service temporarily unavailable. Original policy returned.',
+                },
+              });
+            }
+            clearInterval(pingInterval);
+            controller.close();
+            return;
+          }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+          // Stream from gateway
+          let streamedContent = '';
+          const reader = response.body!.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === '[DONE]') continue;
-            try {
-              const event = JSON.parse(jsonStr);
-              if (event.type === 'content_block_delta' && event.delta?.text) {
-                streamedContent += event.delta.text;
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr === '[DONE]') continue;
+                try {
+                  const event = JSON.parse(jsonStr);
+                  const content = event.choices?.[0]?.delta?.content;
+                  if (content) streamedContent += content;
+                  if (event.usage) usage = event.usage;
+                } catch { /* skip */ }
               }
-              if (event.type === 'message_delta' && event.usage) {
-                usage = event.usage;
-              }
-            } catch {
-              // skip malformed lines
             }
           }
+
+          enhancedPolicy = streamedContent || generatedPolicy;
+          modelUsed = model;
+        } else {
+          // Claude via Anthropic API (default)
+          const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+          if (!ANTHROPIC_API_KEY) {
+            sendJson({ type: 'error', error: 'API key not configured' });
+            clearInterval(pingInterval);
+            controller.close();
+            return;
+          }
+
+          const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": ANTHROPIC_API_KEY,
+              "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-6",
+              max_tokens: 16000,
+              stream: true,
+              system: POLICY_ENHANCEMENT_SYSTEM_PROMPT,
+              messages: [{ role: "user", content: userMessage }],
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Anthropic API error:", response.status, errorText);
+            sendJson({
+              type: 'result',
+              data: {
+                enhanced: false,
+                enhancedPolicy: generatedPolicy,
+                warning: 'Enhancement service temporarily unavailable. Original policy returned.',
+              },
+            });
+            clearInterval(pingInterval);
+            controller.close();
+            return;
+          }
+
+          let streamedContent = '';
+          const reader = response.body!.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr === '[DONE]') continue;
+                try {
+                  const event = JSON.parse(jsonStr);
+                  if (event.type === 'content_block_delta' && event.delta?.text) {
+                    streamedContent += event.delta.text;
+                  }
+                  if (event.type === 'message_delta' && event.usage) {
+                    usage = event.usage;
+                  }
+                } catch { /* skip */ }
+              }
+            }
+          }
+
+          enhancedPolicy = streamedContent || generatedPolicy;
+          modelUsed = "claude-sonnet-4-6";
         }
+
+        console.log(`Policy enhanced successfully for: ${policyType} using ${modelUsed}`);
+
+        sendJson({
+          type: 'result',
+          data: {
+            enhanced: true,
+            enhancedPolicy,
+            originalPolicy: generatedPolicy,
+            policyType,
+            practiceName,
+            odsCode,
+            model: modelUsed,
+            usage,
+          },
+        });
+      } catch (error) {
+        console.error("Error enhancing policy:", error);
+        sendJson({
+          type: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } finally {
+        clearInterval(pingInterval);
+        controller.close();
       }
+    },
+  });
 
-      enhancedPolicy = streamedContent || generatedPolicy;
-      modelUsed = "claude-sonnet-4-6";
-    }
-
-    console.log(`Policy enhanced successfully for: ${policyType} using ${modelUsed}`);
-
-    return new Response(
-      JSON.stringify({
-        enhanced: true,
-        enhancedPolicy,
-        originalPolicy: generatedPolicy,
-        policyType,
-        practiceName,
-        odsCode,
-        model: modelUsed,
-        usage,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Error enhancing policy:", error);
-    
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
-        enhanced: false,
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
+  return new Response(stream, {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
 });

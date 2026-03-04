@@ -113,42 +113,87 @@ export const usePolicyGeneration = () => {
     odsCode: string
   ): Promise<{ enhanced: boolean; content: string; warning?: string }> => {
     try {
-      console.log('Enhancing policy with Claude API...', { policyType, practiceName });
-      
-      const { data, error } = await supabase.functions.invoke('enhance-policy', {
-        body: {
-          generatedPolicy,
-          policyType,
-          practiceName,
-          odsCode,
+      console.log('Enhancing policy via SSE stream...', { policyType, practiceName });
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Not authenticated');
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/enhance-policy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
+        body: JSON.stringify({ generatedPolicy, policyType, practiceName, odsCode }),
       });
 
-      if (error) {
-        console.error('Policy enhancement error:', error);
-        return { 
-          enhanced: false, 
-          content: generatedPolicy, 
-          warning: 'Enhancement service unavailable. Original policy returned.' 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Enhancement request failed:', response.status, errorText);
+        return {
+          enhanced: false,
+          content: generatedPolicy,
+          warning: 'Enhancement service unavailable. Original policy returned.',
         };
       }
 
-      if (data?.enhanced) {
-        console.log('Policy enhanced successfully');
-        return { enhanced: true, content: data.enhancedPolicy };
+      // Read SSE stream
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6).trim();
+            if (!jsonStr) continue;
+            try {
+              const event = JSON.parse(jsonStr);
+              if (event.type === 'result') {
+                const d = event.data;
+                if (d.enhanced) {
+                  console.log('Policy enhanced successfully');
+                  return { enhanced: true, content: d.enhancedPolicy };
+                }
+                return {
+                  enhanced: false,
+                  content: d.enhancedPolicy || generatedPolicy,
+                  warning: d.warning || 'Enhancement could not be completed.',
+                };
+              }
+              if (event.type === 'error') {
+                throw new Error(event.error);
+              }
+              // 'ping' events are keepalives, ignore
+            } catch (e) {
+              if (e instanceof SyntaxError) continue;
+              throw e;
+            }
+          }
+        }
       }
 
-      return { 
-        enhanced: false, 
-        content: data?.enhancedPolicy || generatedPolicy,
-        warning: data?.warning || 'Enhancement could not be completed.'
+      // Stream ended without a result event
+      return {
+        enhanced: false,
+        content: generatedPolicy,
+        warning: 'Enhancement stream ended unexpectedly. Original policy returned.',
       };
     } catch (error) {
       console.error('Policy enhancement error:', error);
-      return { 
-        enhanced: false, 
-        content: generatedPolicy, 
-        warning: 'Enhancement service temporarily unavailable.' 
+      return {
+        enhanced: false,
+        content: generatedPolicy,
+        warning: 'Enhancement service temporarily unavailable.',
       };
     }
   };
