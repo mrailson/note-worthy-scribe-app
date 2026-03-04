@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Notice — Notewell AI | GP Notewell</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "GDS Transport", Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #0b0c0c;
+      background: #fff;
+    }
+
+    /* Header */
+    .header { background: #005EB8; }
+    .header-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .nhs-logo {
+      background: #fff;
+      color: #003087;
+      font-weight: 900;
+      font-size: 22px;
+      padding: 4px 10px;
+      letter-spacing: -1px;
+      border-radius: 2px;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .header-title  { color: #fff; font-size: 18px; font-weight: 600; }
+    .header-subtitle { color: #a8d5f5; font-size: 13px; margin-top: 2px; }
+
+    /* Phase banner */
+    .phase-banner { background: #f3f2f1; border-left: 5px solid #005EB8; padding: 10px 24px; }
+    .phase-banner-inner { max-width: 960px; margin: 0 auto; font-size: 14px; color: #505a5f; }
+    .phase-banner strong { color: #0b0c0c; }
+
+    /* Layout */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 60px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    /* Side nav */
+    .side-nav { position: sticky; top: 24px; }
+    .side-nav h2 {
+      font-size: 14px; font-weight: 700; color: #6f777b;
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;
+    }
+    .side-nav ul { list-style: none; border-left: 4px solid #b1b4b6; }
+    .side-nav li { margin: 0; }
+    .side-nav a {
+      display: block; padding: 8px 12px; color: #1d70b8;
+      text-decoration: none; font-size: 14px; line-height: 1.4;
+      border-left: 4px solid transparent; margin-left: -4px;
+    }
+    .side-nav a:hover { color: #003078; border-left-color: #003078; }
+
+    /* Content */
+    .content h1 { font-size: 36px; font-weight: 700; line-height: 1.1; margin-bottom: 8px; }
+    .content .lead {
+      font-size: 19px; color: #505a5f; margin-bottom: 32px;
+      padding-bottom: 32px; border-bottom: 1px solid #b1b4b6;
+    }
+    .content h2 {
+      font-size: 24px; font-weight: 700; margin-top: 48px; margin-bottom: 16px;
+      padding-top: 24px; border-top: 1px solid #b1b4b6;
+      color: #0b0c0c; scroll-margin-top: 24px;
+    }
+    .content h3 { font-size: 19px; font-weight: 700; margin-top: 28px; margin-bottom: 10px; }
+    .content p  { margin-bottom: 16px; font-size: 16px; }
+    .content ul, .content ol { margin: 0 0 16px 0; padding-left: 24px; }
+    .content li { margin-bottom: 8px; font-size: 16px; }
+    .content a  { color: #1d70b8; }
+    .content a:hover { color: #003078; }
+
+    /* Info box */
+    .info-box {
+      background: #e8f4fb;
+      border-left: 6px solid #005EB8;
+      padding: 18px 22px;
+      margin: 20px 0 28px;
+      border-radius: 0 4px 4px 0;
+    }
+    .info-box p { margin: 4px 0; font-size: 15px; }
+    .info-box strong { color: #003087; }
+
+    /* Warning box */
+    .warn-box {
+      background: #fff7e6;
+      border-left: 6px solid #f47738;
+      padding: 18px 22px;
+      margin: 20px 0 28px;
+      border-radius: 0 4px 4px 0;
+    }
+    .warn-box p { margin: 4px 0; font-size: 15px; }
+
+    /* Data table */
+    .data-table {
+      width: 100%; border-collapse: collapse;
+      margin: 16px 0 28px; font-size: 15px;
+    }
+    .data-table th {
+      background: #003087; color: #fff;
+      padding: 10px 14px; text-align: left;
+      font-size: 14px; font-weight: 600;
+    }
+    .data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #b1b4b6;
+      vertical-align: top;
+    }
+    .data-table tr:nth-child(even) td { background: #f8f8f8; }
+    .data-table tr:last-child td { border-bottom: 2px solid #b1b4b6; }
+
+    /* Rights grid */
+    .rights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin: 20px 0 28px;
+    }
+    .right-card {
+      background: #f0f4f9;
+      border: 1px solid #b1b4b6;
+      border-top: 4px solid #005EB8;
+      padding: 16px;
+      border-radius: 0 0 4px 4px;
+    }
+    .right-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: #003087; }
+    .right-card p  { font-size: 14px; margin: 0; color: #505a5f; }
+
+    /* Module cards */
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin: 20px 0 28px;
+    }
+    .module-card {
+      border: 1px solid #b1b4b6;
+      border-top: 4px solid #005EB8;
+      padding: 16px 18px;
+      border-radius: 0 0 4px 4px;
+    }
+    .module-card h4 { font-size: 15px; font-weight: 700; color: #003087; margin-bottom: 6px; }
+    .module-card p  { font-size: 14px; margin: 0; color: #505a5f; }
+
+    /* Contact box */
+    .contact-box {
+      background: #f0f4f9;
+      border: 1px solid #b1b4b6;
+      padding: 20px 24px;
+      border-radius: 4px;
+      margin: 16px 0;
+    }
+    .contact-box p { margin: 4px 0; font-size: 15px; }
+
+    /* Tag */
+    .tag {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 3px; font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      margin-right: 6px; vertical-align: middle;
+    }
+    .tag-blue  { background: #e8f0f9; color: #003078; border: 1px solid #1d70b8; }
+    .tag-green { background: #e8f4e8; color: #005a30; border: 1px solid #00703c; }
+    .tag-grey  { background: #f3f2f1; color: #505a5f; border: 1px solid #b1b4b6; }
+
+    /* Version history */
+    .version-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 16px 0 28px; }
+    .version-table th { background: #f3f2f1; padding: 8px 12px; text-align: left; font-weight: 700; border-bottom: 2px solid #b1b4b6; }
+    .version-table td { padding: 8px 12px; border-bottom: 1px solid #e8e8e8; }
+
+    /* Footer */
+    footer { background: #003087; color: #a8d5f5; padding: 32px 24px; margin-top: 60px; font-size: 14px; }
+    .footer-inner { max-width: 960px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 32px; justify-content: space-between; align-items: flex-start; }
+    footer a { color: #a8d5f5; }
+    footer p { margin: 4px 0; }
+
+    @media (max-width: 720px) {
+      .container { grid-template-columns: 1fr; }
+      .side-nav  { display: none; }
+      .content h1 { font-size: 28px; }
+      .rights-grid, .module-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <span class="nhs-logo">NHS</span>
+    <div>
+      <div class="header-title">Notewell AI — GP Notewell</div>
+      <div class="header-subtitle">PCN Services Ltd &nbsp;|&nbsp; gpnotewell.co.uk</div>
+    </div>
+  </div>
+</header>
+
+<div class="phase-banner">
+  <div class="phase-banner-inner">
+    <strong>Privacy Notice</strong> — Version 1.1 &nbsp;|&nbsp; Last updated: <strong>March 2026</strong> &nbsp;|&nbsp; Next review: <strong>March 2027</strong>
+  </div>
+</div>
+
+<div class="container">
+
+  <nav class="side-nav" aria-label="Page contents">
+    <h2>Contents</h2>
+    <ul>
+      <li><a href="#who-we-are">Who we are</a></li>
+      <li><a href="#what-is-notewell">What Notewell AI does</a></li>
+      <li><a href="#what-data">Data we process</a></li>
+      <li><a href="#lawful-basis">Lawful basis</a></li>
+      <li><a href="#how-we-use">How we use your data</a></li>
+      <li><a href="#who-sees-data">Who sees your data</a></li>
+      <li><a href="#transfers">International transfers</a></li>
+      <li><a href="#retention">How long we keep data</a></li>
+      <li><a href="#security">How we protect data</a></li>
+      <li><a href="#your-rights">Your rights</a></li>
+      <li><a href="#cookies">Cookies</a></li>
+      <li><a href="#contact">Contact us</a></li>
+      <li><a href="#complaints">Complaints</a></li>
+      <li><a href="#changes">Changes to this notice</a></li>
+    </ul>
+  </nav>
+
+  <main class="content" id="main-content">
+
+    <h1>Privacy Notice</h1>
+    <p class="lead">This privacy notice explains how <strong>PCN Services Ltd</strong> collects, uses, stores and protects personal data in connection with <strong>Notewell AI</strong> (available at <a href="https://gpnotewell.co.uk">gpnotewell.co.uk</a>). It applies to all users of the platform and is written in accordance with the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018.</p>
+
+    <!-- Who we are -->
+    <section id="who-we-are">
+      <h2>Who we are</h2>
+      <p>Notewell AI is provided by <strong>PCN Services Ltd</strong>, a company registered in England and Wales.</p>
+
+      <div class="info-box">
+        <p><strong>Data Processor:</strong> PCN Services Ltd</p>
+        <p><strong>Registered Address:</strong> Ground Floor, 2 Woodberry Grove, London, N12 0DR</p>
+        <p><strong>ICO Registration:</strong> ZB226324 &nbsp;(expires 03/10/2026)</p>
+        <p><strong>Contact:</strong> Malcolm Railson &nbsp;|&nbsp; <a href="mailto:malcolm.railson@nhs.net">malcolm.railson@nhs.net</a> &nbsp;|&nbsp; 07740812180</p>
+        <p><strong>MHRA Registration:</strong> Class I Medical Device (Software as a Medical Device)</p>
+      </div>
+
+      <h3>Controller and processor</h3>
+      <p>Notewell AI is deployed by NHS primary care organisations (GP practices and Primary Care Networks). For data protection purposes:</p>
+      <ul>
+        <li>The <strong>NHS organisation deploying Notewell AI</strong> (your GP practice or PCN) is the <strong>data controller</strong> — they determine the purposes and means of processing personal data relating to their patients and staff.</li>
+        <li><strong>PCN Services Ltd</strong> acts as the <strong>data processor</strong> — we process personal data only on the documented instructions of the deploying NHS organisation, under a Data Processing Agreement (DPA).</li>
+      </ul>
+      <p>This notice is provided by PCN Services Ltd as processor. Your employing or registered NHS organisation should also provide you with their own privacy notice explaining how they use Notewell AI as controller.</p>
+    </section>
+
+    <!-- What is Notewell -->
+    <section id="what-is-notewell">
+      <h2>What Notewell AI does</h2>
+      <p>Notewell AI is a multi-module AI-powered platform designed for NHS primary care staff. It helps clinical and administrative staff work more efficiently. It is not a patient-facing application — it is used exclusively by authorised NHS staff.</p>
+      <p>The platform comprises five modules:</p>
+
+      <div class="module-grid">
+        <div class="module-card">
+          <h4>📋 Meeting Manager</h4>
+          <p>AI-assisted meeting transcription, summarisation and action tracking for PCN and practice governance meetings.</p>
+        </div>
+        <div class="module-card">
+          <h4>📨 Complaints Manager</h4>
+          <p>Structured AI-assisted workflow for managing NHS complaints in line with NHS England guidance.</p>
+        </div>
+        <div class="module-card">
+          <h4>📄 Policy Generator</h4>
+          <p>AI-assisted creation and maintenance of NHS-compliant clinical and operational policies.</p>
+        </div>
+        <div class="module-card">
+          <h4>💬 Ask AI</h4>
+          <p>Conversational AI assistant providing responses to clinical and operational queries from healthcare staff.</p>
+        </div>
+        <div class="module-card">
+          <h4>🎙 Voice Assistant</h4>
+          <p>Real-time AI voice support for clinical and administrative queries, powered by ElevenLabs.</p>
+        </div>
+      </div>
+
+      <div class="warn-box">
+        <p><strong>Important:</strong> Notewell AI is a decision-support tool. All AI-generated outputs must be reviewed and approved by a qualified healthcare professional before being acted upon. The platform does not make autonomous clinical decisions.</p>
+      </div>
+    </section>
+
+    <!-- What data -->
+    <section id="what-data">
+      <h2>What personal data we process</h2>
+      <p>The type of personal data processed depends on which module is being used. We process the minimum data necessary for each purpose.</p>
+
+      <table class="data-table" aria-label="Personal data processed by module">
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Categories of personal data</th>
+            <th>Data subjects</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Meeting Manager</strong></td>
+            <td>Names and job titles of meeting participants; meeting content (which may incidentally reference patient matters at an anonymised or de-identified level); action owner names</td>
+            <td>NHS staff; PCN members</td>
+          </tr>
+          <tr>
+            <td><strong>Complaints Manager</strong></td>
+            <td>Patient name, NHS number, date of birth, contact details; complaint narrative (which may include Special Category health data); names of clinical staff involved</td>
+            <td>Patients; NHS staff</td>
+          </tr>
+          <tr>
+            <td><strong>Policy Generator</strong></td>
+            <td>Staff names in document authorship/approval fields; practice identifiers</td>
+            <td>NHS staff</td>
+          </tr>
+          <tr>
+            <td><strong>Ask AI</strong></td>
+            <td>Queries submitted by staff (which may incidentally include patient details if entered by the user); user account information</td>
+            <td>NHS staff; potentially patients if staff include patient details in queries</td>
+          </tr>
+          <tr>
+            <td><strong>Voice Assistant</strong></td>
+            <td>Voice audio input; transcribed text (which may include patient details referenced verbally); user account information</td>
+            <td>NHS staff; potentially patients if referenced in audio</td>
+          </tr>
+          <tr>
+            <td><strong>All modules</strong></td>
+            <td>User authentication data (name, NHS email, role); audit logs of access and activity; session data</td>
+            <td>NHS staff users</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Special Category data</h3>
+      <p>The Complaints Manager module and the Ask AI / Voice Assistant modules may process <strong>Special Category personal data</strong> under Article 9 UK GDPR — specifically health data relating to patients. This data receives enhanced protection and is only processed where:</p>
+      <ul>
+        <li>the processing is necessary for the provision of health or social care (Article 9(2)(h) UK GDPR), or</li>
+        <li>the processing is necessary for reasons of public interest in the area of public health (Article 9(2)(i) UK GDPR).</li>
+      </ul>
+
+      <h3>Data we do not process</h3>
+      <p>Notewell AI does not:</p>
+      <ul>
+        <li>access or connect to GP clinical systems (EMIS, SystmOne) automatically or in real time</li>
+        <li>process financial or payment data</li>
+        <li>process data relating to children unless incidentally referenced in a complaint or clinical query by a staff user</li>
+        <li>use personal data for any commercial purpose, advertising or profiling</li>
+        <li>sell or rent personal data to any third party</li>
+      </ul>
+    </section>
+
+    <!-- Lawful basis -->
+    <section id="lawful-basis">
+      <h2>Lawful basis for processing</h2>
+
+      <table class="data-table" aria-label="Lawful basis by processing activity">
+        <thead>
+          <tr>
+            <th>Processing activity</th>
+            <th>Lawful basis (Article 6)</th>
+            <th>Condition for Special Category (Article 9)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Processing staff data to deliver platform functionality</td>
+            <td><strong>Article 6(1)(b)</strong> — Necessary for the performance of a contract (employment/engagement of NHS staff)</td>
+            <td>N/A — not Special Category</td>
+          </tr>
+          <tr>
+            <td>Processing data in the Complaints Manager</td>
+            <td><strong>Article 6(1)(e)</strong> — Necessary for the performance of a task carried out in the public interest (NHS complaints handling obligations)</td>
+            <td><strong>Article 9(2)(h)</strong> — Necessary for the provision of health or social care</td>
+          </tr>
+          <tr>
+            <td>Processing health data via Ask AI or Voice Assistant</td>
+            <td><strong>Article 6(1)(e)</strong> — Necessary for the performance of a task carried out in the public interest</td>
+            <td><strong>Article 9(2)(h)</strong> — Necessary for the provision of health or social care, or <strong>9(2)(i)</strong> — Public interest in public health</td>
+          </tr>
+          <tr>
+            <td>Audit logging and security monitoring</td>
+            <td><strong>Article 6(1)(c)</strong> — Necessary for compliance with a legal obligation (DSPT, NHS security standards)</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <td>Platform improvement and safety monitoring</td>
+            <td><strong>Article 6(1)(f)</strong> — Legitimate interests of PCN Services Ltd in maintaining a safe and functional platform (subject to the deploying organisation's instructions as controller)</td>
+            <td>N/A — anonymised/aggregated data only for this purpose</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- How we use -->
+    <section id="how-we-use">
+      <h2>How we use your data</h2>
+      <p>PCN Services Ltd processes personal data only for the following purposes, and only as instructed by the deploying NHS organisation as controller:</p>
+      <ul>
+        <li><strong>To provide the Notewell AI platform</strong> — including all five modules — to authorised NHS staff at the deploying practice or PCN.</li>
+        <li><strong>To authenticate users</strong> and maintain the security of the platform, including enforcing role-based access controls.</li>
+        <li><strong>To maintain audit logs</strong> of user access and activity, in accordance with NHS DSPT and clinical safety requirements.</li>
+        <li><strong>To process inputs and generate outputs</strong> via AI models, as directed by the user in real time. Inputs are not retained beyond the session unless explicitly saved by the user.</li>
+        <li><strong>To support clinical safety monitoring</strong> — anonymised, aggregated usage data may be used to identify and address potential safety issues with AI outputs.</li>
+        <li><strong>To provide technical support</strong> — support staff may access log data where necessary to diagnose a reported issue, subject to appropriate access controls.</li>
+      </ul>
+      <p>We do <strong>not</strong> use personal data to train or improve AI models without the explicit consent of the deploying NHS organisation and, where applicable, the individuals concerned.</p>
+    </section>
+
+    <!-- Who sees data -->
+    <section id="who-sees-data">
+      <h2>Who sees your data</h2>
+
+      <h3>Within PCN Services Ltd</h3>
+      <p>Access to personal data within PCN Services Ltd is strictly limited on a need-to-know basis. Only staff with a legitimate operational reason can access data, and all access is logged and monitored.</p>
+
+      <h3>Sub-processors</h3>
+      <p>PCN Services Ltd uses the following sub-processors to deliver elements of the Notewell AI platform. All sub-processors are bound by written data processing agreements and are required to maintain appropriate technical and organisational security measures:</p>
+
+      <table class="data-table" aria-label="Sub-processors">
+        <thead>
+          <tr>
+            <th>Sub-processor</th>
+            <th>Purpose</th>
+            <th>Data location</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Cloud infrastructure provider</strong></td>
+            <td>Hosting and storage of the Notewell AI platform and associated data</td>
+            <td>United Kingdom</td>
+          </tr>
+          <tr>
+            <td><strong>AI model provider(s)</strong></td>
+            <td>Processing of text and voice inputs to generate AI outputs</td>
+            <td>United Kingdom / EEA (adequacy decision applies)</td>
+          </tr>
+          <tr>
+            <td><strong>ElevenLabs</strong></td>
+            <td>Voice synthesis and processing for the Voice Assistant module</td>
+            <td>See international transfers section below</td>
+          </tr>
+          <tr>
+            <td><strong>Authentication provider</strong></td>
+            <td>User identity verification and multi-factor authentication</td>
+            <td>United Kingdom</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>NHS organisations</h3>
+      <p>As the data controller, the deploying NHS organisation has access to data held within their instance of Notewell AI. Data is not shared between different deploying organisations.</p>
+
+      <h3>We will never share your data with:</h3>
+      <ul>
+        <li>advertisers or marketing companies</li>
+        <li>commercial third parties for any purpose not related to delivering the platform</li>
+        <li>any party outside the UK without appropriate safeguards in place (see below)</li>
+      </ul>
+
+      <p>We may disclose data where required to do so by law, court order, or at the direction of a regulatory body.</p>
+    </section>
+
+    <!-- Transfers -->
+    <section id="transfers">
+      <h2>International data transfers</h2>
+      <p>All core Notewell AI data is stored and processed within the <strong>United Kingdom</strong>.</p>
+      <p>The <strong>Voice Assistant module</strong> uses ElevenLabs voice synthesis technology. ElevenLabs may process voice audio data in the United States. This transfer is covered by:</p>
+      <ul>
+        <li>an <strong>International Data Transfer Agreement (IDTA)</strong> between PCN Services Ltd and ElevenLabs, as required under UK GDPR for transfers to countries without UK adequacy status, and</li>
+        <li>a <strong>Transfer Risk Assessment (TRA)</strong> confirming the transfer is appropriate given the nature, context and purpose of the processing.</li>
+      </ul>
+      <p>No other personal data is transferred outside the United Kingdom.</p>
+    </section>
+
+    <!-- Retention -->
+    <section id="retention">
+      <h2>How long we keep your data</h2>
+
+      <table class="data-table" aria-label="Data retention schedule">
+        <thead>
+          <tr>
+            <th>Data type</th>
+            <th>Retention period</th>
+            <th>Basis</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>User account data (name, email, role)</td>
+            <td>Duration of the user's authorised access + 90 days</td>
+            <td>Contractual necessity; security audit requirements</td>
+          </tr>
+          <tr>
+            <td>Meeting Manager outputs (summaries, actions)</td>
+            <td>As set by the deploying organisation (default: 3 years)</td>
+            <td>NHS records management code; controller's instruction</td>
+          </tr>
+          <tr>
+            <td>Complaints Manager records</td>
+            <td>10 years from date of complaint resolution</td>
+            <td>NHS complaints records retention guidance (NHSE)</td>
+          </tr>
+          <tr>
+            <td>Policy Generator documents</td>
+            <td>As set by the deploying organisation</td>
+            <td>Controller's instruction</td>
+          </tr>
+          <tr>
+            <td>Ask AI query/response sessions</td>
+            <td>Session data: not retained beyond session unless explicitly saved. Saved outputs: as set by the deploying organisation.</td>
+            <td>Data minimisation principle (UK GDPR Article 5(1)(e))</td>
+          </tr>
+          <tr>
+            <td>Voice Assistant audio input</td>
+            <td>Transcribed and processed in real time; raw audio not retained beyond the session</td>
+            <td>Data minimisation principle</td>
+          </tr>
+          <tr>
+            <td>Audit logs</td>
+            <td>2 years</td>
+            <td>NHS DSPT requirements; security monitoring obligations</td>
+          </tr>
+          <tr>
+            <td>Platform anonymised usage analytics</td>
+            <td>5 years (anonymised; not subject to deletion requests)</td>
+            <td>Legitimate interests in platform safety and improvement</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>At the end of the applicable retention period, data is securely deleted or anonymised. On termination of a contract with a deploying NHS organisation, all personal data is returned or securely deleted within 30 days, unless a longer period is required by law.</p>
+    </section>
+
+    <!-- Security -->
+    <section id="security">
+      <h2>How we protect your data</h2>
+      <p>PCN Services Ltd takes the security of personal data seriously. Technical and organisational measures in place include:</p>
+      <ul>
+        <li><strong>Encryption in transit:</strong> All data transmitted between users and the platform is encrypted using TLS 1.2 or higher.</li>
+        <li><strong>Encryption at rest:</strong> All data stored on our infrastructure is encrypted at rest using AES-256.</li>
+        <li><strong>Multi-factor authentication (MFA):</strong> MFA is mandatory for all user accounts and all privileged administrative access.</li>
+        <li><strong>Role-based access control:</strong> Users can only access data within their authorised scope. Access rights are reviewed regularly.</li>
+        <li><strong>Audit logging:</strong> All access to and activity within the platform is logged and available for review by the deploying organisation.</li>
+        <li><strong>Secure development:</strong> The platform is developed in adherence to the DSIT/NCSC Software Security Code of Practice.</li>
+        <li><strong>Penetration testing:</strong> Independent third-party penetration testing (OWASP Top 10, CVSS) is scheduled for completion by September 2026, prior to full programme rollout.</li>
+        <li><strong>Staff training:</strong> All PCN Services Ltd staff with access to personal data receive data protection and information security training.</li>
+        <li><strong>Incident response:</strong> A documented data breach response procedure is in place. We will notify the deploying NHS organisation (as controller) of any breach within 24 hours of discovery, to enable them to fulfil their ICO notification obligations within the 72-hour statutory window.</li>
+      </ul>
+    </section>
+
+    <!-- Your rights -->
+    <section id="your-rights">
+      <h2>Your data protection rights</h2>
+      <p>Under UK GDPR, you have the following rights in relation to your personal data. Because PCN Services Ltd acts as a <strong>data processor</strong>, requests relating to personal data held by the platform should be directed to the <strong>deploying NHS organisation (your GP practice or PCN)</strong> as the data controller. We will assist them in fulfilling your request.</p>
+
+      <div class="rights-grid">
+        <div class="right-card">
+          <h4>Right of Access</h4>
+          <p>You can request a copy of the personal data held about you (a Subject Access Request).</p>
+        </div>
+        <div class="right-card">
+          <h4>Right to Rectification</h4>
+          <p>You can ask us to correct inaccurate or incomplete personal data.</p>
+        </div>
+        <div class="right-card">
+          <h4>Right to Erasure</h4>
+          <p>You can ask for your data to be deleted, subject to legal and regulatory retention requirements.</p>
+        </div>
+        <div class="right-card">
+          <h4>Right to Restrict Processing</h4>
+          <p>You can ask us to restrict how we use your data in certain circumstances.</p>
+        </div>
+        <div class="right-card">
+          <h4>Right to Data Portability</h4>
+          <p>You can ask for a copy of your data in a machine-readable format, where applicable.</p>
+        </div>
+        <div class="right-card">
+          <h4>Right to Object</h4>
+          <p>You can object to processing based on legitimate interests or public interest grounds.</p>
+        </div>
+        <div class="right-card">
+          <h4>Rights re: Automated Decisions</h4>
+          <p>You have rights in relation to automated decision-making and profiling. Notewell AI does not make fully automated decisions about individuals — all outputs require human review.</p>
+        </div>
+        <div class="right-card">
+          <h4>Right to Withdraw Consent</h4>
+          <p>Where processing is based on consent, you may withdraw it at any time without affecting the lawfulness of prior processing.</p>
+        </div>
+      </div>
+
+      <p>To exercise any of these rights, please contact your GP practice or PCN in the first instance. You can also contact PCN Services Ltd directly using the details in the <a href="#contact">Contact us</a> section below.</p>
+    </section>
+
+    <!-- Cookies -->
+    <section id="cookies">
+      <h2>Cookies</h2>
+      <p>Notewell AI uses cookies and similar technologies to support the operation of the platform. We use:</p>
+      <ul>
+        <li><strong>Strictly necessary cookies</strong> — required for authentication, session management and security. These cannot be disabled.</li>
+        <li><strong>Functional cookies</strong> — used to remember your preferences (e.g. language settings). These can be disabled but may affect how the platform works.</li>
+        <li><strong>Analytics cookies</strong> — used to understand how the platform is being used, to improve it. These are anonymised and aggregated. You can opt out.</li>
+      </ul>
+      <p>We do not use advertising, tracking or third-party marketing cookies. A full cookie notice is available at <a href="https://gpnotewell.co.uk/cookies">gpnotewell.co.uk/cookies</a>.</p>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact">
+      <h2>Contact us</h2>
+      <p>If you have any questions about how Notewell AI handles your personal data, or to exercise your data protection rights, please contact:</p>
+
+      <div class="contact-box">
+        <p><strong>Data Protection Contact</strong></p>
+        <p><strong>Name:</strong> Malcolm Railson</p>
+        <p><strong>Role:</strong> CEO, PCN Services Ltd</p>
+        <p><strong>Email:</strong> <a href="mailto:malcolm.railson@nhs.net">malcolm.railson@nhs.net</a></p>
+        <p><strong>Address:</strong> Ground Floor, 2 Woodberry Grove, London, N12 0DR</p>
+        <p><strong>Phone:</strong> 07740812180</p>
+      </div>
+
+      <p>We aim to respond to all data protection queries within <strong>5 working days</strong>. Formal Subject Access Requests will be responded to within the statutory <strong>30-day</strong> period.</p>
+    </section>
+
+    <!-- Complaints -->
+    <section id="complaints">
+      <h2>Complaints</h2>
+      <p>If you are unhappy with how we have handled your personal data, you have the right to lodge a complaint with the <strong>Information Commissioner's Office (ICO)</strong>:</p>
+      <ul>
+        <li><strong>Website:</strong> <a href="https://ico.org.uk/make-a-complaint">ico.org.uk/make-a-complaint</a></li>
+        <li><strong>Phone:</strong> 0303 123 1113</li>
+        <li><strong>Post:</strong> Information Commissioner's Office, Wycliffe House, Water Lane, Wilmslow, Cheshire, SK9 5AF</li>
+      </ul>
+      <p>We would always prefer to resolve any concerns directly with you first — please do contact us before raising a complaint with the ICO.</p>
+    </section>
+
+    <!-- Changes -->
+    <section id="changes">
+      <h2>Changes to this privacy notice</h2>
+      <p>We keep this privacy notice under regular review. Any significant changes will be communicated to deploying NHS organisations and, where appropriate, to users of the platform.</p>
+
+      <table class="version-table" aria-label="Version history">
+        <thead>
+          <tr>
+            <th>Version</th>
+            <th>Date</th>
+            <th>Summary of changes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1.0</td>
+            <td>February 2026</td>
+            <td>Initial publication for NRES pilot deployment</td>
+          </tr>
+          <tr>
+            <td>1.1</td>
+            <td>March 2026</td>
+            <td>ICO registration reference added; ElevenLabs IDTA/TRA details added; sub-processor table updated; retention schedule expanded</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <p><strong style="color:#fff;">GP Notewell — Notewell AI</strong></p>
+      <p>Provided by PCN Services Ltd</p>
+      <p>Ground Floor, 2 Woodberry Grove, London, N12 0DR</p>
+      <p><a href="mailto:malcolm.railson@nhs.net">malcolm.railson@nhs.net</a></p>
+    </div>
+    <div>
+      <p><strong style="color:#fff;">Regulatory</strong></p>
+      <p>MHRA Class I Medical Device</p>
+      <p>ICO Registration: ZB226324</p>
+      <p>Expiry: 03/10/2026</p>
+    </div>
+    <div>
+      <p><strong style="color:#fff;">Links</strong></p>
+      <p><a href="https://gpnotewell.co.uk/accessibility-statement">Accessibility Statement</a></p>
+      <p><a href="https://gpnotewell.co.uk/cookies">Cookie Notice</a></p>
+      <p><a href="https://gpnotewell.co.uk/terms">Terms of Use</a></p>
+      <p><a href="https://ico.org.uk/make-a-complaint">ICO — Make a Complaint</a></p>
+    </div>
+    <div style="width:100%; border-top:1px solid #1d70b8; padding-top:16px; margin-top:8px;">
+      <p>© 2026 PCN Services Ltd. Notewell AI is a non-commercial platform for NHS primary care. &nbsp;|&nbsp; Privacy Notice v1.1 &nbsp;|&nbsp; Last updated: March 2026</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
