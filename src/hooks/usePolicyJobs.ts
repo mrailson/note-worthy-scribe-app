@@ -24,8 +24,9 @@ export interface PolicyJob {
 }
 
 const STEP_LABELS: Record<string, string> = {
-  generate_part_1: 'Generating (part 1/2)',
-  generate_part_2: 'Generating (part 2/2)',
+  generate_part_1: 'Generating (part 1/3)',
+  generate_part_2: 'Generating (part 2/3)',
+  generate_part_3: 'Generating (part 3/3)',
   enhance: 'Enhancing',
   finalise: 'Finalising',
   done: 'Complete',
