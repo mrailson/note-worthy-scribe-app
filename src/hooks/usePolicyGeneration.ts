@@ -43,6 +43,64 @@ interface GenerationResult {
   enhancementWarning?: string;
 }
 
+// Helper to call generate-policy via SSE stream
+async function invokeGeneratePolicyStream(body: Record<string, any>): Promise<{ success: boolean; content?: string; metadata?: any; generation_id?: string; error?: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Not authenticated');
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const response = await fetch(`${supabaseUrl}/functions/v1/generate-policy`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Edge function error: ${response.status} ${errorText}`);
+  }
+
+  // Read SSE stream
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const jsonStr = line.slice(6).trim();
+        if (!jsonStr) continue;
+        try {
+          const event = JSON.parse(jsonStr);
+          if (event.type === 'result') {
+            return event.data;
+          }
+          if (event.type === 'error') {
+            throw new Error(event.error);
+          }
+          // 'ping' events are just keepalives, ignore
+        } catch (e) {
+          if (e instanceof SyntaxError) continue; // malformed JSON, skip
+          throw e;
+        }
+      }
+    }
+  }
+
+  throw new Error('Stream ended without result');
+}
+
 export const usePolicyGeneration = () => {
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -127,28 +185,19 @@ export const usePolicyGeneration = () => {
     setIsGenerating(true);
 
     try {
-      // Step 1: Generate initial policy
+      // Step 1: Generate initial policy via SSE stream
       let data: any;
 
       try {
-        const invokeResult = await supabase.functions.invoke('generate-policy', {
-          body: {
-            policy_reference_id: params.policyReferenceId,
-            practice_details: params.practiceDetails,
-            custom_instructions: params.customInstructions,
-          },
+        data = await invokeGeneratePolicyStream({
+          policy_reference_id: params.policyReferenceId,
+          practice_details: params.practiceDetails,
+          custom_instructions: params.customInstructions,
         });
 
-        if (invokeResult.error) {
-          console.error('Policy generation error:', invokeResult.error);
-          throw new Error(invokeResult.error.message || 'Failed to generate policy');
+        if (!data?.success) {
+          throw new Error(data?.error || 'Policy generation failed');
         }
-
-        if (!invokeResult.data?.success) {
-          throw new Error(invokeResult.data?.error || 'Policy generation failed');
-        }
-
-        data = invokeResult.data;
       } catch (invokeError) {
         console.error('Primary policy response failed, attempting recovery:', invokeError);
 

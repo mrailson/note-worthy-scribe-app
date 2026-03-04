@@ -104,13 +104,56 @@ This policy has been assessed to ensure it does not discriminate against any pro
 ## 10. References and Legislation
 [Numbered list of all referenced legislation, guidance, and standards with full titles and dates.]
 
-
-
 ## 11. Version History
 
 | Version | Date | Author | Changes |
 | ------- | ---- | ------ | ------- |
 | 1.0 | [Today's Date] | [Practice Manager / Lead GP names] | Initial policy creation |`;
+
+// Helper: stream from Anthropic and collect content, sending SSE keepalives to client
+async function streamAnthropicWithKeepalive(
+  anthropicResponse: Response,
+  writer: WritableStreamDefaultWriter<Uint8Array>,
+  encoder: TextEncoder
+): Promise<string> {
+  let aiContent = '';
+  const reader = anthropicResponse.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let lastPing = Date.now();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === '[DONE]') continue;
+        try {
+          const event = JSON.parse(jsonStr);
+          if (event.type === 'content_block_delta' && event.delta?.text) {
+            aiContent += event.delta.text;
+          }
+        } catch {
+          // skip malformed lines
+        }
+      }
+    }
+
+    // Send keepalive ping every 10 seconds to prevent gateway timeout
+    if (Date.now() - lastPing > 10000) {
+      await writer.write(encoder.encode(`data: {"type":"ping"}\n\n`));
+      lastPing = Date.now();
+    }
+  }
+
+  return aiContent;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -159,13 +202,25 @@ serve(async (req) => {
       practiceId = practiceRecord?.id || null;
     }
 
-    // For update generation type
-    if (generation_type === 'update') {
-      if (!original_policy_text || !gap_analysis) {
-        throw new Error('original_policy_text and gap_analysis are required for update generation');
-      }
+    // Set up SSE streaming response to keep gateway alive
+    const encoder = new TextEncoder();
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
 
-      const updatePrompt = `You are updating an existing NHS practice policy. Here is the original policy:
+    // Process in background while streaming keepalives
+    const processPolicy = async () => {
+      try {
+        let userPrompt: string;
+        let defaultTitle: string;
+        let genType: string;
+        let extraInsertFields: Record<string, any> = {};
+
+        if (generation_type === 'update') {
+          if (!original_policy_text || !gap_analysis) {
+            throw new Error('original_policy_text and gap_analysis are required for update generation');
+          }
+
+          userPrompt = `You are updating an existing NHS practice policy. Here is the original policy:
 
 ---ORIGINAL POLICY---
 ${original_policy_text}
@@ -188,164 +243,41 @@ Please generate an updated version of this policy that:
 
 Today's date is ${new Date().toLocaleDateString('en-GB')}.`;
 
-      if (!ANTHROPIC_API_KEY) {
-        throw new Error('ANTHROPIC_API_KEY not configured');
-      }
-
-      // Use streaming to prevent gateway timeout
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 16000,
-          stream: true,
-          system: systemPrompt,
-          messages: [
-            { role: 'user', content: updatePrompt },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Anthropic API error:', response.status, errorText);
-        throw new Error(`Anthropic API error: ${response.status}`);
-      }
-
-      // Collect streamed content
-      let aiContent = '';
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === '[DONE]') continue;
-            try {
-              const event = JSON.parse(jsonStr);
-              if (event.type === 'content_block_delta' && event.delta?.text) {
-                aiContent += event.delta.text;
-              }
-            } catch {
-              // skip malformed lines
-            }
+          defaultTitle = 'Updated Policy';
+          genType = 'update';
+          extraInsertFields = { gap_analysis };
+        } else {
+          // New policy generation
+          if (!policy_reference_id || !practice_details) {
+            throw new Error('policy_reference_id and practice_details are required');
           }
-        }
-      }
 
-      // Parse the response
-      const metadataMatch = aiContent.match(/===METADATA===([\s\S]*?)===POLICY_CONTENT===/);
-      const contentMatch = aiContent.match(/===POLICY_CONTENT===([\s\S]*)/);
+          const { data: policyRef, error: policyRefError } = await supabase
+            .from('policy_reference_library')
+            .select('*')
+            .eq('id', policy_reference_id)
+            .single();
 
-      const metadata: any = {
-        title: 'Updated Policy',
-        version: '2.0',
-        effective_date: new Date().toLocaleDateString('en-GB'),
-        review_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB'),
-        references: [],
-        changes_summary: gap_analysis.gaps || [],
-      };
+          if (policyRefError || !policyRef) {
+            throw new Error('Policy reference not found');
+          }
 
-      if (metadataMatch) {
-        const metadataText = metadataMatch[1];
-        const titleMatch = metadataText.match(/Title:\s*(.+)/);
-        const versionMatch = metadataText.match(/Version:\s*(.+)/);
-        const effectiveDateMatch = metadataText.match(/Effective Date:\s*(.+)/);
-        const reviewDateMatch = metadataText.match(/Review Date:\s*(.+)/);
-        const referencesMatch = metadataText.match(/References:\s*(.+)/);
+          const servicesOffered = practice_details.services_offered
+            ? Object.entries(practice_details.services_offered)
+                .filter(([_, enabled]) => enabled)
+                .map(([service]) => service.replace(/_/g, ' '))
+                .join(', ')
+            : 'Standard GP services';
 
-        if (titleMatch) metadata.title = titleMatch[1].trim();
-        if (versionMatch) metadata.version = versionMatch[1].trim();
-        if (effectiveDateMatch) metadata.effective_date = effectiveDateMatch[1].trim();
-        if (reviewDateMatch) metadata.review_date = reviewDateMatch[1].trim();
-        if (referencesMatch) metadata.references = referencesMatch[1].split(',').map((r: string) => r.trim());
-      }
+          let branchSiteInfo = 'None';
+          if (practice_details.has_branch_site && practice_details.branch_site_name) {
+            branchSiteInfo = `${practice_details.branch_site_name}`;
+            if (practice_details.branch_site_address) branchSiteInfo += `, ${practice_details.branch_site_address}`;
+            if (practice_details.branch_site_postcode) branchSiteInfo += `, ${practice_details.branch_site_postcode}`;
+            if (practice_details.branch_site_phone) branchSiteInfo += ` (Tel: ${practice_details.branch_site_phone})`;
+          }
 
-      const policyContent = contentMatch ? contentMatch[1].trim() : aiContent;
-
-      // Save generation record
-      const { data: generationRecord, error: insertError } = await supabase
-        .from('policy_generations')
-        .insert({
-          user_id: userId,
-          practice_id: practiceId,
-          policy_name: metadata?.title || 'Updated Policy',
-          generation_type: 'update',
-          generated_content: policyContent,
-          metadata,
-          gap_analysis,
-        })
-        .select('id')
-        .single();
-
-      if (insertError) {
-        console.error('Failed to save generation record:', insertError);
-      }
-
-      return new Response(JSON.stringify({
-        success: true,
-        content: policyContent,
-        metadata,
-        generation_id: generationRecord?.id,
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // New policy generation
-    if (!policy_reference_id || !practice_details) {
-      throw new Error('policy_reference_id and practice_details are required');
-    }
-
-    // Fetch policy reference details
-    const { data: policyRef, error: policyRefError } = await supabase
-      .from('policy_reference_library')
-      .select('*')
-      .eq('id', policy_reference_id)
-      .single();
-
-    if (policyRefError || !policyRef) {
-      throw new Error('Policy reference not found');
-    }
-
-    // Build user prompt
-    const servicesOffered = practice_details.services_offered
-      ? Object.entries(practice_details.services_offered)
-          .filter(([_, enabled]) => enabled)
-          .map(([service]) => service.replace(/_/g, ' '))
-          .join(', ')
-      : 'Standard GP services';
-
-    // Build branch site info if available
-    let branchSiteInfo = 'None';
-    if (practice_details.has_branch_site && practice_details.branch_site_name) {
-      branchSiteInfo = `${practice_details.branch_site_name}`;
-      if (practice_details.branch_site_address) {
-        branchSiteInfo += `, ${practice_details.branch_site_address}`;
-      }
-      if (practice_details.branch_site_postcode) {
-        branchSiteInfo += `, ${practice_details.branch_site_postcode}`;
-      }
-      if (practice_details.branch_site_phone) {
-        branchSiteInfo += ` (Tel: ${practice_details.branch_site_phone})`;
-      }
-    }
-
-    const userPrompt = `Generate a ${policyRef.policy_name} policy for:
+          userPrompt = `Generate a ${policyRef.policy_name} policy for:
 
 PRACTICE DETAILS:
 - Practice Name: ${practice_details.practice_name || 'GP Practice'}
@@ -385,124 +317,118 @@ ${custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${custom_instructions}` : ''}
 
 Please generate a complete, professional policy document that meets all regulatory requirements.`;
 
-    console.log('Generating policy:', policyRef.policy_name);
-
-    if (!ANTHROPIC_API_KEY) {
-      throw new Error('ANTHROPIC_API_KEY not configured');
-    }
-
-    // Use streaming to prevent gateway timeout on long generations
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 16000,
-        stream: true,
-        system: systemPrompt,
-        messages: [
-          { role: 'user', content: userPrompt },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Anthropic API error:', response.status, errorText);
-      throw new Error(`Anthropic API error: ${response.status}`);
-    }
-
-    // Collect streamed content
-    let aiContent = '';
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-          try {
-            const event = JSON.parse(jsonStr);
-            if (event.type === 'content_block_delta' && event.delta?.text) {
-              aiContent += event.delta.text;
-            }
-          } catch {
-            // skip malformed lines
-          }
+          console.log('Generating policy:', policyRef.policy_name);
+          defaultTitle = policyRef.policy_name;
+          genType = 'new';
+          extraInsertFields = { policy_reference_id };
         }
+
+        // Call Anthropic with streaming
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': ANTHROPIC_API_KEY!,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 16000,
+            stream: true,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: userPrompt }],
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Anthropic API error:', response.status, errorText);
+          throw new Error(`Anthropic API error: ${response.status}`);
+        }
+
+        // Stream from Anthropic while sending keepalives to client
+        const aiContent = await streamAnthropicWithKeepalive(response, writer, encoder);
+
+        // Parse the response
+        const metadataMatch = aiContent.match(/===METADATA===([\s\S]*?)===POLICY_CONTENT===/);
+        const contentMatch = aiContent.match(/===POLICY_CONTENT===([\s\S]*)/);
+
+        const metadata: any = {
+          title: defaultTitle,
+          version: genType === 'update' ? '2.0' : '1.0',
+          effective_date: new Date().toLocaleDateString('en-GB'),
+          review_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB'),
+          references: [],
+        };
+        if (genType === 'update' && gap_analysis) {
+          metadata.changes_summary = gap_analysis.gaps || [];
+        }
+
+        if (metadataMatch) {
+          const metadataText = metadataMatch[1];
+          const titleMatch = metadataText.match(/Title:\s*(.+)/);
+          const versionMatch = metadataText.match(/Version:\s*(.+)/);
+          const effectiveDateMatch = metadataText.match(/Effective Date:\s*(.+)/);
+          const reviewDateMatch = metadataText.match(/Review Date:\s*(.+)/);
+          const referencesMatch = metadataText.match(/References:\s*(.+)/);
+
+          if (titleMatch) metadata.title = titleMatch[1].trim();
+          if (versionMatch) metadata.version = versionMatch[1].trim();
+          if (effectiveDateMatch) metadata.effective_date = effectiveDateMatch[1].trim();
+          if (reviewDateMatch) metadata.review_date = reviewDateMatch[1].trim();
+          if (referencesMatch) metadata.references = referencesMatch[1].split(',').map((r: string) => r.trim());
+        }
+
+        const policyContent = contentMatch ? contentMatch[1].trim() : aiContent;
+
+        // Save generation record
+        const { data: generationRecord, error: insertError } = await supabase
+          .from('policy_generations')
+          .insert({
+            user_id: userId,
+            practice_id: practiceId,
+            policy_name: metadata?.title || defaultTitle,
+            generation_type: genType,
+            generated_content: policyContent,
+            metadata,
+            ...extraInsertFields,
+          })
+          .select('id')
+          .single();
+
+        if (insertError) {
+          console.error('Failed to save generation record:', insertError);
+        }
+
+        console.log('Policy generated successfully:', metadata.title);
+
+        // Send final result as SSE event
+        const result = JSON.stringify({
+          success: true,
+          content: policyContent,
+          metadata,
+          generation_id: generationRecord?.id,
+        });
+        await writer.write(encoder.encode(`data: {"type":"result","data":${result}}\n\n`));
+      } catch (error) {
+        console.error('generate-policy error:', error);
+        const errMsg = error instanceof Error ? error.message : 'Unknown error';
+        await writer.write(encoder.encode(`data: {"type":"error","error":"${errMsg.replace(/"/g, '\\"')}"}\n\n`));
+      } finally {
+        await writer.close();
       }
-    }
-
-    // Parse the response
-    const metadataMatch = aiContent.match(/===METADATA===([\s\S]*?)===POLICY_CONTENT===/);
-    const contentMatch = aiContent.match(/===POLICY_CONTENT===([\s\S]*)/);
-
-    const metadata: any = {
-      title: policyRef.policy_name,
-      version: '1.0',
-      effective_date: new Date().toLocaleDateString('en-GB'),
-      review_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB'),
-      references: [],
     };
 
-    if (metadataMatch) {
-      const metadataText = metadataMatch[1];
-      const titleMatch = metadataText.match(/Title:\s*(.+)/);
-      const versionMatch = metadataText.match(/Version:\s*(.+)/);
-      const effectiveDateMatch = metadataText.match(/Effective Date:\s*(.+)/);
-      const reviewDateMatch = metadataText.match(/Review Date:\s*(.+)/);
-      const referencesMatch = metadataText.match(/References:\s*(.+)/);
+    // Start processing (don't await — the response streams back immediately)
+    processPolicy();
 
-      if (titleMatch) metadata.title = titleMatch[1].trim();
-      if (versionMatch) metadata.version = versionMatch[1].trim();
-      if (effectiveDateMatch) metadata.effective_date = effectiveDateMatch[1].trim();
-      if (reviewDateMatch) metadata.review_date = reviewDateMatch[1].trim();
-      if (referencesMatch) metadata.references = referencesMatch[1].split(',').map((r: string) => r.trim());
-    }
-
-    const policyContent = contentMatch ? contentMatch[1].trim() : aiContent;
-
-    // Save generation record
-    const { data: generationRecord, error: insertError } = await supabase
-      .from('policy_generations')
-        .insert({
-          user_id: userId,
-          practice_id: practiceId,
-          policy_reference_id,
-          policy_name: metadata?.title || 'New Policy',
-          generation_type: 'new',
-          generated_content: policyContent,
-          metadata,
-        })
-      .select('id')
-      .single();
-
-    if (insertError) {
-      console.error('Failed to save generation record:', insertError);
-    }
-
-    console.log('Policy generated successfully:', metadata.title);
-
-    return new Response(JSON.stringify({
-      success: true,
-      content: policyContent,
-      metadata,
-      generation_id: generationRecord?.id,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(readable, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     });
 
   } catch (error) {
