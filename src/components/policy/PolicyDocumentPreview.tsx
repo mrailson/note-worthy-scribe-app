@@ -148,6 +148,14 @@ const parseMarkdownContent = (
       continue;
     }
 
+    // Skip standalone "Practice: ..." and "ODS Code: ..." lines (already in document control table)
+    if (/^(\*\*)?Practice:?\*?\*?\s*.+/i.test(trimmedLine) && !trimmedLine.toLowerCase().includes('policy')) {
+      continue;
+    }
+    if (/^(\*\*)?ODS\s*Code:?\*?\*?\s*[A-Z0-9]+/i.test(trimmedLine)) {
+      continue;
+    }
+
     // Handle table lines
     if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
       flushList();
@@ -158,7 +166,21 @@ const parseMarkdownContent = (
       flushTable();
     }
 
-    // Handle headings
+    // Handle headings (#### before ### to avoid mis-match)
+    if (trimmedLine.startsWith('#### ')) {
+      flushList();
+      elements.push(
+        <h4 
+          key={`h4-${keyIndex++}`} 
+          className="text-sm font-semibold mt-3 mb-1"
+          style={{ color: COLORS.subHeadingBlue }}
+        >
+          {formatInlineText(trimmedLine.slice(5))}
+        </h4>
+      );
+      continue;
+    }
+
     if (trimmedLine.startsWith('### ')) {
       flushList();
       // If we previously encountered a lone DOCUMENT CONTROL heading, do not render it as a heading.
@@ -227,7 +249,23 @@ const parseMarkdownContent = (
       continue;
     }
 
-    // Handle sub-numbered headings like "1.1 Purpose"
+    // Handle sub-sub-numbered headings like "5.4.2 Local Recall" (three-level)
+    const subSubNumberedMatch = trimmedLine.match(/^(\d+\.\d+\.\d+)\s+(.+)$/);
+    if (subSubNumberedMatch) {
+      flushList();
+      elements.push(
+        <h4 
+          key={`ssnh-${keyIndex++}`} 
+          className="text-sm font-semibold mt-3 mb-1"
+          style={{ color: COLORS.subHeadingBlue }}
+        >
+          {trimmedLine}
+        </h4>
+      );
+      continue;
+    }
+
+    // Handle sub-numbered headings like "1.1 Purpose" (two-level)
     const subNumberedMatch = trimmedLine.match(/^(\d+\.\d+)\s+(.+)$/);
     if (subNumberedMatch) {
       flushList();
