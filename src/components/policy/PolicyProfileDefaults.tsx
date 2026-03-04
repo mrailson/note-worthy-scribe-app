@@ -319,10 +319,10 @@ export const PolicyProfileDefaults = () => {
       });
 
       if (practiceDetailsId) {
-        // Update existing record
+        // Update existing record — always ensure is_default is set
         const { data: updatedRow, error } = await supabase
           .from('practice_details')
-          .update(updateData)
+          .update({ ...updateData, is_default: true })
           .eq('id', practiceDetailsId)
           .select()
           .single();
