@@ -1,48 +1,46 @@
 
 
-## Plan: Email Compose Modal with Togglable Sections & Live Preview
+## Plan: Bulk Add Staff to Attendees & Practice Staff List
 
-### What This Does
-Replaces the current direct-send flow in the Request Information panel with an intermediate **Email Compose Modal**. After selecting a staff member, the user clicks "Send Request" which opens a new modal showing the full email with toggle switches for each section, plus a live HTML preview that updates in real-time.
+### What We Know
+- **Anita Carter's user_id**: `0f36cc1e-1a4d-43cb-a4d3-6e5a5e799ac0`
+- **Brook Health Centre practice_id**: `ebb2bf2c-1d20-42d9-8572-ce07a4dae3de`
+- **Already added as attendees**: Lesley Driscoll, Lisa Belch, Michele Cooper (+ "Carter")
+- **Total individual staff in document**: ~33 people (excluding generic emails like Complaints, Arden & Gem, Prescriptions, Secretaries, BHC Generic, Safeguarding)
+- **Already existing**: 3 match (Lesley Driscoll, Lisa Belch, Michele Cooper) — so ~30 new attendees to add
+- **Anita Carter herself** should be excluded (she's the owner)
 
-### Changes
+### What We'll Do
 
-#### 1. New Component: `src/components/complaints/EmailComposeModal.tsx`
-A large modal (~max-w-5xl) with two columns:
-- **Left column — Controls:**
-  - **Sender name**: Pre-filled from logged-in user's `profiles.full_name`, editable
-  - **Toggle switches** for four sections:
-    - Complaint description (on by default)
-    - Patient name (on by default)
-    - Acknowledgement letter (on by default, if one exists)
-    - Response deadline / important info (on by default)
-  - Send / Cancel buttons
-- **Right column — Live preview:**
-  - Renders the email HTML in a sandboxed iframe, updating whenever toggles change
-  - The email template mirrors the existing one in `send-complaint-notifications` but sections are conditionally included based on toggle state
+#### 1. Insert ~30 new attendees into the `attendees` table
+Each record will have:
+- `user_id`: Anita Carter's ID (she owns these attendee records)
+- `practice_id`: Brook Health Centre's ID
+- `name`: Staff member's full name
+- `email`: Their NHS email
+- `role`: "Admin Team" (as requested)
+- `organization`: "The Brook Health Centre"
+- `organization_type`: "practice"
+- `is_default`: false
 
-The component receives complaint data, practice details, acknowledgement text, party info, and toggle states, then generates the HTML preview client-side.
+Staff to add (excluding Anita Carter, Lesley Driscoll, Lisa Belch, Michele Cooper):
+Arif Supple, Samreen Arif, Clare Turner, Dayani Perera, Theresa Kirkland, Linda Davidsen, Jackie Bullivant, Adele Emerson, Sarah Mitchell, Tracy Marshall, Kerrie Mortimer, Katie Gray, Colleen Dennis, Hazel Smith, Isla Bridgwood, Wendy Green, Mandy Lowe, Jackie Palmer, Kim McKeown, Kate Key, Caroline Kirton, Jade Brown, Abby Samuel, Jane Green, Tina Mullis, Helen De Bono, Phoebe Johnson, Parul Ravalia, Bianca Pahontu, Dr P Stevens, Dr Afaq Malik, Tina Purnell, Rebecca Evans
 
-#### 2. Update `src/components/RequestInformationPanel.tsx`
-- Import `EmailComposeModal`
-- Fetch the logged-in user's `full_name` from profiles on mount
-- Fetch complaint details and acknowledgement data client-side (needed for preview)
-- When the user clicks "Send Request", instead of calling the edge function directly, open the `EmailComposeModal` with all the data
-- Pass selected toggle states and sender name through to the edge function call
+#### 2. Insert ~33 staff into `practice_staff_defaults` table
+This populates the practice's staff/team list. All entries with:
+- `practice_id`: Brook Health Centre
+- `staff_name`: Full name
+- `default_email`: NHS email
+- `staff_role`: "Admin Team"
+- `is_active`: true
 
-#### 3. Update Edge Function: `supabase/functions/send-complaint-notifications/index.ts`
-- Accept new optional fields in the request body:
-  - `senderName: string` — used in the email sign-off instead of practice name
-  - `includeDescription: boolean` (default true)
-  - `includePatientName: boolean` (default true)
-  - `includeAcknowledgement: boolean` (default true)
-  - `includeDeadline: boolean` (default true)
-- Conditionally include/exclude each section in the HTML template based on these flags
-- Use `senderName` in the sign-off ("Kind regards, {senderName}")
+This includes all staff from the document (including those already in attendees, since practice_staff_defaults is a separate table and currently empty for this practice).
 
 ### Technical Details
-- The live preview generates HTML client-side using the same template structure as the edge function, wrapped in an iframe via `srcdoc`
-- Toggle switches use the existing `Switch` component from `@radix-ui/react-switch`
-- No database changes required
-- Edge function redeployment required after changes
+- No code changes needed — this is purely data insertion using SQL
+- No login accounts will be created
+- The "Ask AI" (AI4GP) and "Meeting Manager" access note is acknowledged but since these are attendee records only (not user accounts), module access doesn't apply — module access requires a login account. The attendees will appear in the practice's attendee list and staff defaults for meeting/complaint workflows.
+
+### Implementation
+Two SQL insert statements executed via the database insert tool — one for the `attendees` table and one for `practice_staff_defaults`.
 
