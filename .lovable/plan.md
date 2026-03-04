@@ -1,24 +1,18 @@
 
 
-## Plan: Add Privacy Notice & Accessibility Statement as Public Pages
+## Plan: Enforce British English in Complaint Outcome Letter Generation
 
-### What This Does
-Adds the two uploaded HTML documents as publicly accessible pages at `/privacy-notice` and `/accessibility-statement`, and adds links to them in the logged-out homepage footer area (the governance trust bar section).
+### Problem
+The system prompt already includes "British English (spellings and grammar)" but the LLM occasionally produces American spellings (e.g., "minimize" instead of "minimise").
 
-### Changes
+### Change
+**File: `supabase/functions/generate-complaint-outcome-letter/index.ts`**
 
-#### 1. Copy HTML files to `public/documents/`
-- Copy `privacy-notice.html` → `public/documents/privacy-notice.html`
-- Copy `accessibility-statement.html` → `public/documents/accessibility-statement.html`
+Strengthen the British English instruction in the system prompt (around line 322) by adding explicit examples and a stronger directive. Replace the single line with a more forceful, example-driven instruction:
 
-#### 2. Create two new page components
-- `src/pages/PrivacyNotice.tsx` — renders the HTML in an iframe (same pattern as `GPContract.tsx`), with a back button, print, and download controls.
-- `src/pages/AccessibilityStatement.tsx` — same pattern.
+```
+- British English ONLY — this is mandatory. Use British spellings throughout (e.g., "minimise" not "minimize", "recognised" not "recognized", "centre" not "center", "behaviour" not "behavior", "colour" not "color", "organised" not "organized", "apologise" not "apologize", "specialised" not "specialized", "programme" not "program"). Any American English spelling is an error.
+```
 
-#### 3. Add public routes in `App.tsx`
-- `/privacy-notice` → `<PrivacyNotice />` (no `ProtectedRoute` wrapper)
-- `/accessibility-statement` → `<AccessibilityStatement />` (no `ProtectedRoute` wrapper)
-
-#### 4. Add links to the logged-out homepage
-- In `src/pages/Index.tsx`, below the governance trust bar (around line 522), add a small footer row with links: "Privacy Notice" and "Accessibility Statement", styled as subtle text links consistent with the existing trust bar aesthetic.
+This will also require redeploying the edge function.
 
