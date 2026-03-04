@@ -41,7 +41,13 @@ const ENHANCEMENT_SYSTEM_PROMPT = `You are an NHS primary care policy expert pre
 ## OUTPUT FORMAT
 CRITICAL: Preserve the EXACT document header structure. Do NOT restructure Document Control table, header fields, Equality Impact Assessment Statement, section numbering, or Version History table position (must remain section 11). Only enhance CONTENT within existing sections.
 
-Return the enhanced policy as a complete document with all mandatory sections, policy-specific requirements addressed, current references with years, and clean finalised text without inline flags.`;
+## SECTION 8.1 — KPI TABLE (MANDATORY)
+Section 8.1 MUST contain a populated KPI table with at least 5 measurable Key Performance Indicators relevant to the specific policy type. Each KPI row must include: KPI Name, Target/Standard, Measurement Method, Frequency, and Responsible Person. Do NOT leave this section empty or with placeholder text.
+
+## SECTION 11 — VERSION HISTORY (STRICT RULES)
+Section 11 must contain ONLY a version history table with columns: Version | Date | Author | Summary of Changes. Do NOT output internal notes, compliance gap analyses, AI instructions, or enhancement commentary into section 11.
+
+Return the enhanced policy as a complete document with all mandatory sections, policy-specific requirements addressed, current references with years, clean finalised text without inline flags, a populated KPI table in section 8.1, and only a version history table in section 11.`;
 
 const systemPrompt = `CRITICAL CLINICAL OVERRIDE — CERVICAL SCREENING INTERVALS (effective 1 July 2025):
 The NHS changed cervical screening recall intervals on 1 July 2025.
