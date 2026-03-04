@@ -855,6 +855,27 @@ MANDATORY ENHANCEMENT CHECKLIST:
 7. Remove any lines beginning with > (blockquote markers used for internal notes)
 8. Never output internal notes, gap analysis, compliance checklists, or AI instructions anywhere
 
+FINAL OUTPUT VERIFICATION (do this before returning the document):
+A) Check Section 7 (Related Policies): Does it contain a bulleted list of at least 10 named policy titles? If NOT, generate it now. Example format:
+- Infection Prevention and Control Policy
+- Safeguarding Adults Policy
+- Safeguarding Children Policy
+- Health and Safety Policy
+- Information Governance Policy
+- Confidentiality Policy
+- Equality and Diversity Policy
+- Staff Training and Development Policy
+- Risk Management Policy
+- Clinical Governance Policy
+Replace these examples with titles specifically relevant to this ${policyName} policy.
+
+B) Check Section 11 (Version History): Does it contain a version history table? If NOT, generate it now using this format:
+| Version | Date | Author | Summary of Changes |
+|---------|------|--------|-------------------|
+| 1.0 | ${new Date().toLocaleDateString('en-GB')} | ${(jobPractice as any)?.practice_manager || 'Practice Manager'} | Initial issue |
+
+If either section is missing or incomplete, you MUST add it before returning. Do not skip this step.
+
 PRACTICE DATA FOR PLACEHOLDER REPLACEMENT:
 ${practiceContext}
 
