@@ -1,24 +1,25 @@
 
 
-## Plan: Replace Policy Generator System Prompts
+## Plan: Switch Policy Generator to Claude Sonnet 4.6
 
-Two targeted edits to replace the system prompts in both edge functions with the user-provided text.
+### Changes Required
 
-### Change 1: `supabase/functions/generate-policy/index.ts`
-- Replace the `systemPrompt` constant (lines 13–111) with the new prompt text provided
-- Key additions vs current: `⚠️[VERIFY CURRENCY]` inline flags, `GUIDANCE CURRENCY RULE` section, `GUIDANCE CURRENCY NOTICE` box in Section 10
-- Removal: "Reference current (2024/2025) guidance and legislation only" replaced with the verify-currency approach
-- Structure otherwise identical — header template, sections 1–11, version history all preserved
+**1. `supabase/functions/generate-policy/index.ts`** — Replace Gemini with Claude
+- **Line 196 (update path)**: Change model from `google/gemini-3-flash-preview` to call the Anthropic API directly using `claude-sonnet-4-6`
+- **Line 376 (new path)**: Same change for the update generation type
+- This means switching from Lovable AI Gateway to the Anthropic API (same pattern as the enhance-policy Claude branch)
+- Both the "update" call (line 189–202) and the "new policy" call (line 369–382) need updating
 
-### Change 2: `supabase/functions/enhance-policy/index.ts`
-- Replace the `POLICY_ENHANCEMENT_SYSTEM_PROMPT` constant (lines 9–462) with the new prompt text
-- Key additions vs current: `KNOWN GUIDANCE CHANGES` section at top (cervical screening intervals, flexible working day-one right, Working Together 2023, ReSPECT/Tracey, DSPT 2024/25)
-- Updated user message template (line 507–512) to match the new format: `Please review and enhance the following {policyType} policy for {practiceName} (ODS: {odsCode})...`
-- Output format now includes item 3 (apply known guidance changes), item 8 (GUIDANCE CURRENCY NOTICE box)
-- All 90 policy-specific requirements restructured with more detail (e.g., cervical screening now includes HPV history caveat, NHS App channel)
+**2. `supabase/functions/enhance-policy/index.ts`** — Update Claude model string
+- **Line 384**: Change `claude-sonnet-4-20250514` → `claude-sonnet-4-6`
+- **Line 413**: Change `modelUsed` from `claude-sonnet-4-20250514` → `claude-sonnet-4-6`
 
-### Deployment
-Both edge functions will need redeploying after the edits.
+**3. `src/components/admin/PolicyEnhancementModelSettings.tsx`** — Update display name
+- **Line 82**: Update model name label from `Claude Sonnet 4` to `Claude Sonnet 4.6` for clarity
 
-### No database or frontend changes required.
+### Technical Detail
+
+The generate-policy function currently uses the Lovable AI Gateway with Gemini. Switching to Claude requires using the Anthropic API directly (with `ANTHROPIC_API_KEY`), matching the pattern already used in the enhance-policy Claude branch. The request/response format differs: Anthropic uses `system` as a top-level field and returns `data.content[0].text` rather than `data.choices[0].message.content`.
+
+Both edge functions will be redeployed after changes.
 
