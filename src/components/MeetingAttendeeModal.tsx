@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, Plus, Edit, Trash2, Check, Search, Globe, Building2, Info, Mail } from "lucide-react";
+import { Users, Plus, Edit, Trash2, Check, Search, Globe, Building2, Info, Mail, FileUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { showToast } from "@/utils/toastWrapper";
 import { DistributionListManager } from "@/components/DistributionListManager";
+import { AttendeeImportTab } from "@/components/meeting/AttendeeImportTab";
 
 interface Attendee {
   id: string;
@@ -562,10 +563,14 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
         </DialogHeader>
 
         <Tabs defaultValue="quick-pick" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="quick-pick">Quick Pick ({selectedAttendeeIds.length})</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
             <TabsTrigger value="manage">Manage Attendees</TabsTrigger>
+            <TabsTrigger value="import">
+              <FileUp className="h-4 w-4 mr-1" />
+              Import
+            </TabsTrigger>
             <TabsTrigger value="distribution">
               <Mail className="h-4 w-4 mr-1" />
               Distribution Lists
@@ -1056,6 +1061,18 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
                 </Card>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="import" className="space-y-4">
+            <AttendeeImportTab
+              allAttendees={allAttendees}
+              userPracticeIds={userPracticeIds}
+              userId={user?.id || ''}
+              onImportComplete={(newIds) => {
+                fetchAttendees();
+                setSelectedAttendeeIds(prev => [...prev, ...newIds]);
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="distribution" className="space-y-4">

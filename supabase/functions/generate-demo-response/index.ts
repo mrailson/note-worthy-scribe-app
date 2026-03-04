@@ -382,6 +382,108 @@ additional_context: ${parsedArgs.additional_context}`;
       );
     }
 
+    // ===== EXTRACT ATTENDEES MODE =====
+    if (action === 'extract-attendees') {
+      const { text } = body;
+      if (!text || typeof text !== 'string') {
+        throw new Error('text is required for extract-attendees mode');
+      }
+
+      console.log('Extracting attendees from document text, length:', text.length);
+
+      const extractSystemPrompt = `You extract people/attendees from document text. Return a JSON array of attendee objects.
+
+RULES:
+- Extract ALL people mentioned in the text.
+- Only include fields where data is clearly present — do NOT invent or guess.
+- Use British English throughout.
+- For "title", use common prefixes: Dr, Mr, Mrs, Ms, Miss, Prof, Rev, etc. Only include if explicitly stated.
+- For "role", use the job title or position mentioned (e.g. "Practice Manager", "GP Partner", "Clinical Lead").
+- For "organization", use the organisation name mentioned (e.g. practice name, PCN name, ICB name).
+- If the document is a table or list, extract each row/entry as a separate attendee.
+- If only names are present with no other details, still return them with just the name field.
+- Return an empty array [] if no people can be identified.`;
+
+      const extractUserPrompt = `Extract all people/attendees from this document text and return them as a JSON array:
+
+${text.substring(0, 15000)}
+
+Return ONLY a JSON array like:
+[{ "name": "...", "email": "...", "title": "...", "role": "...", "organization": "..." }]`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: extractSystemPrompt },
+            { role: 'user', content: extractUserPrompt },
+          ],
+          temperature: 0.2,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Rate limits exceeded. Please try again in a moment.' }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'AI credits exhausted. Please add credits to your Lovable workspace.' }),
+            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const errorText = await response.text();
+        console.error('AI Gateway error:', response.status, errorText);
+        throw new Error(`AI Gateway error: ${response.status}`);
+      }
+
+      const aiData = await response.json();
+      const content = aiData.choices?.[0]?.message?.content;
+
+      if (!content) {
+        throw new Error('AI did not return content');
+      }
+
+      let attendees;
+      try {
+        const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        attendees = JSON.parse(cleanContent);
+      } catch {
+        console.error('Failed to parse attendees JSON:', content);
+        throw new Error('Failed to parse AI response as JSON');
+      }
+
+      if (!Array.isArray(attendees)) {
+        throw new Error('AI response is not an array');
+      }
+
+      // Validate and clean each attendee
+      const cleanedAttendees = attendees
+        .filter((a: any) => a && typeof a === 'object' && a.name && typeof a.name === 'string' && a.name.trim().length > 0)
+        .map((a: any) => ({
+          name: a.name.trim(),
+          email: a.email && typeof a.email === 'string' ? a.email.trim() : undefined,
+          title: a.title && typeof a.title === 'string' ? a.title.trim() : undefined,
+          role: a.role && typeof a.role === 'string' ? a.role.trim() : undefined,
+          organization: a.organization && typeof a.organization === 'string' ? a.organization.trim() : undefined,
+        }));
+
+      console.log(`Extracted ${cleanedAttendees.length} attendees from document`);
+
+      return new Response(
+        JSON.stringify({ success: true, attendees: cleanedAttendees }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
     // ===== DEMO MODE (existing logic, unchanged) =====
     const { complaintReference, complaintDescription, category, patientName } = body;
     
