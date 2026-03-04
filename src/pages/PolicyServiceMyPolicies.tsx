@@ -69,7 +69,7 @@ const PolicyServiceMyPolicies = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { completions, isLoading, getDaysUntilReview, deleteCompletion } = usePolicyCompletions();
-  const { jobs, activeJobCount, isLoading: jobsLoading } = usePolicyJobs();
+  const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue } = usePolicyJobs();
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [previewPolicy, setPreviewPolicy] = useState<typeof completions[0] | null>(null);
@@ -202,13 +202,29 @@ const PolicyServiceMyPolicies = () => {
         {/* In Progress Jobs */}
         {(activeJobs.length > 0 || recentFailedJobs.length > 0) && (
           <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <RefreshCw className={`h-4 w-4 ${activeJobCount > 0 ? 'animate-spin' : ''}`} />
-              In Progress
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <RefreshCw className={`h-4 w-4 ${activeJobCount > 0 ? 'animate-spin' : ''}`} />
+                In Progress
+                {activeJobCount > 0 && (
+                  <span className="text-xs text-muted-foreground font-normal">Auto-refreshing every 15s</span>
+                )}
+              </h2>
               {activeJobCount > 0 && (
-                <span className="text-xs text-muted-foreground font-normal">Auto-refreshing every 15s</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    kickQueue();
+                    toast.info('Queue processor restarted');
+                  }}
+                  className="gap-1 text-xs"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Restart Queue
+                </Button>
               )}
-            </h2>
+            </div>
             <div className="space-y-2">
               {[...activeJobs, ...recentFailedJobs].map(job => (
                 <Card key={job.id} className="border-dashed">

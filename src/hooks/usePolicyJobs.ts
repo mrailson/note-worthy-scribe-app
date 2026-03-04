@@ -22,6 +22,7 @@ export const usePolicyJobs = () => {
   const [jobs, setJobs] = useState<PolicyJob[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastKickRef = useRef<number>(0);
 
   const fetchJobs = useCallback(async () => {
     if (!user) return;
@@ -40,9 +41,55 @@ export const usePolicyJobs = () => {
     }
   }, [user]);
 
+  // Kick the queue processor if there are stale pending/enhancing jobs
+  const kickQueue = useCallback(async () => {
+    if (!user) return;
+
+    // Only kick once every 30 seconds to avoid spamming
+    const now = Date.now();
+    if (now - lastKickRef.current < 30000) return;
+    lastKickRef.current = now;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      fetch(`${supabaseUrl}/functions/v1/generate-policy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ action: 'process-job', job_user_id: user.id }),
+      }).catch(() => {}); // Fire and forget
+
+      console.log('[usePolicyJobs] Kicked queue processor');
+    } catch (e) {
+      console.error('[usePolicyJobs] Failed to kick queue:', e);
+    }
+  }, [user]);
+
   const activeJobCount = jobs.filter(
     j => j.status === 'pending' || j.status === 'generating' || j.status === 'enhancing'
   ).length;
+
+  // Check for stale jobs and kick queue when needed
+  useEffect(() => {
+    if (activeJobCount === 0) return;
+
+    // Check if any active jobs haven't been updated in 60+ seconds (stale)
+    const hasStaleJobs = jobs.some(j => {
+      if (!['pending', 'generating', 'enhancing'].includes(j.status)) return false;
+      const updatedAt = new Date(j.updated_at).getTime();
+      return Date.now() - updatedAt > 60000; // 60 seconds without update = stale
+    });
+
+    if (hasStaleJobs) {
+      kickQueue();
+    }
+  }, [jobs, activeJobCount, kickQueue]);
 
   // Poll every 15s when there are active jobs
   useEffect(() => {
@@ -57,16 +104,21 @@ export const usePolicyJobs = () => {
     };
   }, [activeJobCount, fetchJobs]);
 
-  // Initial fetch
+  // Initial fetch — and kick queue if there are active jobs
   useEffect(() => {
     setIsLoading(true);
-    fetchJobs().finally(() => setIsLoading(false));
-  }, [fetchJobs]);
+    fetchJobs().then(() => {
+      // After initial fetch, kick queue for any pending jobs (covers recovery scenarios)
+      // The kickQueue has its own 30s throttle so this is safe
+      kickQueue();
+    }).finally(() => setIsLoading(false));
+  }, [fetchJobs, kickQueue]);
 
   return {
     jobs,
     activeJobCount,
     isLoading,
     refetch: fetchJobs,
+    kickQueue,
   };
 };
