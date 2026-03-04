@@ -72,6 +72,14 @@ Before returning the enhanced policy, you MUST replace every placeholder where t
 - [Fire Safety Officer] -> fire safety officer name if provided
 Only leave a placeholder as [PRACTICE TO COMPLETE] if the value is genuinely not provided in the practice data.
 
+## ABSOLUTE PROHIBITION — INTERNAL / META CONTENT
+Never output any internal notes, gap analysis, compliance checklists, enhancement commentary, AI instructions, or meta-commentary anywhere in the document. This includes but is not limited to:
+- "Table 16" or any table labelled as a compliance gap analysis, enhancement summary, or similar
+- Sections titled "Critical Compliance Enhancements", "Practice Actions Required", or similar
+- Any bullet list describing what the AI changed, verified, or enhanced
+- Any content after the Version History table
+If you feel the urge to output such content, suppress it entirely. The output must read as a clean, finalised policy document that a practice manager would issue directly.
+
 Return the enhanced policy as a complete document with all mandatory sections, policy-specific requirements addressed, current references with years, clean finalised text without inline flags, a populated KPI table in section 8.1, a populated version history table in section 11, and ALL known placeholders replaced with actual values from the practice data.`;
 
 const BASE_SYSTEM_PROMPT = `CRITICAL CLINICAL OVERRIDE - CERVICAL SCREENING INTERVALS (effective 1 July 2025):
@@ -154,13 +162,21 @@ Output ONLY section 6 in markdown.`;
 const PART3_SYSTEM_ADDITION = `
 You are generating the FINAL PART of a policy document. Sections 1-6 already exist and are provided for context. You must now generate ONLY:
 
-7. RELATED POLICIES
+7. RELATED POLICIES — You MUST output a bulleted list of specific, named policies that are related to this policy type. For example, for a Cervical Screening policy you might list: Infection Prevention and Control Policy, Safeguarding Adults Policy, Consent Policy, Information Governance Policy, Chaperone Policy, Cold Chain Policy, etc. List at least 5 related policy titles as bullet points. Do NOT leave this section as just a heading.
 8. MONITORING AND COMPLIANCE (Section 8.1 MUST contain a KPI table with at least 5 measurable KPIs: KPI Name | Target/Standard | Measurement Method | Frequency | Responsible Person)
 9. REFERENCES AND LEGISLATION
 10. APPENDICES
 11. VERSION HISTORY (MUST contain a populated version history table: Version 1.0, today's date DD/MM/YYYY, Practice Manager as author, "Initial issue - new policy created for [Practice Name]" as summary)
 
 CRITICAL: Section 8.1 KPI table is MANDATORY with 5+ rows. Section 11 must ONLY contain the version history table - no notes or commentary.
+
+## ABSOLUTE PROHIBITION — INTERNAL / META CONTENT
+Never output any internal notes, gap analysis, compliance checklists, enhancement commentary, AI instructions, or meta-commentary anywhere in the document. This includes but is not limited to:
+- "Table 16" or any table labelled as a compliance gap analysis
+- Sections titled "Critical Compliance Enhancements", "Practice Actions Required", or similar
+- Any bullet list describing what the AI changed, verified, or enhanced
+- Any content after the Version History table other than the ===METADATA=== block
+If you feel the urge to output such content, suppress it entirely. The output must read as a clean, finalised policy document that a practice manager would issue directly.
 
 At the END of your output, include this metadata block:
 ===METADATA===
