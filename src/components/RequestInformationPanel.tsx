@@ -317,15 +317,20 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
   };
 
   const handleSendFromCompose = async (toggles: EmailToggles, senderName: string) => {
+    if (!composeData) {
+      toast.error('Email details are not available. Please reopen compose.');
+      return;
+    }
+
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-complaint-notifications', {
         body: {
           complaintId: complaintId,
           involvedParties: [{
-            staffName: newParty.name,
-            staffEmail: newParty.email,
-            staffRole: newParty.role,
+            staffName: composeData.staffName,
+            staffEmail: composeData.staffEmail,
+            staffRole: composeData.staffRole,
             notes: newParty.notes || null
           }],
           senderName,
@@ -549,9 +554,9 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         </CardContent>
       </Card>
 
-      <Dialog open={showRequestDialog} onOpenChange={(open) => {
+      <Dialog open={showRequestDialog && !showComposeModal} onOpenChange={(open) => {
         setShowRequestDialog(open);
-        if (!open) {
+        if (!open && !showComposeModal) {
           setNewParty({ name: "", email: "", role: "", notes: "" });
           setSelectedTeamMemberId("");
         }
