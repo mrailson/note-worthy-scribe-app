@@ -9,6 +9,39 @@ const corsHeaders = {
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+// Enhancement system prompt (inlined from enhance-policy for background jobs)
+const ENHANCEMENT_SYSTEM_PROMPT = `You are an NHS primary care policy expert preparing GP practices for CQC inspection. Your task is to review and enhance generated policies to ensure full regulatory compliance.
+
+## KNOWN GUIDANCE CHANGES — APPLY BEFORE ENHANCING
+
+### CERVICAL SCREENING (effective 1 July 2025)
+- Ages 25–49 who test HPV NEGATIVE → recall is 5 YEARS (not 3 years)
+- Ages 50–64 HPV negative → 5 years
+- Exception: if HPV positive result within last 5 years without subsequent HPV negative test, recall remains at 1 year
+- Exception: if no HPV result on record (screened pre-2019), maintain 3-year recall until HPV test obtained
+- NHS App now used for screening invitations and reminders
+
+### FLEXIBLE WORKING (effective 6 April 2024)
+- Day-one right to request flexible working — remove any reference to 26-week qualifying period
+- Two requests permitted per year (was one)
+- Employer must consult before refusing
+
+### SAFEGUARDING CHILDREN
+- Working Together to Safeguard Children 2023 is the current version
+
+### DNACPR / ReSPECT
+- Ensure ReSPECT process is referenced
+- Tracey v Cambridge University Hospitals NHS Foundation Trust [2014] must be referenced
+
+### DATA PROTECTION / DSPT
+- DSPT 2024/25 standards apply
+
+## OUTPUT FORMAT
+CRITICAL: Preserve the EXACT document header structure. Do NOT restructure Document Control table, header fields, Equality Impact Assessment Statement, section numbering, or Version History table position (must remain section 11). Only enhance CONTENT within existing sections.
+
+Return the enhanced policy as a complete document with all mandatory sections, policy-specific requirements addressed, current references with years, and clean finalised text without inline flags.`;
 
 const systemPrompt = `CRITICAL CLINICAL OVERRIDE — CERVICAL SCREENING INTERVALS (effective 1 July 2025):
 The NHS changed cervical screening recall intervals on 1 July 2025.
@@ -198,7 +231,349 @@ serve(async (req) => {
     const userId = claimsData.claims.sub;
 
     const body = await req.json();
-    const { policy_reference_id, practice_details, custom_instructions, generation_type, original_policy_text, gap_analysis } = body;
+    const { policy_reference_id, practice_details, custom_instructions, generation_type, original_policy_text, gap_analysis, action, job_user_id } = body;
+
+    // ========== BACKGROUND JOB QUEUE PROCESSOR ==========
+    if (action === 'process-job') {
+      const serviceSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const targetUserId = job_user_id || userId;
+      let processed = 0;
+
+      // Loop: claim and process jobs sequentially
+      while (true) {
+        // Atomic claim: grab the oldest pending job for this user
+        const { data: claimedJobs, error: claimError } = await serviceSupabase
+          .rpc('claim_pending_policy_job', { p_user_id: targetUserId });
+
+        // If RPC doesn't exist yet, fall back to manual claim
+        let job: any = null;
+        if (claimError) {
+          // Manual atomic claim
+          const { data: manualClaim, error: manualError } = await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({ status: 'generating', updated_at: new Date().toISOString() })
+            .eq('status', 'pending')
+            .eq('user_id', targetUserId)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .select()
+            .single();
+
+          if (manualError || !manualClaim) break; // No pending jobs
+          job = manualClaim;
+        } else {
+          if (!claimedJobs || (Array.isArray(claimedJobs) && claimedJobs.length === 0)) break;
+          job = Array.isArray(claimedJobs) ? claimedJobs[0] : claimedJobs;
+        }
+
+        if (!job) break;
+
+        console.log(`Processing background job: ${job.id} - ${job.policy_title}`);
+
+        try {
+          // Update status to generating
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({ status: 'generating', updated_at: new Date().toISOString() })
+            .eq('id', job.id);
+
+          // Look up policy reference
+          const { data: policyRef } = await serviceSupabase
+            .from('policy_reference_library')
+            .select('*')
+            .eq('id', job.policy_reference_id)
+            .single();
+
+          if (!policyRef) throw new Error('Policy reference not found');
+
+          const jobPractice = job.practice_details;
+          const servicesOffered = jobPractice?.services_offered
+            ? Object.entries(jobPractice.services_offered)
+                .filter(([_, enabled]) => enabled)
+                .map(([service]) => service.replace(/_/g, ' '))
+                .join(', ')
+            : 'Standard GP services';
+
+          let branchSiteInfo = 'None';
+          if (jobPractice?.has_branch_site && jobPractice?.branch_site_name) {
+            branchSiteInfo = `${jobPractice.branch_site_name}`;
+            if (jobPractice.branch_site_address) branchSiteInfo += `, ${jobPractice.branch_site_address}`;
+            if (jobPractice.branch_site_postcode) branchSiteInfo += `, ${jobPractice.branch_site_postcode}`;
+            if (jobPractice.branch_site_phone) branchSiteInfo += ` (Tel: ${jobPractice.branch_site_phone})`;
+          }
+
+          const jobUserPrompt = `Generate a ${policyRef.policy_name} policy for:
+
+PRACTICE DETAILS:
+- Practice Name: ${jobPractice?.practice_name || 'GP Practice'}
+- Address: ${jobPractice?.address || 'Not specified'}, ${jobPractice?.postcode || ''}
+- ODS Code: ${jobPractice?.ods_code || 'Not specified'}
+- Clinical System: ${jobPractice?.clinical_system || 'Not specified'}
+- Branch Site(s): ${branchSiteInfo}
+- Practice Manager: ${jobPractice?.practice_manager_name || '[PRACTICE TO COMPLETE - Practice Manager name]'}
+- Lead GP: ${jobPractice?.lead_gp_name || '[PRACTICE TO COMPLETE - Lead GP name]'}
+- SIRO: ${jobPractice?.siro || '[PRACTICE TO COMPLETE - SIRO name]'}
+- Caldicott Guardian: ${jobPractice?.caldicott_guardian || '[PRACTICE TO COMPLETE - Caldicott Guardian name]'}
+- Data Protection Officer: ${jobPractice?.dpo_name || '[PRACTICE TO COMPLETE - DPO name]'}
+- Safeguarding Lead (Adults): ${jobPractice?.safeguarding_lead_adults || '[PRACTICE TO COMPLETE - Adult Safeguarding Lead name]'}
+- Safeguarding Lead (Children): ${jobPractice?.safeguarding_lead_children || '[PRACTICE TO COMPLETE - Children Safeguarding Lead name]'}
+- Infection Control Lead: ${jobPractice?.infection_control_lead || '[PRACTICE TO COMPLETE - Infection Control Lead name]'}
+- Complaints Lead: ${jobPractice?.complaints_lead || '[PRACTICE TO COMPLETE - Complaints Lead name]'}
+- Health & Safety Lead: ${jobPractice?.health_safety_lead || '[PRACTICE TO COMPLETE - H&S Lead name]'}
+- Fire Safety Officer: ${jobPractice?.fire_safety_officer || '[PRACTICE TO COMPLETE - Fire Safety Officer name]'}
+- List Size: ${jobPractice?.list_size || 'Not specified'} patients
+- Services Offered: ${servicesOffered}
+
+REGULATORY CONTEXT:
+- CQC KLOE: ${policyRef.cqc_kloe}
+- Category: ${policyRef.category}
+- Priority: ${policyRef.priority}
+- Primary Guidance Sources: ${JSON.stringify(policyRef.guidance_sources || [])}
+- Generation Date: ${new Date().toLocaleDateString('en-GB')}
+
+CRITICAL INSTRUCTIONS FOR CONTACT DETAILS:
+- For any phone numbers, mobile numbers, or contact numbers that are not provided, use the placeholder format: [PRACTICE TO COMPLETE - description]
+- NEVER use dates (like 28/01/2026) as placeholder values for phone numbers
+- For out-of-hours contacts, use placeholders like: [PRACTICE TO COMPLETE - local occupational health service contact]
+- All placeholders must be in square brackets and start with "PRACTICE TO COMPLETE"
+
+${job.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${job.custom_instructions}` : ''}
+
+Please generate a complete, professional policy document that meets all regulatory requirements.`;
+
+          // Step 1: Generate via Anthropic (non-streaming for background)
+          const genResponse = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': ANTHROPIC_API_KEY!,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 16000,
+              system: systemPrompt,
+              messages: [{ role: 'user', content: jobUserPrompt }],
+            }),
+          });
+
+          if (!genResponse.ok) {
+            const errText = await genResponse.text();
+            throw new Error(`Anthropic generation error: ${genResponse.status} - ${errText}`);
+          }
+
+          const genData = await genResponse.json();
+          let generatedContent = genData.content?.[0]?.text || '';
+
+          // Parse metadata from generated content
+          const metadataMatch = generatedContent.match(/===METADATA===([\s\S]*?)===POLICY_CONTENT===/);
+          const contentMatch = generatedContent.match(/===POLICY_CONTENT===([\s\S]*)/);
+
+          const jobMetadata: any = {
+            title: policyRef.policy_name,
+            version: '1.0',
+            effective_date: new Date().toLocaleDateString('en-GB'),
+            review_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB'),
+            references: [],
+          };
+
+          if (metadataMatch) {
+            const mt = metadataMatch[1];
+            const t = mt.match(/Title:\s*(.+)/); if (t) jobMetadata.title = t[1].trim();
+            const v = mt.match(/Version:\s*(.+)/); if (v) jobMetadata.version = v[1].trim();
+            const ed = mt.match(/Effective Date:\s*(.+)/); if (ed) jobMetadata.effective_date = ed[1].trim();
+            const rd = mt.match(/Review Date:\s*(.+)/); if (rd) jobMetadata.review_date = rd[1].trim();
+            const refs = mt.match(/References:\s*(.+)/); if (refs) jobMetadata.references = refs[1].split(',').map((r: string) => r.trim());
+          }
+
+          let policyContent = contentMatch ? contentMatch[1].trim() : generatedContent;
+
+          // Step 2: Enhance
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({ status: 'enhancing', updated_at: new Date().toISOString() })
+            .eq('id', job.id);
+
+          const enhancePrompt = `Please review and enhance the following ${policyRef.policy_name} policy for ${jobPractice?.practice_name || '[PRACTICE NAME]'} (ODS: ${jobPractice?.ods_code || '[ODS CODE]'}).
+
+Ensure it meets all CQC KLOE requirements, applies all known guidance changes listed at the top of your instructions, and includes current regulatory references.
+
+${policyContent}`;
+
+          try {
+            const enhResponse = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': ANTHROPIC_API_KEY!,
+                'anthropic-version': '2023-06-01',
+              },
+              body: JSON.stringify({
+                model: 'claude-sonnet-4-6',
+                max_tokens: 16000,
+                system: ENHANCEMENT_SYSTEM_PROMPT,
+                messages: [{ role: 'user', content: enhancePrompt }],
+              }),
+            });
+
+            if (enhResponse.ok) {
+              const enhData = await enhResponse.json();
+              const enhancedContent = enhData.content?.[0]?.text;
+              if (enhancedContent) policyContent = enhancedContent;
+            }
+          } catch (enhErr) {
+            console.error('Enhancement failed, using original:', enhErr);
+          }
+
+          // Step 3: Save to policy_completions
+          // Convert dates to ISO format for PostgreSQL
+          const convertToISO = (dateStr: string): string => {
+            if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.split('T')[0];
+            const parts = dateStr.split('/');
+            if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            return dateStr;
+          };
+
+          // Look up practice_id
+          let jobPracticeId: string | null = null;
+          if (jobPractice?.ods_code) {
+            const { data: pr } = await serviceSupabase
+              .from('gp_practices')
+              .select('id')
+              .eq('ods_code', jobPractice.ods_code)
+              .maybeSingle();
+            jobPracticeId = pr?.id || null;
+          }
+
+          // Check for existing completion
+          const { data: existingCompletion } = await serviceSupabase
+            .from('policy_completions')
+            .select('id')
+            .eq('user_id', job.user_id)
+            .eq('policy_reference_id', job.policy_reference_id)
+            .eq('status', 'completed')
+            .maybeSingle();
+
+          if (existingCompletion) {
+            await serviceSupabase
+              .from('policy_completions')
+              .update({
+                policy_title: jobMetadata.title,
+                policy_content: policyContent,
+                metadata: jobMetadata,
+                effective_date: convertToISO(jobMetadata.effective_date),
+                review_date: convertToISO(jobMetadata.review_date),
+                version: jobMetadata.version,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', existingCompletion.id);
+          } else {
+            await serviceSupabase
+              .from('policy_completions')
+              .insert({
+                user_id: job.user_id,
+                practice_id: jobPracticeId,
+                policy_reference_id: job.policy_reference_id,
+                policy_title: jobMetadata.title,
+                policy_content: policyContent,
+                metadata: jobMetadata,
+                effective_date: convertToISO(jobMetadata.effective_date),
+                review_date: convertToISO(jobMetadata.review_date),
+                version: jobMetadata.version,
+                status: 'completed',
+              });
+          }
+
+          // Also save to policy_generations
+          await serviceSupabase
+            .from('policy_generations')
+            .insert({
+              user_id: job.user_id,
+              practice_id: jobPracticeId,
+              policy_name: jobMetadata.title,
+              generation_type: 'new',
+              generated_content: policyContent,
+              metadata: jobMetadata,
+              policy_reference_id: job.policy_reference_id,
+            });
+
+          // Step 4: Mark job completed
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              status: 'completed',
+              generated_content: policyContent,
+              metadata: jobMetadata,
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', job.id);
+
+          // Step 5: Email if requested
+          if (job.email_when_ready) {
+            try {
+              // Get user email
+              const { data: userData } = await serviceSupabase.auth.admin.getUserById(job.user_id);
+              const userEmail = userData?.user?.email;
+
+              if (userEmail) {
+                await fetch(`${SUPABASE_URL}/functions/v1/send-email-resend`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                  },
+                  body: JSON.stringify({
+                    to_email: userEmail,
+                    subject: `Your policy is ready: ${jobMetadata.title}`,
+                    html_content: `
+                      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2 style="color: #1a365d;">Your Policy is Ready</h2>
+                        <p>Hi,</p>
+                        <p>Your policy <strong>${jobMetadata.title}</strong> has been generated and enhanced successfully.</p>
+                        <p>You can view and download it from your <a href="https://meetingmagic.lovable.app/policy-service/my-policies" style="color: #2563eb;">My Policies</a> page.</p>
+                        <div style="margin: 24px 0; padding: 16px; background-color: #f0f9ff; border-radius: 8px;">
+                          <p style="margin: 0; font-size: 14px; color: #64748b;">
+                            <strong>Version:</strong> ${jobMetadata.version}<br/>
+                            <strong>Effective Date:</strong> ${jobMetadata.effective_date}<br/>
+                            <strong>Review Date:</strong> ${jobMetadata.review_date}
+                          </p>
+                        </div>
+                        <p style="font-size: 14px; color: #64748b;">This is an automated notification from Notewell AI.</p>
+                      </div>
+                    `,
+                  }),
+                });
+                console.log(`Email sent to ${userEmail} for job ${job.id}`);
+              }
+            } catch (emailErr) {
+              console.error('Failed to send email notification:', emailErr);
+            }
+          }
+
+          processed++;
+          console.log(`Job ${job.id} completed successfully`);
+
+        } catch (jobError) {
+          console.error(`Job ${job.id} failed:`, jobError);
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              status: 'failed',
+              error_message: jobError instanceof Error ? jobError.message : 'Unknown error',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', job.id);
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, processed }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // ========== END BACKGROUND JOB QUEUE PROCESSOR ==========
+
 
     if (!ANTHROPIC_API_KEY) {
       throw new Error('ANTHROPIC_API_KEY is not configured');

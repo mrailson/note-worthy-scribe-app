@@ -1,11 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { FilePlus, RefreshCw, ClipboardList, FileText, Shield, ArrowRight, UserCog, FolderCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { usePolicyJobs } from "@/hooks/usePolicyJobs";
 
 const PolicyService = () => {
   const navigate = useNavigate();
+  const { activeJobCount } = usePolicyJobs();
 
   const actionCards = [
     {
@@ -47,6 +50,7 @@ const PolicyService = () => {
       action: () => navigate('/policy-service/my-policies'),
       buttonText: "View Policies",
       variant: "outline" as const,
+      badge: activeJobCount > 0 ? activeJobCount : undefined,
     },
   ];
 
@@ -91,7 +95,12 @@ const PolicyService = () => {
                     <card.icon className="h-6 w-6 text-primary" />
                   </div>
                 </div>
-                <CardTitle className="text-xl">{card.title}</CardTitle>
+                <CardTitle className="text-xl">
+                  {card.title}
+                  {(card as any).badge && (
+                    <Badge className="ml-2 bg-blue-600 text-white">{(card as any).badge} in progress</Badge>
+                  )}
+                </CardTitle>
                 <CardDescription className="text-sm min-h-[60px]">
                   {card.description}
                 </CardDescription>

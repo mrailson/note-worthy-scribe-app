@@ -7950,6 +7950,57 @@ export type Database = {
           },
         ]
       }
+      policy_generation_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          custom_instructions: string | null
+          email_when_ready: boolean | null
+          error_message: string | null
+          generated_content: string | null
+          id: string
+          metadata: Json | null
+          policy_reference_id: string
+          policy_title: string
+          practice_details: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          custom_instructions?: string | null
+          email_when_ready?: boolean | null
+          error_message?: string | null
+          generated_content?: string | null
+          id?: string
+          metadata?: Json | null
+          policy_reference_id: string
+          policy_title: string
+          practice_details: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          custom_instructions?: string | null
+          email_when_ready?: boolean | null
+          error_message?: string | null
+          generated_content?: string | null
+          id?: string
+          metadata?: Json | null
+          policy_reference_id?: string
+          policy_title?: string
+          practice_details?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       policy_generations: {
         Row: {
           created_at: string

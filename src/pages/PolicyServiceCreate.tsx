@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Check, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Mail, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PolicyTypeSelector } from "@/components/policy/PolicyTypeSelector";
 import { PracticeDetailsForm } from "@/components/policy/PracticeDetailsForm";
@@ -11,6 +11,8 @@ import { usePolicyGeneration } from "@/hooks/usePolicyGeneration";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 import { PolicyReference } from "@/hooks/usePolicyReferenceLibrary";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
@@ -56,7 +58,8 @@ const PolicyServiceCreate = () => {
   const [wasEnhanced, setWasEnhanced] = useState(false);
   const [enhancementWarning, setEnhancementWarning] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(180);
-  
+  const [emailWhenReady, setEmailWhenReady] = useState(false);
+  const [isSubmittingBackground, setIsSubmittingBackground] = useState(false);
   const { generatePolicy, isGenerating, isEnhancing } = usePolicyGeneration();
   const { saveCompletion } = usePolicyCompletions();
 
@@ -145,6 +148,59 @@ const PolicyServiceCreate = () => {
     } catch (error) {
       console.error("Generation error:", error);
       toast.error("Failed to generate policy. Please try again.");
+    }
+  };
+
+  const handleBackgroundGenerate = async () => {
+    if (!selectedPolicy || !practiceDetails || !user) {
+      toast.error("Please complete all required fields");
+      return;
+    }
+
+    setIsSubmittingBackground(true);
+    try {
+      // Insert job row
+      const { error: insertError } = await supabase
+        .from('policy_generation_jobs')
+        .insert({
+          user_id: user.id,
+          policy_reference_id: selectedPolicy.id,
+          policy_title: selectedPolicy.policy_name,
+          practice_details: practiceDetails as any,
+          email_when_ready: emailWhenReady,
+          status: 'pending',
+        });
+
+      if (insertError) throw insertError;
+
+      // Fire-and-forget: trigger the process-job action
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        fetch(`${supabaseUrl}/functions/v1/generate-policy`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ action: 'process-job', job_user_id: user.id }),
+        }).catch(() => {}); // Fire and forget
+      }
+
+      toast.success(
+        emailWhenReady
+          ? "Policy queued — you'll receive an email when it's ready"
+          : "Policy queued — track progress on My Policies",
+        { duration: 5000 }
+      );
+
+      navigate('/policy-service/my-policies');
+    } catch (error) {
+      console.error("Background generation error:", error);
+      toast.error("Failed to queue policy generation");
+    } finally {
+      setIsSubmittingBackground(false);
     }
   };
 
@@ -261,39 +317,77 @@ const PolicyServiceCreate = () => {
         </Card>
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between mt-6">
-          <Button variant="outline" onClick={handleBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {step === 1 ? "Cancel" : "Back"}
-          </Button>
-          
-          {step < 3 && (
-            <Button onClick={handleNext} disabled={isGenerating || isEnhancing}>
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Ready in {countdown} seconds...
-                </>
-              ) : isEnhancing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Enhancing... {countdown}s
-                </>
-              ) : (
-                <>
-                  {step === 2 ? "Generate Policy" : "Next"}
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </>
-              )}
-            </Button>
+        <div className="flex flex-col gap-4 mt-6">
+          {step === 2 && (
+            <Card className="bg-muted/50 border-dashed">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="emailWhenReady"
+                      checked={emailWhenReady}
+                      onCheckedChange={(checked) => setEmailWhenReady(!!checked)}
+                    />
+                    <Label htmlFor="emailWhenReady" className="text-sm cursor-pointer flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5" />
+                      Email me when ready
+                    </Label>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={handleBackgroundGenerate}
+                    disabled={isGenerating || isEnhancing || isSubmittingBackground}
+                    className="gap-2"
+                  >
+                    {isSubmittingBackground ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Clock className="h-4 w-4" />
+                    )}
+                    Generate in Background
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Queue this policy and continue working. It will appear on My Policies when complete.
+                </p>
+              </CardContent>
+            </Card>
           )}
-          
-          {step === 3 && (
-            <Button onClick={() => navigate('/policy-service')}>
-              Create Another Policy
-              <ArrowRight className="h-4 w-4 ml-2" />
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={handleBack}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              {step === 1 ? "Cancel" : "Back"}
             </Button>
-          )}
+            
+            {step < 3 && (
+              <Button onClick={handleNext} disabled={isGenerating || isEnhancing}>
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Ready in {countdown} seconds...
+                  </>
+                ) : isEnhancing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Enhancing... {countdown}s
+                  </>
+                ) : (
+                  <>
+                    {step === 2 ? "Generate Policy" : "Next"}
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            )}
+            
+            {step === 3 && (
+              <Button onClick={() => navigate('/policy-service')}>
+                Create Another Policy
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            )}
+          </div>
         </div>
       </main>
     </div>
