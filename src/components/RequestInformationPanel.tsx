@@ -101,28 +101,40 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
 
   const fetchTeamMembers = async () => {
     try {
-      if (practiceId) {
-        const { data, error } = await supabase
-          .from('practice_staff_defaults')
-          .select('id, staff_name, default_email, staff_role, default_phone')
-          .eq('practice_id', practiceId)
-          .eq('is_active', true)
-          .order('staff_name') as { data: any[] | null; error: any };
+      // practice_staff_defaults.practice_id references practice_details, not gp_practices
+      // So we look up the current user's practice_details record
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        if (error) throw error;
-        setTeamMembers(
-          (data || []).map((s: any) => ({
-            id: s.id,
-            name: s.staff_name,
-            email: s.default_email || '',
-            role: s.staff_role || '',
-            phone: s.default_phone || null,
-          }))
-        );
-      } else {
-        // No practice_id available — cannot filter practice staff
+      const { data: practiceDetails } = await supabase
+        .from('practice_details')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (!practiceDetails?.id) {
         setTeamMembers([]);
+        return;
       }
+
+      const { data, error } = await supabase
+        .from('practice_staff_defaults')
+        .select('id, staff_name, default_email, staff_role, default_phone')
+        .eq('practice_id', practiceDetails.id)
+        .eq('is_active', true)
+        .order('staff_name') as { data: any[] | null; error: any };
+
+      if (error) throw error;
+      setTeamMembers(
+        (data || []).map((s: any) => ({
+          id: s.id,
+          name: s.staff_name,
+          email: s.default_email || '',
+          role: s.staff_role || '',
+          phone: s.default_phone || null,
+        }))
+      );
     } catch (error) {
       console.error('Error fetching practice staff:', error);
     }
