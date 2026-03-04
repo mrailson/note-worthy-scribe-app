@@ -46,11 +46,11 @@ serve(async (req) => {
         throw new Error(`Failed to fetch complaint: ${complaintError?.message || 'Not found'}`);
       }
 
-      // Fetch all evidence in parallel
+      // Fetch all evidence in parallel — EXCLUDES subjective sources (critical_friend_review, ai_summary)
       const [findingsRes, decisionsRes, evidenceRes, transcriptsRes, partiesRes, notesRes] = await Promise.all([
         supabase
           .from('complaint_investigation_findings')
-          .select('investigation_summary, findings_text, evidence_notes, critical_friend_review')
+          .select('investigation_summary, findings_text, evidence_notes')
           .eq('complaint_id', complaintId),
         supabase
           .from('complaint_investigation_decisions')
@@ -58,7 +58,7 @@ serve(async (req) => {
           .eq('complaint_id', complaintId),
         supabase
           .from('complaint_investigation_evidence')
-          .select('file_name, evidence_type, description, ai_summary')
+          .select('file_name, evidence_type, description')
           .eq('complaint_id', complaintId)
           .limit(20),
         supabase
@@ -77,20 +77,19 @@ serve(async (req) => {
           .order('created_at', { ascending: true }),
       ]);
 
-      // Build evidence context with truncation
+      // Build evidence context — factual sources only, no subjective analysis
       let evidenceContext = '';
 
       // Complaint details
       evidenceContext += `ORIGINAL COMPLAINT:\nCategory: ${complaint.category}\nPatient: ${complaint.patient_name || 'Not specified'}\nDescription: ${complaint.complaint_description}\n\n`;
 
-      // Investigation findings
+      // Investigation findings (no critical_friend_review)
       if (findingsRes.data && findingsRes.data.length > 0) {
         evidenceContext += 'INVESTIGATION FINDINGS:\n';
         for (const f of findingsRes.data) {
           if (f.investigation_summary) evidenceContext += `Summary: ${f.investigation_summary}\n`;
           if (f.findings_text) evidenceContext += `Findings: ${f.findings_text}\n`;
           if (f.evidence_notes) evidenceContext += `Evidence Notes: ${f.evidence_notes}\n`;
-          if (f.critical_friend_review) evidenceContext += `Critical Friend Review: ${f.critical_friend_review}\n`;
         }
         evidenceContext += '\n';
       }
@@ -107,26 +106,20 @@ serve(async (req) => {
         evidenceContext += '\n';
       }
 
-      // Evidence files (with truncation)
-      const evidenceFiles = (evidenceRes.data || []).filter(e => e.description || e.ai_summary);
+      // Evidence files — description/metadata only, NO ai_summary
+      const evidenceFiles = (evidenceRes.data || []).filter(e => e.description);
       if (evidenceFiles.length > 0) {
-        evidenceContext += 'EVIDENCE FILES AND SUMMARIES:\n';
+        evidenceContext += 'EVIDENCE FILES:\n';
         for (const e of evidenceFiles) {
-          evidenceContext += `- ${e.file_name} (${e.evidence_type})`;
-          if (e.description) evidenceContext += `: ${e.description}`;
-          evidenceContext += '\n';
-          if (e.ai_summary) {
-            const truncatedSummary = e.ai_summary.length > 1000 ? e.ai_summary.substring(0, 1000) + '...' : e.ai_summary;
-            evidenceContext += `  AI Summary: ${truncatedSummary}\n`;
-          }
+          evidenceContext += `- ${e.file_name} (${e.evidence_type}): ${e.description}\n`;
         }
         evidenceContext += '\n';
       }
 
-      // Transcripts (with truncation)
+      // Transcripts (raw text, with truncation)
       const transcripts = (transcriptsRes.data || []).filter(t => t.transcript_text);
       if (transcripts.length > 0) {
-        evidenceContext += 'AUDIO TRANSCRIPTS FROM INVESTIGATION:\n';
+        evidenceContext += 'AUDIO TRANSCRIPTS (VERBATIM EXCERPTS):\n';
         for (const t of transcripts) {
           const duration = t.audio_duration_seconds ? `${Math.round(t.audio_duration_seconds / 60)} min` : 'unknown duration';
           const truncatedText = t.transcript_text.length > 2000 ? t.transcript_text.substring(0, 2000) + '...' : t.transcript_text;
@@ -163,18 +156,23 @@ serve(async (req) => {
 
       const evidenceSystemPrompt = `You are an NHS complaints investigation analyst generating questionnaire field answers based strictly on provided evidence.
 
-CRITICAL RULES:
-- Generate content based STRICTLY on the provided evidence — never fabricate facts not present in the evidence.
-- If there is insufficient evidence for a field, state what is available and note the gap.
-- Use British English throughout.
-- Keep each field concise (30-75 words). Aim for brevity — short, punchy summaries.
-- Write in a professional, factual NHS tone.
+ABSOLUTE RULES — VIOLATIONS WILL INVALIDATE THE OUTPUT:
+1. Generate content based STRICTLY on the provided evidence — never fabricate facts.
+2. Do NOT assess, critique, or comment on any clinician's tone, manner, attitude, empathy, professionalism, communication style, or competence.
+3. Do NOT use evaluative or judgemental adjectives: poor, dismissive, unprofessional, minimising, inadequate, inappropriate, insensitive, rude, abrupt, patronising, condescending, lacking, failed, undermined, perceived as.
+4. Do NOT recommend or suggest communication training, empathy training, or behavioural improvement unless the evidence explicitly documents that such training has ALREADY been arranged as a completed action.
+5. If a patient allegation exists (e.g. "the doctor was dismissive"), present it ONLY as a documented allegation: "The complainant reported that…" — never restate it as a factual conclusion.
+6. Focus ONLY on: what happened (actions, referrals, clinical steps), what was documented, what decisions were made, what the complainant stated, and what actions/improvements were taken.
+7. Direct quotes from transcripts may be included but must be attributed ("The clinician stated: '…'") without editorial commentary on the quote.
+8. If there is insufficient evidence for a field, state what is available and note the gap.
+9. Use British English throughout.
+10. Keep each field concise (30–75 words).
 
 FIELD GUIDELINES:
-- key_findings: Summarise the main investigation findings and what was established from the evidence.
-- actions_taken: Describe corrective actions identified in the evidence, decisions, and staff responses.
-- improvements_made: Describe service improvements and lessons learned from the investigation.
-- additional_context: Provide relevant background context, staff perspectives, and mitigating factors from the evidence.`;
+- key_findings: Summarise what the investigation established factually — clinical actions taken, referrals made, documented timeline. No opinions.
+- actions_taken: Describe corrective actions documented in decisions and staff responses. Only include actions that are evidenced.
+- improvements_made: Describe service improvements and lessons learned that are documented. Do not invent improvements.
+- additional_context: Provide factual background — staff account of events, documented circumstances. No editorial commentary.`;
 
       const evidenceUserPrompt = `Based on the following investigation evidence, generate accurate answers for all four questionnaire fields.
 
@@ -278,8 +276,108 @@ Generate the four fields based strictly on this evidence.`;
         }
       }
 
+      // ===== DETERMINISTIC GUARDRAIL: scan for judgemental language =====
+      const judgementalPatterns = [
+        /\b(dismissive|unprofessional|inadequate|inappropriate|insensitive|rude|abrupt|patronising|condescending|lacking empathy)\b/gi,
+        /\b(poor\s+(communication|manner|attitude|tone|handling|practice))\b/gi,
+        /\bperceived\s+as\s+(minimis|dismiss|unprofession|insensitiv)/gi,
+        /\b(undermined|belittled|trivialised|invalidated)\b/gi,
+        /\b(failed\s+to\s+(show|demonstrate|display|exhibit)\s+(empathy|compassion|understanding|sensitivity))\b/gi,
+        /\b(communication\s+training|empathy\s+training|sensitivity\s+training)\b/gi,
+        /\b(training\s+(recommend|requir|need|should))/gi,
+        /\b(should\s+(improve|enhance|develop)\s+(his|her|their)\s+(communication|manner|tone|approach))\b/gi,
+        /\b(potentially\s+dismissive|appeared?\s+dismissive|came\s+across\s+as)\b/gi,
+        /\b(minimising\s+(the\s+patient|their|her|his))\b/gi,
+      ];
+
+      let guardrailTriggered = false;
+      const allText = requiredFields.map(f => parsedArgs[f]).join(' ');
+      for (const pattern of judgementalPatterns) {
+        if (pattern.test(allText)) {
+          guardrailTriggered = true;
+          break;
+        }
+      }
+
+      if (guardrailTriggered) {
+        console.log('⚠️ Guardrail triggered — judgemental language detected, requesting factual rewrite');
+
+        const rewritePrompt = `The following four questionnaire fields contain value judgements about staff tone, manner, or professionalism. Rewrite ALL four fields to be STRICTLY FACTUAL.
+
+RULES:
+- Remove ALL evaluative language about staff behaviour, tone, manner, empathy, or professionalism.
+- Remove ALL training recommendations unless they document an action already completed.
+- Keep only: documented facts, clinical actions, referrals, dates, direct quotes (attributed), decisions made, and complainant allegations (labelled as "The complainant reported…").
+- Preserve the same structure and approximate length (30–75 words per field).
+- Use British English.
+
+Fields to rewrite:
+key_findings: ${parsedArgs.key_findings}
+actions_taken: ${parsedArgs.actions_taken}
+improvements_made: ${parsedArgs.improvements_made}
+additional_context: ${parsedArgs.additional_context}`;
+
+        const rewriteResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: [
+              { role: 'system', content: 'You rewrite text to be strictly factual. Remove all value judgements. Return only the rewritten fields.' },
+              { role: 'user', content: rewritePrompt },
+            ],
+            tools: [
+              {
+                type: 'function',
+                function: {
+                  name: 'generate_questionnaire_fields',
+                  description: 'Return the four rewritten questionnaire fields.',
+                  parameters: {
+                    type: 'object',
+                    properties: {
+                      key_findings: { type: 'string' },
+                      actions_taken: { type: 'string' },
+                      improvements_made: { type: 'string' },
+                      additional_context: { type: 'string' },
+                    },
+                    required: ['key_findings', 'actions_taken', 'improvements_made', 'additional_context'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+            ],
+            tool_choice: { type: 'function', function: { name: 'generate_questionnaire_fields' } },
+            temperature: 0.1,
+          }),
+        });
+
+        if (rewriteResponse.ok) {
+          const rewriteData = await rewriteResponse.json();
+          const rewriteToolCall = rewriteData.choices?.[0]?.message?.tool_calls?.[0];
+          if (rewriteToolCall) {
+            try {
+              const rewritten = typeof rewriteToolCall.function.arguments === 'string'
+                ? JSON.parse(rewriteToolCall.function.arguments)
+                : rewriteToolCall.function.arguments;
+              for (const field of requiredFields) {
+                if (rewritten[field]) parsedArgs[field] = rewritten[field];
+              }
+              console.log('✅ Guardrail rewrite completed successfully');
+            } catch (e) {
+              console.error('Guardrail rewrite parse failed, using original:', e);
+            }
+          }
+        } else {
+          const errText = await rewriteResponse.text();
+          console.error('Guardrail rewrite request failed:', rewriteResponse.status, errText);
+        }
+      }
+
       return new Response(
-        JSON.stringify({ success: true, demoResponse: parsedArgs }),
+        JSON.stringify({ success: true, demoResponse: parsedArgs, guardrailRewritten: guardrailTriggered }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
