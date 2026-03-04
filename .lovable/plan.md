@@ -1,34 +1,46 @@
 
 
-## Plan: Bulk Import Attendees via Document Upload
+## Investigation Report: Policy Profile Defaults Persistence for Nicola Draper
 
-### Overview
-Add an "Import" tab to the Manage Attendees modal. Users upload a Word, Excel, PDF, or image file. The client extracts text using the existing `FileProcessorManager`, sends it to the existing `generate-demo-response` edge function (new `action: "extract-attendees"` branch), and the AI returns structured attendee data for review and approval.
+### User Details
+- **User**: Nicola Draper (user_id: `8637a642-97d1-4a5a-ba0f-6ea503a4ae3c`)
+- **Practice**: Denton Village Surgery (practice_id: `b2cbe569-30e3-4a66-838a-c2ad54b41ff2`)
+- **Role**: `practice_manager`
 
-### Changes
+### Findings
 
-**1. Edge function: `supabase/functions/generate-demo-response/index.ts`**
-- Add new `action === 'extract-attendees'` branch
-- Receives `{ action: "extract-attendees", text: "..." }` — the raw extracted text from the document
-- Calls the AI via Lovable Gateway with a prompt to extract attendees as JSON: `[{ name, email?, title?, role?, organization? }]`
-- Returns the parsed array to the client
+**1. Duplicate records with no default marker**
+Nicola has **3 `practice_details` records**, all with `is_default: false`:
+- `f9e8fffe` — created 12 Feb, `is_default: false`
+- `54b8a23a` — created 12 Feb, `is_default: false`
+- `dd2c6a96` — updated 19 Feb, `is_default: false` ← most recent, contains valid data
 
-**2. New component: `src/components/meeting/AttendeeImportTab.tsx`**
-- Drag-and-drop upload zone using `react-dropzone` (already installed)
-- Accepts `.docx`, `.xlsx`, `.pdf`, `.jpg`, `.jpeg`, `.png`, `.csv`, `.txt`
-- On file drop: uses `FileProcessorManager` to extract text client-side, then calls `supabase.functions.invoke('generate-demo-response', { body: { action: 'extract-attendees', text } })`
-- Displays extracted attendees in a review list with:
-  - Checkbox per attendee (all checked by default)
-  - Inline-editable fields: name, email, title, role, organisation
-  - "Already exists" warning badge for duplicates (matched against `allAttendees` by name, case-insensitive)
-  - "Select All / Deselect All" toggle
-- Two action buttons: "Approve Selected" and "Approve All"
-- On approval: inserts each approved attendee into `attendees` table (using same `saveNewAttendee` pattern), refreshes the list, and auto-selects them in the Quick Pick tab
+The most recent record **does** contain her data (practice name, ODS code K83068, list size 6300, SystmOne, personnel names etc.). So the data was saved at least once. But it hasn't been updated since 19 Feb, which suggests subsequent saves are failing silently.
 
-**3. Modify: `src/components/MeetingAttendeeModal.tsx`**
-- Add 5th tab "Import" with upload icon between "Manage Attendees" and "Distribution Lists"
-- Change `grid-cols-4` to `grid-cols-5` on TabsList
-- Render `<AttendeeImportTab>` passing `allAttendees`, `userPracticeIds`, `user`, and a callback to refresh attendees + auto-select imported ones
+**2. Root cause: RLS policy mismatch**
+The INSERT and DELETE policies on `practice_details` are granted `TO public` instead of `TO authenticated`:
 
-### No new edge functions, no database changes required.
+| Policy | Role | Issue |
+|--------|------|-------|
+| INSERT | `public` | Should be `authenticated` — `auth.uid()` may not resolve correctly for `public` role in some PostgREST flows |
+| DELETE | `public` | Same issue |
+| SELECT | `authenticated` | Correct |
+| UPDATE | `authenticated` | Correct |
+
+This explains why it works for you (Malcolm) — the UPDATE policy includes `is_system_admin()` which bypasses all checks. For Nicola, the UPDATE policy's `user_id = auth.uid()` condition *should* work, but the duplicate records and stale timestamps suggest an issue.
+
+**3. Why it works for you (Malcolm)**
+Your UPDATE path hits `is_system_admin() = true` first, bypassing all other checks. Nicola relies on `user_id = auth.uid()`, which should work but may be affected by session/token timing.
+
+### Proposed Fix
+
+**Step 1: Fix RLS policies** — Change INSERT and DELETE to `TO authenticated` for consistency and security.
+
+**Step 2: Clean up duplicate records** — Delete the 2 older duplicate records for Nicola and set `is_default = true` on the remaining one (`dd2c6a96`).
+
+**Step 3: Add defensive code** — Ensure the save handler sets `is_default: true` on both INSERT and UPDATE paths to prevent this state in future.
+
+### Technical Details
+- **Files to modify**: `src/components/policy/PolicyProfileDefaults.tsx` (add `is_default: true` to update payload)
+- **Database changes**: 2 SQL migrations — fix RLS policies, clean up duplicates
 
