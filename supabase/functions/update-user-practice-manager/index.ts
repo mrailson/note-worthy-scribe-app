@@ -118,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
       
       // Allow practice_user and practice_manager roles
-      const allowedRoles = ['practice_user', 'practice_manager', 'user'];
+      const allowedRoles = ['practice_user', 'practice_manager', 'clinician', 'deputy_practice_manager', 'user'];
       if (!allowedRoles.includes(role)) {
         throw new Error(`Practice managers can only assign these roles: ${allowedRoles.join(', ')}`);
       }
