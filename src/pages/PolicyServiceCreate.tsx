@@ -58,7 +58,7 @@ const PolicyServiceCreate = () => {
   const [wasEnhanced, setWasEnhanced] = useState(false);
   const [enhancementWarning, setEnhancementWarning] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(180);
-  const [emailWhenReady, setEmailWhenReady] = useState(false);
+  const [emailWhenReady, setEmailWhenReady] = useState(true);
   const [isSubmittingBackground, setIsSubmittingBackground] = useState(false);
   const { generatePolicy, isGenerating, isEnhancing } = usePolicyGeneration();
   const { saveCompletion } = usePolicyCompletions();
