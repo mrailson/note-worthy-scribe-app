@@ -157,11 +157,11 @@ serve(async (req) => {
       throw new Error('ANTHROPIC_API_KEY is not configured');
     }
 
-    // Look up practice_id from ODS code
+    // Look up practice_id from ODS code (must match gp_practices FK)
     let practiceId: string | null = null;
     if (practice_details?.ods_code) {
       const { data: practiceRecord } = await supabase
-        .from('practice_details')
+        .from('gp_practices')
         .select('id')
         .eq('ods_code', practice_details.ods_code)
         .maybeSingle();
