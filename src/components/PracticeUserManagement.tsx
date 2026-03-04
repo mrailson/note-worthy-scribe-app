@@ -81,6 +81,9 @@ interface ModuleAccessState {
 }
 
 const practiceRoles = [
+  { value: 'clinician', label: 'Clinician' },
+  { value: 'deputy_practice_manager', label: 'Deputy Practice Manager' },
+  { value: 'practice_manager', label: 'Practice Manager' },
   { value: 'gp_partner', label: 'GP Partner' },
   { value: 'salaried_gp', label: 'Salaried GP' },
   { value: 'reception_team', label: 'Reception Team' },
