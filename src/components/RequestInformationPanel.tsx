@@ -318,7 +318,7 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
     }
   };
 
-  const handleSendFromCompose = async (toggles: EmailToggles, senderName: string) => {
+  const handleSendFromCompose = async (toggles: EmailToggles, senderName: string, customHtml?: string) => {
     if (!composeData) {
       toast.error('Email details are not available. Please reopen compose.');
       return;
@@ -340,6 +340,7 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
           includePatientName: toggles.includePatientName,
           includeAcknowledgement: toggles.includeAcknowledgement,
           includeDeadline: toggles.includeDeadline,
+          ...(customHtml ? { customHtml } : {}),
         }
       });
 
