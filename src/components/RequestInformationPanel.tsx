@@ -38,7 +38,6 @@ interface TeamMember {
   name: string;
   email: string;
   role: string;
-  phone: string | null;
 }
 
 export function RequestInformationPanel({ complaintId, practiceId, disabled = false }: RequestInformationPanelProps) {
@@ -99,74 +98,55 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
     }
   };
 
+  const mapPracticeUserRoleToComplaintRole = (practiceRole?: string | null, appRole?: string | null) => {
+    const role = (practiceRole || appRole || '').toLowerCase();
+
+    if (role === 'gp_partner') return 'GP Partner';
+    if (role === 'salaried_gp') return 'GP Salaried';
+    if (role === 'reception_team') return 'Reception Team';
+    if (role === 'admin_team' || role === 'secretaries') return 'Admin Team';
+    if (role === 'practice_manager') return 'Practice Manager';
+    if (role === 'practice_nurse' || role === 'nurse') return 'Practice Nurse';
+
+    return 'Other';
+  };
+
   const fetchTeamMembers = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      let practiceDetailsId: string | null = null;
+      let targetPracticeId = practiceId ?? null;
 
-      // Preferred path: map complaint gp_practices.id -> gp_practices.practice_code -> practice_details.ods_code
-      if (practiceId) {
-        const { data: gpPractice } = await supabase
-          .from('gp_practices')
-          .select('practice_code')
-          .eq('id', practiceId)
-          .limit(1)
-          .maybeSingle();
-
-        if (gpPractice?.practice_code) {
-          const { data: linkedPracticeDetails } = await supabase
-            .from('practice_details')
-            .select('id')
-            .eq('ods_code', gpPractice.practice_code)
-            .limit(1)
-            .maybeSingle();
-
-          if (linkedPracticeDetails?.id) {
-            practiceDetailsId = linkedPracticeDetails.id;
-          }
-        }
+      if (!targetPracticeId) {
+        const { data: fallbackPracticeId } = await supabase
+          .rpc('get_practice_manager_practice_id', { _user_id: user.id });
+        targetPracticeId = fallbackPracticeId || null;
       }
 
-      // Fallback path: current user's practice_details
-      if (!practiceDetailsId) {
-        const { data: ownPracticeDetails } = await supabase
-          .from('practice_details')
-          .select('id')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle();
-
-        if (ownPracticeDetails?.id) {
-          practiceDetailsId = ownPracticeDetails.id;
-        }
-      }
-
-      if (!practiceDetailsId) {
+      if (!targetPracticeId) {
         setTeamMembers([]);
         return;
       }
 
       const { data, error } = await supabase
-        .from('practice_staff_defaults')
-        .select('id, staff_name, default_email, staff_role, default_phone')
-        .eq('practice_id', practiceDetailsId)
-        .eq('is_active', true)
-        .order('staff_name') as { data: any[] | null; error: any };
+        .rpc('get_practice_users', { p_practice_id: targetPracticeId }) as { data: any[] | null; error: any };
 
       if (error) throw error;
-      setTeamMembers(
-        (data || []).map((s: any) => ({
-          id: s.id,
-          name: s.staff_name,
-          email: s.default_email || '',
-          role: s.staff_role || '',
-          phone: s.default_phone || null,
-        }))
-      );
+
+      const mappedUsers = (data || [])
+        .filter((u: any) => !!u?.email)
+        .map((u: any) => ({
+          id: u.user_id,
+          name: u.full_name || u.email,
+          email: u.email,
+          role: mapPracticeUserRoleToComplaintRole(u.practice_role, u.role),
+        }));
+
+      setTeamMembers(mappedUsers);
     } catch (error) {
-      console.error('Error fetching practice staff:', error);
+      console.error('Error fetching practice users:', error);
+      setTeamMembers([]);
     }
   };
 
