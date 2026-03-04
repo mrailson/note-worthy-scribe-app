@@ -13,6 +13,7 @@ const POLICY_ENHANCEMENT_SYSTEM_PROMPT = `You are an NHS primary care policy exp
 The following guidance changes are confirmed current. Override any generated content that contradicts these:
 
 ### CERVICAL SCREENING (effective 1 July 2025)
+- OVERRIDE: Search the entire policy for any text stating "three years" or "3 years" in the context of recall or screening intervals for ages 25–49 and replace every instance with "five years". This is non-negotiable and must be applied before any other enhancement.
 - CRITICAL: DO NOT state "3 years" as the screening interval for ages 25–49 under any circumstances. This interval no longer applies.
 - Ages 25–49 who test HPV NEGATIVE → recall is 5 YEARS. State this as the current standard with no caveats or bracketed alternatives.
 - Ages 50–64 HPV negative → unchanged at 5 years
