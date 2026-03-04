@@ -185,19 +185,38 @@ CRITICAL FORMAT RULE: You MUST preserve the EXACT document header structure from
 Section 8.1 MUST contain a populated KPI table with at least 5 measurable Key Performance Indicators relevant to the specific policy type. Each KPI row must include: KPI Name, Target/Standard, Measurement Method, Frequency, and Responsible Person. Do NOT leave this section empty, with placeholder text, or with generic statements. Generate concrete, policy-specific KPIs.
 
 ## SECTION 11 — VERSION HISTORY (STRICT RULES)
-Section 11 must contain ONLY a version history table with these columns: Version | Date | Author | Summary of Changes. Do NOT output internal notes, compliance gap analyses, AI instructions, enhancement commentary, or any other content into section 11. It is strictly a version history log and nothing else.
+Section 11 must contain ONLY a version history table with these columns: Version | Date | Author | Summary of Changes. This table must ALWAYS be populated — never leave it empty. Populate it as follows: Version = 1.0, Date = today's date in DD/MM/YYYY format, Author = the Practice Manager name from the practice details provided, Summary = "Initial issue — new policy created for [Practice Name]" (replacing [Practice Name] with the actual practice name). Do NOT output internal notes, compliance gap analyses, AI instructions, enhancement commentary, or any other content into section 11. It is strictly a version history log and nothing else.
+
+## PLACEHOLDER REPLACEMENT (MANDATORY — FINAL STEP)
+Before returning the enhanced policy, you MUST replace every placeholder where the value is known from the practice profile data provided in the user prompt. Specifically:
+- [Practice Name] → the practice name provided
+- [Practice Manager] or [Author] → Practice Manager name provided
+- [Lead GP] or [Approved By] → Lead GP name provided
+- [Practice Address] / [Address] → practice address provided
+- [Postcode] → postcode provided
+- [ODS Code] → ODS code provided
+- [Review Date] → one year from today's date in DD/MM/YYYY format
+- [SIRO] → SIRO name if provided
+- [Caldicott Guardian] → Caldicott Guardian name if provided
+- [DPO] / [Data Protection Officer] → DPO name if provided
+- [Safeguarding Lead] → relevant safeguarding lead name if provided
+- [Infection Control Lead] → infection control lead name if provided
+- [Complaints Lead] → complaints lead name if provided
+- [Health & Safety Lead] → H&S lead name if provided
+- [Fire Safety Officer] → fire safety officer name if provided
+Only leave a placeholder as [PRACTICE TO COMPLETE — description] if the value is genuinely not provided in the practice data.
 
 Return the enhanced policy as a complete, ready-to-use document with:
 1. All mandatory sections included
 2. Policy-specific requirements addressed
 3. All known guidance changes from the top of this prompt applied and any contradicting content corrected
-4. Placeholders clearly marked as [PRACTICE TO COMPLETE] for practice-specific information
+4. ALL placeholders replaced with known values from practice data — only mark as [PRACTICE TO COMPLETE] where genuinely unknown
 5. SNOMED/Read codes appendix where applicable
 6. Current references with years
 7. The EXACT SAME header layout and Document Control table format as the input
 8. Do NOT add any inline verification flags or markers anywhere in the document. The policy should read as clean, finalised text throughout.
 9. Section 8.1 contains a populated KPI table with at least 5 measurable KPIs
-10. Section 11 contains ONLY a version history table — no notes, gaps, or AI commentary
+10. Section 11 contains a POPULATED version history table — never empty, no notes, gaps, or AI commentary
 
 Flag any critical compliance gaps that cannot be addressed without practice-specific information.`;
 
