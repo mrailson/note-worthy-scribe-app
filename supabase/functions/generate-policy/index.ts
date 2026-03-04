@@ -209,8 +209,32 @@ serve(async (req) => {
         });
       }
 
+      // --- Recovery: re-queue stale generating jobs (e.g. killed invocation) ---
+      const staleGeneratingCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: staleGeneratingJob } = await serviceSupabase
+        .from('policy_generation_jobs')
+        .select('id, updated_at')
+        .eq('status', 'generating')
+        .eq('user_id', targetUserId)
+        .lt('updated_at', staleGeneratingCutoff)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (staleGeneratingJob?.id) {
+        console.warn(`[Recovery] Re-queuing stale generating job ${staleGeneratingJob.id} (last update: ${staleGeneratingJob.updated_at})`);
+        await serviceSupabase
+          .from('policy_generation_jobs')
+          .update({
+            status: 'pending',
+            error_message: 'Previous generation attempt stalled and was automatically retried.',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', staleGeneratingJob.id);
+      }
+
       // --- PHASE 1: Check for pending jobs (need generation) ---
-      const { data: pendingJob } = await serviceSupabase
+      const { data: pendingJob, error: pendingClaimError } = await serviceSupabase
         .from('policy_generation_jobs')
         .update({ status: 'generating', updated_at: new Date().toISOString() })
         .eq('status', 'pending')
@@ -219,6 +243,10 @@ serve(async (req) => {
         .limit(1)
         .select()
         .single();
+
+      if (pendingClaimError && pendingClaimError.code !== 'PGRST116') {
+        console.error('[Phase 1] Failed to claim pending job:', pendingClaimError);
+      }
 
       if (pendingJob) {
         console.log(`[Phase 1: Generate] Job ${pendingJob.id} - ${pendingJob.policy_title}`);
