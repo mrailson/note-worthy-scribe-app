@@ -12,9 +12,10 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 // ---- Constants ----
-const LEASE_DURATION_MS = 120_000; // 2 minutes
+const LEASE_DURATION_MS = 210_000; // 3.5 minutes (must exceed per-step model timeout)
 const MAX_STEP_ATTEMPTS = 3;
-const ANTHROPIC_TIMEOUT_MS = 100_000; // 100s per Anthropic call (safe margin under 150s edge limit)
+const ANTHROPIC_TIMEOUT_MS = 130_000; // 130s per Anthropic call (safe margin under 150s edge limit)
+const RETRY_BACKOFF_MS = [20_000, 45_000, 90_000];
 
 // ---- Prompts ----
 const ENHANCEMENT_SYSTEM_PROMPT = `You are an NHS primary care policy expert preparing GP practices for CQC inspection. Your task is to review and enhance generated policies to ensure full regulatory compliance.
@@ -96,14 +97,11 @@ IMPORTANT RULES:
 
 // Step-specific system prompt additions
 const PART1_SYSTEM_ADDITION = `
-You are generating the FIRST HALF of a policy document. Generate ONLY:
+You are generating the FIRST PART of a policy document. Generate ONLY:
 1. The full document header (title, practice details, document control table, equality impact assessment)
 2. Section 1: PURPOSE
 3. Section 2: SCOPE
 4. Section 3: DEFINITIONS
-5. Section 4: ROLES AND RESPONSIBILITIES
-6. Section 5: POLICY STATEMENT / PROCEDURE
-7. Section 6: TRAINING REQUIREMENTS
 
 MANDATORY HEADER FORMAT (use exactly this structure):
 # [Policy Title]
@@ -126,10 +124,22 @@ MANDATORY HEADER FORMAT (use exactly this structure):
 
 ---
 
-Do NOT include sections 7-11. Do NOT include ===METADATA=== blocks. Output ONLY the header and sections 1-6 in markdown.`;
+Do NOT include sections 4-11. Do NOT include ===METADATA=== blocks. Output ONLY the header and sections 1-3 in markdown.`;
 
 const PART2_SYSTEM_ADDITION = `
-You are generating the SECOND HALF of a policy document. The first half (header + sections 1-6) has already been generated and is provided below for context. You must now generate ONLY:
+You are generating the MIDDLE PART of a policy document. Sections 1-3 already exist and are provided for context.
+Generate ONLY:
+4. ROLES AND RESPONSIBILITIES
+5. POLICY STATEMENT / PROCEDURE
+6. TRAINING REQUIREMENTS
+
+Do NOT regenerate header or sections 1-3.
+Do NOT include sections 7-11.
+Do NOT include ===METADATA=== blocks.
+Output ONLY sections 4-6 in markdown.`;
+
+const PART3_SYSTEM_ADDITION = `
+You are generating the FINAL PART of a policy document. Sections 1-6 already exist and are provided for context. You must now generate ONLY:
 
 7. RELATED POLICIES
 8. MONITORING AND COMPLIANCE (Section 8.1 MUST contain a KPI table with at least 5 measurable KPIs: KPI Name | Target/Standard | Measurement Method | Frequency | Responsible Person)
@@ -216,6 +226,11 @@ async function callAnthropic(system: string, userContent: string, maxTokens: num
 
     const data = await response.json();
     return data.content?.[0]?.text || '';
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Anthropic timeout after ${Math.floor(ANTHROPIC_TIMEOUT_MS / 1000)}s`);
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
@@ -320,52 +335,89 @@ serve(async (req) => {
       }
 
       // --- Step 1: Find & claim next job ---
-      // Look for: pending jobs, OR jobs with expired leases (stale workers)
       const now = new Date().toISOString();
+      const nowMs = Date.now();
+      const isRetryReady = (candidate: any) =>
+        !candidate?.next_retry_at || new Date(candidate.next_retry_at).getTime() <= nowMs;
+
+      let job: any = null;
 
       // First try pending jobs
-      let { data: job } = await serviceSupabase
+      const { data: pendingJobs } = await serviceSupabase
         .from('policy_generation_jobs')
         .select('*')
         .eq('user_id', targetUserId)
         .eq('status', 'pending')
         .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        .limit(10);
+
+      job = (pendingJobs || []).find(isRetryReady) || null;
 
       // If no pending, look for stale generating/enhancing jobs (lease expired)
       if (!job) {
-        const { data: staleJob } = await serviceSupabase
+        const { data: staleJobs } = await serviceSupabase
           .from('policy_generation_jobs')
           .select('*')
           .eq('user_id', targetUserId)
           .in('status', ['generating', 'enhancing'])
           .lt('lease_expires_at', now)
           .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle();
+          .limit(10);
 
-        if (staleJob) {
-          console.log(`[Recovery] Reclaiming stale job ${staleJob.id} (step: ${staleJob.current_step}, lease expired: ${staleJob.lease_expires_at})`);
-          job = staleJob;
+        job = (staleJobs || []).find(isRetryReady) || null;
+        if (job) {
+          console.log(`[Recovery] Reclaiming stale job ${job.id} (step: ${job.current_step}, lease expired: ${job.lease_expires_at})`);
         }
       }
 
       // Also check for generating/enhancing jobs with NULL lease (legacy rows)
       if (!job) {
-        const { data: legacyJob } = await serviceSupabase
+        const { data: legacyJobs } = await serviceSupabase
           .from('policy_generation_jobs')
           .select('*')
           .eq('user_id', targetUserId)
           .in('status', ['generating', 'enhancing'])
           .is('lease_expires_at', null)
           .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle();
+          .limit(10);
 
-        if (legacyJob) {
-          console.log(`[Recovery] Reclaiming legacy job ${legacyJob.id} (no lease set)`);
-          job = legacyJob;
+        job = (legacyJobs || []).find(isRetryReady) || null;
+        if (job) {
+          console.log(`[Recovery] Reclaiming legacy job ${job.id} (no lease set)`);
+        }
+      }
+
+      // Recovery path for recent transiently-failed jobs (post-timeout/abort)
+      if (!job) {
+        const { data: failedJobs } = await serviceSupabase
+          .from('policy_generation_jobs')
+          .select('*')
+          .eq('user_id', targetUserId)
+          .eq('status', 'failed')
+          .order('updated_at', { ascending: false })
+          .limit(10);
+
+        job = (failedJobs || []).find((candidate: any) => {
+          const msg = String(candidate?.error_message || '').toLowerCase();
+          const recentlyFailed = Date.now() - new Date(candidate.updated_at).getTime() < 30 * 60 * 1000;
+          const retriableError = msg.includes('aborted') || msg.includes('timeout') || msg.includes('429') || msg.includes('50');
+          const hasAttemptsLeft = (candidate?.attempt_count || 0) < MAX_STEP_ATTEMPTS;
+          return recentlyFailed && retriableError && hasAttemptsLeft;
+        }) || null;
+
+        if (job) {
+          console.log(`[Recovery] Requeueing transient failed job ${job.id} (step: ${job.current_step})`);
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              status: job.current_step === 'enhance' ? 'enhancing' : 'pending',
+              lease_expires_at: null,
+              next_retry_at: null,
+              error_message: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', job.id);
+          job.status = job.current_step === 'enhance' ? 'enhancing' : 'pending';
         }
       }
 
@@ -379,13 +431,15 @@ serve(async (req) => {
       const currentStep = job.current_step || 'generate_part_1';
       const attemptCount = (job.attempt_count || 0) + 1;
 
-      if (attemptCount > MAX_STEP_ATTEMPTS * 4) {
-        // Too many total attempts - fail permanently
+      if (attemptCount > MAX_STEP_ATTEMPTS) {
+        // Too many attempts for this step - fail permanently
         await serviceSupabase
           .from('policy_generation_jobs')
           .update({
             status: 'failed',
-            error_message: `Exceeded maximum retry attempts (${attemptCount}). Please try again.`,
+            error_message: `Step ${currentStep} exceeded maximum retry attempts (${MAX_STEP_ATTEMPTS}). Please restart generation.`,
+            lease_expires_at: null,
+            next_retry_at: null,
             updated_at: now,
           })
           .eq('id', job.id);
@@ -403,6 +457,7 @@ serve(async (req) => {
           heartbeat_at: now,
           lease_expires_at: new Date(Date.now() + LEASE_DURATION_MS).toISOString(),
           attempt_count: attemptCount,
+          next_retry_at: null,
           updated_at: now,
         })
         .eq('id', job.id);
@@ -440,7 +495,7 @@ serve(async (req) => {
         if (currentStep === 'generate_part_1') {
           await updateHeartbeat(serviceSupabase, job.id, 'generate_part_1', 10);
 
-          const userPrompt = `Generate the first half of a ${policyName} policy for:
+          const userPrompt = `Generate the first part of a ${policyName} policy for:
 
 ${practiceContext}
 
@@ -450,15 +505,15 @@ ${contactInstructions}
 
 ${job.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${job.custom_instructions}` : ''}
 
-Generate the complete header and sections 1-6 now.`;
+Generate the complete header and sections 1-3 only.`;
 
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + PART1_SYSTEM_ADDITION,
             userPrompt,
-            8000
+            5200
           );
 
-          if (!content || content.length < 200) {
+          if (!content || content.length < 150) {
             throw new Error('Generation part 1 returned insufficient content');
           }
 
@@ -466,9 +521,11 @@ Generate the complete header and sections 1-6 now.`;
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
-              metadata: { ...jobMetadata, partial_sections_1_6: content },
+              metadata: { ...jobMetadata, partial_sections_1_3: content },
               current_step: 'generate_part_2',
-              progress_pct: 30,
+              progress_pct: 25,
+              attempt_count: 0,
+              next_retry_at: null,
               heartbeat_at: new Date().toISOString(),
               lease_expires_at: null, // Release lease before self-trigger
               updated_at: new Date().toISOString(),
@@ -485,14 +542,19 @@ Generate the complete header and sections 1-6 now.`;
 
         // ---- STEP: generate_part_2 ----
         if (currentStep === 'generate_part_2') {
-          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_2', 40);
+          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_2', 35);
 
-          const partialContent = jobMetadata.partial_sections_1_6 || '';
-          if (!partialContent) {
+          const part1Content = jobMetadata.partial_sections_1_3 || '';
+          if (!part1Content) {
             // Missing part 1, go back
             await serviceSupabase
               .from('policy_generation_jobs')
-              .update({ current_step: 'generate_part_1', lease_expires_at: null, updated_at: new Date().toISOString() })
+              .update({
+                current_step: 'generate_part_1',
+                attempt_count: 0,
+                lease_expires_at: null,
+                updated_at: new Date().toISOString(),
+              })
               .eq('id', job.id);
             selfTrigger(targetUserId);
             return new Response(JSON.stringify({ success: true, phase: 'retry_part_1' }), {
@@ -500,11 +562,85 @@ Generate the complete header and sections 1-6 now.`;
             });
           }
 
-          const userPrompt = `Here is the first half of the ${policyName} policy (header + sections 1-6) that has already been generated:
+          const userPrompt = `Here is the first part of the ${policyName} policy (header + sections 1-3) that has already been generated:
 
----FIRST HALF---
-${partialContent}
----END FIRST HALF---
+---FIRST PART---
+${part1Content}
+---END FIRST PART---
+
+${practiceContext}
+
+${regulatoryContext}
+
+${contactInstructions}
+
+Now generate sections 4-6 only.`;
+
+          const content = await callAnthropic(
+            BASE_SYSTEM_PROMPT + PART2_SYSTEM_ADDITION,
+            userPrompt,
+            5200
+          );
+
+          if (!content || content.length < 150) {
+            throw new Error('Generation part 2 returned insufficient content');
+          }
+
+          const sections1to6 = `${part1Content.trim()}\n\n${content.trim()}`;
+
+          // Store middle content and advance to part 3
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              metadata: {
+                ...jobMetadata,
+                partial_sections_1_3: part1Content,
+                partial_sections_1_6: sections1to6,
+              },
+              current_step: 'generate_part_3',
+              progress_pct: 50,
+              attempt_count: 0,
+              next_retry_at: null,
+              heartbeat_at: new Date().toISOString(),
+              lease_expires_at: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', job.id);
+
+          console.log(`[Step done: generate_part_2] Job ${job.id} - ${content.length} chars`);
+          selfTrigger(targetUserId);
+
+          return new Response(JSON.stringify({ success: true, phase: 'generate_part_2', jobId: job.id }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // ---- STEP: generate_part_3 ----
+        if (currentStep === 'generate_part_3') {
+          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_3', 60);
+
+          const sections1to6 = jobMetadata.partial_sections_1_6 || '';
+          if (!sections1to6) {
+            await serviceSupabase
+              .from('policy_generation_jobs')
+              .update({
+                current_step: 'generate_part_1',
+                attempt_count: 0,
+                lease_expires_at: null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', job.id);
+            selfTrigger(targetUserId);
+            return new Response(JSON.stringify({ success: true, phase: 'retry_part_1' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          const userPrompt = `Here are sections 1-6 of the ${policyName} policy (already generated):
+
+---SECTIONS 1-6---
+${sections1to6}
+---END SECTIONS 1-6---
 
 ${practiceContext}
 
@@ -515,16 +651,15 @@ ${contactInstructions}
 Now generate sections 7-11 to complete this policy, followed by the ===METADATA=== block.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + PART2_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + PART3_SYSTEM_ADDITION,
             userPrompt,
-            8000
+            7000
           );
 
           if (!content || content.length < 200) {
-            throw new Error('Generation part 2 returned insufficient content');
+            throw new Error('Generation part 3 returned insufficient content');
           }
 
-          // Parse metadata from part 2
           const metadataMatch = content.match(/===METADATA===([\s\S]*?)(?:===END_METADATA===|$)/);
           const sectionsContent = content.replace(/===METADATA===[\s\S]*$/, '').trim();
 
@@ -550,28 +685,32 @@ Now generate sections 7-11 to complete this policy, followed by the ===METADATA=
             if (referencesMatch) metadata.references = referencesMatch[1].split(',').map((r: string) => r.trim());
           }
 
-          // Combine both halves
-          const fullContent = partialContent + '\n\n' + sectionsContent;
+          const fullContent = `${sections1to6.trim()}\n\n${sectionsContent}`;
 
-          // Store combined content and advance to enhance
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
               status: 'enhancing',
               generated_content: fullContent,
-              metadata: { ...metadata, partial_sections_1_6: undefined }, // Clean up partial
+              metadata: {
+                ...metadata,
+                partial_sections_1_3: undefined,
+                partial_sections_1_6: undefined,
+              },
               current_step: 'enhance',
-              progress_pct: 55,
+              progress_pct: 65,
+              attempt_count: 0,
+              next_retry_at: null,
               heartbeat_at: new Date().toISOString(),
               lease_expires_at: null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', job.id);
 
-          console.log(`[Step done: generate_part_2] Job ${job.id} - combined ${fullContent.length} chars`);
+          console.log(`[Step done: generate_part_3] Job ${job.id} - combined ${fullContent.length} chars`);
           selfTrigger(targetUserId);
 
-          return new Response(JSON.stringify({ success: true, phase: 'generate_part_2', jobId: job.id }), {
+          return new Response(JSON.stringify({ success: true, phase: 'generate_part_3', jobId: job.id }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -624,6 +763,8 @@ ${policyContent}`;
               generated_content: policyContent,
               current_step: 'finalise',
               progress_pct: 80,
+              attempt_count: 0,
+              next_retry_at: null,
               heartbeat_at: new Date().toISOString(),
               lease_expires_at: null,
               updated_at: new Date().toISOString(),
@@ -668,7 +809,10 @@ ${policyContent}`;
               completed_at: new Date().toISOString(),
               progress_pct: 100,
               current_step: 'done',
+              attempt_count: 0,
               lease_expires_at: null,
+              next_retry_at: null,
+              error_message: null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', job.id);
@@ -871,21 +1015,31 @@ ${htmlBody}
 
       } catch (stepError) {
         const errMsg = stepError instanceof Error ? stepError.message : 'Unknown error';
-        const isTransient = errMsg.includes('AbortError') || errMsg.includes('timeout') || errMsg.includes('429') || errMsg.includes('5');
+        const normalisedError = errMsg.toLowerCase();
+        const isTransient =
+          normalisedError.includes('abort') ||
+          normalisedError.includes('timeout') ||
+          normalisedError.includes('429') ||
+          normalisedError.includes('500') ||
+          normalisedError.includes('502') ||
+          normalisedError.includes('503') ||
+          normalisedError.includes('504') ||
+          normalisedError.includes('network');
 
         console.error(`[Step failed: ${currentStep}] Job ${job.id}:`, errMsg);
 
-        if (isTransient && (job.attempt_count || 0) < MAX_STEP_ATTEMPTS * 4) {
-          // Transient failure - release lease for retry
-          const backoffMs = Math.min(30000 * Math.pow(2, (job.attempt_count || 0)), 120000);
+        if (isTransient && attemptCount < MAX_STEP_ATTEMPTS) {
+          // Transient failure - release lease and retry with backoff
+          const backoffMs = RETRY_BACKOFF_MS[Math.min(attemptCount - 1, RETRY_BACKOFF_MS.length - 1)];
           const retryAt = new Date(Date.now() + backoffMs).toISOString();
 
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
-              lease_expires_at: null,
+              status: currentStep === 'enhance' ? 'enhancing' : 'generating',
+              lease_expires_at: retryAt,
               next_retry_at: retryAt,
-              error_message: `Step ${currentStep} failed (attempt ${attemptCount}): ${errMsg}. Retrying...`,
+              error_message: `Step ${currentStep} failed (attempt ${attemptCount}/${MAX_STEP_ATTEMPTS}): ${errMsg}. Retrying...`,
               updated_at: new Date().toISOString(),
             })
             .eq('id', job.id);
@@ -900,6 +1054,7 @@ ${htmlBody}
               status: 'failed',
               error_message: `Step ${currentStep} failed permanently: ${errMsg}`,
               lease_expires_at: null,
+              next_retry_at: null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', job.id);
