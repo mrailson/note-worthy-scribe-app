@@ -75,7 +75,7 @@ STANDARD REQUIREMENTS:
 - If required information is missing, state that it was not available in the provided materials rather than inventing details.
 
 OUTPUT RULES:
-- British English (spellings and grammar)
+- British English ONLY — this is mandatory. Use British spellings throughout (e.g., "minimise" not "minimize", "recognised" not "recognized", "centre" not "center", "behaviour" not "behavior", "colour" not "color", "organised" not "organized", "apologise" not "apologize", "specialised" not "specialized", "programme" not "program"). Any American English spelling is an error.
 - No bullet points in the final letter
 - No internal system references
 - No AI disclaimers
