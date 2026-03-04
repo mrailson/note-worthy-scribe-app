@@ -210,7 +210,7 @@ Today's date is ${new Date().toLocaleDateString('en-GB')}.`;
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 8000,
+          max_tokens: 16000,
           system: systemPrompt,
           messages: [
             { role: 'user', content: updatePrompt },
@@ -380,7 +380,7 @@ Please generate a complete, professional policy document that meets all regulato
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 8000,
+        max_tokens: 16000,
         system: systemPrompt,
         messages: [
           { role: 'user', content: userPrompt },
