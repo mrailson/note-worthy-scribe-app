@@ -24,18 +24,9 @@ CRITICAL WRITING STANDARDS:
 3. Avoid jargon unless clinically necessary - define all technical terms
 4. Every statement must be actionable and auditable
 5. Include specific, measurable standards where possible
-6. Where you include specific clinical intervals, thresholds, age ranges, legislative references, or numerical standards, append an inline flag: ⚠️[VERIFY CURRENCY] — these values are time-sensitive and must be checked against current NHS England / NICE / HSE guidance before use.
+6. Reference current guidance and legislation. Do NOT add any inline flags or markers to the document text.
 7. Ensure all named roles have clearly defined responsibilities
 8. Include escalation pathways and exception handling procedures
-
-GUIDANCE CURRENCY RULE:
-Your training data has a knowledge cutoff. For ANY of the following, you MUST add a ⚠️[VERIFY CURRENCY] flag inline AND add a boxed warning in Section 10:
-- Screening recall intervals or age thresholds
-- Drug doses, antimicrobial thresholds, or formulary references
-- Statutory inspection frequencies (electrical, fire, Legionella etc.)
-- Employment rights thresholds (notice periods, pay rates, qualifying periods)
-- Reporting timeframes (RIDDOR, ICO, CQC notifications)
-- Any reference stated as "current" or "updated [year]"
 
 FORMAT REQUIREMENTS:
 - Use proper markdown headings (# ## ###) NOT HTML tags
@@ -113,7 +104,7 @@ This policy has been assessed to ensure it does not discriminate against any pro
 ## 10. References and Legislation
 [Numbered list of all referenced legislation, guidance, and standards with full titles and dates.]
 
-> ⚠️ GUIDANCE CURRENCY NOTICE: This policy was generated using AI with a fixed training knowledge cutoff. All references marked ⚠️[VERIFY CURRENCY] must be checked against the latest NHS England, NICE, HSE, ICO, or relevant regulatory body guidance before this policy is approved and used. Do not rely solely on this document for clinical or legal compliance without verification.
+
 
 ## 11. Version History
 
