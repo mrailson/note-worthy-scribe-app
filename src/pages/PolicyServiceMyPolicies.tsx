@@ -15,13 +15,16 @@ import {
   AlertTriangle,
   CheckCircle2,
   Trash2,
-  Eye
+  Eye,
+  RefreshCw,
+  XCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
+import { usePolicyJobs, PolicyJob } from "@/hooks/usePolicyJobs";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
-import { format, parseISO, differenceInDays } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -45,10 +48,28 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PolicyDocumentPreview } from "@/components/policy/PolicyDocumentPreview";
 
+const getJobStatusBadge = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Queued</Badge>;
+    case 'generating':
+      return <Badge className="gap-1 bg-blue-600"><Loader2 className="h-3 w-3 animate-spin" />Generating</Badge>;
+    case 'enhancing':
+      return <Badge className="gap-1 bg-blue-600"><Loader2 className="h-3 w-3 animate-spin" />Enhancing</Badge>;
+    case 'completed':
+      return <Badge className="gap-1 bg-green-600"><CheckCircle2 className="h-3 w-3" />Completed</Badge>;
+    case 'failed':
+      return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Failed</Badge>;
+    default:
+      return <Badge variant="secondary">{status}</Badge>;
+  }
+};
+
 const PolicyServiceMyPolicies = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { completions, isLoading, getDaysUntilReview, deleteCompletion } = usePolicyCompletions();
+  const { jobs, activeJobCount, isLoading: jobsLoading } = usePolicyJobs();
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [previewPolicy, setPreviewPolicy] = useState<typeof completions[0] | null>(null);
@@ -80,12 +101,15 @@ const PolicyServiceMyPolicies = () => {
     c.policy_title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Group by review status
   const overdueCount = filteredCompletions.filter(c => getDaysUntilReview(c.review_date) < 0).length;
   const dueSoonCount = filteredCompletions.filter(c => {
     const days = getDaysUntilReview(c.review_date);
     return days >= 0 && days <= 30;
   }).length;
+
+  // Filter jobs to show: active (non-completed/failed) and recently completed (last 24h)
+  const activeJobs = jobs.filter(j => ['pending', 'generating', 'enhancing'].includes(j.status));
+  const recentFailedJobs = jobs.filter(j => j.status === 'failed');
 
   const handleDownload = async (completion: typeof completions[0]) => {
     setDownloadingId(completion.id);
@@ -169,10 +193,49 @@ const PolicyServiceMyPolicies = () => {
               <h1 className="text-2xl sm:text-3xl font-bold">My Policies</h1>
               <p className="text-muted-foreground">
                 {completions.length} completed {completions.length === 1 ? 'policy' : 'policies'}
+                {activeJobCount > 0 && ` • ${activeJobCount} in progress`}
               </p>
             </div>
           </div>
         </div>
+
+        {/* In Progress Jobs */}
+        {(activeJobs.length > 0 || recentFailedJobs.length > 0) && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <RefreshCw className={`h-4 w-4 ${activeJobCount > 0 ? 'animate-spin' : ''}`} />
+              In Progress
+              {activeJobCount > 0 && (
+                <span className="text-xs text-muted-foreground font-normal">Auto-refreshing every 15s</span>
+              )}
+            </h2>
+            <div className="space-y-2">
+              {[...activeJobs, ...recentFailedJobs].map(job => (
+                <Card key={job.id} className="border-dashed">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium truncate">{job.policy_title}</h3>
+                          {getJobStatusBadge(job.status)}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span>Submitted: {format(parseISO(job.created_at), 'dd/MM/yyyy HH:mm')}</span>
+                          {job.email_when_ready && (
+                            <span className="flex items-center gap-1">📧 Email notification on</span>
+                          )}
+                        </div>
+                        {job.status === 'failed' && job.error_message && (
+                          <p className="text-xs text-destructive mt-1">{job.error_message}</p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -302,7 +365,7 @@ const PolicyServiceMyPolicies = () => {
         )}
 
         {/* Empty State */}
-        {!isLoading && completions.length === 0 && (
+        {!isLoading && completions.length === 0 && activeJobs.length === 0 && (
           <Card>
             <CardContent className="py-12 text-center">
               <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
