@@ -181,6 +181,12 @@ CRITICAL FORMAT RULE: You MUST preserve the EXACT document header structure from
 - Only enhance the CONTENT within existing sections and add missing sub-sections within the existing structure
 - If a section is missing entirely, add it in the correct numbered position
 
+## SECTION 8.1 — KPI TABLE (MANDATORY)
+Section 8.1 MUST contain a populated KPI table with at least 5 measurable Key Performance Indicators relevant to the specific policy type. Each KPI row must include: KPI Name, Target/Standard, Measurement Method, Frequency, and Responsible Person. Do NOT leave this section empty, with placeholder text, or with generic statements. Generate concrete, policy-specific KPIs.
+
+## SECTION 11 — VERSION HISTORY (STRICT RULES)
+Section 11 must contain ONLY a version history table with these columns: Version | Date | Author | Summary of Changes. Do NOT output internal notes, compliance gap analyses, AI instructions, enhancement commentary, or any other content into section 11. It is strictly a version history log and nothing else.
+
 Return the enhanced policy as a complete, ready-to-use document with:
 1. All mandatory sections included
 2. Policy-specific requirements addressed
@@ -190,6 +196,8 @@ Return the enhanced policy as a complete, ready-to-use document with:
 6. Current references with years
 7. The EXACT SAME header layout and Document Control table format as the input
 8. Do NOT add any inline verification flags or markers anywhere in the document. The policy should read as clean, finalised text throughout.
+9. Section 8.1 contains a populated KPI table with at least 5 measurable KPIs
+10. Section 11 contains ONLY a version history table — no notes, gaps, or AI commentary
 
 Flag any critical compliance gaps that cannot be addressed without practice-specific information.`;
 
