@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { PolicyReference } from "@/hooks/usePolicyReferenceLibrary";
+import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
 
 interface PracticeDetails {
   practice_name: string;
@@ -57,6 +58,7 @@ const PolicyServiceCreate = () => {
   const [countdown, setCountdown] = useState(90);
   
   const { generatePolicy, isGenerating, isEnhancing } = usePolicyGeneration();
+  const { saveCompletion } = usePolicyCompletions();
 
   // Countdown timer during generation
   useEffect(() => {
@@ -130,6 +132,15 @@ const PolicyServiceCreate = () => {
         setWasEnhanced(result.enhanced);
         setEnhancementWarning(result.enhancementWarning || null);
         setStep(3);
+
+        // Auto-save to My Policies so completed policies always appear
+        await saveCompletion({
+          policyReferenceId: selectedPolicy.id,
+          policyTitle: result.metadata.title,
+          policyContent: result.content,
+          metadata: result.metadata,
+          practiceId: null,
+        });
       }
     } catch (error) {
       console.error("Generation error:", error);
