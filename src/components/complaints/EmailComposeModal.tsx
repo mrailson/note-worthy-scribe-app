@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Mail, Eye, Send } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Mail, Eye, Send, Code, RotateCcw } from "lucide-react";
 
 export interface EmailComposeData {
   senderName: string;
@@ -26,7 +27,7 @@ interface EmailComposeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: EmailComposeData;
-  onSend: (toggles: EmailToggles, senderName: string) => void;
+  onSend: (toggles: EmailToggles, senderName: string, customHtml?: string) => void;
   sending?: boolean;
 }
 
@@ -154,29 +155,52 @@ function generateEmailHtml(data: EmailComposeData, toggles: EmailToggles, sender
 export function EmailComposeModal({ open, onOpenChange, data, onSend, sending = false }: EmailComposeModalProps) {
   const [senderName, setSenderName] = useState(data.senderName);
   const [toggles, setToggles] = useState<EmailToggles>({
-    includeDescription: true,
-    includePatientName: true,
-    includeAcknowledgement: !!data.acknowledgementText,
-    includeDeadline: true,
+    includeDescription: false,
+    includePatientName: false,
+    includeAcknowledgement: false,
+    includeDeadline: false,
   });
+  const [editMode, setEditMode] = useState<'preview' | 'edit'>('preview');
+  const [customHtml, setCustomHtml] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setSenderName(data.senderName);
     setToggles({
-      includeDescription: true,
-      includePatientName: true,
-      includeAcknowledgement: !!data.acknowledgementText,
-      includeDeadline: true,
+      includeDescription: false,
+      includePatientName: false,
+      includeAcknowledgement: false,
+      includeDeadline: false,
     });
+    setCustomHtml(null);
+    setEditMode('preview');
   }, [open, data.senderName, data.acknowledgementText]);
 
-  const previewHtml = useMemo(
+  const generatedHtml = useMemo(
     () => generateEmailHtml(data, toggles, senderName),
     [data, toggles, senderName]
   );
 
+  // When toggles or sender change, reset custom edits so user sees fresh output
+  useEffect(() => {
+    setCustomHtml(null);
+  }, [toggles, senderName]);
+
+  const previewHtml = customHtml ?? generatedHtml;
   const hasAcknowledgement = !!data.acknowledgementText;
+  const isEdited = customHtml !== null;
+
+  const handleResetToDefault = () => {
+    setCustomHtml(null);
+    setEditMode('preview');
+  };
+
+  const handleSwitchToEdit = () => {
+    if (customHtml === null) {
+      setCustomHtml(generatedHtml);
+    }
+    setEditMode('edit');
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -267,19 +291,59 @@ export function EmailComposeModal({ open, onOpenChange, data, onSend, sending = 
             </div>
           </div>
 
-          {/* Right column — Live preview */}
+          {/* Right column — Live preview / Edit */}
           <div className="flex flex-col overflow-hidden rounded-lg border">
-            <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 border-b">
-              <Eye className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Email Preview</span>
+            <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
+              <div className="flex items-center gap-2">
+                {editMode === 'preview' ? (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Code className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-sm font-medium text-muted-foreground">
+                  {editMode === 'preview' ? 'Email Preview' : 'Edit HTML'}
+                </span>
+                {isEdited && (
+                  <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">Edited</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {isEdited && (
+                  <Button variant="ghost" size="sm" onClick={handleResetToDefault} className="h-7 text-xs gap-1">
+                    <RotateCcw className="h-3 w-3" />
+                    Reset
+                  </Button>
+                )}
+                {editMode === 'preview' ? (
+                  <Button variant="ghost" size="sm" onClick={handleSwitchToEdit} className="h-7 text-xs gap-1">
+                    <Code className="h-3 w-3" />
+                    Edit HTML
+                  </Button>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={() => setEditMode('preview')} className="h-7 text-xs gap-1">
+                    <Eye className="h-3 w-3" />
+                    Preview
+                  </Button>
+                )}
+              </div>
             </div>
-            <iframe
-              srcDoc={previewHtml}
-              title="Email preview"
-              sandbox=""
-              className="flex-1 w-full bg-white"
-              style={{ minHeight: 400 }}
-            />
+
+            {editMode === 'preview' ? (
+              <iframe
+                srcDoc={previewHtml}
+                title="Email preview"
+                sandbox=""
+                className="flex-1 w-full bg-white"
+                style={{ minHeight: 400 }}
+              />
+            ) : (
+              <Textarea
+                value={customHtml ?? generatedHtml}
+                onChange={(e) => setCustomHtml(e.target.value)}
+                className="flex-1 w-full font-mono text-xs border-0 rounded-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                style={{ minHeight: 400 }}
+              />
+            )}
           </div>
         </div>
 
@@ -287,7 +351,7 @@ export function EmailComposeModal({ open, onOpenChange, data, onSend, sending = 
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
             Cancel
           </Button>
-          <Button onClick={() => onSend(toggles, senderName)} disabled={sending} className="gap-2">
+          <Button onClick={() => onSend(toggles, senderName, customHtml ?? undefined)} disabled={sending} className="gap-2">
             <Send className="h-4 w-4" />
             {sending ? "Sending…" : "Send Email"}
           </Button>
