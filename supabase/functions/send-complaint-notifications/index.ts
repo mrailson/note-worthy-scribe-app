@@ -14,6 +14,11 @@ interface EmailRequest {
     staffEmail: string;
     staffRole: string;
   }>;
+  senderName?: string;
+  includeDescription?: boolean;
+  includePatientName?: boolean;
+  includeAcknowledgement?: boolean;
+  includeDeadline?: boolean;
 }
 
 serve(async (req) => {
@@ -22,7 +27,15 @@ serve(async (req) => {
   }
 
   try {
-    const { complaintId, involvedParties }: EmailRequest = await req.json();
+    const { 
+      complaintId, 
+      involvedParties, 
+      senderName: customSenderName,
+      includeDescription = true,
+      includePatientName = true,
+      includeAcknowledgement = true,
+      includeDeadline = true,
+    }: EmailRequest = await req.json();
     
     if (!complaintId || !involvedParties?.length) {
       throw new Error('Complaint ID and involved parties are required');
@@ -167,10 +180,10 @@ serve(async (req) => {
         <td style="padding: 8px 0; font-weight: bold; color: #374151;">Title:</td>
         <td style="padding: 8px 0; color: #1f2937;">${complaint.complaint_title}</td>
       </tr>
-      <tr style="border-bottom: 1px solid #e5e7eb;">
+      ${includePatientName ? `<tr style="border-bottom: 1px solid #e5e7eb;">
         <td style="padding: 8px 0; font-weight: bold; color: #374151;">Patient:</td>
         <td style="padding: 8px 0; color: #1f2937;">${complaint.patient_name}</td>
-      </tr>
+      </tr>` : ''}
       <tr style="border-bottom: 1px solid #e5e7eb;">
         <td style="padding: 8px 0; font-weight: bold; color: #374151;">Incident Date:</td>
         <td style="padding: 8px 0; color: #1f2937;">${new Date(complaint.incident_date).toLocaleDateString('en-GB')}</td>
@@ -182,14 +195,14 @@ serve(async (req) => {
     </table>
   </div>
 
-  <div style="background-color: #fef9e7; border-left: 4px solid #f59e0b; padding: 20px; margin: 25px 0;">
+  ${includeDescription ? `<div style="background-color: #fef9e7; border-left: 4px solid #f59e0b; padding: 20px; margin: 25px 0;">
     <h2 style="color: #92400e; font-size: 18px; margin: 0 0 15px 0; font-weight: bold;">📝 Complaint Description</h2>
     <div style="background-color: #ffffff; padding: 15px; border-radius: 6px; border: 1px solid #fbbf24;">
       <p style="color: #374151; line-height: 1.6; margin: 0; white-space: pre-wrap;">${complaint.complaint_description}</p>
     </div>
-  </div>
+  </div>` : ''}
 
-  ${acknowledgement ? `
+  ${includeAcknowledgement && acknowledgement ? `
   <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; margin: 25px 0;">
     <h2 style="color: #065f46; font-size: 18px; margin: 0 0 15px 0; font-weight: bold;">✅ Acknowledgement Sent to Patient</h2>
     <p style="color: #374151; font-size: 14px; margin: 0 0 10px 0;">
@@ -221,7 +234,7 @@ serve(async (req) => {
     </div>
   </div>
 
-  <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; margin: 25px 0;">
+  ${includeDeadline ? `<div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; margin: 25px 0;">
     <h3 style="color: #dc2626; font-size: 16px; margin: 0 0 10px 0; font-weight: bold;">⚠️ Important Information</h3>
     <ul style="color: #374151; line-height: 1.5; margin: 0; padding-left: 20px;">
       <li>Please review the complaint details carefully</li>
@@ -229,7 +242,7 @@ serve(async (req) => {
       <li>Your response will form part of the complaint investigation and outcome</li>
       <li>All information will be handled confidentially in line with NHS complaints guidance</li>
     </ul>
-  </div>
+  </div>` : ''}
 
   <p style="font-size: 14px; color: #374151; margin: 25px 0 5px 0;">
     If you have any concerns or require support in responding, please contact the Practice Manager.
@@ -238,7 +251,7 @@ serve(async (req) => {
   <div style="border-top: 2px solid #e5e7eb; padding-top: 20px; margin-top: 40px; text-align: center;">
     <p style="color: #6b7280; font-size: 14px; margin: 10px 0 0 0;">
       <strong>Kind regards,</strong><br>
-      ${practiceDetails?.practice_name || 'Medical Practice'}<br>
+      ${customSenderName || practiceDetails?.practice_name || 'Medical Practice'}<br>
       Complaint Management System
     </p>
   </div>
