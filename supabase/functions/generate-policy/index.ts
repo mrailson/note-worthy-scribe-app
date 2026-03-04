@@ -845,7 +845,15 @@ Now generate sections 7-11 to complete this policy, followed by the ===METADATA=
           } else {
             const enhancePrompt = `Please review and enhance the following ${policyName} policy for ${(jobPractice as any)?.practice_name || '[PRACTICE NAME]'} (ODS: ${(jobPractice as any)?.ods_code || '[ODS CODE]'}).
 
-Ensure it meets all CQC KLOE requirements, applies all known guidance changes listed at the top of your instructions, and includes current regulatory references.
+MANDATORY ENHANCEMENT CHECKLIST:
+1. Review and improve clinical and compliance accuracy throughout
+2. Apply all known guidance changes (cervical screening 5-year intervals, safeguarding 2023, flexible working day-one right, etc.)
+3. Complete any missing or incomplete sections
+4. Replace ALL [PRACTICE TO COMPLETE] placeholders where values are known from the practice data below
+5. Section 7 (Related Policies) MUST contain a bulleted list of at least 10 specific, named policy titles relevant to this policy type. If it is missing or incomplete, generate it now.
+6. Section 11 MUST contain ONLY a version history table — no internal notes, no gap analysis
+7. Remove any lines beginning with > (blockquote markers used for internal notes)
+8. Never output internal notes, gap analysis, compliance checklists, or AI instructions anywhere
 
 PRACTICE DATA FOR PLACEHOLDER REPLACEMENT:
 ${practiceContext}
@@ -856,8 +864,8 @@ ${policyContent}`;
             try {
               const enhanced = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, enhancePrompt, 10000);
               if (enhanced && enhanced.length > 500) {
-                policyContent = enhanced;
-                console.log(`[Step: enhance] Enhancement succeeded - ${enhanced.length} chars`);
+                policyContent = stripInternalQuoteLines(enhanced);
+                console.log(`[Step: enhance] Enhancement succeeded - ${policyContent.length} chars (stripped internal lines)`);
               } else {
                 console.warn(`[Step: enhance] Enhancement returned insufficient content, using original`);
               }
