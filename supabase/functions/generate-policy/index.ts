@@ -47,6 +47,9 @@ const ENHANCEMENT_SYSTEM_PROMPT = `You are an NHS primary care policy expert pre
 ## OUTPUT FORMAT
 CRITICAL: Preserve the EXACT document header structure. Do NOT restructure Document Control table, header fields, Equality Impact Assessment Statement, section numbering, or Version History table position (must remain section 11). Only enhance CONTENT within existing sections.
 
+## SECTION 7 - RELATED POLICIES (MANDATORY)
+Section 7 MUST contain a bulleted list of at least 10 specific, named policy titles relevant to the policy type. Do NOT leave this section as only a heading or short introductory sentence.
+
 ## SECTION 8.1 - KPI TABLE (MANDATORY)
 Section 8.1 MUST contain a populated KPI table with at least 5 measurable Key Performance Indicators relevant to the specific policy type. Each KPI row must include: KPI Name, Target/Standard, Measurement Method, Frequency, and Responsible Person. Do NOT leave this section empty or with placeholder text.
 
@@ -162,7 +165,7 @@ Output ONLY section 6 in markdown.`;
 const PART3_SYSTEM_ADDITION = `
 You are generating the FINAL PART of a policy document. Sections 1-6 already exist and are provided for context. You must now generate ONLY:
 
-7. RELATED POLICIES — You MUST output a bulleted list of specific, named policies that are related to this policy type. For example, for a Cervical Screening policy you might list: Infection Prevention and Control Policy, Safeguarding Adults Policy, Consent Policy, Information Governance Policy, Chaperone Policy, Cold Chain Policy, etc. List at least 5 related policy titles as bullet points. Do NOT leave this section as just a heading.
+7. RELATED POLICIES — You MUST output a bulleted list of at least 10 specific, named policies relevant to this policy type. Each bullet must be a policy title (not a sentence). For example, for a Cervical Screening policy you might list: Infection Prevention and Control Policy, Safeguarding Adults Policy, Consent Policy, Information Governance Policy, Chaperone Policy, Cold Chain Policy, etc. Do NOT leave this section as just a heading or introductory sentence.
 8. MONITORING AND COMPLIANCE (Section 8.1 MUST contain a KPI table with at least 5 measurable KPIs: KPI Name | Target/Standard | Measurement Method | Frequency | Responsible Person)
 9. REFERENCES AND LEGISLATION
 10. APPENDICES
@@ -288,6 +291,17 @@ function selfTrigger(targetUserId: string) {
     },
     body: JSON.stringify({ action: 'process-job', job_user_id: targetUserId }),
   }).catch(() => {});
+}
+
+function stripInternalQuoteLines(content: string): string {
+  if (!content) return content;
+
+  return content
+    .split('\n')
+    .filter((line) => !/^\s*>/.test(line))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // Helper: stream Anthropic response while sending keepalive pings to the client
@@ -887,7 +901,8 @@ ${policyContent}`;
         if (currentStep === 'finalise') {
           await updateHeartbeat(serviceSupabase, job.id, 'finalise', 90);
 
-          const policyContent = job.generated_content || '';
+          const rawPolicyContent = job.generated_content || '';
+          const policyContent = stripInternalQuoteLines(rawPolicyContent);
 
           // Save to policy_completions
           try {
@@ -1525,7 +1540,8 @@ Please generate a complete, professional policy document that meets all regulato
           if (referencesMatch) metadata.references = referencesMatch[1].split(',').map((r: string) => r.trim());
         }
 
-        const policyContent = contentMatch ? contentMatch[1].trim() : aiContent;
+        const rawPolicyContent = contentMatch ? contentMatch[1].trim() : aiContent;
+        const policyContent = stripInternalQuoteLines(rawPolicyContent);
 
         const { data: generationRecord, error: insertError } = await supabase
           .from('policy_generations')
