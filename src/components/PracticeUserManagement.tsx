@@ -894,27 +894,28 @@ export const PracticeUserManagement = () => {
                 </div>
               )}
 
-              {/* Role selection for non-practice organisations */}
-              {isNonPracticeOrg && (
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select
-                    value={userFormData.role}
-                    onValueChange={(value) => setUserFormData(prev => ({ ...prev, role: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {organisationRoles.map((role) => (
-                        <SelectItem key={role.value} value={role.value}>
-                          {role.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              {/* Role selection */}
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={userFormData.role}
+                  onValueChange={(value) => setUserFormData(prev => ({ ...prev, role: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(isNonPracticeOrg ? organisationRoles : [
+                      { value: 'practice_user', label: 'Practice User' },
+                      { value: 'practice_manager', label: 'Practice Manager' }
+                    ]).map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Practice role selection for GP practices only */}
               {!isNonPracticeOrg && (
