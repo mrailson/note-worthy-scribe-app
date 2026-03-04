@@ -12019,6 +12019,9 @@ export type Database = {
         | "reception_team"
         | "admin_team"
         | "secretaries"
+        | "practice_manager"
+        | "deputy_practice_manager"
+        | "clinician"
       service_type:
         | "ai4pm"
         | "ai4gp"
@@ -12252,6 +12255,9 @@ export const Constants = {
         "reception_team",
         "admin_team",
         "secretaries",
+        "practice_manager",
+        "deputy_practice_manager",
+        "clinician",
       ],
       service_type: [
         "ai4pm",
