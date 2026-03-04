@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Mail, Clock, CheckCircle, AlertCircle, Trash2, Users, Plus, Edit, Sparkles, Loader2 } from "lucide-react";
+import { EmailComposeModal, type EmailComposeData, type EmailToggles } from "@/components/complaints/EmailComposeModal";
 
 interface RequestInformationPanelProps {
   complaintId: string;
@@ -65,10 +66,14 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
     phone: "",
   });
   const [isGeneratingDemo, setIsGeneratingDemo] = useState(false);
+  const [showComposeModal, setShowComposeModal] = useState(false);
+  const [composeData, setComposeData] = useState<EmailComposeData | null>(null);
+  const [userFullName, setUserFullName] = useState<string>("");
 
   useEffect(() => {
     fetchInvolvedParties();
     fetchTeamMembers();
+    fetchUserFullName();
 
     const channel = supabase
       .channel('involved-parties-changes')
@@ -90,6 +95,21 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
       supabase.removeChannel(channel);
     };
   }, [complaintId]);
+
+  const fetchUserFullName = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', session.user.id)
+        .single();
+      if (data?.full_name) setUserFullName(data.full_name);
+    } catch (e) {
+      console.error('Error fetching user profile:', e);
+    }
+  };
 
   const fetchTeamMembers = async () => {
     try {
@@ -233,12 +253,68 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
     }
   };
 
-  const handleSendRequest = async () => {
+  const handleOpenComposeModal = async () => {
     if (!newParty.name || !newParty.email || !newParty.role) {
       toast.error('Please fill in all required fields');
       return;
     }
 
+    try {
+      // Fetch complaint details for the preview
+      const { data: complaint, error: complaintError } = await supabase
+        .from('complaints')
+        .select('reference_number, complaint_title, complaint_description, patient_name, incident_date, practice_id')
+        .eq('id', complaintId)
+        .single();
+
+      if (complaintError || !complaint) throw new Error('Complaint not found');
+
+      // Fetch practice name
+      let practiceName = 'Medical Practice';
+      if (complaint.practice_id) {
+        const { data: practice } = await supabase
+          .from('practice_details')
+          .select('practice_name')
+          .eq('id', complaint.practice_id)
+          .single();
+        if (practice?.practice_name) practiceName = practice.practice_name;
+      }
+
+      // Fetch acknowledgement
+      const { data: ack } = await supabase
+        .from('complaint_acknowledgements')
+        .select('acknowledgement_letter, created_at')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      setComposeData({
+        senderName: userFullName || 'Practice Manager',
+        staffName: newParty.name,
+        staffEmail: newParty.email,
+        staffRole: newParty.role,
+        complaintReference: complaint.reference_number,
+        complaintTitle: complaint.complaint_title,
+        complaintDescription: complaint.complaint_description || '',
+        patientName: complaint.patient_name || '',
+        incidentDate: complaint.incident_date
+          ? new Date(complaint.incident_date).toLocaleDateString('en-GB')
+          : '',
+        practiceName,
+        acknowledgementText: ack?.acknowledgement_letter || null,
+        acknowledgementDate: ack?.created_at
+          ? new Date(ack.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : null,
+      });
+      setShowComposeModal(true);
+    } catch (error) {
+      console.error('Error preparing compose modal:', error);
+      toast.error('Failed to load complaint details for email preview');
+    }
+  };
+
+  const handleSendFromCompose = async (toggles: EmailToggles, senderName: string) => {
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-complaint-notifications', {
@@ -249,7 +325,12 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
             staffEmail: newParty.email,
             staffRole: newParty.role,
             notes: newParty.notes || null
-          }]
+          }],
+          senderName,
+          includeDescription: toggles.includeDescription,
+          includePatientName: toggles.includePatientName,
+          includeAcknowledgement: toggles.includeAcknowledgement,
+          includeDeadline: toggles.includeDeadline,
         }
       });
 
@@ -270,6 +351,8 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
       setNewParty({ name: "", email: "", role: "", notes: "" });
       setSelectedTeamMemberId("");
       setShowRequestDialog(false);
+      setShowComposeModal(false);
+      setComposeData(null);
       fetchInvolvedParties();
     } catch (error) {
       console.error('Error sending request:', error);
@@ -600,10 +683,10 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleSendRequest}
+                  onClick={handleOpenComposeModal}
                   disabled={!newParty.name || !newParty.email || !newParty.role || sending}
                 >
-                  {sending ? "Sending..." : "Send Request"}
+                  Compose Email
                 </Button>
               </div>
             </TabsContent>
@@ -858,6 +941,18 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         </DialogContent>
       </Dialog>
 
+      {composeData && (
+        <EmailComposeModal
+          open={showComposeModal}
+          onOpenChange={(open) => {
+            setShowComposeModal(open);
+            if (!open) setComposeData(null);
+          }}
+          data={composeData}
+          onSend={handleSendFromCompose}
+          sending={sending}
+        />
+      )}
     </>
   );
 }
