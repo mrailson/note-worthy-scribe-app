@@ -157,6 +157,17 @@ serve(async (req) => {
       throw new Error('ANTHROPIC_API_KEY is not configured');
     }
 
+    // Look up practice_id from ODS code
+    let practiceId: string | null = null;
+    if (practice_details?.ods_code) {
+      const { data: practiceRecord } = await supabase
+        .from('practice_details')
+        .select('id')
+        .eq('ods_code', practice_details.ods_code)
+        .maybeSingle();
+      practiceId = practiceRecord?.id || null;
+    }
+
     // For update generation type
     if (generation_type === 'update') {
       if (!original_policy_text || !gap_analysis) {
@@ -251,7 +262,8 @@ Today's date is ${new Date().toLocaleDateString('en-GB')}.`;
         .from('policy_generations')
         .insert({
           user_id: userId,
-          practice_id: practice_details?.practice_id || null,
+          practice_id: practiceId,
+          policy_name: metadata?.title || 'Updated Policy',
           generation_type: 'update',
           generated_content: policyContent,
           metadata,
@@ -417,14 +429,15 @@ Please generate a complete, professional policy document that meets all regulato
     // Save generation record
     const { data: generationRecord, error: insertError } = await supabase
       .from('policy_generations')
-      .insert({
-        user_id: userId,
-        practice_id: practice_details.practice_id || null,
-        policy_reference_id,
-        generation_type: 'new',
-        generated_content: policyContent,
-        metadata,
-      })
+        .insert({
+          user_id: userId,
+          practice_id: practiceId,
+          policy_reference_id,
+          policy_name: metadata?.title || 'New Policy',
+          generation_type: 'new',
+          generated_content: policyContent,
+          metadata,
+        })
       .select('id')
       .single();
 

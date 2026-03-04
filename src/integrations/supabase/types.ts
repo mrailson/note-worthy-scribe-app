@@ -7959,9 +7959,9 @@ export type Database = {
           id: string
           input_document_url: string | null
           metadata: Json | null
-          policy_name: string
+          policy_name: string | null
           policy_reference_id: string | null
-          practice_id: string
+          practice_id: string | null
           status: string
           updated_at: string
           user_id: string
@@ -7974,9 +7974,9 @@ export type Database = {
           id?: string
           input_document_url?: string | null
           metadata?: Json | null
-          policy_name: string
+          policy_name?: string | null
           policy_reference_id?: string | null
-          practice_id: string
+          practice_id?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -7989,9 +7989,9 @@ export type Database = {
           id?: string
           input_document_url?: string | null
           metadata?: Json | null
-          policy_name?: string
+          policy_name?: string | null
           policy_reference_id?: string | null
-          practice_id?: string
+          practice_id?: string | null
           status?: string
           updated_at?: string
           user_id?: string
