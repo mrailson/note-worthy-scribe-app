@@ -15,7 +15,28 @@ export interface PolicyJob {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  // Orchestration fields
+  current_step: string | null;
+  progress_pct: number | null;
+  heartbeat_at: string | null;
+  lease_expires_at: string | null;
+  attempt_count: number | null;
 }
+
+const STEP_LABELS: Record<string, string> = {
+  generate_part_1: 'Generating (part 1/2)',
+  generate_part_2: 'Generating (part 2/2)',
+  enhance: 'Enhancing',
+  finalise: 'Finalising',
+  done: 'Complete',
+};
+
+export const getStepLabel = (job: PolicyJob): string => {
+  if (job.status === 'pending') return 'Queued';
+  if (job.status === 'completed') return 'Complete';
+  if (job.status === 'failed') return 'Failed';
+  return STEP_LABELS[job.current_step || ''] || job.status;
+};
 
 export const usePolicyJobs = () => {
   const { user } = useAuth();
@@ -41,11 +62,11 @@ export const usePolicyJobs = () => {
     }
   }, [user]);
 
-  // Kick the queue processor if there are stale pending/enhancing jobs
+  // Kick the queue processor when needed
   const kickQueue = useCallback(async () => {
     if (!user) return;
 
-    // Only kick once every 30 seconds to avoid spamming
+    // Only kick once every 30 seconds
     const now = Date.now();
     if (now - lastKickRef.current < 30000) return;
     lastKickRef.current = now;
@@ -75,15 +96,21 @@ export const usePolicyJobs = () => {
     j => j.status === 'pending' || j.status === 'generating' || j.status === 'enhancing'
   ).length;
 
-  // Check for stale jobs and kick queue when needed
+  // Check for stale jobs using lease_expires_at (not raw updated_at)
   useEffect(() => {
     if (activeJobCount === 0) return;
 
-    // Check if any active jobs haven't been updated in 60+ seconds (stale)
     const hasStaleJobs = jobs.some(j => {
       if (!['pending', 'generating', 'enhancing'].includes(j.status)) return false;
-      const updatedAt = new Date(j.updated_at).getTime();
-      return Date.now() - updatedAt > 60000; // 60 seconds without update = stale
+      // Pending jobs with no lease are always kickable
+      if (j.status === 'pending') return true;
+      // Jobs with expired lease are stale
+      if (j.lease_expires_at) {
+        return new Date(j.lease_expires_at).getTime() < Date.now();
+      }
+      // Legacy: no lease set, fall back to heartbeat/updated_at staleness
+      const heartbeat = j.heartbeat_at || j.updated_at;
+      return Date.now() - new Date(heartbeat).getTime() > 120000; // 2 minutes
     });
 
     if (hasStaleJobs) {
@@ -91,10 +118,10 @@ export const usePolicyJobs = () => {
     }
   }, [jobs, activeJobCount, kickQueue]);
 
-  // Poll every 15s when there are active jobs
+  // Poll every 10s when there are active jobs (faster for multi-step)
   useEffect(() => {
     if (activeJobCount > 0) {
-      pollRef.current = setInterval(fetchJobs, 15000);
+      pollRef.current = setInterval(fetchJobs, 10000);
     } else if (pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
@@ -104,12 +131,10 @@ export const usePolicyJobs = () => {
     };
   }, [activeJobCount, fetchJobs]);
 
-  // Initial fetch — and kick queue if there are active jobs
+  // Initial fetch
   useEffect(() => {
     setIsLoading(true);
     fetchJobs().then(() => {
-      // After initial fetch, kick queue for any pending jobs (covers recovery scenarios)
-      // The kickQueue has its own 30s throttle so this is safe
       kickQueue();
     }).finally(() => setIsLoading(false));
   }, [fetchJobs, kickQueue]);
