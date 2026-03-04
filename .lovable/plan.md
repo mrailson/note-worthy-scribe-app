@@ -1,41 +1,24 @@
 
 
-## Plan: Enable Excel File Uploads in Image Studio with Table-Preserving Processing
+## Plan: Add Privacy Notice & Accessibility Statement as Public Pages
 
 ### What This Does
-Allows Excel files (.xls, .xlsx) to be uploaded as supporting information in Image Studio's Context tab, with the extracted content preserving table structure (headers, rows, columns) so the AI can interpret data properly for infographic/chart generation.
+Adds the two uploaded HTML documents as publicly accessible pages at `/privacy-notice` and `/accessibility-statement`, and adds links to them in the logged-out homepage footer area (the governance trust bar section).
 
-### Current State
-- The `ExcelProcessor` already exists and converts Excel to CSV format — but CSV loses structural context for AI prompts.
-- The Image Studio `ContextTab.tsx` uses `react-dropzone` with its own accepted file types — Excel is **not currently listed** in its accept config.
-- The `FileProcessorManager` already maps `.xls`/`.xlsx` to the `ExcelProcessor`.
+### Changes
 
-### Changes Required
+#### 1. Copy HTML files to `public/documents/`
+- Copy `privacy-notice.html` → `public/documents/privacy-notice.html`
+- Copy `accessibility-statement.html` → `public/documents/accessibility-statement.html`
 
-#### 1. Update `ExcelProcessor.ts` — Preserve table structure
-- Enhance the output format to use **Markdown tables** instead of raw CSV, so the AI receives structured, readable tabular data.
-- Each sheet will output a proper Markdown table with headers and aligned columns.
-- This makes data immediately usable for infographic/chart generation prompts.
+#### 2. Create two new page components
+- `src/pages/PrivacyNotice.tsx` — renders the HTML in an iframe (same pattern as `GPContract.tsx`), with a back button, print, and download controls.
+- `src/pages/AccessibilityStatement.tsx` — same pattern.
 
-#### 2. Update `ContextTab.tsx` — Add Excel to accepted file types
-- Add `application/vnd.ms-excel` (`.xls`) and `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (`.xlsx`) to the dropzone's `accept` configuration.
-- Update the helper text from "PDF, Word, PowerPoint, Excel, Images" (it already mentions Excel but doesn't actually accept it) to ensure it works.
+#### 3. Add public routes in `App.tsx`
+- `/privacy-notice` → `<PrivacyNotice />` (no `ProtectedRoute` wrapper)
+- `/accessibility-statement` → `<AccessibilityStatement />` (no `ProtectedRoute` wrapper)
 
-### Technical Detail
-
-**ExcelProcessor enhanced output format:**
-```
-EXCEL SPREADSHEET DATA FROM: results.xlsx
-
-=== Sheet 1: Patient Survey Results ===
-
-| Question | Yes | No | Unsure |
-|----------|-----|-----|--------|
-| Satisfied with care | 85% | 10% | 5% |
-| Would recommend | 90% | 5% | 5% |
-
-Summary: 2 columns, 3 rows of data
-```
-
-This Markdown table format is directly interpretable by the AI models for generating charts, infographics, and data visualisations.
+#### 4. Add links to the logged-out homepage
+- In `src/pages/Index.tsx`, below the governance trust bar (around line 522), add a small footer row with links: "Privacy Notice" and "Accessibility Statement", styled as subtle text links consistent with the existing trust bar aesthetic.
 
