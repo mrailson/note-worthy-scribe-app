@@ -320,7 +320,10 @@ ${pendingJob.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${pendingJob.custo
 
 Please generate a complete, professional policy document that meets all regulatory requirements.`;
 
-          // Single Anthropic call: GENERATE only
+          // Single Anthropic call: GENERATE only (with timeout to avoid stuck jobs)
+          const generateController = new AbortController();
+          const generateTimeout = setTimeout(() => generateController.abort(), 120000);
+
           const genResponse = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -330,11 +333,14 @@ Please generate a complete, professional policy document that meets all regulato
             },
             body: JSON.stringify({
               model: 'claude-sonnet-4-6',
-              max_tokens: 16000,
+              max_tokens: 12000,
               system: systemPrompt,
               messages: [{ role: 'user', content: jobUserPrompt }],
             }),
+            signal: generateController.signal,
           });
+
+          clearTimeout(generateTimeout);
 
           if (!genResponse.ok) {
             const errText = await genResponse.text();
@@ -469,17 +475,19 @@ Please generate a complete, professional policy document that meets all regulato
 
           const policyName = policyRef?.policy_name || enhancingJob.policy_title;
 
-          // Only attempt enhancement if under retry limit
-          if (retryCount < 3) {
+          // Only attempt enhancement if content size and retry count are safe
+          const shouldAttemptEnhancement = retryCount < 2 && policyContent.length <= 25000;
+
+          if (shouldAttemptEnhancement) {
             const enhancePrompt = `Please review and enhance the following ${policyName} policy for ${jobPractice?.practice_name || '[PRACTICE NAME]'} (ODS: ${jobPractice?.ods_code || '[ODS CODE]'}).
 
 Ensure it meets all CQC KLOE requirements, applies all known guidance changes listed at the top of your instructions, and includes current regulatory references.
 
 ${policyContent}`;
 
-            // Add 4-minute timeout to prevent edge function timeout
+            // 90-second timeout to prevent edge function timeout loops
             const enhanceController = new AbortController();
-            const enhanceTimeout = setTimeout(() => enhanceController.abort(), 240000);
+            const enhanceTimeout = setTimeout(() => enhanceController.abort(), 90000);
 
             try {
               const enhResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -491,7 +499,7 @@ ${policyContent}`;
                 },
                 body: JSON.stringify({
                   model: 'claude-sonnet-4-6',
-                  max_tokens: 16000,
+                  max_tokens: 10000,
                   system: ENHANCEMENT_SYSTEM_PROMPT,
                   messages: [{ role: 'user', content: enhancePrompt }],
                 }),
@@ -510,26 +518,13 @@ ${policyContent}`;
             } catch (fetchErr) {
               clearTimeout(enhanceTimeout);
               if (fetchErr instanceof Error && fetchErr.name === 'AbortError') {
-                console.error(`[Phase 2] Enhancement timed out for job ${enhancingJob.id}, will retry or use generated content`);
-                // Self-trigger retry
-                fetch(`${SUPABASE_URL}/functions/v1/generate-policy`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                    'apikey': SUPABASE_SERVICE_ROLE_KEY,
-                  },
-                  body: JSON.stringify({ action: 'process-job', job_user_id: targetUserId }),
-                }).catch(() => {});
-
-                return new Response(JSON.stringify({ success: true, phase: 'enhance-timeout-retry', jobId: enhancingJob.id }), {
-                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                });
+                console.error(`[Phase 2] Enhancement timed out for job ${enhancingJob.id}, using generated content`);
+              } else {
+                throw fetchErr;
               }
-              throw fetchErr;
             }
           } else {
-            console.log(`[Phase 2] Using generated content without enhancement (max retries exceeded)`);
+            console.log(`[Phase 2] Skipping enhancement for job ${enhancingJob.id} (retryCount=${retryCount}, contentLength=${policyContent.length})`);
           }
 
           // Save to policy_completions
