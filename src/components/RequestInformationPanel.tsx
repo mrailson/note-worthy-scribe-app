@@ -82,7 +82,7 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [complaintId]);
+  }, [complaintId, practiceId]);
 
   const fetchUserFullName = async () => {
     try {
@@ -101,19 +101,49 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
 
   const fetchTeamMembers = async () => {
     try {
-      // practice_staff_defaults.practice_id references practice_details, not gp_practices
-      // So we look up the current user's practice_details record
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: practiceDetails } = await supabase
-        .from('practice_details')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle();
+      let practiceDetailsId: string | null = null;
 
-      if (!practiceDetails?.id) {
+      // Preferred path: map complaint gp_practices.id -> gp_practices.practice_code -> practice_details.ods_code
+      if (practiceId) {
+        const { data: gpPractice } = await supabase
+          .from('gp_practices')
+          .select('practice_code')
+          .eq('id', practiceId)
+          .limit(1)
+          .maybeSingle();
+
+        if (gpPractice?.practice_code) {
+          const { data: linkedPracticeDetails } = await supabase
+            .from('practice_details')
+            .select('id')
+            .eq('ods_code', gpPractice.practice_code)
+            .limit(1)
+            .maybeSingle();
+
+          if (linkedPracticeDetails?.id) {
+            practiceDetailsId = linkedPracticeDetails.id;
+          }
+        }
+      }
+
+      // Fallback path: current user's practice_details
+      if (!practiceDetailsId) {
+        const { data: ownPracticeDetails } = await supabase
+          .from('practice_details')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (ownPracticeDetails?.id) {
+          practiceDetailsId = ownPracticeDetails.id;
+        }
+      }
+
+      if (!practiceDetailsId) {
         setTeamMembers([]);
         return;
       }
@@ -121,7 +151,7 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
       const { data, error } = await supabase
         .from('practice_staff_defaults')
         .select('id, staff_name, default_email, staff_role, default_phone')
-        .eq('practice_id', practiceDetails.id)
+        .eq('practice_id', practiceDetailsId)
         .eq('is_active', true)
         .order('staff_name') as { data: any[] | null; error: any };
 
