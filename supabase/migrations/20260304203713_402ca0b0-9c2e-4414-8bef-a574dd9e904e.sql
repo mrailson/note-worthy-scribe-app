@@ -1,0 +1,1 @@
+CREATE POLICY "Users can delete own jobs" ON public.policy_generation_jobs FOR DELETE TO authenticated USING (auth.uid() = user_id);

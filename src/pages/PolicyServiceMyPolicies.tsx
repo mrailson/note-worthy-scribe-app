@@ -69,7 +69,7 @@ const PolicyServiceMyPolicies = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { completions, isLoading, getDaysUntilReview, deleteCompletion } = usePolicyCompletions();
-  const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue } = usePolicyJobs();
+  const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue, refetch: refetchJobs } = usePolicyJobs();
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [previewPolicy, setPreviewPolicy] = useState<typeof completions[0] | null>(null);
@@ -245,6 +245,42 @@ const PolicyServiceMyPolicies = () => {
                           <p className="text-xs text-destructive mt-1">{job.error_message}</p>
                         )}
                       </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove from queue?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove "{job.policy_title}" from the queue. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={async () => {
+                                try {
+                                  const { error } = await supabase
+                                    .from('policy_generation_jobs')
+                                    .delete()
+                                    .eq('id', job.id);
+                                  if (error) throw error;
+                                  toast.success(`"${job.policy_title}" removed from queue`);
+                                  refetchJobs();
+                                } catch (e) {
+                                  toast.error('Failed to remove job');
+                                }
+                              }}
+                            >
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </CardContent>
                 </Card>
