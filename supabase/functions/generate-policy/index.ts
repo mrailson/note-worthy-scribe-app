@@ -787,6 +787,8 @@ ${policyContent}`;
 
           // Save to policy_completions
           try {
+            const today = new Date().toISOString().split('T')[0];
+            const reviewDate = new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0];
             await serviceSupabase.from('policy_completions').insert({
               user_id: job.user_id,
               policy_reference_id: job.policy_reference_id,
@@ -794,7 +796,9 @@ ${policyContent}`;
               policy_content: policyContent,
               metadata: jobMetadata,
               version: jobMetadata.version || '1.0',
-              status: 'current',
+              status: 'completed',
+              effective_date: jobMetadata.effective_date || today,
+              review_date: jobMetadata.review_date || reviewDate,
             });
           } catch (saveErr) {
             console.error(`[Finalise] Failed to save completion:`, saveErr);
