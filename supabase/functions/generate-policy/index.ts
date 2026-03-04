@@ -46,37 +46,66 @@ Review Date: [Date 12 months from today in DD/MM/YYYY format]
 References: [Comma-separated list of key guidance documents]
 
 ===POLICY_CONTENT===
-# 1. Purpose
+
+IMPORTANT: The policy content MUST begin with EXACTLY this header structure (fill in the bracketed values). Do NOT deviate from this layout:
+
+# [POLICY TITLE IN TITLE CASE]
+
+**Practice:** [Practice Name]
+**ODS Code:** [ODS Code]
+
+---
+
+## Document Control
+
+| Field | Detail |
+|-------|--------|
+| **Version** | 1.0 |
+| **Effective Date** | [DD/MM/YYYY] |
+| **Review Date** | [DD/MM/YYYY] |
+| **Author** | [Practice Manager name], Practice Manager |
+| **Approved By** | [Lead GP name], Lead GP |
+
+---
+
+## Equality Impact Assessment Statement
+
+This policy has been assessed to ensure it does not discriminate against any protected characteristic under the Equality Act 2010. The practice is committed to ensuring that this policy meets the diverse needs of our patients and workforce, irrespective of age, disability, gender reassignment, marriage and civil partnership, pregnancy and maternity, race, religion or belief, sex, or sexual orientation.
+
+---
+
+## 1. Purpose
 [Clear, concise statement explaining why this policy exists and what it aims to achieve. Maximum 3 sentences.]
 
-# 2. Scope
+## 2. Scope
 [Explicitly state who this policy applies to - all staff categories, departments, and any exceptions. Be specific about roles and settings.]
 
-# 3. Definitions
+## 3. Definitions
 [Define all technical terms, abbreviations, and acronyms used in this policy. Format as a bulleted list.]
 
-# 4. Roles and Responsibilities
+## 4. Roles and Responsibilities
 [Use the named individuals provided. Format each role as a sub-section with bullet points listing specific responsibilities. Every role must have clear, measurable duties.]
 
-# 5. Policy Statement
+## 5. Policy Statement
 [The core commitments and principles. Write as numbered points. Each point must be specific and auditable.]
 
-# 6. Procedures
+## 6. Procedures
 [Step-by-step operational procedures organised into numbered sub-sections (6.1, 6.2, etc.). Include timeframes, escalation routes, and documentation requirements.]
 
-# 7. Training Requirements
+## 7. Training Requirements
 [Specify mandatory training, frequency of updates, competency assessment methods, and record-keeping requirements.]
 
-# 8. Monitoring and Compliance
+## 8. Monitoring and Compliance
 [Detail how compliance will be monitored, audit frequency, key performance indicators, and reporting mechanisms.]
 
-# 9. Related Documents
+## 9. Related Documents
 [List all related policies, procedures, and guidance documents that should be read in conjunction with this policy.]
 
-# 10. References and Legislation
+## 10. References and Legislation
 [Numbered list of all referenced legislation, guidance, and standards with full titles and dates.]
 
-# 11. Version History
+## 11. Version History
+
 | Version | Date | Author | Changes |
 | ------- | ---- | ------ | ------- |
 | 1.0 | [Today's Date] | [Practice Manager / Lead GP names] | Initial policy creation |`;
