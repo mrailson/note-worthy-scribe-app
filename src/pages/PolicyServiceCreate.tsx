@@ -330,7 +330,7 @@ const PolicyServiceCreate = () => {
                     />
                     <Label htmlFor="emailWhenReady" className="text-sm cursor-pointer flex items-center gap-1.5">
                       <Mail className="h-3.5 w-3.5" />
-                      Email me when ready
+                      Email me when complete with the completed policy
                     </Label>
                   </div>
                   <Button
@@ -348,7 +348,7 @@ const PolicyServiceCreate = () => {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Queue this policy and continue working. It will appear on My Policies when complete.
+                  Queue this policy and continue working. It will appear on My Policies when complete. - Under Development and in BETA test only (full release due on 6th March 2026)
                 </p>
               </CardContent>
             </Card>
