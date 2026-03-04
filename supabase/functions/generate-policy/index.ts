@@ -621,6 +621,46 @@ ${policyContent}`;
                 let wordAttachment = null;
                 try {
                   const policyTitle = (jobMetadata as any).title || policyName;
+                  const jobPracticeDetails = enhancingJob.practice_details as any;
+                  
+                  // Fetch practice logo URL from practice_details table
+                  let logoUrl: string | null = null;
+                  try {
+                    const { data: pdRow } = await serviceSupabase
+                      .from('practice_details')
+                      .select('logo_url, practice_logo_url')
+                      .eq('user_id', enhancingJob.user_id)
+                      .order('is_default', { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                    if (pdRow) {
+                      logoUrl = pdRow.practice_logo_url || pdRow.logo_url || null;
+                    }
+                  } catch (logoErr) {
+                    console.warn('Could not fetch practice logo:', logoErr);
+                  }
+
+                  // Fetch and base64-encode the logo image for embedding in Word
+                  let logoBase64 = '';
+                  let logoMime = 'image/png';
+                  if (logoUrl) {
+                    try {
+                      const logoResp = await fetch(logoUrl);
+                      if (logoResp.ok) {
+                        const logoBuffer = await logoResp.arrayBuffer();
+                        const logoBytes = new Uint8Array(logoBuffer);
+                        let logoBinary = '';
+                        for (let i = 0; i < logoBytes.length; i++) {
+                          logoBinary += String.fromCharCode(logoBytes[i]);
+                        }
+                        logoBase64 = btoa(logoBinary);
+                        const ct = logoResp.headers.get('content-type');
+                        if (ct) logoMime = ct.split(';')[0].trim();
+                      }
+                    } catch (imgErr) {
+                      console.warn('Could not fetch logo image:', imgErr);
+                    }
+                  }
                   
                   // Convert markdown-style content to basic HTML for Word
                   const mdToHtml = (md: string): string => {
@@ -650,15 +690,50 @@ ${policyContent}`;
                   const now = new Date();
                   const dateStr = now.toLocaleDateString('en-GB');
                   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+                  // Build header with logo and practice details
+                  const practiceName = jobPracticeDetails?.practice_name || '';
+                  const practiceAddr = jobPracticeDetails?.address || '';
+                  const practicePostcode = jobPracticeDetails?.postcode || '';
+                  const practicePhone = jobPracticeDetails?.phone || '';
+                  const odsCode = jobPracticeDetails?.ods_code || '';
+                  
+                  let headerHtml = '<div style="border-bottom:2px solid #005eb8;padding-bottom:12pt;margin-bottom:18pt;">';
+                  headerHtml += '<table style="width:100%;border:none;"><tr>';
+                  
+                  // Logo cell (left)
+                  if (logoBase64) {
+                    headerHtml += `<td style="width:100px;vertical-align:middle;border:none;padding:0 12pt 0 0;">
+                      <img src="data:${logoMime};base64,${logoBase64}" style="max-width:90px;max-height:90px;" />
+                    </td>`;
+                  }
+                  
+                  // Practice details cell (right)
+                  headerHtml += '<td style="vertical-align:middle;border:none;padding:0;">';
+                  if (practiceName) {
+                    headerHtml += `<p style="font-family:Arial,sans-serif;font-size:14pt;font-weight:bold;color:#003087;margin:0 0 4pt 0;">${practiceName}</p>`;
+                  }
+                  const addressParts = [practiceAddr, practicePostcode].filter(Boolean).join(', ');
+                  if (addressParts) {
+                    headerHtml += `<p style="font-family:Arial,sans-serif;font-size:9pt;color:#666;margin:0 0 2pt 0;">${addressParts}</p>`;
+                  }
+                  if (practicePhone) {
+                    headerHtml += `<p style="font-family:Arial,sans-serif;font-size:9pt;color:#666;margin:0 0 2pt 0;">Tel: ${practicePhone}</p>`;
+                  }
+                  if (odsCode) {
+                    headerHtml += `<p style="font-family:Arial,sans-serif;font-size:9pt;color:#666;margin:0;">ODS Code: ${odsCode}</p>`;
+                  }
+                  headerHtml += '</td></tr></table></div>';
                   
                   const wordHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><title>${policyTitle}</title>
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
 <style>@page{margin:2.54cm;}body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.5;}</style>
 </head><body>
+${headerHtml}
 ${htmlBody}
 <hr style="margin-top:36pt;border:none;border-top:1px solid #ccc;"/>
-<p style="font-family:Arial,sans-serif;font-size:9pt;color:#999;text-align:center;">Generated by Notewell AI on ${dateStr} at ${timeStr}</p>
+<p style="font-family:Arial,sans-serif;font-size:9pt;color:#999;text-align:center;">${practiceName ? practiceName + ' | ' : ''}Generated by Notewell AI on ${dateStr} at ${timeStr}</p>
 </body></html>`;
                   
                   // Base64 encode the HTML Word document
