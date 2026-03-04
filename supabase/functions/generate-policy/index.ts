@@ -153,8 +153,8 @@ serve(async (req) => {
     const body = await req.json();
     const { policy_reference_id, practice_details, custom_instructions, generation_type, original_policy_text, gap_analysis } = body;
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY is not configured');
     }
 
     // For update generation type
