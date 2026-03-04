@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
-import { FilePlus, RefreshCw, ClipboardList, FileText, Shield, ArrowRight, UserCog, FolderCheck } from "lucide-react";
+import { FilePlus, RefreshCw, ClipboardList, FileText, ArrowRight, UserCog, FolderCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyJobs } from "@/hooks/usePolicyJobs";
 
@@ -69,16 +69,6 @@ const PolicyService = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             CQC-compliant GP Practice policies generated in minutes
           </p>
-        </div>
-
-        {/* Compliance Badge */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
-            <Shield className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">
-              Aligned with CQC Key Lines of Enquiry
-            </span>
-          </div>
         </div>
 
         {/* Action Cards */}
