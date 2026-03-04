@@ -201,6 +201,7 @@ Today's date is ${new Date().toLocaleDateString('en-GB')}.`;
         throw new Error('ANTHROPIC_API_KEY not configured');
       }
 
+      // Use streaming to prevent gateway timeout
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -211,6 +212,7 @@ Today's date is ${new Date().toLocaleDateString('en-GB')}.`;
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 16000,
+          stream: true,
           system: systemPrompt,
           messages: [
             { role: 'user', content: updatePrompt },
@@ -224,8 +226,35 @@ Today's date is ${new Date().toLocaleDateString('en-GB')}.`;
         throw new Error(`Anthropic API error: ${response.status}`);
       }
 
-      const data = await response.json();
-      const aiContent = data.content?.[0]?.text || '';
+      // Collect streamed content
+      let aiContent = '';
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === '[DONE]') continue;
+            try {
+              const event = JSON.parse(jsonStr);
+              if (event.type === 'content_block_delta' && event.delta?.text) {
+                aiContent += event.delta.text;
+              }
+            } catch {
+              // skip malformed lines
+            }
+          }
+        }
+      }
 
       // Parse the response
       const metadataMatch = aiContent.match(/===METADATA===([\s\S]*?)===POLICY_CONTENT===/);
@@ -371,6 +400,7 @@ Please generate a complete, professional policy document that meets all regulato
       throw new Error('ANTHROPIC_API_KEY not configured');
     }
 
+    // Use streaming to prevent gateway timeout on long generations
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -381,6 +411,7 @@ Please generate a complete, professional policy document that meets all regulato
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 16000,
+        stream: true,
         system: systemPrompt,
         messages: [
           { role: 'user', content: userPrompt },
@@ -394,8 +425,35 @@ Please generate a complete, professional policy document that meets all regulato
       throw new Error(`Anthropic API error: ${response.status}`);
     }
 
-    const data = await response.json();
-    const aiContent = data.content?.[0]?.text || '';
+    // Collect streamed content
+    let aiContent = '';
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const event = JSON.parse(jsonStr);
+            if (event.type === 'content_block_delta' && event.delta?.text) {
+              aiContent += event.delta.text;
+            }
+          } catch {
+            // skip malformed lines
+          }
+        }
+      }
+    }
 
     // Parse the response
     const metadataMatch = aiContent.match(/===METADATA===([\s\S]*?)===POLICY_CONTENT===/);

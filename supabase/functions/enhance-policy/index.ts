@@ -383,6 +383,7 @@ ${generatedPolicy}`;
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 16000,
+          stream: true,
           system: POLICY_ENHANCEMENT_SYSTEM_PROMPT,
           messages: [
             {
@@ -408,10 +409,42 @@ ${generatedPolicy}`;
         );
       }
 
-      const data = await response.json();
-      enhancedPolicy = data.content?.[0]?.text || generatedPolicy;
+      // Collect streamed content to prevent gateway timeout
+      let streamedContent = '';
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      // usage is declared in outer scope
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === '[DONE]') continue;
+            try {
+              const event = JSON.parse(jsonStr);
+              if (event.type === 'content_block_delta' && event.delta?.text) {
+                streamedContent += event.delta.text;
+              }
+              if (event.type === 'message_delta' && event.usage) {
+                usage = event.usage;
+              }
+            } catch {
+              // skip malformed lines
+            }
+          }
+        }
+      }
+
+      enhancedPolicy = streamedContent || generatedPolicy;
       modelUsed = "claude-sonnet-4-6";
-      usage = data.usage;
     }
 
     console.log(`Policy enhanced successfully for: ${policyType} using ${modelUsed}`);
