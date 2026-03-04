@@ -321,8 +321,9 @@ ${pendingJob.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${pendingJob.custo
 Please generate a complete, professional policy document that meets all regulatory requirements.`;
 
           // Single Anthropic call: GENERATE only (with timeout to avoid stuck jobs)
+          // 240s timeout — generation can legitimately take 2-3 minutes for complex policies
           const generateController = new AbortController();
-          const generateTimeout = setTimeout(() => generateController.abort(), 120000);
+          const generateTimeout = setTimeout(() => generateController.abort(), 240000);
 
           const genResponse = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
