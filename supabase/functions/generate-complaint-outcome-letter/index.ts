@@ -548,6 +548,9 @@ Include the date at the top of the letter as "${currentDate}".
 - DO NOT assume, imagine, or infer details not explicitly stated
 - When in doubt, be more vague rather than more specific
 - Quote or paraphrase from the complaint description rather than inventing new details
+- Do NOT criticise, judge, or assess the GP's clinical judgement, communication style, or professionalism
+- Do NOT use evaluative language about staff performance — the letter should state facts and outcomes only
+- If a Critical Friend Review is referenced, use ONLY the factual observations from it, not any opinions or assessments
 
 IMPORTANT: If patient address is provided, include it in the letter header after "Private & Confidential". Use the practice and signature details provided to create appropriate formatting and signature blocks.
 
