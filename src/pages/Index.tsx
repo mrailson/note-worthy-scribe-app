@@ -520,6 +520,16 @@ const Index = () => {
                   ✅ UK-hosted & encrypted
                 </span>
               </div>
+
+              {/* Legal Links */}
+              <div className="mt-3 flex justify-center gap-4">
+                <a href="/privacy-notice" className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
+                  Privacy Notice
+                </a>
+                <a href="/accessibility-statement" className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
+                  Accessibility Statement
+                </a>
+              </div>
             </div>
           </div>
 

@@ -127,6 +127,8 @@ const AudioUploadCapture = lazy(() => import("./pages/AudioUploadCapture"));
 const BuyBackExplainer = lazy(() => import("./pages/BuyBackExplainer"));
 const GPContract = lazy(() => import("./pages/GPContract"));
 const KO41bReport = lazy(() => import("./pages/KO41bReport"));
+const PrivacyNotice = lazy(() => import("./pages/PrivacyNotice"));
+const AccessibilityStatement = lazy(() => import("./pages/AccessibilityStatement"));
 
 // Global loading fallback
 const PageLoader = () => (
@@ -398,6 +400,10 @@ const App = () => {
                 } />
                 <Route path="/survey/:token" element={<PublicSurvey />} />
                 <Route path="/s/:token" element={<PublicSurvey />} />
+                
+                {/* Public Document Pages */}
+                <Route path="/privacy-notice" element={<PrivacyNotice />} />
+                <Route path="/accessibility-statement" element={<AccessibilityStatement />} />
                 
                 {/* Policy Service Routes */}
                 <Route path="/policy-service" element={

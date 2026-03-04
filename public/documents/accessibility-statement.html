@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accessibility Statement — Notewell AI | GP Notewell</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "GDS Transport", Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #0b0c0c;
+      background: #fff;
+    }
+
+    /* Header */
+    .header {
+      background: #005EB8;
+      padding: 0;
+    }
+    .header-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .nhs-logo {
+      background: #fff;
+      color: #003087;
+      font-weight: 900;
+      font-size: 22px;
+      padding: 4px 10px;
+      letter-spacing: -1px;
+      border-radius: 2px;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .header-title {
+      color: #fff;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .header-subtitle {
+      color: #a8d5f5;
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    /* Phase banner */
+    .phase-banner {
+      background: #f3f2f1;
+      border-left: 5px solid #005EB8;
+      padding: 10px 24px;
+    }
+    .phase-banner-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      font-size: 14px;
+      color: #505a5f;
+    }
+    .phase-banner strong { color: #0b0c0c; }
+
+    /* Main layout */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 48px;
+      align-items: start;
+      padding-top: 40px;
+      padding-bottom: 60px;
+    }
+
+    /* Side nav */
+    .side-nav {
+      position: sticky;
+      top: 24px;
+    }
+    .side-nav h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #6f777b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+    .side-nav ul {
+      list-style: none;
+      border-left: 4px solid #b1b4b6;
+      padding-left: 0;
+    }
+    .side-nav li { margin: 0; }
+    .side-nav a {
+      display: block;
+      padding: 8px 12px;
+      color: #1d70b8;
+      text-decoration: none;
+      font-size: 14px;
+      line-height: 1.4;
+      border-left: 4px solid transparent;
+      margin-left: -4px;
+    }
+    .side-nav a:hover {
+      color: #003078;
+      border-left-color: #003078;
+    }
+
+    /* Content */
+    .content h1 {
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 8px;
+      color: #0b0c0c;
+    }
+    .content .lead {
+      font-size: 19px;
+      color: #505a5f;
+      margin-bottom: 32px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid #b1b4b6;
+    }
+
+    .content h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 48px;
+      margin-bottom: 16px;
+      padding-top: 24px;
+      border-top: 1px solid #b1b4b6;
+      color: #0b0c0c;
+      scroll-margin-top: 24px;
+    }
+    .content h3 {
+      font-size: 19px;
+      font-weight: 700;
+      margin-top: 28px;
+      margin-bottom: 10px;
+      color: #0b0c0c;
+    }
+    .content p {
+      margin-bottom: 16px;
+      font-size: 16px;
+    }
+    .content ul, .content ol {
+      margin: 0 0 16px 0;
+      padding-left: 24px;
+    }
+    .content li {
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    .content a {
+      color: #1d70b8;
+    }
+    .content a:hover { color: #003078; }
+
+    /* Status tags */
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 3px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .tag-amber { background: #fff7e6; color: #6f3f00; border: 1px solid #f47738; }
+    .tag-green { background: #e8f4e8; color: #005a30; border: 1px solid #00703c; }
+    .tag-blue  { background: #e8f0f9; color: #003078; border: 1px solid #1d70b8; }
+
+    /* Compliance summary box */
+    .compliance-box {
+      background: #fff7e6;
+      border-left: 6px solid #f47738;
+      padding: 20px 24px;
+      margin: 24px 0 32px 0;
+      border-radius: 0 4px 4px 0;
+    }
+    .compliance-box.partial {
+      background: #fff7e6;
+      border-color: #f47738;
+    }
+    .compliance-box h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      color: #6f3f00;
+    }
+    .compliance-box p {
+      margin: 0;
+      font-size: 15px;
+      color: #0b0c0c;
+    }
+
+    /* Issues table */
+    .issues-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0 32px 0;
+      font-size: 15px;
+    }
+    .issues-table th {
+      background: #003087;
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .issues-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #b1b4b6;
+      vertical-align: top;
+    }
+    .issues-table tr:nth-child(even) td { background: #f8f8f8; }
+    .issues-table tr:last-child td { border-bottom: 2px solid #b1b4b6; }
+
+    /* Timeline */
+    .timeline {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0;
+      position: relative;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 12px; top: 0; bottom: 0;
+      width: 2px;
+      background: #b1b4b6;
+    }
+    .timeline li {
+      padding: 0 0 24px 40px;
+      position: relative;
+      margin: 0;
+    }
+    .timeline li::before {
+      content: '';
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #005EB8;
+      border: 2px solid #fff;
+      outline: 2px solid #005EB8;
+      position: absolute;
+      left: 6px; top: 4px;
+    }
+    .timeline-date {
+      font-size: 13px;
+      font-weight: 700;
+      color: #6f777b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .timeline-text {
+      font-size: 15px;
+      color: #0b0c0c;
+    }
+
+    /* Contact box */
+    .contact-box {
+      background: #f0f4f9;
+      border: 1px solid #b1b4b6;
+      padding: 20px 24px;
+      border-radius: 4px;
+      margin: 16px 0;
+    }
+    .contact-box p { margin: 4px 0; font-size: 15px; }
+    .contact-box strong { color: #0b0c0c; }
+
+    /* Footer */
+    footer {
+      background: #003087;
+      color: #a8d5f5;
+      padding: 32px 24px;
+      margin-top: 60px;
+      font-size: 14px;
+    }
+    .footer-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    footer a { color: #a8d5f5; }
+    footer p { margin: 4px 0; }
+
+    /* Responsive */
+    @media (max-width: 720px) {
+      .container { grid-template-columns: 1fr; }
+      .side-nav { display: none; }
+      .content h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-inner">
+    <span class="nhs-logo">NHS</span>
+    <div>
+      <div class="header-title">Notewell AI — GP Notewell</div>
+      <div class="header-subtitle">PCN Services Ltd &nbsp;|&nbsp; gpnotewell.co.uk</div>
+    </div>
+  </div>
+</header>
+
+<!-- Phase banner -->
+<div class="phase-banner">
+  <div class="phase-banner-inner">
+    <strong>Accessibility</strong> — This statement was prepared on <strong>March 2026</strong> and will be reviewed by <strong>October 2026</strong>.
+  </div>
+</div>
+
+<!-- Main -->
+<div class="container">
+
+  <!-- Side navigation -->
+  <nav class="side-nav" aria-label="Page contents">
+    <h2>Contents</h2>
+    <ul>
+      <li><a href="#about">About this statement</a></li>
+      <li><a href="#compliance">Compliance status</a></li>
+      <li><a href="#known-issues">Known issues</a></li>
+      <li><a href="#testing">How we tested</a></li>
+      <li><a href="#improvement">Improvement plan</a></li>
+      <li><a href="#feedback">Feedback and contact</a></li>
+      <li><a href="#enforcement">Enforcement procedure</a></li>
+      <li><a href="#technical">Technical information</a></li>
+    </ul>
+  </nav>
+
+  <!-- Content -->
+  <main class="content" id="main-content">
+
+    <h1>Accessibility Statement</h1>
+    <p class="lead">This accessibility statement applies to <strong>Notewell AI</strong>, provided by PCN Services Ltd at <a href="https://gpnotewell.co.uk">gpnotewell.co.uk</a>. Notewell AI is a web-based platform for NHS primary care staff.</p>
+
+    <!-- About -->
+    <section id="about">
+      <h2>About this statement</h2>
+      <p>PCN Services Ltd wants as many people as possible to be able to use Notewell AI. We are committed to making this platform accessible, in accordance with the <a href="https://www.legislation.gov.uk/uksi/2018/952/made">Public Sector Bodies (Websites and Mobile Applications) (No. 2) Accessibility Regulations 2018</a>.</p>
+      <p>For example, that means you should be able to:</p>
+      <ul>
+        <li>change colours, contrast levels and fonts using browser or device settings</li>
+        <li>zoom in up to 400% without the text spilling off the screen</li>
+        <li>navigate most of the platform using a keyboard</li>
+        <li>listen to most of the platform using a screen reader (including the most recent versions of NVDA, JAWS, VoiceOver and TalkBack)</li>
+      </ul>
+      <p><a href="https://mcmw.abilitynet.org.uk/">AbilityNet</a> has advice on making your device easier to use if you have a disability.</p>
+    </section>
+
+    <!-- Compliance status -->
+    <section id="compliance">
+      <h2>Compliance status</h2>
+
+      <div class="compliance-box partial">
+        <h3>⚠ Partially compliant with WCAG 2.2 level AA</h3>
+        <p>Notewell AI is <strong>partially compliant</strong> with the <a href="https://www.w3.org/TR/WCAG22/" style="color:#003078;">Web Content Accessibility Guidelines (WCAG) version 2.2 AA standard</a>, due to the non-compliances and exemptions listed below. We are actively working to resolve all known issues ahead of full programme rollout.</p>
+      </div>
+
+      <p>This platform is a pilot deployment used exclusively by NHS primary care staff (GPs, Advanced Clinical Practitioners, Practice Managers and administrative staff) across seven GP practices in Northamptonshire. A formal WCAG 2.2 AA audit is scheduled for completion by <strong>September 2026</strong>.</p>
+    </section>
+
+    <!-- Known issues -->
+    <section id="known-issues">
+      <h2>Known accessibility issues</h2>
+      <p>We know some parts of Notewell AI are not fully accessible. The following issues have been identified during internal review and user testing:</p>
+
+      <table class="issues-table" aria-label="Known accessibility issues">
+        <thead>
+          <tr>
+            <th>Issue</th>
+            <th>WCAG Criterion</th>
+            <th>Impact</th>
+            <th>Target Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Some form fields do not have visible labels that are programmatically associated with the input</td>
+            <td>1.3.1 Info and Relationships (Level A)</td>
+            <td>Screen reader users may not receive sufficient context for some input fields</td>
+            <td>June 2026</td>
+          </tr>
+          <tr>
+            <td>Colour contrast ratio below 4.5:1 on some secondary interface elements (e.g. placeholder text, helper labels)</td>
+            <td>1.4.3 Contrast Minimum (Level AA)</td>
+            <td>Users with low vision may have difficulty reading secondary text elements</td>
+            <td>June 2026</td>
+          </tr>
+          <tr>
+            <td>Some interactive components (e.g. dropdown menus, modal dialogs) are not fully keyboard navigable</td>
+            <td>2.1.1 Keyboard (Level A)</td>
+            <td>Keyboard-only users may be unable to access some functionality without a mouse</td>
+            <td>July 2026</td>
+          </tr>
+          <tr>
+            <td>Focus is not always visible when navigating with a keyboard</td>
+            <td>2.4.11 Focus Appearance (Level AA)</td>
+            <td>Keyboard users may not be able to determine which element has focus</td>
+            <td>July 2026</td>
+          </tr>
+          <tr>
+            <td>AI-generated text outputs are not structured with ARIA landmarks or headings</td>
+            <td>1.3.1 Info and Relationships (Level A)</td>
+            <td>Screen reader users may not be able to navigate AI output content efficiently</td>
+            <td>August 2026</td>
+          </tr>
+          <tr>
+            <td>Error messages for form validation are not always announced to assistive technologies</td>
+            <td>4.1.3 Status Messages (Level AA)</td>
+            <td>Users relying on screen readers may not receive notification of validation errors</td>
+            <td>June 2026</td>
+          </tr>
+          <tr>
+            <td>Voice assistant module does not provide a text alternative for audio output</td>
+            <td>1.2.1 Audio-only (Level A)</td>
+            <td>Users who are deaf or hard of hearing may not be able to access voice assistant responses without a text transcript</td>
+            <td>September 2026</td>
+          </tr>
+          <tr>
+            <td>PDF documents generated by the platform may not be tagged for accessibility</td>
+            <td>1.3.1 Info and Relationships (Level A)</td>
+            <td>PDF outputs may not be usable with screen readers</td>
+            <td>September 2026</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Disproportionate burden</h3>
+      <p>PCN Services Ltd does not currently claim any accessibility requirements as a disproportionate burden under Regulation 7 of the Accessibility Regulations. We are committed to remediating all known issues within the timelines set out above.</p>
+
+      <h3>Content not within the scope of the accessibility regulations</h3>
+      <p>Third-party content and services that we do not control or have not commissioned — for example, content delivered via integrated AI model APIs from third-party providers — may not meet the same accessibility standards. We are working with our service providers to improve this where possible.</p>
+    </section>
+
+    <!-- Testing -->
+    <section id="testing">
+      <h2>How we tested this platform</h2>
+      <p>Notewell AI was tested by PCN Services Ltd using the following approach:</p>
+      <ul>
+        <li><strong>Internal review:</strong> Manual keyboard navigation testing and screen reader testing (NVDA with Chrome; VoiceOver with Safari on macOS) conducted March 2026.</li>
+        <li><strong>Browser zoom testing:</strong> All modules tested at 200% and 400% zoom using Chrome and Edge.</li>
+        <li><strong>Colour contrast checking:</strong> All interface elements assessed using the WebAIM Contrast Checker against WCAG 2.2 AA minimum ratios.</li>
+        <li><strong>User testing:</strong> Usability testing conducted during the 10-practice initial NHS pilot with NHS primary care staff, including feedback on interface navigation.</li>
+      </ul>
+      <p>A formal independent WCAG 2.2 AA audit by a third-party accessibility specialist is planned for <strong>July–August 2026</strong>, with results published and acted upon before full programme rollout in October 2026.</p>
+    </section>
+
+    <!-- Improvement plan -->
+    <section id="improvement">
+      <h2>What we are doing to improve accessibility</h2>
+      <p>PCN Services Ltd is committed to achieving full WCAG 2.2 AA compliance. Our improvement timeline is:</p>
+
+      <ul class="timeline">
+        <li>
+          <span class="timeline-date">March 2026 — Completed</span>
+          <span class="timeline-text">Internal accessibility audit completed. Known issues documented in this statement.</span>
+        </li>
+        <li>
+          <span class="timeline-date">April–May 2026</span>
+          <span class="timeline-text">Remediation Sprint 1: Form labels, colour contrast, error message announcements. Target: address all Level A failures.</span>
+        </li>
+        <li>
+          <span class="timeline-date">June–July 2026</span>
+          <span class="timeline-text">Remediation Sprint 2: Keyboard navigation, focus visibility, ARIA landmark implementation across all modules.</span>
+        </li>
+        <li>
+          <span class="timeline-date">July–August 2026</span>
+          <span class="timeline-text">Independent third-party WCAG 2.2 AA audit commissioned. Audit findings acted upon.</span>
+        </li>
+        <li>
+          <span class="timeline-date">September 2026</span>
+          <span class="timeline-text">Voice assistant text transcript feature, PDF accessibility tagging completed. All Level AA issues resolved.</span>
+        </li>
+        <li>
+          <span class="timeline-date">October 2026</span>
+          <span class="timeline-text"><strong>Target: Full WCAG 2.2 AA compliance declared.</strong> Updated accessibility statement published.</span>
+        </li>
+      </ul>
+
+      <p>This statement will be reviewed and updated at least annually, and following any significant changes to the platform.</p>
+    </section>
+
+    <!-- Feedback and contact -->
+    <section id="feedback">
+      <h2>Feedback and contact information</h2>
+      <p>If you need information on Notewell AI in a different format — for example, an accessible PDF, large print, easy read, audio recording or Braille — please contact us.</p>
+      <p>If you find any accessibility barriers not listed in this statement, or if you feel we have not responded adequately to a request, please contact us:</p>
+
+      <div class="contact-box">
+        <p><strong>Name:</strong> Malcolm Railson</p>
+        <p><strong>Role:</strong> CEO, PCN Services Ltd</p>
+        <p><strong>Email:</strong> <a href="mailto:malcolm.railson@nhs.net">malcolm.railson@nhs.net</a></p>
+        <p><strong>Address:</strong> Ground Floor, 2 Woodberry Grove, London, N12 0DR</p>
+        <p><strong>Phone:</strong> 07740812180</p>
+        <p><strong>Response time:</strong> We aim to respond to all accessibility queries within 5 working days.</p>
+      </div>
+    </section>
+
+    <!-- Enforcement -->
+    <section id="enforcement">
+      <h2>Enforcement procedure</h2>
+      <p>The Equality and Human Rights Commission (EHRC) is responsible for enforcing the Public Sector Bodies (Websites and Mobile Applications) (No. 2) Accessibility Regulations 2018 (the 'accessibility regulations') in England, Scotland and Wales. The Equality Commission for Northern Ireland (ECNI) is responsible for enforcing these regulations in Northern Ireland.</p>
+      <p>If you are not happy with how we respond to your complaint, <a href="https://www.equalityadvisoryservice.com/">contact the Equality Advisory and Support Service (EASS)</a>.</p>
+    </section>
+
+    <!-- Technical information -->
+    <section id="technical">
+      <h2>Technical information about this platform's accessibility</h2>
+      <p>PCN Services Ltd is committed to making Notewell AI accessible, in accordance with the Public Sector Bodies (Websites and Mobile Applications) (No. 2) Accessibility Regulations 2018.</p>
+
+      <h3>Technologies relied upon</h3>
+      <p>Notewell AI relies on the following technologies for conformance with WCAG 2.2:</p>
+      <ul>
+        <li>HTML5</li>
+        <li>CSS3</li>
+        <li>JavaScript (ES2020+)</li>
+        <li>WAI-ARIA (partial implementation — full implementation by September 2026)</li>
+      </ul>
+
+      <h3>Browsers and assistive technologies</h3>
+      <p>Notewell AI is designed to work with the following browsers and assistive technology combinations:</p>
+      <ul>
+        <li>Google Chrome (latest) with NVDA (Windows)</li>
+        <li>Microsoft Edge (latest) with NVDA (Windows)</li>
+        <li>Safari (latest) with VoiceOver (macOS / iOS)</li>
+        <li>Firefox (latest) with NVDA (Windows)</li>
+      </ul>
+
+      <h3>About this statement</h3>
+      <p>This statement was prepared on <strong>4 March 2026</strong>.</p>
+      <p>It was last reviewed on <strong>4 March 2026</strong>.</p>
+      <p>This statement was prepared following internal testing. A formal independent audit is planned for July 2026.</p>
+    </section>
+
+  </main>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <p><strong style="color:#fff;">GP Notewell — Notewell AI</strong></p>
+      <p>Provided by PCN Services Ltd</p>
+      <p>Ground Floor, 2 Woodberry Grove, London, N12 0DR</p>
+      <p><a href="mailto:malcolm.railson@nhs.net">malcolm.railson@nhs.net</a></p>
+    </div>
+    <div>
+      <p><strong style="color:#fff;">Regulatory</strong></p>
+      <p>MHRA Class I Medical Device</p>
+      <p>ICO Registration: ZB226324</p>
+      <p>Expiry: 03/10/2026</p>
+    </div>
+    <div>
+      <p><strong style="color:#fff;">Links</strong></p>
+      <p><a href="https://gpnotewell.co.uk/privacy">Privacy Notice</a></p>
+      <p><a href="https://gpnotewell.co.uk/terms">Terms of Use</a></p>
+      <p><a href="https://www.equalityadvisoryservice.com/">EASS (Accessibility Complaints)</a></p>
+    </div>
+    <div style="width:100%; border-top:1px solid #1d70b8; padding-top:16px; margin-top:8px;">
+      <p>© 2026 PCN Services Ltd. Notewell AI is a non-commercial platform for NHS primary care. &nbsp;|&nbsp; <a href="https://gpnotewell.co.uk/accessibility-statement">Accessibility Statement</a> &nbsp;|&nbsp; Last reviewed: March 2026</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
