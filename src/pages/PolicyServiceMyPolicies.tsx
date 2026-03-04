@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { 
   ArrowLeft, 
   Search, 
@@ -21,10 +22,10 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
-import { usePolicyJobs, PolicyJob } from "@/hooks/usePolicyJobs";
+import { usePolicyJobs, PolicyJob, getStepLabel } from "@/hooks/usePolicyJobs";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -48,20 +49,21 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PolicyDocumentPreview } from "@/components/policy/PolicyDocumentPreview";
 
-const getJobStatusBadge = (status: string) => {
-  switch (status) {
+const getJobStatusBadge = (job: PolicyJob) => {
+  const label = getStepLabel(job);
+  switch (job.status) {
     case 'pending':
-      return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Queued</Badge>;
+      return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />{label}</Badge>;
     case 'generating':
-      return <Badge className="gap-1 bg-blue-600"><Loader2 className="h-3 w-3 animate-spin" />Generating</Badge>;
+      return <Badge className="gap-1 bg-blue-600"><Loader2 className="h-3 w-3 animate-spin" />{label}</Badge>;
     case 'enhancing':
-      return <Badge className="gap-1 bg-blue-600"><Loader2 className="h-3 w-3 animate-spin" />Enhancing</Badge>;
+      return <Badge className="gap-1 bg-indigo-600"><Loader2 className="h-3 w-3 animate-spin" />{label}</Badge>;
     case 'completed':
-      return <Badge className="gap-1 bg-green-600"><CheckCircle2 className="h-3 w-3" />Completed</Badge>;
+      return <Badge className="gap-1 bg-green-600"><CheckCircle2 className="h-3 w-3" />{label}</Badge>;
     case 'failed':
-      return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Failed</Badge>;
+      return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />{label}</Badge>;
     default:
-      return <Badge variant="secondary">{status}</Badge>;
+      return <Badge variant="secondary">{job.status}</Badge>;
   }
 };
 
@@ -107,7 +109,6 @@ const PolicyServiceMyPolicies = () => {
     return days >= 0 && days <= 30;
   }).length;
 
-  // Filter jobs to show: active (non-completed/failed) and recently completed (last 24h)
   const activeJobs = jobs.filter(j => ['pending', 'generating', 'enhancing'].includes(j.status));
   const recentFailedJobs = jobs.filter(j => j.status === 'failed');
 
@@ -202,12 +203,12 @@ const PolicyServiceMyPolicies = () => {
         {/* In Progress Jobs */}
         {(activeJobs.length > 0 || recentFailedJobs.length > 0) && (
           <div className="mb-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <RefreshCw className={`h-4 w-4 ${activeJobCount > 0 ? 'animate-spin' : ''}`} />
                 In Progress
                 {activeJobCount > 0 && (
-                  <span className="text-xs text-muted-foreground font-normal">Auto-refreshing every 15s</span>
+                  <span className="text-xs text-muted-foreground font-normal">Auto-refreshing every 10s</span>
                 )}
               </h2>
               {activeJobCount > 0 && (
@@ -233,10 +234,21 @@ const PolicyServiceMyPolicies = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-medium truncate">{job.policy_title}</h3>
-                          {getJobStatusBadge(job.status)}
+                          {getJobStatusBadge(job)}
                         </div>
+
+                        {/* Progress bar for active jobs */}
+                        {['generating', 'enhancing'].includes(job.status) && (
+                          <div className="my-2">
+                            <Progress value={job.progress_pct || 0} className="h-2" />
+                          </div>
+                        )}
+
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span>Submitted: {format(parseISO(job.created_at), 'dd/MM/yyyy HH:mm')}</span>
+                          {job.heartbeat_at && ['generating', 'enhancing'].includes(job.status) && (
+                            <span>Last activity: {formatDistanceToNow(parseISO(job.heartbeat_at), { addSuffix: true })}</span>
+                          )}
                           {job.email_when_ready && (
                             <span className="flex items-center gap-1">📧 Email notification on</span>
                           )}

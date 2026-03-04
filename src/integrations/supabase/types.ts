@@ -7952,49 +7952,67 @@ export type Database = {
       }
       policy_generation_jobs: {
         Row: {
+          attempt_count: number | null
           completed_at: string | null
           created_at: string
+          current_step: string | null
           custom_instructions: string | null
           email_when_ready: boolean | null
           error_message: string | null
           generated_content: string | null
+          heartbeat_at: string | null
           id: string
+          lease_expires_at: string | null
           metadata: Json | null
+          next_retry_at: string | null
           policy_reference_id: string
           policy_title: string
           practice_details: Json
+          progress_pct: number | null
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          attempt_count?: number | null
           completed_at?: string | null
           created_at?: string
+          current_step?: string | null
           custom_instructions?: string | null
           email_when_ready?: boolean | null
           error_message?: string | null
           generated_content?: string | null
+          heartbeat_at?: string | null
           id?: string
+          lease_expires_at?: string | null
           metadata?: Json | null
+          next_retry_at?: string | null
           policy_reference_id: string
           policy_title: string
           practice_details: Json
+          progress_pct?: number | null
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          attempt_count?: number | null
           completed_at?: string | null
           created_at?: string
+          current_step?: string | null
           custom_instructions?: string | null
           email_when_ready?: boolean | null
           error_message?: string | null
           generated_content?: string | null
+          heartbeat_at?: string | null
           id?: string
+          lease_expires_at?: string | null
           metadata?: Json | null
+          next_retry_at?: string | null
           policy_reference_id?: string
           policy_title?: string
           practice_details?: Json
+          progress_pct?: number | null
           status?: string
           updated_at?: string
           user_id?: string
