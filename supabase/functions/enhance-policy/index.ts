@@ -381,7 +381,7 @@ ${generatedPolicy}`;
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-6",
           max_tokens: 8000,
           system: POLICY_ENHANCEMENT_SYSTEM_PROMPT,
           messages: [
@@ -410,7 +410,7 @@ ${generatedPolicy}`;
 
       const data = await response.json();
       enhancedPolicy = data.content?.[0]?.text || generatedPolicy;
-      modelUsed = "claude-sonnet-4-20250514";
+      modelUsed = "claude-sonnet-4-6";
       usage = data.usage;
     }
 

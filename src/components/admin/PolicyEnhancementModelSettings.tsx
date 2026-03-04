@@ -79,7 +79,7 @@ export const PolicyEnhancementModelSettings = () => {
 
       setSelectedModel(value);
       const modelNames = {
-        claude: 'Claude Sonnet 4',
+        claude: 'Claude Sonnet 4.6',
         gemini: 'Gemini 3 Flash',
         openai: 'OpenAI GPT-5'
       };
@@ -130,7 +130,7 @@ export const PolicyEnhancementModelSettings = () => {
             <RadioGroupItem value="claude" id="claude" className="mt-1" />
             <div className="flex-1">
               <Label htmlFor="claude" className="flex items-center gap-2 cursor-pointer font-medium">
-                Claude Sonnet 4
+                Claude Sonnet 4.6
                 <Badge variant="default" className="text-xs">Recommended</Badge>
               </Label>
               <p className="text-sm text-muted-foreground mt-1">
