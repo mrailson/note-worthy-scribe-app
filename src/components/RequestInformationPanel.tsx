@@ -280,14 +280,16 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         if (practice?.practice_name) practiceName = practice.practice_name;
       }
 
-      // Fetch acknowledgement
-      const { data: ack } = await supabase
+      // Fetch acknowledgement (may not exist)
+      let ack: { acknowledgement_letter: string; created_at: string } | null = null;
+      const { data: ackData, error: ackError } = await supabase
         .from('complaint_acknowledgements')
         .select('acknowledgement_letter, created_at')
         .eq('complaint_id', complaintId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
+      if (!ackError && ackData) ack = ackData;
 
       setComposeData({
         senderName: userFullName || 'Practice Manager',
