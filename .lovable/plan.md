@@ -1,126 +1,78 @@
 
+Root cause found
+- Your background job is hitting the Edge Function runtime ceiling, not just a prompt issue.
+- I can see `POST /functions/v1/generate-policy` returning `504` with `execution_time_ms ≈ 150105` (about 2m30s).
+- Phase 1 generation currently runs as one long Anthropic call. If it exceeds that limit, the invocation is killed before it can mark the job failed/completed, so it stays on `generating`.
+- Recovery then waits 5 minutes before re-queuing, which is why it appears “stuck”.
 
-## Analysis: Will the Background Queue Handle Multiple Concurrent Policies?
+Implementation plan (reliability-first for 5–6 minute policies)
 
-### Current Architecture Risks
+1) Convert background processing to a resumable step pipeline
+- Keep one queue row per policy.
+- Process one short step per invocation (target <110s each), then immediately self-trigger the next step.
+- Proposed steps:
+  1. `generate_part_1` (header + sections 1–4)
+  2. `generate_part_2` (sections 5–8)
+  3. `generate_part_3` (sections 9–11 + metadata)
+  4. `enhance_final` (compliance pass + mandatory placeholder replacement)
+  5. `finalise` (save completion + send email with attachment)
+- Store partial outputs in `metadata` so progress survives timeouts/restarts.
 
-The current plan has the `generate-policy` edge function doing the background job processing via a `process-job` action branch. Here's where concurrency issues arise:
+2) Add lease-based job control (replace “updated_at stale” guessing)
+- Add orchestration fields to `policy_generation_jobs`:
+  - `current_step` (text)
+  - `progress_pct` (int)
+  - `attempt_count` (int)
+  - `heartbeat_at` (timestamptz)
+  - `lease_expires_at` (timestamptz)
+  - `next_retry_at` (timestamptz)
+- Worker claims only jobs whose lease is expired (or pending) and renews heartbeat while running.
+- This prevents duplicate workers and avoids 5-minute dead windows.
 
-**1. Supabase Edge Function concurrency limits**
-Supabase edge functions have a concurrency limit per function. Each background job holds a connection open for ~5 minutes (generate + enhance). If a user queues 3–4 policies, that's 3–4 concurrent invocations of the same `generate-policy` function, each running for minutes. This risks hitting the concurrency cap and blocking new requests — including the user's ability to even start another policy via the normal synchronous flow.
+3) Retry/backoff policy per step
+- Retry only transient failures (`timeout`, `429`, `5xx`, network) with backoff (eg 20s, 45s, 90s).
+- Permanent failures (bad input/prompt parse) fail fast with a clear error.
+- Cap retries per step and preserve reason in `error_message`.
 
-**2. Anthropic API rate limits**
-Each job makes 2 Anthropic API calls (generate + enhance). Multiple concurrent jobs multiply the token throughput. On lower-tier Anthropic plans this could trigger rate limiting (429 errors), causing jobs to fail.
+4) Reduce model latency without losing quality
+- Stop sending the full mega-prompt for every run.
+- Build a policy-specific prompt block (based on policy type/category) per step.
+- Keep strict rules for:
+  - Section 8.1 KPI table
+  - Section 11 populated version history
+  - placeholder replacement with known practice values
+- This reduces per-call token load and helps each step finish within runtime limits.
 
-**3. No actual queuing — it's parallel, not sequential**
-The current plan fires each job independently via fire-and-forget `fetch()`. There's no queue discipline — all jobs run simultaneously, not one at a time. This is "concurrent execution" not a "queue."
+5) Front-end changes for visibility and less queue spam
+- `usePolicyJobs`:
+  - Use lease/heartbeat to decide staleness (not raw 60s `updated_at`).
+  - Kick queue only when lease expired or pending exists.
+- `PolicyServiceMyPolicies`:
+  - Show stage text (“Generating part 2/3”, “Enhancing”, “Finalising email”).
+  - Show progress percentage and last heartbeat.
+  - Keep Restart Queue, but only as manual override.
+- Keep email default ON as already implemented.
 
-### Revised Plan: True Sequential Queue with Concurrency Safety
+Files/migrations to update
+- `supabase/migrations/...`:
+  - add orchestration columns + indexes (`status`, `user_id`, `lease_expires_at`, `next_retry_at`)
+- `supabase/functions/generate-policy/index.ts`:
+  - refactor `action: process-job` into step-machine with lease/heartbeat/retry
+- `src/hooks/usePolicyJobs.ts`:
+  - staleness + kick logic based on lease/heartbeat
+- `src/pages/PolicyServiceMyPolicies.tsx`:
+  - richer in-progress UI with step/progress diagnostics
 
-To make this robust, the approach needs one key change: **jobs should be processed one at a time**, not concurrently. The database table acts as the queue; processing is sequential.
+Recovery + rollout
+- One-time data fix for existing stuck jobs: reset old `generating` rows to `pending`, initialise `current_step`.
+- Backward compatible handling for rows missing new metadata (default to step 1).
+- Deploy background-path hardening first; keep synchronous path unchanged initially.
 
-#### How It Works
-
-```text
-User submits Policy A → insert job row (status: pending) → fire generate-policy "process-job"
-User submits Policy B → insert job row (status: pending) → fire generate-policy "process-job"
-User submits Policy C → insert job row (status: pending) → fire generate-policy "process-job"
-
-generate-policy "process-job" handler:
-  1. Try to claim the OLDEST pending job (atomic UPDATE ... WHERE status='pending' RETURNING)
-  2. If no pending job found → exit (another invocation already claimed it)
-  3. Process the claimed job (generate → enhance → save → email)
-  4. On completion, check for MORE pending jobs → process next one
-  5. Loop until no pending jobs remain
-```
-
-This means:
-- Multiple fire-and-forget calls are safe — only one will successfully claim a job (atomic SQL claim)
-- Jobs process sequentially, avoiding Anthropic rate limits and edge function concurrency issues
-- The user can queue as many policies as they like — they just process in order
-- If a job fails, it's marked `failed` and the next one proceeds
-
-#### Database Table: `policy_generation_jobs`
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | UUID | Primary key |
-| user_id | UUID | Owner |
-| policy_reference_id | TEXT | Which policy template |
-| policy_title | TEXT | Display name |
-| practice_details | JSONB | All practice info for generation |
-| custom_instructions | TEXT | Optional extra instructions |
-| status | TEXT | pending → generating → enhancing → completed / failed |
-| email_when_ready | BOOLEAN | Send email on completion |
-| generated_content | TEXT | Final policy content |
-| metadata | JSONB | Title, version, dates, references |
-| error_message | TEXT | If failed |
-| created_at | TIMESTAMPTZ | For queue ordering |
-| updated_at | TIMESTAMPTZ | For polling freshness |
-| completed_at | TIMESTAMPTZ | When done |
-
-RLS: users can SELECT/INSERT own rows. Edge function uses service role key to UPDATE.
-
-#### Edge Function: `generate-policy/index.ts` — New `process-job` Branch
-
-Added at the top of the request handler, before the existing SSE streaming logic:
-
-```
-if (action === "process-job") {
-  // Use service role key for DB updates
-  // Atomic claim: UPDATE policy_generation_jobs SET status='generating' 
-  //   WHERE status='pending' AND user_id=X ORDER BY created_at LIMIT 1 RETURNING *
-  // If nothing claimed → return { message: "no pending jobs" }
-  // Process job (call Anthropic generate, then enhance)
-  // Save to policy_completions
-  // Update job status to completed
-  // If email_when_ready → invoke send-email-resend
-  // Check for more pending jobs → loop
-  // Return { processed: N }
-}
-```
-
-The atomic claim query prevents two concurrent invocations from processing the same job. The loop ensures one invocation drains the entire queue.
-
-#### Frontend Changes
-
-**`PolicyServiceCreate.tsx`**
-- Add "Email me when ready" toggle checkbox below the Generate button
-- Add "Generate in Background" button (secondary variant)
-- Background button: inserts a job row → fires `generate-policy` with `action: "process-job"` (fire-and-forget) → shows toast "Policy queued — track progress on My Policies" → user stays on page or navigates away
-- Existing synchronous "Generate Policy" button remains unchanged
-
-**`src/hooks/usePolicyJobs.ts`** (new)
-- Queries `policy_generation_jobs` for the current user
-- Polls every 15 seconds only when active jobs exist (pending/generating/enhancing)
-- Stops polling when all jobs are completed/failed
-- Returns `jobs`, `activeJobCount`, `isLoading`
-
-**`PolicyServiceMyPolicies.tsx`**
-- "In Progress" section at top showing queued/active jobs
-- Each job: title, submitted time (DD/MM/YYYY HH:MM), colour-coded status badge, error if failed
-- When status = completed, show download button (generates Word doc from `generated_content`)
-- Completed jobs auto-appear in the main "Completed Policies" list (since the edge function saves to `policy_completions`)
-
-**`PolicyService.tsx`**
-- Badge on "My Policies" card showing active job count when > 0
-
-#### Files Summary
-
-| File | Action |
-|------|--------|
-| DB migration | New — `policy_generation_jobs` table with RLS |
-| `supabase/functions/generate-policy/index.ts` | Modify — add `process-job` action with sequential queue processing |
-| `src/hooks/usePolicyJobs.ts` | New — polling hook |
-| `src/pages/PolicyServiceCreate.tsx` | Modify — background generation UI |
-| `src/pages/PolicyServiceMyPolicies.tsx` | Modify — in-progress jobs section |
-| `src/pages/PolicyService.tsx` | Modify — active jobs badge |
-
-#### Why This Won't Crash
-
-1. **Sequential processing** — only one Anthropic call runs at a time per user, no concurrency pile-up
-2. **Atomic job claiming** — duplicate invocations harmlessly exit when there's nothing to claim
-3. **Independent of browser** — once the job row exists, the edge function processes it regardless of whether the user is on the page
-4. **Graceful failure** — failed jobs are marked and skipped; the queue continues
-5. **No extra edge functions** — everything runs inside the existing `generate-policy` function
-
+Validation checklist
+- Confirm job lifecycle: `pending → generating(part1/2/3) → enhancing → completed`.
+- Confirm no new background `504` events for `generate-policy`.
+- Confirm no job remains in `generating` without heartbeat beyond lease.
+- Run one full end-to-end test on Cervical Screening and verify:
+  - completes in ~5–6 minutes total across multiple short invocations
+  - no stuck state
+  - email arrives with Word attachment and correct branding/details.
