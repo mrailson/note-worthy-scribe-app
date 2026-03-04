@@ -7,10 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Mail, Clock, CheckCircle, AlertCircle, Trash2, Users, Plus, Edit, Sparkles, Loader2 } from "lucide-react";
+import { Mail, Clock, CheckCircle, AlertCircle, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { EmailComposeModal, type EmailComposeData, type EmailToggles } from "@/components/complaints/EmailComposeModal";
 
 interface RequestInformationPanelProps {
@@ -40,7 +39,6 @@ interface TeamMember {
   email: string;
   role: string;
   phone: string | null;
-  is_active: boolean;
 }
 
 export function RequestInformationPanel({ complaintId, practiceId, disabled = false }: RequestInformationPanelProps) {
@@ -55,16 +53,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
   const [sending, setSending] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string>("");
-  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showAddTeamDialog, setShowAddTeamDialog] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [newTeamMember, setNewTeamMember] = useState({
-    name: "",
-    email: "",
-    role: "",
-    phone: "",
-  });
   const [isGeneratingDemo, setIsGeneratingDemo] = useState(false);
   const [showComposeModal, setShowComposeModal] = useState(false);
   const [composeData, setComposeData] = useState<EmailComposeData | null>(null);
@@ -113,38 +101,35 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
 
   const fetchTeamMembers = async () => {
     try {
-      // Filter by practice if provided, else fall back to user-owned rows
       if (practiceId) {
         const { data, error } = await supabase
-          .from('complaint_team_members')
-          .select('*')
+          .from('practice_staff_defaults')
+          .select('id, staff_name, default_email, staff_role, default_phone')
           .eq('practice_id', practiceId)
           .eq('is_active', true)
-          .order('name');
+          .order('staff_name') as { data: any[] | null; error: any };
 
         if (error) throw error;
-        setTeamMembers(data || []);
+        setTeamMembers(
+          (data || []).map((s: any) => ({
+            id: s.id,
+            name: s.staff_name,
+            email: s.default_email || '',
+            role: s.staff_role || '',
+            phone: s.default_phone || null,
+          }))
+        );
       } else {
-        // fallback: show user's own members
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        const { data, error } = await supabase
-          .from('complaint_team_members')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-          .order('name');
-        if (error) throw error;
-        setTeamMembers(data || []);
+        // No practice_id available — cannot filter practice staff
+        setTeamMembers([]);
       }
     } catch (error) {
-      console.error('Error fetching team members:', error);
+      console.error('Error fetching practice staff:', error);
     }
   };
 
   const fetchInvolvedParties = async () => {
     try {
-      // Use secure view that excludes access_token to prevent token exposure
       const { data, error } = await supabase
         .from('complaint_involved_parties_secure')
         .select('*')
@@ -152,9 +137,7 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         .order('response_requested_at', { ascending: false });
 
       if (error) {
-        // Log the specific error for debugging
         console.error('Error fetching involved parties:', error.code, error.message, error.details);
-        // Only show toast for permission errors, not for empty results
         if (error.code === '42501' || error.message?.includes('permission denied')) {
           toast.error('Permission denied loading information requests');
         } else {
@@ -165,7 +148,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
       setParties(data || []);
     } catch (error) {
       console.error('Error fetching involved parties (catch):', error);
-      // Don't show toast for network errors during initial load - may just be stale
     }
   };
 
@@ -182,77 +164,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
     }
   };
 
-  const handleAddTeamMember = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { error } = await supabase
-        .from('complaint_team_members')
-        .insert({
-          user_id: user.id,
-          practice_id: practiceId ?? null,
-          name: newTeamMember.name,
-          email: newTeamMember.email,
-          role: newTeamMember.role,
-          phone: newTeamMember.phone || null,
-        });
-
-      if (error) throw error;
-
-      setNewTeamMember({ name: "", email: "", role: "", phone: "" });
-      setShowAddTeamDialog(false);
-      fetchTeamMembers();
-    } catch (error) {
-      console.error('Error adding team member:', error);
-      toast.error("Failed to add team member. Please try again.");
-    }
-  };
-
-  const handleEditTeamMember = async () => {
-    if (!editingMember) return;
-
-    try {
-      const { error } = await supabase
-        .from('complaint_team_members')
-        .update({
-          name: editingMember.name,
-          email: editingMember.email,
-          role: editingMember.role,
-          phone: editingMember.phone,
-        })
-        .eq('id', editingMember.id);
-
-      if (error) throw error;
-
-      setEditingMember(null);
-      setShowEditDialog(false);
-      fetchTeamMembers();
-    } catch (error) {
-      console.error('Error updating team member:', error);
-      toast.error("Failed to update team member. Please try again.");
-    }
-  };
-
-  const handleDeleteTeamMember = async (id: string) => {
-    // Close any confirmation UI immediately to avoid modal/focus lock issues
-    setDeleteConfirmId(null);
-
-    try {
-      const { error } = await supabase
-        .from('complaint_team_members')
-        .update({ is_active: false })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      fetchTeamMembers();
-    } catch (error) {
-      console.error('Error deleting team member:', error);
-      toast.error("Failed to remove team member. Please try again.");
-    }
-  };
-
   const handleOpenComposeModal = async () => {
     if (!newParty.name || !newParty.email || !newParty.role) {
       toast.error('Please fill in all required fields');
@@ -260,7 +171,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
     }
 
     try {
-      // Fetch complaint details for the preview
       const { data: complaint, error: complaintError } = await supabase
         .from('complaints')
         .select('reference_number, complaint_title, complaint_description, patient_name, incident_date, practice_id')
@@ -269,7 +179,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
 
       if (complaintError || !complaint) throw new Error('Complaint not found');
 
-      // Fetch practice name
       let practiceName = 'Medical Practice';
       if (complaint.practice_id) {
         const { data: practice } = await supabase
@@ -280,7 +189,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         if (practice?.practice_name) practiceName = practice.practice_name;
       }
 
-      // Fetch acknowledgement (may not exist)
       let ack: { acknowledgement_letter: string; created_at: string } | null = null;
       const { data: ackData, error: ackError } = await supabase
         .from('complaint_acknowledgements')
@@ -569,260 +477,45 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
             <DialogTitle>Request Information from Staff Member</DialogTitle>
           </DialogHeader>
           
-          <Tabs defaultValue="request" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="request" className="gap-2">
-                <Mail className="h-4 w-4" />
-                Request Information/Feedback
-              </TabsTrigger>
-              <TabsTrigger value="team" className="gap-2">
-                <Users className="h-4 w-4" />
-                Manage Team
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="request" className="space-y-6 px-6 py-1">
-              {teamMembers.length > 0 && (
-                <div className="space-y-2">
-                  <Label htmlFor="quick-select">Quick Select from Team</Label>
-                  <Select
-                    value={selectedTeamMemberId}
-                    onValueChange={handleSelectTeamMember}
-                  >
-                    <SelectTrigger id="quick-select">
-                      <SelectValue placeholder="Select a team member..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {teamMembers.map((member) => (
-                        <SelectItem key={member.id} value={member.id}>
-                          {member.name} - {member.role}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
+          <div className="space-y-6 px-6 py-1">
+            {teamMembers.length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={newParty.name}
-                  onChange={(e) => setNewParty({ ...newParty, name: e.target.value })}
-                  placeholder="Enter staff member's name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role">Role *</Label>
+                <Label htmlFor="quick-select">Quick Select from Practice Staff</Label>
                 <Select
-                  value={newParty.role}
-                  onValueChange={(value) => setNewParty({ ...newParty, role: value })}
+                  value={selectedTeamMemberId}
+                  onValueChange={handleSelectTeamMember}
                 >
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="Select role" />
+                  <SelectTrigger id="quick-select">
+                    <SelectValue placeholder="Select a staff member..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Reception Team">Reception Team</SelectItem>
-                    <SelectItem value="GP Partner">GP Partner</SelectItem>
-                    <SelectItem value="GP Salaried">GP Salaried</SelectItem>
-                    <SelectItem value="GP Trainee">GP Trainee</SelectItem>
-                    <SelectItem value="Practice Nurse">Practice Nurse</SelectItem>
-                    <SelectItem value="Practice Manager">Practice Manager</SelectItem>
-                    <SelectItem value="ARRS Staff">ARRS Staff</SelectItem>
-                    <SelectItem value="Admin Team">Admin Team</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    {teamMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name} - {member.role}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newParty.email}
-                  onChange={(e) => setNewParty({ ...newParty, email: e.target.value })}
-                  placeholder="Enter email address"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleLoadDemo}
-                    disabled={isGeneratingDemo || !newParty.name || !newParty.role}
-                    className="h-8 gap-1.5 text-xs"
-                  >
-                    {isGeneratingDemo ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Load Demo
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <Textarea
-                  id="notes"
-                  value={newParty.notes}
-                  onChange={(e) => setNewParty({ ...newParty, notes: e.target.value })}
-                  placeholder="Any specific questions or context..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowRequestDialog(false);
-                    setNewParty({ name: "", email: "", role: "", notes: "" });
-                    setSelectedTeamMemberId("");
-                  }}
-                  disabled={sending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleOpenComposeModal}
-                  disabled={!newParty.name || !newParty.email || !newParty.role || sending}
-                >
-                  Compose Email
-                </Button>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="team" className="space-y-6 px-6 py-1">
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">
-                  Manage your practice team members for quick selection
-                </p>
-                <Button
-                  onClick={() => setShowAddTeamDialog(true)}
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Member
-                </Button>
-              </div>
-
-              {teamMembers.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                  <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-medium mb-2">No team members yet</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Add your first team member to enable quick selection
-                  </p>
-                  <Button
-                    onClick={() => setShowAddTeamDialog(true)}
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Team Member
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {teamMembers.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{member.name}</h4>
-                          <Badge variant="secondary" className="text-xs">
-                            {member.role}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{member.email}</p>
-                        {member.phone && (
-                          <p className="text-sm text-muted-foreground">{member.phone}</p>
-                        )}
-                      </div>
-                      {deleteConfirmId === member.id ? (
-                        <div className="flex flex-col items-end gap-2">
-                          <p className="text-xs text-muted-foreground">Remove this member?</p>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setDeleteConfirmId(null)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteTeamMember(member.id)}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingMember(member);
-                              setShowEditDialog(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteConfirmId(member.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showAddTeamDialog} onOpenChange={setShowAddTeamDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Team Member</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="new-name">Name *</Label>
+              <Label htmlFor="name">Name *</Label>
               <Input
-                id="new-name"
-                value={newTeamMember.name}
-                onChange={(e) => setNewTeamMember({ ...newTeamMember, name: e.target.value })}
-                placeholder="Enter name"
+                id="name"
+                value={newParty.name}
+                onChange={(e) => setNewParty({ ...newParty, name: e.target.value })}
+                placeholder="Enter staff member's name"
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="new-role">Role *</Label>
+              <Label htmlFor="role">Role *</Label>
               <Select
-                value={newTeamMember.role}
-                onValueChange={(value) => setNewTeamMember({ ...newTeamMember, role: value })}
+                value={newParty.role}
+                onValueChange={(value) => setNewParty({ ...newParty, role: value })}
               >
-                <SelectTrigger id="new-role">
+                <SelectTrigger id="role">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -838,115 +531,70 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-email">Email *</Label>
-              <Input
-                id="new-email"
-                type="email"
-                value={newTeamMember.email}
-                onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
-                placeholder="Enter email"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-phone">Phone (Optional)</Label>
-              <Input
-                id="new-phone"
-                value={newTeamMember.phone}
-                onChange={(e) => setNewTeamMember({ ...newTeamMember, phone: e.target.value })}
-                placeholder="Enter phone number"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddTeamDialog(false);
-                setNewTeamMember({ name: "", email: "", role: "", phone: "" });
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAddTeamMember}
-              disabled={!newTeamMember.name || !newTeamMember.email || !newTeamMember.role}
-            >
-              Add Member
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Team Member</DialogTitle>
-          </DialogHeader>
-          {editingMember && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">Name *</Label>
-                <Input
-                  id="edit-name"
-                  value={editingMember.name}
-                  onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-role">Role *</Label>
-                <Select
-                  value={editingMember.role}
-                  onValueChange={(value) => setEditingMember({ ...editingMember, role: value })}
-                >
-                  <SelectTrigger id="edit-role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Reception Team">Reception Team</SelectItem>
-                    <SelectItem value="GP Partner">GP Partner</SelectItem>
-                    <SelectItem value="GP Salaried">GP Salaried</SelectItem>
-                    <SelectItem value="GP Trainee">GP Trainee</SelectItem>
-                    <SelectItem value="Practice Nurse">Practice Nurse</SelectItem>
-                    <SelectItem value="Practice Manager">Practice Manager</SelectItem>
-                    <SelectItem value="ARRS Staff">ARRS Staff</SelectItem>
-                    <SelectItem value="Admin Team">Admin Team</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-email">Email *</Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={editingMember.email}
-                  onChange={(e) => setEditingMember({ ...editingMember, email: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-phone">Phone (Optional)</Label>
-                <Input
-                  id="edit-phone"
-                  value={editingMember.phone || ""}
-                  onChange={(e) => setEditingMember({ ...editingMember, phone: e.target.value })}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={newParty.email}
+                onChange={(e) => setNewParty({ ...newParty, email: e.target.value })}
+                placeholder="Enter email address"
+              />
             </div>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowEditDialog(false);
-                setEditingMember(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleEditTeamMember}>
-              Save Changes
-            </Button>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLoadDemo}
+                  disabled={isGeneratingDemo || !newParty.name || !newParty.role}
+                  className="h-8 gap-1.5 text-xs"
+                >
+                  {isGeneratingDemo ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Load Demo
+                    </>
+                  )}
+                </Button>
+              </div>
+              <Textarea
+                id="notes"
+                value={newParty.notes}
+                onChange={(e) => setNewParty({ ...newParty, notes: e.target.value })}
+                placeholder="Any specific questions or context..."
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRequestDialog(false);
+                  setNewParty({ name: "", email: "", role: "", notes: "" });
+                  setSelectedTeamMemberId("");
+                }}
+                disabled={sending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleOpenComposeModal}
+                disabled={!newParty.name || !newParty.email || !newParty.role || sending}
+              >
+                Compose Email
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
