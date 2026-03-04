@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
@@ -186,16 +186,22 @@ Please generate an updated version of this policy that:
 
 Today's date is ${new Date().toLocaleDateString('en-GB')}.`;
 
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      if (!ANTHROPIC_API_KEY) {
+        throw new Error('ANTHROPIC_API_KEY not configured');
+      }
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
           'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'google/gemini-3-flash-preview',
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8000,
+          system: systemPrompt,
           messages: [
-            { role: 'system', content: systemPrompt },
             { role: 'user', content: updatePrompt },
           ],
         }),
@@ -203,29 +209,12 @@ Today's date is ${new Date().toLocaleDateString('en-GB')}.`;
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('AI Gateway error:', response.status, errorText);
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: 'Rate limits exceeded, please try again later.' }), {
-            status: 429,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: 'Payment required, please add funds to your workspace.' }), {
-            status: 402,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        throw new Error(`AI gateway error: ${response.status}`);
+        console.error('Anthropic API error:', response.status, errorText);
+        throw new Error(`Anthropic API error: ${response.status}`);
       }
 
-      const responseText = await response.text();
-      if (!responseText || responseText.trim().length === 0) {
-        throw new Error('AI returned an empty response');
-      }
-
-      const data = JSON.parse(responseText);
-      const aiContent = data.choices?.[0]?.message?.content || '';
+      const data = await response.json();
+      const aiContent = data.content?.[0]?.text || '';
 
       // Parse the response
       const metadataMatch = aiContent.match(/===METADATA===([\s\S]*?)===POLICY_CONTENT===/);
@@ -366,16 +355,22 @@ Please generate a complete, professional policy document that meets all regulato
 
     console.log('Generating policy:', policyRef.policy_name);
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY not configured');
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        system: systemPrompt,
         messages: [
-          { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
       }),
@@ -383,29 +378,12 @@ Please generate a complete, professional policy document that meets all regulato
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limits exceeded, please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'Payment required, please add funds to your workspace.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      throw new Error(`AI gateway error: ${response.status}`);
+      console.error('Anthropic API error:', response.status, errorText);
+      throw new Error(`Anthropic API error: ${response.status}`);
     }
 
-    const responseText = await response.text();
-    if (!responseText || responseText.trim().length === 0) {
-      throw new Error('AI returned an empty response');
-    }
-
-    const data = JSON.parse(responseText);
-    const aiContent = data.choices?.[0]?.message?.content || '';
+    const data = await response.json();
+    const aiContent = data.content?.[0]?.text || '';
 
     // Parse the response
     const metadataMatch = aiContent.match(/===METADATA===([\s\S]*?)===POLICY_CONTENT===/);
