@@ -442,12 +442,22 @@ Every policy must demonstrate alignment with relevant domains:
 
 ## OUTPUT FORMAT
 
+CRITICAL FORMAT RULE: You MUST preserve the EXACT document header structure from the input policy. Specifically:
+- Do NOT restructure, reformat, or rearrange the Document Control table
+- Do NOT change the header fields (Practice, ODS Code) or their layout
+- Do NOT move, reformat, or restructure the Equality Impact Assessment Statement
+- Do NOT change the section numbering or ordering (sections 1-11)
+- Do NOT move the Version History table — it MUST remain as the final section (section 11)
+- Only enhance the CONTENT within existing sections and add missing sub-sections within the existing structure
+- If a section is missing entirely, add it in the correct numbered position
+
 Return the enhanced policy as a complete, ready-to-use document with:
 1. All mandatory sections included
 2. Policy-specific requirements addressed
 3. Placeholders clearly marked as [PRACTICE TO COMPLETE] for practice-specific information
 4. SNOMED/Read codes appendix where applicable
 5. Current references with years
+6. The EXACT SAME header layout and Document Control table format as the input
 
 Flag any critical compliance gaps that couldn't be addressed without practice-specific information.`;
 
