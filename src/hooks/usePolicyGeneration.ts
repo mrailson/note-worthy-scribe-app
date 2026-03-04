@@ -95,6 +95,29 @@ export const usePolicyGeneration = () => {
     }
   };
 
+  const recoverLatestGeneration = async (policyReferenceId: string) => {
+    if (!user) return null;
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const { data } = await supabase
+        .from('policy_generations')
+        .select('id, generated_content, metadata')
+        .eq('user_id', user.id)
+        .eq('policy_reference_id', policyReferenceId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data?.generated_content) {
+        return data;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    return null;
+  };
+
   const generatePolicy = async (params: GeneratePolicyParams): Promise<GenerationResult | null> => {
     if (!user) {
       toast.error("You must be logged in to generate policies");
@@ -105,21 +128,52 @@ export const usePolicyGeneration = () => {
 
     try {
       // Step 1: Generate initial policy
-      const { data, error } = await supabase.functions.invoke('generate-policy', {
-        body: {
-          policy_reference_id: params.policyReferenceId,
-          practice_details: params.practiceDetails,
-          custom_instructions: params.customInstructions,
-        },
-      });
+      let data: any;
 
-      if (error) {
-        console.error('Policy generation error:', error);
-        throw new Error(error.message || 'Failed to generate policy');
-      }
+      try {
+        const invokeResult = await supabase.functions.invoke('generate-policy', {
+          body: {
+            policy_reference_id: params.policyReferenceId,
+            practice_details: params.practiceDetails,
+            custom_instructions: params.customInstructions,
+          },
+        });
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'Policy generation failed');
+        if (invokeResult.error) {
+          console.error('Policy generation error:', invokeResult.error);
+          throw new Error(invokeResult.error.message || 'Failed to generate policy');
+        }
+
+        if (!invokeResult.data?.success) {
+          throw new Error(invokeResult.data?.error || 'Policy generation failed');
+        }
+
+        data = invokeResult.data;
+      } catch (invokeError) {
+        console.error('Primary policy response failed, attempting recovery:', invokeError);
+
+        const recovered = await recoverLatestGeneration(params.policyReferenceId);
+        if (!recovered) {
+          throw invokeError instanceof Error ? invokeError : new Error('Failed to generate policy');
+        }
+
+        toast.warning('Connection dropped, but your policy was recovered successfully.', {
+          duration: 6000,
+        });
+
+        return {
+          content: recovered.generated_content,
+          metadata: (recovered.metadata as GenerationResult['metadata']) || {
+            title: 'Recovered Policy',
+            version: '1.0',
+            effective_date: new Date().toLocaleDateString('en-GB'),
+            review_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB'),
+            references: [],
+          },
+          generationId: recovered.id,
+          enhanced: false,
+          enhancementWarning: 'Policy recovered from server history after connection interruption.',
+        };
       }
 
       let finalContent = data.content;
