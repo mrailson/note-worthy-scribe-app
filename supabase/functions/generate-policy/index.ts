@@ -126,17 +126,30 @@ MANDATORY HEADER FORMAT (use exactly this structure):
 
 Do NOT include sections 4-11. Do NOT include ===METADATA=== blocks. Output ONLY the header and sections 1-3 in markdown.`;
 
-const PART2_SYSTEM_ADDITION = `
+const PART2A_SYSTEM_ADDITION = `
 You are generating the MIDDLE PART of a policy document. Sections 1-3 already exist and are provided for context.
 Generate ONLY:
 4. ROLES AND RESPONSIBILITIES
 5. POLICY STATEMENT / PROCEDURE
-6. TRAINING REQUIREMENTS
+
+CRITICAL: Section 5 must be COMPLETE. For clinical policies this includes ALL sub-sections — screening pathways, referral criteria, colposcopy referral pathways, HPV triage algorithms, follow-up protocols, etc. Do NOT truncate or abbreviate any sub-section. Complete every bullet point and every sub-heading fully before finishing.
 
 Do NOT regenerate header or sections 1-3.
+Do NOT include sections 6-11.
+Do NOT include ===METADATA=== blocks.
+Output ONLY sections 4-5 in markdown.`;
+
+const PART2B_SYSTEM_ADDITION = `
+You are generating section 6 of a policy document. Sections 1-5 already exist and are provided for context.
+Generate ONLY:
+6. TRAINING REQUIREMENTS
+
+This section should cover mandatory and recommended training, competency frameworks, update frequencies, and record-keeping requirements relevant to this specific policy area.
+
+Do NOT regenerate any previous sections.
 Do NOT include sections 7-11.
 Do NOT include ===METADATA=== blocks.
-Output ONLY sections 4-6 in markdown.`;
+Output ONLY section 6 in markdown.`;
 
 const PART3_SYSTEM_ADDITION = `
 You are generating the FINAL PART of a policy document. Sections 1-6 already exist and are provided for context. You must now generate ONLY:
@@ -522,8 +535,8 @@ Generate the complete header and sections 1-3 only.`;
             .from('policy_generation_jobs')
             .update({
               metadata: { ...jobMetadata, partial_sections_1_3: content },
-              current_step: 'generate_part_2',
-              progress_pct: 25,
+              current_step: 'generate_part_2a',
+              progress_pct: 15,
               attempt_count: 0,
               next_retry_at: null,
               heartbeat_at: new Date().toISOString(),
@@ -540,13 +553,13 @@ Generate the complete header and sections 1-3 only.`;
           });
         }
 
-        // ---- STEP: generate_part_2 ----
-        if (currentStep === 'generate_part_2') {
-          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_2', 35);
+        // ---- STEP: generate_part_2a (sections 4-5) ----
+        // Also handles legacy 'generate_part_2' jobs
+        if (currentStep === 'generate_part_2a' || currentStep === 'generate_part_2') {
+          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_2a', 25);
 
           const part1Content = jobMetadata.partial_sections_1_3 || '';
           if (!part1Content) {
-            // Missing part 1, go back
             await serviceSupabase
               .from('policy_generation_jobs')
               .update({
@@ -574,27 +587,101 @@ ${regulatoryContext}
 
 ${contactInstructions}
 
-Now generate sections 4-6 only.`;
+Now generate sections 4-5 only. Section 5 must be COMPLETE with all sub-sections fully written out.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + PART2_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + PART2A_SYSTEM_ADDITION,
             userPrompt,
-            5200
+            8000
           );
 
           if (!content || content.length < 150) {
-            throw new Error('Generation part 2 returned insufficient content');
+            throw new Error('Generation part 2a returned insufficient content');
           }
 
-          const sections1to6 = `${part1Content.trim()}\n\n${content.trim()}`;
+          const sections1to5 = `${part1Content.trim()}\n\n${content.trim()}`;
 
-          // Store middle content and advance to part 3
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
               metadata: {
                 ...jobMetadata,
                 partial_sections_1_3: part1Content,
+                partial_sections_1_5: sections1to5,
+              },
+              current_step: 'generate_part_2b',
+              progress_pct: 35,
+              attempt_count: 0,
+              next_retry_at: null,
+              heartbeat_at: new Date().toISOString(),
+              lease_expires_at: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', job.id);
+
+          console.log(`[Step done: generate_part_2a] Job ${job.id} - ${content.length} chars`);
+          selfTrigger(targetUserId);
+
+          return new Response(JSON.stringify({ success: true, phase: 'generate_part_2a', jobId: job.id }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // ---- STEP: generate_part_2b (section 6) ----
+        if (currentStep === 'generate_part_2b') {
+          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_2b', 45);
+
+          const sections1to5 = jobMetadata.partial_sections_1_5 || '';
+          if (!sections1to5) {
+            // Missing part 2a, go back
+            await serviceSupabase
+              .from('policy_generation_jobs')
+              .update({
+                current_step: 'generate_part_2a',
+                attempt_count: 0,
+                lease_expires_at: null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', job.id);
+            selfTrigger(targetUserId);
+            return new Response(JSON.stringify({ success: true, phase: 'retry_part_2a' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          const userPrompt = `Here are sections 1-5 of the ${policyName} policy (already generated):
+
+---SECTIONS 1-5---
+${sections1to5}
+---END SECTIONS 1-5---
+
+${practiceContext}
+
+${regulatoryContext}
+
+${contactInstructions}
+
+Now generate section 6 (Training Requirements) only.`;
+
+          const content = await callAnthropic(
+            BASE_SYSTEM_PROMPT + PART2B_SYSTEM_ADDITION,
+            userPrompt,
+            3000
+          );
+
+          if (!content || content.length < 100) {
+            throw new Error('Generation part 2b returned insufficient content');
+          }
+
+          const sections1to6 = `${sections1to5.trim()}\n\n${content.trim()}`;
+
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              metadata: {
+                ...jobMetadata,
+                partial_sections_1_3: jobMetadata.partial_sections_1_3,
+                partial_sections_1_5: sections1to5,
                 partial_sections_1_6: sections1to6,
               },
               current_step: 'generate_part_3',
@@ -607,17 +694,17 @@ Now generate sections 4-6 only.`;
             })
             .eq('id', job.id);
 
-          console.log(`[Step done: generate_part_2] Job ${job.id} - ${content.length} chars`);
+          console.log(`[Step done: generate_part_2b] Job ${job.id} - ${content.length} chars`);
           selfTrigger(targetUserId);
 
-          return new Response(JSON.stringify({ success: true, phase: 'generate_part_2', jobId: job.id }), {
+          return new Response(JSON.stringify({ success: true, phase: 'generate_part_2b', jobId: job.id }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
 
         // ---- STEP: generate_part_3 ----
         if (currentStep === 'generate_part_3') {
-          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_3', 60);
+          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_3', 65);
 
           const sections1to6 = jobMetadata.partial_sections_1_6 || '';
           if (!sections1to6) {
@@ -695,10 +782,11 @@ Now generate sections 7-11 to complete this policy, followed by the ===METADATA=
               metadata: {
                 ...metadata,
                 partial_sections_1_3: undefined,
+                partial_sections_1_5: undefined,
                 partial_sections_1_6: undefined,
               },
               current_step: 'enhance',
-              progress_pct: 65,
+              progress_pct: 80,
               attempt_count: 0,
               next_retry_at: null,
               heartbeat_at: new Date().toISOString(),

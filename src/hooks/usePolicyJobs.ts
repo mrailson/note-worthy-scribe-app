@@ -24,9 +24,11 @@ export interface PolicyJob {
 }
 
 const STEP_LABELS: Record<string, string> = {
-  generate_part_1: 'Generating (part 1/3)',
-  generate_part_2: 'Generating (part 2/3)',
-  generate_part_3: 'Generating (part 3/3)',
+  generate_part_1: 'Generating (part 1/4)',
+  generate_part_2: 'Generating (part 2/4)',   // legacy fallback
+  generate_part_2a: 'Generating (part 2/4)',
+  generate_part_2b: 'Generating (part 3/4)',
+  generate_part_3: 'Generating (part 4/4)',
   enhance: 'Enhancing',
   finalise: 'Finalising',
   done: 'Complete',
