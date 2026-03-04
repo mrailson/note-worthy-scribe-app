@@ -243,56 +243,29 @@ serve(async (req) => {
     if (action === 'process-job') {
       const serviceSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       const targetUserId = job_user_id || userId;
-      let processed = 0;
 
-      // Loop: claim and process jobs sequentially
-      while (true) {
-        // Atomic claim: grab the oldest pending job for this user
-        const { data: claimedJobs, error: claimError } = await serviceSupabase
-          .rpc('claim_pending_policy_job', { p_user_id: targetUserId });
+      // --- PHASE 1: Check for pending jobs (need generation) ---
+      const { data: pendingJob } = await serviceSupabase
+        .from('policy_generation_jobs')
+        .update({ status: 'generating', updated_at: new Date().toISOString() })
+        .eq('status', 'pending')
+        .eq('user_id', targetUserId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .select()
+        .single();
 
-        // If RPC doesn't exist yet, fall back to manual claim
-        let job: any = null;
-        if (claimError) {
-          // Manual atomic claim
-          const { data: manualClaim, error: manualError } = await serviceSupabase
-            .from('policy_generation_jobs')
-            .update({ status: 'generating', updated_at: new Date().toISOString() })
-            .eq('status', 'pending')
-            .eq('user_id', targetUserId)
-            .order('created_at', { ascending: true })
-            .limit(1)
-            .select()
-            .single();
-
-          if (manualError || !manualClaim) break; // No pending jobs
-          job = manualClaim;
-        } else {
-          if (!claimedJobs || (Array.isArray(claimedJobs) && claimedJobs.length === 0)) break;
-          job = Array.isArray(claimedJobs) ? claimedJobs[0] : claimedJobs;
-        }
-
-        if (!job) break;
-
-        console.log(`Processing background job: ${job.id} - ${job.policy_title}`);
-
+      if (pendingJob) {
+        console.log(`[Phase 1: Generate] Job ${pendingJob.id} - ${pendingJob.policy_title}`);
         try {
-          // Update status to generating
-          await serviceSupabase
-            .from('policy_generation_jobs')
-            .update({ status: 'generating', updated_at: new Date().toISOString() })
-            .eq('id', job.id);
-
-          // Look up policy reference
           const { data: policyRef } = await serviceSupabase
             .from('policy_reference_library')
             .select('*')
-            .eq('id', job.policy_reference_id)
+            .eq('id', pendingJob.policy_reference_id)
             .single();
-
           if (!policyRef) throw new Error('Policy reference not found');
 
-          const jobPractice = job.practice_details;
+          const jobPractice = pendingJob.practice_details;
           const servicesOffered = jobPractice?.services_offered
             ? Object.entries(jobPractice.services_offered)
                 .filter(([_, enabled]) => enabled)
@@ -343,11 +316,11 @@ CRITICAL INSTRUCTIONS FOR CONTACT DETAILS:
 - For out-of-hours contacts, use placeholders like: [PRACTICE TO COMPLETE - local occupational health service contact]
 - All placeholders must be in square brackets and start with "PRACTICE TO COMPLETE"
 
-${job.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${job.custom_instructions}` : ''}
+${pendingJob.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${pendingJob.custom_instructions}` : ''}
 
 Please generate a complete, professional policy document that meets all regulatory requirements.`;
 
-          // Step 1: Generate via Anthropic (non-streaming for background)
+          // Single Anthropic call: GENERATE only
           const genResponse = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -371,7 +344,7 @@ Please generate a complete, professional policy document that meets all regulato
           const genData = await genResponse.json();
           let generatedContent = genData.content?.[0]?.text || '';
 
-          // Parse metadata from generated content
+          // Parse metadata
           const metadataMatch = generatedContent.match(/===METADATA===([\s\S]*?)===POLICY_CONTENT===/);
           const contentMatch = generatedContent.match(/===POLICY_CONTENT===([\s\S]*)/);
 
@@ -392,47 +365,111 @@ Please generate a complete, professional policy document that meets all regulato
             const refs = mt.match(/References:\s*(.+)/); if (refs) jobMetadata.references = refs[1].split(',').map((r: string) => r.trim());
           }
 
-          let policyContent = contentMatch ? contentMatch[1].trim() : generatedContent;
+          const policyContent = contentMatch ? contentMatch[1].trim() : generatedContent;
 
-          // Step 2: Enhance
+          // Save generated content to job row, set status to 'enhancing'
           await serviceSupabase
             .from('policy_generation_jobs')
-            .update({ status: 'enhancing', updated_at: new Date().toISOString() })
-            .eq('id', job.id);
+            .update({
+              status: 'enhancing',
+              generated_content: policyContent,
+              metadata: jobMetadata,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', pendingJob.id);
 
-          const enhancePrompt = `Please review and enhance the following ${policyRef.policy_name} policy for ${jobPractice?.practice_name || '[PRACTICE NAME]'} (ODS: ${jobPractice?.ods_code || '[ODS CODE]'}).
+          console.log(`[Phase 1 done] Job ${pendingJob.id} generated, now queued for enhancement`);
+
+          // Fire self again (non-blocking) to handle the enhancement phase
+          fetch(`${SUPABASE_URL}/functions/v1/generate-policy`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'apikey': SUPABASE_SERVICE_ROLE_KEY,
+            },
+            body: JSON.stringify({ action: 'process-job', job_user_id: targetUserId }),
+          }).catch(e => console.error('Fire-and-forget enhance failed:', e));
+
+          return new Response(JSON.stringify({ success: true, phase: 'generated', jobId: pendingJob.id }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+
+        } catch (jobError) {
+          console.error(`[Phase 1 failed] Job ${pendingJob.id}:`, jobError);
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              status: 'failed',
+              error_message: jobError instanceof Error ? jobError.message : 'Unknown error during generation',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', pendingJob.id);
+
+          return new Response(JSON.stringify({ success: false, error: 'Generation failed' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      // --- PHASE 2: Check for enhancing jobs (need enhancement) ---
+      const { data: enhancingJob } = await serviceSupabase
+        .from('policy_generation_jobs')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('status', 'enhancing')
+        .eq('user_id', targetUserId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .select()
+        .single();
+
+      if (enhancingJob) {
+        console.log(`[Phase 2: Enhance] Job ${enhancingJob.id} - ${enhancingJob.policy_title}`);
+        try {
+          const jobPractice = enhancingJob.practice_details;
+          let policyContent = enhancingJob.generated_content || '';
+          const jobMetadata = enhancingJob.metadata || {};
+
+          // Look up policy ref for name
+          const { data: policyRef } = await serviceSupabase
+            .from('policy_reference_library')
+            .select('policy_name')
+            .eq('id', enhancingJob.policy_reference_id)
+            .single();
+
+          const policyName = policyRef?.policy_name || enhancingJob.policy_title;
+
+          const enhancePrompt = `Please review and enhance the following ${policyName} policy for ${jobPractice?.practice_name || '[PRACTICE NAME]'} (ODS: ${jobPractice?.ods_code || '[ODS CODE]'}).
 
 Ensure it meets all CQC KLOE requirements, applies all known guidance changes listed at the top of your instructions, and includes current regulatory references.
 
 ${policyContent}`;
 
-          try {
-            const enhResponse = await fetch('https://api.anthropic.com/v1/messages', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': ANTHROPIC_API_KEY!,
-                'anthropic-version': '2023-06-01',
-              },
-              body: JSON.stringify({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 16000,
-                system: ENHANCEMENT_SYSTEM_PROMPT,
-                messages: [{ role: 'user', content: enhancePrompt }],
-              }),
-            });
+          // Single Anthropic call: ENHANCE only
+          const enhResponse = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': ANTHROPIC_API_KEY!,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 16000,
+              system: ENHANCEMENT_SYSTEM_PROMPT,
+              messages: [{ role: 'user', content: enhancePrompt }],
+            }),
+          });
 
-            if (enhResponse.ok) {
-              const enhData = await enhResponse.json();
-              const enhancedContent = enhData.content?.[0]?.text;
-              if (enhancedContent) policyContent = enhancedContent;
-            }
-          } catch (enhErr) {
-            console.error('Enhancement failed, using original:', enhErr);
+          if (enhResponse.ok) {
+            const enhData = await enhResponse.json();
+            const enhancedContent = enhData.content?.[0]?.text;
+            if (enhancedContent) policyContent = enhancedContent;
+          } else {
+            console.error('Enhancement API error, using generated content:', enhResponse.status);
           }
 
-          // Step 3: Save to policy_completions
-          // Convert dates to ISO format for PostgreSQL
+          // Save to policy_completions
           const convertToISO = (dateStr: string): string => {
             if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.split('T')[0];
             const parts = dateStr.split('/');
@@ -440,7 +477,6 @@ ${policyContent}`;
             return dateStr;
           };
 
-          // Look up practice_id
           let jobPracticeId: string | null = null;
           if (jobPractice?.ods_code) {
             const { data: pr } = await serviceSupabase
@@ -451,12 +487,11 @@ ${policyContent}`;
             jobPracticeId = pr?.id || null;
           }
 
-          // Check for existing completion
           const { data: existingCompletion } = await serviceSupabase
             .from('policy_completions')
             .select('id')
-            .eq('user_id', job.user_id)
-            .eq('policy_reference_id', job.policy_reference_id)
+            .eq('user_id', enhancingJob.user_id)
+            .eq('policy_reference_id', enhancingJob.policy_reference_id)
             .eq('status', 'completed')
             .maybeSingle();
 
@@ -464,12 +499,12 @@ ${policyContent}`;
             await serviceSupabase
               .from('policy_completions')
               .update({
-                policy_title: jobMetadata.title,
+                policy_title: (jobMetadata as any).title || policyName,
                 policy_content: policyContent,
                 metadata: jobMetadata,
-                effective_date: convertToISO(jobMetadata.effective_date),
-                review_date: convertToISO(jobMetadata.review_date),
-                version: jobMetadata.version,
+                effective_date: convertToISO((jobMetadata as any).effective_date || new Date().toLocaleDateString('en-GB')),
+                review_date: convertToISO((jobMetadata as any).review_date || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB')),
+                version: (jobMetadata as any).version || '1.0',
                 updated_at: new Date().toISOString(),
               })
               .eq('id', existingCompletion.id);
@@ -477,33 +512,33 @@ ${policyContent}`;
             await serviceSupabase
               .from('policy_completions')
               .insert({
-                user_id: job.user_id,
+                user_id: enhancingJob.user_id,
                 practice_id: jobPracticeId,
-                policy_reference_id: job.policy_reference_id,
-                policy_title: jobMetadata.title,
+                policy_reference_id: enhancingJob.policy_reference_id,
+                policy_title: (jobMetadata as any).title || policyName,
                 policy_content: policyContent,
                 metadata: jobMetadata,
-                effective_date: convertToISO(jobMetadata.effective_date),
-                review_date: convertToISO(jobMetadata.review_date),
-                version: jobMetadata.version,
+                effective_date: convertToISO((jobMetadata as any).effective_date || new Date().toLocaleDateString('en-GB')),
+                review_date: convertToISO((jobMetadata as any).review_date || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB')),
+                version: (jobMetadata as any).version || '1.0',
                 status: 'completed',
               });
           }
 
-          // Also save to policy_generations
+          // Save to policy_generations
           await serviceSupabase
             .from('policy_generations')
             .insert({
-              user_id: job.user_id,
+              user_id: enhancingJob.user_id,
               practice_id: jobPracticeId,
-              policy_name: jobMetadata.title,
+              policy_name: (jobMetadata as any).title || policyName,
               generation_type: 'new',
               generated_content: policyContent,
               metadata: jobMetadata,
-              policy_reference_id: job.policy_reference_id,
+              policy_reference_id: enhancingJob.policy_reference_id,
             });
 
-          // Step 4: Mark job completed
+          // Mark job completed
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
@@ -513,15 +548,15 @@ ${policyContent}`;
               completed_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             })
-            .eq('id', job.id);
+            .eq('id', enhancingJob.id);
 
-          // Step 5: Email if requested
-          if (job.email_when_ready) {
+          console.log(`[Phase 2 done] Job ${enhancingJob.id} completed successfully`);
+
+          // Email if requested
+          if (enhancingJob.email_when_ready) {
             try {
-              // Get user email
-              const { data: userData } = await serviceSupabase.auth.admin.getUserById(job.user_id);
+              const { data: userData } = await serviceSupabase.auth.admin.getUserById(enhancingJob.user_id);
               const userEmail = userData?.user?.email;
-
               if (userEmail) {
                 await fetch(`${SUPABASE_URL}/functions/v1/send-email-resend`, {
                   method: 'POST',
@@ -532,18 +567,18 @@ ${policyContent}`;
                   },
                   body: JSON.stringify({
                     to_email: userEmail,
-                    subject: `Your policy is ready: ${jobMetadata.title}`,
+                    subject: `Your policy is ready: ${(jobMetadata as any).title || policyName}`,
                     html_content: `
                       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                         <h2 style="color: #1a365d;">Your Policy is Ready</h2>
                         <p>Hi,</p>
-                        <p>Your policy <strong>${jobMetadata.title}</strong> has been generated and enhanced successfully.</p>
+                        <p>Your policy <strong>${(jobMetadata as any).title || policyName}</strong> has been generated and enhanced successfully.</p>
                         <p>You can view and download it from your <a href="https://meetingmagic.lovable.app/policy-service/my-policies" style="color: #2563eb;">My Policies</a> page.</p>
                         <div style="margin: 24px 0; padding: 16px; background-color: #f0f9ff; border-radius: 8px;">
                           <p style="margin: 0; font-size: 14px; color: #64748b;">
-                            <strong>Version:</strong> ${jobMetadata.version}<br/>
-                            <strong>Effective Date:</strong> ${jobMetadata.effective_date}<br/>
-                            <strong>Review Date:</strong> ${jobMetadata.review_date}
+                            <strong>Version:</strong> ${(jobMetadata as any).version || '1.0'}<br/>
+                            <strong>Effective Date:</strong> ${(jobMetadata as any).effective_date}<br/>
+                            <strong>Review Date:</strong> ${(jobMetadata as any).review_date}
                           </p>
                         </div>
                         <p style="font-size: 14px; color: #64748b;">This is an automated notification from Notewell AI.</p>
@@ -551,30 +586,47 @@ ${policyContent}`;
                     `,
                   }),
                 });
-                console.log(`Email sent to ${userEmail} for job ${job.id}`);
+                console.log(`Email sent to ${userEmail} for job ${enhancingJob.id}`);
               }
             } catch (emailErr) {
               console.error('Failed to send email notification:', emailErr);
             }
           }
 
-          processed++;
-          console.log(`Job ${job.id} completed successfully`);
+          // Fire self again to check for more pending jobs
+          fetch(`${SUPABASE_URL}/functions/v1/generate-policy`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'apikey': SUPABASE_SERVICE_ROLE_KEY,
+            },
+            body: JSON.stringify({ action: 'process-job', job_user_id: targetUserId }),
+          }).catch(e => console.error('Fire-and-forget next job failed:', e));
+
+          return new Response(JSON.stringify({ success: true, phase: 'enhanced', jobId: enhancingJob.id }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
 
         } catch (jobError) {
-          console.error(`Job ${job.id} failed:`, jobError);
+          console.error(`[Phase 2 failed] Job ${enhancingJob.id}:`, jobError);
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
               status: 'failed',
-              error_message: jobError instanceof Error ? jobError.message : 'Unknown error',
+              error_message: jobError instanceof Error ? jobError.message : 'Unknown error during enhancement',
               updated_at: new Date().toISOString(),
             })
-            .eq('id', job.id);
+            .eq('id', enhancingJob.id);
+
+          return new Response(JSON.stringify({ success: false, error: 'Enhancement failed' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
       }
 
-      return new Response(JSON.stringify({ success: true, processed }), {
+      // No jobs to process
+      return new Response(JSON.stringify({ success: true, message: 'No pending jobs' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

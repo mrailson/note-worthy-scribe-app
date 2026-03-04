@@ -1,0 +1,1 @@
+UPDATE public.policy_generation_jobs SET status = 'pending', generated_content = NULL, metadata = NULL, updated_at = NOW() WHERE status = 'enhancing';
