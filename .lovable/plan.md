@@ -1,40 +1,28 @@
 
 
-## Plan: Improve Acknowledgement Letter View, Default Toggles Off, Editable Email Preview
+## Plan: Use Practice Staff Defaults as Source for Complaint Email Recipients
+
+### Problem
+The complaints module currently maintains its own separate `complaint_team_members` table for staff selection. The user wants staff to come from the **Practice User Management** system (`practice_staff_defaults` table) instead, eliminating duplicate maintenance.
 
 ### Changes
 
-#### 1. Acknowledgement Letter — Better View
-The current acknowledgement letter modal already uses `FormattedLetterContent` with a clean white card layout. Based on the screenshot, the inline acknowledgement view (in the workflow tab) uses a basic `<pre>` tag with `bg-gray-50`. I'll improve the inline view to render formatted HTML content consistently, matching the modal's quality.
+#### 1. Refactor `RequestInformationPanel.tsx` — Replace team source
+- **Replace `fetchTeamMembers`**: Instead of querying `complaint_team_members`, query `practice_staff_defaults` where `practice_id` matches and `is_active = true`.
+- **Map fields**: `staff_name` → name, `default_email` → email, `staff_role` → role, `default_phone` → phone.
+- **Remove the "Manage Team" tab entirely** (the second tab in the request dialog) — staff management now lives in Practice User Management, not here.
+- **Remove the Add/Edit/Delete team member dialogs and handlers** (`showAddTeamDialog`, `showEditDialog`, `handleAddTeamMember`, `handleEditTeamMember`, `handleDeleteTeamMember`, etc.).
 
-In `ComplaintDetails.tsx`:
-- The inline collapsible view (if present) will use `FormattedLetterContent` instead of `<pre>` tags
-- Ensure the modal view renders the letter on a clean white background with proper padding and shadow, consistent with a professional NHS letter format
+#### 2. Simplify the Request Dialog
+- The dialog becomes a single-purpose view: **select a staff member → compose email**.
+- Keep the "Quick Select from Team" dropdown (now populated from `practice_staff_defaults`).
+- Keep the name/email/role fields (auto-populated on selection, still editable).
+- Keep the notes field and demo generation.
+- Remove the tabs wrapper since there's only one tab now.
 
-#### 2. Toggle Switches Default to Off
-In `EmailComposeModal.tsx`, the toggles currently default to `true` (all on). Change the initial state and the `useEffect` reset so all four toggles (`includeDescription`, `includePatientName`, `includeAcknowledgement`, `includeDeadline`) default to **off** (`false`).
+#### 3. No database changes needed
+The `practice_staff_defaults` table already has all required fields (`staff_name`, `default_email`, `staff_role`, `default_phone`, `practice_id`, `is_active`). No migration required.
 
-**File**: `src/components/complaints/EmailComposeModal.tsx`
-- Lines 156-161: Change default values to `false`
-- Lines 166-171: Change reset values to `false`
-
-#### 3. Editable Email Preview
-Currently the email preview is a read-only `<iframe>` with `srcDoc`. I'll replace this with a mode toggle that allows the user to:
-- **Preview mode** (default): Shows the rendered HTML email as it is now
-- **Edit mode**: Shows the raw HTML in a `<Textarea>` that the user can modify, with the preview updating live
-
-The edited HTML will be stored in local state and passed through to `onSend` so the final email reflects user changes.
-
-**File**: `src/components/complaints/EmailComposeModal.tsx`
-- Add `customHtml` state initialised from `generateEmailHtml()`
-- Add Edit/Preview toggle buttons above the preview pane
-- In edit mode, show a `<Textarea>` with the HTML; in preview mode, show the iframe
-- Update `onSend` to also pass the final HTML content
-- Update the `EmailComposeModalProps` interface and parent to accept custom HTML
-
-### Technical Details
-- `EmailComposeModal`: Add `onSend` signature update to include `customHtml?: string`
-- `EmailToggles` changes will still regenerate the base HTML, but user edits will override
-- A "Reset to default" button will regenerate from toggles, discarding manual edits
-- The parent (`RequestInformationPanel.tsx`) will need to accept and use the custom HTML when sending
+### Files to Edit
+- `src/components/RequestInformationPanel.tsx` — Main refactor (replace data source, remove team management UI)
 
