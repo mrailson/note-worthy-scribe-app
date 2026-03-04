@@ -872,28 +872,103 @@ ${policyContent}`;
                     }
                   }
 
-                  // Convert markdown to HTML for Word
+                  // Convert markdown to Word-compatible HTML with professional formatting
                   const mdToHtml = (md: string): string => {
-                    return md
-                      .replace(/^### (.+)$/gm, '<h3 style="color:#005eb8;font-family:Arial,sans-serif;font-size:14pt;margin-top:18pt;margin-bottom:6pt;">$1</h3>')
-                      .replace(/^## (.+)$/gm, '<h2 style="color:#005eb8;font-family:Arial,sans-serif;font-size:16pt;margin-top:24pt;margin-bottom:8pt;">$1</h2>')
-                      .replace(/^# (.+)$/gm, '<h1 style="color:#003087;font-family:Arial,sans-serif;font-size:20pt;margin-top:0;margin-bottom:12pt;">$1</h1>')
-                      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                      .replace(/^\|(.+)\|$/gm, (match) => {
-                        const cells = match.split('|').filter(c => c.trim());
-                        const isHeader = cells.every(c => /^[\s-]+$/.test(c));
-                        if (isHeader) return '';
-                        const cellHtml = cells.map(c => `<td style="border:1px solid #ccc;padding:6px 10px;font-family:Arial,sans-serif;font-size:10pt;">${c.trim()}</td>`).join('');
-                        return `<tr>${cellHtml}</tr>`;
-                      })
-                      .replace(/^- (.+)$/gm, '<li style="font-family:Arial,sans-serif;font-size:11pt;margin-bottom:4pt;">$1</li>')
-                      .replace(/^(?!<[hltrd])((?!<li).+)$/gm, '<p style="font-family:Arial,sans-serif;font-size:11pt;line-height:1.5;margin-bottom:6pt;">$1</p>')
-                      .replace(/<p style="[^"]*"><\/p>/g, '')
-                      .replace(/(<tr>[\s\S]*?<\/tr>)/g, '<table style="border-collapse:collapse;width:100%;margin:12pt 0;">$1</table>')
-                      .replace(/<\/table>\s*<table[^>]*>/g, '')
-                      .replace(/(<li[\s\S]*?<\/li>)/g, '<ul style="margin:6pt 0 6pt 20pt;">$1</ul>')
-                      .replace(/<\/ul>\s*<ul[^>]*>/g, '');
+                    const lines = md.split('\n');
+                    const output: string[] = [];
+                    let inTable = false;
+                    let tableRows: string[][] = [];
+                    let inList = false;
+                    let listItems: string[] = [];
+
+                    const flushTable = () => {
+                      if (tableRows.length === 0) return;
+                      let t = '<table style="border-collapse:collapse;width:100%;margin:10pt 0;mso-table-lspace:0;mso-table-rspace:0;">';
+                      tableRows.forEach((cells, idx) => {
+                        const isHeader = idx === 0;
+                        const bg = isHeader ? 'background-color:#EFF6FF;' : '';
+                        const fw = isHeader ? 'font-weight:bold;' : '';
+                        t += '<tr>';
+                        cells.forEach(c => {
+                          const tag = isHeader ? 'td' : 'td';
+                          t += `<${tag} style="border:1pt solid #CBD5E1;padding:6pt 10pt;font-family:Calibri,Arial,sans-serif;font-size:10pt;${bg}${fw}vertical-align:top;">${c.trim()}</${tag}>`;
+                        });
+                        t += '</tr>';
+                      });
+                      t += '</table>';
+                      output.push(t);
+                      tableRows = [];
+                    };
+
+                    const flushList = () => {
+                      if (listItems.length === 0) return;
+                      output.push('<ul style="margin:4pt 0 8pt 24pt;padding:0;">');
+                      listItems.forEach(li => {
+                        output.push(`<li style="font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5;margin-bottom:3pt;">${li}</li>`);
+                      });
+                      output.push('</ul>');
+                      listItems = [];
+                    };
+
+                    const inlineFormat = (text: string): string => {
+                      return text
+                        .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.+?)\*/g, '<em>$1</em>');
+                    };
+
+                    for (const rawLine of lines) {
+                      const line = rawLine.trimEnd();
+
+                      // Separator rows in tables
+                      if (/^\|[\s\-:|]+\|$/.test(line)) continue;
+
+                      // Table row
+                      if (line.startsWith('|') && line.endsWith('|')) {
+                        if (!inTable) { flushList(); inTable = true; }
+                        const cells = line.slice(1, -1).split('|').map(c => inlineFormat(c.trim()));
+                        tableRows.push(cells);
+                        continue;
+                      } else if (inTable) {
+                        inTable = false;
+                        flushTable();
+                      }
+
+                      // Headings
+                      const h3 = line.match(/^### (.+)$/);
+                      if (h3) { flushList(); output.push(`<h3 style="color:#005EB8;font-family:Calibri,Arial,sans-serif;font-size:13pt;margin-top:14pt;margin-bottom:4pt;mso-style-name:'Heading 3';">${inlineFormat(h3[1])}</h3>`); continue; }
+
+                      const h2 = line.match(/^## (.+)$/);
+                      if (h2) { flushList(); output.push(`<h2 style="color:#005EB8;font-family:Calibri,Arial,sans-serif;font-size:15pt;margin-top:20pt;margin-bottom:6pt;mso-style-name:'Heading 2';">${inlineFormat(h2[1])}</h2>`); continue; }
+
+                      const h1 = line.match(/^# (.+)$/);
+                      if (h1) { flushList(); output.push(`<h1 style="color:#003087;font-family:Calibri,Arial,sans-serif;font-size:20pt;margin-top:0;margin-bottom:10pt;mso-style-name:'Heading 1';">${inlineFormat(h1[1])}</h1>`); continue; }
+
+                      // Numbered section headings like "1. PURPOSE" or "10. REFERENCES"
+                      const numHeading = line.match(/^(\d+)\.\s+([A-Z][A-Z\s&/,-]+)$/);
+                      if (numHeading) { flushList(); output.push(`<h2 style="color:#005EB8;font-family:Calibri,Arial,sans-serif;font-size:14pt;font-weight:bold;margin-top:20pt;margin-bottom:6pt;">${numHeading[1]}. ${numHeading[2]}</h2>`); continue; }
+
+                      // Sub-numbered headings like "1.1" or "2.3 Heading Text"
+                      const subHeading = line.match(/^(\d+\.\d+)\s+(.+)$/);
+                      if (subHeading) { flushList(); output.push(`<h3 style="color:#005EB8;font-family:Calibri,Arial,sans-serif;font-size:12pt;font-weight:bold;margin-top:12pt;margin-bottom:4pt;">${subHeading[1]} ${inlineFormat(subHeading[2])}</h3>`); continue; }
+
+                      // Bullet points
+                      const bullet = line.match(/^[\s]*[-*]\s+(.+)$/);
+                      if (bullet) { if (!inList) inList = true; listItems.push(inlineFormat(bullet[1])); continue; }
+                      if (inList) { inList = false; flushList(); }
+
+                      // Empty line
+                      if (line.trim() === '') { output.push(''); continue; }
+
+                      // Regular paragraph
+                      output.push(`<p style="font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5;margin:0 0 6pt 0;mso-line-height-rule:exactly;">${inlineFormat(line)}</p>`);
+                    }
+
+                    // Flush remaining
+                    if (inTable) flushTable();
+                    if (inList) flushList();
+
+                    return output.join('\n');
                   };
 
                   const htmlBody = mdToHtml(policyContent);
@@ -907,30 +982,62 @@ ${policyContent}`;
                   const practicePhone = jobPracticeDetails?.phone || '';
                   const odsCode = jobPracticeDetails?.ods_code || '';
 
-                  let headerHtml = '<div style="border-bottom:2px solid #005eb8;padding-bottom:12pt;margin-bottom:18pt;">';
+                  // Document control table
+                  const version = jobMetadata.version || '1.0';
+                  const effectiveDate = jobMetadata.effective_date || dateStr;
+                  const reviewDate = jobMetadata.review_date || '';
+                  const author = jobMetadata.author || practiceName || '';
+                  const approvedBy = jobMetadata.approved_by || '';
+
+                  const docControlTable = `
+<table style="border-collapse:collapse;width:100%;margin:12pt 0 18pt 0;">
+  <tr><td style="border:1pt solid #CBD5E1;padding:6pt 10pt;background-color:#EFF6FF;font-family:Calibri,Arial,sans-serif;font-size:10pt;font-weight:bold;width:35%;">Version</td><td style="border:1pt solid #CBD5E1;padding:6pt 10pt;font-family:Calibri,Arial,sans-serif;font-size:10pt;">${version}</td></tr>
+  <tr><td style="border:1pt solid #CBD5E1;padding:6pt 10pt;background-color:#EFF6FF;font-family:Calibri,Arial,sans-serif;font-size:10pt;font-weight:bold;">Effective Date</td><td style="border:1pt solid #CBD5E1;padding:6pt 10pt;font-family:Calibri,Arial,sans-serif;font-size:10pt;">${effectiveDate}</td></tr>
+  <tr><td style="border:1pt solid #CBD5E1;padding:6pt 10pt;background-color:#EFF6FF;font-family:Calibri,Arial,sans-serif;font-size:10pt;font-weight:bold;">Review Date</td><td style="border:1pt solid #CBD5E1;padding:6pt 10pt;font-family:Calibri,Arial,sans-serif;font-size:10pt;">${reviewDate}</td></tr>
+  <tr><td style="border:1pt solid #CBD5E1;padding:6pt 10pt;background-color:#EFF6FF;font-family:Calibri,Arial,sans-serif;font-size:10pt;font-weight:bold;">Author</td><td style="border:1pt solid #CBD5E1;padding:6pt 10pt;font-family:Calibri,Arial,sans-serif;font-size:10pt;">${author}</td></tr>
+  <tr><td style="border:1pt solid #CBD5E1;padding:6pt 10pt;background-color:#EFF6FF;font-family:Calibri,Arial,sans-serif;font-size:10pt;font-weight:bold;">Approved By</td><td style="border:1pt solid #CBD5E1;padding:6pt 10pt;font-family:Calibri,Arial,sans-serif;font-size:10pt;">${approvedBy}</td></tr>
+</table>`;
+
+                  // Header with fixed-size logo
+                  let headerHtml = '<div style="border-bottom:2pt solid #005EB8;padding-bottom:12pt;margin-bottom:6pt;">';
                   headerHtml += '<table style="width:100%;border:none;"><tr>';
                   if (logoBase64) {
-                    headerHtml += `<td style="width:100px;vertical-align:middle;border:none;padding:0 12pt 0 0;">
-                      <img src="data:${logoMime};base64,${logoBase64}" style="max-width:90px;max-height:90px;" />
+                    headerHtml += `<td style="width:90px;vertical-align:middle;border:none;padding:0 12pt 0 0;">
+                      <img src="data:${logoMime};base64,${logoBase64}" width="80" height="60" style="width:80px;height:60px;object-fit:contain;" alt="Practice logo" />
                     </td>`;
                   }
                   headerHtml += '<td style="vertical-align:middle;border:none;padding:0;">';
-                  if (practiceName) headerHtml += `<p style="font-family:Arial,sans-serif;font-size:14pt;font-weight:bold;color:#003087;margin:0 0 4pt 0;">${practiceName}</p>`;
+                  if (practiceName) headerHtml += `<p style="font-family:Calibri,Arial,sans-serif;font-size:14pt;font-weight:bold;color:#003087;margin:0 0 4pt 0;">${practiceName}</p>`;
                   const addressParts = [practiceAddr, practicePostcode].filter(Boolean).join(', ');
-                  if (addressParts) headerHtml += `<p style="font-family:Arial,sans-serif;font-size:9pt;color:#666;margin:0 0 2pt 0;">${addressParts}</p>`;
-                  if (practicePhone) headerHtml += `<p style="font-family:Arial,sans-serif;font-size:9pt;color:#666;margin:0 0 2pt 0;">Tel: ${practicePhone}</p>`;
-                  if (odsCode) headerHtml += `<p style="font-family:Arial,sans-serif;font-size:9pt;color:#666;margin:0;">ODS Code: ${odsCode}</p>`;
+                  if (addressParts) headerHtml += `<p style="font-family:Calibri,Arial,sans-serif;font-size:9pt;color:#666;margin:0 0 2pt 0;">${addressParts}</p>`;
+                  if (practicePhone) headerHtml += `<p style="font-family:Calibri,Arial,sans-serif;font-size:9pt;color:#666;margin:0 0 2pt 0;">Tel: ${practicePhone}</p>`;
+                  if (odsCode) headerHtml += `<p style="font-family:Calibri,Arial,sans-serif;font-size:9pt;color:#666;margin:0;">ODS Code: ${odsCode}</p>`;
                   headerHtml += '</td></tr></table></div>';
 
                   const wordHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><title>${policyTitle}</title>
-<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
-<style>@page{margin:2.54cm;}body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.5;}</style>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+  @page { margin: 2.54cm; }
+  body {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #374151;
+    mso-line-height-rule: exactly;
+    mso-default-props: yes;
+  }
+  h1, h2, h3 { page-break-after: avoid; }
+  table { page-break-inside: avoid; }
+  p { mso-style-parent: ""; margin: 0 0 6pt 0; }
+</style>
 </head><body>
 ${headerHtml}
+${docControlTable}
 ${htmlBody}
-<hr style="margin-top:36pt;border:none;border-top:1px solid #ccc;"/>
-<p style="font-family:Arial,sans-serif;font-size:9pt;color:#999;text-align:center;">${practiceName ? practiceName + ' | ' : ''}Generated by Notewell AI on ${dateStr} at ${timeStr}</p>
+<br style="page-break-before:auto;"/>
+<hr style="margin-top:30pt;border:none;border-top:1pt solid #CBD5E1;"/>
+<p style="font-family:Calibri,Arial,sans-serif;font-size:9pt;color:#64748B;text-align:center;margin-top:6pt;">${practiceName ? practiceName + ' | ' : ''}Generated by Notewell AI on ${dateStr} at ${timeStr}</p>
 </body></html>`;
 
                   const enc = new TextEncoder();
