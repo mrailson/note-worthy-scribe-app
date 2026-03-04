@@ -112,13 +112,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Validate role changes - only if role is actually being changed
     if (role && role !== userInPractice.role) {
-      // Prevent elevation to higher privileges
-      if (role === 'practice_manager' || role === 'system_admin') {
-        throw new Error("Cannot elevate user to practice manager or system admin role");
+      // Prevent elevation to system_admin
+      if (role === 'system_admin') {
+        throw new Error("Cannot elevate user to system admin role");
       }
       
-      // Only allow setting to practice_user role
-      const allowedRoles = ['practice_user', 'user'];
+      // Allow practice_user and practice_manager roles
+      const allowedRoles = ['practice_user', 'practice_manager', 'user'];
       if (!allowedRoles.includes(role)) {
         throw new Error(`Practice managers can only assign these roles: ${allowedRoles.join(', ')}`);
       }
