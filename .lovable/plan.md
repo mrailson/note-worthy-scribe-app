@@ -1,25 +1,18 @@
 
 
-## Plan: Switch Policy Generator to Claude Sonnet 4.6
+## Plan: Increase Claude Token Limits to Prevent Truncation
 
-### Changes Required
+### Problem
+Both `generate-policy` and `enhance-policy` edge functions have `max_tokens: 8000`, which is insufficient for lengthy NHS policy documents. Sections like Training 7.2 and results tables in 6.6.2 are being cut off mid-content.
 
-**1. `supabase/functions/generate-policy/index.ts`** — Replace Gemini with Claude
-- **Line 196 (update path)**: Change model from `google/gemini-3-flash-preview` to call the Anthropic API directly using `claude-sonnet-4-6`
-- **Line 376 (new path)**: Same change for the update generation type
-- This means switching from Lovable AI Gateway to the Anthropic API (same pattern as the enhance-policy Claude branch)
-- Both the "update" call (line 189–202) and the "new policy" call (line 369–382) need updating
+### Changes
 
-**2. `supabase/functions/enhance-policy/index.ts`** — Update Claude model string
-- **Line 384**: Change `claude-sonnet-4-20250514` → `claude-sonnet-4-6`
-- **Line 413**: Change `modelUsed` from `claude-sonnet-4-20250514` → `claude-sonnet-4-6`
+**1. `supabase/functions/generate-policy/index.ts`**
+- Line 213: Change `max_tokens: 8000` → `max_tokens: 16000`
+- Line 383: Change `max_tokens: 8000` → `max_tokens: 16000`
 
-**3. `src/components/admin/PolicyEnhancementModelSettings.tsx`** — Update display name
-- **Line 82**: Update model name label from `Claude Sonnet 4` to `Claude Sonnet 4.6` for clarity
+**2. `supabase/functions/enhance-policy/index.ts`**
+- Line 385: Change `max_tokens: 8000` → `max_tokens: 16000`
 
-### Technical Detail
-
-The generate-policy function currently uses the Lovable AI Gateway with Gemini. Switching to Claude requires using the Anthropic API directly (with `ANTHROPIC_API_KEY`), matching the pattern already used in the enhance-policy Claude branch. The request/response format differs: Anthropic uses `system` as a top-level field and returns `data.content[0].text` rather than `data.choices[0].message.content`.
-
-Both edge functions will be redeployed after changes.
+Claude Sonnet 4.6 supports up to 64K output tokens, so 16,000 gives ample room for complete policy documents without risk of truncation. Both functions will be redeployed.
 
