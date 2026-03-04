@@ -424,11 +424,41 @@ Please generate a complete, professional policy document that meets all regulato
         .single();
 
       if (enhancingJob) {
-        console.log(`[Phase 2: Enhance] Job ${enhancingJob.id} - ${enhancingJob.policy_title}`);
+        // Check retry count to prevent infinite loops
+        const retryCount = (enhancingJob.metadata as any)?.enhance_retries || 0;
+        console.log(`[Phase 2: Enhance] Job ${enhancingJob.id} - ${enhancingJob.policy_title} (attempt ${retryCount + 1})`);
+
+        if (retryCount >= 3) {
+          console.log(`[Phase 2] Job ${enhancingJob.id} exceeded max retries, saving generated content as-is`);
+          // Skip enhancement, save generated content directly
+          const jobPractice = enhancingJob.practice_details;
+          let policyContent = enhancingJob.generated_content || '';
+          const jobMetadata = enhancingJob.metadata || {};
+
+          const { data: policyRef } = await serviceSupabase
+            .from('policy_reference_library')
+            .select('policy_name')
+            .eq('id', enhancingJob.policy_reference_id)
+            .single();
+          const policyName = policyRef?.policy_name || enhancingJob.policy_title;
+
+          // Jump directly to saving (reuse code below by setting enhancedContent = null)
+          // We'll handle this in the save block
+        }
+
         try {
           const jobPractice = enhancingJob.practice_details;
           let policyContent = enhancingJob.generated_content || '';
           const jobMetadata = enhancingJob.metadata || {};
+
+          // Increment retry counter
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              metadata: { ...jobMetadata, enhance_retries: retryCount + 1 },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', enhancingJob.id);
 
           // Look up policy ref for name
           const { data: policyRef } = await serviceSupabase
@@ -439,34 +469,67 @@ Please generate a complete, professional policy document that meets all regulato
 
           const policyName = policyRef?.policy_name || enhancingJob.policy_title;
 
-          const enhancePrompt = `Please review and enhance the following ${policyName} policy for ${jobPractice?.practice_name || '[PRACTICE NAME]'} (ODS: ${jobPractice?.ods_code || '[ODS CODE]'}).
+          // Only attempt enhancement if under retry limit
+          if (retryCount < 3) {
+            const enhancePrompt = `Please review and enhance the following ${policyName} policy for ${jobPractice?.practice_name || '[PRACTICE NAME]'} (ODS: ${jobPractice?.ods_code || '[ODS CODE]'}).
 
 Ensure it meets all CQC KLOE requirements, applies all known guidance changes listed at the top of your instructions, and includes current regulatory references.
 
 ${policyContent}`;
 
-          // Single Anthropic call: ENHANCE only
-          const enhResponse = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': ANTHROPIC_API_KEY!,
-              'anthropic-version': '2023-06-01',
-            },
-            body: JSON.stringify({
-              model: 'claude-sonnet-4-6',
-              max_tokens: 16000,
-              system: ENHANCEMENT_SYSTEM_PROMPT,
-              messages: [{ role: 'user', content: enhancePrompt }],
-            }),
-          });
+            // Add 4-minute timeout to prevent edge function timeout
+            const enhanceController = new AbortController();
+            const enhanceTimeout = setTimeout(() => enhanceController.abort(), 240000);
 
-          if (enhResponse.ok) {
-            const enhData = await enhResponse.json();
-            const enhancedContent = enhData.content?.[0]?.text;
-            if (enhancedContent) policyContent = enhancedContent;
+            try {
+              const enhResponse = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-key': ANTHROPIC_API_KEY!,
+                  'anthropic-version': '2023-06-01',
+                },
+                body: JSON.stringify({
+                  model: 'claude-sonnet-4-6',
+                  max_tokens: 16000,
+                  system: ENHANCEMENT_SYSTEM_PROMPT,
+                  messages: [{ role: 'user', content: enhancePrompt }],
+                }),
+                signal: enhanceController.signal,
+              });
+
+              clearTimeout(enhanceTimeout);
+
+              if (enhResponse.ok) {
+                const enhData = await enhResponse.json();
+                const enhancedContent = enhData.content?.[0]?.text;
+                if (enhancedContent) policyContent = enhancedContent;
+              } else {
+                console.error('Enhancement API error, using generated content:', enhResponse.status);
+              }
+            } catch (fetchErr) {
+              clearTimeout(enhanceTimeout);
+              if (fetchErr instanceof Error && fetchErr.name === 'AbortError') {
+                console.error(`[Phase 2] Enhancement timed out for job ${enhancingJob.id}, will retry or use generated content`);
+                // Self-trigger retry
+                fetch(`${SUPABASE_URL}/functions/v1/generate-policy`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                  },
+                  body: JSON.stringify({ action: 'process-job', job_user_id: targetUserId }),
+                }).catch(() => {});
+
+                return new Response(JSON.stringify({ success: true, phase: 'enhance-timeout-retry', jobId: enhancingJob.id }), {
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+              }
+              throw fetchErr;
+            }
           } else {
-            console.error('Enhancement API error, using generated content:', enhResponse.status);
+            console.log(`[Phase 2] Using generated content without enhancement (max retries exceeded)`);
           }
 
           // Save to policy_completions

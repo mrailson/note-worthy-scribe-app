@@ -1,0 +1,1 @@
+UPDATE policy_generation_jobs SET status = 'enhancing', metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{enhance_retries}', '0'), updated_at = now() WHERE id = '581aeae5-b12e-4c68-86c6-8dc163102b2a';
