@@ -1,32 +1,32 @@
 
 
-## Plan: Embed Full 16-Point Mandatory Guidance Overrides into Policy Generation Pipeline
+## Plan: Enhance Policy Service Landing Page
 
-### Current State
-The `generate-policy/index.ts` edge function currently includes only 5 of the 16 overrides in its prompts (cervical screening, flexible working, safeguarding children 2023, DNACPR/ReSPECT, DSPT 2024/25). The remaining 11 are missing entirely.
+### Changes to `src/pages/PolicyService.tsx`
 
-### Changes Required
+**1. Remove Policy Checklist card**
+Remove the "Policy Checklist" entry from the `actionCards` array (lines 30-37).
 
-**File: `supabase/functions/generate-policy/index.ts`**
+**2. Restyle Practice Profile Defaults card**
+Render it separately from the main grid as a subtle banner/setup prompt — e.g. a bordered card with a dashed border style, muted background, and a "one-time setup" badge. Position it above or below the main action cards grid.
 
-1. **Expand `ENHANCEMENT_SYSTEM_PROMPT` guidance section** (lines 23–46) — replace the current 5-item block with the full 16-point override list covering:
-   - Clinical: chaperone (GMC 2024 + NHS England Dec 2025), safeguarding adults (Care Act 2023), sepsis (NG51 2024), IPC (UKHSA 2023), antimicrobial stewardship (2024), DNACPR/ReSPECT
-   - HR: carer's leave (Apr 2024), neonatal care leave (Apr 2025), sexual harassment prevention duty (Oct 2024), menopause workplace adjustments (EHRC 2024)
-   - IG: SAR guidance (ICO 2023)
-   - GP Contract 2026/27
+**3. Add completed policy count badge to My Policies card**
+- Import and use `usePolicyCompletions` hook to get `completions.length`
+- Show a badge like "12 policies" on the My Policies card (only for completed status, not in-progress)
+- Keep existing in-progress badge from `activeJobCount` alongside
 
-2. **Expand `BASE_SYSTEM_PROMPT`** (lines 88–107) — add the same 16-point block so that the initial generation steps (parts 1–3) also produce correct content from the outset, reducing reliance on the enhance step to fix errors.
+**4. Add collapsed "How This Works" section**
+Add a `Collapsible` section below the action cards (before the stats section) with a step-by-step guide:
+1. **Set up your profile** — Configure practice details and key personnel
+2. **Choose a policy** — Browse 90+ templates across 6 categories  
+3. **Generate** — AI creates a CQC-compliant policy tailored to your practice (5-10 mins)
+4. **Review & download** — View, edit, and export as Word document
 
-3. **Add post-processing regex replacements in `sanitisePolicyOutput`** (line 367) — deterministic find-and-replace for the most common AI mistakes that prompting alone cannot guarantee:
-   - Replace "Working Together 2018" → "Working Together 2023"
-   - Replace "DSPT 2022/23" or "DSPT 2023/24" → "DSPT 2024/25"
-   - Replace "NG51 (2016)" → "NG51 (2024)"
-   - Replace cervical screening "3 years"/"three years" in HPV-negative context → "5 years"/"five years" (preserving the pre-2019 exception)
-   - Replace "26-week qualifying period" for flexible working → "day-one right"
-   - Replace "PHE" IPC references → "UKHSA"
+Use numbered steps with icons, clean layout, collapsed by default with a "How does this work?" trigger.
 
-This two-layer approach (prompt instructions + deterministic post-processing) ensures compliance even when the model ignores prompt instructions.
-
-### No other files affected
-All changes are confined to the single edge function file. The function will be redeployed automatically.
+### Summary of structural changes
+- Remove 1 card (Checklist)
+- Extract 1 card (Profile Defaults) into a separate styled banner
+- Add badge count from `usePolicyCompletions` to My Policies
+- Add collapsible instructions section
 
