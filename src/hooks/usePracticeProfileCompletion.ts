@@ -32,13 +32,14 @@ export const usePracticeProfileCompletion = (): ProfileCompletion => {
   });
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchCompletion = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 
+      // 1. Fetch user's own record
       const { data: pd } = await supabase
         .from('practice_details')
         .select('*')
@@ -46,9 +47,59 @@ export const usePracticeProfileCompletion = (): ProfileCompletion => {
         .eq('is_default', true)
         .maybeSingle();
 
-      const record: any = pd || {};
+      const ownRecord: any = pd || {};
+
+      // 2. Count how many personnel fields the user has filled
+      const ownFilled = PERSONNEL_ROLES.filter(r => ownRecord[r.key]?.trim?.()).length;
+
+      let mergedRecord = ownRecord;
+
+      // 3. If mostly empty, look for a shared colleague's record
+      if (ownFilled < 3) {
+        // Get practice name from own record or from user_roles + gp_practices
+        let practiceName: string | null = ownRecord.practice_name || null;
+
+        if (!practiceName) {
+          const { data: ur } = await supabase
+            .from('user_roles')
+            .select('practice_id, gp_practices(name)')
+            .eq('user_id', user.id)
+            .not('practice_id', 'is', null)
+            .limit(1)
+            .maybeSingle();
+
+          const gp = ur?.gp_practices as any;
+          practiceName = gp?.name || null;
+        }
+
+        if (practiceName) {
+          const stripped = practiceName.replace(/^the\s+/i, '');
+          const { data: sharedPd } = await supabase
+            .from('practice_details')
+            .select('*')
+            .ilike('practice_name', `%${stripped}%`)
+            .neq('user_id', user.id)
+            .eq('is_default', true)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (sharedPd) {
+            // Merge: prefer own value, fall back to shared
+            const shared: any = sharedPd;
+            const merged: any = { ...ownRecord };
+            for (const role of PERSONNEL_ROLES) {
+              if (!merged[role.key]?.trim?.() && shared[role.key]?.trim?.()) {
+                merged[role.key] = shared[role.key];
+              }
+            }
+            mergedRecord = merged;
+          }
+        }
+      }
+
       const missing = PERSONNEL_ROLES
-        .filter(r => !record[r.key]?.trim?.())
+        .filter(r => !mergedRecord[r.key]?.trim?.())
         .map(r => r.label);
 
       setState({
@@ -59,7 +110,7 @@ export const usePracticeProfileCompletion = (): ProfileCompletion => {
       });
     };
 
-    fetch();
+    fetchCompletion();
   }, []);
 
   return state;
