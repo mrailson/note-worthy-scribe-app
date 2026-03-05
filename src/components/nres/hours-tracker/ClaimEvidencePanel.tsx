@@ -9,10 +9,19 @@ interface ClaimEvidencePanelProps {
   claimId: string;
   claimCategory: 'buyback' | 'new_sda' | 'mixed';
   canEdit: boolean;
+  /** Pass shared evidence state to avoid duplicate hook instances */
+  sharedEvidence?: {
+    uploadedTypes: Record<string, any>;
+    uploading: boolean;
+    uploadEvidence: (evidenceType: string, file: File) => Promise<any>;
+    deleteEvidence: (id: string) => Promise<void>;
+    getDownloadUrl: (filePath: string) => Promise<string | null>;
+  };
 }
 
-export function ClaimEvidencePanel({ claimId, claimCategory, canEdit }: ClaimEvidencePanelProps) {
-  const { files, uploading, uploadedTypes, uploadEvidence, deleteEvidence, getDownloadUrl } = useNRESClaimEvidence(claimId);
+export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvidence }: ClaimEvidencePanelProps) {
+  const internalEvidence = useNRESClaimEvidence(claimId);
+  const { uploadedTypes, uploading, uploadEvidence, deleteEvidence, getDownloadUrl } = sharedEvidence || internalEvidence;
   const { getConfigForCategory, loading: configLoading } = useNRESEvidenceConfig();
 
   const applicableConfig = getConfigForCategory(claimCategory);
@@ -158,12 +167,13 @@ function EvidenceSlot({
 }
 
 /** Hook-like helper to check if all mandatory evidence is uploaded for a claim */
-export function useEvidenceComplete(claimId: string, claimCategory: 'buyback' | 'new_sda' | 'mixed') {
-  const { uploadedTypes } = useNRESClaimEvidence(claimId);
+export function useEvidenceComplete(claimId: string, claimCategory: 'buyback' | 'new_sda' | 'mixed', externalUploadedTypes?: Record<string, any>) {
+  const { uploadedTypes: internalUploadedTypes } = useNRESClaimEvidence(claimId);
   const { getMandatoryForCategory } = useNRESEvidenceConfig();
 
+  const uploadedTypes = externalUploadedTypes ?? internalUploadedTypes;
   const mandatory = getMandatoryForCategory(claimCategory);
-  const allUploaded = mandatory.every(cfg => !!uploadedTypes[cfg.evidence_type]);
+  const allUploaded = mandatory.length > 0 ? mandatory.every(cfg => !!uploadedTypes[cfg.evidence_type]) : false;
 
   return { allUploaded, mandatoryCount: mandatory.length, uploadedCount: Object.keys(uploadedTypes).filter(t => mandatory.some(m => m.evidence_type === t)).length };
 }
