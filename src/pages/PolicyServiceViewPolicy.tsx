@@ -492,6 +492,7 @@ const PolicyServiceViewPolicy = () => {
         policyContent={policy.policy_content}
         policyTitle={policy.policy_title}
         policyId={policy.id}
+        logoUrl={practiceLogoUrl}
         onGenerated={handleQuickGuideGenerated}
       />
     </div>
