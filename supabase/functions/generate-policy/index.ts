@@ -631,6 +631,65 @@ serve(async (req) => {
     const body = await req.json();
     const { policy_reference_id, practice_details, custom_instructions, generation_type, original_policy_text, gap_analysis, action, job_user_id } = body;
 
+    // ========== CRON SAFETY NET: Re-trigger stalled queues ==========
+    if (action === 'cron-check') {
+      const serviceSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const now = new Date().toISOString();
+
+      // Find all distinct users with pending jobs
+      const { data: pendingUsers } = await serviceSupabase
+        .from('policy_generation_jobs')
+        .select('user_id')
+        .eq('status', 'pending');
+
+      // Find users with stale generating/enhancing jobs (lease expired > 5 mins ago)
+      const { data: staleUsers } = await serviceSupabase
+        .from('policy_generation_jobs')
+        .select('user_id')
+        .in('status', ['generating', 'enhancing'])
+        .lt('lease_expires_at', now);
+
+      // Also check for NULL lease (legacy)
+      const { data: legacyUsers } = await serviceSupabase
+        .from('policy_generation_jobs')
+        .select('user_id')
+        .in('status', ['generating', 'enhancing'])
+        .is('lease_expires_at', null);
+
+      // Deduplicate user IDs
+      const allUsers = new Set<string>();
+      for (const row of (pendingUsers || [])) allUsers.add(row.user_id);
+      for (const row of (staleUsers || [])) allUsers.add(row.user_id);
+      for (const row of (legacyUsers || [])) allUsers.add(row.user_id);
+
+      // But skip users who have an active lease (someone is already processing their job)
+      const { data: activeLeases } = await serviceSupabase
+        .from('policy_generation_jobs')
+        .select('user_id')
+        .in('status', ['generating', 'enhancing'])
+        .gt('lease_expires_at', now);
+
+      const activeUserIds = new Set((activeLeases || []).map(r => r.user_id));
+
+      let triggered = 0;
+      for (const userId of allUsers) {
+        if (activeUserIds.has(userId)) continue; // Already being processed
+        selfTrigger(userId);
+        triggered++;
+      }
+
+      console.log(`[Cron] Checked policy queue: ${allUsers.size} users with jobs, ${triggered} re-triggered, ${activeUserIds.size} already active`);
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        checked: allUsers.size, 
+        triggered, 
+        alreadyActive: activeUserIds.size 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // ========== BACKGROUND JOB QUEUE PROCESSOR (STEP PIPELINE) ==========
     if (action === 'process-job') {
       const serviceSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
