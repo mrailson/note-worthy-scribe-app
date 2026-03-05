@@ -5,6 +5,7 @@ import { useNRESBuyBackClaims, calculateStaffMonthlyAmount, type BuyBackClaim, t
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { ClaimEvidencePanel, useEvidenceComplete } from './ClaimEvidencePanel';
+import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
@@ -858,8 +859,9 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   const canApprove = canApproveClaim;
   const staffDetails = claim.staff_details as any[];
 
-  // Evidence completeness check
-  const { allUploaded: evidenceComplete } = useEvidenceComplete(claim.id, claimCategory);
+  // Shared evidence state — single instance for both panel and completeness check
+  const { files: evidenceFiles, uploading: evidenceUploading, uploadedTypes, uploadEvidence, deleteEvidence, getDownloadUrl, refetch: refetchEvidence } = useNRESClaimEvidence(claim.id);
+  const { allUploaded: evidenceComplete } = useEvidenceComplete(claim.id, claimCategory, uploadedTypes);
 
   const statusBadge = (status: string) => {
     const variants: Record<string, string> = {
@@ -1068,6 +1070,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
         claimId={claim.id}
         claimCategory={claimCategory}
         canEdit={canEdit}
+        sharedEvidence={{ uploadedTypes, uploading: evidenceUploading, uploadEvidence, deleteEvidence, getDownloadUrl }}
       />
 
       {/* Submission info */}
