@@ -133,7 +133,7 @@ function createTextRuns(text: string, baseSize: number = FONTS.size.body): TextR
 export async function generateCleanAIResponseDocument(
   content: string,
   title: string = "AI Assistant Response",
-  options?: { footerNote?: string; logoUrl?: string }
+  options?: { footerNote?: string; logoUrl?: string; logoPosition?: 'left' | 'center' | 'right' }
 ): Promise<void> {
   const children: Paragraph[] = [];
 
@@ -145,6 +145,8 @@ export async function generateCleanAIResponseDocument(
         const blob = await response.blob();
         const arrayBuffer = await blob.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
+        const logoAlign = options?.logoPosition || 'left';
+        const alignMap = { left: AlignmentType.LEFT, center: AlignmentType.CENTER, right: AlignmentType.RIGHT };
         children.push(new Paragraph({
           children: [
             new ImageRun({
@@ -153,6 +155,7 @@ export async function generateCleanAIResponseDocument(
               type: 'png',
             } as any),
           ],
+          alignment: alignMap[logoAlign],
           spacing: { after: 200 },
         }));
       }
