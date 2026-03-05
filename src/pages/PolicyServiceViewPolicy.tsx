@@ -12,6 +12,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ArrowLeft,
   Download,
@@ -26,6 +27,10 @@ import {
   Printer,
   Copy,
   Check,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  ImageIcon,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -355,15 +360,55 @@ const PolicyServiceViewPolicy = () => {
           </CardContent>
         </Card>
 
-        {/* Document Options */}
+        {/* Logo Position Slider - Prominent inline control */}
+        {showLogo && practiceLogoUrl && (
+          <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 p-3 rounded-lg border bg-card">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground shrink-0">
+              <ImageIcon className="h-4 w-4" />
+              Logo Position
+            </div>
+            <TooltipProvider delayDuration={200}>
+              <div className="inline-flex items-center rounded-lg border bg-muted/50 p-1 gap-0.5">
+                {([
+                  { value: 'left' as const, icon: AlignLeft, label: 'Left' },
+                  { value: 'center' as const, icon: AlignCenter, label: 'Centre' },
+                  { value: 'right' as const, icon: AlignRight, label: 'Right' },
+                ] as const).map(({ value, icon: Icon, label }) => (
+                  <Tooltip key={value}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setLogoPosition(value)}
+                        className={`
+                          relative flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
+                          ${logoPosition === value
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                          }
+                        `}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="hidden sm:inline">{label}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="sm:hidden">
+                      {label}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </TooltipProvider>
+          </div>
+        )}
+
+        {/* Additional Document Options (collapsed) */}
         <Collapsible open={optionsOpen} onOpenChange={setOptionsOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground mb-2">
               <Settings2 className="h-4 w-4" />
-              Document Options
+              More Document Options
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-4">
+          <CollapsibleContent className="mb-4">
             <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -380,29 +425,6 @@ const PolicyServiceViewPolicy = () => {
                   onCheckedChange={setShowLogo}
                 />
               </div>
-
-              {showLogo && (
-                <div className="flex items-center justify-between pl-4 border-l-2 border-muted">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="view-logo-position" className="text-sm font-medium">
-                      Logo Position
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Where to place the logo on the page
-                    </p>
-                  </div>
-                  <Select value={logoPosition} onValueChange={(val) => setLogoPosition(val as 'left' | 'center' | 'right')}>
-                    <SelectTrigger className="w-28">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background">
-                      <SelectItem value="left">Left</SelectItem>
-                      <SelectItem value="center">Centre</SelectItem>
-                      <SelectItem value="right">Right</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
