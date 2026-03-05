@@ -661,6 +661,18 @@ function parseMarkdownToSections(markdown: string, titleToSkip?: string): (Parag
       continue;
     }
     
+    // Skip standalone "Practice: ..." lines (already in document control table)
+    if (/^(\*\*)?Practice:?\*?\*?\s*.+/i.test(trimmed) && !trimmed.toLowerCase().includes('policy')) {
+      i++;
+      continue;
+    }
+    
+    // Skip standalone "ODS Code: ..." lines (already in document control table)
+    if (/^(\*\*)?ODS\s*Code:?\*?\*?\s*[A-Z0-9]+/i.test(trimmed)) {
+      i++;
+      continue;
+    }
+    
     // Skip empty lines
     if (!trimmed) {
       // If we were skipping document control, an empty line might end that section
