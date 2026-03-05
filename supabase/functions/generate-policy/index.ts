@@ -46,6 +46,9 @@ Apply these overrides to every policy where the relevant topic appears.
 2. CHAPERONE GUIDANCE
 a) GMC Intimate Examinations and Chaperones: updated version effective 30 January 2024. Replace all references to "2013 guidance" with "2024".
 b) NHS England "Improving Chaperone Practice in the NHS" published December 2025. Chaperone policies must: state that the policy is publicly available online in accessible formats; require accommodation of patient preferences for chaperone sex/background where possible; include proactive identification of patients with additional needs (learning disabilities, communication difficulties).
+c) DBS requirements: Non-clinical staff acting as chaperones must hold an Enhanced DBS check with barred list check. State this explicitly in the recruitment/vetting section.
+d) Physical environment: Examination rooms used for intimate examinations must have an accessible call system, alarm, or equivalent failsafe for chaperone/patient safety.
+e) Red flag behaviours: Training section must include specific examples of behaviours a chaperone must intervene on and report — including unnecessary remarks, improper touch, and deviation from the explained procedure.
 
 3. SAFEGUARDING CHILDREN (effective December 2023)
 - "Working Together to Safeguard Children 2023" supersedes the 2018 version. Replace all references to "Working Together 2018" with "Working Together 2023".
@@ -144,7 +147,7 @@ Apply these overrides to every policy where the relevant topic appears. These ar
 
 ### CLINICAL
 1. CERVICAL SCREENING (effective 1 July 2025): Ages 25-49 HPV negative = FIVE YEARS recall (not three). Ages 50-64 HPV negative = FIVE YEARS. Pre-2019 cohort (no HPV result) = maintain 3-year recall until HPV test obtained. NHS App used for invitations from June 2025.
-2. CHAPERONE: GMC guidance updated 30 January 2024 (not 2013). NHS England "Improving Chaperone Practice" published December 2025 — policy must be publicly available online, accommodate patient preferences for chaperone sex/background, proactively identify patients with additional needs.
+2. CHAPERONE: GMC guidance updated 30 January 2024 (not 2013). NHS England "Improving Chaperone Practice" published December 2025 — policy must be publicly available online, accommodate patient preferences for chaperone sex/background, proactively identify patients with additional needs. Non-clinical chaperones must hold Enhanced DBS with barred list check. Examination rooms must have accessible call system/alarm. Training must include red flag behaviours (unnecessary remarks, improper touch, deviation from explained procedure).
 3. SAFEGUARDING CHILDREN: "Working Together to Safeguard Children 2023" supersedes 2018. MASAs replace LSCBs.
 4. SAFEGUARDING ADULTS: Care and Support Statutory Guidance updated 2023, not the 2014 original.
 5. SEPSIS: NICE NG51 updated 2024 (not 2016). NEWS2 remains recommended.
@@ -1201,6 +1204,7 @@ SEVERITY FILTER — only flag:
 3. PATIENT SAFETY / OPERATIONAL RISK: a process gap that could directly lead to patient harm or significant operational failure.
 
 NEVER FLAG: minor wording, style, fax mentions, current DSPT versions, vendor names, case law that remains good law, anything covered elsewhere in the document.
+CRITICAL: Before flagging any gap, confirm the content is genuinely absent from the ENTIRE document — not just the expected section. If the substance is covered anywhere in the document, do not flag it.
 Set has_material_gaps to true ONLY if you find genuine issues. If the policy is broadly compliant, return has_material_gaps: false with an empty gaps array.`;
 
           let shouldRemediate = false;
