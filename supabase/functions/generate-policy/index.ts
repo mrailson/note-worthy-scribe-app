@@ -1226,31 +1226,13 @@ ${policyContent}`;
           let finalContent = policyContent;
 
           try {
-            // Extract section headings + first sentence only (~80% token reduction)
-            const extractSectionSummary = (doc: string): string => {
-              const lines = doc.split('\n');
-              const summary: string[] = [];
-              for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                // Match section headings: "1. PURPOSE", "## 2. SCOPE", "5.4 Sub heading", etc.
-                if (/^(?:#{1,6}\s*)?\d+\.?\d*\.?\s+[A-Z]/.test(line) || /^#{1,6}\s+/.test(line)) {
-                  summary.push(line);
-                  // Grab the first non-empty line after the heading as context
-                  for (let j = i + 1; j < lines.length && j <= i + 5; j++) {
-                    const next = lines[j].trim();
-                    if (next && !next.startsWith('#') && !next.startsWith('|') && !/^[-*]/.test(next) && !/^\d+\./.test(next)) {
-                      summary.push(next);
-                      break;
-                    }
-                  }
-                }
-              }
-              return summary.join('\n');
-            };
+            // Pass the full document text (up to 200k chars) — matches the user-facing analyse-policy-gaps function
+            const maxLength = 200000;
+            const documentText = policyContent.length > maxLength
+              ? policyContent.substring(0, maxLength) + '\n\n[Content truncated due to length]'
+              : policyContent;
 
-            const sectionSummary = extractSectionSummary(policyContent);
-
-            const GAP_CHECK_SYSTEM = `You are an expert NHS policy analyst. You are given SECTION HEADINGS AND FIRST SENTENCES from a GP practice policy (not the full document). Analyse for genuine compliance gaps and return ONLY valid JSON:
+            const GAP_CHECK_SYSTEM = `You are an expert NHS policy analyst. You are given the FULL TEXT of a GP practice policy. Analyse for genuine compliance gaps and return ONLY valid JSON:
 {
   "gaps": ["array of genuine compliance gaps found — max 8"],
   "has_material_gaps": true/false
@@ -1269,7 +1251,7 @@ Set has_material_gaps to true ONLY if you find genuine issues. If the policy is 
             let shouldRemediate = false;
             let gapsList: string[] = [];
 
-            const gapResponse = await callAnthropic(GAP_CHECK_SYSTEM, `Analyse this policy summary:\n\n${sectionSummary}`, 2000);
+            const gapResponse = await callAnthropic(GAP_CHECK_SYSTEM, `Analyse this policy document IN FULL. You MUST read and consider every section — do not skip or skim any part.\n\n---POLICY DOCUMENT START---\n${documentText}\n---POLICY DOCUMENT END---`, 8192);
             const jsonMatch = gapResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]);
