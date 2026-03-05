@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Check, RefreshCw, Upload, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, RefreshCw, Upload, FileText, Loader2, Info, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import { GapAnalysisResults } from "@/components/policy/GapAnalysisResults";
@@ -227,11 +227,51 @@ const PolicyServiceUpdate = () => {
             )}
 
             {step === 2 && gapAnalysis && (
-              <GapAnalysisResults
-                analysis={gapAnalysis}
-                onGenerateUpdated={handleGenerateUpdated}
-                isGenerating={isGenerating}
-              />
+              <div className="space-y-6">
+                {/* About this Gap Analysis explainer */}
+                <details className="group rounded-lg border bg-muted/30 p-4">
+                  <summary className="flex items-center gap-2 cursor-pointer text-sm font-semibold list-none [&::-webkit-details-marker]:hidden">
+                    <Info className="h-4 w-4 text-primary shrink-0" />
+                    <span>About this Gap Analysis</span>
+                    <ChevronDown className="h-4 w-4 ml-auto text-muted-foreground transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="mt-3 space-y-3 text-sm text-muted-foreground leading-relaxed">
+                    <p>
+                      This analysis compares your policy against the complete NHS and CQC standards framework for this policy type — the same standards a CQC inspector would apply during an inspection.
+                    </p>
+                    <p>
+                      If Notewell generated this policy, it was built to a high clinical and governance standard and should be ready to use after human review and edits. Any gaps shown here represent advanced refinements rather than fundamental problems — your policy is already significantly more comprehensive than most GP practice policies in England.
+                    </p>
+                    <p>
+                      If you uploaded an existing policy, this analysis identifies priority areas to address before your next CQC inspection or annual review.
+                    </p>
+                    <p className="font-medium text-foreground">Gaps are categorised by urgency:</p>
+                    <ul className="space-y-1.5 pl-1">
+                      <li className="flex items-start gap-2">
+                        <span>🔴</span>
+                        <span>Address before going live — clinical safety or mandatory legal requirement</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span>🟡</span>
+                        <span>Address at next review — best practice or CQC improvement area</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span>⚪</span>
+                        <span>Optional enhancement — good to have but not required</span>
+                      </li>
+                    </ul>
+                    <p className="italic">
+                      No policy — however detailed — will ever score zero gaps against the full standards framework. The goal is continuous improvement, not perfection.
+                    </p>
+                  </div>
+                </details>
+
+                <GapAnalysisResults
+                  analysis={gapAnalysis}
+                  onGenerateUpdated={handleGenerateUpdated}
+                  isGenerating={isGenerating}
+                />
+              </div>
             )}
 
             {step === 3 && updatedContent && (
