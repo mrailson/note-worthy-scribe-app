@@ -106,7 +106,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { extracted_text } = body;
+    const { extracted_text, action } = body;
 
     if (!extracted_text) {
       throw new Error('extracted_text is required');
@@ -122,6 +122,98 @@ serve(async (req) => {
       ? extracted_text.substring(0, maxLength) + '\n\n[Content truncated due to length]'
       : extracted_text;
 
+    // ─── QUICK GUIDE ACTION ───
+    if (action === 'quick-guide') {
+      const quickGuideSystem = `You are generating a one-page NHS staff quick guide for a GP practice policy.
+
+Use the full policy provided as the source document.
+
+Your task is NOT to summarise the entire policy but to extract the key operational requirements that staff must follow.
+
+The quick guide must be concise, clear, and suitable for busy clinical and administrative staff.
+
+Structure the guide using the following sections:
+
+1. Purpose (1–2 sentences)
+
+2. When This Policy Applies
+List the situations when the policy is relevant.
+
+3. Key Staff Responsibilities
+Clearly separate responsibilities for clinicians, administrative staff, or other relevant roles.
+
+4. Step-by-Step Process
+Provide a numbered workflow (maximum 7 steps) describing how staff should follow the policy in practice.
+
+5. Documentation Requirements
+Explain what must be recorded and where (e.g., SystmOne, incident log).
+
+6. If Something Goes Wrong
+Explain what staff should do if concerns, incidents, or risks arise.
+
+7. Quick Reminders
+Provide 4–6 short bullet points highlighting the most important rules.
+
+Formatting requirements:
+• Use clear headings
+• Use bullet points
+• Avoid long paragraphs
+• Maximum length: one page
+• Use plain NHS-appropriate language
+
+This guide should be readable in under two minutes.`;
+
+      const quickGuideUserPrompt = `Generate a quick guide for the following policy document:
+
+---POLICY DOCUMENT START---
+${documentText}
+---POLICY DOCUMENT END---`;
+
+      console.log('Generating quick guide, text length:', extracted_text.length);
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          max_tokens: 4096,
+          messages: [
+            { role: 'system', content: quickGuideSystem },
+            { role: 'user', content: quickGuideUserPrompt },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI Gateway error:', response.status, errorText);
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limits exceeded, please try again later.' }), {
+            status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      if (!responseText || responseText.trim().length === 0) {
+        throw new Error('AI returned an empty response');
+      }
+
+      const data = JSON.parse(responseText);
+      const quickGuide = data.choices?.[0]?.message?.content || '';
+
+      console.log('Quick guide generated, length:', quickGuide.length);
+
+      return new Response(JSON.stringify({ success: true, quick_guide: quickGuide }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ─── DEFAULT: GAP ANALYSIS ───
     const userPrompt = `Analyse the following practice policy document IN FULL and provide a comprehensive gap analysis. You MUST read and consider every section of the document — do not skip or skim any part.
 
 ---POLICY DOCUMENT START---
@@ -155,14 +247,12 @@ Please analyse this policy against current NHS England and CQC requirements and 
       console.error('AI Gateway error:', response.status, errorText);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: 'Rate limits exceeded, please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: 'Payment required, please add funds to your workspace.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       throw new Error(`AI gateway error: ${response.status}`);
@@ -179,7 +269,6 @@ Please analyse this policy against current NHS England and CQC requirements and 
     // Parse JSON from AI response
     let analysis;
     try {
-      // Try to extract JSON from the response
       const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         analysis = JSON.parse(jsonMatch[0]);
@@ -188,7 +277,6 @@ Please analyse this policy against current NHS England and CQC requirements and 
       }
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
-      // Return a default structure
       analysis = {
         policy_type: 'Unknown',
         gaps: ['Unable to fully analyse - please review manually'],

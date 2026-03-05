@@ -21,7 +21,8 @@ import {
   XCircle,
   Sparkles,
   Info,
-  Coffee
+  Coffee,
+  BookOpen,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
@@ -47,6 +48,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { AIResponsePanel } from "@/components/AIResponsePanel";
 
 const EXPECTED_GENERATION_MINUTES = 10;
 
@@ -93,6 +95,9 @@ const PolicyServiceMyPolicies = () => {
   }, [activeJobCount, refreshCompletions]);
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [generatingGuideId, setGeneratingGuideId] = useState<string | null>(null);
+  const [guideContent, setGuideContent] = useState('');
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
     practice_name?: string;
@@ -171,6 +176,24 @@ const PolicyServiceMyPolicies = () => {
       toast.error("Failed to download policy");
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleQuickGuide = async (completion: typeof completions[0]) => {
+    setGeneratingGuideId(completion.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyse-policy-gaps', {
+        body: { action: 'quick-guide', extracted_text: completion.policy_content },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to generate quick guide');
+      setGuideContent(data.quick_guide);
+      setIsGuideOpen(true);
+    } catch (err: any) {
+      console.error('Quick guide error:', err);
+      toast.error(err.message || 'Failed to generate quick guide');
+    } finally {
+      setGeneratingGuideId(null);
     }
   };
 
@@ -490,6 +513,19 @@ const PolicyServiceMyPolicies = () => {
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleQuickGuide(completion)}
+                        disabled={generatingGuideId === completion.id}
+                        title="Quick Guide"
+                      >
+                        {generatingGuideId === completion.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <BookOpen className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleDownload(completion)}
@@ -561,6 +597,16 @@ const PolicyServiceMyPolicies = () => {
         )}
 
       </main>
+
+      <AIResponsePanel
+        response={guideContent}
+        isOpen={isGuideOpen}
+        onOpenChange={setIsGuideOpen}
+        onCopy={() => {
+          navigator.clipboard.writeText(guideContent);
+          toast.success('Quick guide copied to clipboard');
+        }}
+      />
     </div>
   );
 };
