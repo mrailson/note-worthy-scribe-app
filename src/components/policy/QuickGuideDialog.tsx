@@ -126,12 +126,14 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
       }
 
       const fileName = `Quick_Guide_${safeTitleUnderscore}_${audienceLabels[audience].replace(/\s+/g, '_')}.docx`;
+      const persistedLogoPosition = (localStorage.getItem('policy_docx_logo_position') as 'left' | 'center' | 'right') || 'left';
       await generateCleanAIResponseDocument(
         guideText,
         `Quick Guide - ${safeTitle} (${audienceLabels[audience]})`,
         {
           footerNote: `For more details, see the Practice Policy on "${policyTitle}".${reviewDateNote}`,
           logoUrl: logoUrl || undefined,
+          logoPosition: persistedLogoPosition,
         }
       );
 
