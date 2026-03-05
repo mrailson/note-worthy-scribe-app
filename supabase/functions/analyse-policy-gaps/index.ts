@@ -406,128 +406,172 @@ ${documentText}
         '$1'
       );
 
-      // ── FIX 2: Post-generation corruption check ──
-      // Scan for staff names appearing in non-name contexts (token contamination)
+      // ── ENHANCED: Post-generation corruption check ──
+      // Build a list of individual first names from staff entries (3+ chars, skip titles)
+      const staffFirstNames: string[] = [];
+      const staffFullNames: string[] = [];
+      const titleWords = new Set(['Dr', 'Mr', 'Ms', 'Mrs', 'Miss', 'Prof', 'The', 'Sir', 'Dame']);
+      
       if (practiceStaffNames.length > 0) {
-        // Extract individual first names and surnames (3+ chars) from all staff entries
-        const nameTokens = new Set<string>();
         for (const fullName of practiceStaffNames) {
-          for (const part of fullName.split(/\s+/)) {
-            const cleaned = part.replace(/[^a-zA-Z]/g, '');
-            // Only check names 3+ chars that could be confused with words
-            // Skip common title prefixes
-            if (cleaned.length >= 3 && !['Dr', 'Mr', 'Ms', 'Mrs', 'Miss', 'Prof', 'The'].includes(cleaned)) {
-              nameTokens.add(cleaned);
-            }
-          }
-        }
-
-        if (nameTokens.size > 0) {
-          // Build a regex that matches name tokens NOT preceded by title/role context
-          const escapedNames = Array.from(nameTokens).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-          const titlePrefixes = `(?:Dr\\.?|Mr\\.?|Ms\\.?|Mrs\\.?|Miss|Prof\\.?|Lead|Manager|Nurse|Officer|Guardian|Partner|Pharmacist|Paramedic|Secretary|Receptionist|Administrator)`;
-          const corruptionPattern = new RegExp(
-            `(?<!${titlePrefixes}\\s)(?<!${titlePrefixes}\\s\\w+\\s)\\b(${escapedNames.join('|')})\\b(?!\\s+[A-Z][a-z])`,
-            'g'
-          );
-
-          // Count occurrences — a few legitimate uses are expected, but >5 suggests contamination
-          const matches = quickGuide.match(corruptionPattern) || [];
-          // Count unique contexts (not just repeated legitimate references)
-          const suspiciousCount = matches.length;
-
-          if (suspiciousCount > 8) {
-            console.warn(`⚠️ Corruption detected: ${suspiciousCount} suspicious name-token occurrences. Regenerating...`);
-
-            // Regenerate once with an even stronger anti-contamination instruction
-            const antiContaminationSuffix = `\n\nABSOLUTE RULE: In your previous attempt, staff names from the practice profile leaked into ordinary text as word substitutions. This is UNACCEPTABLE. Every common English word must remain as-is. Staff names are ONLY for labelling role holders. Double-check every sentence before outputting.`;
-
-            const retrySystem = quickGuideSystem + antiContaminationSuffix;
-
-            let retryGuide = '';
-            if (ANTHROPIC_API_KEY) {
-              const retryResp = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                  'x-api-key': ANTHROPIC_API_KEY,
-                  'anthropic-version': '2023-06-01',
-                  'content-type': 'application/json',
-                },
-                body: JSON.stringify({
-                  model: 'claude-sonnet-4-20250514',
-                  max_tokens: 4096,
-                  system: retrySystem,
-                  messages: [{ role: 'user', content: quickGuideUserPrompt }],
-                }),
-              });
-              if (retryResp.ok) {
-                const retryData = await retryResp.json();
-                retryGuide = retryData.content?.[0]?.text || '';
-              }
-            }
-
-            if (!retryGuide) {
-              const retryResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  model: 'google/gemini-3-flash-preview',
-                  max_tokens: 4096,
-                  messages: [
-                    { role: 'system', content: retrySystem },
-                    { role: 'user', content: quickGuideUserPrompt },
-                  ],
-                }),
-              });
-              if (retryResp.ok) {
-                const retryText = await retryResp.text();
-                const retryData = JSON.parse(retryText);
-                retryGuide = retryData.choices?.[0]?.message?.content || '';
-              }
-            }
-
-            if (retryGuide) {
-              quickGuide = retryGuide.replace(
-                /(Powered\s+by\s+Note[Ww]ell\s+AI)[''"""'´`].*/g,
-                '$1'
-              );
-              console.log('✅ Regenerated quick guide after corruption detection');
+          const parts = fullName.split(/\s+/).map(p => p.replace(/[^a-zA-Z'-]/g, '')).filter(p => p.length >= 3);
+          // Record full name for context checking
+          staffFullNames.push(fullName);
+          // Extract non-title parts as first names to check
+          for (const part of parts) {
+            if (!titleWords.has(part) && part.length >= 3) {
+              staffFirstNames.push(part);
             }
           }
         }
       }
 
-      // ── Legacy fuzzy staff name correction (kept as safety net) ──
-      if (practiceStaffNames.length > 0) {
-        const corrections: string[] = [];
-        const words = quickGuide.split(/(\s+)/);
-        for (let i = 0; i < words.length; i++) {
-          const word = words[i].replace(/[^a-zA-Z'-]/g, '');
-          if (word.length < 3) continue;
-          for (const canonicalName of practiceStaffNames) {
-            const nameParts = canonicalName.split(/\s+/);
-            for (const part of nameParts) {
-              if (part.length < 3) continue;
-              if (word.toLowerCase() === part.toLowerCase()) break;
-              const dist = levenshtein(word.toLowerCase(), part.toLowerCase());
-              if (dist > 0 && dist <= 2 && word.length >= 3) {
-                const original = words[i];
-                const replaced = original.replace(word, part);
-                if (replaced !== original) {
-                  corrections.push(`"${word}" → "${part}"`);
-                  words[i] = replaced;
-                }
-                break;
-              }
+      if (staffFirstNames.length > 0) {
+        const uniqueFirstNames = [...new Set(staffFirstNames)];
+        const escapedNames = uniqueFirstNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+        // Enhanced regex: flag ANY occurrence of a staff first name that is NOT:
+        // - preceded by a title (Dr/Mr/Ms/Mrs/Miss/Prof/Contact)
+        // - preceded by a role word (Lead/Manager/Nurse/Officer/Guardian/Partner)
+        // - followed by a capital letter (indicating surname context e.g. "Paul Smith")
+        // This catches "always Paul the", "Paul the Cold Chain", start-of-sentence non-name uses etc.
+        const safePrefixes = `(?:Dr\\.?|Mr\\.?|Ms\\.?|Mrs\\.?|Miss|Prof\\.?|Contact|Lead|Manager|Nurse|Officer|Guardian|Partner|Pharmacist|Paramedic|Secretary|Receptionist|Administrator|Caldicott|Senior|Deputy)`;
+        const corruptionPattern = new RegExp(
+          `(?<!${safePrefixes}\\s)(?<!${safePrefixes}\\s\\w+\\s)\\b(${escapedNames.join('|')})\\b(?!\\s+[A-Z][a-z])`,
+          'gi'
+        );
+
+        const matches = quickGuide.match(corruptionPattern) || [];
+        const suspiciousCount = matches.length;
+        console.log(`🔍 Corruption scan: ${suspiciousCount} suspicious name-token occurrences found`);
+        if (suspiciousCount > 0) {
+          console.log('  Matches:', matches.slice(0, 15));
+        }
+
+        // Find-and-replace fallback: replace suspicious names with [CONTACT] marker
+        if (suspiciousCount > 3) {
+          console.warn(`⚠️ Corruption detected: ${suspiciousCount} suspicious occurrences. Cleaning and regenerating...`);
+
+          // Replace corrupted names with placeholder before regeneration
+          const cleanedForLog = quickGuide.replace(corruptionPattern, '[CONTACT]');
+          console.log('Cleaned sample:', cleanedForLog.substring(0, 500));
+
+          // Regenerate with stronger anti-contamination instruction
+          const antiContaminationSuffix = `\n\nABSOLUTE RULE: In your previous attempt, staff names from the practice profile leaked into ordinary text as word substitutions (e.g. "Paul" replacing "put", "Boon" replacing "room"). This is UNACCEPTABLE. Every common English word must remain as-is. Staff names must ONLY appear when explicitly naming a role holder in the format "Role: Full Name" (e.g. "Practice Manager: Sarah Berry"). Never use a staff name as a verb, noun, or any part of ordinary English text. Double-check every sentence before outputting.`;
+
+          const retrySystem = quickGuideSystem + antiContaminationSuffix;
+
+          let retryGuide = '';
+          if (ANTHROPIC_API_KEY) {
+            const retryResp = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: {
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01',
+                'content-type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 4096,
+                system: retrySystem,
+                messages: [{ role: 'user', content: quickGuideUserPrompt }],
+              }),
+            });
+            if (retryResp.ok) {
+              const retryData = await retryResp.json();
+              retryGuide = retryData.content?.[0]?.text || '';
+            }
+          }
+
+          if (!retryGuide) {
+            const retryResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-3-flash-preview',
+                max_tokens: 4096,
+                messages: [
+                  { role: 'system', content: retrySystem },
+                  { role: 'user', content: quickGuideUserPrompt },
+                ],
+              }),
+            });
+            if (retryResp.ok) {
+              const retryText = await retryResp.text();
+              const retryData = JSON.parse(retryText);
+              retryGuide = retryData.choices?.[0]?.message?.content || '';
+            }
+          }
+
+          if (retryGuide) {
+            quickGuide = retryGuide.replace(
+              /(Powered\s+by\s+Note[Ww]ell\s+AI)[''"""'´`].*/g,
+              '$1'
+            );
+            console.log('✅ Regenerated quick guide after corruption detection');
+
+            // Re-check the regenerated output — if still corrupted, do a final find-and-replace
+            const retryMatches = quickGuide.match(corruptionPattern) || [];
+            if (retryMatches.length > 3) {
+              console.warn(`⚠️ Regenerated output still has ${retryMatches.length} suspicious names. Applying find-and-replace cleanup.`);
+              quickGuide = quickGuide.replace(corruptionPattern, (match) => {
+                // Check if this match is part of a full staff name (i.e. followed by surname on next word)
+                const idx = quickGuide.indexOf(match);
+                const after = quickGuide.substring(idx + match.length, idx + match.length + 30);
+                // If followed by a space then uppercase letter, it's likely a real name reference
+                if (/^\s+[A-Z][a-z]/.test(after)) return match;
+                return '[CONTACT]';
+              });
             }
           }
         }
-        if (corrections.length > 0) {
-          console.log('📝 Staff name corrections applied:', corrections);
-          quickGuide = words.join('');
+      }
+
+      // ── Section heading validation and repair ──
+      // Fix truncated headings and validate sequential numbering (1-7)
+      const expectedSections = audience === 'patient' 
+        ? ['Title', 'Why This Policy Exists', 'What This Means for You', 'What You Can Expect from Our Practice', 'Your Rights as a Patient', 'If You Have Questions or Concerns', 'Accessibility Statement']
+        : ['Purpose', 'When This Policy Applies', 'Key Staff Responsibilities', 'Step-by-Step Process', 'Documentation Requirements', 'If Something Goes Wrong', 'Quick Reminders'];
+      
+      // Fix truncated section headings (e.g. "Requirem" → "Documentation Requirements")
+      for (const heading of expectedSections) {
+        // Match truncated versions (at least 4 chars of the heading)
+        if (heading.length >= 6) {
+          for (let len = 4; len < heading.length; len++) {
+            const truncated = heading.substring(0, len);
+            // Only fix if the truncation appears as a standalone word at end of a heading-like line
+            const truncPattern = new RegExp(`(^|\\n)(#+\\s*\\d*\\.?\\s*)${truncated.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'gm');
+            quickGuide = quickGuide.replace(truncPattern, `$1$2${heading}`);
+          }
+        }
+      }
+
+      // Validate section numbers appear in order (1-7) with no gaps
+      const sectionNumPattern = /(?:^|\n)(?:#+\s*)?(\d+)\.\s/g;
+      const foundNumbers: number[] = [];
+      let numMatch;
+      while ((numMatch = sectionNumPattern.exec(quickGuide)) !== null) {
+        const num = parseInt(numMatch[1], 10);
+        if (num >= 1 && num <= 7) foundNumbers.push(num);
+      }
+      
+      // Check for out-of-sequence or missing numbers
+      if (foundNumbers.length > 0) {
+        const sorted = [...new Set(foundNumbers)].sort((a, b) => a - b);
+        const isSequential = sorted.every((n, i) => n === i + 1);
+        if (!isSequential) {
+          console.warn('⚠️ Section numbering out of sequence:', foundNumbers, '→ renumbering');
+          // Renumber: find each "N. " heading pattern and replace with correct sequential number
+          let sectionCounter = 0;
+          quickGuide = quickGuide.replace(/(?:^|\n)(#+\s*)?(\d+)\.\s/g, (match, hashes, _num) => {
+            sectionCounter++;
+            const prefix = match.startsWith('\n') ? '\n' : '';
+            const hashPart = hashes || '';
+            return `${prefix}${hashPart}${sectionCounter}. `;
+          });
         }
       }
 

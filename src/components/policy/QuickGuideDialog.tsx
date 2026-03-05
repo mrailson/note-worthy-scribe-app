@@ -94,12 +94,32 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
       const guideText = await generateQuickGuideText();
       if (!guideText) return;
 
+      // Fetch review date from policy_cover table (not staff name fields)
+      let reviewDateNote = '';
+      if (policyId) {
+        try {
+          const { data: coverData } = await supabase
+            .from('policy_completions')
+            .select('metadata')
+            .eq('id', policyId)
+            .maybeSingle();
+          const meta = coverData?.metadata as any;
+          const reviewDate = meta?.review_date || meta?.next_review_date;
+          if (reviewDate) {
+            const formatted = new Date(reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+            reviewDateNote = ` | Next review: ${formatted}`;
+          }
+        } catch {
+          // Silently continue without review date
+        }
+      }
+
       const fileName = `Quick_Guide_${safeTitleUnderscore}_${audienceLabels[audience].replace(/\s+/g, '_')}.docx`;
       await generateCleanAIResponseDocument(
         guideText,
         `Quick Guide - ${safeTitle} (${audienceLabels[audience]})`,
         {
-          footerNote: `For more details, see the Practice Policy on "${policyTitle}".`,
+          footerNote: `For more details, see the Practice Policy on "${policyTitle}".${reviewDateNote}`,
           logoUrl: logoUrl || undefined,
         }
       );
