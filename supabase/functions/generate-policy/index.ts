@@ -658,14 +658,14 @@ serve(async (req) => {
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
-              status: job.current_step === 'enhance' ? 'enhancing' : 'pending',
+              status: ['enhance', 'gap_check', 'finalise'].includes(job.current_step) ? 'enhancing' : 'pending',
               lease_expires_at: null,
               next_retry_at: null,
               error_message: null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', job.id);
-          job.status = job.current_step === 'enhance' ? 'enhancing' : 'pending';
+          job.status = ['enhance', 'gap_check', 'finalise'].includes(job.current_step) ? 'enhancing' : 'pending';
         }
       }
 
@@ -700,7 +700,7 @@ serve(async (req) => {
       await serviceSupabase
         .from('policy_generation_jobs')
         .update({
-          status: currentStep === 'enhance' ? 'enhancing' : 'generating',
+           status: ['enhance', 'gap_check', 'finalise'].includes(currentStep) ? 'enhancing' : 'generating',
           current_step: currentStep,
           heartbeat_at: now,
           lease_expires_at: new Date(Date.now() + LEASE_DURATION_MS).toISOString(),
@@ -1113,13 +1113,13 @@ ${policyContent}`;
 
           policyContent = sanitisePolicyOutput(policyContent, practiceManagerName);
 
-          // Advance to finalise
+          // Advance to gap_check
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
               generated_content: policyContent,
-              current_step: 'finalise',
-              progress_pct: 80,
+              current_step: 'gap_check',
+              progress_pct: 82,
               attempt_count: 0,
               next_retry_at: null,
               heartbeat_at: new Date().toISOString(),
@@ -1128,10 +1128,102 @@ ${policyContent}`;
             })
             .eq('id', job.id);
 
-          console.log(`[Step done: enhance] Job ${job.id}`);
+          console.log(`[Step done: enhance] Job ${job.id} → gap_check`);
           selfTrigger(targetUserId);
 
           return new Response(JSON.stringify({ success: true, phase: 'enhance', jobId: job.id }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // ---- STEP: gap_check ----
+        if (currentStep === 'gap_check') {
+          await updateHeartbeat(serviceSupabase, job.id, 'gap_check', 85);
+
+          const policyContent = job.generated_content || '';
+          const practiceManagerName = (jobPractice as any)?.practice_manager_name || (jobPractice as any)?.practice_manager || 'Practice Manager';
+
+          const GAP_CHECK_SYSTEM = `You are an expert NHS policy analyst. Analyse the following GP practice policy and return ONLY valid JSON with this structure:
+{
+  "gaps": ["array of genuine compliance gaps found — max 8"],
+  "has_material_gaps": true/false
+}
+
+SEVERITY FILTER — only flag:
+1. CLINICAL / LEGAL RISK: incorrect clinical intervals, superseded legislation cited as current, missing mandatory legal rights or statutory duties.
+2. CQC INSPECTION RISK: a materially missing section a CQC inspector would specifically look for evidence of.
+3. PATIENT SAFETY / OPERATIONAL RISK: a process gap that could directly lead to patient harm or significant operational failure.
+
+NEVER FLAG: minor wording, style, fax mentions, current DSPT versions, vendor names, case law that remains good law, anything covered elsewhere in the document.
+Set has_material_gaps to true ONLY if you find genuine issues. If the policy is broadly compliant, return has_material_gaps: false with an empty gaps array.`;
+
+          let shouldRemediate = false;
+          let gapsList: string[] = [];
+
+          try {
+            const gapResponse = await callAnthropic(GAP_CHECK_SYSTEM, `Analyse this policy:\n\n${policyContent}`, 2000);
+            const jsonMatch = gapResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (parsed.has_material_gaps && Array.isArray(parsed.gaps) && parsed.gaps.length > 0) {
+                shouldRemediate = true;
+                gapsList = parsed.gaps.map((g: any) => typeof g === 'string' ? g : (g.issue || JSON.stringify(g)));
+                console.log(`[gap_check] Found ${gapsList.length} material gaps for job ${job.id}`);
+              } else {
+                console.log(`[gap_check] No material gaps found for job ${job.id}`);
+              }
+            }
+          } catch (gapErr) {
+            console.warn(`[gap_check] Gap analysis failed, skipping remediation:`, gapErr);
+          }
+
+          let finalContent = policyContent;
+
+          if (shouldRemediate) {
+            try {
+              const remediationPrompt = `The following ${policyName} policy has been reviewed and these compliance gaps were identified:
+
+${gapsList.map((g, i) => `${i + 1}. ${g}`).join('\n')}
+
+Please address EACH gap by adding or correcting the relevant content within the existing document structure. Do NOT restructure the document, do NOT add internal notes or gap analysis tables. Simply fix each issue in-place within the appropriate section.
+
+PRACTICE DATA:
+${practiceContext}
+
+POLICY TO FIX:
+${finalContent}`;
+
+              const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 10000);
+              if (remediated && remediated.length > 500) {
+                finalContent = sanitisePolicyOutput(remediated, practiceManagerName);
+                console.log(`[gap_check] Remediation succeeded - ${finalContent.length} chars`);
+              } else {
+                console.warn(`[gap_check] Remediation returned insufficient content, using original`);
+              }
+            } catch (remErr) {
+              console.error(`[gap_check] Remediation failed, using original:`, remErr);
+            }
+          }
+
+          // Advance to finalise
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              generated_content: finalContent,
+              current_step: 'finalise',
+              progress_pct: 90,
+              attempt_count: 0,
+              next_retry_at: null,
+              heartbeat_at: new Date().toISOString(),
+              lease_expires_at: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', job.id);
+
+          console.log(`[Step done: gap_check] Job ${job.id} → finalise`);
+          selfTrigger(targetUserId);
+
+          return new Response(JSON.stringify({ success: true, phase: 'gap_check', jobId: job.id }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -1506,7 +1598,7 @@ ${htmlBody}
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
-              status: currentStep === 'enhance' ? 'enhancing' : 'generating',
+              status: ['enhance', 'gap_check', 'finalise'].includes(currentStep) ? 'enhancing' : 'generating',
               lease_expires_at: retryAt,
               next_retry_at: retryAt,
               error_message: `Step ${currentStep} failed (attempt ${attemptCount}/${MAX_STEP_ATTEMPTS}): ${errMsg}. Retrying...`,
