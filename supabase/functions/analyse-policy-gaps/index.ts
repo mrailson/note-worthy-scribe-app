@@ -41,6 +41,7 @@ NEVER FLAG:
 - Maximum 8 issues per review
 - Each issue must state: what is missing/wrong, why it matters (CQC/legal/patient safety), and the specific section where it should be addressed
 - Do not report an issue unless you are confident it is a genuine gap
+- STRICT DEDUPLICATION: Each issue must appear exactly once across the entire output (gaps, outdated_references, missing_sections combined). Before returning, compare all items — if two refer to the same underlying issue (even worded differently), keep only the one under the most appropriate category and discard the other. Never list the same gap under both "gaps" and "missing_sections".
 
 ## ANALYSIS TASKS
 

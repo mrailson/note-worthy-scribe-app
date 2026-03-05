@@ -1259,7 +1259,7 @@ SEVERITY FILTER — only flag:
 
 NEVER FLAG: minor wording, style, fax mentions, current DSPT versions, vendor names, case law that remains good law, anything covered elsewhere in the document.
 CRITICAL: Before flagging any gap, confirm the content is genuinely absent from the ENTIRE document — not just the expected section. If the substance is covered anywhere in the document, do not flag it.
-DEDUPLICATION: Do not flag the same underlying issue twice under different headings. Report each issue once only.
+STRICT DEDUPLICATION: Each issue must appear exactly once across the entire output. Before returning, compare all gap descriptions — if two items refer to the same underlying gap (even worded differently), keep only the one under the most appropriate category and discard the other. Never list the same issue under both "gaps" and any other grouping.
 Set has_material_gaps to true ONLY if you find genuine issues. If the policy is broadly compliant, return has_material_gaps: false with an empty gaps array.`;
 
             let shouldRemediate = false;
