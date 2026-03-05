@@ -144,13 +144,14 @@ export async function generateCleanAIResponseDocument(
       if (response.ok) {
         const blob = await response.blob();
         const arrayBuffer = await blob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
         children.push(new Paragraph({
           children: [
             new ImageRun({
-              data: arrayBuffer,
+              data: uint8Array,
               transformation: { width: 160, height: 60 },
               type: 'png',
-            }),
+            } as any),
           ],
           spacing: { after: 200 },
         }));
