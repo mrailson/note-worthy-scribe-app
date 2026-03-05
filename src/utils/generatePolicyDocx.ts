@@ -74,7 +74,8 @@ export const generatePolicyDocx = async (
   content: string,
   metadata: PolicyMetadata,
   policyName: string,
-  options: PolicyDocxOptions = {}
+  options: PolicyDocxOptions = {},
+  skipDownload: boolean = false
 ): Promise<{ blob: Blob; filename: string }> => {
   const today = new Date().toLocaleDateString('en-GB', {
     day: 'numeric',
@@ -393,7 +394,9 @@ export const generatePolicyDocx = async (
 
   const blob = await Packer.toBlob(doc);
   const filename = `${policyName.replace(/[^a-zA-Z0-9]/g, '_')}_v${metadata.version}.docx`;
-  saveAs(blob, filename);
+  if (!skipDownload) {
+    saveAs(blob, filename);
+  }
   return { blob, filename };
 };
 
