@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail } from 'lucide-react';
+import { EvidenceConfigTab } from './EvidenceConfigTab';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 import { useNRESUserAccess } from '@/hooks/useNRESUserAccess';
 import { useNRESBuyBackRateSettings, type RoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
@@ -19,6 +20,7 @@ import type { BuyBackAccessRole } from '@/hooks/useNRESBuyBackAccess';
 const ROLES: { key: BuyBackAccessRole; label: string }[] = [
   { key: 'submit', label: 'Submit' },
   { key: 'view', label: 'View' },
+  { key: 'verifier', label: 'Verifier' },
   { key: 'approver', label: 'Approver' },
 ];
 
@@ -80,6 +82,7 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
           <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto mb-4">
             <TabsTrigger value="access" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Access Permissions</TabsTrigger>
             <TabsTrigger value="rates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Rates &amp; Roles</TabsTrigger>
+            <TabsTrigger value="evidence" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Evidence Requirements</TabsTrigger>
             <TabsTrigger value="email" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Email Settings</TabsTrigger>
           </TabsList>
 
@@ -179,6 +182,11 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
           {/* Rates & Roles Tab */}
           <TabsContent value="rates" className="flex-1 min-h-0 overflow-y-auto mt-0">
             <RatesAndRolesPanel />
+          </TabsContent>
+
+          {/* Evidence Requirements Tab */}
+          <TabsContent value="evidence" className="flex-1 min-h-0 overflow-y-auto mt-0">
+            <EvidenceConfigTab />
           </TabsContent>
 
           {/* Email Settings Tab */}

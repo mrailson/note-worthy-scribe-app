@@ -6994,6 +6994,9 @@ export type Database = {
           submitted_by_email: string | null
           updated_at: string
           user_id: string
+          verified_at: string | null
+          verified_by: string | null
+          verified_notes: string | null
         }
         Insert: {
           approved_by_email?: string | null
@@ -7014,6 +7017,9 @@ export type Database = {
           submitted_by_email?: string | null
           updated_at?: string
           user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+          verified_notes?: string | null
         }
         Update: {
           approved_by_email?: string | null
@@ -7034,6 +7040,9 @@ export type Database = {
           submitted_by_email?: string | null
           updated_at?: string
           user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          verified_notes?: string | null
         }
         Relationships: [
           {
@@ -7173,6 +7182,92 @@ export type Database = {
           user_id?: string
           user_name?: string
           user_role?: string | null
+        }
+        Relationships: []
+      }
+      nres_claim_evidence: {
+        Row: {
+          claim_id: string
+          evidence_type: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          notes: string | null
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          claim_id: string
+          evidence_type: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          notes?: string | null
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          claim_id?: string
+          evidence_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          notes?: string | null
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nres_claim_evidence_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "nres_buyback_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nres_claim_evidence_config: {
+        Row: {
+          applies_to: string
+          created_at: string
+          description: string | null
+          evidence_type: string
+          id: string
+          is_mandatory: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          applies_to?: string
+          created_at?: string
+          description?: string | null
+          evidence_type: string
+          id?: string
+          is_mandatory?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          applies_to?: string
+          created_at?: string
+          description?: string | null
+          evidence_type?: string
+          id?: string
+          is_mandatory?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }

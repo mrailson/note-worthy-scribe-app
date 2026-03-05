@@ -16,13 +16,16 @@ export interface BuyBackClaim {
   calculated_amount: number;
   claimed_amount: number;
   declaration_confirmed: boolean;
-  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  status: 'draft' | 'submitted' | 'verified' | 'approved' | 'rejected';
   submitted_at: string | null;
   submitted_by_email: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_notes: string | null;
   approved_by_email: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  verified_notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -510,6 +513,52 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     }
   };
 
+  /** Verify a Buy-Back claim (Submitted → Verified) */
+  const verifyClaim = async (id: string, notes?: string) => {
+    if (!user?.id || !admin) return;
+    try {
+      setSaving(true);
+      const { data, error } = await supabase
+        .from('nres_buyback_claims')
+        .update({
+          status: 'verified',
+          verified_by: user.email || null,
+          verified_at: new Date().toISOString(),
+          verified_notes: notes || null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
+      toast.success('Claim verified — forwarded to SNO for final approval');
+
+      // Send email to SNO (non-blocking)
+      const claim = claims.find(c => c.id === id);
+      if (emailConfig && claim?.practice_key) {
+        const staffDetails = (claim.staff_details as any[]) || [];
+        const emailData: BuyBackEmailData = {
+          claimId: id,
+          practiceKey: claim.practice_key,
+          claimMonth: claim.claim_month,
+          totalAmount: claim.claimed_amount,
+          staffLineCount: staffDetails.length,
+          staffCategories: staffDetails.map((s: any) => s.staff_category).filter(Boolean),
+          submitterEmail: claim.submitted_by_email || '',
+          reviewerEmail: user.email || '',
+          reviewerName: emailConfig.currentUserName,
+          reviewNotes: notes,
+        };
+        sendBuyBackEmail('claim_submitted', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+      }
+    } catch (error) {
+      console.error('Error verifying claim:', error);
+      toast.error('Failed to verify claim');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return {
     claims,
     loading,
@@ -517,6 +566,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     admin,
     createClaim,
     submitClaim,
+    verifyClaim,
     approveClaim,
     rejectClaim,
     updateClaimAmount,
