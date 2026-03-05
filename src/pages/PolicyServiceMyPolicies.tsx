@@ -19,14 +19,16 @@ import {
   Eye,
   RefreshCw,
   XCircle,
-  Sparkles
+  Sparkles,
+  Info,
+  Coffee
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
 import { usePolicyJobs, PolicyJob, getStepLabel } from "@/hooks/usePolicyJobs";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
-import { format, parseISO, formatDistanceToNow, differenceInHours } from "date-fns";
+import { format, parseISO, formatDistanceToNow, differenceInHours, differenceInMinutes } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -40,6 +42,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+const EXPECTED_GENERATION_MINUTES = 10;
+
+const getCountdownText = (job: PolicyJob): string | null => {
+  if (!['pending', 'generating', 'enhancing'].includes(job.status)) return null;
+  const elapsed = differenceInMinutes(new Date(), parseISO(job.created_at));
+  const remaining = Math.max(0, EXPECTED_GENERATION_MINUTES - elapsed);
+  if (remaining <= 0) return 'Should be ready very soon…';
+  return `Expected ready in ~${remaining} min${remaining !== 1 ? 's' : ''}`;
+};
 
 
 const getJobStatusBadge = (job: PolicyJob) => {
@@ -291,6 +308,39 @@ const PolicyServiceMyPolicies = () => {
                           </div>
                         )}
 
+                        {/* Countdown timer */}
+                        {['pending', 'generating', 'enhancing'].includes(job.status) && (
+                          <div className="flex items-center gap-2 my-2">
+                            <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
+                              <Coffee className="h-3.5 w-3.5" />
+                              <span>{getCountdownText(job)}</span>
+                            </div>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="text-muted-foreground hover:text-foreground transition-colors">
+                                  <Info className="h-3.5 w-3.5" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 text-sm" side="top">
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold">Why does this take so long?</h4>
+                                  <p className="text-muted-foreground">Each policy is a substantial document (typically 15–25 pages) that goes through several stages:</p>
+                                  <ul className="text-muted-foreground space-y-1 list-disc pl-4">
+                                    <li>Multi-part content generation tailored to your practice</li>
+                                    <li>Cross-referencing against current CQC regulatory requirements</li>
+                                    <li>Enhancement pass for professional language and completeness</li>
+                                    <li>Placeholder replacement with your practice details</li>
+                                    <li>Final quality checks and formatting</li>
+                                  </ul>
+                                  <div className="bg-muted/50 rounded-md p-2.5 mt-2">
+                                    <p className="text-muted-foreground">☕ Feel free to leave this screen and come back later — your policy will continue generating in the background. Go and grab a coffee!</p>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        )}
+
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span>Submitted: {format(parseISO(job.created_at), 'dd/MM/yyyy HH:mm')}</span>
                           {job.heartbeat_at && ['generating', 'enhancing'].includes(job.status) && (
@@ -416,15 +466,15 @@ const PolicyServiceMyPolicies = () => {
                       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5" />
-                          <span>Created: {format(parseISO(completion.created_at), 'dd/MM/yyyy')}</span>
+                          <span>Created: {format(parseISO(completion.created_at), 'dd/MM/yyyy HH:mm')}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5" />
-                          <span>Effective: {completion.effective_date}</span>
+                          <span>Effective: {format(parseISO(completion.effective_date), 'dd/MM/yyyy')}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3.5 w-3.5" />
-                          <span>Review: {completion.review_date}</span>
+                          <span>Review: {format(parseISO(completion.review_date), 'dd/MM/yyyy')}</span>
                         </div>
                       </div>
                       
