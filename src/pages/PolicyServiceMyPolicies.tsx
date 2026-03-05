@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,14 +18,15 @@ import {
   Trash2,
   Eye,
   RefreshCw,
-  XCircle
+  XCircle,
+  Sparkles
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
 import { usePolicyJobs, PolicyJob, getStepLabel } from "@/hooks/usePolicyJobs";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
-import { format, parseISO, formatDistanceToNow } from "date-fns";
+import { format, parseISO, formatDistanceToNow, differenceInHours } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -62,8 +63,17 @@ const getJobStatusBadge = (job: PolicyJob) => {
 const PolicyServiceMyPolicies = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { completions, isLoading, getDaysUntilReview, deleteCompletion } = usePolicyCompletions();
+  const { completions, isLoading, getDaysUntilReview, deleteCompletion, refreshCompletions } = usePolicyCompletions();
   const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue, refetch: refetchJobs } = usePolicyJobs();
+  const prevActiveJobCountRef = useRef(activeJobCount);
+
+  // Auto-refresh completions when active jobs finish (count drops)
+  useEffect(() => {
+    if (prevActiveJobCountRef.current > 0 && activeJobCount < prevActiveJobCountRef.current) {
+      refreshCompletions();
+    }
+    prevActiveJobCountRef.current = activeJobCount;
+  }, [activeJobCount, refreshCompletions]);
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
@@ -349,6 +359,12 @@ const PolicyServiceMyPolicies = () => {
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-medium truncate">{completion.policy_title}</h3>
                         <Badge variant="secondary">v{completion.version}</Badge>
+                        {differenceInHours(new Date(), parseISO(completion.created_at)) < 24 && (
+                          <Badge className="bg-green-600 hover:bg-green-600 text-white gap-0.5 text-[10px] px-1.5 py-0 h-4">
+                            <Sparkles className="h-2.5 w-2.5" />
+                            New
+                          </Badge>
+                        )}
                       </div>
                       
                       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">
