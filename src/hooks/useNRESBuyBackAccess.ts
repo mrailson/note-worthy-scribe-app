@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 
-export type BuyBackAccessRole = 'submit' | 'view' | 'approver';
+export type BuyBackAccessRole = 'submit' | 'view' | 'approver' | 'verifier';
 
 export interface BuyBackAccessRow {
   id: string;
@@ -123,6 +123,12 @@ export function useNRESBuyBackAccess() {
     return [...new Set(rows.filter(r => r.user_id === user.id && r.access_role === 'approver').map(r => r.practice_key))];
   }, [rows, user?.id]);
 
+  /** Get practices the current user can verify */
+  const myVerifierPractices = useMemo(() => {
+    if (!user?.id) return [];
+    return [...new Set(rows.filter(r => r.user_id === user.id && r.access_role === 'verifier').map(r => r.practice_key))];
+  }, [rows, user?.id]);
+
   /** Check if a user has the approver role for any practice */
   const isApproverForAny = useCallback((userId: string) => {
     return rows.some(r => r.user_id === userId && r.access_role === 'approver');
@@ -139,6 +145,7 @@ export function useNRESBuyBackAccess() {
     myPractices,
     mySubmitPractices,
     myApproverPractices,
+    myVerifierPractices,
     isApproverForAny,
     refetch: () => fetchAccess(true),
   };

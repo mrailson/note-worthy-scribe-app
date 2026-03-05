@@ -4,6 +4,7 @@ import { useNRESBuyBackStaff, type BuyBackStaffMember } from '@/hooks/useNRESBuy
 import { useNRESBuyBackClaims, calculateStaffMonthlyAmount, type BuyBackClaim, type RateParams } from '@/hooks/useNRESBuyBackClaims';
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
+import { ClaimEvidencePanel, useEvidenceComplete } from './ClaimEvidencePanel';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
@@ -243,8 +244,8 @@ export function BuyBackClaimsTab() {
     currentUserEmail: user?.email || undefined,
     currentUserName: user?.user_metadata?.full_name || user?.email || undefined,
   }), [rateSettings.email_testing_mode, user?.email, user?.user_metadata?.full_name]);
-  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, approveClaim, rejectClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims(emailConfig);
-  const { myPractices, mySubmitPractices, myApproverPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
+  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, approveClaim, rejectClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims(emailConfig);
+  const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
   const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
 
   const isAdmin = admin;
@@ -314,6 +315,7 @@ export function BuyBackClaimsTab() {
   const statusCounts = {
     all: practiceFilteredClaims.length,
     submitted: practiceFilteredClaims.filter(c => c.status === 'submitted').length,
+    verified: practiceFilteredClaims.filter(c => c.status === 'verified').length,
     approved: practiceFilteredClaims.filter(c => c.status === 'approved').length,
     rejected: practiceFilteredClaims.filter(c => c.status === 'rejected').length,
     draft: practiceFilteredClaims.filter(c => c.status === 'draft').length,
@@ -609,6 +611,7 @@ export function BuyBackClaimsTab() {
               {([
                 { key: 'all', label: 'All' },
                 { key: 'submitted', label: 'Outstanding' },
+                { key: 'verified', label: 'Verified' },
                 { key: 'approved', label: 'Approved' },
                 { key: 'rejected', label: 'Rejected' },
                 { key: 'draft', label: 'Draft' },
@@ -634,28 +637,49 @@ export function BuyBackClaimsTab() {
             <p className="text-sm text-muted-foreground py-4 text-center">No claims yet.</p>
           ) : (
             <div className="space-y-6">
-              {filteredClaims.map(c => (
-                <ClaimCard
-                  key={c.id}
-                  claim={c}
-                  userId={user?.id}
-                  userEmail={user?.email}
-                  isAdmin={isAdmin}
-                  canApproveClaim={isAdmin && (
-                    (!hasAnyAssignment) ||
-                    myApproverPractices.includes(c.practice_key || '')
-                  )}
-                  rateParams={rateParams}
-                  onSubmit={submitClaim}
-                  onDelete={deleteClaim}
-                  onConfirmDeclaration={confirmDeclaration}
-                  onUpdateStaffAmount={updateStaffClaimedAmount}
-                  onRemoveStaff={removeStaffFromClaim}
-                  onUpdateStaffNotes={updateStaffNotes}
-                  onApprove={approveClaim}
-                  onReject={rejectClaim}
-                />
-              ))}
+              {filteredClaims.map(c => {
+                const staffDets = c.staff_details as any[];
+                const categories = [...new Set(staffDets.map((s: any) => s.staff_category).filter(Boolean))];
+                const claimCategory: 'buyback' | 'new_sda' | 'mixed' = categories.length === 0 ? 'buyback'
+                  : categories.length === 1 ? (categories[0] as 'buyback' | 'new_sda')
+                  : 'mixed';
+                const isBuyBack = claimCategory === 'buyback' || claimCategory === 'mixed';
+                
+                // Verifiers can verify submitted Buy-Back claims
+                const canVerifyClaim = isAdmin && isBuyBack && c.status === 'submitted' && (
+                  (!hasAnyAssignment) || myVerifierPractices.includes(c.practice_key || '')
+                );
+                
+                // Approvers: for Buy-Back, can only approve Verified claims; for New SDA, approve Submitted
+                const canApproveBuyBack = isBuyBack && c.status === 'verified';
+                const canApproveNewSda = !isBuyBack && c.status === 'submitted';
+                const canApproveThisClaim = isAdmin && (canApproveBuyBack || canApproveNewSda) && (
+                  (!hasAnyAssignment) || myApproverPractices.includes(c.practice_key || '')
+                );
+
+                return (
+                  <ClaimCard
+                    key={c.id}
+                    claim={c}
+                    claimCategory={claimCategory}
+                    userId={user?.id}
+                    userEmail={user?.email}
+                    isAdmin={isAdmin}
+                    canApproveClaim={canApproveThisClaim}
+                    canVerifyClaim={canVerifyClaim}
+                    rateParams={rateParams}
+                    onSubmit={submitClaim}
+                    onDelete={deleteClaim}
+                    onConfirmDeclaration={confirmDeclaration}
+                    onUpdateStaffAmount={updateStaffClaimedAmount}
+                    onRemoveStaff={removeStaffFromClaim}
+                    onUpdateStaffNotes={updateStaffNotes}
+                    onApprove={approveClaim}
+                    onReject={rejectClaim}
+                    onVerify={verifyClaim}
+                  />
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -803,12 +827,14 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject }: {
+function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject, onVerify }: {
   claim: BuyBackClaim;
+  claimCategory: 'buyback' | 'new_sda' | 'mixed';
   userId?: string;
   userEmail?: string;
   isAdmin: boolean;
   canApproveClaim?: boolean;
+  canVerifyClaim?: boolean;
   rateParams?: RateParams;
   onSubmit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -818,6 +844,7 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, ratePar
   onUpdateStaffNotes: (claimId: string, staffIndex: number, notes: string) => void;
   onApprove: (id: string, notes?: string) => void;
   onReject: (id: string, notes: string) => void;
+  onVerify?: (id: string, notes?: string) => void;
 }) {
   const [editingNoteIdx, setEditingNoteIdx] = useState<number | null>(null);
   const [noteText, setNoteText] = useState('');
@@ -826,14 +853,19 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, ratePar
   const isDraft = claim.status === 'draft';
   const isRejected = claim.status === 'rejected';
   const isSubmitted = claim.status === 'submitted';
+  const isVerified = claim.status === 'verified';
   const canEdit = (isDraft || isRejected) && (userId === claim.user_id || isAdmin);
-  const canApprove = isSubmitted && (canApproveClaim ?? isAdmin);
+  const canApprove = canApproveClaim;
   const staffDetails = claim.staff_details as any[];
+
+  // Evidence completeness check
+  const { allUploaded: evidenceComplete } = useEvidenceComplete(claim.id, claimCategory);
 
   const statusBadge = (status: string) => {
     const variants: Record<string, string> = {
       draft: 'bg-muted text-muted-foreground',
       submitted: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      verified: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
       approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
       rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     };
@@ -1031,11 +1063,27 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, ratePar
         </tbody>
       </table>
 
+      {/* Evidence Panel */}
+      <ClaimEvidencePanel
+        claimId={claim.id}
+        claimCategory={claimCategory}
+        canEdit={canEdit}
+      />
+
       {/* Submission info */}
       {claim.submitted_at && (
         <div className="px-3 py-2 border-t bg-blue-50/50 dark:bg-blue-950/20 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
           <span>Submitted by: <strong className="text-foreground">{claim.submitted_by_email || '—'}</strong></span>
           <span>on <strong className="text-foreground">{format(new Date(claim.submitted_at), 'dd/MM/yyyy')} at {format(new Date(claim.submitted_at), 'HH:mm')}</strong></span>
+        </div>
+      )}
+
+      {/* Verification info */}
+      {claim.verified_at && (
+        <div className="px-3 py-2 border-t bg-amber-50/50 dark:bg-amber-950/20 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+          <span>Verified by: <strong className="text-foreground">{claim.verified_by || '—'}</strong></span>
+          <span>on <strong className="text-foreground">{format(new Date(claim.verified_at), 'dd/MM/yyyy')} at {format(new Date(claim.verified_at), 'HH:mm')}</strong></span>
+          {claim.verified_notes && <span>Notes: <em className="text-foreground">{claim.verified_notes}</em></span>}
         </div>
       )}
 
@@ -1080,7 +1128,10 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, ratePar
                       onCheckedChange={checked => onConfirmDeclaration(claim.id, !!checked)}
                     />
                     <span className="text-xs text-muted-foreground">
-                      I confirm all staff listed are working 100% on SDA (Part A) during their funded hours, with no LTC (Part B) activity, in accordance with the ICB-approved buy-back rules. I also confirm that the practice has verified the professional qualifications, registration status, and competencies of all staff members listed in this claim.
+                      {claimCategory === 'buyback' || claimCategory === 'mixed'
+                        ? "I confirm that all staff listed are delivering SDA (Part A) activity during their attributed hours. I confirm that matching Part B (LTC) provision has been delivered and the supporting evidence has been uploaded. The practice has verified the professional qualifications, registration status, and competencies of all staff members listed."
+                        : "I confirm all staff listed are working 100% on SDA (Part A) during their funded hours. The practice has verified the professional qualifications, registration status, and competencies of all staff members listed in this claim."
+                      }
                     </span>
                   </div>
                 </TooltipTrigger>
@@ -1096,16 +1147,47 @@ function ClaimCard({ claim, userId, userEmail, isAdmin, canApproveClaim, ratePar
           )}
         </div>
         {canEdit && (
-          <Button size="sm" onClick={() => onSubmit(claim.id)} disabled={!claim.declaration_confirmed}>
-            <Send className="w-3 h-3 mr-1" /> Submit
-          </Button>
+          <div className="flex items-center gap-2">
+            {!evidenceComplete && (
+              <span className="text-[10px] text-red-500">Upload all required evidence first</span>
+            )}
+            <Button size="sm" onClick={() => onSubmit(claim.id)} disabled={!claim.declaration_confirmed || !evidenceComplete}>
+              <Send className="w-3 h-3 mr-1" /> Submit
+            </Button>
+          </div>
         )}
       </div>
 
+      {/* Verifier Actions (Buy-Back: Submitted → Verified) */}
+      {canVerifyClaim && (
+        <div className="px-3 py-3 border-t bg-amber-50/50 dark:bg-amber-950/20 space-y-2">
+          <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Verify this claim (evidence review)</p>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Input
+                className="text-xs"
+                placeholder="Verification notes (optional)..."
+                value={reviewNotes}
+                onChange={e => setReviewNotes(e.target.value)}
+              />
+            </div>
+            <Button size="sm" variant="default" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => { onVerify?.(claim.id, reviewNotes); setReviewNotes(''); }}>
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Verify
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onReject(claim.id, reviewNotes); setReviewNotes(''); }} disabled={showRejectInput && !reviewNotes.trim()}>
+              <XCircle className="w-3.5 h-3.5 mr-1" /> Return
+            </Button>
+          </div>
+          {showRejectInput && !reviewNotes.trim() && (
+            <p className="text-xs text-destructive">Please enter a reason for returning the claim.</p>
+          )}
+        </div>
+      )}
+
       {/* Admin Approval Actions */}
       {canApprove && (
-        <div className="px-3 py-3 border-t bg-amber-50/50 dark:bg-amber-950/20 space-y-2">
-          <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Review this claim</p>
+        <div className="px-3 py-3 border-t bg-green-50/50 dark:bg-green-950/20 space-y-2">
+          <p className="text-xs font-medium text-green-800 dark:text-green-200">Final approval</p>
           <div className="flex gap-2 items-end">
             <div className="flex-1">
               <Input
