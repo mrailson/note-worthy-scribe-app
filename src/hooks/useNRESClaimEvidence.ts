@@ -14,6 +14,7 @@ export interface ClaimEvidenceFile {
   file_type: string | null;
   notes: string | null;
   uploaded_at: string;
+  staff_index: number | null;
 }
 
 export function useNRESClaimEvidence(claimId?: string) {
@@ -48,7 +49,7 @@ export function useNRESClaimEvidence(claimId?: string) {
     if (claimId && user?.id) fetchEvidence();
   }, [claimId, user?.id]);
 
-  const uploadEvidence = useCallback(async (evidenceType: string, file: File) => {
+  const uploadEvidence = useCallback(async (evidenceType: string, file: File, staffIndex?: number) => {
     if (!claimId || !user?.id) return null;
     try {
       setUploading(true);
@@ -60,17 +61,22 @@ export function useNRESClaimEvidence(claimId?: string) {
         .upload(storagePath, file);
       if (uploadError) throw uploadError;
 
+      const insertPayload: any = {
+        claim_id: claimId,
+        user_id: user.id,
+        evidence_type: evidenceType,
+        file_name: file.name,
+        file_path: storagePath,
+        file_size: file.size,
+        file_type: file.type,
+      };
+      if (staffIndex !== undefined) {
+        insertPayload.staff_index = staffIndex;
+      }
+
       const { data, error } = await supabase
         .from('nres_claim_evidence')
-        .insert({
-          claim_id: claimId,
-          user_id: user.id,
-          evidence_type: evidenceType,
-          file_name: file.name,
-          file_path: storagePath,
-          file_size: file.size,
-          file_type: file.type,
-        })
+        .insert(insertPayload)
         .select()
         .single();
       if (error) throw error;
@@ -118,17 +124,32 @@ export function useNRESClaimEvidence(claimId?: string) {
     return data.signedUrl;
   }, []);
 
-  /** Check which evidence types have been uploaded for this claim */
-  const uploadedTypes = files.reduce<Record<string, ClaimEvidenceFile>>((acc, f) => {
+  /** Legacy claim-level uploaded types (staff_index IS NULL) */
+  const uploadedTypes = files.filter(f => f.staff_index == null).reduce<Record<string, ClaimEvidenceFile>>((acc, f) => {
     acc[f.evidence_type] = f;
     return acc;
   }, {});
+
+  /** Get uploaded types map for a specific staff index */
+  const getUploadedTypesForStaff = useCallback((staffIndex: number): Record<string, ClaimEvidenceFile> => {
+    return files.filter(f => f.staff_index === staffIndex).reduce<Record<string, ClaimEvidenceFile>>((acc, f) => {
+      acc[f.evidence_type] = f;
+      return acc;
+    }, {});
+  }, [files]);
+
+  /** Get all files for a specific staff index */
+  const getFilesForStaff = useCallback((staffIndex: number): ClaimEvidenceFile[] => {
+    return files.filter(f => f.staff_index === staffIndex);
+  }, [files]);
 
   return {
     files,
     loading,
     uploading,
     uploadedTypes,
+    getUploadedTypesForStaff,
+    getFilesForStaff,
     uploadEvidence,
     deleteEvidence,
     getDownloadUrl,

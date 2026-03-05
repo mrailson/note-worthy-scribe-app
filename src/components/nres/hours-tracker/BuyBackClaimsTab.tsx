@@ -4,7 +4,7 @@ import { useNRESBuyBackStaff, type BuyBackStaffMember } from '@/hooks/useNRESBuy
 import { useNRESBuyBackClaims, calculateStaffMonthlyAmount, type BuyBackClaim, type RateParams } from '@/hooks/useNRESBuyBackClaims';
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
-import { ClaimEvidencePanel, useEvidenceComplete } from './ClaimEvidencePanel';
+import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 
@@ -859,9 +859,9 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   const canApprove = canApproveClaim;
   const staffDetails = claim.staff_details as any[];
 
-  // Shared evidence state — single instance for both panel and completeness check
-  const { files: evidenceFiles, uploading: evidenceUploading, uploadedTypes, uploadEvidence, deleteEvidence, getDownloadUrl, refetch: refetchEvidence } = useNRESClaimEvidence(claim.id);
-  const { allUploaded: evidenceComplete } = useEvidenceComplete(claim.id, claimCategory, uploadedTypes);
+  // Shared evidence state — single instance for all staff lines
+  const { files: evidenceFiles, uploading: evidenceUploading, uploadedTypes, uploadEvidence, deleteEvidence, getDownloadUrl, getUploadedTypesForStaff, refetch: refetchEvidence } = useNRESClaimEvidence(claim.id);
+  const { allComplete: evidenceComplete } = useStaffLineEvidenceComplete(staffDetails, getUploadedTypesForStaff);
 
   const statusBadge = (status: string) => {
     const variants: Record<string, string> = {
@@ -1010,10 +1010,10 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                     </td>
                   )}
                 </tr>
-                {/* Display saved notes */}
+                {/* Saved notes row */}
                 {hasNotes && editingNoteIdx !== idx && (
                   <tr key={`saved-note-${idx}`} className="border-b">
-                    <td colSpan={canEdit ? 6 : 5} className="px-2 py-1">
+                    <td colSpan={canEdit ? 7 : 6} className="px-2 py-1">
                       <p className="text-xs text-muted-foreground italic">
                         <MessageSquarePlus className="w-3 h-3 inline mr-1 text-blue-600" />
                         {s.notes}
@@ -1024,7 +1024,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 {/* Inline notes editor */}
                 {editingNoteIdx === idx && canEdit && (
                   <tr key={`note-${idx}`} className="border-b bg-muted/10">
-                    <td colSpan={canEdit ? 6 : 5} className="p-2">
+                    <td colSpan={canEdit ? 7 : 6} className="p-2">
                       <div className="flex gap-2 items-start">
                         <Input
                           className="flex-1 text-xs"
@@ -1058,12 +1058,27 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                     </td>
                   </tr>
                 )}
+                {/* Inline staff evidence */}
+                <tr key={`evidence-${idx}`} className="border-b">
+                  <td colSpan={canEdit ? 7 : 6} className="p-0">
+                    <StaffLineEvidence
+                      staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda'}
+                      staffIndex={idx}
+                      uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
+                      canEdit={canEdit}
+                      uploading={evidenceUploading}
+                      onUpload={uploadEvidence}
+                      onDelete={deleteEvidence}
+                      onDownload={getDownloadUrl}
+                    />
+                  </td>
+                </tr>
               </>
             );
           })}
           {/* Total row */}
           <tr className="bg-muted/30 font-semibold border-t">
-            <td colSpan={3} className="p-2 text-right">Total</td>
+            <td colSpan={4} className="p-2 text-right">Total</td>
             <td className="p-2 text-right">{fmtGBP(totalCalculated)}</td>
             <td className="p-2 text-right">{fmtGBP(totalClaimed)}</td>
             {canEdit && <td></td>}
@@ -1071,13 +1086,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
         </tbody>
       </table>
 
-      {/* Evidence Panel */}
-      <ClaimEvidencePanel
-        claimId={claim.id}
-        claimCategory={claimCategory}
-        canEdit={canEdit}
-        sharedEvidence={{ uploadedTypes, uploading: evidenceUploading, uploadEvidence, deleteEvidence, getDownloadUrl }}
-      />
+      {/* Evidence is now inline per staff row above */}
 
       {/* Submission info */}
       {claim.submitted_at && (

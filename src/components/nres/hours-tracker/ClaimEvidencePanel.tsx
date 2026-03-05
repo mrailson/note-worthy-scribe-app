@@ -1,19 +1,18 @@
-import { useRef } from 'react';
-import { Upload, FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Upload, FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
+import { useNRESClaimEvidence, type ClaimEvidenceFile } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig, type EvidenceConfigRow } from '@/hooks/useNRESEvidenceConfig';
 
 interface ClaimEvidencePanelProps {
   claimId: string;
   claimCategory: 'buyback' | 'new_sda' | 'mixed';
   canEdit: boolean;
-  /** Pass shared evidence state to avoid duplicate hook instances */
   sharedEvidence?: {
     uploadedTypes: Record<string, any>;
     uploading: boolean;
-    uploadEvidence: (evidenceType: string, file: File) => Promise<any>;
+    uploadEvidence: (evidenceType: string, file: File, staffIndex?: number) => Promise<any>;
     deleteEvidence: (id: string) => Promise<void>;
     getDownloadUrl: (filePath: string) => Promise<string | null>;
   };
@@ -63,7 +62,8 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
   );
 }
 
-function EvidenceSlot({
+/** Reusable evidence slot component – exported for use in StaffLineEvidence */
+export function EvidenceSlot({
   config,
   uploadedFile,
   canEdit,
@@ -97,7 +97,6 @@ function EvidenceSlot({
 
   return (
     <div className="px-3 py-2 flex items-center gap-3 text-xs">
-      {/* Status icon */}
       {hasFile ? (
         <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
       ) : config.is_mandatory ? (
@@ -106,7 +105,6 @@ function EvidenceSlot({
         <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
       )}
 
-      {/* Label */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="font-medium">{config.label}</span>
@@ -123,7 +121,6 @@ function EvidenceSlot({
         )}
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
         {hasFile && (
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={handleDownload}>
@@ -166,7 +163,112 @@ function EvidenceSlot({
   );
 }
 
-/** Hook-like helper to check if all mandatory evidence is uploaded for a claim */
+/** Evidence type definitions for inline staff-line evidence */
+const SDA_EVIDENCE_TYPES: EvidenceConfigRow[] = [
+  { id: 'sda-slot', evidence_type: 'sda_slot_type', label: 'SDA Slot Type', description: 'Screenshot or document showing SDA session/slot allocation', is_mandatory: true, applies_to: 'all', sort_order: 1, updated_by: null, updated_at: '' },
+  { id: 'sda-rota', evidence_type: 'sda_rota', label: 'SDA Rota', description: 'Rota showing SDA activity delivery', is_mandatory: true, applies_to: 'all', sort_order: 2, updated_by: null, updated_at: '' },
+];
+
+const LTC_EVIDENCE_TYPES: EvidenceConfigRow[] = [
+  { id: 'ltc-slot', evidence_type: 'ltc_slot_type', label: 'LTC Slot Type (Part B)', description: 'Screenshot or document showing LTC session/slot allocation', is_mandatory: true, applies_to: 'buyback', sort_order: 3, updated_by: null, updated_at: '' },
+  { id: 'ltc-rota', evidence_type: 'ltc_rota', label: 'LTC Rota (Part B)', description: 'Rota showing matching LTC activity delivery', is_mandatory: true, applies_to: 'buyback', sort_order: 4, updated_by: null, updated_at: '' },
+];
+
+/** Inline evidence component for a single staff member row */
+export function StaffLineEvidence({
+  staffCategory,
+  staffIndex,
+  uploadedTypesForStaff,
+  canEdit,
+  uploading,
+  onUpload,
+  onDelete,
+  onDownload,
+}: {
+  staffCategory: 'buyback' | 'new_sda';
+  staffIndex: number;
+  uploadedTypesForStaff: Record<string, ClaimEvidenceFile>;
+  canEdit: boolean;
+  uploading: boolean;
+  onUpload: (evidenceType: string, file: File, staffIndex: number) => Promise<any>;
+  onDelete: (id: string) => Promise<void>;
+  onDownload: (filePath: string) => Promise<string | null>;
+}) {
+  // For Buy-Back: SDA mandatory + LTC mandatory
+  // For New SDA: SDA mandatory + LTC optional
+  const ltcTypes = LTC_EVIDENCE_TYPES.map(t => ({
+    ...t,
+    is_mandatory: staffCategory === 'buyback',
+  }));
+  const allTypes = [...SDA_EVIDENCE_TYPES, ...ltcTypes];
+
+  const uploadedCount = Object.keys(uploadedTypesForStaff).length;
+  const mandatoryTypes = allTypes.filter(t => t.is_mandatory);
+  const mandatoryUploaded = mandatoryTypes.filter(t => !!uploadedTypesForStaff[t.evidence_type]).length;
+
+  return (
+    <div className="bg-slate-50/80 dark:bg-slate-900/30">
+      <div className="px-4 py-1.5 flex items-center gap-2">
+        <FileText className="w-3.5 h-3.5 text-primary" />
+        <span className="text-[11px] font-semibold text-primary">Evidence</span>
+        <Badge variant="outline" className="text-[10px] ml-auto">
+          {uploadedCount}/{allTypes.length} uploaded
+          {mandatoryUploaded < mandatoryTypes.length && (
+            <span className="ml-1 text-red-500">({mandatoryTypes.length - mandatoryUploaded} required)</span>
+          )}
+        </Badge>
+      </div>
+      <div className="divide-y">
+        {allTypes.map(cfg => (
+          <EvidenceSlot
+            key={`${staffIndex}-${cfg.evidence_type}`}
+            config={cfg}
+            uploadedFile={uploadedTypesForStaff[cfg.evidence_type]}
+            canEdit={canEdit}
+            uploading={uploading}
+            onUpload={(file) => onUpload(cfg.evidence_type, file, staffIndex)}
+            onDelete={(id) => onDelete(id)}
+            onDownload={onDownload}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Hook-like helper to check if all mandatory evidence is uploaded per staff line */
+export function useStaffLineEvidenceComplete(
+  staffDetails: any[],
+  getUploadedTypesForStaff: (staffIndex: number) => Record<string, ClaimEvidenceFile>,
+) {
+  let allComplete = true;
+  let totalMandatory = 0;
+  let totalUploaded = 0;
+
+  for (let i = 0; i < staffDetails.length; i++) {
+    const s = staffDetails[i];
+    const cat = s.staff_category || 'buyback';
+    const uploaded = getUploadedTypesForStaff(i);
+
+    // SDA evidence is always mandatory
+    const sdaMandatory = SDA_EVIDENCE_TYPES;
+    // LTC mandatory only for buyback
+    const ltcMandatory = cat === 'buyback' ? LTC_EVIDENCE_TYPES : [];
+    const mandatory = [...sdaMandatory, ...ltcMandatory];
+
+    totalMandatory += mandatory.length;
+    const staffUploaded = mandatory.filter(t => !!uploaded[t.evidence_type]).length;
+    totalUploaded += staffUploaded;
+
+    if (staffUploaded < mandatory.length) {
+      allComplete = false;
+    }
+  }
+
+  return { allComplete, totalMandatory, totalUploaded };
+}
+
+/** Legacy hook-like helper for claim-level evidence (kept for backward compat) */
 export function useEvidenceComplete(claimId: string, claimCategory: 'buyback' | 'new_sda' | 'mixed', externalUploadedTypes?: Record<string, any>) {
   const { uploadedTypes: internalUploadedTypes } = useNRESClaimEvidence(claimId);
   const { getMandatoryForCategory } = useNRESEvidenceConfig();

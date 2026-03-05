@@ -1,0 +1,1 @@
+ALTER TABLE public.nres_claim_evidence ADD COLUMN staff_index INTEGER;
