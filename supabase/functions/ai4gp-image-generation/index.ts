@@ -84,6 +84,9 @@ interface ImageGenerationRequest {
   };
   customPracticeName?: string;  // Override for practice name
   includeLogo?: boolean;
+  
+  // User spelling corrections
+  spellingCorrections?: { incorrect: string; correct: string }[];
 }
 
 // Extract URL or text content from QR code request
@@ -387,8 +390,18 @@ serve(async (req) => {
       brandingLevel,
       customBranding,
       customPracticeName,
-      includeLogo
+      includeLogo,
+      // User spelling corrections
+      spellingCorrections
     } = requestBody;
+
+    // Build dynamic user spelling corrections block and combine with standard reference
+    let userSpellingBlock = '';
+    if (spellingCorrections && spellingCorrections.length > 0) {
+      userSpellingBlock = `\n\nUSER-DEFINED MANDATORY SPELLING CORRECTIONS:\n${spellingCorrections.map(c => `- Always spell "${c.correct}" (NOT "${c.incorrect}")`).join('\n')}\n`;
+    }
+    // Combined spelling reference used in all prompt paths
+    const COMBINED_SPELLING = SPELLING_REFERENCE + userSpellingBlock;
 
     // Extract editedDetails from practiceContext (user-edited branding text from dialog)
     const editedDetails = practiceContext?.editedDetails as string[] | undefined;
@@ -678,7 +691,7 @@ DESIGN GUIDELINES:
 - For posters and leaflets: use HEADINGS and SHORT BULLET POINTS only, avoid long paragraphs
 - Use large font sizes for better readability - avoid small body copy
 
-${SPELLING_REFERENCE}`;
+${COMBINED_SPELLING}`;
 
     } else if (effectiveRequestType === 'logo') {
       // Logo-specific prompt
@@ -719,7 +732,7 @@ TEXT GUIDELINES:
 - Use proper spelling - refer to the spelling reference below
 - Good visual hierarchy with headings, subheadings and body text
 
-${SPELLING_REFERENCE}
+${COMBINED_SPELLING}
 ${keywordReference}
 
 ADDITIONAL REQUIREMENTS:
@@ -746,7 +759,7 @@ TEXT GUIDELINES:
 - Text should be clear and readable with professional typography
 - Use proper spelling - refer to the spelling reference below
 
-${SPELLING_REFERENCE}
+${COMBINED_SPELLING}
 
 INFOGRAPHIC DESIGN REQUIREMENTS:
 - Create an ACTUAL visual infographic image, NOT a text description
@@ -778,7 +791,7 @@ TEXT GUIDELINES:
 - Text should be clear and readable with professional typography
 - Use proper spelling - refer to the spelling reference below
 
-${SPELLING_REFERENCE}
+${COMBINED_SPELLING}
 ${keywordReference}
 
 DESIGN REQUIREMENTS:
@@ -814,7 +827,7 @@ LEAFLET DESIGN REQUIREMENTS:
 - Include relevant icons or simple illustrations
 - Space for key information, contact details
 
-${SPELLING_REFERENCE}
+${COMBINED_SPELLING}
 ${keywordReference}
 
 Content guidelines:
@@ -839,7 +852,7 @@ NEWSLETTER DESIGN REQUIREMENTS:
 - Clear typography for headlines
 - NHS-appropriate colour scheme (blues, teals, warm accents)
 
-${SPELLING_REFERENCE}
+${COMBINED_SPELLING}
 
 Content guidelines:
 - Keep all content professional and welcoming
@@ -867,7 +880,7 @@ SOCIAL MEDIA DESIGN REQUIREMENTS:
 ${practiceContext?.practiceName ? `- MUST display the practice name "${practiceContext.practiceName}" prominently at top or bottom` : ''}
 ${practiceContext?.practicePhone ? `- MUST include contact number "${practiceContext.practicePhone}" visibly on the image` : ''}
 
-${SPELLING_REFERENCE}
+${COMBINED_SPELLING}
 
 CRITICAL LAYOUT RULES:
 - Design MUST be complete within the frame with NO elements cut off at edges
@@ -896,7 +909,7 @@ WAITING ROOM DISPLAY REQUIREMENTS:
 - NHS-style professional appearance
 - Include relevant icons or simple graphics
 
-${SPELLING_REFERENCE}
+${COMBINED_SPELLING}
 
 Content guidelines:
 - Keep all content professional and patient-appropriate
@@ -919,7 +932,7 @@ LETTERHEAD DESIGN REQUIREMENTS:
 - NHS-appropriate colour scheme
 - Clear typography
 
-${SPELLING_REFERENCE}
+${COMBINED_SPELLING}
 
 Content guidelines:
 - Keep all content professional and formal
@@ -947,7 +960,7 @@ CAMPAIGN DESIGN REQUIREMENTS:
 - Clear key message visible at a glance
 - Include relevant health icons or imagery
 
-${SPELLING_REFERENCE}
+${COMBINED_SPELLING}
 ${keywordReference}
 
 Content guidelines:

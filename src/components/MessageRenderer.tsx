@@ -70,6 +70,7 @@ import { LeaveCalendarDownloadButton } from '@/components/ai4gp/LeaveCalendarDow
 import { VoiceAudioPlayer } from '@/components/ai4gp/VoiceAudioPlayer';
 import { PowerPointDownloadCard } from '@/components/ai4gp/PowerPointDownloadCard';
 import { supabase } from '@/integrations/supabase/client';
+import { userNameCorrections } from '@/utils/UserNameCorrections';
 
 interface MessageRendererProps {
   message: Message;
@@ -121,6 +122,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [showFindReplaceModal, setShowFindReplaceModal] = useState(false);
   const [showInfographicModal, setShowInfographicModal] = useState(false);
   const [infographicOrientation, setInfographicOrientation] = useState<'portrait' | 'landscape'>('portrait');
+  const [infographicPracticeName, setInfographicPracticeName] = useState<string>('');
+  const [infographicSpellingCorrections, setInfographicSpellingCorrections] = useState<{ incorrect: string; correct: string }[]>([]);
   const [verificationData, setVerificationData] = useState(null);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
   
@@ -153,6 +156,34 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   
   // Calculation verification code removed per user request
   const { user } = useAuth();
+  
+  // Load practice name and spelling corrections when infographic modal opens
+  useEffect(() => {
+    if (!showInfographicModal || !user) return;
+    
+    // Load practice name
+    supabase
+      .from('practice_details')
+      .select('practice_name')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.practice_name) {
+          setInfographicPracticeName(data.practice_name);
+        }
+      });
+    
+    // Load spelling corrections
+    userNameCorrections.loadCorrections().then(() => {
+      userNameCorrections.getAllCorrections().then((corrections) => {
+        setInfographicSpellingCorrections(
+          corrections
+            .filter(c => c.is_active)
+            .map(c => ({ incorrect: c.incorrect_spelling, correct: c.correct_spelling }))
+        );
+      });
+    });
+  }, [showInfographicModal, user]);
   
   // Calculation verification handlers removed per user request
   
@@ -1609,6 +1640,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         title="Infographic"
         imageModel={imageGenerationModel}
         orientation={infographicOrientation}
+        practiceName={infographicPracticeName}
+        spellingCorrections={infographicSpellingCorrections}
       />
     </div>
   );

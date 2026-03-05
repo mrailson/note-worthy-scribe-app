@@ -12,6 +12,8 @@ interface ContentInfographicModalProps {
   title?: string;
   imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   orientation?: 'portrait' | 'landscape';
+  practiceName?: string;
+  spellingCorrections?: { incorrect: string; correct: string }[];
 }
 
 const IMAGE_GENERATION_TIPS = [
@@ -33,6 +35,8 @@ export const ContentInfographicModal: React.FC<ContentInfographicModalProps> = (
   title = 'Infographic',
   imageModel = 'google/gemini-2.5-flash-image-preview',
   orientation = 'landscape',
+  practiceName,
+  spellingCorrections,
 }) => {
   const { generateInfographic, isGenerating, currentPhase, error } = useContentInfographic();
   
@@ -50,7 +54,7 @@ export const ContentInfographicModal: React.FC<ContentInfographicModalProps> = (
       setIsComplete(false);
       generationResultRef.current = null;
       
-      generateInfographic(content, title, { imageModel, orientation }).then((result) => {
+      generateInfographic(content, title, { imageModel, orientation, practiceName, spellingCorrections }).then((result) => {
         generationResultRef.current = result;
       });
     }
