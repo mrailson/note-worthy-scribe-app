@@ -1,62 +1,63 @@
 
 
-## Updated Plan: Add SDA Evidence Requirements to Route 1 (New SDA Resource)
+## Move Evidence from Claim-Level to Staff-Line-Level
 
-### What changed
+### What changes
 
-Route 1 (New SDA Resource) now also requires supporting evidence — specifically the **SDA Slot Type Report** and **SDA Rota Report** — before a claim can be submitted. This aligns both routes on Part A evidence, while Route 2 (Buy-Back) additionally requires the two LTC (Part B) evidence documents.
+Evidence uploads move from a single panel at the bottom of the claim card to being **inline with each staff member row**. Each staff line gets its own evidence requirements based on their category:
 
-### Updated Evidence Matrix
+- **Buy-Back staff**: SDA Slot Type + SDA Rota (mandatory) + LTC Slot Type + LTC Rota (mandatory)
+- **New SDA staff**: SDA Slot Type + SDA Rota (mandatory) + LTC Slot Type + LTC Rota (optional, not mandatory)
 
-| Evidence Type | Route 1: New SDA | Route 2: Buy-Back |
-|--------------|-----------------|-------------------|
-| SDA Slot Type Report | **Required** | **Required** |
-| SDA Rota Report | **Required** | **Required** |
-| LTC Slot Type Report | Not required | **Required** |
-| LTC Rota Report | Not required | **Required** |
+### Database migration
 
-### Updated Workflows
+Add a `staff_index` column to `nres_claim_evidence`:
 
-**Route 1 — New SDA Resource** (approval flow unchanged, evidence added):
-```text
-Draft (+ upload SDA evidence) --> Submitted --> Approved/Rejected by SNO
-```
-- Submit button blocked until mandatory SDA evidence is uploaded
-- Still goes directly to Mark Gray — no intermediary verification step
-- Declaration unchanged
-
-**Route 2 — Buy-Back** (unchanged from previous plan):
-```text
-Draft (+ upload all 4 evidence docs) --> Submitted --> Verified --> Approved
+```sql
+ALTER TABLE public.nres_claim_evidence
+  ADD COLUMN staff_index INTEGER;
 ```
 
-### Implementation Changes vs Previous Plan
+This links each evidence file to a specific staff line within the claim (matching the array index in `staff_details`). Existing claim-level evidence (where `staff_index IS NULL`) continues to work but new uploads will always include the staff index.
 
-#### 1. `nres_claim_evidence_config` table — update seed data
-- Change `applies_to` for SDA Slot Type and SDA Rota from `'buyback'` to `'all'`
-- LTC Slot Type and LTC Rota remain `'buyback'` only
+### UI changes
 
-#### 2. `ClaimEvidencePanel.tsx` — show for both routes
-- Currently planned for Buy-Back claims only
-- Update to also render on New SDA claims, but only show the 2 SDA evidence slots (filter by `applies_to` matching the claim category)
-- The panel queries `nres_claim_evidence_config` to determine which slots to display
+**Remove** the standalone `ClaimEvidencePanel` below the staff table.
 
-#### 3. `BuyBackClaimsTab.tsx` — submission gating for both routes
-- Apply the same "all mandatory evidence uploaded" check before enabling Submit, regardless of route
-- For New SDA: 2 mandatory files (SDA slot type + rota)
-- For Buy-Back: 4 mandatory files (SDA + LTC)
+**Add** an expandable evidence row beneath each staff member row in the table. After each staff member's main row (and notes row), render a collapsible evidence section showing:
+- For Buy-Back staff: 4 evidence slots (SDA Slot Type, SDA Rota, LTC Slot Type, LTC Rota) — all mandatory
+- For New SDA staff: 4 evidence slots — SDA pair mandatory, LTC pair optional (shown but not required for submission)
 
-#### 4. Everything else remains the same
-- Two-stage approval (Verified status) still only applies to Buy-Back
-- New SDA claims still go Submitted → Approved directly by SNO
-- Evidence config admin tab works for both — admins can toggle any evidence type on/off per route
-- Storage bucket, evidence table schema, hooks — all unchanged
+Each slot shows the upload button, uploaded file name, view/delete actions — same UI as current `EvidenceSlot` component but scoped to that staff member.
 
-### Files affected (same as previous plan, no new files)
+An expand/collapse toggle on each staff row (e.g., a chevron or "Evidence" button) reveals the evidence slots inline.
 
-| File | Additional Change |
-|------|------------------|
-| `ClaimEvidencePanel.tsx` | Render for New SDA claims too; filter evidence slots by route |
-| `BuyBackClaimsTab.tsx` | Apply evidence gating to New SDA submissions |
-| Database seed data | Set SDA evidence `applies_to = 'all'` |
+### Hook changes
+
+**`useNRESClaimEvidence.ts`**: 
+- Update `uploadEvidence` to accept `staffIndex` parameter and store it
+- Update `uploadedTypes` to be keyed by `staffIndex` → `evidenceType` (nested map)
+- Add helper `getFilesForStaff(staffIndex)` and `getUploadedTypesForStaff(staffIndex)`
+
+**`ClaimEvidencePanel.tsx`**:
+- Refactor `EvidenceSlot` into a reusable exported component
+- Create new `StaffLineEvidence` component that renders the appropriate slots for a single staff member
+- Update `useEvidenceComplete` to check per-staff-line: all Buy-Back staff must have all 4 mandatory docs; New SDA staff must have SDA pair
+
+### Submission gating
+
+Submit button disabled unless:
+- Every **Buy-Back** staff line has all mandatory evidence uploaded (SDA + LTC)
+- Every **New SDA** staff line has all mandatory SDA evidence uploaded
+- Declaration confirmed
+
+### Files affected
+
+| File | Change |
+|------|--------|
+| New migration | Add `staff_index` column to `nres_claim_evidence` |
+| `useNRESClaimEvidence.ts` | Add `staff_index` to uploads, restructure state by staff index |
+| `ClaimEvidencePanel.tsx` | Export `EvidenceSlot`, create `StaffLineEvidence`, update `useEvidenceComplete` for per-line checking |
+| `BuyBackClaimsTab.tsx` | Remove claim-level evidence panel, add inline evidence per staff row, update submission gating logic |
+| `supabase/types.ts` | Add `staff_index` to evidence type |
 
