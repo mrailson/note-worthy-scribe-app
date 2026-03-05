@@ -1,70 +1,29 @@
 
 
-## Batch Policy Generation Feature
+## Quick Guide — hosted inside `analyse-policy-gaps`
 
-### Overview
-Add a toggle to the Create New Policy page that switches between single-policy mode (default) and batch mode. In batch mode, users can add up to 3 policies to a visible basket, then queue them all at once — subject to a hard limit of 3 total active jobs (pending + generating + enhancing).
+### Approach
+Add an `action` field to the request body of `analyse-policy-gaps`. When `action === 'quick-guide'`, the function runs a different prompt and returns the quick guide markdown instead of the gap analysis JSON. Default behaviour (no action or `action === 'analyse'`) remains unchanged.
 
-### UI Design
+### Edge function change (`supabase/functions/analyse-policy-gaps/index.ts`)
 
-```text
-┌─────────────────────────────────────────────────┐
-│  Create New Policy                              │
-│                                                 │
-│  ┌─ Mode Toggle ─────────────────────────────┐  │
-│  │  Single Policy ○────● Batch Mode          │  │
-│  └───────────────────────────────────────────┘  │
-│                                                 │
-│  Select Policy Type                             │
-│  Search and select policies to add to your batch│
-│  ┌───────────────────────────────────────────┐  │
-│  │ [Search policies...]                      │  │
-│  │ ▼ Clinical (20)                           │  │
-│  │   ○ Cervical Screening        [+ Add]     │  │
-│  │   ○ Chaperone Policy          [+ Add]     │  │
-│  └───────────────────────────────────────────┘  │
-│                                                 │
-│  ┌─ Batch Queue (1/3) ──────────────────────┐   │
-│  │  ✓ Cervical Screening            [✕]     │   │
-│  │  (2 more slots available)                │   │
-│  └──────────────────────────────────────────┘   │
-│                                                 │
-│  [Cancel]                  [Generate 1 Policy]  │
-└─────────────────────────────────────────────────┘
-```
+- After parsing the request body, check for `action`:
+  - `'quick-guide'` → use dedicated quick guide system prompt (the 7-section structure: Purpose, When This Applies, Key Staff Responsibilities, Step-by-Step Process, Documentation Requirements, If Something Goes Wrong, Quick Reminders). Return `{ success: true, quick_guide: string }`.
+  - Anything else → existing gap analysis logic, untouched.
+- Same auth, same CORS, same 200k char limit, same model (`gemini-3-flash-preview`), `max_tokens: 4096` (one-page output).
 
-### Behaviour
+### Frontend changes
 
-1. **Toggle** — A `Switch` component at the top: "Single Policy" (default) vs "Batch Mode". When off, current single-select RadioGroup behaviour is unchanged.
+**`src/pages/PolicyServiceViewPolicy.tsx`**
+- Add state: `isGeneratingGuide`, `guideContent`, `isGuideOpen`.
+- Add a "Quick Guide" button (using `Zap` or `BookOpen` icon) in the action buttons row alongside Print, Copy, Download.
+- On click: call `supabase.functions.invoke('analyse-policy-gaps', { body: { action: 'quick-guide', extracted_text: policy.policy_content } })`.
+- On success: set `guideContent` and open the existing `AIResponsePanel` sheet.
+- `AIResponsePanel` already provides Copy, Word Download, Print, and Email — no changes needed there.
 
-2. **Batch mode on** — The `PolicyTypeSelector` switches from RadioGroup to a list with an "Add to Batch" button per policy row. Selected policies appear in a basket panel below.
+**`src/pages/PolicyServiceMyPolicies.tsx`**
+- Add a small "Quick Guide" icon button on each completed policy card.
+- Needs the policy content available — check if the list query already fetches `policy_content`. If not, add it to the select or fetch on-demand when the button is clicked.
 
-3. **Slot calculation** — On mount, query `policy_generation_jobs` for the user's active jobs (status in `pending`, `generating`, `enhancing`). Available slots = `3 - activeCount`. If 0 slots, batch toggle is disabled with a message: "You already have 3 policies in the queue."
-
-4. **Basket** — Shows selected policies with remove (✕) buttons. Counter shows "X/3" where 3 is the max minus active. Disables "Add" buttons when full.
-
-5. **Generate button** — Label updates dynamically: "Generate Policy" / "Generate 2 Policies" / "Generate 3 Policies". Confirmation dialog lists all selected policies.
-
-6. **Submission** — Inserts one `policy_generation_jobs` row per selected policy, then fires the queue kick once.
-
-### Technical Changes
-
-**File: `src/pages/PolicyServiceCreate.tsx`**
-- Add state: `batchMode`, `selectedPolicies: PolicyReference[]`, `activeJobCount`
-- On mount, fetch active job count for the user
-- Compute `availableSlots = 3 - activeJobCount`
-- In batch mode, pass `onAddToBatch` callback to `PolicyTypeSelector` instead of `onSelect`
-- Render batch basket panel when `batchMode` is on
-- Update `handleConfirmGenerate` to loop and insert multiple jobs
-- Update confirmation dialog to list all selected policy names
-
-**File: `src/components/policy/PolicyTypeSelector.tsx`**
-- Accept new optional props: `batchMode`, `selectedPolicies`, `onAddToBatch`, `onRemoveFromBatch`, `maxSelections`
-- When `batchMode` is true, replace RadioGroup with a plain list; each row shows an "Add" button (or "Added ✓" if already selected)
-- No other structural changes needed
-
-### Constraints
-- No database changes required — uses existing `policy_generation_jobs` table
-- Single mode remains the default and works exactly as today
-- Hard limit of 3 total active jobs enforced both in UI (slot count) and re-checked at submission time
+### No new files, no new edge functions, no database changes.
 
