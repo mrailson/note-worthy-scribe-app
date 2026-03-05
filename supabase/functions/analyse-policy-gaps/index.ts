@@ -632,65 +632,8 @@ ${documentText}
         }
       }
 
-      // ── Content-based section reordering (non-patient only) ──
-      if (audience !== 'patient') {
-        // Split into sections by numbered headings
-        const splitPattern = /(?=(?:^|\n)(?:#+\s*)?\d+\.\s+)/;
-        const rawSections = quickGuide.split(splitPattern).filter(s => s.trim());
-        
-        // Separate preamble (anything before first numbered section) from sections
-        const preamble: string[] = [];
-        const numberedSections: { content: string; canonicalIndex: number }[] = [];
-        
-        for (const raw of rawSections) {
-          const headingMatch = raw.match(/(?:#+\s*)?(\d+)\.\s+(.*?)(?:\n|$)/);
-          if (!headingMatch) {
-            preamble.push(raw);
-            continue;
-          }
-          
-          const headingText = headingMatch[2].trim().toLowerCase();
-          const fullContent = raw;
-          
-          // Match to canonical order by content keywords
-          let bestMatch = -1;
-          let bestScore = 0;
-          for (let ci = 0; ci < expectedSectionOrder.length; ci++) {
-            const canonName = expectedSectionOrder[ci];
-            const keywords = sectionContentKeywords[canonName] || [];
-            // Check heading similarity to canonical name
-            let score = 0;
-            if (headingText.includes(canonName.toLowerCase()) || canonName.toLowerCase().includes(headingText)) {
-              score += 10;
-            }
-            for (const kw of keywords) {
-              if (headingText.includes(kw) || fullContent.toLowerCase().includes(kw)) {
-                score += 1;
-              }
-            }
-            if (score > bestScore) {
-              bestScore = score;
-              bestMatch = ci;
-            }
-          }
-          
-          numberedSections.push({ content: fullContent, canonicalIndex: bestMatch >= 0 ? bestMatch : 99 });
-        }
-        
-        // Sort by canonical order
-        numberedSections.sort((a, b) => a.canonicalIndex - b.canonicalIndex);
-        
-        // Renumber sequentially
-        const reorderedSections = numberedSections.map((sec, idx) => {
-          return sec.content.replace(/(?:^|\n)(#+\s*)?\d+\./, (match, prefix) => {
-            return match.replace(/\d+/, String(idx + 1));
-          });
-        });
-        
-        quickGuide = [...preamble, ...reorderedSections].join('\n');
-        console.log(`📋 Sections reordered by content type. Order: ${numberedSections.map(s => s.canonicalIndex).join(',')}`);
-      } else {
-        // Patient leaflets: just renumber sequentially
+      // Simple sequential renumbering (preserve AI section order)
+      {
         let counter = 0;
         quickGuide = quickGuide.replace(/((?:^|\n)(?:#+\s*)?)(\d+)(\.\s+)/g, (match, prefix, _num, suffix) => {
           counter++;
