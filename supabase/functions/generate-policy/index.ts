@@ -54,7 +54,7 @@ Section 7 MUST contain a bulleted list of at least 10 specific, named policy tit
 Section 8.1 MUST contain a populated KPI table with at least 5 measurable Key Performance Indicators relevant to the specific policy type. Each KPI row must include: KPI Name, Target/Standard, Measurement Method, Frequency, and Responsible Person. Do NOT leave this section empty or with placeholder text.
 
 ## SECTION 11 - VERSION HISTORY (STRICT RULES)
-Section 11 must contain ONLY a version history table with columns: Version | Date | Author | Summary of Changes. This table must ALWAYS be populated - never leave it empty. Populate it as follows: Version = 1.0, Date = today's date in DD/MM/YYYY format, Author = the Practice Manager name from the practice details provided, Summary = "Initial issue - new policy created for [Practice Name]" (replacing [Practice Name] with the actual practice name). Do NOT output internal notes, compliance gap analyses, AI instructions, or enhancement commentary into section 11.
+Section 11 must contain ONLY a version history table with columns: Version | Date | Author | Summary. This table must ALWAYS be populated and must use exactly: Version = 1.0, Date = today's date in DD/MM/YYYY format, Author = the Practice Manager name from the practice details provided, Summary = "Initial issue". Do NOT output internal notes, compliance gap analyses, AI instructions, or enhancement commentary into section 11.
 
 ## PLACEHOLDER REPLACEMENT (MANDATORY - FINAL STEP)
 Before returning the enhanced policy, you MUST replace every placeholder where the value is known from the practice profile data provided in the user prompt. Specifically:
@@ -169,7 +169,7 @@ You are generating the FINAL PART of a policy document. Sections 1-6 already exi
 8. MONITORING AND COMPLIANCE (Section 8.1 MUST contain a KPI table with at least 5 measurable KPIs: KPI Name | Target/Standard | Measurement Method | Frequency | Responsible Person)
 9. REFERENCES AND LEGISLATION
 10. APPENDICES
-11. VERSION HISTORY (MUST contain a populated version history table: Version 1.0, today's date DD/MM/YYYY, Practice Manager as author, "Initial issue - new policy created for [Practice Name]" as summary)
+11. VERSION HISTORY (MUST contain only this populated version history table: Version = 1.0, Date = today's date DD/MM/YYYY, Author = Practice Manager, Summary = "Initial issue")
 
 CRITICAL: Section 8.1 KPI table is MANDATORY with 5+ rows. Section 11 must ONLY contain the version history table - no notes or commentary.
 
@@ -302,6 +302,74 @@ function stripInternalQuoteLines(content: string): string {
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+function removeForbiddenGapAnalysisTables(content: string): string {
+  if (!content) return content;
+
+  const lines = content.split('\n');
+  const kept: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const current = lines[i];
+
+    if (current.trim().startsWith('|')) {
+      let end = i;
+      while (end < lines.length && lines[end].trim().startsWith('|')) {
+        end++;
+      }
+
+      const tableLines = lines.slice(i, end);
+      const tableText = tableLines.join('\n').toLowerCase();
+      const isForbiddenGapTable =
+        /(gaps?|gap analysis)/.test(tableText) &&
+        /(sections?\s*affected|section)/.test(tableText) &&
+        /(actions?\s*required|required actions?)/.test(tableText);
+
+      if (isForbiddenGapTable) {
+        if (kept.length > 0) {
+          const prev = kept[kept.length - 1];
+          if (/gap analysis|sections?\s*affected|actions?\s*required/i.test(prev)) {
+            kept.pop();
+          }
+        }
+        i = end - 1;
+        continue;
+      }
+    }
+
+    kept.push(current);
+  }
+
+  return kept.join('\n');
+}
+
+function enforceSection11ExactTable(content: string, practiceManagerName: string): string {
+  if (!content) return content;
+
+  const today = new Date().toLocaleDateString('en-GB');
+  const author = practiceManagerName || 'Practice Manager';
+  const exactTable = `| Version | Date | Author | Summary |\n|---|---|---|---|\n| 1.0 | ${today} | ${author} | Initial issue |`;
+
+  const headingRegex = /(?:^|\n)((?:#{1,6}\s*)?11\.\s*VERSION HISTORY[^\n]*)/i;
+  const headingMatch = headingRegex.exec(content);
+
+  if (headingMatch) {
+    const headingLine = headingMatch[1].trim();
+    const sectionStart = (headingMatch.index ?? 0) + (headingMatch[0].startsWith('\n') ? 1 : 0);
+    const beforeSection = content.slice(0, sectionStart).trimEnd();
+    return `${beforeSection}\n\n${headingLine}\n${exactTable}`;
+  }
+
+  return `${content.trim()}\n\n11. VERSION HISTORY\n${exactTable}`;
+}
+
+function sanitisePolicyOutput(content: string, practiceManagerName: string): string {
+  const withoutInternalQuoteLines = stripInternalQuoteLines(content);
+  const withoutGapAnalysisTables = removeForbiddenGapAnalysisTables(withoutInternalQuoteLines);
+  const withExactVersionHistory = enforceSection11ExactTable(withoutGapAnalysisTables, practiceManagerName);
+
+  return withExactVersionHistory.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 // Helper: stream Anthropic response while sending keepalive pings to the client
@@ -839,6 +907,7 @@ Now generate sections 7-11 to complete this policy, followed by the ===METADATA=
 
           let policyContent = job.generated_content || '';
           const enhanceRetries = jobMetadata.enhance_retries || 0;
+          const practiceManagerName = (jobPractice as any)?.practice_manager_name || (jobPractice as any)?.practice_manager || 'Practice Manager';
 
           if (enhanceRetries >= 2 || policyContent.length > 25000) {
             console.log(`[Step: enhance] Skipping enhancement (retries: ${enhanceRetries}, length: ${policyContent.length})`);
@@ -869,12 +938,14 @@ A) Check Section 7 (Related Policies): Does it contain a bulleted list of at lea
 - Clinical Governance Policy
 Replace these examples with titles specifically relevant to this ${policyName} policy.
 
-B) Check Section 11 (Version History): Does it contain a version history table? If NOT, generate it now using this format:
-| Version | Date | Author | Summary of Changes |
-|---------|------|--------|-------------------|
-| 1.0 | ${new Date().toLocaleDateString('en-GB')} | ${(jobPractice as any)?.practice_manager || 'Practice Manager'} | Initial issue |
+B) Check Section 11 (Version History): Section 11 must contain ONLY this exact table (no extra text before or after):
+| Version | Date | Author | Summary |
+|---|---|---|---|
+| 1.0 | ${new Date().toLocaleDateString('en-GB')} | ${practiceManagerName} | Initial issue |
 
-If either section is missing or incomplete, you MUST add it before returning. Do not skip this step.
+C) Check the entire document for any gap-analysis table listing gaps, sections affected, and actions required. If found anywhere, delete that table entirely before returning.
+
+If any check fails, you MUST fix it before returning. Do not skip this step.
 
 PRACTICE DATA FOR PLACEHOLDER REPLACEMENT:
 ${practiceContext}
@@ -885,8 +956,8 @@ ${policyContent}`;
             try {
               const enhanced = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, enhancePrompt, 10000);
               if (enhanced && enhanced.length > 500) {
-                policyContent = stripInternalQuoteLines(enhanced);
-                console.log(`[Step: enhance] Enhancement succeeded - ${policyContent.length} chars (stripped internal lines)`);
+                policyContent = sanitisePolicyOutput(enhanced, practiceManagerName);
+                console.log(`[Step: enhance] Enhancement succeeded - ${policyContent.length} chars (fully sanitised)`);
               } else {
                 console.warn(`[Step: enhance] Enhancement returned insufficient content, using original`);
               }
@@ -902,6 +973,8 @@ ${policyContent}`;
                 .eq('id', job.id);
             }
           }
+
+          policyContent = sanitisePolicyOutput(policyContent, practiceManagerName);
 
           // Advance to finalise
           await serviceSupabase
@@ -931,7 +1004,8 @@ ${policyContent}`;
           await updateHeartbeat(serviceSupabase, job.id, 'finalise', 90);
 
           const rawPolicyContent = job.generated_content || '';
-          const policyContent = stripInternalQuoteLines(rawPolicyContent);
+          const practiceManagerName = (jobPractice as any)?.practice_manager_name || (jobPractice as any)?.practice_manager || 'Practice Manager';
+          const policyContent = sanitisePolicyOutput(rawPolicyContent, practiceManagerName);
 
           // Save to policy_completions
           try {
