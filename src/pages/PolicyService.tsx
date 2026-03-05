@@ -2,17 +2,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
-import { FilePlus, RefreshCw, FileText, ArrowRight, UserCog, FolderCheck, HelpCircle, Settings, Search, Sparkles, Download } from "lucide-react";
+import { FilePlus, RefreshCw, FileText, ArrowRight, UserCog, FolderCheck, HelpCircle, Settings, Search, Sparkles, Download, CheckCircle2, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyJobs } from "@/hooks/usePolicyJobs";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
+import { usePracticeProfileCompletion } from "@/hooks/usePracticeProfileCompletion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
 
 const PolicyService = () => {
   const navigate = useNavigate();
   const { activeJobCount } = usePolicyJobs();
   const { completions } = usePolicyCompletions();
+  const profileCompletion = usePracticeProfileCompletion();
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
   const actionCards = [
@@ -112,25 +115,61 @@ const PolicyService = () => {
 
         {/* Practice Profile Defaults — one-time setup banner */}
         <div
-          className="mb-8 border-2 border-dashed border-muted-foreground/25 rounded-lg bg-muted/30 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 cursor-pointer hover:border-primary/40 transition-colors"
+          className={`mb-8 border-2 border-dashed rounded-lg p-5 flex flex-col gap-4 cursor-pointer transition-colors ${
+            profileCompletion.missing.length === 0
+              ? 'border-green-300 bg-green-50/50 hover:border-green-400 dark:border-green-700 dark:bg-green-950/20'
+              : 'border-muted-foreground/25 bg-muted/30 hover:border-primary/40'
+          }`}
           onClick={() => navigate('/policy-service/profile')}
         >
-          <div className="p-2.5 bg-primary/10 rounded-lg shrink-0">
-            <UserCog className="h-6 w-6 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-semibold text-foreground">Practice Profile Defaults</span>
-              <Badge variant="outline" className="text-xs">One-time setup</Badge>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className={`p-2.5 rounded-lg shrink-0 ${
+              profileCompletion.missing.length === 0 ? 'bg-green-100 dark:bg-green-900/30' : 'bg-primary/10'
+            }`}>
+              <UserCog className={`h-6 w-6 ${
+                profileCompletion.missing.length === 0 ? 'text-green-600 dark:text-green-400' : 'text-primary'
+              }`} />
             </div>
-            <p className="text-sm text-muted-foreground">
-              Set up key personnel details (Practice Manager, DPO, Caldicott Guardian, SIRO, etc.) so they're automatically inserted into every policy.
-            </p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-semibold text-foreground">Practice Profile Defaults</span>
+                {!profileCompletion.isLoading && (
+                  profileCompletion.missing.length === 0 ? (
+                    <Badge className="text-xs bg-green-100 text-green-700 border-green-300 dark:bg-green-900/40 dark:text-green-300 dark:border-green-700">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      All 12 roles set
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="text-xs">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      {profileCompletion.missing.length} of {profileCompletion.total} roles missing
+                    </Badge>
+                  )
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Set up key personnel details (Practice Manager, DPO, Caldicott Guardian, SIRO, etc.) so they're automatically inserted into every policy.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/policy-service/profile'); }}>
+              Configure
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
           </div>
-          <Button variant="outline" size="sm" className="shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/policy-service/profile'); }}>
-            Configure
-            <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
+
+          {/* Missing roles list */}
+          {!profileCompletion.isLoading && profileCompletion.missing.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pl-[52px]">
+              {profileCompletion.missing.map(role => (
+                <span
+                  key={role}
+                  className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20"
+                >
+                  {role}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* How This Works — collapsed */}
