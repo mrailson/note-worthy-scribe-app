@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { userNameCorrections } from '@/utils/UserNameCorrections';
 
 type GenerationPhase = 'preparing' | 'generating' | 'downloading' | 'complete';
 
@@ -9,6 +10,8 @@ interface ContentInfographicOptions {
   detailLevel?: string;
   imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   orientation?: 'portrait' | 'landscape';
+  practiceName?: string;
+  spellingCorrections?: { incorrect: string; correct: string }[];
 }
 
 // Style prompt mappings
@@ -99,6 +102,8 @@ export const useContentInfographic = () => {
       detailLevel = 'standard',
       imageModel = 'google/gemini-2.5-flash-image-preview',
       orientation = 'landscape',
+      practiceName,
+      spellingCorrections,
     } = options;
     
     setIsGenerating(true);
@@ -108,14 +113,38 @@ export const useContentInfographic = () => {
     try {
       const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS['professional'];
       const detailPrompt = DETAIL_PROMPTS[detailLevel] || DETAIL_PROMPTS['standard'];
-      const documentContent = formatContentForInfographic(content, title);
+
+      // --- Content quality hardening (mirrors Quick Guide pipeline) ---
+
+      // 1. Apply user name corrections to source content before AI sees it
+      if (!userNameCorrections.isLoaded()) {
+        await userNameCorrections.loadCorrections();
+      }
+      let cleanedContent = userNameCorrections.applyCorrections(content);
+
+      // 2. Remove consecutive duplicate words
+      cleanedContent = cleanedContent.replace(/\b(\w+)([,;.]?\s+)\1\b/gi, '$1$2');
+
+      const documentContent = formatContentForInfographic(cleanedContent, title);
+
+      // 3. Build user spelling corrections block for the prompt
+      let userCorrectionsBlock = '';
+      if (spellingCorrections && spellingCorrections.length > 0) {
+        userCorrectionsBlock = `\n\nMANDATORY USER SPELLING CORRECTIONS:\n${spellingCorrections.map(c => `- Always spell "${c.correct}" (NOT "${c.incorrect}")`).join('\n')}\n`;
+      }
+
+      // 4. Practice name injection
+      let practiceNameBlock = '';
+      if (practiceName && practiceName.trim()) {
+        practiceNameBlock = `\nThis infographic is for ${practiceName}.\nInclude the practice name "${practiceName}" in the title or header area.\n`;
+      }
       
       const orientationPrompt = orientation === 'portrait'
         ? 'Portrait orientation (9:16 aspect ratio) suitable for A4 printing'
         : 'Landscape orientation (16:9 aspect ratio) suitable for presentations and widescreen displays';
 
       const imagePrompt = `Create a professional, visually compelling infographic that summarises the following content.
-
+${practiceNameBlock}
 VISUAL STYLE: ${stylePrompt}
 
 DETAIL LEVEL: ${detailPrompt}
@@ -130,7 +159,7 @@ CRITICAL REQUIREMENTS:
 - Use colour coding to group related information
 - Ensure text is readable and well-spaced
 - Make it suitable for professional presentations
-
+${userCorrectionsBlock}
 CONTENT TO VISUALISE:
 ${documentContent}`;
 

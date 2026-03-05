@@ -17,6 +17,7 @@ import {
 } from '@/utils/colourPalettes';
 import type { GeneratedImage } from '@/types/ai4gp';
 import { optimiseImageForUpload, getBase64SizeKB } from '@/utils/imageOptimiser';
+import { userNameCorrections } from '@/utils/UserNameCorrections';
 
 // Error codes from edge function
 type ErrorCode = 'RATE_LIMIT' | 'CONTENT_MODERATION' | 'PAYMENT_REQUIRED' | 'TIMEOUT' | 'UNKNOWN';
@@ -357,6 +358,22 @@ export function useImageStudio() {
           imageModel: model as ImageStudioRequest['imageModel'],
           isStudioRequest: true,
         };
+
+        // Load and attach user spelling corrections
+        try {
+          if (!userNameCorrections.isLoaded()) {
+            await userNameCorrections.loadCorrections();
+          }
+          const allCorrections = await userNameCorrections.getAllCorrections();
+          const activeCorrections = allCorrections
+            .filter(c => c.is_active)
+            .map(c => ({ incorrect: c.incorrect_spelling, correct: c.correct_spelling }));
+          if (activeCorrections.length > 0) {
+            (request as any).spellingCorrections = activeCorrections;
+          }
+        } catch (e) {
+          console.warn('⚠️ Could not load spelling corrections:', e);
+        }
 
         // Log request details for debugging
         const estimatedPayloadSize = JSON.stringify(request).length / 1024;

@@ -112,4 +112,7 @@ export interface ImageStudioRequest {
   
   // Studio mode flag
   isStudioRequest: true;
+  
+  // User spelling corrections
+  spellingCorrections?: { incorrect: string; correct: string }[];
 }
