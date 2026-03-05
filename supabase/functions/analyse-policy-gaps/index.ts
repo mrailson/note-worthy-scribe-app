@@ -167,6 +167,22 @@ Clearly separate clinical vs administrative responsibilities where relevant.`;
 
       const audienceLabel = audience === 'non-clinical' ? 'Non-Clinical Staff' : audience === 'clinical' ? 'Clinical Staff' : audience === 'patient' ? 'Patient' : 'All Staff';
 
+      // ── FIX 1: Build separated practice reference data block ──
+      const practiceStaffNames: string[] = body.practice_staff_names || [];
+      let practiceReferenceBlock = '';
+      if (practiceStaffNames.length > 0) {
+        practiceReferenceBlock = `
+
+═══════════════════════════════════════════════════════
+PRACTICE REFERENCE DATA — USE ONLY FOR NAMED ROLES, DO NOT USE AS VOCABULARY
+The following are staff names from the practice profile. Use them ONLY when referring to specific named role holders (e.g. "The Practice Manager is [Name]"). Do NOT use any of these names as substitutes for ordinary English words. These names must NEVER replace or be confused with common words.
+═══════════════════════════════════════════════════════
+${practiceStaffNames.join('\n')}
+═══════════════════════════════════════════════════════
+END PRACTICE REFERENCE DATA
+═══════════════════════════════════════════════════════`;
+      }
+
       let quickGuideSystem: string;
       let quickGuideUserPrompt: string;
 
@@ -241,9 +257,12 @@ The leaflet must be easy for patients to read in under two minutes.
 The leaflet should be suitable for:
 • the practice website
 • waiting room posters
-• printed patient information leaflets`;
+• printed patient information leaflets
 
-        quickGuideUserPrompt = `Generate a patient information leaflet for the following policy document:
+CRITICAL INSTRUCTION: The practice reference data below contains staff names. These are proper nouns referring to real people. You must NEVER use these names as replacements for common English words. For example, if a staff member is named "Paul", you must still use the word "put" when you mean "put" — never substitute "Paul" for "put" or any other word. Staff names must ONLY appear when explicitly naming a role holder.${practiceReferenceBlock}`;
+
+        quickGuideUserPrompt = `CONTENT INSTRUCTIONS:
+Generate a patient information leaflet for the following policy document:
 
 ---POLICY DOCUMENT START---
 ${documentText}
@@ -290,9 +309,12 @@ Formatting requirements:
 • Maximum length: one page
 • Use plain NHS-appropriate language
 
-This guide should be readable in under two minutes.`;
+This guide should be readable in under two minutes.
 
-        quickGuideUserPrompt = `Generate a quick guide for the following policy document:
+CRITICAL INSTRUCTION: The practice reference data below contains staff names. These are proper nouns referring to real people. You must NEVER use these names as replacements for common English words. For example, if a staff member is named "Paul", you must still use the word "put" when you mean "put" — never substitute "Paul" for "put" or any other word. Staff names must ONLY appear when explicitly naming a role holder.${practiceReferenceBlock}`;
+
+        quickGuideUserPrompt = `CONTENT INSTRUCTIONS:
+Generate a quick guide for the following policy document:
 
 ---POLICY DOCUMENT START---
 ${documentText}
@@ -301,66 +323,197 @@ ${documentText}
 
       console.log('Generating quick guide, text length:', extracted_text.length);
 
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-3-flash-preview',
-          max_tokens: 4096,
-          messages: [
-            { role: 'system', content: quickGuideSystem },
-            { role: 'user', content: quickGuideUserPrompt },
-          ],
-        }),
-      });
+      // ── FIX 3: Use Claude (Anthropic) for quick guides instead of Gemini/GPT ──
+      const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+      let quickGuide = '';
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('AI Gateway error:', response.status, errorText);
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: 'Rate limits exceeded, please try again later.' }), {
-            status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+      if (ANTHROPIC_API_KEY) {
+        console.log('Using Claude for quick guide generation (anti-contamination)');
+        const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4096,
+            system: quickGuideSystem,
+            messages: [
+              { role: 'user', content: quickGuideUserPrompt },
+            ],
+          }),
+        });
+
+        if (!claudeResponse.ok) {
+          const errorText = await claudeResponse.text();
+          console.error('Claude API error:', claudeResponse.status, errorText);
+          // Fall back to Lovable AI Gateway
+          console.log('Falling back to Lovable AI Gateway');
+        } else {
+          const claudeData = await claudeResponse.json();
+          quickGuide = claudeData.content?.[0]?.text || '';
         }
-        throw new Error(`AI gateway error: ${response.status}`);
       }
 
-      const responseText = await response.text();
-      if (!responseText || responseText.trim().length === 0) {
-        throw new Error('AI returned an empty response');
+      // Fallback to Lovable AI Gateway if Claude unavailable or failed
+      if (!quickGuide) {
+        console.log('Using Lovable AI Gateway for quick guide generation');
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            max_tokens: 4096,
+            messages: [
+              { role: 'system', content: quickGuideSystem },
+              { role: 'user', content: quickGuideUserPrompt },
+            ],
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('AI Gateway error:', response.status, errorText);
+          if (response.status === 429) {
+            return new Response(JSON.stringify({ error: 'Rate limits exceeded, please try again later.' }), {
+              status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          throw new Error(`AI gateway error: ${response.status}`);
+        }
+
+        const responseText = await response.text();
+        if (!responseText || responseText.trim().length === 0) {
+          throw new Error('AI returned an empty response');
+        }
+
+        const data = JSON.parse(responseText);
+        quickGuide = data.choices?.[0]?.message?.content || '';
       }
 
-      const data = JSON.parse(responseText);
-      let quickGuide = data.choices?.[0]?.message?.content || '';
+      if (!quickGuide) {
+        throw new Error('AI returned an empty quick guide');
+      }
 
-      // ── Fix 1: Strip footer prompt leak ──
-      // The AI sometimes renders internal prompt instructions after "NoteWell AI" / "Notewell AI"
+      // ── Strip footer prompt leak ──
       quickGuide = quickGuide.replace(
         /(Powered\s+by\s+Note[Ww]ell\s+AI)[''"""'´`].*/g,
         '$1'
       );
 
-      // ── Fix 2: Fuzzy staff name correction against practice profile ──
-      const practiceStaffNames: string[] = body.practice_staff_names || [];
+      // ── FIX 2: Post-generation corruption check ──
+      // Scan for staff names appearing in non-name contexts (token contamination)
+      if (practiceStaffNames.length > 0) {
+        // Extract individual first names and surnames (3+ chars) from all staff entries
+        const nameTokens = new Set<string>();
+        for (const fullName of practiceStaffNames) {
+          for (const part of fullName.split(/\s+/)) {
+            const cleaned = part.replace(/[^a-zA-Z]/g, '');
+            // Only check names 3+ chars that could be confused with words
+            // Skip common title prefixes
+            if (cleaned.length >= 3 && !['Dr', 'Mr', 'Ms', 'Mrs', 'Miss', 'Prof', 'The'].includes(cleaned)) {
+              nameTokens.add(cleaned);
+            }
+          }
+        }
+
+        if (nameTokens.size > 0) {
+          // Build a regex that matches name tokens NOT preceded by title/role context
+          const escapedNames = Array.from(nameTokens).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+          const titlePrefixes = `(?:Dr\\.?|Mr\\.?|Ms\\.?|Mrs\\.?|Miss|Prof\\.?|Lead|Manager|Nurse|Officer|Guardian|Partner|Pharmacist|Paramedic|Secretary|Receptionist|Administrator)`;
+          const corruptionPattern = new RegExp(
+            `(?<!${titlePrefixes}\\s)(?<!${titlePrefixes}\\s\\w+\\s)\\b(${escapedNames.join('|')})\\b(?!\\s+[A-Z][a-z])`,
+            'g'
+          );
+
+          // Count occurrences — a few legitimate uses are expected, but >5 suggests contamination
+          const matches = quickGuide.match(corruptionPattern) || [];
+          // Count unique contexts (not just repeated legitimate references)
+          const suspiciousCount = matches.length;
+
+          if (suspiciousCount > 8) {
+            console.warn(`⚠️ Corruption detected: ${suspiciousCount} suspicious name-token occurrences. Regenerating...`);
+
+            // Regenerate once with an even stronger anti-contamination instruction
+            const antiContaminationSuffix = `\n\nABSOLUTE RULE: In your previous attempt, staff names from the practice profile leaked into ordinary text as word substitutions. This is UNACCEPTABLE. Every common English word must remain as-is. Staff names are ONLY for labelling role holders. Double-check every sentence before outputting.`;
+
+            const retrySystem = quickGuideSystem + antiContaminationSuffix;
+
+            let retryGuide = '';
+            if (ANTHROPIC_API_KEY) {
+              const retryResp = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                  'x-api-key': ANTHROPIC_API_KEY,
+                  'anthropic-version': '2023-06-01',
+                  'content-type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'claude-sonnet-4-20250514',
+                  max_tokens: 4096,
+                  system: retrySystem,
+                  messages: [{ role: 'user', content: quickGuideUserPrompt }],
+                }),
+              });
+              if (retryResp.ok) {
+                const retryData = await retryResp.json();
+                retryGuide = retryData.content?.[0]?.text || '';
+              }
+            }
+
+            if (!retryGuide) {
+              const retryResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'google/gemini-3-flash-preview',
+                  max_tokens: 4096,
+                  messages: [
+                    { role: 'system', content: retrySystem },
+                    { role: 'user', content: quickGuideUserPrompt },
+                  ],
+                }),
+              });
+              if (retryResp.ok) {
+                const retryText = await retryResp.text();
+                const retryData = JSON.parse(retryText);
+                retryGuide = retryData.choices?.[0]?.message?.content || '';
+              }
+            }
+
+            if (retryGuide) {
+              quickGuide = retryGuide.replace(
+                /(Powered\s+by\s+Note[Ww]ell\s+AI)[''"""'´`].*/g,
+                '$1'
+              );
+              console.log('✅ Regenerated quick guide after corruption detection');
+            }
+          }
+        }
+      }
+
+      // ── Legacy fuzzy staff name correction (kept as safety net) ──
       if (practiceStaffNames.length > 0) {
         const corrections: string[] = [];
-        // Split output into words, check each against canonical names
-        const words = quickGuide.split(/(\s+)/); // preserve whitespace
+        const words = quickGuide.split(/(\s+)/);
         for (let i = 0; i < words.length; i++) {
-          const word = words[i].replace(/[^a-zA-Z'-]/g, ''); // strip punctuation for matching
-          if (word.length < 3) continue; // skip short words
+          const word = words[i].replace(/[^a-zA-Z'-]/g, '');
+          if (word.length < 3) continue;
           for (const canonicalName of practiceStaffNames) {
-            // Split canonical name into parts (e.g. "Dr Sarah Jones" → ["Dr", "Sarah", "Jones"])
             const nameParts = canonicalName.split(/\s+/);
             for (const part of nameParts) {
               if (part.length < 3) continue;
-              if (word.toLowerCase() === part.toLowerCase()) break; // exact match, no correction needed
+              if (word.toLowerCase() === part.toLowerCase()) break;
               const dist = levenshtein(word.toLowerCase(), part.toLowerCase());
               if (dist > 0 && dist <= 2 && word.length >= 3) {
-                // Preserve the original punctuation around the word
                 const original = words[i];
                 const replaced = original.replace(word, part);
                 if (replaced !== original) {
