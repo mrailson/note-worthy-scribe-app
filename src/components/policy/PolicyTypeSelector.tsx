@@ -3,7 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Loader2, Plus, Check } from "lucide-react";
 import { usePolicyReferenceLibrary, PolicyReference } from "@/hooks/usePolicyReferenceLibrary";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -11,6 +12,10 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 interface PolicyTypeSelectorProps {
   selectedPolicy: PolicyReference | null;
   onSelect: (policy: PolicyReference) => void;
+  batchMode?: boolean;
+  selectedPolicies?: PolicyReference[];
+  onAddToBatch?: (policy: PolicyReference) => void;
+  maxSelections?: number;
 }
 
 const categoryOrder = [
@@ -36,7 +41,14 @@ const priorityColors: Record<string, string> = {
   'Service-specific': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
 };
 
-export const PolicyTypeSelector = ({ selectedPolicy, onSelect }: PolicyTypeSelectorProps) => {
+export const PolicyTypeSelector = ({ 
+  selectedPolicy, 
+  onSelect, 
+  batchMode = false, 
+  selectedPolicies = [], 
+  onAddToBatch, 
+  maxSelections = 3 
+}: PolicyTypeSelectorProps) => {
   const { policies, isLoading } = usePolicyReferenceLibrary();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<string[]>(categoryOrder);
@@ -66,6 +78,9 @@ export const PolicyTypeSelector = ({ selectedPolicy, onSelect }: PolicyTypeSelec
     );
   };
 
+  const isInBatch = (policyId: string) => selectedPolicies.some(p => p.id === policyId);
+  const isBatchFull = selectedPolicies.length >= maxSelections;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -74,6 +89,121 @@ export const PolicyTypeSelector = ({ selectedPolicy, onSelect }: PolicyTypeSelec
       </div>
     );
   }
+
+  const renderPolicyRow = (policy: PolicyReference) => {
+    if (batchMode) {
+      const added = isInBatch(policy.id);
+      return (
+        <div
+          key={policy.id}
+          className={`flex items-start gap-3 p-3 rounded-md border transition-colors ${
+            added ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted'
+          }`}
+        >
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm">{policy.policy_name}</p>
+            {policy.description && (
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                {policy.description}
+              </p>
+            )}
+            <div className="flex gap-2 mt-2">
+              <Badge variant="outline" className={`text-xs ${kloeColors[policy.cqc_kloe] || ''}`}>
+                {policy.cqc_kloe}
+              </Badge>
+              <Badge variant="outline" className={`text-xs ${priorityColors[policy.priority] || ''}`}>
+                {policy.priority}
+              </Badge>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant={added ? "secondary" : "outline"}
+            disabled={!added && isBatchFull}
+            className="shrink-0 mt-1"
+            onClick={() => {
+              if (!added && onAddToBatch) {
+                onAddToBatch(policy);
+              }
+            }}
+          >
+            {added ? (
+              <>
+                <Check className="h-3.5 w-3.5 mr-1" />
+                Added
+              </>
+            ) : (
+              <>
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add
+              </>
+            )}
+          </Button>
+        </div>
+      );
+    }
+
+    // Single mode — original RadioGroup row
+    return (
+      <div
+        key={policy.id}
+        className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${
+          selectedPolicy?.id === policy.id
+            ? 'border-primary bg-primary/5'
+            : 'border-transparent hover:bg-muted'
+        }`}
+        onClick={() => onSelect(policy)}
+      >
+        <RadioGroupItem value={policy.id} id={policy.id} className="mt-1" />
+        <div className="flex-1 min-w-0">
+          <Label htmlFor={policy.id} className="font-medium text-sm cursor-pointer">
+            {policy.policy_name}
+          </Label>
+          {policy.description && (
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+              {policy.description}
+            </p>
+          )}
+          <div className="flex gap-2 mt-2">
+            <Badge variant="outline" className={`text-xs ${kloeColors[policy.cqc_kloe] || ''}`}>
+              {policy.cqc_kloe}
+            </Badge>
+            <Badge variant="outline" className={`text-xs ${priorityColors[policy.priority] || ''}`}>
+              {policy.priority}
+            </Badge>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const categoryList = (
+    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+      {categoryOrder.map(category => {
+        const categoryPolicies = groupedPolicies[category] || [];
+        if (categoryPolicies.length === 0) return null;
+
+        const isExpanded = expandedCategories.includes(category);
+
+        return (
+          <Collapsible key={category} open={isExpanded} onOpenChange={() => toggleCategory(category)}>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 px-3 bg-muted rounded-md hover:bg-muted/80 transition-colors">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="font-medium">{category}</span>
+              <Badge variant="secondary" className="ml-auto">{categoryPolicies.length}</Badge>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 space-y-1 pl-4">
+              {categoryPolicies.map(renderPolicyRow)}
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -94,72 +224,19 @@ export const PolicyTypeSelector = ({ selectedPolicy, onSelect }: PolicyTypeSelec
       </p>
 
       {/* Policy Categories */}
-      <RadioGroup
-        value={selectedPolicy?.id || ""}
-        onValueChange={(value) => {
-          const policy = policies.find(p => p.id === value);
-          if (policy) onSelect(policy);
-        }}
-      >
-        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-          {categoryOrder.map(category => {
-            const categoryPolicies = groupedPolicies[category] || [];
-            if (categoryPolicies.length === 0) return null;
-
-            const isExpanded = expandedCategories.includes(category);
-
-            return (
-              <Collapsible key={category} open={isExpanded} onOpenChange={() => toggleCategory(category)}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 px-3 bg-muted rounded-md hover:bg-muted/80 transition-colors">
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span className="font-medium">{category}</span>
-                  <Badge variant="secondary" className="ml-auto">{categoryPolicies.length}</Badge>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-2 space-y-1 pl-4">
-                  {categoryPolicies.map(policy => (
-                    <div
-                      key={policy.id}
-                      className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${
-                        selectedPolicy?.id === policy.id
-                          ? 'border-primary bg-primary/5'
-                          : 'border-transparent hover:bg-muted'
-                      }`}
-                      onClick={() => onSelect(policy)}
-                    >
-                      <RadioGroupItem value={policy.id} id={policy.id} className="mt-1" />
-                      <div className="flex-1 min-w-0">
-                        <Label
-                          htmlFor={policy.id}
-                          className="font-medium text-sm cursor-pointer"
-                        >
-                          {policy.policy_name}
-                        </Label>
-                        {policy.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                            {policy.description}
-                          </p>
-                        )}
-                        <div className="flex gap-2 mt-2">
-                          <Badge variant="outline" className={`text-xs ${kloeColors[policy.cqc_kloe] || ''}`}>
-                            {policy.cqc_kloe}
-                          </Badge>
-                          <Badge variant="outline" className={`text-xs ${priorityColors[policy.priority] || ''}`}>
-                            {policy.priority}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
-        </div>
-      </RadioGroup>
+      {batchMode ? (
+        categoryList
+      ) : (
+        <RadioGroup
+          value={selectedPolicy?.id || ""}
+          onValueChange={(value) => {
+            const policy = policies.find(p => p.id === value);
+            if (policy) onSelect(policy);
+          }}
+        >
+          {categoryList}
+        </RadioGroup>
+      )}
 
       {/* Empty State */}
       {filteredPolicies.length === 0 && (

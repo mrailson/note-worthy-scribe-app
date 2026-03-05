@@ -12,14 +12,18 @@ import {
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, FileText, Loader2, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, ArrowRight, FileText, Loader2, Clock, X, Layers } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PolicyTypeSelector } from "@/components/policy/PolicyTypeSelector";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-
 import { PolicyReference } from "@/hooks/usePolicyReferenceLibrary";
+
+const MAX_ACTIVE_JOBS = 3;
 
 const PolicyServiceCreate = () => {
   const navigate = useNavigate();
@@ -28,25 +32,88 @@ const PolicyServiceCreate = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // Batch mode state
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedPolicies, setSelectedPolicies] = useState<PolicyReference[]>([]);
+  const [activeJobCount, setActiveJobCount] = useState(0);
+  const [loadingSlots, setLoadingSlots] = useState(true);
+
+  const availableSlots = Math.max(0, MAX_ACTIVE_JOBS - activeJobCount);
+
+  // Fetch active job count on mount
+  useEffect(() => {
+    if (!user) return;
+    const fetchActiveCount = async () => {
+      setLoadingSlots(true);
+      try {
+        const { count, error } = await supabase
+          .from('policy_generation_jobs')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .in('status', ['pending', 'generating', 'enhancing']);
+        if (!error && count !== null) setActiveJobCount(count);
+      } catch (e) {
+        console.error('Failed to fetch active job count:', e);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+    fetchActiveCount();
+  }, [user]);
+
   const handlePolicySelect = (policy: PolicyReference) => {
     setSelectedPolicy(policy);
   };
 
+  const handleAddToBatch = (policy: PolicyReference) => {
+    if (selectedPolicies.length >= availableSlots) return;
+    if (selectedPolicies.some(p => p.id === policy.id)) return;
+    setSelectedPolicies(prev => [...prev, policy]);
+  };
+
+  const handleRemoveFromBatch = (policyId: string) => {
+    setSelectedPolicies(prev => prev.filter(p => p.id !== policyId));
+  };
+
   const handleGenerate = () => {
-    if (!selectedPolicy) {
-      toast.error("Please select a policy type");
-      return;
+    if (batchMode) {
+      if (selectedPolicies.length === 0) {
+        toast.error("Please add at least one policy to the batch");
+        return;
+      }
+    } else {
+      if (!selectedPolicy) {
+        toast.error("Please select a policy type");
+        return;
+      }
     }
     setShowConfirm(true);
   };
 
   const handleConfirmGenerate = async () => {
     setShowConfirm(false);
-    if (!selectedPolicy || !user) return;
+    if (!user) return;
+
+    const policiesToGenerate = batchMode ? selectedPolicies : (selectedPolicy ? [selectedPolicy] : []);
+    if (policiesToGenerate.length === 0) return;
+
+    // Re-check slot availability
+    const { count } = await supabase
+      .from('policy_generation_jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .in('status', ['pending', 'generating', 'enhancing']);
+
+    const currentActive = count ?? 0;
+    if (currentActive + policiesToGenerate.length > MAX_ACTIVE_JOBS) {
+      toast.error(`You can only have ${MAX_ACTIVE_JOBS} active jobs. You currently have ${currentActive}.`);
+      setActiveJobCount(currentActive);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      // Fetch practice details for the job
+      // Fetch practice details once
       const { data: practiceData } = await supabase
         .from('practice_details')
         .select('*')
@@ -82,17 +149,19 @@ const PolicyServiceCreate = () => {
         branch_site_phone: (practiceData as any).branch_site_phone || '',
       } : null;
 
-      // Insert background job
+      // Insert one job per policy
+      const rows = policiesToGenerate.map(policy => ({
+        user_id: user.id,
+        policy_reference_id: policy.id,
+        policy_title: policy.policy_name,
+        practice_details: practiceDetails as any,
+        email_when_ready: false,
+        status: 'pending' as const,
+      }));
+
       const { error: insertError } = await supabase
         .from('policy_generation_jobs')
-        .insert({
-          user_id: user.id,
-          policy_reference_id: selectedPolicy.id,
-          policy_title: selectedPolicy.policy_name,
-          practice_details: practiceDetails as any,
-          email_when_ready: false,
-          status: 'pending',
-        });
+        .insert(rows);
 
       if (insertError) throw insertError;
 
@@ -111,7 +180,8 @@ const PolicyServiceCreate = () => {
         }).catch(() => {});
       }
 
-      toast.success("Policy queued — track progress on My Policies", { duration: 5000 });
+      const policyWord = policiesToGenerate.length === 1 ? 'Policy' : 'Policies';
+      toast.success(`${policiesToGenerate.length} ${policyWord} queued — track progress on My Policies`, { duration: 5000 });
       navigate('/policy-service/my-policies');
     } catch (error) {
       console.error("Background generation error:", error);
@@ -120,6 +190,18 @@ const PolicyServiceCreate = () => {
       setIsSubmitting(false);
     }
   };
+
+  const generateButtonLabel = () => {
+    if (isSubmitting) return null; // handled separately
+    if (batchMode) {
+      const count = selectedPolicies.length;
+      if (count === 0) return 'Generate Policies';
+      return `Generate ${count} ${count === 1 ? 'Policy' : 'Policies'}`;
+    }
+    return 'Generate Policy';
+  };
+
+  const canGenerate = batchMode ? selectedPolicies.length > 0 : !!selectedPolicy;
 
   return (
     <div className="min-h-screen bg-background">
@@ -141,21 +223,120 @@ const PolicyServiceCreate = () => {
           <h1 className="text-2xl sm:text-3xl font-bold">Create New Policy</h1>
         </div>
 
+        {/* Mode Toggle */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Layers className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <Label htmlFor="batch-mode" className="text-sm font-medium cursor-pointer">
+                    Batch Mode
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Generate up to {availableSlots} {availableSlots === 1 ? 'policy' : 'policies'} at once
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {loadingSlots ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : availableSlots === 0 ? (
+                  <span className="text-xs text-destructive font-medium">Queue full (3/3 active)</span>
+                ) : (
+                  <Switch
+                    id="batch-mode"
+                    checked={batchMode}
+                    onCheckedChange={(checked) => {
+                      setBatchMode(checked);
+                      if (!checked) {
+                        setSelectedPolicies([]);
+                      } else {
+                        setSelectedPolicy(null);
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Step Content */}
         <Card>
           <CardHeader>
             <CardTitle>Select Policy Type</CardTitle>
             <CardDescription>
-              Search and select the policy type you want to create
+              {batchMode
+                ? `Add up to ${availableSlots} policies to your batch`
+                : 'Search and select the policy type you want to create'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
             <PolicyTypeSelector
               selectedPolicy={selectedPolicy}
               onSelect={handlePolicySelect}
+              batchMode={batchMode}
+              selectedPolicies={selectedPolicies}
+              onAddToBatch={handleAddToBatch}
+              maxSelections={availableSlots}
             />
           </CardContent>
         </Card>
+
+        {/* Batch Basket */}
+        {batchMode && (
+          <Card className="mt-6">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">
+                  Batch Queue
+                </CardTitle>
+                <Badge variant={selectedPolicies.length >= availableSlots ? "default" : "secondary"}>
+                  {selectedPolicies.length}/{availableSlots}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {selectedPolicies.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">
+                  No policies added yet. Use the "+ Add" buttons above to add policies to your batch.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {selectedPolicies.map(policy => (
+                    <div
+                      key={policy.id}
+                      className="flex items-center justify-between p-3 rounded-md border bg-primary/5 border-primary/20"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="h-4 w-4 text-primary shrink-0" />
+                        <span className="text-sm font-medium truncate">{policy.policy_name}</span>
+                        <Badge variant="outline" className={`text-xs shrink-0 ${kloeColors[policy.cqc_kloe] || ''}`}>
+                          {policy.cqc_kloe}
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemoveFromBatch(policy.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {selectedPolicies.length < availableSlots && (
+                    <p className="text-xs text-muted-foreground pt-1">
+                      {availableSlots - selectedPolicies.length} more {availableSlots - selectedPolicies.length === 1 ? 'slot' : 'slots'} available
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Navigation Buttons */}
         <div className="flex justify-between mt-6">
@@ -164,7 +345,7 @@ const PolicyServiceCreate = () => {
             Cancel
           </Button>
 
-          <Button onClick={handleGenerate} disabled={isSubmitting || !selectedPolicy}>
+          <Button onClick={handleGenerate} disabled={isSubmitting || !canGenerate}>
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -172,7 +353,7 @@ const PolicyServiceCreate = () => {
               </>
             ) : (
               <>
-                Generate Policy
+                {generateButtonLabel()}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </>
             )}
@@ -188,13 +369,32 @@ const PolicyServiceCreate = () => {
               <Clock className="h-5 w-5 text-primary" />
               Please Allow Time for Generation
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-left space-y-3">
-              <p>
-                This comprehensive policy document will take between <strong>5 and 10 minutes</strong> to produce. It goes through a full and detailed review with a separate AI service to ensure regulatory compliance, so please be patient.
-              </p>
-              <p>
-                The completed policy will appear on <strong>My Policies</strong> when ready. You can continue using other features while it generates.
-              </p>
+            <AlertDialogDescription asChild>
+              <div className="text-left space-y-3">
+                {batchMode && selectedPolicies.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="font-medium text-foreground text-sm">
+                      {selectedPolicies.length} {selectedPolicies.length === 1 ? 'policy' : 'policies'} to generate:
+                    </p>
+                    <ul className="list-disc list-inside text-sm space-y-0.5">
+                      {selectedPolicies.map(p => (
+                        <li key={p.id}>{p.policy_name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {!batchMode && selectedPolicy && (
+                  <p className="font-medium text-foreground text-sm">
+                    Policy: {selectedPolicy.policy_name}
+                  </p>
+                )}
+                <p>
+                  Each policy takes between <strong>5 and 10 minutes</strong> to produce. They go through a full and detailed review with a separate AI service to ensure regulatory compliance.
+                </p>
+                <p>
+                  Completed policies will appear on <strong>My Policies</strong> when ready. You can continue using other features while they generate.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -207,6 +407,15 @@ const PolicyServiceCreate = () => {
       </AlertDialog>
     </div>
   );
+};
+
+// Need kloeColors for basket badges
+const kloeColors: Record<string, string> = {
+  'Safe': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  'Effective': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  'Caring': 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+  'Responsive': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  'Well-led': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
 };
 
 export default PolicyServiceCreate;
