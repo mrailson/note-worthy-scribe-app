@@ -253,13 +253,14 @@ const parseMarkdownContent = (
     const subSubNumberedMatch = trimmedLine.match(/^(\d+\.\d+\.\d+)\s+(.+)$/);
     if (subSubNumberedMatch) {
       flushList();
+      const cleanedText = trimmedLine.replace(/\*\*/g, '');
       elements.push(
         <h4 
           key={`ssnh-${keyIndex++}`} 
           className="text-sm font-semibold mt-3 mb-1"
           style={{ color: COLORS.subHeadingBlue }}
         >
-          {trimmedLine}
+          {cleanedText}
         </h4>
       );
       continue;
@@ -269,13 +270,14 @@ const parseMarkdownContent = (
     const subNumberedMatch = trimmedLine.match(/^(\d+\.\d+)\s+(.+)$/);
     if (subNumberedMatch) {
       flushList();
+      const cleanedText = trimmedLine.replace(/\*\*/g, '');
       elements.push(
         <h3 
           key={`snh-${keyIndex++}`} 
           className="text-base font-semibold mt-3 mb-2"
           style={{ color: COLORS.subHeadingBlue }}
         >
-          {trimmedLine}
+          {cleanedText}
         </h3>
       );
       continue;
