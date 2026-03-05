@@ -16,7 +16,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Plus,
-  Trash2
+  Trash2,
+  Info,
+  X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -123,6 +125,7 @@ export const PolicyProfileDefaults = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [practiceDetailsId, setPracticeDetailsId] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [sharedProfileSource, setSharedProfileSource] = useState<string | null>(null);
 
   // Load existing practice details
   useEffect(() => {
@@ -185,7 +188,7 @@ export const PolicyProfileDefaults = () => {
             services_offered: (pd as any).services_offered || {},
           });
         } else {
-          // Try to get practice info from gp_practices via user_roles
+          // Priority 2: Try to load shared practice defaults from another user at the same practice
           const { data: roleData } = await supabase
             .from('user_roles')
             .select('practice_id')
@@ -201,12 +204,66 @@ export const PolicyProfileDefaults = () => {
               .eq('id', roleData.practice_id)
               .single();
 
-            if (gpPractice) {
-              setData(prev => ({
-                ...prev,
-                practice_name: gpPractice.name || "",
-                address: gpPractice.address || "",
-              }));
+            if (gpPractice?.name) {
+              // Search for any existing practice_details record matching this practice name
+              const { data: sharedPd } = await supabase
+                .from('practice_details')
+                .select('*')
+                .ilike('practice_name', gpPractice.name)
+                .order('updated_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (sharedPd) {
+                // Found a shared record — populate all fields but do NOT set practiceDetailsId
+                console.log('📋 Loading shared practice defaults from another user');
+                
+                const legacyBranchSite = (sharedPd as any).has_branch_site && (sharedPd as any).branch_site_name ? {
+                  name: (sharedPd as any).branch_site_name || "",
+                  address: (sharedPd as any).branch_site_address || "",
+                  postcode: (sharedPd as any).branch_site_postcode || "",
+                  phone: (sharedPd as any).branch_site_phone || "",
+                } : null;
+                
+                const branchSitesArray = (sharedPd as any).branch_sites && Array.isArray((sharedPd as any).branch_sites) && (sharedPd as any).branch_sites.length > 0
+                  ? (sharedPd as any).branch_sites
+                  : legacyBranchSite ? [legacyBranchSite] : [];
+
+                setData({
+                  practice_name: sharedPd.practice_name || "",
+                  address: sharedPd.address || "",
+                  postcode: (sharedPd as any).postcode || "",
+                  ods_code: (sharedPd as any).ods_code || "",
+                  list_size: (sharedPd as any).list_size || null,
+                  clinical_system: (sharedPd as any).clinical_system || "",
+                  has_branch_sites: branchSitesArray.length > 0,
+                  branch_sites: branchSitesArray,
+                  practice_manager_name: (sharedPd as any).practice_manager_name || "",
+                  lead_gp_name: (sharedPd as any).lead_gp_name || "",
+                  senior_gp_partner: (sharedPd as any).senior_gp_partner || "",
+                  caldicott_guardian: (sharedPd as any).caldicott_guardian || "",
+                  dpo_name: (sharedPd as any).dpo_name || "",
+                  siro: (sharedPd as any).siro || "",
+                  safeguarding_lead_adults: (sharedPd as any).safeguarding_lead_adults || "",
+                  safeguarding_lead_children: (sharedPd as any).safeguarding_lead_children || "",
+                  infection_control_lead: (sharedPd as any).infection_control_lead || "",
+                  health_safety_lead: (sharedPd as any).health_safety_lead || "",
+                  fire_safety_officer: (sharedPd as any).fire_safety_officer || "",
+                  complaints_lead: (sharedPd as any).complaints_lead || "",
+                  services_offered: (sharedPd as any).services_offered || {},
+                });
+
+                // Show the source banner
+                const sourceName = (sharedPd as any).practice_manager_name || 'Practice Manager';
+                setSharedProfileSource(sourceName);
+              } else {
+                // No shared record found — just populate basic practice info
+                setData(prev => ({
+                  ...prev,
+                  practice_name: gpPractice.name || "",
+                  address: gpPractice.address || "",
+                }));
+              }
             }
           }
         }
@@ -392,6 +449,27 @@ export const PolicyProfileDefaults = () => {
               <Save className="h-4 w-4 mr-2" />
             )}
             Save Now
+          </Button>
+        </div>
+      )}
+
+      {/* Shared Profile Info Banner */}
+      {sharedProfileSource && (
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+            <Info className="h-5 w-5" />
+            <span className="text-sm">
+              <span className="font-medium">Practice defaults loaded from {sharedProfileSource}'s profile.</span>
+              {' '}Review and save to create your own copy.
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSharedProfileSource(null)}
+            className="text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 h-8 w-8 p-0"
+          >
+            <X className="h-4 w-4" />
           </Button>
         </div>
       )}
