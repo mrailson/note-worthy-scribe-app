@@ -918,6 +918,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
         <thead>
           <tr className="border-b bg-muted/20">
             <th className="text-left p-2 font-medium">Staff Member</th>
+            <th className="text-left p-2 font-medium">Category</th>
             <th className="text-left p-2 font-medium">Role</th>
             <th className="text-left p-2 font-medium">Allocation</th>
             <th className="text-right p-2 font-medium">Calculated</th>
@@ -935,6 +936,11 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
               <>
                 <tr key={idx} className="border-b">
                   <td className="p-2">{displayName}</td>
+                  <td className="p-2">
+                    {(s.staff_category || 'buyback') === 'new_sda'
+                      ? <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>
+                      : <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">Buy-Back</Badge>}
+                  </td>
                   <td className="p-2">{s.staff_role}</td>
                   <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
                   <td className="p-2 text-right">
