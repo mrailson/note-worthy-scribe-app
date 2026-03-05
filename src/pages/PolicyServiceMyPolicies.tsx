@@ -48,7 +48,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { AIResponsePanel } from "@/components/AIResponsePanel";
+import { QuickGuideDialog } from "@/components/policy/QuickGuideDialog";
 
 const EXPECTED_GENERATION_MINUTES = 10;
 
@@ -95,9 +95,7 @@ const PolicyServiceMyPolicies = () => {
   }, [activeJobCount, refreshCompletions]);
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [generatingGuideId, setGeneratingGuideId] = useState<string | null>(null);
-  const [guideContent, setGuideContent] = useState('');
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [quickGuidePolicy, setQuickGuidePolicy] = useState<{ content: string; title: string } | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
     practice_name?: string;
@@ -179,23 +177,6 @@ const PolicyServiceMyPolicies = () => {
     }
   };
 
-  const handleQuickGuide = async (completion: typeof completions[0]) => {
-    setGeneratingGuideId(completion.id);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyse-policy-gaps', {
-        body: { action: 'quick-guide', extracted_text: completion.policy_content },
-      });
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to generate quick guide');
-      setGuideContent(data.quick_guide);
-      setIsGuideOpen(true);
-    } catch (err: any) {
-      console.error('Quick guide error:', err);
-      toast.error(err.message || 'Failed to generate quick guide');
-    } finally {
-      setGeneratingGuideId(null);
-    }
-  };
 
   const handleDelete = async (completionId: string) => {
     await deleteCompletion(completionId);
@@ -515,15 +496,10 @@ const PolicyServiceMyPolicies = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleQuickGuide(completion)}
-                        disabled={generatingGuideId === completion.id}
+                        onClick={() => setQuickGuidePolicy({ content: completion.policy_content, title: completion.policy_title })}
                         title="Quick Guide"
                       >
-                        {generatingGuideId === completion.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <BookOpen className="h-4 w-4" />
-                        )}
+                        <BookOpen className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
@@ -598,15 +574,14 @@ const PolicyServiceMyPolicies = () => {
 
       </main>
 
-      <AIResponsePanel
-        response={guideContent}
-        isOpen={isGuideOpen}
-        onOpenChange={setIsGuideOpen}
-        onCopy={() => {
-          navigator.clipboard.writeText(guideContent);
-          toast.success('Quick guide copied to clipboard');
-        }}
-      />
+      {quickGuidePolicy && (
+        <QuickGuideDialog
+          open={!!quickGuidePolicy}
+          onOpenChange={(open) => { if (!open) setQuickGuidePolicy(null); }}
+          policyContent={quickGuidePolicy.content}
+          policyTitle={quickGuidePolicy.title}
+        />
+      )}
     </div>
   );
 };

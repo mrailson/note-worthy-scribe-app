@@ -41,8 +41,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { PolicyDocumentPreview } from "@/components/policy/PolicyDocumentPreview";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AIResponsePanel } from "@/components/AIResponsePanel";
-import { showToast } from "@/utils/toastWrapper";
+import { QuickGuideDialog } from "@/components/policy/QuickGuideDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,9 +76,7 @@ const PolicyServiceViewPolicy = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
-  const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
-  const [guideContent, setGuideContent] = useState('');
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isQuickGuideOpen, setIsQuickGuideOpen] = useState(false);
 
   // Document options with localStorage persistence
   const [showLogo, setShowLogo] = useState(() => {
@@ -199,24 +196,6 @@ const PolicyServiceViewPolicy = () => {
     }
   };
 
-  const handleQuickGuide = async () => {
-    if (!policy) return;
-    setIsGeneratingGuide(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyse-policy-gaps', {
-        body: { action: 'quick-guide', extracted_text: policy.policy_content },
-      });
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to generate quick guide');
-      setGuideContent(data.quick_guide);
-      setIsGuideOpen(true);
-    } catch (err: any) {
-      console.error('Quick guide error:', err);
-      toast.error(err.message || 'Failed to generate quick guide');
-    } finally {
-      setIsGeneratingGuide(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!policy || !user) return;
@@ -348,8 +327,8 @@ const PolicyServiceViewPolicy = () => {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                <Button variant="outline" size="sm" onClick={handleQuickGuide} disabled={isGeneratingGuide} className="gap-1.5">
-                  {isGeneratingGuide ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
+                <Button variant="outline" size="sm" onClick={() => setIsQuickGuideOpen(true)} className="gap-1.5">
+                  <BookOpen className="h-4 w-4" />
                   Quick Guide
                 </Button>
                 <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
@@ -473,14 +452,11 @@ const PolicyServiceViewPolicy = () => {
         </Card>
       </main>
 
-      <AIResponsePanel
-        response={guideContent}
-        isOpen={isGuideOpen}
-        onOpenChange={setIsGuideOpen}
-        onCopy={() => {
-          navigator.clipboard.writeText(guideContent);
-          toast.success('Quick guide copied to clipboard');
-        }}
+      <QuickGuideDialog
+        open={isQuickGuideOpen}
+        onOpenChange={setIsQuickGuideOpen}
+        policyContent={policy.policy_content}
+        policyTitle={policy.policy_title}
       />
     </div>
   );
