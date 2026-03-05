@@ -136,7 +136,7 @@ DESIGN REQUIREMENTS:
 - Professional, NHS-appropriate tone`;
 
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Image generation timed out after 120 seconds. Please try again.')), 120000);
+        setTimeout(() => reject(new Error('Image generation timed out after 180 seconds. Please try again.')), 180000);
       });
 
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
