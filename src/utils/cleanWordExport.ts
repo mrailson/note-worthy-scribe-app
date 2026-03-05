@@ -132,7 +132,8 @@ function createTextRuns(text: string, baseSize: number = FONTS.size.body): TextR
  */
 export async function generateCleanAIResponseDocument(
   content: string,
-  title: string = "AI Assistant Response"
+  title: string = "AI Assistant Response",
+  options?: { footerNote?: string }
 ): Promise<void> {
   const children: Paragraph[] = [];
   
@@ -276,6 +277,27 @@ export async function generateCleanAIResponseDocument(
     }
   }
   
+  // Add footer note if provided
+  if (options?.footerNote) {
+    children.push(new Paragraph({
+      children: [new TextRun({ text: '' })],
+      spacing: { after: 200 },
+    }));
+    children.push(new Paragraph({
+      children: [
+        new TextRun({
+          text: options.footerNote,
+          font: FONTS.default,
+          size: FONTS.size.body,
+          color: COLORS.dateGrey,
+          italics: true,
+        }),
+      ],
+      spacing: { before: 300, after: 60 },
+      alignment: AlignmentType.LEFT,
+    }));
+  }
+
   // Create document with clean styling
   const doc = new Document({
     styles: {

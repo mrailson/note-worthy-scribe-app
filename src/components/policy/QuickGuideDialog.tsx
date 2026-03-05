@@ -73,7 +73,11 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
       if (!guideText) return;
 
       const fileName = `Quick_Guide_${safeTitleUnderscore}_${audienceLabels[audience].replace(/\s+/g, '_')}.docx`;
-      await generateCleanAIResponseDocument(guideText, `Quick Guide - ${safeTitle} (${audienceLabels[audience]})`);
+      await generateCleanAIResponseDocument(
+        guideText,
+        `Quick Guide - ${safeTitle} (${audienceLabels[audience]})`,
+        { footerNote: `For more details, see the Practice Policy on "${policyTitle}".` }
+      );
 
       const output: QuickGuideOutput = {
         type: 'word',
