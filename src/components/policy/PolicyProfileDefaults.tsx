@@ -170,30 +170,91 @@ export const PolicyProfileDefaults = () => {
           const branchSitesArray = (pd as any).branch_sites && Array.isArray((pd as any).branch_sites) && (pd as any).branch_sites.length > 0
             ? (pd as any).branch_sites
             : legacyBranchSite ? [legacyBranchSite] : [];
+
+          // Check if personnel fields are mostly empty — if so, try to merge from shared practice record
+          const personnelFieldKeys = [
+            'practice_manager_name', 'lead_gp_name', 'senior_gp_partner',
+            'caldicott_guardian', 'dpo_name', 'siro',
+            'safeguarding_lead_adults', 'safeguarding_lead_children',
+            'infection_control_lead', 'health_safety_lead', 'fire_safety_officer', 'complaints_lead'
+          ];
+          const filledPersonnel = personnelFieldKeys.filter(k => (pd as any)[k]?.trim?.()).length;
           
+          let mergedFromShared = false;
+          let sharedPd: any = null;
+
+          // If less than 3 personnel fields filled, try to find a shared record to merge from
+          if (filledPersonnel < 3 && pd.practice_name) {
+            const cleanedName = pd.practice_name.replace(/^the\s+/i, '').trim();
+            
+            // Try exact match first
+            const { data: exactMatch } = await supabase
+              .from('practice_details')
+              .select('*')
+              .ilike('practice_name', pd.practice_name)
+              .neq('user_id', user.id)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            
+            sharedPd = exactMatch;
+
+            // Try flexible match
+            if (!sharedPd && cleanedName.length > 5) {
+              const { data: flexMatch } = await supabase
+                .from('practice_details')
+                .select('*')
+                .ilike('practice_name', `%${cleanedName}%`)
+                .neq('user_id', user.id)
+                .order('updated_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              sharedPd = flexMatch;
+            }
+
+            // Check if the shared record actually has more personnel data
+            if (sharedPd) {
+              const sharedFilledCount = personnelFieldKeys.filter(k => (sharedPd as any)[k]?.trim?.()).length;
+              if (sharedFilledCount > filledPersonnel) {
+                mergedFromShared = true;
+                console.log('📋 Merging shared practice defaults into existing record');
+              } else {
+                sharedPd = null; // Don't merge if shared record has less data
+              }
+            }
+          }
+
           setData({
             practice_name: pd.practice_name || "",
             address: pd.address || "",
             postcode: (pd as any).postcode || "",
-            ods_code: (pd as any).ods_code || "",
-            list_size: (pd as any).list_size || null,
-            clinical_system: (pd as any).clinical_system || "",
-            has_branch_sites: branchSitesArray.length > 0,
-            branch_sites: branchSitesArray,
-            practice_manager_name: (pd as any).practice_manager_name || "",
-            lead_gp_name: (pd as any).lead_gp_name || "",
-            senior_gp_partner: (pd as any).senior_gp_partner || "",
-            caldicott_guardian: (pd as any).caldicott_guardian || "",
-            dpo_name: (pd as any).dpo_name || "",
-            siro: (pd as any).siro || "",
-            safeguarding_lead_adults: (pd as any).safeguarding_lead_adults || "",
-            safeguarding_lead_children: (pd as any).safeguarding_lead_children || "",
-            infection_control_lead: (pd as any).infection_control_lead || "",
-            health_safety_lead: (pd as any).health_safety_lead || "",
-            fire_safety_officer: (pd as any).fire_safety_officer || "",
-            complaints_lead: (pd as any).complaints_lead || "",
-            services_offered: (pd as any).services_offered || {},
+            ods_code: (pd as any).ods_code || (sharedPd as any)?.ods_code || "",
+            list_size: (pd as any).list_size || (sharedPd as any)?.list_size || null,
+            clinical_system: (pd as any).clinical_system || (sharedPd as any)?.clinical_system || "",
+            has_branch_sites: branchSitesArray.length > 0 || ((sharedPd as any)?.branch_sites?.length > 0),
+            branch_sites: branchSitesArray.length > 0 ? branchSitesArray : ((sharedPd as any)?.branch_sites || []),
+            // For personnel: use user's own value if set, otherwise fall back to shared
+            practice_manager_name: (pd as any).practice_manager_name || (sharedPd as any)?.practice_manager_name || "",
+            lead_gp_name: (pd as any).lead_gp_name || (sharedPd as any)?.lead_gp_name || "",
+            senior_gp_partner: (pd as any).senior_gp_partner || (sharedPd as any)?.senior_gp_partner || "",
+            caldicott_guardian: (pd as any).caldicott_guardian || (sharedPd as any)?.caldicott_guardian || "",
+            dpo_name: (pd as any).dpo_name || (sharedPd as any)?.dpo_name || "",
+            siro: (pd as any).siro || (sharedPd as any)?.siro || "",
+            safeguarding_lead_adults: (pd as any).safeguarding_lead_adults || (sharedPd as any)?.safeguarding_lead_adults || "",
+            safeguarding_lead_children: (pd as any).safeguarding_lead_children || (sharedPd as any)?.safeguarding_lead_children || "",
+            infection_control_lead: (pd as any).infection_control_lead || (sharedPd as any)?.infection_control_lead || "",
+            health_safety_lead: (pd as any).health_safety_lead || (sharedPd as any)?.health_safety_lead || "",
+            fire_safety_officer: (pd as any).fire_safety_officer || (sharedPd as any)?.fire_safety_officer || "",
+            complaints_lead: (pd as any).complaints_lead || (sharedPd as any)?.complaints_lead || "",
+            services_offered: Object.keys((pd as any).services_offered || {}).length > 0 
+              ? (pd as any).services_offered 
+              : ((sharedPd as any)?.services_offered || {}),
           });
+
+          if (mergedFromShared) {
+            const sourceName = (sharedPd as any)?.practice_manager_name || 'Practice Manager';
+            setSharedProfileSource(sourceName);
+          }
         } else {
           // Priority 2: Try to load shared practice defaults from another user at the same practice
           // Use practice name from usePracticeContext (which handles user_roles, gp_practices, etc.)
