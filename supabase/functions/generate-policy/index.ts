@@ -731,8 +731,28 @@ serve(async (req) => {
       const currentStep = job.current_step || 'generate_part_1';
       const attemptCount = (job.attempt_count || 0) + 1;
 
-      if (attemptCount > MAX_STEP_ATTEMPTS) {
-        // Too many attempts for this step - fail permanently
+      const maxAttemptsForStep = currentStep === 'gap_check' ? 1 : MAX_STEP_ATTEMPTS;
+      if (attemptCount > maxAttemptsForStep) {
+        // gap_check exceeded its single attempt — skip to finalise instead of failing
+        if (currentStep === 'gap_check') {
+          console.warn(`[gap_check] Single attempt exceeded, skipping to finalise for job ${job.id}`);
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              current_step: 'finalise',
+              progress_pct: 90,
+              attempt_count: 0,
+              lease_expires_at: null,
+              next_retry_at: null,
+              updated_at: now,
+            })
+            .eq('id', job.id);
+          selfTrigger(targetUserId);
+          return new Response(JSON.stringify({ success: true, phase: 'gap_check_skipped', jobId: job.id }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        // Other steps - fail permanently
         await serviceSupabase
           .from('policy_generation_jobs')
           .update({
@@ -1188,14 +1208,40 @@ ${policyContent}`;
           });
         }
 
-        // ---- STEP: gap_check ----
+        // ---- STEP: gap_check (non-blocking — failures skip to finalise) ----
         if (currentStep === 'gap_check') {
           await updateHeartbeat(serviceSupabase, job.id, 'gap_check', 85);
 
           const policyContent = job.generated_content || '';
           const practiceManagerName = (jobPractice as any)?.practice_manager_name || (jobPractice as any)?.practice_manager || 'Practice Manager';
+          let finalContent = policyContent;
 
-          const GAP_CHECK_SYSTEM = `You are an expert NHS policy analyst. Analyse the following GP practice policy and return ONLY valid JSON with this structure:
+          try {
+            // Extract section headings + first sentence only (~80% token reduction)
+            const extractSectionSummary = (doc: string): string => {
+              const lines = doc.split('\n');
+              const summary: string[] = [];
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                // Match section headings: "1. PURPOSE", "## 2. SCOPE", "5.4 Sub heading", etc.
+                if (/^(?:#{1,6}\s*)?\d+\.?\d*\.?\s+[A-Z]/.test(line) || /^#{1,6}\s+/.test(line)) {
+                  summary.push(line);
+                  // Grab the first non-empty line after the heading as context
+                  for (let j = i + 1; j < lines.length && j <= i + 5; j++) {
+                    const next = lines[j].trim();
+                    if (next && !next.startsWith('#') && !next.startsWith('|') && !/^[-*]/.test(next) && !/^\d+\./.test(next)) {
+                      summary.push(next);
+                      break;
+                    }
+                  }
+                }
+              }
+              return summary.join('\n');
+            };
+
+            const sectionSummary = extractSectionSummary(policyContent);
+
+            const GAP_CHECK_SYSTEM = `You are an expert NHS policy analyst. You are given SECTION HEADINGS AND FIRST SENTENCES from a GP practice policy (not the full document). Analyse for genuine compliance gaps and return ONLY valid JSON:
 {
   "gaps": ["array of genuine compliance gaps found — max 8"],
   "has_material_gaps": true/false
@@ -1208,14 +1254,13 @@ SEVERITY FILTER — only flag:
 
 NEVER FLAG: minor wording, style, fax mentions, current DSPT versions, vendor names, case law that remains good law, anything covered elsewhere in the document.
 CRITICAL: Before flagging any gap, confirm the content is genuinely absent from the ENTIRE document — not just the expected section. If the substance is covered anywhere in the document, do not flag it.
-DEDUPLICATION: Do not flag the same underlying issue twice under different headings. If an issue could appear under both "gaps" and "missing sections", report it once only under whichever category is most appropriate.
+DEDUPLICATION: Do not flag the same underlying issue twice under different headings. Report each issue once only.
 Set has_material_gaps to true ONLY if you find genuine issues. If the policy is broadly compliant, return has_material_gaps: false with an empty gaps array.`;
 
-          let shouldRemediate = false;
-          let gapsList: string[] = [];
+            let shouldRemediate = false;
+            let gapsList: string[] = [];
 
-          try {
-            const gapResponse = await callAnthropic(GAP_CHECK_SYSTEM, `Analyse this policy:\n\n${policyContent}`, 2000);
+            const gapResponse = await callAnthropic(GAP_CHECK_SYSTEM, `Analyse this policy summary:\n\n${sectionSummary}`, 2000);
             const jsonMatch = gapResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]);
@@ -1227,15 +1272,10 @@ Set has_material_gaps to true ONLY if you find genuine issues. If the policy is 
                 console.log(`[gap_check] No material gaps found for job ${job.id}`);
               }
             }
-          } catch (gapErr) {
-            console.warn(`[gap_check] Gap analysis failed, skipping remediation:`, gapErr);
-          }
 
-          let finalContent = policyContent;
-
-          if (shouldRemediate) {
-            try {
-              const remediationPrompt = `The following ${policyName} policy has been reviewed and these compliance gaps were identified:
+            if (shouldRemediate) {
+              try {
+                const remediationPrompt = `The following ${policyName} policy has been reviewed and these compliance gaps were identified:
 
 ${gapsList.map((g, i) => `${i + 1}. ${g}`).join('\n')}
 
@@ -1247,19 +1287,23 @@ ${practiceContext}
 POLICY TO FIX:
 ${finalContent}`;
 
-              const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 10000);
-              if (remediated && remediated.length > 500) {
-                finalContent = sanitisePolicyOutput(remediated, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
-                console.log(`[gap_check] Remediation succeeded - ${finalContent.length} chars`);
-              } else {
-                console.warn(`[gap_check] Remediation returned insufficient content, using original`);
+                const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 10000);
+                if (remediated && remediated.length > 500) {
+                  finalContent = sanitisePolicyOutput(remediated, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
+                  console.log(`[gap_check] Remediation succeeded - ${finalContent.length} chars`);
+                } else {
+                  console.warn(`[gap_check] Remediation returned insufficient content, using original`);
+                }
+              } catch (remErr) {
+                console.error(`[gap_check] Remediation failed, using original:`, remErr);
               }
-            } catch (remErr) {
-              console.error(`[gap_check] Remediation failed, using original:`, remErr);
             }
+          } catch (gapErr) {
+            console.error(`[gap_check] Gap check failed entirely, skipping to finalise with original document:`, gapErr);
+            // finalContent remains the pre-gap-check policyContent — no changes lost
           }
 
-          // Advance to finalise
+          // Advance to finalise regardless of outcome
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
