@@ -325,7 +325,7 @@ const PolicyServiceMyPolicies = () => {
                                   <Info className="h-3.5 w-3.5" />
                                 </button>
                               </PopoverTrigger>
-                              <PopoverContent className="!w-[360px] text-sm !p-6" side="top" sideOffset={8}>
+                              <PopoverContent className="!w-[360px] text-sm !p-6" side="bottom" align="start" sideOffset={8}>
                                 <div className="space-y-3">
                                   <h4 className="font-semibold text-foreground text-[13px]">Why does this take so long?</h4>
                                   <p className="text-muted-foreground leading-relaxed text-[12.5px]">Each policy is a substantial document (typically 25–45 pages) that goes through several stages:</p>
