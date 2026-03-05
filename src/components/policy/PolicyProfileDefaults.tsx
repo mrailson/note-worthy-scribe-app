@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePracticeContext } from "@/hooks/usePracticeContext";
 import { toast } from "sonner";
 
 interface BranchSite {
@@ -120,6 +121,7 @@ const serviceOptions = [
 
 export const PolicyProfileDefaults = () => {
   const { user } = useAuth();
+  const { practiceDetails: sharedPracticeDetails } = usePracticeContext();
   const [data, setData] = useState<PolicyProfileData>(defaultData);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -131,6 +133,11 @@ export const PolicyProfileDefaults = () => {
   useEffect(() => {
     const loadPracticeDetails = async () => {
       if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      // Skip if we already have a practiceDetailsId (user's own record loaded)
+      if (practiceDetailsId) {
         setIsLoading(false);
         return;
       }
@@ -189,6 +196,12 @@ export const PolicyProfileDefaults = () => {
           });
         } else {
           // Priority 2: Try to load shared practice defaults from another user at the same practice
+          // Use practice name from usePracticeContext (which handles user_roles, gp_practices, etc.)
+          // OR fall back to user_roles lookup directly
+          let practiceName: string | null = null;
+          let practiceAddress: string | null = null;
+
+          // Try user_roles → gp_practices first
           const { data: roleData } = await supabase
             .from('user_roles')
             .select('practice_id')
@@ -200,70 +213,97 @@ export const PolicyProfileDefaults = () => {
           if (roleData?.practice_id) {
             const { data: gpPractice } = await supabase
               .from('gp_practices')
-              .select('*')
+              .select('name, address')
               .eq('id', roleData.practice_id)
               .single();
+            if (gpPractice) {
+              practiceName = gpPractice.name;
+              practiceAddress = gpPractice.address;
+            }
+          }
 
-            if (gpPractice?.name) {
-              // Search for any existing practice_details record matching this practice name
-              const { data: sharedPd } = await supabase
+          // If no user_roles link, use the practice name from usePracticeContext (shared hook)
+          if (!practiceName && sharedPracticeDetails?.practice_name) {
+            practiceName = sharedPracticeDetails.practice_name;
+            practiceAddress = sharedPracticeDetails.address;
+          }
+
+          if (practiceName) {
+            // Search for any existing practice_details record matching this practice name
+            const cleanedName = practiceName.replace(/^the\s+/i, '').trim();
+            
+            // Try exact match first
+            let { data: sharedPd } = await supabase
+              .from('practice_details')
+              .select('*')
+              .ilike('practice_name', practiceName)
+              .neq('user_id', user.id)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            // Try flexible match (without "The" prefix)
+            if (!sharedPd && cleanedName.length > 5) {
+              const { data: flexMatch } = await supabase
                 .from('practice_details')
                 .select('*')
-                .ilike('practice_name', gpPractice.name)
+                .ilike('practice_name', `%${cleanedName}%`)
+                .neq('user_id', user.id)
                 .order('updated_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
+              sharedPd = flexMatch;
+            }
 
-              if (sharedPd) {
-                // Found a shared record — populate all fields but do NOT set practiceDetailsId
-                console.log('📋 Loading shared practice defaults from another user');
-                
-                const legacyBranchSite = (sharedPd as any).has_branch_site && (sharedPd as any).branch_site_name ? {
-                  name: (sharedPd as any).branch_site_name || "",
-                  address: (sharedPd as any).branch_site_address || "",
-                  postcode: (sharedPd as any).branch_site_postcode || "",
-                  phone: (sharedPd as any).branch_site_phone || "",
-                } : null;
-                
-                const branchSitesArray = (sharedPd as any).branch_sites && Array.isArray((sharedPd as any).branch_sites) && (sharedPd as any).branch_sites.length > 0
-                  ? (sharedPd as any).branch_sites
-                  : legacyBranchSite ? [legacyBranchSite] : [];
+            if (sharedPd) {
+              // Found a shared record — populate all fields but do NOT set practiceDetailsId
+              console.log('📋 Loading shared practice defaults from another user');
+              
+              const legacyBranchSite = (sharedPd as any).has_branch_site && (sharedPd as any).branch_site_name ? {
+                name: (sharedPd as any).branch_site_name || "",
+                address: (sharedPd as any).branch_site_address || "",
+                postcode: (sharedPd as any).branch_site_postcode || "",
+                phone: (sharedPd as any).branch_site_phone || "",
+              } : null;
+              
+              const branchSitesArray = (sharedPd as any).branch_sites && Array.isArray((sharedPd as any).branch_sites) && (sharedPd as any).branch_sites.length > 0
+                ? (sharedPd as any).branch_sites
+                : legacyBranchSite ? [legacyBranchSite] : [];
 
-                setData({
-                  practice_name: sharedPd.practice_name || "",
-                  address: sharedPd.address || "",
-                  postcode: (sharedPd as any).postcode || "",
-                  ods_code: (sharedPd as any).ods_code || "",
-                  list_size: (sharedPd as any).list_size || null,
-                  clinical_system: (sharedPd as any).clinical_system || "",
-                  has_branch_sites: branchSitesArray.length > 0,
-                  branch_sites: branchSitesArray,
-                  practice_manager_name: (sharedPd as any).practice_manager_name || "",
-                  lead_gp_name: (sharedPd as any).lead_gp_name || "",
-                  senior_gp_partner: (sharedPd as any).senior_gp_partner || "",
-                  caldicott_guardian: (sharedPd as any).caldicott_guardian || "",
-                  dpo_name: (sharedPd as any).dpo_name || "",
-                  siro: (sharedPd as any).siro || "",
-                  safeguarding_lead_adults: (sharedPd as any).safeguarding_lead_adults || "",
-                  safeguarding_lead_children: (sharedPd as any).safeguarding_lead_children || "",
-                  infection_control_lead: (sharedPd as any).infection_control_lead || "",
-                  health_safety_lead: (sharedPd as any).health_safety_lead || "",
-                  fire_safety_officer: (sharedPd as any).fire_safety_officer || "",
-                  complaints_lead: (sharedPd as any).complaints_lead || "",
-                  services_offered: (sharedPd as any).services_offered || {},
-                });
+              setData({
+                practice_name: sharedPd.practice_name || "",
+                address: sharedPd.address || "",
+                postcode: (sharedPd as any).postcode || "",
+                ods_code: (sharedPd as any).ods_code || "",
+                list_size: (sharedPd as any).list_size || null,
+                clinical_system: (sharedPd as any).clinical_system || "",
+                has_branch_sites: branchSitesArray.length > 0,
+                branch_sites: branchSitesArray,
+                practice_manager_name: (sharedPd as any).practice_manager_name || "",
+                lead_gp_name: (sharedPd as any).lead_gp_name || "",
+                senior_gp_partner: (sharedPd as any).senior_gp_partner || "",
+                caldicott_guardian: (sharedPd as any).caldicott_guardian || "",
+                dpo_name: (sharedPd as any).dpo_name || "",
+                siro: (sharedPd as any).siro || "",
+                safeguarding_lead_adults: (sharedPd as any).safeguarding_lead_adults || "",
+                safeguarding_lead_children: (sharedPd as any).safeguarding_lead_children || "",
+                infection_control_lead: (sharedPd as any).infection_control_lead || "",
+                health_safety_lead: (sharedPd as any).health_safety_lead || "",
+                fire_safety_officer: (sharedPd as any).fire_safety_officer || "",
+                complaints_lead: (sharedPd as any).complaints_lead || "",
+                services_offered: (sharedPd as any).services_offered || {},
+              });
 
-                // Show the source banner
-                const sourceName = (sharedPd as any).practice_manager_name || 'Practice Manager';
-                setSharedProfileSource(sourceName);
-              } else {
-                // No shared record found — just populate basic practice info
-                setData(prev => ({
-                  ...prev,
-                  practice_name: gpPractice.name || "",
-                  address: gpPractice.address || "",
-                }));
-              }
+              // Show the source banner
+              const sourceName = (sharedPd as any).practice_manager_name || 'Practice Manager';
+              setSharedProfileSource(sourceName);
+            } else {
+              // No shared record found — just populate basic practice info
+              setData(prev => ({
+                ...prev,
+                practice_name: practiceName || "",
+                address: practiceAddress || "",
+              }));
             }
           }
         }
@@ -276,7 +316,7 @@ export const PolicyProfileDefaults = () => {
     };
 
     loadPracticeDetails();
-  }, [user]);
+  }, [user, sharedPracticeDetails?.practice_name]);
 
   const updateField = (field: keyof PolicyProfileData, value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
