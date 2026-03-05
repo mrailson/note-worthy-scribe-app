@@ -1,6 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Levenshtein distance for fuzzy name matching
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -318,7 +334,49 @@ ${documentText}
       }
 
       const data = JSON.parse(responseText);
-      const quickGuide = data.choices?.[0]?.message?.content || '';
+      let quickGuide = data.choices?.[0]?.message?.content || '';
+
+      // ── Fix 1: Strip footer prompt leak ──
+      // The AI sometimes renders internal prompt instructions after "NoteWell AI" / "Notewell AI"
+      quickGuide = quickGuide.replace(
+        /(Powered\s+by\s+Note[Ww]ell\s+AI)[''"""'´`].*/g,
+        '$1'
+      );
+
+      // ── Fix 2: Fuzzy staff name correction against practice profile ──
+      const practiceStaffNames: string[] = body.practice_staff_names || [];
+      if (practiceStaffNames.length > 0) {
+        const corrections: string[] = [];
+        // Split output into words, check each against canonical names
+        const words = quickGuide.split(/(\s+)/); // preserve whitespace
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i].replace(/[^a-zA-Z'-]/g, ''); // strip punctuation for matching
+          if (word.length < 3) continue; // skip short words
+          for (const canonicalName of practiceStaffNames) {
+            // Split canonical name into parts (e.g. "Dr Sarah Jones" → ["Dr", "Sarah", "Jones"])
+            const nameParts = canonicalName.split(/\s+/);
+            for (const part of nameParts) {
+              if (part.length < 3) continue;
+              if (word.toLowerCase() === part.toLowerCase()) break; // exact match, no correction needed
+              const dist = levenshtein(word.toLowerCase(), part.toLowerCase());
+              if (dist > 0 && dist <= 2 && word.length >= 3) {
+                // Preserve the original punctuation around the word
+                const original = words[i];
+                const replaced = original.replace(word, part);
+                if (replaced !== original) {
+                  corrections.push(`"${word}" → "${part}"`);
+                  words[i] = replaced;
+                }
+                break;
+              }
+            }
+          }
+        }
+        if (corrections.length > 0) {
+          console.log('📝 Staff name corrections applied:', corrections);
+          quickGuide = words.join('');
+        }
+      }
 
       console.log('Quick guide generated, length:', quickGuide.length);
 
