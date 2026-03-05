@@ -365,19 +365,7 @@ const PolicyServiceViewPolicy = () => {
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
                 <Button variant="outline" size="sm" onClick={() => setIsQuickGuideOpen(true)} className="gap-1.5">
                   <BookOpen className="h-4 w-4" />
-                  Quick Guide
-                </Button>
-                <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
-                  <Printer className="h-4 w-4" />
-                  Print
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCopyContent} className="gap-1.5">
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  {copied ? 'Copied' : 'Copy'}
-                </Button>
-                <Button variant="default" size="sm" onClick={handleDownload} disabled={isDownloading} className="gap-1.5">
-                  {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  Download .doc
+                  Create a Quick Guide for Staff
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -462,6 +450,16 @@ const PolicyServiceViewPolicy = () => {
               <Switch id="view-show-page-numbers" checked={showPageNumbers} onCheckedChange={setShowPageNumbers} className="scale-90" />
               <Label htmlFor="view-show-page-numbers" className="text-sm cursor-pointer">Page Numbers</Label>
             </div>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" onClick={handleDownload} disabled={isDownloading} className="h-8 w-8">
+                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Download .docx</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
