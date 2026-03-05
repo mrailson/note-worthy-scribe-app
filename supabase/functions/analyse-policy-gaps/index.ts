@@ -604,14 +604,25 @@ ${documentText}
       }
 
       // ══════════════════════════════════════════════════
-      // FIX 5: Section heading validation and repair
+      // FIX 5: Section heading validation, content-based reordering, LBC bullet, min section count
       // ══════════════════════════════════════════════════
-      const expectedSections = audience === 'patient' 
+      const expectedSectionOrder = audience === 'patient' 
         ? ['Title', 'Why This Policy Exists', 'What This Means for You', 'What You Can Expect from Our Practice', 'Your Rights as a Patient', 'If You Have Questions or Concerns', 'Accessibility Statement']
         : ['Purpose', 'When This Policy Applies', 'Key Staff Responsibilities', 'Step-by-Step Process', 'Documentation Requirements', 'If Something Goes Wrong', 'Quick Reminders'];
       
-      // Fix truncated section headings (e.g. "Requirem" → "Documentation Requirements")
-      for (const heading of expectedSections) {
+      // Content-type keyword map for matching sections to canonical order
+      const sectionContentKeywords: Record<string, string[]> = audience === 'patient' ? {} : {
+        'Purpose': ['purpose', 'when it applies', 'overview', 'aim', 'objective', 'about this', 'introduction'],
+        'When This Policy Applies': ['when this', 'applies', 'scope', 'situations', 'circumstances', 'relevant when'],
+        'Key Staff Responsibilities': ['responsibilit', 'staff role', 'key role', 'who is responsible', 'duties', 'accountab'],
+        'Step-by-Step Process': ['step-by-step', 'step by step', 'process', 'workflow', 'procedure', 'how to', 'action steps'],
+        'Documentation Requirements': ['document', 'record', 'logging', 'audit', 'evidence', 'systmone', 'emis', 'filing'],
+        'If Something Goes Wrong': ['something goes wrong', 'incident', 'concern', 'escalat', 'error', 'breach', 'risk', 'adverse', 'emergency'],
+        'Quick Reminders': ['reminder', 'key points', 'remember', 'golden rules', 'do and don', 'top tips', 'checklist'],
+      };
+
+      // Fix truncated section headings
+      for (const heading of expectedSectionOrder) {
         if (heading.length >= 6) {
           for (let len = 4; len < heading.length; len++) {
             const truncated = heading.substring(0, len);
@@ -621,41 +632,145 @@ ${documentText}
         }
       }
 
-      // Extract all numbered section headings with their content for reordering
-      const sectionPattern = /(?:^|\n)((?:#+\s*)?(\d+)\.\s+(.*))/g;
-      const sections: { fullMatch: string; number: number; heading: string; startIdx: number }[] = [];
-      let sMatch;
-      while ((sMatch = sectionPattern.exec(quickGuide)) !== null) {
-        const num = parseInt(sMatch[2], 10);
-        if (num >= 1 && num <= 9) {
-          sections.push({
-            fullMatch: sMatch[1],
-            number: num,
-            heading: sMatch[3].trim(),
-            startIdx: sMatch.index,
-          });
+      // ── Content-based section reordering (non-patient only) ──
+      if (audience !== 'patient') {
+        // Split into sections by numbered headings
+        const splitPattern = /(?=(?:^|\n)(?:#+\s*)?\d+\.\s+)/;
+        const rawSections = quickGuide.split(splitPattern).filter(s => s.trim());
+        
+        // Separate preamble (anything before first numbered section) from sections
+        const preamble: string[] = [];
+        const numberedSections: { content: string; canonicalIndex: number }[] = [];
+        
+        for (const raw of rawSections) {
+          const headingMatch = raw.match(/(?:#+\s*)?(\d+)\.\s+(.*?)(?:\n|$)/);
+          if (!headingMatch) {
+            preamble.push(raw);
+            continue;
+          }
+          
+          const headingText = headingMatch[2].trim().toLowerCase();
+          const fullContent = raw;
+          
+          // Match to canonical order by content keywords
+          let bestMatch = -1;
+          let bestScore = 0;
+          for (let ci = 0; ci < expectedSectionOrder.length; ci++) {
+            const canonName = expectedSectionOrder[ci];
+            const keywords = sectionContentKeywords[canonName] || [];
+            // Check heading similarity to canonical name
+            let score = 0;
+            if (headingText.includes(canonName.toLowerCase()) || canonName.toLowerCase().includes(headingText)) {
+              score += 10;
+            }
+            for (const kw of keywords) {
+              if (headingText.includes(kw) || fullContent.toLowerCase().includes(kw)) {
+                score += 1;
+              }
+            }
+            if (score > bestScore) {
+              bestScore = score;
+              bestMatch = ci;
+            }
+          }
+          
+          numberedSections.push({ content: fullContent, canonicalIndex: bestMatch >= 0 ? bestMatch : 99 });
         }
+        
+        // Sort by canonical order
+        numberedSections.sort((a, b) => a.canonicalIndex - b.canonicalIndex);
+        
+        // Renumber sequentially
+        const reorderedSections = numberedSections.map((sec, idx) => {
+          return sec.content.replace(/(?:^|\n)(#+\s*)?\d+\./, (match, prefix) => {
+            return match.replace(/\d+/, String(idx + 1));
+          });
+        });
+        
+        quickGuide = [...preamble, ...reorderedSections].join('\n');
+        console.log(`📋 Sections reordered by content type. Order: ${numberedSections.map(s => s.canonicalIndex).join(',')}`);
+      } else {
+        // Patient leaflets: just renumber sequentially
+        let counter = 0;
+        quickGuide = quickGuide.replace(/((?:^|\n)(?:#+\s*)?)(\d+)(\.\s+)/g, (match, prefix, _num, suffix) => {
+          counter++;
+          return `${prefix}${counter}${suffix}`;
+        });
       }
 
-      if (sections.length > 1) {
-        // Check for out-of-sequence, duplicate, or missing numbers
-        const numbers = sections.map(s => s.number);
-        const isSequential = numbers.every((n, i) => n === i + 1);
-        const hasDuplicates = new Set(numbers).size !== numbers.length;
-
-        if (!isSequential || hasDuplicates) {
-          console.warn('⚠️ Section numbering issues detected:', numbers, '→ renumbering sequentially');
-          // Renumber all sections sequentially from 1
-          let counter = 0;
-          quickGuide = quickGuide.replace(/((?:^|\n)(?:#+\s*)?)(\d+)(\.\s+)/g, (match, prefix, _num, suffix) => {
-            counter++;
-            return `${prefix}${counter}${suffix}`;
+      // ── Section count validation: must be 6-7 sections, regenerate if fewer ──
+      const sectionCountMatch = quickGuide.match(/(?:^|\n)(?:#+\s*)?\d+\.\s+/g) || [];
+      const sectionCount = sectionCountMatch.length;
+      console.log(`📋 Section count: ${sectionCount}`);
+      
+      let sectionCountFlag = false;
+      if (sectionCount < 6 && regenerationAttempts < MAX_REGEN_ATTEMPTS) {
+        console.warn(`⚠️ Only ${sectionCount} sections returned — regenerating for completeness`);
+        regenerationAttempts++;
+        const sectionFixSuffix = `\n\nCRITICAL: Your previous response only had ${sectionCount} sections. You MUST return exactly 6 or 7 numbered sections covering: Purpose, When This Policy Applies, Key Staff Responsibilities, Step-by-Step Process, Documentation Requirements, If Something Goes Wrong, and Quick Reminders. Do not merge or skip any section.`;
+        
+        let retryGuide = '';
+        if (ANTHROPIC_API_KEY) {
+          const retryResp = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+            body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4096, system: quickGuideSystem + sectionFixSuffix, messages: [{ role: 'user', content: quickGuideUserPrompt }] }),
           });
+          if (retryResp.ok) {
+            const d = await retryResp.json();
+            retryGuide = d.content?.[0]?.text || '';
+          }
+        }
+        if (!retryGuide) {
+          const retryResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: 'google/gemini-3-flash-preview', max_tokens: 4096, messages: [{ role: 'system', content: quickGuideSystem + sectionFixSuffix }, { role: 'user', content: quickGuideUserPrompt }] }),
+          });
+          if (retryResp.ok) {
+            const t = await retryResp.text();
+            const d = JSON.parse(t);
+            retryGuide = d.choices?.[0]?.message?.content || '';
+          }
+        }
+        if (retryGuide) {
+          quickGuide = retryGuide;
+          // Re-apply all cleanup passes
+          quickGuide = quickGuide.replace(/(Powered\s+by\s+Note[Ww]ell\s+AI)[''"""'´`].*/g, '$1');
+          quickGuide = quickGuide.replace(/\b(\w+)([,;.]?\s+)\1\b/gi, '$1$2');
+          check = runCorruptionCheck(quickGuide);
+          if (check.corrupted) quickGuide = check.cleaned;
+        } else {
+          sectionCountFlag = true;
+        }
+      } else if (sectionCount < 6) {
+        sectionCountFlag = true;
+      }
+
+      // ── LBC vials hardcoded bullet for cold chain / cervical screening guides ──
+      const policyLower = documentText.toLowerCase();
+      const isColdChainOrCervical = policyLower.includes('cold chain') || policyLower.includes('vaccine refriger') || policyLower.includes('cervical screen') || policyLower.includes('lbc vial') || policyLower.includes('liquid based cytology');
+      
+      if (isColdChainOrCervical && audience !== 'patient') {
+        const lbcBullet = '- LBC cervical screening vials are stored at room temperature (15–30°C) — never put them in the vaccine refrigerator.';
+        // Insert into Quick Reminders section if it exists
+        const remindersMatch = quickGuide.match(/((?:#+\s*)?\d+\.\s+(?:Quick\s+Reminders?|Key\s+Points?|Remember).*?)(\n(?:(?:#+\s*)?\d+\.|$))/si);
+        if (remindersMatch) {
+          // Check if LBC bullet already present
+          if (!quickGuide.toLowerCase().includes('lbc cervical screening vials')) {
+            const insertPoint = remindersMatch.index! + remindersMatch[1].length;
+            quickGuide = quickGuide.slice(0, insertPoint) + '\n' + lbcBullet + quickGuide.slice(insertPoint);
+            console.log('✅ Injected LBC vials bullet into Quick Reminders');
+          }
+        } else if (!quickGuide.toLowerCase().includes('lbc cervical screening vials')) {
+          // Append to end if no Quick Reminders section found
+          quickGuide += '\n\n' + lbcBullet;
+          console.log('✅ Appended LBC vials bullet to end');
         }
       }
 
       // Determine if manual review flag is needed
-      const needsManualReview = check.corrupted;
+      const needsManualReview = check.corrupted || sectionCountFlag;
 
       console.log('Quick guide generated, length:', quickGuide.length, needsManualReview ? '⚠️ FLAGGED FOR MANUAL REVIEW' : '✅');
 
