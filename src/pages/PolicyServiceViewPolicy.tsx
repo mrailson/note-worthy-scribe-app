@@ -360,106 +360,66 @@ const PolicyServiceViewPolicy = () => {
           </CardContent>
         </Card>
 
-        {/* Logo Position Slider - Prominent inline control */}
-        {showLogo && practiceLogoUrl && (
-          <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 p-3 rounded-lg border bg-card">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground shrink-0">
-              <ImageIcon className="h-4 w-4" />
-              Logo Position
-            </div>
-            <TooltipProvider delayDuration={200}>
-              <div className="inline-flex items-center rounded-lg border bg-muted/50 p-1 gap-0.5">
-                {([
-                  { value: 'left' as const, icon: AlignLeft, label: 'Left' },
-                  { value: 'center' as const, icon: AlignCenter, label: 'Centre' },
-                  { value: 'right' as const, icon: AlignRight, label: 'Right' },
-                ] as const).map(({ value, icon: Icon, label }) => (
-                  <Tooltip key={value}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setLogoPosition(value)}
-                        className={`
-                          relative flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
-                          ${logoPosition === value
-                            ? 'bg-primary text-primary-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                          }
-                        `}
-                      >
-                        <Icon className="h-4 w-4" />
-                        <span className="hidden sm:inline">{label}</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="sm:hidden">
-                      {label}
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
+        {/* Document Options Bar */}
+        <div className="mb-4 flex flex-wrap items-center gap-3 sm:gap-6 p-3 rounded-lg border bg-card">
+          {/* Logo Position Toggle */}
+          {showLogo && practiceLogoUrl && (
+            <>
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground shrink-0">
+                <ImageIcon className="h-4 w-4" />
+                Logo Position
               </div>
-            </TooltipProvider>
+              <TooltipProvider delayDuration={200}>
+                <div className="inline-flex items-center rounded-lg border bg-muted/50 p-1 gap-0.5">
+                  {([
+                    { value: 'left' as const, icon: AlignLeft, label: 'Left' },
+                    { value: 'center' as const, icon: AlignCenter, label: 'Centre' },
+                    { value: 'right' as const, icon: AlignRight, label: 'Right' },
+                  ] as const).map(({ value, icon: Icon, label }) => (
+                    <Tooltip key={value}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setLogoPosition(value)}
+                          className={`
+                            relative flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
+                            ${logoPosition === value
+                              ? 'bg-primary text-primary-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                            }
+                          `}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span className="hidden sm:inline">{label}</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="sm:hidden">
+                        {label}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </TooltipProvider>
+
+              <Separator orientation="vertical" className="hidden sm:block h-8" />
+            </>
+          )}
+
+          {/* Inline toggles */}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch id="view-show-logo" checked={showLogo} onCheckedChange={setShowLogo} className="scale-90" />
+              <Label htmlFor="view-show-logo" className="text-sm cursor-pointer">Logo</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="view-show-footer" checked={showFooter} onCheckedChange={setShowFooter} className="scale-90" />
+              <Label htmlFor="view-show-footer" className="text-sm cursor-pointer">Footer</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="view-show-page-numbers" checked={showPageNumbers} onCheckedChange={setShowPageNumbers} className="scale-90" />
+              <Label htmlFor="view-show-page-numbers" className="text-sm cursor-pointer">Page Numbers</Label>
+            </div>
           </div>
-        )}
-
-        {/* Additional Document Options (collapsed) */}
-        <Collapsible open={optionsOpen} onOpenChange={setOptionsOpen}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground mb-2">
-              <Settings2 className="h-4 w-4" />
-              More Document Options
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mb-4">
-            <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="view-show-logo" className="text-sm font-medium">
-                    Include Practice Logo
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Add your practice logo to the document header
-                  </p>
-                </div>
-                <Switch
-                  id="view-show-logo"
-                  checked={showLogo}
-                  onCheckedChange={setShowLogo}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="view-show-footer" className="text-sm font-medium">
-                    Include Practice Footer
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Add practice name and address to the footer
-                  </p>
-                </div>
-                <Switch
-                  id="view-show-footer"
-                  checked={showFooter}
-                  onCheckedChange={setShowFooter}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="view-show-page-numbers" className="text-sm font-medium">
-                    Include Page Numbers
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Add page numbers to each page footer
-                  </p>
-                </div>
-                <Switch
-                  id="view-show-page-numbers"
-                  checked={showPageNumbers}
-                  onCheckedChange={setShowPageNumbers}
-                />
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+        </div>
 
         {/* Document Preview */}
         <Card className="print:shadow-none print:border-none">
