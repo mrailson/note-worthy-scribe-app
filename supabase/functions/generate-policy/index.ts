@@ -448,24 +448,51 @@ function removeForbiddenGapAnalysisTables(content: string): string {
   return kept.join('\n');
 }
 
-function enforceSection11ExactTable(content: string, practiceManagerName: string): string {
+interface Section11Details {
+  practiceManagerName: string;
+  practiceName: string;
+  practiceAddress: string;
+  leadGpName: string;
+  reviewDate: string; // DD/MM/YYYY or similar
+}
+
+function enforceSection11ExactTable(content: string, details: Section11Details): string {
   if (!content) return content;
 
-  const today = new Date().toLocaleDateString('en-GB');
-  const author = practiceManagerName || 'Practice Manager';
-  const exactTable = `| Version | Date | Author | Summary |\n|---|---|---|---|\n| 1.0 | ${today} | ${author} | Initial issue |`;
+  const now = new Date();
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const todayFormatted = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  const author = details.practiceManagerName || 'Practice Manager';
+  const practiceName = details.practiceName || '[Practice Name]';
+  const practiceAddress = details.practiceAddress || '[Practice Address]';
+  const leadGpName = details.leadGpName || '[Lead GP]';
+  const reviewDate = details.reviewDate || new Date(Date.now() + 365 * 86400000).toLocaleDateString('en-GB');
 
-  const headingRegex = /(?:^|\n)((?:#{1,6}\s*)?11\.\s*VERSION HISTORY[^\n]*)/i;
+  const exactTable = `| Version | Date | Author | Summary of Changes |
+|---------|------|--------|--------------------|
+| 1.0 | ${todayFormatted} | ${author} | Initial issue. New policy created for ${practiceName}. |`;
+
+  const ownershipFooter = `*This policy is the property of ${practiceName}, ${practiceAddress}. It will be reviewed annually by ${author} and approved by ${leadGpName}. Next review due: ${reviewDate}.*`;
+
+  const section11Block = `11. VERSION HISTORY\n\n${exactTable}\n\n${ownershipFooter}`;
+
+  // Find and replace everything from Section 11 heading to end of document
+  const headingRegex = /(?:^|\n)((?:#{1,6}\s*)?11\.?\s*VERSION\s*HISTORY[^\n]*)/i;
   const headingMatch = headingRegex.exec(content);
 
   if (headingMatch) {
-    const headingLine = headingMatch[1].trim();
     const sectionStart = (headingMatch.index ?? 0) + (headingMatch[0].startsWith('\n') ? 1 : 0);
     const beforeSection = content.slice(0, sectionStart).trimEnd();
-    return `${beforeSection}\n\n${headingLine}\n${exactTable}`;
+
+    // Check if there's a section 12+ after (unlikely but safe)
+    const afterSection11 = content.slice(sectionStart);
+    const nextSectionMatch = afterSection11.match(/\n(?:#{1,6}\s*)?(1[2-9]|[2-9]\d)\.\s+[A-Z]/);
+    const trailing = nextSectionMatch ? afterSection11.slice(nextSectionMatch.index!) : '';
+
+    return `${beforeSection}\n\n${section11Block}${trailing}`;
   }
 
-  return `${content.trim()}\n\n11. VERSION HISTORY\n${exactTable}`;
+  return `${content.trim()}\n\n${section11Block}`;
 }
 
 function applyDeterministicOverrides(content: string): string {
@@ -500,11 +527,19 @@ function applyDeterministicOverrides(content: string): string {
   return text;
 }
 
-function sanitisePolicyOutput(content: string, practiceManagerName: string): string {
+function sanitisePolicyOutput(content: string, practiceManagerName: string, practiceDetails?: Section11Details): string {
   const withoutInternalQuoteLines = stripInternalQuoteLines(content);
   const withoutGapAnalysisTables = removeForbiddenGapAnalysisTables(withoutInternalQuoteLines);
   const withOverrides = applyDeterministicOverrides(withoutGapAnalysisTables);
-  const withExactVersionHistory = enforceSection11ExactTable(withOverrides, practiceManagerName);
+
+  const s11Details: Section11Details = practiceDetails || {
+    practiceManagerName,
+    practiceName: '',
+    practiceAddress: '',
+    leadGpName: '',
+    reviewDate: '',
+  };
+  const withExactVersionHistory = enforceSection11ExactTable(withOverrides, s11Details);
 
   return withExactVersionHistory.replace(/\n{3,}/g, '\n\n').trim();
 }
@@ -558,6 +593,17 @@ async function streamAnthropicWithKeepalive(
   }
 
   return fullContent;
+}
+
+function buildSection11Details(jobPractice: any, jobMetadata: any): Section11Details {
+  const practiceManagerName = jobPractice?.practice_manager_name || jobPractice?.practice_manager || 'Practice Manager';
+  const practiceName = jobPractice?.practice_name || '[Practice Name]';
+  const addr = jobPractice?.address || jobPractice?.practice_address || '';
+  const postcode = jobPractice?.postcode || '';
+  const practiceAddress = [addr, postcode].filter(Boolean).join(', ') || '[Practice Address]';
+  const leadGpName = jobPractice?.lead_gp_name || jobPractice?.lead_gp || '[Lead GP]';
+  const reviewDate = jobMetadata?.review_date || new Date(Date.now() + 365 * 86400000).toLocaleDateString('en-GB');
+  return { practiceManagerName, practiceName, practiceAddress, leadGpName, reviewDate };
 }
 
 // ========== MAIN HANDLER ==========
@@ -1093,7 +1139,7 @@ ${policyContent}`;
             try {
               const enhanced = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, enhancePrompt, 10000);
               if (enhanced && enhanced.length > 500) {
-                policyContent = sanitisePolicyOutput(enhanced, practiceManagerName);
+                policyContent = sanitisePolicyOutput(enhanced, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
                 console.log(`[Step: enhance] Enhancement succeeded - ${policyContent.length} chars (fully sanitised)`);
               } else {
                 console.warn(`[Step: enhance] Enhancement returned insufficient content, using original`);
@@ -1111,7 +1157,7 @@ ${policyContent}`;
             }
           }
 
-          policyContent = sanitisePolicyOutput(policyContent, practiceManagerName);
+          policyContent = sanitisePolicyOutput(policyContent, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
 
           // Advance to gap_check
           await serviceSupabase
@@ -1195,7 +1241,7 @@ ${finalContent}`;
 
               const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 10000);
               if (remediated && remediated.length > 500) {
-                finalContent = sanitisePolicyOutput(remediated, practiceManagerName);
+                finalContent = sanitisePolicyOutput(remediated, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
                 console.log(`[gap_check] Remediation succeeded - ${finalContent.length} chars`);
               } else {
                 console.warn(`[gap_check] Remediation returned insufficient content, using original`);
@@ -1234,7 +1280,8 @@ ${finalContent}`;
 
           const rawPolicyContent = job.generated_content || '';
           const practiceManagerName = (jobPractice as any)?.practice_manager_name || (jobPractice as any)?.practice_manager || 'Practice Manager';
-          const policyContent = sanitisePolicyOutput(rawPolicyContent, practiceManagerName);
+          const s11Details = buildSection11Details(jobPractice, jobMetadata);
+          const policyContent = sanitisePolicyOutput(rawPolicyContent, practiceManagerName, s11Details);
 
           // Save to policy_completions
           try {
