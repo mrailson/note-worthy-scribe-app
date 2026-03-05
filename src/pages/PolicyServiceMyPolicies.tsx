@@ -213,18 +213,49 @@ const PolicyServiceMyPolicies = () => {
                 )}
               </h2>
               {activeJobCount > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    kickQueue();
-                    toast.info('Queue processor restarted');
-                  }}
-                  className="gap-1 text-xs"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  Restart Queue
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1 text-xs"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Restart Queue
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="sm:max-w-md">
+                    <AlertDialogHeader>
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-amber-500" />
+                        <AlertDialogTitle>Restart Queue?</AlertDialogTitle>
+                      </div>
+                      <AlertDialogDescription asChild>
+                        <div className="space-y-3 text-sm text-muted-foreground">
+                          <span className="block">
+                            This is a diagnostic tool and should only be used if your policy has been stuck for more than 15 minutes.
+                          </span>
+                          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                            <span className="text-sm text-amber-700 dark:text-amber-300">
+                              ⚠️ Under normal conditions, policies generate automatically. Only restart if there is a genuine issue.
+                            </span>
+                          </div>
+                        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          kickQueue();
+                          toast.info('Queue processor restarted');
+                        }}
+                      >
+                        Restart Queue
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </div>
             <div className="space-y-2">
