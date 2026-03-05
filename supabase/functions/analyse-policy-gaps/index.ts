@@ -116,17 +116,17 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Truncate if too long
-    const maxLength = 50000;
-    const truncatedText = extracted_text.length > maxLength
+    // Pass full document — Gemini Flash supports 1M token context
+    const maxLength = 200000;
+    const documentText = extracted_text.length > maxLength
       ? extracted_text.substring(0, maxLength) + '\n\n[Content truncated due to length]'
       : extracted_text;
 
-    const userPrompt = `Analyse the following practice policy document and provide a comprehensive gap analysis:
+    const userPrompt = `Analyse the following practice policy document IN FULL and provide a comprehensive gap analysis. You MUST read and consider every section of the document — do not skip or skim any part.
 
----POLICY DOCUMENT---
-${truncatedText}
----END DOCUMENT---
+---POLICY DOCUMENT START---
+${documentText}
+---POLICY DOCUMENT END---
 
 Today's date is ${new Date().toLocaleDateString('en-GB')}.
 
@@ -142,6 +142,7 @@ Please analyse this policy against current NHS England and CQC requirements and 
       },
       body: JSON.stringify({
         model: 'google/gemini-3-flash-preview',
+        max_tokens: 8192,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
