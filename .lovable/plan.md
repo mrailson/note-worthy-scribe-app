@@ -1,30 +1,51 @@
 
 
-## Plan: Load Practice Manager Defaults for Same-Practice Users
+## Root Cause
 
-### Problem
-Currently, each user at a practice must manually enter all practice profile defaults (practice name, address, key personnel, services, branch sites, etc.) independently. If a Practice Manager (e.g. Sarah Berry) has already configured these details, other users at the same practice should automatically inherit them rather than re-entering everything.
+The problem is **not in the component code** — it's in the **RLS (Row Level Security) policy** on the `practice_details` table.
 
-### Approach
-Modify the `PolicyProfileDefaults.tsx` load logic to add a **Priority 2** fallback: when the current user has no `practice_details` record, look up their `practice_id` from `user_roles`, find the `gp_practices` name, then search `practice_details` for any existing record matching that practice name. If found, pre-populate all fields from it (but do NOT set `practiceDetailsId` — the user will create their own record on save).
+The SELECT policy allows users to read other users' records only when:
+```sql
+lower(gp.name) = lower(practice_details.practice_name)
+```
 
-This mirrors the existing pattern already used successfully in `usePracticeContext.ts`.
+But there's a name mismatch:
+- `gp_practices.name` = **"The Saxon Spires Practice"**
+- Sarah Berry's `practice_details.practice_name` = **"Saxon Spires Practice"** (no "The")
 
-### Changes — Single File
+So when Julia Railson queries for shared records, RLS silently blocks the result because the exact string comparison fails. The component code's `ilike` query runs fine, but the database returns zero rows due to the policy.
 
-**`src/components/policy/PolicyProfileDefaults.tsx`** — lines ~187-212 (the `else` branch when no user-specific `practice_details` exists):
+## Fix — Two Changes
 
-1. Look up the user's `practice_id` from `user_roles` (already done partially)
-2. Get the practice name from `gp_practices`
-3. Search `practice_details` for any record matching that practice name (from any user — i.e. the Practice Manager's record)
-4. If found, populate **all** fields (practice info, branch sites, personnel, services) from that shared record
-5. Show a subtle info banner: "Practice defaults loaded from [Practice Manager Name]'s profile" so users know the data was pre-populated
-6. `practiceDetailsId` remains `null` — on save, the user creates their own record (so each user owns their copy but starts from the shared baseline)
+### 1. Update the RLS SELECT policy to use flexible name matching
 
-### Key Details
+Replace the exact `lower()` comparison with one that strips common prefixes like "The ":
 
-- **Matching logic**: Use `ilike` on `practice_name` (exact first, then flexible), same as `usePracticeContext.ts`
-- **All fields copied**: practice name, address, postcode, ODS code, list size, clinical system, branch sites, all personnel names, services offered
-- **No RLS changes needed**: `practice_details` already allows authenticated users to read records (the existing `usePracticeContext` hook reads other users' records successfully)
-- **Banner UX**: A dismissible blue info banner at the top saying "Defaults loaded from existing practice profile" — disappears once the user saves their own copy
+```sql
+DROP POLICY "Org members can view practice details" ON public.practice_details;
+
+CREATE POLICY "Org members can view practice details"
+ON public.practice_details FOR SELECT TO authenticated
+USING (
+  is_system_admin()
+  OR (user_id = auth.uid())
+  OR (EXISTS (
+    SELECT 1
+    FROM user_roles ur
+    JOIN gp_practices gp ON gp.id = ur.practice_id
+    WHERE ur.user_id = auth.uid()
+      AND ur.practice_id IS NOT NULL
+      AND lower(regexp_replace(gp.name, '^[Tt]he\s+', '')) 
+        = lower(regexp_replace(practice_details.practice_name, '^[Tt]he\s+', ''))
+  ))
+);
+```
+
+### 2. Also fix the UPDATE policy (same issue)
+
+The UPDATE policy has the identical exact-match problem. Apply the same `regexp_replace` fix.
+
+### No component code changes needed
+
+The existing fallback/merge logic in `PolicyProfileDefaults.tsx` is already correct — it searches with `ilike` and strips "The " prefixes. The only reason it fails is that the database never returns rows due to the RLS block.
 
