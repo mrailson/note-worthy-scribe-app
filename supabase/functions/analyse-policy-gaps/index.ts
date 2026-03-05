@@ -106,7 +106,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { extracted_text, action } = body;
+    const { extracted_text, action, audience } = body;
 
     if (!extracted_text) {
       throw new Error('extracted_text is required');
@@ -124,26 +124,53 @@ serve(async (req) => {
 
     // ─── QUICK GUIDE ACTION ───
     if (action === 'quick-guide') {
+      // Build audience-specific instructions
+      let audienceInstruction = '';
+      switch (audience) {
+        case 'non-clinical':
+          audienceInstruction = `This guide is specifically for NON-CLINICAL staff (receptionists, administrators, practice managers, secretaries).
+Focus ONLY on administrative duties, front-desk processes, data handling, patient communication, and operational tasks.
+Do NOT include clinical procedures, prescribing, clinical decision-making, or clinical examination processes.
+Frame all responsibilities from an administrative perspective.`;
+          break;
+        case 'clinical':
+          audienceInstruction = `This guide is specifically for CLINICAL staff (GPs, nurses, healthcare assistants, pharmacists, paramedics).
+Focus ONLY on clinical responsibilities, patient assessment, treatment pathways, prescribing, referrals, and clinical documentation.
+Do NOT include administrative tasks like appointment booking, filing, or front-desk operations.
+Frame all responsibilities from a clinical perspective.`;
+          break;
+        default: // 'all-staff'
+          audienceInstruction = `This guide is for ALL STAFF — both clinical and non-clinical.
+Include responsibilities for clinicians (GPs, nurses, HCAs) AND administrative staff (receptionists, managers, secretaries).
+Clearly separate clinical vs administrative responsibilities where relevant.`;
+          break;
+      }
+
+      const audienceLabel = audience === 'non-clinical' ? 'Non-Clinical Staff' : audience === 'clinical' ? 'Clinical Staff' : 'All Staff';
+
       const quickGuideSystem = `You are generating a one-page NHS staff quick guide for a GP practice policy.
+
+TARGET AUDIENCE: ${audienceLabel}
+${audienceInstruction}
 
 Use the full policy provided as the source document.
 
-Your task is NOT to summarise the entire policy but to extract the key operational requirements that staff must follow.
+Your task is NOT to summarise the entire policy but to extract the key operational requirements that the target audience must follow.
 
-The quick guide must be concise, clear, and suitable for busy clinical and administrative staff.
+The quick guide must be concise, clear, and suitable for busy staff.
 
 Structure the guide using the following sections:
 
 1. Purpose (1–2 sentences)
 
 2. When This Policy Applies
-List the situations when the policy is relevant.
+List the situations when the policy is relevant to ${audienceLabel.toLowerCase()}.
 
 3. Key Staff Responsibilities
-Clearly separate responsibilities for clinicians, administrative staff, or other relevant roles.
+List responsibilities relevant to the target audience only.
 
 4. Step-by-Step Process
-Provide a numbered workflow (maximum 7 steps) describing how staff should follow the policy in practice.
+Provide a numbered workflow (maximum 7 steps) describing how ${audienceLabel.toLowerCase()} should follow the policy in practice.
 
 5. Documentation Requirements
 Explain what must be recorded and where (e.g., SystmOne, incident log).
@@ -152,7 +179,7 @@ Explain what must be recorded and where (e.g., SystmOne, incident log).
 Explain what staff should do if concerns, incidents, or risks arise.
 
 7. Quick Reminders
-Provide 4–6 short bullet points highlighting the most important rules.
+Provide 4–6 short bullet points highlighting the most important rules for ${audienceLabel.toLowerCase()}.
 
 Formatting requirements:
 • Use clear headings

@@ -48,7 +48,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { QuickGuideDialog } from "@/components/policy/QuickGuideDialog";
+import { QuickGuideDialog, QuickGuideOutput } from "@/components/policy/QuickGuideDialog";
 
 const EXPECTED_GENERATION_MINUTES = 10;
 
@@ -95,7 +95,7 @@ const PolicyServiceMyPolicies = () => {
   }, [activeJobCount, refreshCompletions]);
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [quickGuidePolicy, setQuickGuidePolicy] = useState<{ content: string; title: string } | null>(null);
+  const [quickGuidePolicy, setQuickGuidePolicy] = useState<{ id: string; content: string; title: string } | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
     practice_name?: string;
@@ -496,7 +496,7 @@ const PolicyServiceMyPolicies = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setQuickGuidePolicy({ content: completion.policy_content, title: completion.policy_title })}
+                        onClick={() => setQuickGuidePolicy({ id: completion.id, content: completion.policy_content, title: completion.policy_title })}
                         title="Quick Guide"
                       >
                         <BookOpen className="h-4 w-4" />
@@ -580,6 +580,24 @@ const PolicyServiceMyPolicies = () => {
           onOpenChange={(open) => { if (!open) setQuickGuidePolicy(null); }}
           policyContent={quickGuidePolicy.content}
           policyTitle={quickGuidePolicy.title}
+          policyId={quickGuidePolicy.id}
+          onGenerated={async (output: QuickGuideOutput) => {
+            // Persist to policy metadata
+            if (user && quickGuidePolicy) {
+              try {
+                const completion = completions.find(c => c.id === quickGuidePolicy.id);
+                const currentMeta = (completion?.metadata || {}) as any;
+                const updatedMeta = { ...currentMeta, last_quick_guide: output };
+                await supabase
+                  .from('policy_completions')
+                  .update({ metadata: updatedMeta })
+                  .eq('id', quickGuidePolicy.id)
+                  .eq('user_id', user.id);
+              } catch (err) {
+                console.error('Failed to persist quick guide metadata:', err);
+              }
+            }
+          }}
         />
       )}
     </div>
