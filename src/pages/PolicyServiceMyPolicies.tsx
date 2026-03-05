@@ -39,15 +39,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { PolicyDocumentPreview } from "@/components/policy/PolicyDocumentPreview";
+
 
 const getJobStatusBadge = (job: PolicyJob) => {
   const label = getStepLabel(job);
@@ -74,7 +66,6 @@ const PolicyServiceMyPolicies = () => {
   const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue, refetch: refetchJobs } = usePolicyJobs();
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [previewPolicy, setPreviewPolicy] = useState<typeof completions[0] | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
 
   // Fetch practice logo URL
@@ -382,7 +373,7 @@ const PolicyServiceMyPolicies = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setPreviewPolicy(completion)}
+                        onClick={() => navigate(`/policy-service/my-policies/${completion.id}`)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -457,29 +448,6 @@ const PolicyServiceMyPolicies = () => {
           </Card>
         )}
 
-        {/* Preview Dialog */}
-        <Dialog open={!!previewPolicy} onOpenChange={() => setPreviewPolicy(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-            <DialogHeader>
-              <DialogTitle>{previewPolicy?.policy_title}</DialogTitle>
-              <DialogDescription>
-                Version {previewPolicy?.version} • Effective {previewPolicy?.effective_date}
-              </DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="h-[60vh] bg-slate-100 dark:bg-slate-900 rounded-lg p-4">
-              {previewPolicy && (
-                <PolicyDocumentPreview
-                  content={previewPolicy.policy_content}
-                  metadata={previewPolicy.metadata as any}
-                  showLogo={false}
-                  logoPosition="left"
-                  showFooter={false}
-                  showPageNumbers={false}
-                />
-              )}
-            </ScrollArea>
-          </DialogContent>
-        </Dialog>
       </main>
     </div>
   );
