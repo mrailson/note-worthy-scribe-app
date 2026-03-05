@@ -488,7 +488,7 @@ function enforceSection11ExactTable(content: string, details: Section11Details):
   const section11Block = `11. VERSION HISTORY\n\n${exactTable}\n\n${ownershipFooter}`;
 
   // Find and replace everything from Section 11 heading to end of document
-  const headingRegex = /(?:^|\n)((?:#{1,6}\s*)?11\.?\s*VERSION\s*HISTORY[^\n]*)/i;
+  const headingRegex = /(?:^|\n)((?:#{1,6}\s*)?(?:Section\s*)?11[.:]?\s*(?:[-–—]\s*)?VERSION\s*HISTORY[^\n]*)/i;
   const headingMatch = headingRegex.exec(content);
 
   if (headingMatch) {
