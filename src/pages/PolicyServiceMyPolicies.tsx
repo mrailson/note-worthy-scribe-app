@@ -143,6 +143,27 @@ const PolicyServiceMyPolicies = () => {
   const activeJobs = jobs.filter(j => ['pending', 'generating', 'enhancing'].includes(j.status));
   const recentFailedJobs = jobs.filter(j => j.status === 'failed');
 
+  const getPersistedDocxOptions = () => {
+    const showLogo = localStorage.getItem('policy_docx_show_logo') !== 'false';
+    const logoPosition = (localStorage.getItem('policy_docx_logo_position') as 'left' | 'center' | 'right') || 'left';
+    const showFooter = localStorage.getItem('policy_docx_show_footer') !== 'false';
+    const showPageNumbers = localStorage.getItem('policy_docx_show_page_numbers') !== 'false';
+    return {
+      showLogo,
+      logoPosition,
+      showFooter,
+      showPageNumbers,
+      logoUrl: practiceLogoUrl || undefined,
+      practiceDetails: practiceDetails ? {
+        name: practiceDetails.practice_name,
+        address: practiceDetails.address,
+        postcode: practiceDetails.postcode,
+        practiceManagerName: practiceDetails.practice_manager_name,
+        leadGpName: practiceDetails.lead_gp_name,
+      } : undefined,
+    };
+  };
+
   const handleDownload = async (completion: typeof completions[0]) => {
     setDownloadingId(completion.id);
     try {
@@ -158,17 +179,7 @@ const PolicyServiceMyPolicies = () => {
         completion.policy_content,
         metadata,
         completion.policy_title,
-        {
-          showLogo: true,
-          logoUrl: practiceLogoUrl || undefined,
-          practiceDetails: practiceDetails ? {
-            name: practiceDetails.practice_name,
-            address: practiceDetails.address,
-            postcode: practiceDetails.postcode,
-            practiceManagerName: practiceDetails.practice_manager_name,
-            leadGpName: practiceDetails.lead_gp_name,
-          } : undefined,
-        }
+        getPersistedDocxOptions()
       );
       toast.success("Policy downloaded successfully");
     } catch (error) {
@@ -207,17 +218,7 @@ const PolicyServiceMyPolicies = () => {
         completion.policy_content,
         metadata,
         completion.policy_title,
-        {
-          showLogo: true,
-          logoUrl: practiceLogoUrl || undefined,
-          practiceDetails: practiceDetails ? {
-            name: practiceDetails.practice_name,
-            address: practiceDetails.address,
-            postcode: practiceDetails.postcode,
-            practiceManagerName: practiceDetails.practice_manager_name,
-            leadGpName: practiceDetails.lead_gp_name,
-          } : undefined,
-        },
+        getPersistedDocxOptions(),
         true // skip download
       );
 
