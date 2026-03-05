@@ -1,4 +1,14 @@
 import { useState, useEffect } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -204,16 +214,29 @@ const PolicyServiceCreate = () => {
     }
   };
 
+  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
+  const [showBackgroundConfirm, setShowBackgroundConfirm] = useState(false);
+
   const handleNext = () => {
     if (step === 1 && !selectedPolicy) {
       toast.error("Please select a policy type");
       return;
     }
     if (step === 2) {
-      handleGenerate();
+      setShowGenerateConfirm(true);
       return;
     }
     setStep(step + 1);
+  };
+
+  const handleConfirmGenerate = () => {
+    setShowGenerateConfirm(false);
+    handleGenerate();
+  };
+
+  const handleConfirmBackgroundGenerate = () => {
+    setShowBackgroundConfirm(false);
+    handleBackgroundGenerate();
   };
 
   const handleBack = () => {
@@ -335,7 +358,7 @@ const PolicyServiceCreate = () => {
                   </div>
                   <Button
                     variant="secondary"
-                    onClick={handleBackgroundGenerate}
+                    onClick={() => setShowBackgroundConfirm(true)}
                     disabled={isGenerating || isEnhancing || isSubmittingBackground}
                     className="gap-2"
                   >
@@ -390,6 +413,61 @@ const PolicyServiceCreate = () => {
           </div>
         </div>
       </main>
+
+      {/* Generate Policy confirmation dialog */}
+      <AlertDialog open={showGenerateConfirm} onOpenChange={setShowGenerateConfirm}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Please Allow Time for Generation
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-left space-y-3">
+              <p>
+                This comprehensive policy document will take between <strong>5 and 10 minutes</strong> to produce. It goes through a full and detailed review with a separate AI service to ensure regulatory compliance, so please be patient.
+              </p>
+              <p>
+                The completed policy will appear on screen when ready.
+              </p>
+              <p className="text-destructive font-medium">
+                Please do not close this browser tab. You can open other tabs or minimise the window while it creates the document.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmGenerate}>
+              Continue &amp; Generate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Background generate confirmation dialog */}
+      <AlertDialog open={showBackgroundConfirm} onOpenChange={setShowBackgroundConfirm}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Please Allow Time for Generation
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-left space-y-3">
+              <p>
+                This comprehensive policy document will take between <strong>5 and 10 minutes</strong> to produce. It goes through a full and detailed review with a separate AI service to ensure regulatory compliance, so please be patient.
+              </p>
+              <p>
+                The completed policy will appear on <strong>My Policies</strong> when ready.{emailWhenReady ? " You'll also receive an email notification." : ""}
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmBackgroundGenerate}>
+              Continue &amp; Queue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
