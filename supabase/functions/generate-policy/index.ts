@@ -287,8 +287,14 @@ function buildPracticeContext(jobPractice: any): string {
 }
 
 async function callAnthropic(system: string, userContent: string, maxTokens: number): Promise<string> {
+  // Use streaming mode to prevent timeout on large generation steps.
+  // Non-streaming requests require Anthropic to generate the ENTIRE response
+  // before sending anything back, which can exceed the abort timeout for large outputs.
+  // Streaming keeps the connection alive with incremental data.
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), ANTHROPIC_TIMEOUT_MS);
+  // Allow up to 5 minutes for streamed responses (each chunk resets the idle timer)
+  const STREAM_TOTAL_TIMEOUT_MS = 300_000;
+  const timeout = setTimeout(() => controller.abort(), STREAM_TOTAL_TIMEOUT_MS);
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -301,6 +307,7 @@ async function callAnthropic(system: string, userContent: string, maxTokens: num
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: maxTokens,
+        stream: true,
         system,
         messages: [{ role: 'user', content: userContent }],
       }),
@@ -312,11 +319,40 @@ async function callAnthropic(system: string, userContent: string, maxTokens: num
       throw new Error(`Anthropic ${response.status}: ${errText.substring(0, 300)}`);
     }
 
-    const data = await response.json();
-    return data.content?.[0]?.text || '';
+    // Read the SSE stream and collect the full content
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullContent = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+            fullContent += parsed.delta.text;
+          }
+        } catch {
+          // Ignore parse errors for non-JSON lines
+        }
+      }
+    }
+
+    return fullContent;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(`Anthropic timeout after ${Math.floor(ANTHROPIC_TIMEOUT_MS / 1000)}s`);
+      throw new Error(`Anthropic timeout after ${Math.floor(STREAM_TOTAL_TIMEOUT_MS / 1000)}s`);
     }
     throw error;
   } finally {
