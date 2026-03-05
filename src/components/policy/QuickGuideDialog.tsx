@@ -32,6 +32,7 @@ interface QuickGuideDialogProps {
   policyContent: string;
   policyTitle: string;
   policyId?: string;
+  logoUrl?: string | null;
   onGenerated?: (output: QuickGuideOutput) => void;
 }
 
@@ -41,6 +42,7 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
   policyContent,
   policyTitle,
   policyId,
+  logoUrl,
   onGenerated,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -77,7 +79,10 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
       await generateCleanAIResponseDocument(
         guideText,
         `Quick Guide - ${safeTitle} (${audienceLabels[audience]})`,
-        { footerNote: `For more details, see the Practice Policy on "${policyTitle}".` }
+        {
+          footerNote: `For more details, see the Practice Policy on "${policyTitle}".`,
+          logoUrl: logoUrl || undefined,
+        }
       );
 
       const output: QuickGuideOutput = {

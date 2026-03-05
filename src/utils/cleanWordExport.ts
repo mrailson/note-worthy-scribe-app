@@ -4,7 +4,7 @@
  * without excessive italics or indentation issues.
  */
 
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip } from "docx";
+import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, AlignmentType, convertInchesToTwip } from "docx";
 import { saveAs } from "file-saver";
 
 // Professional colour scheme
@@ -133,9 +133,32 @@ function createTextRuns(text: string, baseSize: number = FONTS.size.body): TextR
 export async function generateCleanAIResponseDocument(
   content: string,
   title: string = "AI Assistant Response",
-  options?: { footerNote?: string }
+  options?: { footerNote?: string; logoUrl?: string }
 ): Promise<void> {
   const children: Paragraph[] = [];
+
+  // Insert practice logo if provided
+  if (options?.logoUrl) {
+    try {
+      const response = await fetch(options.logoUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        children.push(new Paragraph({
+          children: [
+            new ImageRun({
+              data: arrayBuffer,
+              transformation: { width: 160, height: 60 },
+              type: 'png',
+            }),
+          ],
+          spacing: { after: 200 },
+        }));
+      }
+    } catch (e) {
+      console.warn('Failed to fetch logo for Word document:', e);
+    }
+  }
   
   // Document title
   children.push(new Paragraph({
