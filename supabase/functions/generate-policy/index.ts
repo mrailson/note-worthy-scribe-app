@@ -17,6 +17,18 @@ const MAX_STEP_ATTEMPTS = 3;
 const ANTHROPIC_TIMEOUT_MS = 130_000; // 130s per Anthropic call (safe margin under 150s edge limit)
 const RETRY_BACKOFF_MS = [20_000, 45_000, 90_000];
 
+/** Convert DD/MM/YYYY (en-GB) or other formats to ISO YYYY-MM-DD */
+function toISODate(dateStr: string): string {
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.split('T')[0];
+  // DD/MM/YYYY
+  const parts = dateStr.split('/');
+  if (parts.length === 3 && parts[0].length <= 2) {
+    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+  }
+  return dateStr;
+}
+
 // ---- Prompts ----
 const ENHANCEMENT_SYSTEM_PROMPT = `You are an NHS primary care policy expert preparing GP practices for CQC inspection. Your task is to review and enhance generated policies to ensure full regulatory compliance.
 
@@ -1144,8 +1156,8 @@ ${policyContent}`;
               metadata: jobMetadata,
               version: jobMetadata.version || '1.0',
               status: 'completed',
-              effective_date: jobMetadata.effective_date || today,
-              review_date: jobMetadata.review_date || reviewDate,
+              effective_date: toISODate(jobMetadata.effective_date || today),
+              review_date: toISODate(jobMetadata.review_date || reviewDate),
             });
           } catch (saveErr) {
             console.error(`[Finalise] Failed to save completion:`, saveErr);
