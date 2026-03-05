@@ -75,7 +75,7 @@ export const generatePolicyDocx = async (
   metadata: PolicyMetadata,
   policyName: string,
   options: PolicyDocxOptions = {}
-): Promise<void> => {
+): Promise<{ blob: Blob; filename: string }> => {
   const today = new Date().toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
@@ -394,6 +394,7 @@ export const generatePolicyDocx = async (
   const blob = await Packer.toBlob(doc);
   const filename = `${policyName.replace(/[^a-zA-Z0-9]/g, '_')}_v${metadata.version}.docx`;
   saveAs(blob, filename);
+  return { blob, filename };
 };
 
 function createDocumentControlTable(

@@ -23,6 +23,7 @@ import {
   Info,
   Coffee,
   BookOpen,
+  Mail,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
@@ -95,6 +96,7 @@ const PolicyServiceMyPolicies = () => {
   }, [activeJobCount, refreshCompletions]);
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [emailingId, setEmailingId] = useState<string | null>(null);
   const [quickGuidePolicy, setQuickGuidePolicy] = useState<{ id: string; content: string; title: string } | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
@@ -180,6 +182,81 @@ const PolicyServiceMyPolicies = () => {
 
   const handleDelete = async (completionId: string) => {
     await deleteCompletion(completionId);
+  };
+
+  const handleEmailToMe = async (completion: typeof completions[0]) => {
+    const userEmail = user?.email;
+    if (!userEmail) {
+      toast.error('No email address found on your account');
+      return;
+    }
+
+    setEmailingId(completion.id);
+    try {
+      toast.info('Generating and emailing policy document...');
+
+      const metadata = completion.metadata as {
+        title: string;
+        version: string;
+        effective_date: string;
+        review_date: string;
+        references: string[];
+      };
+
+      const { blob, filename } = await generatePolicyDocx(
+        completion.policy_content,
+        metadata,
+        completion.policy_title,
+        {
+          showLogo: true,
+          logoUrl: practiceLogoUrl || undefined,
+          practiceDetails: practiceDetails ? {
+            name: practiceDetails.practice_name,
+            address: practiceDetails.address,
+            postcode: practiceDetails.postcode,
+            practiceManagerName: practiceDetails.practice_manager_name,
+            leadGpName: practiceDetails.lead_gp_name,
+          } : undefined,
+        }
+      );
+
+      // Convert blob to base64
+      const reader = new FileReader();
+      const base64Content = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
+        body: {
+          to_email: userEmail,
+          subject: `Policy Document: ${completion.policy_title}`,
+          message: `<p>Please find attached your policy document: <strong>${completion.policy_title}</strong> (v${metadata.version}).</p><p>Effective: ${metadata.effective_date}<br/>Review: ${metadata.review_date}</p>`,
+          template_type: 'ai_generated_content',
+          from_name: 'Notewell AI',
+          reply_to: 'noreply@bluepcn.co.uk',
+          word_attachment: {
+            content: base64Content,
+            filename,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          },
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to send email');
+
+      toast.success(`Policy emailed to ${userEmail}`);
+    } catch (error: any) {
+      console.error('Email failed:', error);
+      toast.error(error.message || 'Failed to email policy');
+    } finally {
+      setEmailingId(null);
+    }
   };
 
   const getReviewStatusBadge = (reviewDate: string) => {
@@ -500,6 +577,19 @@ const PolicyServiceMyPolicies = () => {
                         title="Quick Guide"
                       >
                         <BookOpen className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEmailToMe(completion)}
+                        disabled={emailingId === completion.id}
+                        title="Email policy to me"
+                      >
+                        {emailingId === completion.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Mail className="h-4 w-4" />
+                        )}
                       </Button>
                       <Button
                         variant="outline"
