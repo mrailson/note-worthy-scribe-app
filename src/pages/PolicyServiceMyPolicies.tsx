@@ -231,19 +231,18 @@ const PolicyServiceMyPolicies = () => {
         reader.readAsDataURL(blob);
       });
 
-      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
+      const { data, error } = await supabase.functions.invoke('send-email-resend', {
         body: {
           to_email: userEmail,
           subject: `Policy Document: ${completion.policy_title}`,
-          message: `<p>Please find attached your policy document: <strong>${completion.policy_title}</strong> (v${metadata.version}).</p><p>Effective: ${metadata.effective_date}<br/>Review: ${metadata.review_date}</p>`,
-          template_type: 'ai_generated_content',
+          html_content: `<p>Please find attached your policy document: <strong>${completion.policy_title}</strong> (v${metadata.version}).</p><p>Effective: ${metadata.effective_date}<br/>Review: ${metadata.review_date}</p>`,
           from_name: 'Notewell AI',
           reply_to: 'noreply@bluepcn.co.uk',
-          word_attachment: {
+          attachments: [{
             content: base64Content,
             filename,
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          },
+          }],
         },
       });
 
