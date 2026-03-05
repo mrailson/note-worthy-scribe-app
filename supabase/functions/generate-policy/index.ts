@@ -42,6 +42,11 @@ Apply these overrides to every policy where the relevant topic appears.
 - Ages 50-64, HPV negative: FIVE YEARS (unchanged)
 - Pre-2019 cohort (no HPV result on record): maintain three-year recall until first HPV test obtained — this is the ONLY valid use of three years
 - NHS App now used for invitations and reminders from June 2025
+- Deferral protocol: include process for patients who request to defer screening, including maximum deferral period and re-invitation procedure
+- Speculum and lubricant guidance: water-based lubricant is acceptable for LBC samples; state this explicitly
+- Non-responder personal GP review: after 3 failed contacts, the patient's named/usual GP must be alerted to consider a personal approach at the next attendance
+- Result turnaround monitoring: practice must monitor laboratory turnaround against the 14-day standard and escalate if breached
+- Clinically suspicious cervix: if a clinician observes a clinically suspicious cervix regardless of screening result, immediate urgent referral pathway must be documented
 
 2. CHAPERONE GUIDANCE
 a) GMC Intimate Examinations and Chaperones: updated version effective 30 January 2024. Replace all references to "2013 guidance" with "2024".
@@ -149,7 +154,7 @@ const BASE_SYSTEM_PROMPT = `You are an NHS primary care policy specialist genera
 Apply these overrides to every policy where the relevant topic appears. These are non-negotiable corrections.
 
 ### CLINICAL
-1. CERVICAL SCREENING (effective 1 July 2025): Ages 25-49 HPV negative = FIVE YEARS recall (not three). Ages 50-64 HPV negative = FIVE YEARS. Pre-2019 cohort (no HPV result) = maintain 3-year recall until HPV test obtained. NHS App used for invitations from June 2025.
+1. CERVICAL SCREENING (effective 1 July 2025): Ages 25-49 HPV negative = FIVE YEARS recall (not three). Ages 50-64 HPV negative = FIVE YEARS. Pre-2019 cohort (no HPV result) = maintain 3-year recall until HPV test obtained. NHS App used for invitations from June 2025. Deferral protocol required (max deferral period + re-invitation). Water-based lubricant acceptable for LBC samples — state explicitly. After 3 failed contacts, named GP must be alerted for personal approach. Monitor lab turnaround against 14-day standard. Clinically suspicious cervix = immediate urgent referral regardless of screening result.
 2. CHAPERONE: GMC guidance updated 30 January 2024 (not 2013). NHS England "Improving Chaperone Practice" published December 2025 — policy must be publicly available online, accommodate patient preferences for chaperone sex/background, proactively identify patients with additional needs. Non-clinical chaperones must hold Enhanced DBS with barred list check. Examination rooms must have accessible call system/alarm. Training must include red flag behaviours and explicit escalation/stop procedure with same-day reporting. Home visits requiring intimate examinations need formal risk assessment, buddy check-in call, and documented clinical justification if no chaperone. Annual examination room privacy audit required.
 3. SAFEGUARDING CHILDREN: "Working Together to Safeguard Children 2023" supersedes 2018. MASAs replace LSCBs.
 4. SAFEGUARDING ADULTS: Care and Support Statutory Guidance updated 2023, not the 2014 original.
