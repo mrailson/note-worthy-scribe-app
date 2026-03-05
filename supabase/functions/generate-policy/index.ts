@@ -20,29 +20,69 @@ const RETRY_BACKOFF_MS = [20_000, 45_000, 90_000];
 // ---- Prompts ----
 const ENHANCEMENT_SYSTEM_PROMPT = `You are an NHS primary care policy expert preparing GP practices for CQC inspection. Your task is to review and enhance generated policies to ensure full regulatory compliance.
 
-## KNOWN GUIDANCE CHANGES - APPLY BEFORE ENHANCING
+## KNOWN GUIDANCE CHANGES — MANDATORY OVERRIDES (16 POINTS)
+Apply these overrides to every policy where the relevant topic appears.
 
-### CERVICAL SCREENING (effective 1 July 2025)
-- Ages 25-49 who test HPV NEGATIVE -> recall is 5 YEARS (not 3 years)
-- Ages 50-64 HPV negative -> 5 years
-- Exception: if HPV positive result within last 5 years without subsequent HPV negative test, recall remains at 1 year
-- Exception: if no HPV result on record (screened pre-2019), maintain 3-year recall until HPV test obtained
-- NHS App now used for screening invitations and reminders
+### CLINICAL
 
-### FLEXIBLE WORKING (effective 6 April 2024)
-- Day-one right to request flexible working - remove any reference to 26-week qualifying period
-- Two requests permitted per year (was one)
-- Employer must consult before refusing
+1. CERVICAL SCREENING (effective 1 July 2025)
+- Ages 25-49, HPV negative: recall every FIVE YEARS (not three years)
+- Ages 50-64, HPV negative: FIVE YEARS (unchanged)
+- Pre-2019 cohort (no HPV result on record): maintain three-year recall until first HPV test obtained — this is the ONLY valid use of three years
+- NHS App now used for invitations and reminders from June 2025
 
-### SAFEGUARDING CHILDREN
-- Working Together to Safeguard Children 2023 is the current version
+2. CHAPERONE GUIDANCE
+a) GMC Intimate Examinations and Chaperones: updated version effective 30 January 2024. Replace all references to "2013 guidance" with "2024".
+b) NHS England "Improving Chaperone Practice in the NHS" published December 2025. Chaperone policies must: state that the policy is publicly available online in accessible formats; require accommodation of patient preferences for chaperone sex/background where possible; include proactive identification of patients with additional needs (learning disabilities, communication difficulties).
 
-### DNACPR / ReSPECT
-- Ensure ReSPECT process is referenced
-- Tracey v Cambridge University Hospitals NHS Foundation Trust [2014] must be referenced
+3. SAFEGUARDING CHILDREN (effective December 2023)
+- "Working Together to Safeguard Children 2023" supersedes the 2018 version. Replace all references to "Working Together 2018" with "Working Together 2023".
+- Key changes: strengthened focus on family help, multi-agency safeguarding arrangements (MASAs) replace LSCBs, increased emphasis on practitioner judgment.
 
-### DATA PROTECTION / DSPT
-- DSPT 2024/25 standards apply
+4. SAFEGUARDING ADULTS (updated 2023)
+- DHSC updated statutory guidance under the Care Act 2014 in 2023. Reference "Care and Support Statutory Guidance (updated 2023)", not the 2014 original.
+
+5. SEPSIS (updated 2024)
+- NICE Guideline NG51 updated 2024. Replace references to the 2016 version with 2024. NEWS2 remains the recommended early warning tool.
+
+6. INFECTION PREVENTION AND CONTROL (updated 2023)
+- UKHSA updated the "National Infection Prevention and Control Manual for England" in 2023. Replace references to PHE/2019 IPC guidance with UKHSA 2023. SICPs and TBPs framework unchanged.
+
+7. ANTIMICROBIAL STEWARDSHIP (updated 2024)
+- NHS England updated "Antimicrobial Stewardship: Start Smart then Focus" in 2024. NICE guideline NG15 also updated 2024. Reference the 2024 versions.
+
+8. DNACPR / ReSPECT
+- ReSPECT process is now the standard approach, replacing standalone DNACPR forms. Tracey v Cambridge University Hospitals [2014] EWCA Civ 822 remains binding. Reference ReSPECT rather than legacy DNACPR-only forms.
+
+### HR / EMPLOYMENT
+
+9. FLEXIBLE WORKING (effective 6 April 2024)
+- Day-one right to request flexible working under Employment Relations (Flexible Working) Act 2023. Two requests per year. Employer must consult before refusing. Response time reduced to 2 months. Replace references to 26-week qualifying period with day-one right.
+
+10. CARER'S LEAVE (effective 6 April 2024)
+- Carer's Leave Act 2023: one week unpaid carer's leave per year from day one of employment. Applies to employees with a dependant with a long-term care need. No qualifying period. Cannot be carried over.
+
+11. NEONATAL CARE LEAVE (effective 6 April 2025)
+- Neonatal Care (Leave and Pay) Act 2023: up to 12 weeks of neonatal care leave and pay for parents of babies admitted to neonatal care within 28 days of birth and staying 7+ continuous days. Day-one right for leave (26 weeks for pay). All maternity, paternity and parental leave policies must include this.
+
+12. SEXUAL HARASSMENT — EMPLOYER DUTY TO PREVENT (effective 26 October 2024)
+- Worker Protection (Amendment of Equality Act 2010) Act 2023: proactive duty on employers to take reasonable steps to prevent sexual harassment. EHRC statutory code applies. All dignity at work, equality, and anti-harassment policies must state the proactive prevention duty explicitly and reference the Worker Protection Act 2023.
+
+13. MENOPAUSE IN THE WORKPLACE (2024)
+- EHRC guidance (2024) clarifies menopause symptoms can constitute a disability under the Equality Act 2010. HR and equality policies must reference reasonable adjustments for menopause-related symptoms.
+
+### INFORMATION GOVERNANCE
+
+14. DATA SECURITY AND PROTECTION TOOLKIT
+- DSPT 2024/25 is the current version. Replace references to older versions (2022/23, 2023/24) with 2024/25.
+
+15. SUBJECT ACCESS REQUESTS (updated 2023)
+- ICO updated SAR guidance in 2023. "Manifestly unfounded or excessive" threshold applies to the request, not the requester. Response time remains one calendar month.
+
+### GP CONTRACT
+
+16. GP CONTRACT 2026/27 (effective April 2026)
+- Same-day access requirements introduced. Funding shifts from PCN CAP to practice-level. Policies must not reference pre-2026 contract structures as current.
 
 ## OUTPUT FORMAT
 CRITICAL: Preserve the EXACT document header structure. Do NOT restructure Document Control table, header fields, Equality Impact Assessment Statement, section numbering, or Version History table position (must remain section 11). Only enhance CONTENT within existing sections.
@@ -85,18 +125,34 @@ If you feel the urge to output such content, suppress it entirely. The output mu
 
 Return the enhanced policy as a complete document with all mandatory sections, policy-specific requirements addressed, current references with years, clean finalised text without inline flags, a populated KPI table in section 8.1, a populated version history table in section 11, and ALL known placeholders replaced with actual values from the practice data.`;
 
-const BASE_SYSTEM_PROMPT = `CRITICAL CLINICAL OVERRIDE - CERVICAL SCREENING INTERVALS (effective 1 July 2025):
-The NHS changed cervical screening recall intervals on 1 July 2025.
+const BASE_SYSTEM_PROMPT = `You are an NHS primary care policy specialist generating comprehensive, CQC-inspection-ready policies for UK General Practice. Generate professional, regulatory-compliant policies.
 
-CORRECT INTERVALS - USE THESE ONLY:
-- Ages 25-49, HPV negative: recall every FIVE YEARS
-- Ages 50-64, HPV negative: recall every FIVE YEARS
-- HPV positive within last 5 years (no subsequent negative): recall at 1 YEAR
-- No HPV result on record (pre-2019 screening): maintain 3-year recall until HPV test obtained
+## KNOWN GUIDANCE CHANGES — MANDATORY OVERRIDES (16 POINTS)
+Apply these overrides to every policy where the relevant topic appears. These are non-negotiable corrections.
 
-DO NOT write "3 years" or "three years" for routine recall intervals. The 3-year interval has been replaced by 5 years for HPV-negative results.
+### CLINICAL
+1. CERVICAL SCREENING (effective 1 July 2025): Ages 25-49 HPV negative = FIVE YEARS recall (not three). Ages 50-64 HPV negative = FIVE YEARS. Pre-2019 cohort (no HPV result) = maintain 3-year recall until HPV test obtained. NHS App used for invitations from June 2025.
+2. CHAPERONE: GMC guidance updated 30 January 2024 (not 2013). NHS England "Improving Chaperone Practice" published December 2025 — policy must be publicly available online, accommodate patient preferences for chaperone sex/background, proactively identify patients with additional needs.
+3. SAFEGUARDING CHILDREN: "Working Together to Safeguard Children 2023" supersedes 2018. MASAs replace LSCBs.
+4. SAFEGUARDING ADULTS: Care and Support Statutory Guidance updated 2023, not the 2014 original.
+5. SEPSIS: NICE NG51 updated 2024 (not 2016). NEWS2 remains recommended.
+6. IPC: UKHSA 2023 National IPC Manual replaces PHE/2019 guidance.
+7. ANTIMICROBIAL STEWARDSHIP: NHS England "Start Smart then Focus" updated 2024. NICE NG15 updated 2024.
+8. DNACPR/ReSPECT: ReSPECT process is standard. Reference Tracey v Cambridge [2014] EWCA Civ 822.
 
-You are an NHS primary care policy specialist generating comprehensive, CQC-inspection-ready policies for UK General Practice. Generate professional, regulatory-compliant policies.
+### HR / EMPLOYMENT
+9. FLEXIBLE WORKING (6 April 2024): Day-one right. Two requests/year. Employer must consult before refusing. 2-month response time. No 26-week qualifying period.
+10. CARER'S LEAVE (6 April 2024): Carer's Leave Act 2023. One week unpaid/year from day one. No qualifying period.
+11. NEONATAL CARE LEAVE (6 April 2025): Up to 12 weeks leave/pay. Day-one right for leave. Include in all parental leave policies.
+12. SEXUAL HARASSMENT PREVENTION (26 October 2024): Worker Protection Act 2023. Proactive employer duty. EHRC code applies. State duty explicitly in all dignity/equality policies.
+13. MENOPAUSE (2024): EHRC guidance — symptoms can constitute disability under Equality Act 2010. Include reasonable adjustments.
+
+### INFORMATION GOVERNANCE
+14. DSPT: Current version is 2024/25. Replace 2022/23 or 2023/24 references.
+15. SAR: ICO 2023 guidance. "Manifestly unfounded or excessive" applies to the request, not the requester.
+
+### GP CONTRACT
+16. GP CONTRACT 2026/27: Same-day access requirements. PCN CAP funding shifted to practice-level. Do not reference pre-2026 contract structures as current.
 
 IMPORTANT RULES:
 - Use specific named individuals from practice details provided (not just role titles)
@@ -364,10 +420,43 @@ function enforceSection11ExactTable(content: string, practiceManagerName: string
   return `${content.trim()}\n\n11. VERSION HISTORY\n${exactTable}`;
 }
 
+function applyDeterministicOverrides(content: string): string {
+  if (!content) return content;
+  let text = content;
+
+  // 3. Safeguarding Children: Working Together 2018 → 2023
+  text = text.replace(/Working Together(?:\s+to Safeguard Children)?\s*(?:\(?\s*2018\s*\)?)/gi, 'Working Together to Safeguard Children 2023');
+
+  // 14. DSPT: old versions → 2024/25
+  text = text.replace(/DSPT\s+202[23]\/2[34]/gi, 'DSPT 2024/25');
+
+  // 5. Sepsis NG51: 2016 → 2024
+  text = text.replace(/NG51\s*\(\s*2016\s*\)/gi, 'NG51 (2024)');
+
+  // 6. IPC: PHE → UKHSA (only when clearly referring to IPC/infection guidance body)
+  text = text.replace(/\bPHE\b(\s+(?:infection|IPC|national infection))/gi, 'UKHSA$1');
+
+  // 9. Flexible working: 26-week qualifying period → day-one right
+  text = text.replace(/26[\-\s]week\s+qualifying\s+period/gi, 'day-one right (no qualifying period)');
+
+  // 1. Cervical screening: "3 years"/"three years" for HPV-negative → "5 years"/"five years"
+  // Careful: only replace when in context of HPV-negative/routine recall, not pre-2019 exception
+  text = text.replace(/(HPV[\-\s]negative[^.]{0,80}?)\b3\s+years?\b/gi, '$1five years');
+  text = text.replace(/(HPV[\-\s]negative[^.]{0,80}?)\bthree\s+years?\b/gi, '$1five years');
+  text = text.replace(/(routine\s+recall[^.]{0,60}?)\b3\s+years?\b/gi, '$1five years');
+  text = text.replace(/(routine\s+recall[^.]{0,60}?)\bthree\s+years?\b/gi, '$1five years');
+
+  // 2. Chaperone: GMC 2013 → 2024
+  text = text.replace(/GMC\s*\(?\s*2013\s*\)?(\s+(?:guidance|chaperone|intimate))/gi, 'GMC (2024)$1');
+
+  return text;
+}
+
 function sanitisePolicyOutput(content: string, practiceManagerName: string): string {
   const withoutInternalQuoteLines = stripInternalQuoteLines(content);
   const withoutGapAnalysisTables = removeForbiddenGapAnalysisTables(withoutInternalQuoteLines);
-  const withExactVersionHistory = enforceSection11ExactTable(withoutGapAnalysisTables, practiceManagerName);
+  const withOverrides = applyDeterministicOverrides(withoutGapAnalysisTables);
+  const withExactVersionHistory = enforceSection11ExactTable(withOverrides, practiceManagerName);
 
   return withExactVersionHistory.replace(/\n{3,}/g, '\n\n').trim();
 }
