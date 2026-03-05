@@ -31,6 +31,7 @@ import {
   AlignCenter,
   AlignRight,
   ImageIcon,
+  BookOpen,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,6 +41,8 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { PolicyDocumentPreview } from "@/components/policy/PolicyDocumentPreview";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AIResponsePanel } from "@/components/AIResponsePanel";
+import { showToast } from "@/utils/toastWrapper";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -74,6 +77,9 @@ const PolicyServiceViewPolicy = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
+  const [guideContent, setGuideContent] = useState('');
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // Document options with localStorage persistence
   const [showLogo, setShowLogo] = useState(() => {
@@ -190,6 +196,25 @@ const PolicyServiceViewPolicy = () => {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Failed to copy content");
+    }
+  };
+
+  const handleQuickGuide = async () => {
+    if (!policy) return;
+    setIsGeneratingGuide(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyse-policy-gaps', {
+        body: { action: 'quick-guide', extracted_text: policy.policy_content },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to generate quick guide');
+      setGuideContent(data.quick_guide);
+      setIsGuideOpen(true);
+    } catch (err: any) {
+      console.error('Quick guide error:', err);
+      toast.error(err.message || 'Failed to generate quick guide');
+    } finally {
+      setIsGeneratingGuide(false);
     }
   };
 
@@ -323,6 +348,10 @@ const PolicyServiceViewPolicy = () => {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <Button variant="outline" size="sm" onClick={handleQuickGuide} disabled={isGeneratingGuide} className="gap-1.5">
+                  {isGeneratingGuide ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
+                  Quick Guide
+                </Button>
                 <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
                   <Printer className="h-4 w-4" />
                   Print
@@ -443,6 +472,16 @@ const PolicyServiceViewPolicy = () => {
           </CardContent>
         </Card>
       </main>
+
+      <AIResponsePanel
+        response={guideContent}
+        isOpen={isGuideOpen}
+        onOpenChange={setIsGuideOpen}
+        onCopy={() => {
+          navigator.clipboard.writeText(guideContent);
+          toast.success('Quick guide copied to clipboard');
+        }}
+      />
     </div>
   );
 };
