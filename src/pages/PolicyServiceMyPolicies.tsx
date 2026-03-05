@@ -321,19 +321,19 @@ const PolicyServiceMyPolicies = () => {
                                   <Info className="h-3.5 w-3.5" />
                                 </button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-80 text-sm" side="top">
-                                <div className="space-y-2">
-                                  <h4 className="font-semibold">Why does this take so long?</h4>
-                                  <p className="text-muted-foreground">Each policy is a substantial document (typically 15–25 pages) that goes through several stages:</p>
-                                  <ul className="text-muted-foreground space-y-1 list-disc pl-4">
+                              <PopoverContent className="w-[340px] text-sm p-5" side="top" sideOffset={8}>
+                                <div className="space-y-3">
+                                  <h4 className="font-semibold text-foreground">Why does this take so long?</h4>
+                                  <p className="text-muted-foreground leading-relaxed">Each policy is a substantial document (typically 25–45 pages) that goes through several stages:</p>
+                                  <ul className="text-muted-foreground space-y-1.5 list-disc pl-5 leading-relaxed">
                                     <li>Multi-part content generation tailored to your practice</li>
                                     <li>Cross-referencing against current CQC regulatory requirements</li>
                                     <li>Enhancement pass for professional language and completeness</li>
                                     <li>Placeholder replacement with your practice details</li>
                                     <li>Final quality checks and formatting</li>
                                   </ul>
-                                  <div className="bg-muted/50 rounded-md p-2.5 mt-2">
-                                    <p className="text-muted-foreground">☕ Feel free to leave this screen and come back later — your policy will continue generating in the background. Go and grab a coffee!</p>
+                                  <div className="bg-muted/50 rounded-lg p-3 mt-1">
+                                    <p className="text-muted-foreground leading-relaxed">☕ Feel free to leave this screen and come back later — your policy will continue generating in the background. Go and grab a coffee!</p>
                                   </div>
                                 </div>
                               </PopoverContent>
