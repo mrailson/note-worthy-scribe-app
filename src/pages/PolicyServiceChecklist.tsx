@@ -55,27 +55,35 @@ const PolicyServiceChecklist = () => {
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
+  const [practiceDetails, setPracticeDetails] = useState<{
+    practice_name?: string;
+    address?: string;
+    postcode?: string;
+    practice_manager_name?: string;
+    lead_gp_name?: string;
+  } | null>(null);
 
-  // Fetch practice logo URL
+  // Fetch practice details and logo URL
   useEffect(() => {
-    const fetchLogo = async () => {
+    const fetchPractice = async () => {
       if (!user) return;
       try {
         const { data } = await supabase
           .from('practice_details')
-          .select('logo_url, practice_logo_url')
+          .select('logo_url, practice_logo_url, practice_name, address, postcode, practice_manager_name, lead_gp_name')
           .eq('user_id', user.id)
           .order('is_default', { ascending: false })
           .limit(1)
           .maybeSingle();
         if (data) {
           setPracticeLogoUrl(data.practice_logo_url || data.logo_url || null);
+          setPracticeDetails(data);
         }
       } catch (error) {
-        console.error('Error fetching practice logo:', error);
+        console.error('Error fetching practice details:', error);
       }
     };
-    fetchLogo();
+    fetchPractice();
   }, [user]);
 
   const handleDownload = async (completion: PolicyCompletion) => {
@@ -96,6 +104,13 @@ const PolicyServiceChecklist = () => {
         {
           showLogo: true,
           logoUrl: practiceLogoUrl || undefined,
+          practiceDetails: practiceDetails ? {
+            name: practiceDetails.practice_name,
+            address: practiceDetails.address,
+            postcode: practiceDetails.postcode,
+            practiceManagerName: practiceDetails.practice_manager_name,
+            leadGpName: practiceDetails.lead_gp_name,
+          } : undefined,
         }
       );
       toast.success("Policy downloaded successfully");
