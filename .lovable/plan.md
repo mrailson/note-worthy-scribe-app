@@ -1,40 +1,32 @@
 
 
-## Problem
+## Plan: Embed Full 16-Point Mandatory Guidance Overrides into Policy Generation Pipeline
 
-**Part 2 (`generate_part_2`) is allocated only 5,200 max tokens** to produce sections 4, 5, and 6. For clinical policies like Cervical Screening, Section 5 (Policy Statement/Procedure) is extremely content-dense — covering screening pathways, colposcopy referrals, HPV triage, etc. The model exhausts its token budget mid-sentence in section 5.5.2(c) and never reaches Section 6 (Training Requirements).
+### Current State
+The `generate-policy/index.ts` edge function currently includes only 5 of the 16 overrides in its prompts (cervical screening, flexible working, safeguarding children 2023, DNACPR/ReSPECT, DSPT 2024/25). The remaining 11 are missing entirely.
 
-Part 1 (header + sections 1–3) and Part 3 (sections 7–11) are less content-heavy, so the same 5,200 limit works fine for them.
+### Changes Required
 
-## Solution
+**File: `supabase/functions/generate-policy/index.ts`**
 
-Split Part 2 into two separate steps — `generate_part_2a` (sections 4–5) and `generate_part_2b` (section 6) — and increase the token budget for the heavy clinical content step.
+1. **Expand `ENHANCEMENT_SYSTEM_PROMPT` guidance section** (lines 23–46) — replace the current 5-item block with the full 16-point override list covering:
+   - Clinical: chaperone (GMC 2024 + NHS England Dec 2025), safeguarding adults (Care Act 2023), sepsis (NG51 2024), IPC (UKHSA 2023), antimicrobial stewardship (2024), DNACPR/ReSPECT
+   - HR: carer's leave (Apr 2024), neonatal care leave (Apr 2025), sexual harassment prevention duty (Oct 2024), menopause workplace adjustments (EHRC 2024)
+   - IG: SAR guidance (ICO 2023)
+   - GP Contract 2026/27
 
-### Changes to `supabase/functions/generate-policy/index.ts`
+2. **Expand `BASE_SYSTEM_PROMPT`** (lines 88–107) — add the same 16-point block so that the initial generation steps (parts 1–3) also produce correct content from the outset, reducing reliance on the enhance step to fix errors.
 
-1. **Add `PART2A_SYSTEM_ADDITION` prompt** — instructs the model to generate sections 4 and 5 only, with explicit instruction to complete all sub-sections including colposcopy referral pathways.
+3. **Add post-processing regex replacements in `sanitisePolicyOutput`** (line 367) — deterministic find-and-replace for the most common AI mistakes that prompting alone cannot guarantee:
+   - Replace "Working Together 2018" → "Working Together 2023"
+   - Replace "DSPT 2022/23" or "DSPT 2023/24" → "DSPT 2024/25"
+   - Replace "NG51 (2016)" → "NG51 (2024)"
+   - Replace cervical screening "3 years"/"three years" in HPV-negative context → "5 years"/"five years" (preserving the pre-2019 exception)
+   - Replace "26-week qualifying period" for flexible working → "day-one right"
+   - Replace "PHE" IPC references → "UKHSA"
 
-2. **Add `PART2B_SYSTEM_ADDITION` prompt** — instructs the model to generate section 6 (Training Requirements) only, given sections 1–5 as context.
+This two-layer approach (prompt instructions + deterministic post-processing) ensures compliance even when the model ignores prompt instructions.
 
-3. **Increase token budget for Part 2a to 8,000** — matches Part 3's budget. Section 5 for clinical policies routinely needs 6,000+ tokens.
-
-4. **Part 2b gets 3,000 tokens** — Training section is structured but not huge.
-
-5. **Update step flow**: `generate_part_1` → `generate_part_2a` → `generate_part_2b` → `generate_part_3` → `enhance` → `finalise`
-
-6. **Update metadata keys**: Store `partial_sections_1_5` after part 2a, then `partial_sections_1_6` after part 2b.
-
-7. **Update progress percentages**: Part 1 = 15%, Part 2a = 35%, Part 2b = 50%, Part 3 = 65%, Enhance = 80%, Finalise = 100%.
-
-### Changes to `src/hooks/usePolicyJobs.ts`
-
-- Add labels for new steps: `generate_part_2a` → "Generating (part 2/4)", `generate_part_2b` → "Generating (part 3/4)", renumber part 3 to "part 4/4".
-
-### Changes to `src/pages/PolicyServiceMyPolicies.tsx`
-
-- Update any step label rendering to handle the new step names.
-
-### Recovery
-
-- Existing jobs on `generate_part_2` will be handled by adding a fallback: if `current_step === 'generate_part_2'`, treat it as `generate_part_2a`.
+### No other files affected
+All changes are confined to the single edge function file. The function will be redeployed automatically.
 
