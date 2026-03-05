@@ -11,12 +11,12 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { FileText, Image, Loader2, BookOpen, Users, Stethoscope, UserCog } from 'lucide-react';
+import { FileText, Image, Loader2, BookOpen, Users, Stethoscope, UserCog, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { generateCleanAIResponseDocument } from '@/utils/cleanWordExport';
 import { toast } from 'sonner';
 
-export type QuickGuideAudience = 'all-staff' | 'non-clinical' | 'clinical';
+export type QuickGuideAudience = 'all-staff' | 'non-clinical' | 'clinical' | 'patient';
 export type QuickGuideOrientation = 'landscape' | 'portrait';
 
 export interface QuickGuideOutput {
@@ -54,6 +54,7 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
     'all-staff': 'All Staff',
     'non-clinical': 'Non-Clinical Staff',
     'clinical': 'Clinical Staff',
+    'patient': 'Patient',
   };
 
   const generateQuickGuideText = async (): Promise<string | null> => {
@@ -115,14 +116,20 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
       const aspectRatio = isLandscape ? '16:9' : '3:4';
       const orientationLabel = isLandscape ? 'landscape (16:9)' : 'portrait (3:4)';
 
-      const infographicPrompt = `Create a HIGH-QUALITY staff quick guide infographic for an NHS GP practice policy.
-This is a ONE-PAGE ${orientationLabel} visual quick reference guide designed for staff notice boards, team meetings, and quick reference.
+      const isPatient = audience === 'patient';
+      const infographicType = isPatient ? 'patient information leaflet' : 'staff quick guide';
+      const infographicDesignFor = isPatient ? 'waiting rooms, practice websites, and patient information displays' : 'staff notice boards, team meetings, and quick reference';
+      const infographicTitle = isPatient ? `${policyTitle} – Information for Patients` : `Quick Guide: ${policyTitle}`;
+      const infographicSubtitle = isPatient ? 'Patient Information' : `For ${audienceLabels[audience]}`;
+
+      const infographicPrompt = `Create a HIGH-QUALITY ${infographicType} infographic for an NHS GP practice policy.
+This is a ONE-PAGE ${orientationLabel} visual ${isPatient ? 'patient information leaflet' : 'quick reference guide'} designed for ${infographicDesignFor}.
 
 TARGET AUDIENCE: ${audienceLabels[audience]}
 
 POLICY TITLE: ${policyTitle}
 
-The infographic must present the following quick guide content in a clear, visually structured layout:
+The infographic must present the following content in a clear, visually structured layout:
 
 ${guideText}
 
@@ -131,14 +138,15 @@ DESIGN REQUIREMENTS:
 - NHS-aligned colour palette (blues, teals, greens)
 - Clean, professional layout with clear visual hierarchy
 - Each section should be visually distinct (use cards, boxes, or colour-coded areas)
-- Use icons/symbols for each section (clipboard for Purpose, people for Responsibilities, numbered steps for Process, etc.)
+- Use icons/symbols for each section
 - British English throughout
 - Readable at A3 poster size and on screen
-- Title prominently displayed: "Quick Guide: ${policyTitle}"
-- Subtitle: "For ${audienceLabels[audience]}"
+- Title prominently displayed: "${infographicTitle}"
+- Subtitle: "${infographicSubtitle}"
 - Footer: "Powered by NoteWell AI"
 - Maximum visual clarity — this must be readable in under 2 minutes
 - Avoid walls of text — use bullet points, icons, and whitespace
+${isPatient ? '- Use warm, reassuring visual tone appropriate for patients\n- Avoid clinical jargon in any visible text' : ''}
 - Professional, NHS-appropriate tone`;
 
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -217,7 +225,7 @@ DESIGN REQUIREMENTS:
             Quick Guide
           </DialogTitle>
           <DialogDescription>
-            Generate a one-page staff quick guide for <strong>{policyTitle}</strong>.
+            Generate a one-page quick guide for <strong>{policyTitle}</strong>.
           </DialogDescription>
         </DialogHeader>
 
@@ -227,7 +235,7 @@ DESIGN REQUIREMENTS:
           <RadioGroup
             value={audience}
             onValueChange={(v) => setAudience(v as QuickGuideAudience)}
-            className="grid grid-cols-3 gap-2"
+            className="grid grid-cols-4 gap-2"
           >
             <Label
               htmlFor="aud-non-clinical"
@@ -260,6 +268,17 @@ DESIGN REQUIREMENTS:
               <RadioGroupItem value="clinical" id="aud-clinical" className="sr-only" />
               <Stethoscope className="h-5 w-5 text-muted-foreground" />
               <span className="text-xs font-medium">Clinical</span>
+            </Label>
+
+            <Label
+              htmlFor="aud-patient"
+              className={`flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 cursor-pointer transition-colors text-center ${
+                audience === 'patient' ? 'border-primary bg-primary/5' : 'border-muted hover:border-muted-foreground/30'
+              }`}
+            >
+              <RadioGroupItem value="patient" id="aud-patient" className="sr-only" />
+              <Heart className="h-5 w-5 text-muted-foreground" />
+              <span className="text-xs font-medium">Patient</span>
             </Label>
           </RadioGroup>
         </div>

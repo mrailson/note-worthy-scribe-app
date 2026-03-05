@@ -139,6 +139,9 @@ Focus ONLY on clinical responsibilities, patient assessment, treatment pathways,
 Do NOT include administrative tasks like appointment booking, filing, or front-desk operations.
 Frame all responsibilities from a clinical perspective.`;
           break;
+        case 'patient':
+          audienceInstruction = `PATIENT INFORMATION LEAFLET MODE`;
+          break;
         default: // 'all-staff'
           audienceInstruction = `This guide is for ALL STAFF — both clinical and non-clinical.
 Include responsibilities for clinicians (GPs, nurses, HCAs) AND administrative staff (receptionists, managers, secretaries).
@@ -146,9 +149,92 @@ Clearly separate clinical vs administrative responsibilities where relevant.`;
           break;
       }
 
-      const audienceLabel = audience === 'non-clinical' ? 'Non-Clinical Staff' : audience === 'clinical' ? 'Clinical Staff' : 'All Staff';
+      const audienceLabel = audience === 'non-clinical' ? 'Non-Clinical Staff' : audience === 'clinical' ? 'Clinical Staff' : audience === 'patient' ? 'Patient' : 'All Staff';
 
-      const quickGuideSystem = `You are generating a one-page NHS staff quick guide for a GP practice policy.
+      let quickGuideSystem: string;
+      let quickGuideUserPrompt: string;
+
+      if (audience === 'patient') {
+        quickGuideSystem = `You are generating a patient information leaflet for a UK NHS GP practice.
+
+Use the full policy provided as the source document.
+
+Your task is to translate the policy into clear, reassuring, patient-friendly language so that patients understand:
+
+• what the policy means
+• how it affects their care
+• what their rights are
+• what they can expect from the practice
+
+The leaflet must NOT include internal governance details, staff training frameworks, legislation lists, or internal procedures unless they are directly relevant to patient understanding.
+
+The leaflet must be written in plain English suitable for the general public.
+
+The tone must be:
+• clear
+• reassuring
+• respectful
+• easy to understand
+• NHS appropriate
+
+Avoid technical or clinical jargon wherever possible.
+
+Structure the leaflet using the following sections:
+
+1. Title
+Use the format: "[Policy Name] – Information for Patients"
+
+2. Why This Policy Exists
+Explain in 2–3 sentences why the practice has this policy and how it helps provide safe, respectful, or effective care.
+
+3. What This Means for You
+Explain clearly how this policy may affect the patient when they visit the practice or receive care. Use bullet points.
+
+4. What You Can Expect from Our Practice
+Explain what the practice will do to follow the policy. Use reassuring language such as:
+• "Our team will..."
+• "We will always..."
+• "We aim to..."
+
+5. Your Rights as a Patient
+Clearly explain the patient's rights related to this policy. Examples may include:
+• asking questions
+• requesting support
+• declining certain options
+• raising concerns
+Use bullet points.
+
+6. If You Have Questions or Concerns
+Explain how a patient can raise questions or concerns about the issue covered by the policy.
+Encourage speaking to reception staff, a clinician, or the practice manager.
+
+7. Accessibility Statement
+Include a short statement confirming the practice will make reasonable adjustments for patients with additional needs, disabilities, or language requirements.
+
+Formatting requirements:
+• Maximum length: one page
+• Use clear headings
+• Use short paragraphs
+• Use bullet points where helpful
+• Avoid technical terminology
+• Write for a general public audience
+• British English throughout
+
+The leaflet must be easy for patients to read in under two minutes.
+
+The leaflet should be suitable for:
+• the practice website
+• waiting room posters
+• printed patient information leaflets`;
+
+        quickGuideUserPrompt = `Generate a patient information leaflet for the following policy document:
+
+---POLICY DOCUMENT START---
+${documentText}
+---POLICY DOCUMENT END---`;
+
+      } else {
+        quickGuideSystem = `You are generating a one-page NHS staff quick guide for a GP practice policy.
 
 TARGET AUDIENCE: ${audienceLabel}
 ${audienceInstruction}
@@ -190,11 +276,12 @@ Formatting requirements:
 
 This guide should be readable in under two minutes.`;
 
-      const quickGuideUserPrompt = `Generate a quick guide for the following policy document:
+        quickGuideUserPrompt = `Generate a quick guide for the following policy document:
 
 ---POLICY DOCUMENT START---
 ${documentText}
 ---POLICY DOCUMENT END---`;
+      }
 
       console.log('Generating quick guide, text length:', extracted_text.length);
 
