@@ -182,12 +182,15 @@ export const usePolicyCompletions = (practiceId?: string | null) => {
     return completedPolicyIds.has(policyReferenceId);
   }, [completedPolicyIds]);
 
-  // Calculate days until review
+  // Calculate days until review (using local dates to avoid UTC shifts)
   const getDaysUntilReview = useCallback((reviewDate: string): number => {
-    const review = new Date(reviewDate);
-    const today = new Date();
+    // Parse as local date components to avoid UTC interpretation of YYYY-MM-DD
+    const parts = reviewDate.split(/[-T]/);
+    const review = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const diffTime = review.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   }, []);
 
