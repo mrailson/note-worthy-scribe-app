@@ -716,6 +716,7 @@ const PolicyServiceMyPolicies = () => {
           policyContent={quickGuidePolicy.content}
           policyTitle={quickGuidePolicy.title}
           policyId={quickGuidePolicy.id}
+          logoUrl={practiceLogoUrl}
           onGenerated={async (output: QuickGuideOutput) => {
             // Persist to policy metadata
             if (user && quickGuidePolicy) {
