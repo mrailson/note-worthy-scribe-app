@@ -41,7 +41,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { PolicyDocumentPreview } from "@/components/policy/PolicyDocumentPreview";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { QuickGuideDialog } from "@/components/policy/QuickGuideDialog";
+import { QuickGuideDialog, QuickGuideOutput } from "@/components/policy/QuickGuideDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,6 +77,7 @@ const PolicyServiceViewPolicy = () => {
   const [copied, setCopied] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [isQuickGuideOpen, setIsQuickGuideOpen] = useState(false);
+  const [lastQuickGuide, setLastQuickGuide] = useState<QuickGuideOutput | null>(null);
 
   // Document options with localStorage persistence
   const [showLogo, setShowLogo] = useState(() => {
@@ -127,6 +128,12 @@ const PolicyServiceViewPolicy = () => {
 
         if (policyRes.error) throw policyRes.error;
         setPolicy(policyRes.data);
+
+        // Load last quick guide from metadata
+        const meta = policyRes.data.metadata as any;
+        if (meta?.last_quick_guide) {
+          setLastQuickGuide(meta.last_quick_guide);
+        }
 
         if (practiceRes.data) {
           setPracticeDetails(practiceRes.data as any);
@@ -196,6 +203,25 @@ const PolicyServiceViewPolicy = () => {
     }
   };
 
+  const handleQuickGuideGenerated = async (output: QuickGuideOutput) => {
+    setLastQuickGuide(output);
+    // Persist to policy metadata
+    if (policy && user) {
+      try {
+        const currentMeta = (policy.metadata || {}) as any;
+        const updatedMeta = { ...currentMeta, last_quick_guide: output };
+        await supabase
+          .from('policy_completions')
+          .update({ metadata: updatedMeta })
+          .eq('id', policy.id)
+          .eq('user_id', user.id);
+        // Update local policy state
+        setPolicy((prev: any) => prev ? { ...prev, metadata: updatedMeta } : prev);
+      } catch (err) {
+        console.error('Failed to persist quick guide metadata:', err);
+      }
+    }
+  };
 
   const handleDelete = async () => {
     if (!policy || !user) return;
@@ -322,6 +348,16 @@ const PolicyServiceViewPolicy = () => {
                   </div>
 
                   {getReviewBadge(policy.review_date)}
+
+                  {/* Last Quick Guide Generated */}
+                  {lastQuickGuide && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <BookOpen className="h-3 w-3" />
+                      <span>
+                        Last quick guide: {lastQuickGuide.type === 'word' ? 'Word' : 'Infographic'} ({lastQuickGuide.audience === 'all-staff' ? 'All Staff' : lastQuickGuide.audience === 'clinical' ? 'Clinical' : 'Non-Clinical'}) — {format(parseISO(lastQuickGuide.generatedAt), 'dd/MM/yyyy HH:mm')}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -457,6 +493,8 @@ const PolicyServiceViewPolicy = () => {
         onOpenChange={setIsQuickGuideOpen}
         policyContent={policy.policy_content}
         policyTitle={policy.policy_title}
+        policyId={policy.id}
+        onGenerated={handleQuickGuideGenerated}
       />
     </div>
   );
