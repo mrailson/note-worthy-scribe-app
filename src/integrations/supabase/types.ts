@@ -7195,6 +7195,7 @@ export type Database = {
           file_type: string | null
           id: string
           notes: string | null
+          staff_index: number | null
           uploaded_at: string
           user_id: string
         }
@@ -7207,6 +7208,7 @@ export type Database = {
           file_type?: string | null
           id?: string
           notes?: string | null
+          staff_index?: number | null
           uploaded_at?: string
           user_id: string
         }
@@ -7219,6 +7221,7 @@ export type Database = {
           file_type?: string | null
           id?: string
           notes?: string | null
+          staff_index?: number | null
           uploaded_at?: string
           user_id?: string
         }
