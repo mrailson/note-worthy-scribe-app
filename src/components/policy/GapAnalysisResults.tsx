@@ -59,7 +59,7 @@ export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }
             {analysis.gaps.map((gap, index) => (
               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                 <span className="text-orange-500 mt-1">•</span>
-                {gap}
+                <span>{typeof gap === 'string' ? gap : `${(gap as any).issue}${(gap as any).reason ? ` — ${(gap as any).reason}` : ''}${(gap as any).section ? ` [${(gap as any).section}]` : ''}`}</span>
               </li>
             ))}
           </ul>
@@ -77,7 +77,7 @@ export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }
             {analysis.outdated_references.map((ref, index) => (
               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                 <span className="text-yellow-500 mt-1">•</span>
-                {ref}
+                <span>{typeof ref === 'string' ? ref : `${(ref as any).issue || (ref as any).reference}${(ref as any).reason ? ` — ${(ref as any).reason}` : ''}${(ref as any).section ? ` [${(ref as any).section}]` : ''}`}</span>
               </li>
             ))}
           </ul>
@@ -95,7 +95,7 @@ export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }
             {analysis.missing_sections.map((section, index) => (
               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                 <span className="text-red-500 mt-1">•</span>
-                {section}
+                <span>{typeof section === 'string' ? section : `${(section as any).issue || (section as any).name}${(section as any).reason ? ` — ${(section as any).reason}` : ''}${(section as any).section ? ` [${(section as any).section}]` : ''}`}</span>
               </li>
             ))}
           </ul>
