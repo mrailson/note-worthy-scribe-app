@@ -4,11 +4,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   ArrowLeft,
   Download,
   FileText,
   Calendar,
+  Settings2,
   Clock,
   Loader2,
   AlertTriangle,
@@ -59,6 +68,31 @@ const PolicyServiceViewPolicy = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+
+  // Document options with localStorage persistence
+  const [showLogo, setShowLogo] = useState(() => {
+    const saved = localStorage.getItem('policy_docx_show_logo');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [logoPosition, setLogoPosition] = useState<'left' | 'center' | 'right'>(() => {
+    const saved = localStorage.getItem('policy_docx_logo_position');
+    return (saved as 'left' | 'center' | 'right') || 'left';
+  });
+  const [showFooter, setShowFooter] = useState(() => {
+    const saved = localStorage.getItem('policy_docx_show_footer');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [showPageNumbers, setShowPageNumbers] = useState(() => {
+    const saved = localStorage.getItem('policy_docx_show_page_numbers');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  // Persist options
+  useEffect(() => { localStorage.setItem('policy_docx_show_logo', String(showLogo)); }, [showLogo]);
+  useEffect(() => { localStorage.setItem('policy_docx_logo_position', logoPosition); }, [logoPosition]);
+  useEffect(() => { localStorage.setItem('policy_docx_show_footer', String(showFooter)); }, [showFooter]);
+  useEffect(() => { localStorage.setItem('policy_docx_show_page_numbers', String(showPageNumbers)); }, [showPageNumbers]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,8 +149,18 @@ const PolicyServiceViewPolicy = () => {
         policy.metadata,
         policy.policy_title,
         {
-          showLogo: true,
+          showLogo,
+          logoPosition,
+          showFooter,
+          showPageNumbers,
           logoUrl: practiceLogoUrl || undefined,
+          practiceDetails: practiceDetails ? {
+            name: practiceDetails.practice_name,
+            address: practiceDetails.address,
+            postcode: practiceDetails.postcode,
+            practiceManagerName: practiceDetails.practice_manager_name,
+            leadGpName: practiceDetails.lead_gp_name,
+          } : undefined,
         }
       );
       toast.success("Policy downloaded successfully");
@@ -311,6 +355,90 @@ const PolicyServiceViewPolicy = () => {
           </CardContent>
         </Card>
 
+        {/* Document Options */}
+        <Collapsible open={optionsOpen} onOpenChange={setOptionsOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Document Options
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="view-show-logo" className="text-sm font-medium">
+                    Include Practice Logo
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Add your practice logo to the document header
+                  </p>
+                </div>
+                <Switch
+                  id="view-show-logo"
+                  checked={showLogo}
+                  onCheckedChange={setShowLogo}
+                />
+              </div>
+
+              {showLogo && (
+                <div className="flex items-center justify-between pl-4 border-l-2 border-muted">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="view-logo-position" className="text-sm font-medium">
+                      Logo Position
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Where to place the logo on the page
+                    </p>
+                  </div>
+                  <Select value={logoPosition} onValueChange={(val) => setLogoPosition(val as 'left' | 'center' | 'right')}>
+                    <SelectTrigger className="w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem value="left">Left</SelectItem>
+                      <SelectItem value="center">Centre</SelectItem>
+                      <SelectItem value="right">Right</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="view-show-footer" className="text-sm font-medium">
+                    Include Practice Footer
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Add practice name and address to the footer
+                  </p>
+                </div>
+                <Switch
+                  id="view-show-footer"
+                  checked={showFooter}
+                  onCheckedChange={setShowFooter}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="view-show-page-numbers" className="text-sm font-medium">
+                    Include Page Numbers
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Add page numbers to each page footer
+                  </p>
+                </div>
+                <Switch
+                  id="view-show-page-numbers"
+                  checked={showPageNumbers}
+                  onCheckedChange={setShowPageNumbers}
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
         {/* Document Preview */}
         <Card className="print:shadow-none print:border-none">
           <CardContent className="p-2 sm:p-6 bg-slate-50 dark:bg-slate-900 rounded-lg">
@@ -325,10 +453,10 @@ const PolicyServiceViewPolicy = () => {
                 lead_gp_name: practiceDetails.lead_gp_name,
               } : undefined}
               practiceLogoUrl={practiceLogoUrl}
-              showLogo={true}
-              logoPosition="left"
-              showFooter={true}
-              showPageNumbers={true}
+              showLogo={showLogo}
+              logoPosition={logoPosition}
+              showFooter={showFooter}
+              showPageNumbers={showPageNumbers}
             />
           </CardContent>
         </Card>
