@@ -57,30 +57,41 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
     'patient': 'Patient',
   };
 
-  // Fetch canonical staff names from practice_details
-  const fetchPracticeStaffNames = async (): Promise<string[]> => {
+  // Fetch canonical staff names and practice name from practice_details
+  const fetchPracticeStaffNames = async (): Promise<{ names: string[]; practiceName: string }> => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return [];
+      if (!session) return { names: [], practiceName: '' };
       const { data: pd } = await supabase
         .from('practice_details')
-        .select('lead_gp_name, practice_manager_name, caldicott_guardian, complaints_lead, dpo_name, fire_safety_officer, health_safety_lead, infection_control_lead, safeguarding_lead_adults, safeguarding_lead_children, senior_gp_partner, siro')
+        .select('lead_gp_name, practice_manager_name, caldicott_guardian, complaints_lead, dpo_name, fire_safety_officer, health_safety_lead, infection_control_lead, safeguarding_lead_adults, safeguarding_lead_children, senior_gp_partner, siro, practice_name')
         .eq('user_id', session.user.id)
         .maybeSingle();
-      if (!pd) return [];
-      return Object.values(pd).filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+      if (!pd) return { names: [], practiceName: '' };
+      const practiceName = (pd as any).practice_name || '';
+      const names = Object.entries(pd)
+        .filter(([key]) => key !== 'practice_name')
+        .map(([, v]) => v)
+        .filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+      return { names, practiceName };
     } catch {
-      return [];
+      return { names: [], practiceName: '' };
     }
   };
 
   const generateQuickGuideText = async (): Promise<string | null> => {
-    const staffNames = await fetchPracticeStaffNames();
+    const { names: staffNames, practiceName } = await fetchPracticeStaffNames();
     const { data, error } = await supabase.functions.invoke('analyse-policy-gaps', {
-      body: { action: 'quick-guide', extracted_text: policyContent, audience, practice_staff_names: staffNames },
+      body: { action: 'quick-guide', extracted_text: policyContent, audience, practice_staff_names: staffNames, practice_name: practiceName },
     });
     if (error) throw error;
     if (!data?.success) throw new Error(data?.error || 'Failed to generate quick guide');
+    
+    // Surface manual review warning if flagged
+    if (data.needs_manual_review) {
+      toast.warning('Quick guide may need manual review — some staff name substitutions were detected and cleaned automatically.');
+    }
+    
     return data.quick_guide;
   };
 

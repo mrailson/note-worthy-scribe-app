@@ -122,7 +122,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { extracted_text, action, audience } = body;
+    const { extracted_text, action, audience, practice_name } = body;
 
     if (!extracted_text) {
       throw new Error('extracted_text is required');
@@ -406,8 +406,52 @@ ${documentText}
         '$1'
       );
 
-      // ── ENHANCED: Post-generation corruption check ──
-      // Build a list of individual first names from staff entries (3+ chars, skip titles)
+      // ══════════════════════════════════════════════════
+      // FIX 1: Duplicate word check
+      // ══════════════════════════════════════════════════
+      // Remove consecutive duplicate words (e.g. "use, use" → "use," or "the the" → "the")
+      quickGuide = quickGuide.replace(/\b(\w+)([,;.]?\s+)\1\b/gi, '$1$2');
+
+      // ══════════════════════════════════════════════════
+      // FIX 2: Practice name in subtitle
+      // ══════════════════════════════════════════════════
+      const practiceNameValue: string = practice_name || body.practice_name || '';
+      if (practiceNameValue && audience !== 'patient') {
+        // Ensure subtitle reads "For [Audience] at [Practice Name]"
+        const subtitleTarget = `For ${audienceLabel}`;
+        const subtitleWithPractice = `For ${audienceLabel} at ${practiceNameValue}`;
+        // Replace bare subtitle that doesn't already include the practice name
+        if (!quickGuide.includes(practiceNameValue)) {
+          quickGuide = quickGuide.replace(
+            new RegExp(`(For\\s+${audienceLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})(?!\\s+at\\s)`, 'gi'),
+            subtitleWithPractice
+          );
+        }
+      } else if (practiceNameValue && audience === 'patient') {
+        // For patient leaflets, inject practice name into "Our Practice" references
+        if (!quickGuide.includes(practiceNameValue)) {
+          quickGuide = quickGuide.replace(/\bOur Practice\b/i, practiceNameValue);
+        }
+      }
+
+      // ══════════════════════════════════════════════════
+      // FIX 3: Placeholder contacts in footer
+      // ══════════════════════════════════════════════════
+      // Replace vague/unfinished placeholders with a clear instruction for the PM
+      const vagueContactPatterns = [
+        /\[Contact details? posted (?:by|near|on|at) [\w\s]+\]/gi,
+        /\[Contact [\w\s]+ for details?\]/gi,
+        /\[See [\w\s]+ for contact\]/gi,
+        /\[Phone number (?:on|posted|displayed|near) [\w\s]+\]/gi,
+        /\[Refer to [\w\s]+ poster\]/gi,
+      ];
+      for (const pattern of vagueContactPatterns) {
+        quickGuide = quickGuide.replace(pattern, '[Complete before display — see practice contacts list]');
+      }
+
+      // ══════════════════════════════════════════════════
+      // FIX 4: Staff name corruption — verb-context hardening
+      // ══════════════════════════════════════════════════
       const staffFirstNames: string[] = [];
       const staffFullNames: string[] = [];
       const titleWords = new Set(['Dr', 'Mr', 'Ms', 'Mrs', 'Miss', 'Prof', 'The', 'Sir', 'Dame']);
@@ -415,9 +459,7 @@ ${documentText}
       if (practiceStaffNames.length > 0) {
         for (const fullName of practiceStaffNames) {
           const parts = fullName.split(/\s+/).map(p => p.replace(/[^a-zA-Z'-]/g, '')).filter(p => p.length >= 3);
-          // Record full name for context checking
           staffFullNames.push(fullName);
-          // Extract non-title parts as first names to check
           for (const part of parts) {
             if (!titleWords.has(part) && part.length >= 3) {
               staffFirstNames.push(part);
@@ -426,158 +468,203 @@ ${documentText}
         }
       }
 
-      if (staffFirstNames.length > 0) {
+      // Dictionary of common verbs/prepositions that names could accidentally replace
+      const commonWords = new Set([
+        'contact', 'call', 'inform', 'notify', 'alert', 'ask', 'tell', 'log', 'check',
+        'store', 'place', 'put', 'keep', 'ensure', 'use', 'make', 'take', 'give', 'get',
+        'set', 'run', 'see', 'let', 'say', 'try', 'add', 'pay', 'buy', 'cut', 'sit',
+        'room', 'door', 'book', 'file', 'note', 'mark', 'sign', 'post', 'lead', 'hold',
+        'meet', 'send', 'read', 'move', 'pull', 'push', 'turn', 'walk', 'talk', 'work',
+        'open', 'close', 'stop', 'start', 'plan', 'risk', 'safe', 'cold', 'warm', 'cool',
+        'need', 'must', 'will', 'shall', 'should', 'would', 'could', 'might',
+        'always', 'never', 'also', 'then', 'when', 'where', 'what', 'which', 'that', 'this',
+        'with', 'from', 'into', 'onto', 'upon', 'over', 'under', 'about', 'after', 'before',
+      ]);
+
+      let regenerationAttempts = 0;
+      const MAX_REGEN_ATTEMPTS = 2;
+
+      const runCorruptionCheck = (text: string): { corrupted: boolean; count: number; cleaned: string } => {
+        if (staffFirstNames.length === 0) return { corrupted: false, count: 0, cleaned: text };
+
         const uniqueFirstNames = [...new Set(staffFirstNames)];
         const escapedNames = uniqueFirstNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 
-        // Enhanced regex: flag ANY occurrence of a staff first name that is NOT:
-        // - preceded by a title (Dr/Mr/Ms/Mrs/Miss/Prof/Contact)
-        // - preceded by a role word (Lead/Manager/Nurse/Officer/Guardian/Partner)
-        // - followed by a capital letter (indicating surname context e.g. "Paul Smith")
-        // This catches "always Paul the", "Paul the Cold Chain", start-of-sentence non-name uses etc.
         const safePrefixes = `(?:Dr\\.?|Mr\\.?|Ms\\.?|Mrs\\.?|Miss|Prof\\.?|Contact|Lead|Manager|Nurse|Officer|Guardian|Partner|Pharmacist|Paramedic|Secretary|Receptionist|Administrator|Caldicott|Senior|Deputy)`;
         const corruptionPattern = new RegExp(
           `(?<!${safePrefixes}\\s)(?<!${safePrefixes}\\s\\w+\\s)\\b(${escapedNames.join('|')})\\b(?!\\s+[A-Z][a-z])`,
           'gi'
         );
 
-        const matches = quickGuide.match(corruptionPattern) || [];
-        const suspiciousCount = matches.length;
-        console.log(`🔍 Corruption scan: ${suspiciousCount} suspicious name-token occurrences found`);
-        if (suspiciousCount > 0) {
-          console.log('  Matches:', matches.slice(0, 15));
+        const matches = text.match(corruptionPattern) || [];
+        console.log(`🔍 Corruption scan: ${matches.length} suspicious name-token occurrences`, matches.slice(0, 10));
+
+        // Additional verb-context check: if a staff name appears where a common verb/word is expected
+        let verbContextHits = 0;
+        for (const firstName of uniqueFirstNames) {
+          const lowerName = firstName.toLowerCase();
+          // Check if any common word is phonetically/visually similar (Levenshtein ≤ 2)
+          for (const word of commonWords) {
+            if (levenshtein(lowerName, word) <= 2 && lowerName !== word) {
+              // This name could be confused with a common word — check if it appears in verb-like positions
+              const verbPosPattern = new RegExp(
+                `(?:always|never|must|should|shall|will|would|could|to|and|or|then|please)\\s+${firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b(?!\\s+[A-Z])`,
+                'gi'
+              );
+              const verbHits = text.match(verbPosPattern) || [];
+              verbContextHits += verbHits.length;
+            }
+          }
+        }
+        console.log(`🔍 Verb-context hits: ${verbContextHits}`);
+
+        const totalSuspicious = matches.length + verbContextHits;
+
+        if (totalSuspicious > 3) {
+          // Clean: replace suspicious occurrences with [CONTACT]
+          let cleaned = text.replace(corruptionPattern, (match) => {
+            return '[CONTACT]';
+          });
+          return { corrupted: true, count: totalSuspicious, cleaned };
         }
 
-        // Find-and-replace fallback: replace suspicious names with [CONTACT] marker
-        if (suspiciousCount > 3) {
-          console.warn(`⚠️ Corruption detected: ${suspiciousCount} suspicious occurrences. Cleaning and regenerating...`);
+        return { corrupted: false, count: totalSuspicious, cleaned: text };
+      };
 
-          // Replace corrupted names with placeholder before regeneration
-          const cleanedForLog = quickGuide.replace(corruptionPattern, '[CONTACT]');
-          console.log('Cleaned sample:', cleanedForLog.substring(0, 500));
+      let check = runCorruptionCheck(quickGuide);
 
-          // Regenerate with stronger anti-contamination instruction
-          const antiContaminationSuffix = `\n\nABSOLUTE RULE: In your previous attempt, staff names from the practice profile leaked into ordinary text as word substitutions (e.g. "Paul" replacing "put", "Boon" replacing "room"). This is UNACCEPTABLE. Every common English word must remain as-is. Staff names must ONLY appear when explicitly naming a role holder in the format "Role: Full Name" (e.g. "Practice Manager: Sarah Berry"). Never use a staff name as a verb, noun, or any part of ordinary English text. Double-check every sentence before outputting.`;
+      while (check.corrupted && regenerationAttempts < MAX_REGEN_ATTEMPTS) {
+        regenerationAttempts++;
+        console.warn(`⚠️ Corruption detected (attempt ${regenerationAttempts}/${MAX_REGEN_ATTEMPTS}): ${check.count} suspicious occurrences. Regenerating...`);
 
-          const retrySystem = quickGuideSystem + antiContaminationSuffix;
+        const antiContaminationSuffix = `\n\nABSOLUTE RULE (attempt ${regenerationAttempts}): In your previous attempt, staff names from the practice profile leaked into ordinary text as word substitutions (e.g. "Paul" replacing "put", "Boon" replacing "room"). This is UNACCEPTABLE. Every common English word must remain as-is. Staff names must ONLY appear when explicitly naming a role holder in the format "Role: Full Name" (e.g. "Practice Manager: Sarah Berry"). Never use a staff name as a verb, noun, preposition, or any part of ordinary English text.`;
 
-          let retryGuide = '';
-          if (ANTHROPIC_API_KEY) {
-            const retryResp = await fetch('https://api.anthropic.com/v1/messages', {
-              method: 'POST',
-              headers: {
-                'x-api-key': ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01',
-                'content-type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 4096,
-                system: retrySystem,
-                messages: [{ role: 'user', content: quickGuideUserPrompt }],
-              }),
-            });
-            if (retryResp.ok) {
-              const retryData = await retryResp.json();
-              retryGuide = retryData.content?.[0]?.text || '';
-            }
+        const retrySystem = quickGuideSystem + antiContaminationSuffix;
+        let retryGuide = '';
+
+        if (ANTHROPIC_API_KEY) {
+          const retryResp = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'x-api-key': ANTHROPIC_API_KEY,
+              'anthropic-version': '2023-06-01',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 4096,
+              system: retrySystem,
+              messages: [{ role: 'user', content: quickGuideUserPrompt }],
+            }),
+          });
+          if (retryResp.ok) {
+            const retryData = await retryResp.json();
+            retryGuide = retryData.content?.[0]?.text || '';
           }
+        }
 
-          if (!retryGuide) {
-            const retryResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: 'google/gemini-3-flash-preview',
-                max_tokens: 4096,
-                messages: [
-                  { role: 'system', content: retrySystem },
-                  { role: 'user', content: quickGuideUserPrompt },
-                ],
-              }),
-            });
-            if (retryResp.ok) {
-              const retryText = await retryResp.text();
-              const retryData = JSON.parse(retryText);
-              retryGuide = retryData.choices?.[0]?.message?.content || '';
-            }
+        if (!retryGuide) {
+          const retryResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-3-flash-preview',
+              max_tokens: 4096,
+              messages: [
+                { role: 'system', content: retrySystem },
+                { role: 'user', content: quickGuideUserPrompt },
+              ],
+            }),
+          });
+          if (retryResp.ok) {
+            const retryText = await retryResp.text();
+            const retryData = JSON.parse(retryText);
+            retryGuide = retryData.choices?.[0]?.message?.content || '';
           }
+        }
 
-          if (retryGuide) {
-            quickGuide = retryGuide.replace(
-              /(Powered\s+by\s+Note[Ww]ell\s+AI)[''"""'´`].*/g,
-              '$1'
-            );
-            console.log('✅ Regenerated quick guide after corruption detection');
-
-            // Re-check the regenerated output — if still corrupted, do a final find-and-replace
-            const retryMatches = quickGuide.match(corruptionPattern) || [];
-            if (retryMatches.length > 3) {
-              console.warn(`⚠️ Regenerated output still has ${retryMatches.length} suspicious names. Applying find-and-replace cleanup.`);
-              quickGuide = quickGuide.replace(corruptionPattern, (match) => {
-                // Check if this match is part of a full staff name (i.e. followed by surname on next word)
-                const idx = quickGuide.indexOf(match);
-                const after = quickGuide.substring(idx + match.length, idx + match.length + 30);
-                // If followed by a space then uppercase letter, it's likely a real name reference
-                if (/^\s+[A-Z][a-z]/.test(after)) return match;
-                return '[CONTACT]';
-              });
-            }
-          }
+        if (retryGuide) {
+          quickGuide = retryGuide.replace(/(Powered\s+by\s+Note[Ww]ell\s+AI)[''"""'´`].*/g, '$1');
+          // Re-apply duplicate word fix
+          quickGuide = quickGuide.replace(/\b(\w+)([,;.]?\s+)\1\b/gi, '$1$2');
+          console.log(`✅ Regenerated quick guide (attempt ${regenerationAttempts})`);
+          check = runCorruptionCheck(quickGuide);
+        } else {
+          break;
         }
       }
 
-      // ── Section heading validation and repair ──
-      // Fix truncated headings and validate sequential numbering (1-7)
+      // If still corrupted after max attempts, apply find-and-replace cleanup and flag
+      if (check.corrupted) {
+        console.warn(`⚠️ Quick guide still corrupted after ${MAX_REGEN_ATTEMPTS} attempts. Applying [CONTACT] cleanup and flagging for manual review.`);
+        quickGuide = check.cleaned;
+      }
+
+      // ══════════════════════════════════════════════════
+      // FIX 5: Section heading validation and repair
+      // ══════════════════════════════════════════════════
       const expectedSections = audience === 'patient' 
         ? ['Title', 'Why This Policy Exists', 'What This Means for You', 'What You Can Expect from Our Practice', 'Your Rights as a Patient', 'If You Have Questions or Concerns', 'Accessibility Statement']
         : ['Purpose', 'When This Policy Applies', 'Key Staff Responsibilities', 'Step-by-Step Process', 'Documentation Requirements', 'If Something Goes Wrong', 'Quick Reminders'];
       
       // Fix truncated section headings (e.g. "Requirem" → "Documentation Requirements")
       for (const heading of expectedSections) {
-        // Match truncated versions (at least 4 chars of the heading)
         if (heading.length >= 6) {
           for (let len = 4; len < heading.length; len++) {
             const truncated = heading.substring(0, len);
-            // Only fix if the truncation appears as a standalone word at end of a heading-like line
             const truncPattern = new RegExp(`(^|\\n)(#+\\s*\\d*\\.?\\s*)${truncated.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'gm');
             quickGuide = quickGuide.replace(truncPattern, `$1$2${heading}`);
           }
         }
       }
 
-      // Validate section numbers appear in order (1-7) with no gaps
-      const sectionNumPattern = /(?:^|\n)(?:#+\s*)?(\d+)\.\s/g;
-      const foundNumbers: number[] = [];
-      let numMatch;
-      while ((numMatch = sectionNumPattern.exec(quickGuide)) !== null) {
-        const num = parseInt(numMatch[1], 10);
-        if (num >= 1 && num <= 7) foundNumbers.push(num);
-      }
-      
-      // Check for out-of-sequence or missing numbers
-      if (foundNumbers.length > 0) {
-        const sorted = [...new Set(foundNumbers)].sort((a, b) => a - b);
-        const isSequential = sorted.every((n, i) => n === i + 1);
-        if (!isSequential) {
-          console.warn('⚠️ Section numbering out of sequence:', foundNumbers, '→ renumbering');
-          // Renumber: find each "N. " heading pattern and replace with correct sequential number
-          let sectionCounter = 0;
-          quickGuide = quickGuide.replace(/(?:^|\n)(#+\s*)?(\d+)\.\s/g, (match, hashes, _num) => {
-            sectionCounter++;
-            const prefix = match.startsWith('\n') ? '\n' : '';
-            const hashPart = hashes || '';
-            return `${prefix}${hashPart}${sectionCounter}. `;
+      // Extract all numbered section headings with their content for reordering
+      const sectionPattern = /(?:^|\n)((?:#+\s*)?(\d+)\.\s+(.*))/g;
+      const sections: { fullMatch: string; number: number; heading: string; startIdx: number }[] = [];
+      let sMatch;
+      while ((sMatch = sectionPattern.exec(quickGuide)) !== null) {
+        const num = parseInt(sMatch[2], 10);
+        if (num >= 1 && num <= 9) {
+          sections.push({
+            fullMatch: sMatch[1],
+            number: num,
+            heading: sMatch[3].trim(),
+            startIdx: sMatch.index,
           });
         }
       }
 
-      console.log('Quick guide generated, length:', quickGuide.length);
+      if (sections.length > 1) {
+        // Check for out-of-sequence, duplicate, or missing numbers
+        const numbers = sections.map(s => s.number);
+        const isSequential = numbers.every((n, i) => n === i + 1);
+        const hasDuplicates = new Set(numbers).size !== numbers.length;
 
-      return new Response(JSON.stringify({ success: true, quick_guide: quickGuide }), {
+        if (!isSequential || hasDuplicates) {
+          console.warn('⚠️ Section numbering issues detected:', numbers, '→ renumbering sequentially');
+          // Renumber all sections sequentially from 1
+          let counter = 0;
+          quickGuide = quickGuide.replace(/((?:^|\n)(?:#+\s*)?)(\d+)(\.\s+)/g, (match, prefix, _num, suffix) => {
+            counter++;
+            return `${prefix}${counter}${suffix}`;
+          });
+        }
+      }
+
+      // Determine if manual review flag is needed
+      const needsManualReview = check.corrupted;
+
+      console.log('Quick guide generated, length:', quickGuide.length, needsManualReview ? '⚠️ FLAGGED FOR MANUAL REVIEW' : '✅');
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        quick_guide: quickGuide,
+        needs_manual_review: needsManualReview,
+        regeneration_attempts: regenerationAttempts,
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
