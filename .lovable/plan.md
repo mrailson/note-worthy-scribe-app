@@ -1,51 +1,19 @@
 
 
-## Root Cause
+## Problem
 
-The problem is **not in the component code** — it's in the **RLS (Row Level Security) policy** on the `practice_details` table.
+The `usePracticeProfileCompletion` hook only queries `practice_details` for the current user's own record (`user_id = user.id`). For Julia Railson, who has no roles filled, it shows "12 of 12 missing" — but Sarah Berry has already completed all 12 for the same practice. The hook should use the same shared-record inheritance logic that `PolicyProfileDefaults.tsx` uses.
 
-The SELECT policy allows users to read other users' records only when:
-```sql
-lower(gp.name) = lower(practice_details.practice_name)
-```
+## Fix
 
-But there's a name mismatch:
-- `gp_practices.name` = **"The Saxon Spires Practice"**
-- Sarah Berry's `practice_details.practice_name` = **"Saxon Spires Practice"** (no "The")
+Update `usePracticeProfileCompletion.ts` to:
 
-So when Julia Railson queries for shared records, RLS silently blocks the result because the exact string comparison fails. The component code's `ilike` query runs fine, but the database returns zero rows due to the policy.
+1. First fetch the user's own `practice_details` record (as now).
+2. If the user's record is mostly empty (fewer than 3 personnel fields filled), look up the practice name (from the record itself or from `user_roles` + `gp_practices`).
+3. Query for a shared colleague's `practice_details` record at the same practice using flexible name matching (stripping "The " prefix, using `ilike`).
+4. Merge: for each of the 12 role fields, consider it "filled" if either the user's own record or the shared record has a value.
 
-## Fix — Two Changes
+This mirrors exactly what `PolicyProfileDefaults.tsx` already does at load time, so the completion badge will reflect the inherited state.
 
-### 1. Update the RLS SELECT policy to use flexible name matching
-
-Replace the exact `lower()` comparison with one that strips common prefixes like "The ":
-
-```sql
-DROP POLICY "Org members can view practice details" ON public.practice_details;
-
-CREATE POLICY "Org members can view practice details"
-ON public.practice_details FOR SELECT TO authenticated
-USING (
-  is_system_admin()
-  OR (user_id = auth.uid())
-  OR (EXISTS (
-    SELECT 1
-    FROM user_roles ur
-    JOIN gp_practices gp ON gp.id = ur.practice_id
-    WHERE ur.user_id = auth.uid()
-      AND ur.practice_id IS NOT NULL
-      AND lower(regexp_replace(gp.name, '^[Tt]he\s+', '')) 
-        = lower(regexp_replace(practice_details.practice_name, '^[Tt]he\s+', ''))
-  ))
-);
-```
-
-### 2. Also fix the UPDATE policy (same issue)
-
-The UPDATE policy has the identical exact-match problem. Apply the same `regexp_replace` fix.
-
-### No component code changes needed
-
-The existing fallback/merge logic in `PolicyProfileDefaults.tsx` is already correct — it searches with `ilike` and strips "The " prefixes. The only reason it fails is that the database never returns rows due to the RLS block.
+**Single file change:** `src/hooks/usePracticeProfileCompletion.ts`
 
