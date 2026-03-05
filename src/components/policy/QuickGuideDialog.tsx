@@ -57,9 +57,27 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
     'patient': 'Patient',
   };
 
+  // Fetch canonical staff names from practice_details
+  const fetchPracticeStaffNames = async (): Promise<string[]> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return [];
+      const { data: pd } = await supabase
+        .from('practice_details')
+        .select('lead_gp_name, practice_manager_name, caldicott_guardian, complaints_lead, dpo_name, fire_safety_officer, health_safety_lead, infection_control_lead, safeguarding_lead_adults, safeguarding_lead_children, senior_gp_partner, siro')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      if (!pd) return [];
+      return Object.values(pd).filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+    } catch {
+      return [];
+    }
+  };
+
   const generateQuickGuideText = async (): Promise<string | null> => {
+    const staffNames = await fetchPracticeStaffNames();
     const { data, error } = await supabase.functions.invoke('analyse-policy-gaps', {
-      body: { action: 'quick-guide', extracted_text: policyContent, audience },
+      body: { action: 'quick-guide', extracted_text: policyContent, audience, practice_staff_names: staffNames },
     });
     if (error) throw error;
     if (!data?.success) throw new Error(data?.error || 'Failed to generate quick guide');
