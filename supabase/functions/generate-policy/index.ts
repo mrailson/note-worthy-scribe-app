@@ -1875,6 +1875,10 @@ Do NOT penalise or flag placeholder values including:
 
 PSIRF NOTE: The Patient Safety Incident Response Framework (PSIRF) replaced the Serious Incident Framework in 2023 for NHS providers. For PRIMARY CARE / GP PRACTICES, reference to PSIRF is best practice but not yet mandated — flag as a recommendation, not a Clinical/Legal gap.
 
+CERVICAL SCREENING NON-RESPONDER FOLLOW-UP: If this policy relates to Sample Handling, Cervical Screening, or references cervical screening processes, check for non-responder follow-up. The NHS Cervical Screening Programme requires follow-up of non-responders within 8-12 weeks of first invitation. If the policy references cervical screening but does not include a non-responder follow-up process with a defined timeline, flag as a Patient Safety gap.
+
+CRITICAL: Before flagging any gap, confirm the content is genuinely absent from the ENTIRE document — not just the expected section. If the substance is covered anywhere in the document, do not flag it.
+
 CQC COMPLIANCE SCORING:
 Start at 100. Deduct points based on identified issues:
 - Each Clinical/Legal gap: -8 points
