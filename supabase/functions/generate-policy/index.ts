@@ -1516,12 +1516,22 @@ ${finalContent}`;
           try {
             const today = new Date().toISOString().split('T')[0];
             const reviewDate = new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0];
-            await serviceSupabase.from('policy_completions').insert({
+          // Calculate generation duration
+          const createdAt = new Date(job.created_at).getTime();
+          const generationDurationSeconds = Math.round((Date.now() - createdAt) / 1000);
+          const completionMetadata = {
+            ...jobMetadata,
+            policy_length: policyLength,
+            generation_duration_seconds: generationDurationSeconds,
+            generation_model: jobMetadata.generation_model || 'claude-sonnet-4-6',
+          };
+
+          await serviceSupabase.from('policy_completions').insert({
               user_id: job.user_id,
               policy_reference_id: job.policy_reference_id,
               policy_title: policyName,
               policy_content: policyContent,
-              metadata: jobMetadata,
+              metadata: completionMetadata,
               version: jobMetadata.version || '1.0',
               status: 'completed',
               effective_date: toISODate(jobMetadata.effective_date || today),
