@@ -186,6 +186,9 @@ Apply these overrides to every policy where the relevant topic appears. These ar
 ### CROSS-CUTTING LEGAL REQUIREMENT (APPLIES TO ALL POLICIES)
 17. DUTY OF CANDOUR: Every policy must reference Duty of Candour under Regulation 20 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014. Include the obligation to be open and honest with patients (or their families) when things go wrong, including notifiable safety incidents. This applies even where the policy topic is not primarily clinical — operational failures that affect patient care still trigger the duty. Reference CQC Regulation 20 explicitly.
 
+### CROSS-CUTTING MONITORING REQUIREMENT (APPLIES TO ALL POLICIES)
+18. SIGNIFICANT EVENT ANALYSIS (SEA): All policies — clinical and non-clinical — must include a Significant Event Analysis (SEA) subsection within the Monitoring section (Section 8). This must describe how incidents, near misses, and failures related to the specific policy topic are reported, reviewed, and learned from at practice level. Include who leads the SEA review, the frequency of review, how learning is disseminated to the team, and how changes are tracked to demonstrate improvement. This applies equally to clinical policies (e.g. medication errors) and non-clinical policies (e.g. information security breaches, GDPR incidents).
+
 IMPORTANT RULES:
 - Use specific named individuals from practice details provided (not just role titles)
 - Include current legislation with years
@@ -255,6 +258,22 @@ POLICY-SPECIFIC MANDATORY CONTENT (PRESCRIBING):
   'end of life': `
 POLICY-SPECIFIC MANDATORY CONTENT (END OF LIFE):
 - MUST include palliative care / end of life register in SystmOne — covering how patients are added to the register (criteria and who can add), how the register is reviewed (frequency, e.g. monthly MDT or Gold Standards Framework meeting), how patients are removed from the register (e.g. death, recovery, patient choice), and how the register informs proactive care planning including anticipatory prescribing, advance care planning discussions, and coordination with community palliative care teams.`,
+
+  'information security': `
+POLICY-SPECIFIC MANDATORY CONTENT (INFORMATION SECURITY):
+- MUST include a subsection on third party and supplier security obligations covering: data processing agreements (DPAs) with all suppliers who handle practice data, due diligence checks before onboarding new suppliers (including DSPT status, Cyber Essentials certification, and UK GDPR compliance), the practice's right to audit third party compliance with DSPT and UK GDPR requirements, and the process for reviewing supplier security arrangements on an annual basis or when contract terms change.`,
+
+  'information sharing': `
+POLICY-SPECIFIC MANDATORY CONTENT (INFORMATION SHARING):
+- MUST explicitly reference Caldicott Principle 3 ("need to know") by name — information should only be shared with those who need it to perform their function, and only to the extent necessary. Include a practical example of how this principle is applied when responding to external information requests (e.g. a solicitor requesting patient records: verify legal basis, confirm identity, share only the minimum information relevant to the request, and document the decision and rationale).`,
+
+  'confidentiality': `
+POLICY-SPECIFIC MANDATORY CONTENT (CONFIDENTIALITY):
+- MUST include a dedicated subsection on staff confidentiality obligations covering: the common law duty of confidence that applies to all employees, contractors, locums, and volunteers; the consequences of unauthorised disclosure (including disciplinary action, regulatory referral, and potential criminal liability under the Computer Misuse Act 1990 or Data Protection Act 2018); confidentiality clauses in employment contracts and honorary contracts; and the process for raising concerns about confidentiality breaches by colleagues (including whistleblowing protections under the Public Interest Disclosure Act 1998).`,
+
+  'records management': `
+POLICY-SPECIFIC MANDATORY CONTENT (RECORDS MANAGEMENT):
+- MUST include a legal hold / litigation hold subsection covering: the obligation to suspend routine destruction of records when legal proceedings are anticipated or in progress (including complaints, claims, inquests, and regulatory investigations); who is responsible for issuing a legal hold notice (e.g. Practice Manager or Caldicott Guardian); how affected records are identified and preserved (including electronic and paper records); communication to staff about the hold; and when the hold can be lifted (written confirmation from the instructing solicitor or practice's legal adviser that proceedings have concluded).`,
 };
 
 // Step-specific system prompt additions
