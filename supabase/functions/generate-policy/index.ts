@@ -1241,7 +1241,7 @@ ${contactInstructions}
 Now generate section 6 (Training Requirements) only. You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence. IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + lengthInstruction + PART2B_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + geminiConciseInstruction + PART2B_SYSTEM_ADDITION,
             userPrompt,
             scaleTokens(4000, 'generate_part_2b'),
             generationModel
