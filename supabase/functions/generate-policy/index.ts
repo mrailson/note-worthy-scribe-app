@@ -1464,7 +1464,7 @@ ${practiceContext}
 POLICY TO FIX:
 ${finalContent}`;
 
-                const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 10000, generationModel);
+                const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 16384, generationModel);
                 if (remediated && remediated.length > 500) {
                   finalContent = sanitisePolicyOutput(remediated, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
                   console.log(`[gap_check] Remediation succeeded - ${finalContent.length} chars`);
