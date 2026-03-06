@@ -358,8 +358,39 @@ const PolicyServiceViewPolicy = () => {
 
                   {getReviewBadge(policy.review_date)}
 
-                  {/* Last Quick Guide Generated */}
-                  {lastQuickGuide && (
+                  {/* Saved Quick Guides */}
+                  {((policy.metadata as any)?.quick_guides || []).length > 0 && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <SavedGuidesPopover
+                        guides={((policy.metadata as any)?.quick_guides || []) as SavedQuickGuide[]}
+                        policyTitle={policy.policy_title}
+                        onDelete={async (guideId) => {
+                          try {
+                            const meta = (policy.metadata || {}) as any;
+                            const guides = (meta.quick_guides || []).filter((g: any) => g.id !== guideId);
+                            const deleted = (meta.quick_guides || []).find((g: any) => g.id === guideId);
+                            if (deleted?.storagePath) {
+                              await supabase.storage.from('quick-guides').remove([deleted.storagePath]);
+                            }
+                            const updatedMeta = { ...meta, quick_guides: guides };
+                            await supabase
+                              .from('policy_completions')
+                              .update({ metadata: updatedMeta })
+                              .eq('id', policy.id)
+                              .eq('user_id', user!.id);
+                            setPolicy((prev: any) => prev ? { ...prev, metadata: updatedMeta } : prev);
+                            toast.success('Quick guide removed');
+                          } catch { toast.error('Failed to remove guide'); }
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {((policy.metadata as any)?.quick_guides || []).length} saved guide{((policy.metadata as any)?.quick_guides || []).length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Last Quick Guide Generated (legacy) */}
+                  {lastQuickGuide && !((policy.metadata as any)?.quick_guides || []).length && (
                     <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                       <BookOpen className="h-3 w-3" />
                       <span>
