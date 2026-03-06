@@ -527,21 +527,6 @@ const PolicyServiceMyPolicies = () => {
                             <span className="flex items-center gap-1">📧 Email notification on</span>
                           )}
                         </div>
-                        {/* Model & length metadata */}
-                        {(() => {
-                          const meta = (job as any).metadata;
-                          const model = meta?.generation_model;
-                          const length = meta?.policy_length;
-                          if (!model && !length) return null;
-                          const modelLabels: Record<string, string> = { 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-haiku-4-5': 'Haiku 4.5', 'gpt-4o-mini': 'GPT-4o Mini', 'gemini-2.5-flash': 'Gemini 2.5 Flash', 'gemini-2.5-pro': 'Gemini 2.5 Pro', 'gemini-2.0-flash': 'Gemini Flash', 'gemini-2.0-flash-thinking-exp': 'Gemini Thinking' };
-                          const lengthLabels: Record<string, string> = { compact: 'Compact', concise: 'Concise', standard: 'Standard', full: 'Comprehensive' };
-                          return (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                              {model && <span className="bg-muted px-1.5 py-0.5 rounded">🤖 {modelLabels[model] || model}</span>}
-                              {length && <span className="bg-muted px-1.5 py-0.5 rounded">📏 {lengthLabels[length] || length}</span>}
-                            </div>
-                          );
-                        })()}
                         {job.status === 'failed' && job.error_message && (
                           <p className="text-xs text-destructive mt-1">{job.error_message}</p>
                         )}
@@ -649,19 +634,6 @@ const PolicyServiceMyPolicies = () => {
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-medium truncate">{completion.policy_title}</h3>
                         <Badge variant="secondary">v{completion.version}</Badge>
-                        {(completion.metadata as any)?.policy_length && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 capitalize">
-                            {(completion.metadata as any).policy_length}
-                          </Badge>
-                        )}
-                        {(completion.metadata as any)?.generation_model && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
-                            🤖 {(() => {
-                              const modelLabels: Record<string, string> = { 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-haiku-4-5': 'Haiku 4.5', 'gpt-4o-mini': 'GPT-4o Mini', 'gemini-2.5-flash': 'Gemini 2.5 Flash', 'gemini-2.5-pro': 'Gemini 2.5 Pro', 'gemini-2.0-flash': 'Gemini Flash', 'gemini-2.0-flash-thinking-exp': 'Gemini Thinking' };
-                              return modelLabels[(completion.metadata as any).generation_model] || (completion.metadata as any).generation_model;
-                            })()}
-                          </Badge>
-                        )}
                         {completion.policy_content && (
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
                             📝 {(() => {
