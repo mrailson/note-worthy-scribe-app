@@ -1485,23 +1485,22 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
           const fullContent = `${sections1to8.trim()}\n\n${sectionsContent}`;
 
           // Determine next step: compact and budget models skip enhance & gap_check
-          // EXCEPT: when enable_gap_check_for_gemini flag is set, gemini-2.5-flash skips enhance but runs gap_check
-          const enableGapCheckGemini = jobMetadata.enable_gap_check_for_gemini === true;
+          // EXCEPT: specific policy types always run gap_check (unless compact)
+          const gapCheckPolicyTypes = ['safeguarding-children', 'safeguarding-adults'];
+          const normalisedPolicyName = policyName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const runGapCheck = gapCheckPolicyTypes.some(t => normalisedPolicyName.includes(t)) && !isCompact;
+          
           const budgetModels = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp', 'gemini-2.5-flash', 'gemini-2.5-pro'];
           const isBudget = budgetModels.includes(generationModel);
-          const isCompact = policyLength === 'compact';
-          
-          // Special case: Gemini 2.5 Flash with gap_check test mode → skip enhance, run gap_check
-          const geminiGapCheckMode = enableGapCheckGemini && generationModel === 'gemini-2.5-flash' && !isCompact;
           const skipEnhance = isCompact || isBudget;
-          const nextStep = geminiGapCheckMode ? 'gap_check' : (skipEnhance ? 'finalise' : 'enhance');
+          const nextStep = runGapCheck ? 'gap_check' : (skipEnhance ? 'finalise' : 'enhance');
           const nextStatus = (nextStep === 'finalise' || nextStep === 'gap_check') ? 'generating' : 'enhancing';
           const nextProgress = nextStep === 'finalise' ? 90 : (nextStep === 'gap_check' ? 82 : 80);
-          if (skipEnhance && !geminiGapCheckMode) {
+          if (skipEnhance && !runGapCheck) {
             console.log(`[Step: generate_part_3b] Skipping enhance & gap_check (compact=${isCompact}, model=${generationModel})`);
           }
-          if (geminiGapCheckMode) {
-            console.log(`[Step: generate_part_3b] Gemini gap_check test mode — skipping enhance, running gap_check for job ${job.id}`);
+          if (runGapCheck) {
+            console.log(`[Step: generate_part_3b] Policy-type gap_check enabled for "${policyName}" — skipping enhance, running gap_check for job ${job.id}`);
           }
 
           await serviceSupabase
@@ -1695,8 +1694,8 @@ ${practiceContext}
 POLICY TO FIX:
 ${finalContent}`;
 
-                // Use higher token limit for Gemini gap_check test mode to prevent truncation
-                const remediationTokens = (jobMetadata.enable_gap_check_for_gemini && generationModel === 'gemini-2.5-flash') ? 32768 : 16384;
+                // Use higher token limit for policy-type gap_check to prevent truncation
+                const remediationTokens = 32768;
                 const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, remediationTokens, generationModel);
                 if (remediated && remediated.length > 500) {
                   finalContent = sanitisePolicyOutput(remediated, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));

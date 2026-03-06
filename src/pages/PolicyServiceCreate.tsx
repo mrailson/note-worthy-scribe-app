@@ -175,8 +175,6 @@ const PolicyServiceCreate = () => {
       } : null;
 
       const selectedModel = getPolicyGenerationModel();
-      const { getGapCheckForGemini } = await import('@/components/policy/PolicyGenerationModelSettings');
-      const enableGapCheckGemini = getGapCheckForGemini();
       
       // Insert one job per policy — each with its own length
       const rows = policiesToGenerate.map(policy => ({
@@ -189,7 +187,6 @@ const PolicyServiceCreate = () => {
         metadata: { 
           generation_model: selectedModel, 
           policy_length: (policy as any)._length || 'standard',
-          ...(enableGapCheckGemini ? { enable_gap_check_for_gemini: true } : {}),
         } as any,
       }));
 
