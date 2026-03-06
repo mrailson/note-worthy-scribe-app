@@ -20,7 +20,7 @@ export type PolicyLength = 'compact' | 'concise' | 'standard' | 'full';
 
 const MODEL_STORAGE_KEY = 'policy-generation-model';
 const LENGTH_STORAGE_KEY = 'policy-generation-length';
-const GAP_CHECK_GEMINI_KEY = 'policy-gap-check-gemini';
+
 
 export const getPolicyGenerationModel = (): PolicyGenerationModel => {
   const saved = localStorage.getItem(MODEL_STORAGE_KEY);
