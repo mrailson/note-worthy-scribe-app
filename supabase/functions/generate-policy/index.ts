@@ -1060,8 +1060,8 @@ Deno.serve(async (req) => {
 - Write in direct, professional NHS policy style — no padding, repetition, or filler phrases.
 - Each procedural point should be one clear sentence unless clinical detail requires more.
 - Prefer structured bullet lists over paragraphs where appropriate.
-- Target 6,000–8,000 words for a full-length policy. Do NOT inflate to 12,000+.
-- Do NOT omit any required sections or subsections — brevity applies to prose style, not content coverage.`
+- Target 6,000–8,000 words total. Stop adding content once a section is complete — do not repeat or elaborate beyond what is clinically necessary.
+- Complete every required section and subsection — brevity applies to prose style, not content coverage.`
           : '';
         
         console.log(`Using model: ${generationModel}, length: ${policyLength} (scale: ${scale}) for job ${job.id}`);
