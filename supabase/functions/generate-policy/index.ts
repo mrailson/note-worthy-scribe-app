@@ -1078,7 +1078,7 @@ Now generate section 6 (Training Requirements) only. You MUST complete ALL subse
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART2B_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(4000),
+            scaleTokens(4000, 'generate_part_2b'),
             generationModel
           );
 
