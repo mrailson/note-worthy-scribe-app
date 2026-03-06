@@ -933,7 +933,7 @@ Generate the complete header and sections 1-3 only. IMPORTANT: Complete every su
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART1_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(5200),
+            scaleTokens(5200, 'generate_part_1'),
             generationModel
           );
 
