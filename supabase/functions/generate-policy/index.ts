@@ -867,7 +867,23 @@ serve(async (req) => {
         const practiceContext = buildPracticeContext(jobPractice);
         const jobMetadata: any = job.metadata || {};
         const generationModel = jobMetadata.generation_model || 'claude-sonnet-4-6';
-        console.log(`Using model: ${generationModel} for job ${job.id}`);
+        const policyLength = jobMetadata.policy_length || 'full'; // compact | concise | standard | full
+        const lengthScale: Record<string, number> = { compact: 0.2, concise: 0.33, standard: 0.5, full: 1.0 };
+        const scale = lengthScale[policyLength] || 1.0;
+        const scaleTokens = (base: number) => Math.max(1500, Math.round(base * scale));
+        
+        // Build length instruction for the system prompt
+        const lengthLabels: Record<string, string> = {
+          compact: 'COMPACT (~8 pages). Cover only the essential requirements, key responsibilities, and critical procedures. Omit extended examples, appendices, and supplementary detail. Be direct and concise.',
+          concise: 'CONCISE (~13 pages). Cover core requirements with essential detail but avoid extended examples, lengthy appendices, or supplementary commentary.',
+          standard: 'STANDARD (~20 pages). Provide balanced coverage with good operational detail but avoid excessive elaboration or padding.',
+          full: 'COMPREHENSIVE (~40 pages). Provide full regulatory detail suitable for CQC inspection.',
+        };
+        const lengthInstruction = policyLength !== 'full' 
+          ? `\n\nDOCUMENT LENGTH TARGET: ${lengthLabels[policyLength] || lengthLabels.full}\nScale ALL sections proportionally to meet this target. Do not pad or repeat content to fill space.`
+          : '';
+        
+        console.log(`Using model: ${generationModel}, length: ${policyLength} (scale: ${scale}) for job ${job.id}`);
         const policyName = policyRef.policy_name;
 
         const regulatoryContext = `REGULATORY CONTEXT:
@@ -899,9 +915,9 @@ ${job.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${job.custom_instructions
 Generate the complete header and sections 1-3 only.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + PART1_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + PART1_SYSTEM_ADDITION,
             userPrompt,
-            5200,
+            scaleTokens(5200),
             generationModel
           );
 
@@ -969,9 +985,9 @@ ${contactInstructions}
 Now generate sections 4-5 only. Section 5 must be COMPLETE with all sub-sections fully written out.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + PART2A_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + PART2A_SYSTEM_ADDITION,
             userPrompt,
-            8000,
+            scaleTokens(8000),
             generationModel
           );
 
@@ -1044,9 +1060,9 @@ ${contactInstructions}
 Now generate section 6 (Training Requirements) only.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + PART2B_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + PART2B_SYSTEM_ADDITION,
             userPrompt,
-            3000,
+            scaleTokens(3000),
             generationModel
           );
 
@@ -1119,9 +1135,9 @@ ${contactInstructions}
 Now generate sections 7-11 to complete this policy, followed by the ===METADATA=== block.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + PART3_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + PART3_SYSTEM_ADDITION,
             userPrompt,
-            7000,
+            scaleTokens(7000),
             generationModel
           );
 
