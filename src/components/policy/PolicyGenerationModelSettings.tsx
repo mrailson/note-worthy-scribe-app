@@ -73,7 +73,7 @@ const MODEL_OPTIONS: {
     badgeVariant: 'secondary',
     stats: '~80% cheaper · ~2-3 min',
     icon: Zap,
-    requiresKey: 'OPENAI_API_KEY',
+    
   },
   { 
     value: 'gemini-2.5-flash', 
@@ -83,7 +83,6 @@ const MODEL_OPTIONS: {
     badgeVariant: 'secondary',
     stats: '~85% cheaper · ~2 min',
     icon: Zap,
-    requiresKey: 'GEMINI_API_KEY',
   },
   { 
     value: 'gemini-2.5-pro', 
@@ -93,7 +92,7 @@ const MODEL_OPTIONS: {
     badgeVariant: 'outline',
     stats: '~50% cheaper · ~4-5 min',
     icon: Brain,
-    requiresKey: 'GEMINI_API_KEY',
+    
   },
 ];
 
