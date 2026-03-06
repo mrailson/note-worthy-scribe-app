@@ -183,6 +183,9 @@ Apply these overrides to every policy where the relevant topic appears. These ar
 ### GP CONTRACT
 16. GP CONTRACT 2026/27: Same-day access requirements. PCN CAP funding shifted to practice-level. Do not reference pre-2026 contract structures as current.
 
+### CROSS-CUTTING LEGAL REQUIREMENT (APPLIES TO ALL POLICIES)
+17. DUTY OF CANDOUR: Every policy must reference Duty of Candour under Regulation 20 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014. Include the obligation to be open and honest with patients (or their families) when things go wrong, including notifiable safety incidents. This applies even where the policy topic is not primarily clinical — operational failures that affect patient care still trigger the duty. Reference CQC Regulation 20 explicitly.
+
 IMPORTANT RULES:
 - Use specific named individuals from practice details provided (not just role titles)
 - Include current legislation with years
@@ -190,6 +193,28 @@ IMPORTANT RULES:
 - All phone number placeholders must use format: [PRACTICE TO COMPLETE - description]
 - Never use dates as placeholder values for phone numbers
 - Replace ALL placeholders with known values from practice data. Only use [PRACTICE TO COMPLETE] for genuinely unknown values.`;
+
+// ---- Policy-specific mandatory content ----
+const POLICY_TOPIC_ADDITIONS: Record<string, string> = {
+  'consent': `
+POLICY-SPECIFIC MANDATORY CONTENT (CONSENT):
+- MUST include Montgomery v Lanarkshire Health Board [2015] UKSC 11 ruling: the duty to disclose material risks — a risk is material if a reasonable person in the patient's position would attach significance to it, or if the clinician is (or should be) aware that the particular patient would attach significance to it.
+- MUST include process for withdrawal of consent at any stage, including mid-procedure, and the documentation requirements when consent is withdrawn.
+- Reference Mental Capacity Act 2005 for patients lacking capacity to consent.`,
+
+  'dnacpr': `
+POLICY-SPECIFIC MANDATORY CONTENT (DNACPR / ReSPECT):
+- MUST include Human Rights Act 1998 Article 2 (right to life) as part of the legal framework — decisions must be compatible with the patient's right to life and must not be discriminatory.
+- MUST include requirement for a second clinical opinion where the patient or family disagrees with a DNACPR/ReSPECT decision, including the process for arranging this and the timeframe.
+- Reference Tracey v Cambridge University Hospitals [2014] EWCA Civ 822 on the duty to consult with patients/families before making DNACPR decisions.`,
+
+  'safeguarding adults': `
+POLICY-SPECIFIC MANDATORY CONTENT (SAFEGUARDING ADULTS):
+- MUST explicitly reference CQC Regulation 13 (Safeguarding service users from abuse and improper treatment) under the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014.
+- MUST include the Making Safeguarding Personal (MSP) framework — the person-centred approach to safeguarding enquiries that ensures adults are involved in decisions about their safety and the outcomes they want.
+- Reference the six safeguarding principles: empowerment, prevention, proportionality, protection, partnership, accountability.
+- Include Care Act 2014 Section 42 enquiry duty and the local authority's role.`,
+};
 
 // Step-specific system prompt additions
 const PART1_SYSTEM_ADDITION = `
