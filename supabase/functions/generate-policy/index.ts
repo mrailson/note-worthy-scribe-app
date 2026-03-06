@@ -1358,7 +1358,7 @@ POLICY TO ENHANCE:
 ${policyContent}`;
 
             try {
-              const enhanced = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, enhancePrompt, 10000, generationModel);
+              const enhanced = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, enhancePrompt, 16384, generationModel);
               if (enhanced && enhanced.length > 500) {
                 policyContent = sanitisePolicyOutput(enhanced, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
                 console.log(`[Step: enhance] Enhancement succeeded - ${policyContent.length} chars (fully sanitised)`);
