@@ -111,7 +111,7 @@ export const usePolicyJobs = () => {
     if (activeJobCount === 0) return;
 
     const hasStaleJobs = jobs.some(j => {
-      if (!['pending', 'generating', 'enhancing'].includes(j.status)) return false;
+      if (!['pending', 'generating', 'enhancing', 'optimising'].includes(j.status)) return false;
       // Pending jobs with no lease are always kickable
       if (j.status === 'pending') return true;
       // Jobs with expired lease are stale

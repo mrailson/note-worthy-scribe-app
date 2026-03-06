@@ -261,7 +261,7 @@ const PolicyServiceMyPolicies = () => {
           practice_details: practiceDetailsPayload as any,
           email_when_ready: false,
           status: 'pending' as const,
-          metadata: { generation_model: selectedModel, policy_length: policyLength } as any,
+          metadata: { generation_model: selectedModel, policy_length: policyLength, auto_quality_loop: meta.auto_quality_loop ?? false } as any,
         });
 
       if (insertError) throw insertError;
