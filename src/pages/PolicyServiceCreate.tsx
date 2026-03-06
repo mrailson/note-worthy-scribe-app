@@ -303,29 +303,6 @@ const PolicyServiceCreate = () => {
           </CardContent>
         </Card>
 
-        {/* Single policy length selector */}
-        {!batchMode && selectedPolicy && (
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-medium">Policy Length</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Choose the level of detail for this policy</p>
-                </div>
-                <Select value={selectedPolicyLength} onValueChange={(v) => setSelectedPolicyLength(v as PolicyLength)}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LENGTH_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Batch Basket */}
         {batchMode && (
