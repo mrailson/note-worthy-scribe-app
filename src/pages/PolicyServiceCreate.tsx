@@ -378,50 +378,6 @@ const PolicyServiceCreate = () => {
         </div>
       </main>
 
-      {/* Confirmation dialog */}
-      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Please Allow Time for Generation
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="text-left space-y-3">
-                {batchMode && selectedPolicies.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p className="font-medium text-foreground text-sm">
-                      {selectedPolicies.length} {selectedPolicies.length === 1 ? 'policy' : 'policies'} to generate:
-                    </p>
-                    <ul className="list-disc list-inside text-sm space-y-0.5">
-                      {selectedPolicies.map((policy) => (
-                        <li key={policy.id}>{policy.policy_name}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {!batchMode && selectedPolicy && (
-                  <p className="font-medium text-foreground text-sm">
-                    Policy: {selectedPolicy.policy_name}
-                  </p>
-                )}
-                <p>
-                  Each policy typically takes <strong>~3 minutes</strong> to generate.
-                </p>
-                <p>
-                  Completed policies will appear on <strong>My Policies</strong> when ready. You can continue using other features while they generate.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmGenerate}>
-              Continue &amp; Generate
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
