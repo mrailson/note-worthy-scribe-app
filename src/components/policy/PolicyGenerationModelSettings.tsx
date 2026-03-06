@@ -111,12 +111,10 @@ export const PolicyGenerationModelSettings = () => {
   const [length, setLength] = useState<PolicyLength>('full');
   const [open, setOpen] = useState(false);
 
-  const [gapCheckGemini, setGapCheckGemini] = useState(false);
 
   useEffect(() => {
     setModel(getPolicyGenerationModel());
     setLength(getPolicyGenerationLength());
-    setGapCheckGemini(getGapCheckForGemini());
   }, []);
 
   const handleModelChange = (value: PolicyGenerationModel) => {
