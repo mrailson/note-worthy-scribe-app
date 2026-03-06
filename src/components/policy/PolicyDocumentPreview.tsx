@@ -356,9 +356,12 @@ const renderTable = (lines: string[], key: number): React.ReactNode => {
   if (rows.length === 0) return null;
 
   // Check if this is the document control table (skip it - we render our own)
+  // Must NOT match the Version History table which also has "version" and "author"
+  // Document Control has "effective date" or "review date"; Version History has "summary"
   const allCellsJoined = rows.flat().join(' ').toLowerCase();
-  if (allCellsJoined.includes('version') && allCellsJoined.includes('effective date') && 
-      (allCellsJoined.includes('review date') || allCellsJoined.includes('author'))) {
+  if (allCellsJoined.includes('version') && 
+      (allCellsJoined.includes('effective date') || allCellsJoined.includes('review date')) &&
+      !allCellsJoined.includes('summary')) {
     return null;
   }
 
