@@ -313,7 +313,8 @@ function buildPracticeContext(jobPractice: any): string {
 - Services Offered: ${servicesOffered}`;
 }
 
-async function callAnthropic(system: string, userContent: string, maxTokens: number): Promise<string> {
+async function callAnthropic(system: string, userContent: string, maxTokens: number, modelOverride?: string): Promise<string> {
+  const anthropicModel = modelOverride || 'claude-sonnet-4-6';
   // Use streaming mode to prevent timeout on large generation steps.
   // Non-streaming requests require Anthropic to generate the ENTIRE response
   // before sending anything back, which can exceed the abort timeout for large outputs.
@@ -332,7 +333,7 @@ async function callAnthropic(system: string, userContent: string, maxTokens: num
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: anthropicModel,
         max_tokens: maxTokens,
         stream: true,
         system,
@@ -865,6 +866,8 @@ serve(async (req) => {
         const jobPractice = job.practice_details;
         const practiceContext = buildPracticeContext(jobPractice);
         const jobMetadata: any = job.metadata || {};
+        const generationModel = jobMetadata.generation_model || 'claude-sonnet-4-6';
+        console.log(`Using model: ${generationModel} for job ${job.id}`);
         const policyName = policyRef.policy_name;
 
         const regulatoryContext = `REGULATORY CONTEXT:
@@ -898,7 +901,8 @@ Generate the complete header and sections 1-3 only.`;
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + PART1_SYSTEM_ADDITION,
             userPrompt,
-            5200
+            5200,
+            generationModel
           );
 
           if (!content || content.length < 150) {
@@ -967,7 +971,8 @@ Now generate sections 4-5 only. Section 5 must be COMPLETE with all sub-sections
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + PART2A_SYSTEM_ADDITION,
             userPrompt,
-            8000
+            8000,
+            generationModel
           );
 
           if (!content || content.length < 150) {
@@ -1041,7 +1046,8 @@ Now generate section 6 (Training Requirements) only.`;
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + PART2B_SYSTEM_ADDITION,
             userPrompt,
-            3000
+            3000,
+            generationModel
           );
 
           if (!content || content.length < 100) {
@@ -1115,7 +1121,8 @@ Now generate sections 7-11 to complete this policy, followed by the ===METADATA=
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + PART3_SYSTEM_ADDITION,
             userPrompt,
-            7000
+            7000,
+            generationModel
           );
 
           if (!content || content.length < 200) {
@@ -1231,7 +1238,7 @@ POLICY TO ENHANCE:
 ${policyContent}`;
 
             try {
-              const enhanced = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, enhancePrompt, 10000);
+              const enhanced = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, enhancePrompt, 10000, generationModel);
               if (enhanced && enhanced.length > 500) {
                 policyContent = sanitisePolicyOutput(enhanced, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
                 console.log(`[Step: enhance] Enhancement succeeded - ${policyContent.length} chars (fully sanitised)`);
@@ -1310,7 +1317,7 @@ Set has_material_gaps to true ONLY if you find genuine issues. If the policy is 
             let shouldRemediate = false;
             let gapsList: string[] = [];
 
-            const gapResponse = await callAnthropic(GAP_CHECK_SYSTEM, `Analyse this policy document IN FULL. You MUST read and consider every section — do not skip or skim any part.\n\n---POLICY DOCUMENT START---\n${documentText}\n---POLICY DOCUMENT END---`, 8192);
+            const gapResponse = await callAnthropic(GAP_CHECK_SYSTEM, `Analyse this policy document IN FULL. You MUST read and consider every section — do not skip or skim any part.\n\n---POLICY DOCUMENT START---\n${documentText}\n---POLICY DOCUMENT END---`, 8192, generationModel);
             const jsonMatch = gapResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]);
@@ -1337,7 +1344,7 @@ ${practiceContext}
 POLICY TO FIX:
 ${finalContent}`;
 
-                const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 10000);
+                const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 10000, generationModel);
                 if (remediated && remediated.length > 500) {
                   finalContent = sanitisePolicyOutput(remediated, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
                   console.log(`[gap_check] Remediation succeeded - ${finalContent.length} chars`);
