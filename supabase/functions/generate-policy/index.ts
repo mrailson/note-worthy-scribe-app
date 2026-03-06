@@ -1834,7 +1834,7 @@ ${finalContent}`;
               ? policyContent.substring(0, maxLength) + '\n\n[Content truncated due to length]'
               : policyContent;
 
-            const AUTO_QUALITY_GAP_SYSTEM = `You are an expert NHS policy analyst. Analyse this GP practice policy and return ONLY valid JSON:
+            const AUTO_QUALITY_GAP_SYSTEM = `You are an expert NHS policy analyst specialising in GP practice policy compliance. Analyse this GP practice policy and return ONLY valid JSON:
 {
   "gaps": [{ "description": "string", "severity": "Clinical/Legal|CQC Inspection|Patient Safety" }],
   "has_material_gaps": true/false,
@@ -1843,9 +1843,21 @@ ${finalContent}`;
 }
 
 SEVERITY FILTER — only flag:
-1. CLINICAL / LEGAL RISK: incorrect clinical intervals, superseded legislation cited as current, missing mandatory legal rights or statutory duties.
-2. CQC INSPECTION RISK: a materially missing section a CQC inspector would specifically look for evidence of.
+1. CLINICAL / LEGAL RISK: incorrect clinical intervals or thresholds, superseded legislation cited as current, missing mandatory legal rights, missing statutory duties.
+   Do NOT flag: case law that remains good law even if old, minor wording preferences, references that are technically superseded but still valid.
+2. CQC INSPECTION RISK: a materially missing section a CQC inspector would specifically look for evidence of. Only flag if the gap is material — a missing heading is not the same as missing content.
+   Do NOT flag: absence of nice-to-have sections, vendor neutrality preferences, stylistic observations.
 3. PATIENT SAFETY / OPERATIONAL RISK: a process gap that could directly lead to patient harm or significant operational failure.
+   Do NOT flag: theoretical risks, minor process improvements, observations about best practice that are not required.
+
+NEVER FLAG:
+- Single word mentions of outdated technology (e.g. "fax" in a list)
+- Case law that remains binding even if older
+- DSPT or guidance version numbers that are correct for the current cycle
+- Vendor-specific system names (SystmOne, EMIS) in single-system practices
+- Style or formatting observations
+- Anything that would be fixed at the next annual review rather than now
+- Issues already covered adequately elsewhere in the document
 
 SCOPE FILTERING — CRITICAL:
 Before reporting any gap, ask: does this gap belong directly within the scope of THIS specific policy type, or does it belong to a separate policy that should merely be cross-referenced?
@@ -1863,11 +1875,22 @@ Do NOT penalise or flag placeholder values including:
 
 PSIRF NOTE: The Patient Safety Incident Response Framework (PSIRF) replaced the Serious Incident Framework in 2023 for NHS providers. For PRIMARY CARE / GP PRACTICES, reference to PSIRF is best practice but not yet mandated — flag as a recommendation, not a Clinical/Legal gap.
 
-NEVER FLAG: minor wording, style, fax mentions, current DSPT versions, vendor names, case law that remains good law, anything covered elsewhere in the document.
+CQC COMPLIANCE SCORING:
+Start at 100. Deduct points based on identified issues:
+- Each Clinical/Legal gap: -8 points
+- Each CQC Inspection gap: -5 points
+- Each Patient Safety gap: -6 points
+- Each Outdated Reference: -3 points
+- Each Missing Section: -4 points
+- Incomplete document (truncated): -20 points
+- No named responsible person: -5 points
+- No review date: -5 points
+- No version history: -3 points
+NOTEWELL BONUS: This is a Notewell-generated policy — apply +10 baseline bonus (start at 110, cap at 100).
+Floor: 0. Maximum: 100.
 
-SCORING: Start at 100. Deduct: Clinical/Legal gap -8, CQC Inspection gap -5, Patient Safety gap -6, Outdated Reference -3, Missing Section -4, Incomplete document -20, No named responsible person -5, No review date -5, No version history -3. This is a Notewell-generated policy so apply +10 baseline bonus before deductions (start at 110, cap at 100). Floor: 0. Max: 100.
-
-STRICT DEDUPLICATION: max 8 issues. Each issue must appear exactly once.`;
+CRITICAL: Before flagging any gap, confirm the content is genuinely absent from the ENTIRE document — not just the expected section. If the substance is covered anywhere in the document, do not flag it.
+STRICT DEDUPLICATION: max 8 issues. Each issue must appear exactly once across the entire output.`;
 
             const gapResponse = await callAnthropic(AUTO_QUALITY_GAP_SYSTEM, `Analyse this policy document IN FULL.\n\n---POLICY DOCUMENT START---\n${documentText}\n---POLICY DOCUMENT END---`, 8192, generationModel);
             const jsonMatch = gapResponse.match(/\{[\s\S]*\}/);
