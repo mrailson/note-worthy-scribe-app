@@ -736,7 +736,8 @@ Apply a LIGHTER severity filter for Notewell-generated policies:
 - Only report issues that are: (a) factually incorrect, (b) reference outdated legislation or bodies (e.g. CCGs, PHE), or (c) missing a mandatory legal duty that cannot be implied from existing content.
 - Do NOT report missing edge cases, depth suggestions, or structural improvements — these are style preferences, not compliance failures.
 - Maximum 3 issues. If fewer than 3 genuine issues exist, report fewer.
-- Tone: constructive, not critical. Frame as "consider adding" not "fails to address".`
+- Tone: constructive, not critical. Frame as "consider adding" not "fails to address".
+- SCORING BONUS: Apply a +10 baseline bonus before deductions (start at 110, cap at 100). This reflects that Notewell-generated documents already meet structural, governance, and formatting standards.`
       : '';
 
     const userPrompt = `Analyse the following practice policy document IN FULL and provide a comprehensive gap analysis. You MUST read and consider every section of the document — do not skip or skim any part.
