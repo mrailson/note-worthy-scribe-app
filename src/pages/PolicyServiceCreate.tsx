@@ -15,9 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ArrowRight, FileText, Loader2, Clock, X, Layers } from "lucide-react";
-import { PolicyGenerationModelSettings, getPolicyGenerationModel, getPolicyGenerationLength, type PolicyLength } from "@/components/policy/PolicyGenerationModelSettings";
+import { getPolicyGenerationModel } from "@/components/policy/PolicyGenerationModelSettings";
 import { useNavigate } from "react-router-dom";
 import { PolicyTypeSelector } from "@/components/policy/PolicyTypeSelector";
 import { toast } from "sonner";
@@ -30,24 +29,18 @@ const MAX_ACTIVE_JOBS_BUDGET = 10;
 
 const BUDGET_MODELS: string[] = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.5-flash', 'gemini-2.0-flash'];
 
-const LENGTH_OPTIONS: { value: PolicyLength; label: string }[] = [
-  { value: 'compact', label: 'Compact (~8pp)' },
-  { value: 'concise', label: 'Concise (~13pp)' },
-  { value: 'standard', label: 'Standard (~20pp)' },
-  { value: 'full', label: 'Comprehensive (~40pp)' },
-];
+const DEFAULT_LENGTH = 'full';
 
 const PolicyServiceCreate = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [selectedPolicy, setSelectedPolicy] = useState<PolicyReference | null>(null);
-  const [selectedPolicyLength, setSelectedPolicyLength] = useState<PolicyLength>(() => getPolicyGenerationLength());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   // Batch mode state
   const [batchMode, setBatchMode] = useState(false);
-  const [selectedPolicies, setSelectedPolicies] = useState<{ policy: PolicyReference; length: PolicyLength }[]>([]);
+  const [selectedPolicies, setSelectedPolicies] = useState<PolicyReference[]>([]);
   const [activeJobCount, setActiveJobCount] = useState(0);
   const [loadingSlots, setLoadingSlots] = useState(true);
 
@@ -83,19 +76,12 @@ const PolicyServiceCreate = () => {
 
   const handleAddToBatch = (policy: PolicyReference) => {
     if (selectedPolicies.length >= availableSlots) return;
-    if (selectedPolicies.some(p => p.policy.id === policy.id)) return;
-    const defaultLength = getPolicyGenerationLength();
-    setSelectedPolicies(prev => [...prev, { policy, length: defaultLength }]);
+    if (selectedPolicies.some(p => p.id === policy.id)) return;
+    setSelectedPolicies(prev => [...prev, policy]);
   };
 
   const handleRemoveFromBatch = (policyId: string) => {
-    setSelectedPolicies(prev => prev.filter(p => p.policy.id !== policyId));
-  };
-
-  const handleBatchLengthChange = (policyId: string, length: PolicyLength) => {
-    setSelectedPolicies(prev => prev.map(p => 
-      p.policy.id === policyId ? { ...p, length } : p
-    ));
+    setSelectedPolicies(prev => prev.filter(p => p.id !== policyId));
   };
 
   const handleGenerate = () => {
@@ -118,8 +104,8 @@ const PolicyServiceCreate = () => {
     if (!user) return;
 
     const policiesToGenerate = batchMode 
-      ? selectedPolicies.map(p => ({ ...p.policy, _length: p.length }))
-      : (selectedPolicy ? [{ ...selectedPolicy, _length: selectedPolicyLength }] : []);
+      ? selectedPolicies.map(p => ({ ...p, _length: DEFAULT_LENGTH }))
+      : (selectedPolicy ? [{ ...selectedPolicy, _length: DEFAULT_LENGTH }] : []);
     if (policiesToGenerate.length === 0) return;
 
     // Re-check slot availability
@@ -176,7 +162,7 @@ const PolicyServiceCreate = () => {
 
       const selectedModel = getPolicyGenerationModel();
       
-      // Insert one job per policy — each with its own length
+      // Insert one job per policy
       const rows = policiesToGenerate.map(policy => ({
         user_id: user.id,
         policy_reference_id: policy.id,
@@ -186,7 +172,7 @@ const PolicyServiceCreate = () => {
         status: 'pending' as const,
         metadata: { 
           generation_model: selectedModel, 
-          policy_length: (policy as any)._length || 'standard',
+          policy_length: (policy as any)._length || 'full',
         } as any,
       }));
 
@@ -249,12 +235,9 @@ const PolicyServiceCreate = () => {
         </Button>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <FileText className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl sm:text-3xl font-bold">Create New Policy</h1>
-          </div>
-          <PolicyGenerationModelSettings />
+        <div className="flex items-center gap-3 mb-8">
+          <FileText className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-bold">Create New Policy</h1>
         </div>
 
         {/* Mode Toggle */}
@@ -313,36 +296,12 @@ const PolicyServiceCreate = () => {
               selectedPolicy={selectedPolicy}
               onSelect={handlePolicySelect}
               batchMode={batchMode}
-              selectedPolicies={selectedPolicies.map(p => p.policy)}
+              selectedPolicies={selectedPolicies}
               onAddToBatch={handleAddToBatch}
               maxSelections={availableSlots}
             />
           </CardContent>
         </Card>
-
-        {/* Single policy length selector */}
-        {!batchMode && selectedPolicy && (
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-medium">Policy Length</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Choose the level of detail for this policy</p>
-                </div>
-                <Select value={selectedPolicyLength} onValueChange={(v) => setSelectedPolicyLength(v as PolicyLength)}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LENGTH_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Batch Basket */}
         {batchMode && (
@@ -364,7 +323,7 @@ const PolicyServiceCreate = () => {
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {selectedPolicies.map(({ policy, length }) => (
+                  {selectedPolicies.map((policy) => (
                     <div
                       key={policy.id}
                       className="flex items-center justify-between p-3 rounded-md border bg-primary/5 border-primary/20 gap-2"
@@ -376,16 +335,6 @@ const PolicyServiceCreate = () => {
                           {policy.cqc_kloe}
                         </Badge>
                       </div>
-                      <Select value={length} onValueChange={(v) => handleBatchLengthChange(policy.id, v as PolicyLength)}>
-                        <SelectTrigger className="w-[160px] h-8 text-xs shrink-0">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LENGTH_OPTIONS.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -446,19 +395,19 @@ const PolicyServiceCreate = () => {
                       {selectedPolicies.length} {selectedPolicies.length === 1 ? 'policy' : 'policies'} to generate:
                     </p>
                     <ul className="list-disc list-inside text-sm space-y-0.5">
-                      {selectedPolicies.map(({ policy, length }) => (
-                        <li key={policy.id}>{policy.policy_name} <span className="text-muted-foreground">({LENGTH_OPTIONS.find(o => o.value === length)?.label})</span></li>
+                      {selectedPolicies.map((policy) => (
+                        <li key={policy.id}>{policy.policy_name}</li>
                       ))}
                     </ul>
                   </div>
                 )}
                 {!batchMode && selectedPolicy && (
                   <p className="font-medium text-foreground text-sm">
-                    Policy: {selectedPolicy.policy_name} <span className="text-muted-foreground">({LENGTH_OPTIONS.find(o => o.value === selectedPolicyLength)?.label})</span>
+                    Policy: {selectedPolicy.policy_name}
                   </p>
                 )}
                 <p>
-                  Generation time depends on the selected length — from <strong>~2 minutes</strong> (Compact) to <strong>~10 minutes</strong> (Comprehensive).
+                  Each policy typically takes <strong>~3 minutes</strong> to generate.
                 </p>
                 <p>
                   Completed policies will appear on <strong>My Policies</strong> when ready. You can continue using other features while they generate.
