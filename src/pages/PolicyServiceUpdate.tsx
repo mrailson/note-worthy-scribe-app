@@ -17,6 +17,8 @@ interface GapAnalysis {
   outdated_references: string[];
   missing_sections: string[];
   last_review_date: string | null;
+  compliance_score: number | null;
+  score_summary: string | null;
 }
 
 const PolicyServiceUpdate = () => {
