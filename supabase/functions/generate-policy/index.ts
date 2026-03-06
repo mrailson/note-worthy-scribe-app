@@ -1870,17 +1870,17 @@ SCORING: Start at 100. Deduct: Clinical/Legal gap -8, CQC Inspection gap -5, Pat
 STRICT DEDUPLICATION: max 8 issues. Each issue must appear exactly once.`;
 
             const gapResponse = await callAnthropic(AUTO_QUALITY_GAP_SYSTEM, `Analyse this policy document IN FULL.\n\n---POLICY DOCUMENT START---\n${documentText}\n---POLICY DOCUMENT END---`, 8192, generationModel);
-            const jsonMatch = gapResponse.match(/\\{[\\s\\S]*\\}/);
+            const jsonMatch = gapResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]);
               complianceScore = typeof parsed.compliance_score === 'number' ? Math.max(0, Math.min(100, parsed.compliance_score)) : 100;
               scoreSummary = parsed.score_summary || '';
 
-              console.log(\`[auto_quality_\${attemptNum}] Score: \${complianceScore}/100 for job \${job.id}\`);
+              console.log(`[auto_quality_${attemptNum}] Score: ${complianceScore}/100 for job ${job.id}`);
 
               // If score >= 90, we're done
               if (complianceScore >= 90) {
-                console.log(\`[auto_quality_\${attemptNum}] Target reached (\${complianceScore}/100), advancing to finalise\`);
+                console.log(`[auto_quality_${attemptNum}] Target reached (${complianceScore}/100), advancing to finalise`);
               } else if (attemptNum < 3 && parsed.has_material_gaps && Array.isArray(parsed.gaps) && parsed.gaps.length > 0) {
                 // Filter to actionable gaps
                 const actionableGaps = parsed.gaps
@@ -1902,29 +1902,29 @@ STRICT DEDUPLICATION: max 8 issues. Each issue must appear exactly once.`;
                 if (actionableGaps.length > 0) {
                   // Run remediation
                   const gapsList = actionableGaps.map((g: any) => typeof g === 'string' ? g : (g.description || g.issue || JSON.stringify(g)));
-                  const remediationPrompt = \`The following \${policyName} policy has been reviewed and these compliance gaps were identified:
+                  const remediationPrompt = `The following ${policyName} policy has been reviewed and these compliance gaps were identified:
 
-\${gapsList.map((g: string, i: number) => \`\${i + 1}. \${g}\`).join('\\n')}
+${gapsList.map((g: string, i: number) => `${i + 1}. ${g}`).join('\n')}
 
 Please address EACH gap by adding or correcting the relevant content within the existing document structure. Do NOT restructure the document, do NOT add internal notes or gap analysis tables. Simply fix each issue in-place within the appropriate section.
 
 PRACTICE DATA:
-\${practiceContext}
+${practiceContext}
 
 POLICY TO FIX:
-\${policyContent}\`;
+${policyContent}`;
 
                   const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 32768, generationModel);
                   if (remediated && remediated.length > 500) {
                     improvedContent = sanitisePolicyOutput(remediated, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
-                    console.log(\`[auto_quality_\${attemptNum}] Remediation succeeded - \${improvedContent.length} chars, advancing to attempt \${attemptNum + 1}\`);
+                    console.log(`[auto_quality_${attemptNum}] Remediation succeeded - ${improvedContent.length} chars, advancing to attempt ${attemptNum + 1}`);
 
                     // Advance to next auto_quality attempt
                     await serviceSupabase
                       .from('policy_generation_jobs')
                       .update({
                         generated_content: improvedContent,
-                        current_step: \`auto_quality_\${attemptNum + 1}\`,
+                        current_step: `auto_quality_${attemptNum + 1}`,
                         status: 'optimising',
                         progress_pct: 91 + attemptNum + 1,
                         attempt_count: 0,
@@ -1945,7 +1945,7 @@ POLICY TO FIX:
               }
             }
           } catch (aqErr) {
-            console.error(\`[auto_quality_\${attemptNum}] Error, advancing to finalise:\`, aqErr);
+            console.error(`[auto_quality_${attemptNum}] Error, advancing to finalise:`, aqErr);
           }
 
           // Done (either score >= 90, max attempts, no actionable gaps, or error) — advance to finalise
@@ -1971,7 +1971,7 @@ POLICY TO FIX:
             })
             .eq('id', job.id);
 
-          console.log(\`[auto_quality_\${attemptNum}] Done (score: \${complianceScore}/100), advancing to finalise for job \${job.id}\`);
+          console.log(`[auto_quality_${attemptNum}] Done (score: ${complianceScore}/100), advancing to finalise for job ${job.id}`);
           selfTrigger(targetUserId);
 
           return new Response(JSON.stringify({ success: true, phase: currentStep, jobId: job.id, finalScore: complianceScore }), {
