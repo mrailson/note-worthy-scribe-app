@@ -492,90 +492,50 @@ async function callOpenAI(system: string, userContent: string, maxTokens: number
 }
 
 async function callGemini(system: string, userContent: string, maxTokens: number, model: string): Promise<string> {
-  if (!GOOGLE_AI_API_KEY) throw new Error('GEMINI_API_KEY is not configured. Add it to Supabase edge function secrets.');
+  if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured. Add it to Supabase edge function secrets.');
   const controller = new AbortController();
   const STREAM_TOTAL_TIMEOUT_MS = 300_000;
   const timeout = setTimeout(() => controller.abort(), STREAM_TOTAL_TIMEOUT_MS);
 
-  // Map deprecated/legacy Gemini IDs to currently supported models
+  // Map all Gemini model IDs to Lovable gateway model names
   const geminiModelMap: Record<string, string> = {
-    'gemini-2.0-flash': 'gemini-2.5-flash',
-    'gemini-2.0-flash-thinking-exp': 'gemini-2.5-flash',
-    'gemini-2.0-flash-thinking-exp-01-21': 'gemini-2.5-flash',
-    'gemini-2.5-flash': 'gemini-2.5-flash',
-    'gemini-2.5-pro': 'gemini-2.5-pro',
+    'gemini-2.0-flash': 'google/gemini-2.5-flash',
+    'gemini-2.0-flash-thinking-exp': 'google/gemini-2.5-flash',
+    'gemini-2.0-flash-thinking-exp-01-21': 'google/gemini-2.5-flash',
+    'gemini-2.5-flash': 'google/gemini-2.5-flash',
+    'gemini-2.5-pro': 'google/gemini-2.5-pro',
   };
-  const geminiModel = geminiModelMap[model] || model;
-  console.log(`[Gemini] Requested model: ${model}; mapped model: ${geminiModel}`);
+  const gatewayModel = geminiModelMap[model] || 'google/gemini-2.5-flash';
+  console.log(`[Gemini via Lovable] Requested model: ${model}; gateway model: ${gatewayModel}`);
 
-  const requestGemini = async (modelName: string) => {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse&key=${GOOGLE_AI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: userContent }] }],
-          systemInstruction: { parts: [{ text: system }] },
-          generationConfig: { maxOutputTokens: maxTokens },
-        }),
-        signal: controller.signal,
-      }
-    );
+  try {
+    const response = await fetch(LOVABLE_AI_GATEWAY, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: gatewayModel,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: userContent },
+        ],
+        max_tokens: maxTokens,
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
 
     if (!response.ok) {
       const errText = await response.text();
-      return { ok: false as const, status: response.status, errText };
+      throw new Error(`Lovable AI gateway ${response.status}: ${errText.substring(0, 300)}`);
     }
 
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let fullContent = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (!data) continue;
-
-        try {
-          const parsed = JSON.parse(data);
-          const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) fullContent += text;
-        } catch {
-          // Ignore parse errors
-        }
-      }
-    }
-
-    return { ok: true as const, content: fullContent };
-  };
-
-  try {
-    const primary = await requestGemini(geminiModel);
-    if (primary.ok) return primary.content;
-
-    const shouldFallback =
-      primary.status === 404 &&
-      /no longer available|not found|not supported/i.test(primary.errText) &&
-      geminiModel !== 'gemini-2.5-flash';
-
-    if (shouldFallback) {
-      console.warn(`[Gemini] Model ${geminiModel} unavailable; retrying with gemini-2.5-flash`);
-      const fallback = await requestGemini('gemini-2.5-flash');
-      if (fallback.ok) return fallback.content;
-      throw new Error(`Gemini fallback ${fallback.status}: ${fallback.errText.substring(0, 300)}`);
-    }
-
-    throw new Error(`Gemini ${primary.status}: ${primary.errText.substring(0, 300)}`);
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Lovable AI gateway returned empty content');
+    return content;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error(`Gemini timeout after ${Math.floor(STREAM_TOTAL_TIMEOUT_MS / 1000)}s`);
