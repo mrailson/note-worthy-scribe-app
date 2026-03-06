@@ -1542,13 +1542,18 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
           const normalisedPolicyName = policyName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
           const runGapCheck = gapCheckPolicyTypes.some(t => normalisedPolicyName.includes(t)) && policyLength !== 'compact';
           const isCompact = policyLength === 'compact';
+          const autoQualityLoop = jobMetadata.auto_quality_loop === true;
           
           const budgetModels = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp', 'gemini-2.5-flash', 'gemini-2.5-pro'];
           const isBudget = budgetModels.includes(generationModel);
           const skipEnhance = isCompact || isBudget;
-          const nextStep = runGapCheck ? 'gap_check' : (skipEnhance ? 'finalise' : 'enhance');
-          const nextStatus = (nextStep === 'finalise' || nextStep === 'gap_check') ? 'generating' : 'enhancing';
-          const nextProgress = nextStep === 'finalise' ? 90 : (nextStep === 'gap_check' ? 82 : 80);
+          let nextStep = runGapCheck ? 'gap_check' : (skipEnhance ? 'finalise' : 'enhance');
+          // If skipping straight to finalise but auto quality loop is on, go to auto_quality_1 instead
+          if (nextStep === 'finalise' && autoQualityLoop) {
+            nextStep = 'auto_quality_1';
+          }
+          const nextStatus = ['finalise', 'gap_check', 'auto_quality_1'].includes(nextStep) ? 'generating' : 'enhancing';
+          const nextProgress = nextStep === 'finalise' ? 90 : (nextStep === 'auto_quality_1' ? 91 : (nextStep === 'gap_check' ? 82 : 80));
           if (skipEnhance && !runGapCheck) {
             console.log(`[Step: generate_part_3b] Skipping enhance & gap_check (compact=${isCompact}, model=${generationModel})`);
           }
