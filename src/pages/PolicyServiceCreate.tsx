@@ -76,19 +76,12 @@ const PolicyServiceCreate = () => {
 
   const handleAddToBatch = (policy: PolicyReference) => {
     if (selectedPolicies.length >= availableSlots) return;
-    if (selectedPolicies.some(p => p.policy.id === policy.id)) return;
-    const defaultLength = getPolicyGenerationLength();
-    setSelectedPolicies(prev => [...prev, { policy, length: defaultLength }]);
+    if (selectedPolicies.some(p => p.id === policy.id)) return;
+    setSelectedPolicies(prev => [...prev, policy]);
   };
 
   const handleRemoveFromBatch = (policyId: string) => {
-    setSelectedPolicies(prev => prev.filter(p => p.policy.id !== policyId));
-  };
-
-  const handleBatchLengthChange = (policyId: string, length: PolicyLength) => {
-    setSelectedPolicies(prev => prev.map(p => 
-      p.policy.id === policyId ? { ...p, length } : p
-    ));
+    setSelectedPolicies(prev => prev.filter(p => p.id !== policyId));
   };
 
   const handleGenerate = () => {
