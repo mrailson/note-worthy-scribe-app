@@ -35,7 +35,6 @@ const PolicyServiceCreate = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [selectedPolicy, setSelectedPolicy] = useState<PolicyReference | null>(null);
-  const [selectedPolicyLength, setSelectedPolicyLength] = useState<PolicyLength>(() => getPolicyGenerationLength());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
