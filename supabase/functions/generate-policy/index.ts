@@ -1925,6 +1925,7 @@ STRICT DEDUPLICATION: max 8 issues. Each issue must appear exactly once across t
                 if (actionableGaps.length > 0) {
                   // Run remediation
                   const gapsList = actionableGaps.map((g: any) => typeof g === 'string' ? g : (g.description || g.issue || JSON.stringify(g)));
+                  console.log(`[auto_quality_${attemptNum}] Remediating ${gapsList.length} actionable gaps: ${gapsList.join(' | ')}`);
                   const remediationPrompt = `TASK: You MUST fix the following ${gapsList.length} compliance gaps in this ${policyName} policy. For each gap listed below, you MUST ADD the missing content directly into the appropriate section of the policy. Do not merely acknowledge the gaps — actually write the missing paragraphs, procedures, or subsections.
 
 COMPLIANCE GAPS TO FIX (each one MUST be addressed with new content):
