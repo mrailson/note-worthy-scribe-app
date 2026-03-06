@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ArrowRight, FileText, Loader2, Clock, X, Layers } from "lucide-react";
+import { ArrowLeft, ArrowRight, FileText, Loader2, X, Layers } from "lucide-react";
 import { getPolicyGenerationModel } from "@/components/policy/PolicyGenerationModelSettings";
 import { useNavigate } from "react-router-dom";
 import { PolicyTypeSelector } from "@/components/policy/PolicyTypeSelector";
