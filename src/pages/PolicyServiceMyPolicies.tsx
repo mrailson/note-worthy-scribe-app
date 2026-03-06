@@ -81,6 +81,8 @@ const getJobStatusBadge = (job: PolicyJob) => {
       return <Badge className="gap-1 bg-blue-600"><Loader2 className="h-3 w-3 animate-spin" />{label}</Badge>;
     case 'enhancing':
       return <Badge className="gap-1 bg-indigo-600"><Loader2 className="h-3 w-3 animate-spin" />{label}</Badge>;
+    case 'optimising':
+      return <Badge className="gap-1 bg-purple-600"><Loader2 className="h-3 w-3 animate-spin" />{label}</Badge>;
     case 'completed':
       return <Badge className="gap-1 bg-green-600"><CheckCircle2 className="h-3 w-3" />{label}</Badge>;
     case 'failed':
