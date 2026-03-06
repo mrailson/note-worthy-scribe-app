@@ -296,7 +296,7 @@ const PolicyServiceCreate = () => {
               selectedPolicy={selectedPolicy}
               onSelect={handlePolicySelect}
               batchMode={batchMode}
-              selectedPolicies={selectedPolicies.map(p => p.policy)}
+              selectedPolicies={selectedPolicies}
               onAddToBatch={handleAddToBatch}
               maxSelections={availableSlots}
             />
