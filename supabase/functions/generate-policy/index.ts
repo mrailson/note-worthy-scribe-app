@@ -1313,7 +1313,7 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
           const enhanceRetries = jobMetadata.enhance_retries || 0;
           const practiceManagerName = (jobPractice as any)?.practice_manager_name || (jobPractice as any)?.practice_manager || 'Practice Manager';
 
-          if (enhanceRetries >= 2 || policyContent.length > 25000) {
+          if (enhanceRetries >= 2 || policyContent.length > 18000) {
             console.log(`[Step: enhance] Skipping enhancement (retries: ${enhanceRetries}, length: ${policyContent.length})`);
           } else {
             const enhancePrompt = `Please review and enhance the following ${policyName} policy for ${(jobPractice as any)?.practice_name || '[PRACTICE NAME]'} (ODS: ${(jobPractice as any)?.ods_code || '[ODS CODE]'}).
