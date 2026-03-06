@@ -49,7 +49,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { QuickGuideDialog, QuickGuideOutput } from "@/components/policy/QuickGuideDialog";
+import { QuickGuideDialog, QuickGuideOutput, SavedQuickGuide } from "@/components/policy/QuickGuideDialog";
+import { SavedGuidesPopover } from "@/components/policy/SavedGuidesPopover";
 
 const getExpectedMinutes = (job: PolicyJob): number => {
   const length = (job.metadata as any)?.policy_length;
@@ -607,11 +608,33 @@ const PolicyServiceMyPolicies = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
+                      <SavedGuidesPopover
+                        guides={((completion.metadata as any)?.quick_guides || []) as SavedQuickGuide[]}
+                        policyTitle={completion.policy_title}
+                        onDelete={async (guideId) => {
+                          try {
+                            const meta = (completion.metadata || {}) as any;
+                            const guides = (meta.quick_guides || []).filter((g: any) => g.id !== guideId);
+                            // Also delete from storage
+                            const deleted = (meta.quick_guides || []).find((g: any) => g.id === guideId);
+                            if (deleted?.storagePath) {
+                              await supabase.storage.from('quick-guides').remove([deleted.storagePath]);
+                            }
+                            await supabase
+                              .from('policy_completions')
+                              .update({ metadata: { ...meta, quick_guides: guides } })
+                              .eq('id', completion.id)
+                              .eq('user_id', user!.id);
+                            refreshCompletions();
+                            toast.success('Quick guide removed');
+                          } catch { toast.error('Failed to remove guide'); }
+                        }}
+                      />
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setQuickGuidePolicy({ id: completion.id, content: completion.policy_content, title: completion.policy_title })}
-                        title="Quick Guide"
+                        title="Create Quick Guide"
                       >
                         <BookOpen className="h-4 w-4" />
                       </Button>
@@ -710,17 +733,28 @@ const PolicyServiceMyPolicies = () => {
           policyId={quickGuidePolicy.id}
           logoUrl={practiceLogoUrl}
           onGenerated={async (output: QuickGuideOutput) => {
-            // Persist to policy metadata
             if (user && quickGuidePolicy) {
               try {
                 const completion = completions.find(c => c.id === quickGuidePolicy.id);
                 const currentMeta = (completion?.metadata || {}) as any;
-                const updatedMeta = { ...currentMeta, last_quick_guide: output };
+                const existingGuides: SavedQuickGuide[] = currentMeta.quick_guides || [];
+                const newGuide: SavedQuickGuide = {
+                  id: crypto.randomUUID(),
+                  type: output.type,
+                  audience: output.audience,
+                  fileName: output.fileName,
+                  storagePath: output.storagePath || '',
+                  generatedAt: output.generatedAt,
+                };
+                // Cap at 10 guides, remove oldest if needed
+                const updatedGuides = [...existingGuides, newGuide].slice(-10);
+                const updatedMeta = { ...currentMeta, quick_guides: updatedGuides, last_quick_guide: output };
                 await supabase
                   .from('policy_completions')
                   .update({ metadata: updatedMeta })
                   .eq('id', quickGuidePolicy.id)
                   .eq('user_id', user.id);
+                refreshCompletions();
               } catch (err) {
                 console.error('Failed to persist quick guide metadata:', err);
               }

@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import { FileText, Image, Loader2, BookOpen, Users, Stethoscope, UserCog, Heart, Download, ArrowLeft, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { generateCleanAIResponseDocument } from '@/utils/cleanWordExport';
@@ -22,11 +23,21 @@ import remarkGfm from 'remark-gfm';
 export type QuickGuideAudience = 'all-staff' | 'non-clinical' | 'clinical' | 'patient';
 export type QuickGuideOrientation = 'landscape' | 'portrait';
 
+export interface SavedQuickGuide {
+  id: string;
+  type: 'word' | 'infographic';
+  audience: QuickGuideAudience;
+  fileName: string;
+  storagePath: string;
+  generatedAt: string;
+}
+
 export interface QuickGuideOutput {
   type: 'word' | 'infographic';
   audience: QuickGuideAudience;
   generatedAt: string;
   fileName: string;
+  storagePath?: string;
 }
 
 interface QuickGuideDialogProps {
@@ -41,7 +52,7 @@ interface QuickGuideDialogProps {
 
 type ResultState =
   | { type: 'word'; text: string; fileName: string; output: QuickGuideOutput }
-  | { type: 'infographic'; blobUrl: string; fileName: string; output: QuickGuideOutput };
+  | { type: 'infographic'; blobUrl: string; blob: Blob; fileName: string; output: QuickGuideOutput };
 
 export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
   open,
@@ -86,6 +97,35 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
     }
   };
 
+  const uploadToStorage = async (content: string | Blob, fileName: string, type: 'word' | 'infographic'): Promise<string | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
+      const userId = session.user.id;
+      const timestamp = Date.now();
+      const ext = type === 'word' ? 'md' : 'png';
+      const storagePath = `${userId}/${policyId || 'unknown'}/${timestamp}_${type}.${ext}`;
+
+      const fileContent = type === 'word'
+        ? new Blob([content as string], { type: 'text/markdown' })
+        : content as Blob;
+
+      const { error } = await supabase.storage
+        .from('quick-guides')
+        .upload(storagePath, fileContent, { upsert: true });
+
+      if (error) {
+        console.error('Storage upload error:', error);
+        return null;
+      }
+      return storagePath;
+    } catch (err) {
+      console.error('Failed to upload quick guide to storage:', err);
+      return null;
+    }
+  };
+
   const generateQuickGuideText = async (): Promise<string | null> => {
     const { names: staffNames, practiceName } = await fetchPracticeStaffNames();
     const { data, error } = await supabase.functions.invoke('analyse-policy-gaps', {
@@ -110,11 +150,16 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
       if (!guideText) return;
 
       const fileName = `Quick_Guide_${safeTitleUnderscore}_${audienceLabels[audience].replace(/\s+/g, '_')}.docx`;
+      
+      // Upload to storage
+      const storagePath = await uploadToStorage(guideText, fileName, 'word');
+
       const output: QuickGuideOutput = {
         type: 'word',
         audience,
         generatedAt: new Date().toISOString(),
         fileName,
+        storagePath: storagePath || undefined,
       };
 
       setResult({ type: 'word', text: guideText, fileName, output });
@@ -242,14 +287,18 @@ ${isPatient ? '- Use warm, reassuring visual tone appropriate for patients\n- Av
       const blobUrl = URL.createObjectURL(blob);
       const fileName = `Quick_Guide_${safeTitleUnderscore}_${audienceLabels[audience].replace(/\s+/g, '_')}_${orientation}_Infographic.png`;
 
+      // Upload to storage
+      const storagePath = await uploadToStorage(blob, fileName, 'infographic');
+
       const output: QuickGuideOutput = {
         type: 'infographic',
         audience,
         generatedAt: new Date().toISOString(),
         fileName,
+        storagePath: storagePath || undefined,
       };
 
-      setResult({ type: 'infographic', blobUrl, fileName, output });
+      setResult({ type: 'infographic', blobUrl, blob, fileName, output });
       onGenerated?.(output);
     } catch (err: any) {
       console.error('Quick guide infographic error:', err);
@@ -319,7 +368,7 @@ ${isPatient ? '- Use warm, reassuring visual tone appropriate for patients\n- Av
   if (result) {
     return (
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className={result.type === 'infographic' ? 'sm:max-w-3xl max-h-[90vh]' : 'sm:max-w-2xl max-h-[90vh]'}>
+        <DialogContent className={result.type === 'infographic' ? 'sm:max-w-4xl max-h-[90vh]' : 'sm:max-w-3xl max-h-[90vh]'}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {result.type === 'word' ? (
@@ -327,25 +376,65 @@ ${isPatient ? '- Use warm, reassuring visual tone appropriate for patients\n- Av
               ) : (
                 <Image className="h-5 w-5 text-primary" />
               )}
-              Quick Guide — {result.type === 'word' ? 'Word Preview' : 'Infographic'}
+              Quick Guide — {result.type === 'word' ? 'Document Preview' : 'Infographic'}
             </DialogTitle>
-            <DialogDescription>
-              {audienceLabels[audience]} • {policyTitle}
+            <DialogDescription className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">{audienceLabels[audience]}</Badge>
+              <span className="text-muted-foreground">•</span>
+              <span>{policyTitle}</span>
             </DialogDescription>
           </DialogHeader>
 
           {result.type === 'word' ? (
-            <ScrollArea className="max-h-[55vh] border rounded-md p-4 bg-background">
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.text}</ReactMarkdown>
+            /* A4-style document preview */
+            <ScrollArea className="max-h-[60vh]">
+              <div className="flex justify-center px-2 py-4 bg-muted/30">
+                <div className="w-full max-w-[680px] bg-white dark:bg-slate-50 shadow-[0_2px_20px_rgba(0,0,0,0.08)] rounded-sm border border-border/40">
+                  {/* Document header bar */}
+                  <div className="px-10 pt-8 pb-4 border-b border-blue-100">
+                    <h1 className="text-[18px] font-bold text-[#005EB8] leading-tight mb-1">
+                      Quick Guide: {policyTitle}
+                    </h1>
+                    <p className="text-[12px] text-[#6B7280]">
+                      For {audienceLabels[audience]}
+                    </p>
+                  </div>
+                  {/* Document body */}
+                  <div className="px-10 py-6">
+                    <div className="
+                      prose prose-sm max-w-none
+                      text-[#374151]
+                      [&_h1]:text-[16px] [&_h1]:font-bold [&_h1]:text-[#2563EB] [&_h1]:mt-5 [&_h1]:mb-2 [&_h1]:uppercase [&_h1]:tracking-wide
+                      [&_h2]:text-[14px] [&_h2]:font-bold [&_h2]:text-[#2563EB] [&_h2]:mt-4 [&_h2]:mb-2
+                      [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-[#2563EB] [&_h3]:mt-3 [&_h3]:mb-1
+                      [&_p]:text-[12px] [&_p]:leading-relaxed [&_p]:mb-2 [&_p]:text-[#374151]
+                      [&_ul]:text-[12px] [&_ul]:pl-5 [&_ul]:mb-2 [&_ul]:space-y-0.5
+                      [&_ol]:text-[12px] [&_ol]:pl-5 [&_ol]:mb-2 [&_ol]:space-y-0.5
+                      [&_li]:text-[#374151] [&_li]:leading-relaxed
+                      [&_strong]:text-[#1e3a5f]
+                      [&_table]:text-[11px] [&_table]:w-full [&_table]:border-collapse
+                      [&_th]:bg-[#2563EB] [&_th]:text-white [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-semibold
+                      [&_td]:border [&_td]:border-[#e5e7eb] [&_td]:px-2 [&_td]:py-1
+                      [&_tr:nth-child(even)_td]:bg-[#f9fafb]
+                    ">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.text}</ReactMarkdown>
+                    </div>
+                  </div>
+                  {/* Document footer */}
+                  <div className="px-10 py-3 border-t border-[#e5e7eb] bg-[#f8fafc]">
+                    <p className="text-[10px] text-[#94a3b8] italic">
+                      For more details, see the Practice Policy on "{policyTitle}". Generated by NoteWell AI.
+                    </p>
+                  </div>
+                </div>
               </div>
             </ScrollArea>
           ) : (
-            <div className="flex justify-center bg-muted rounded-md overflow-hidden max-h-[55vh]">
+            <div className="flex justify-center bg-muted/30 rounded-md overflow-hidden max-h-[60vh] p-4">
               <img
                 src={result.blobUrl}
                 alt="Quick Guide Infographic"
-                className="max-h-[55vh] object-contain cursor-pointer"
+                className="max-h-[55vh] object-contain cursor-pointer rounded shadow-md"
                 onClick={handleOpenFullSize}
                 title="Click to open full size"
               />
