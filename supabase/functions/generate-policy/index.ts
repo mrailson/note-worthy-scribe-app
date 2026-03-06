@@ -1682,7 +1682,9 @@ ${practiceContext}
 POLICY TO FIX:
 ${finalContent}`;
 
-                const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 16384, generationModel);
+                // Use higher token limit for Gemini gap_check test mode to prevent truncation
+                const remediationTokens = (jobMetadata.enable_gap_check_for_gemini && generationModel === 'gemini-2.5-flash') ? 32768 : 16384;
+                const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, remediationTokens, generationModel);
                 if (remediated && remediated.length > 500) {
                   finalContent = sanitisePolicyOutput(remediated, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
                   console.log(`[gap_check] Remediation succeeded - ${finalContent.length} chars`);
