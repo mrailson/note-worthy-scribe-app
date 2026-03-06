@@ -1107,6 +1107,7 @@ Deno.serve(async (req) => {
         
         console.log(`Using model: ${generationModel}, length: ${policyLength} (scale: ${scale}) for job ${job.id}`);
         const policyName = policyRef.policy_name;
+        const topicAdditions = getTopicAdditions(policyName);
 
         const regulatoryContext = `REGULATORY CONTEXT:
 - CQC KLOE: ${policyRef.cqc_kloe}
