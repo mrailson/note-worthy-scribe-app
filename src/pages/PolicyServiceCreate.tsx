@@ -406,19 +406,19 @@ const PolicyServiceCreate = () => {
                       {selectedPolicies.length} {selectedPolicies.length === 1 ? 'policy' : 'policies'} to generate:
                     </p>
                     <ul className="list-disc list-inside text-sm space-y-0.5">
-                      {selectedPolicies.map(({ policy, length }) => (
-                        <li key={policy.id}>{policy.policy_name} <span className="text-muted-foreground">({LENGTH_OPTIONS.find(o => o.value === length)?.label})</span></li>
+                      {selectedPolicies.map((policy) => (
+                        <li key={policy.id}>{policy.policy_name}</li>
                       ))}
                     </ul>
                   </div>
                 )}
                 {!batchMode && selectedPolicy && (
                   <p className="font-medium text-foreground text-sm">
-                    Policy: {selectedPolicy.policy_name} <span className="text-muted-foreground">({LENGTH_OPTIONS.find(o => o.value === selectedPolicyLength)?.label})</span>
+                    Policy: {selectedPolicy.policy_name}
                   </p>
                 )}
                 <p>
-                  Generation time depends on the selected length — from <strong>~2 minutes</strong> (Compact) to <strong>~10 minutes</strong> (Comprehensive).
+                  Each policy typically takes <strong>~3 minutes</strong> to generate.
                 </p>
                 <p>
                   Completed policies will appear on <strong>My Policies</strong> when ready. You can continue using other features while they generate.
