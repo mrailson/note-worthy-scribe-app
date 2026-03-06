@@ -97,9 +97,9 @@ const MODEL_OPTIONS: {
 ];
 
 const LENGTH_OPTIONS: { value: PolicyLength; label: string; description: string; pages: string; time: string }[] = [
-  { value: 'compact', label: 'Compact', description: 'Key essentials only — quick reference style', pages: '~8 pages', time: '~2 min' },
+  { value: 'compact', label: 'Compact', description: 'Key essentials — quick reference style', pages: '~8 pages', time: '~2 min' },
   { value: 'concise', label: 'Concise', description: 'Core requirements with essential detail', pages: '~13 pages', time: '~3 min' },
-  { value: 'standard', label: 'Standard', description: 'Balanced coverage with good detail', pages: '~20 pages', time: '~6 min' },
+  { value: 'standard', label: 'Standard', description: 'Balanced coverage with good procedural detail', pages: '~20 pages', time: '~6 min' },
   { value: 'full', label: 'Comprehensive', description: 'Full regulatory detail — CQC inspection-ready', pages: '~40 pages', time: '~10 min' },
 ];
 
