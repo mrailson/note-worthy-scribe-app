@@ -1489,6 +1489,7 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
           const gapCheckPolicyTypes = ['safeguarding-children', 'safeguarding-adults'];
           const normalisedPolicyName = policyName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
           const runGapCheck = gapCheckPolicyTypes.some(t => normalisedPolicyName.includes(t)) && policyLength !== 'compact';
+          const isCompact = policyLength === 'compact';
           
           const budgetModels = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp', 'gemini-2.5-flash', 'gemini-2.5-pro'];
           const isBudget = budgetModels.includes(generationModel);
