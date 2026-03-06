@@ -827,6 +827,8 @@ Please analyse this policy against current NHS England and CQC requirements and 
       last_review_date: analysis.last_review_date,
       summary: analysis.summary,
       priority_actions: analysis.priority_actions || [],
+      compliance_score: typeof analysis.compliance_score === 'number' ? Math.max(0, Math.min(100, analysis.compliance_score)) : null,
+      score_summary: analysis.score_summary || null,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
