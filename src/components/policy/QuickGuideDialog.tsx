@@ -271,19 +271,30 @@ ${isPatient ? '- Use warm, reassuring visual tone appropriate for patients\n- Av
     toast.success('Quick guide infographic downloaded');
   };
 
-  const handleOpenFullSize = () => {
+  const handleOpenFullSize = async () => {
     if (result?.type !== 'infographic') return;
-    const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>${result.fileName}</title>
-          <style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1a1a1a}img{max-width:100%;max-height:100vh;object-fit:contain}</style></head>
-          <body><img src="${result.blobUrl}" alt="Quick Guide Infographic" /></body>
-        </html>
-      `);
-      newWindow.document.close();
+    try {
+      const resp = await fetch(result.blobUrl);
+      const blob = await resp.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          newWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head><title>${result.fileName}</title>
+              <style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1a1a1a}img{max-width:100%;max-height:100vh;object-fit:contain}</style></head>
+              <body><img src="${dataUrl}" alt="Quick Guide Infographic" /></body>
+            </html>
+          `);
+          newWindow.document.close();
+        }
+      };
+      reader.readAsDataURL(blob);
+    } catch {
+      window.open(result.blobUrl, '_blank');
     }
   };
 
