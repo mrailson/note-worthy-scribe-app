@@ -228,6 +228,33 @@ POLICY-SPECIFIC MANDATORY CONTENT (CHAPERONE):
 - MUST include same-sex chaperone rights: patients must be informed of their right to request a same-sex chaperone, and the practice must make reasonable efforts to accommodate this request, including offering to reschedule the appointment if a same-sex chaperone is unavailable at the time.
 - MUST include chilling effect warning: the policy must explicitly state that chaperones are offered, not mandatory — clinicians must not make a patient feel that declining a chaperone will affect the quality of their care or the clinician's willingness to proceed with the examination.
 - Reference GMC guidance (updated January 2024) and NHS England "Improving Chaperone Practice" (December 2025).`,
+
+  'medication error': `
+POLICY-SPECIFIC MANDATORY CONTENT (MEDICATION ERRORS):
+- MUST include patient notification procedure when a medication error reaches the patient — this is a Duty of Candour trigger under Regulation 20 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014. The policy must describe: who notifies the patient/family, the timeframe for notification, what information must be disclosed, and how the notification is documented.
+- MUST include staff wellbeing and second victim support following a serious medication error — covering immediate support (debrief, removal from clinical duties if appropriate), access to occupational health, peer support or mentoring, and how the practice ensures a just culture that distinguishes between human error and wilful negligence.`,
+
+  'clinical governance': `
+POLICY-SPECIFIC MANDATORY CONTENT (CLINICAL GOVERNANCE):
+- MUST include reference to learning culture — how the practice embeds learning from incidents, significant events, clinical audits, and external reviews (e.g. CQC inspection findings, CSPR/SAR recommendations, coroner regulation 28 reports) into everyday practice. This should describe the mechanism for disseminating learning (e.g. practice meetings, newsletters, protected learning time), how changes are implemented, and how the practice monitors whether learning has led to sustained improvement.`,
+
+  'sample handling': `
+POLICY-SPECIFIC MANDATORY CONTENT (SAMPLE HANDLING):
+- MUST include chain of custody process for tracking samples from collection to laboratory receipt — covering labelling requirements, request form completion, handover documentation, transport arrangements (including temperature requirements where applicable), and how the practice confirms laboratory receipt.
+- MUST include procedure for rejected or unsuitable samples returned by the laboratory — covering patient notification, re-sampling arrangements, root cause analysis of rejection reasons, and recording of rejected samples for audit purposes.`,
+
+  'minor surgery': `
+POLICY-SPECIFIC MANDATORY CONTENT (MINOR SURGERY):
+- MUST explicitly reference CQC Regulation 12 (Safe care and treatment) under the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 as the regulatory basis for safe surgical practice in primary care. The policy must demonstrate how the practice meets Regulation 12 requirements in the context of minor surgical procedures, including competency, equipment, infection control, and patient safety.`,
+
+  'prescribing': `
+POLICY-SPECIFIC MANDATORY CONTENT (PRESCRIBING):
+- MUST include Non-Medical Prescriber (NMP) governance — covering clinical supervision arrangements, defined scope of practice for each NMP, prescribing limitations (e.g. controlled drugs, high-risk medicines), annual competency review, and how NMP prescribing is audited and monitored.
+- MUST include FP10 prescription pad physical security — covering secure storage arrangements (locked facility), stock reconciliation procedures, process for reporting lost or stolen prescription pads (including notification to NHS England and the police), and audit trail for pad allocation and return.`,
+
+  'end of life': `
+POLICY-SPECIFIC MANDATORY CONTENT (END OF LIFE):
+- MUST include palliative care / end of life register in SystmOne — covering how patients are added to the register (criteria and who can add), how the register is reviewed (frequency, e.g. monthly MDT or Gold Standards Framework meeting), how patients are removed from the register (e.g. death, recovery, patient choice), and how the register informs proactive care planning including anticipatory prescribing, advance care planning discussions, and coordination with community palliative care teams.`,
 };
 
 // Step-specific system prompt additions
