@@ -51,12 +51,21 @@ import {
 } from "@/components/ui/popover";
 import { QuickGuideDialog, QuickGuideOutput } from "@/components/policy/QuickGuideDialog";
 
-const EXPECTED_GENERATION_MINUTES = 10;
+const getExpectedMinutes = (job: PolicyJob): number => {
+  const length = (job.metadata as any)?.policy_length;
+  switch (length) {
+    case 'compact': return 2;
+    case 'concise': return 3;
+    case 'standard': return 6;
+    default: return 10;
+  }
+};
 
 const getCountdownText = (job: PolicyJob): string | null => {
   if (!['pending', 'generating', 'enhancing'].includes(job.status)) return null;
+  const expected = getExpectedMinutes(job);
   const elapsed = differenceInMinutes(new Date(), parseISO(job.created_at));
-  const remaining = Math.max(0, EXPECTED_GENERATION_MINUTES - elapsed);
+  const remaining = Math.max(0, expected - elapsed);
   if (remaining <= 0) return 'Should be ready very soon…';
   return `Expected ready in ~${remaining} min${remaining !== 1 ? 's' : ''}`;
 };
