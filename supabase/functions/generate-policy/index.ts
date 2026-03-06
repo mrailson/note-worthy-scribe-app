@@ -1132,7 +1132,7 @@ ${practiceContext}
 ${regulatoryContext}
 
 ${contactInstructions}
-
+${topicAdditions}
 ${job.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${job.custom_instructions}` : ''}
 
 Generate the complete header and sections 1-3 only. IMPORTANT: Complete every subsection. Never end mid-sentence.`;
