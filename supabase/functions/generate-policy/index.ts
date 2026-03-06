@@ -1440,13 +1440,14 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
 
           const fullContent = `${sections1to8.trim()}\n\n${sectionsContent}`;
 
-          // Determine next step: compact and Haiku skip enhance & gap_check
-          const skipEnhance = policyLength === 'compact' || generationModel === 'claude-haiku-4-5';
+          // Determine next step: compact and non-Sonnet models skip enhance & gap_check
+          const budgetModels = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp'];
+          const skipEnhance = policyLength === 'compact' || budgetModels.includes(generationModel);
           const nextStep = skipEnhance ? 'finalise' : 'enhance';
           const nextStatus = skipEnhance ? 'generating' : 'enhancing';
           const nextProgress = skipEnhance ? 90 : 80;
           if (skipEnhance) {
-            console.log(`[Step: generate_part_3b] Skipping enhance & gap_check (compact=${policyLength === 'compact'}, haiku=${generationModel === 'claude-haiku-4-5'})`);
+            console.log(`[Step: generate_part_3b] Skipping enhance & gap_check (compact=${policyLength === 'compact'}, model=${generationModel})`);
           }
 
           await serviceSupabase
