@@ -42,10 +42,11 @@ export const SavedGuidesPopover: React.FC<SavedGuidesPopoverProps> = ({
 }) => {
   const [previewGuide, setPreviewGuide] = useState<{ guide: SavedQuickGuide; content: string | null; blobUrl: string | null } | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   if (guides.length === 0) return null;
 
   const handlePreview = async (guide: SavedQuickGuide) => {
+    setIsPopoverOpen(false);
     setLoadingId(guide.id);
     try {
       const { data, error } = await supabase.storage
@@ -104,7 +105,7 @@ export const SavedGuidesPopover: React.FC<SavedGuidesPopoverProps> = ({
 
   return (
     <>
-      <Popover>
+      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="sm" className="gap-1 relative" title="Saved Quick Guides">
             <BookOpen className="h-4 w-4" />
