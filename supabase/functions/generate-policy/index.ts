@@ -871,9 +871,9 @@ serve(async (req) => {
         const jobMetadata: any = job.metadata || {};
         const generationModel = jobMetadata.generation_model || 'claude-sonnet-4-6';
         const policyLength = jobMetadata.policy_length || 'full'; // compact | concise | standard | full
-        const lengthScale: Record<string, number> = { compact: 0.35, concise: 0.45, standard: 0.65, full: 1.0 };
+        const lengthScale: Record<string, number> = { compact: 0.5, concise: 0.45, standard: 0.65, full: 1.0 };
         const scale = lengthScale[policyLength] || 1.0;
-        const scaleTokens = (base: number) => Math.max(3000, Math.round(base * scale));
+        const scaleTokens = (base: number) => Math.max(4000, Math.round(base * scale));
         
         // Build length instruction for the system prompt
         const lengthLabels: Record<string, string> = {
