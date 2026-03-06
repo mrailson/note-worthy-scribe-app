@@ -500,7 +500,7 @@ async function callGemini(system: string, userContent: string, maxTokens: number
   // Map our model IDs to Gemini API model names
   const geminiModelMap: Record<string, string> = {
     'gemini-2.0-flash': 'gemini-2.0-flash',
-    'gemini-2.0-flash-thinking-exp': 'gemini-2.0-flash-thinking-exp',
+    'gemini-2.0-flash-thinking-exp': 'gemini-2.0-flash-thinking-exp-01-21',
   };
   const geminiModel = geminiModelMap[model] || model;
 
