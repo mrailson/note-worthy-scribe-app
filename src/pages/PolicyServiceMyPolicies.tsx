@@ -520,7 +520,7 @@ const PolicyServiceMyPolicies = () => {
 
                         <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                           <span>Submitted: {format(parseISO(job.created_at), 'dd/MM/yyyy HH:mm')}</span>
-                          {job.heartbeat_at && ['generating', 'enhancing'].includes(job.status) && (
+                          {job.heartbeat_at && ['generating', 'enhancing', 'optimising'].includes(job.status) && (
                             <span>Last activity: {formatDistanceToNow(parseISO(job.heartbeat_at), { addSuffix: true })}</span>
                           )}
                           {job.email_when_ready && (
