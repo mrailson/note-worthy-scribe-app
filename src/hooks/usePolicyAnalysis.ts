@@ -9,6 +9,8 @@ interface GapAnalysis {
   outdated_references: string[];
   missing_sections: string[];
   last_review_date: string | null;
+  compliance_score: number | null;
+  score_summary: string | null;
 }
 
 interface UpdatedPolicyResult {
@@ -90,6 +92,8 @@ export const usePolicyAnalysis = () => {
         outdated_references: data.outdated_references || [],
         missing_sections: data.missing_sections || [],
         last_review_date: data.last_review_date,
+        compliance_score: typeof data.compliance_score === 'number' ? data.compliance_score : null,
+        score_summary: data.score_summary || null,
       };
     } catch (error) {
       console.error('Gap analysis error:', error);

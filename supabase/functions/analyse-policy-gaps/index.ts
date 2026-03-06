@@ -82,6 +82,25 @@ NEVER FLAG:
    - Extract the last review date if present
    - Note if the policy appears overdue for review
 
+## CQC COMPLIANCE SCORING
+
+After completing your gap analysis, calculate a CQC Compliance Score out of 100 using the following method:
+
+Start at 100. Deduct points based on identified issues:
+
+DEDUCTIONS:
+- Each Clinical/Legal gap:         -8 points
+- Each CQC Inspection gap:         -5 points
+- Each Patient Safety gap:         -6 points
+- Each Outdated Reference:         -3 points
+- Each Missing Section:            -4 points
+- Incomplete document (truncated): -20 points
+- No named responsible person:     -5 points
+- No review date:                  -5 points
+- No version history:              -3 points
+
+Floor: minimum score is 0. Maximum is 100.
+
 You must respond in valid JSON format with the following structure:
 {
   "policy_type": "string - the identified policy type",
@@ -90,7 +109,9 @@ You must respond in valid JSON format with the following structure:
   "missing_sections": ["array of materially missing sections only"],
   "last_review_date": "string or null - extracted review date",
   "summary": "brief summary of the analysis",
-  "priority_actions": ["top 3 actions recommended"]
+  "priority_actions": ["top 3 actions recommended"],
+  "compliance_score": "number 0-100 calculated using the deduction method above",
+  "score_summary": "one sentence explanation e.g. 'Strong policy with 2 minor CQC inspection gaps'"
 }`;
 
 serve(async (req) => {
@@ -736,7 +757,8 @@ Apply a LIGHTER severity filter for Notewell-generated policies:
 - Only report issues that are: (a) factually incorrect, (b) reference outdated legislation or bodies (e.g. CCGs, PHE), or (c) missing a mandatory legal duty that cannot be implied from existing content.
 - Do NOT report missing edge cases, depth suggestions, or structural improvements — these are style preferences, not compliance failures.
 - Maximum 3 issues. If fewer than 3 genuine issues exist, report fewer.
-- Tone: constructive, not critical. Frame as "consider adding" not "fails to address".`
+- Tone: constructive, not critical. Frame as "consider adding" not "fails to address".
+- SCORING BONUS: Apply a +10 baseline bonus before deductions (start at 110, cap at 100). This reflects that Notewell-generated documents already meet structural, governance, and formatting standards.`
       : '';
 
     const userPrompt = `Analyse the following practice policy document IN FULL and provide a comprehensive gap analysis. You MUST read and consider every section of the document — do not skip or skim any part.
@@ -826,6 +848,8 @@ Please analyse this policy against current NHS England and CQC requirements and 
       last_review_date: analysis.last_review_date,
       summary: analysis.summary,
       priority_actions: analysis.priority_actions || [],
+      compliance_score: typeof analysis.compliance_score === 'number' ? Math.max(0, Math.min(100, analysis.compliance_score)) : null,
+      score_summary: analysis.score_summary || null,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
