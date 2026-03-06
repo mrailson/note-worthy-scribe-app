@@ -228,6 +228,17 @@ Generate ONLY:
 
 CRITICAL: Section 5 must be COMPLETE. For clinical policies this includes ALL sub-sections — screening pathways, referral criteria, colposcopy referral pathways, HPV triage algorithms, follow-up protocols, etc. Do NOT truncate or abbreviate any sub-section. Complete every bullet point and every sub-heading fully before finishing.
 
+MANDATORY CONTENT FOR SECTION 5 — ALL FULL-LENGTH POLICIES:
+The following must be explicitly covered or a CQC inspection finding will result:
+
+1. SNOMED CT CODES — Include a subsection listing the specific SNOMED CT codes used in SystmOne for: routine screening, HPV negative result, HPV positive result, inadequate sample, deferral, ceasing, and colposcopy referral.
+
+2. HOME VISITS — Include a subsection covering cervical screening for housebound patients: eligibility assessment, how to request, which clinical staff can attend, equipment requirements, and documentation.
+
+3. TRANS/NON-BINARY PATIENTS — Include a named subsection (not just a passing mention) covering: manual recall oversight in SystmOne for patients registered as male, clinician sensitivity training, and preferred terminology guidance.
+
+4. FAILSAFE — Use the word "failsafe" explicitly in the three-contact escalation section heading (e.g. "### 5.X Failsafe Three-Contact Escalation Process").
+
 Do NOT regenerate header or sections 1-3.
 Do NOT include sections 6-11.
 Do NOT include ===METADATA=== blocks.
