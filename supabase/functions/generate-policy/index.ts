@@ -868,13 +868,13 @@ serve(async (req) => {
         const jobMetadata: any = job.metadata || {};
         const generationModel = jobMetadata.generation_model || 'claude-sonnet-4-6';
         const policyLength = jobMetadata.policy_length || 'full'; // compact | concise | standard | full
-        const lengthScale: Record<string, number> = { compact: 0.2, concise: 0.33, standard: 0.5, full: 1.0 };
+        const lengthScale: Record<string, number> = { compact: 0.35, concise: 0.45, standard: 0.65, full: 1.0 };
         const scale = lengthScale[policyLength] || 1.0;
-        const scaleTokens = (base: number) => Math.max(1500, Math.round(base * scale));
+        const scaleTokens = (base: number) => Math.max(3000, Math.round(base * scale));
         
         // Build length instruction for the system prompt
         const lengthLabels: Record<string, string> = {
-          compact: 'COMPACT (~8 pages). Cover only the essential requirements, key responsibilities, and critical procedures. Omit extended examples, appendices, and supplementary detail. Be direct and concise.',
+          compact: 'COMPACT (~8 pages). Cover only the essential requirements, key responsibilities, and critical procedures. Omit extended examples, appendices, and supplementary detail. Be direct and concise. You MUST complete every section listed. Do not truncate mid-sentence. If running low on space, reduce detail rather than omitting sections.',
           concise: 'CONCISE (~13 pages). Cover core requirements with essential detail but avoid extended examples, lengthy appendices, or supplementary commentary.',
           standard: 'STANDARD (~20 pages). Provide balanced coverage with good operational detail but avoid excessive elaboration or padding.',
           full: 'COMPREHENSIVE (~40 pages). Provide full regulatory detail suitable for CQC inspection.',
