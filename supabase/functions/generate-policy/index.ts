@@ -1097,7 +1097,7 @@ Deno.serve(async (req) => {
       await serviceSupabase
         .from('policy_generation_jobs')
         .update({
-           status: ['enhance', 'gap_check', 'finalise'].includes(currentStep) ? 'enhancing' : 'generating',
+           status: ['enhance', 'gap_check', 'finalise'].includes(currentStep) ? 'enhancing' : (currentStep.startsWith('auto_quality') ? 'optimising' : 'generating'),
           current_step: currentStep,
           heartbeat_at: now,
           lease_expires_at: new Date(Date.now() + LEASE_DURATION_MS).toISOString(),
