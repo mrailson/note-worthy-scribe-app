@@ -2,14 +2,19 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Settings, Sparkles, Zap, PoundSterling, FileText } from 'lucide-react';
+import { Settings, Sparkles, Zap, PoundSterling, FileText, Brain, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 
-export type PolicyGenerationModel = 'claude-sonnet-4-6' | 'claude-haiku-4-5';
+export type PolicyGenerationModel = 
+  | 'claude-sonnet-4-6' 
+  | 'claude-haiku-4-5' 
+  | 'gpt-4o-mini' 
+  | 'gemini-2.0-flash' 
+  | 'gemini-2.0-flash-thinking-exp';
+
 export type PolicyLength = 'compact' | 'concise' | 'standard' | 'full';
 
 const MODEL_STORAGE_KEY = 'policy-generation-model';
@@ -17,7 +22,7 @@ const LENGTH_STORAGE_KEY = 'policy-generation-length';
 
 export const getPolicyGenerationModel = (): PolicyGenerationModel => {
   const saved = localStorage.getItem(MODEL_STORAGE_KEY);
-  if (saved === 'claude-haiku-4-5') return 'claude-haiku-4-5';
+  if (saved && MODEL_OPTIONS.some(m => m.value === saved)) return saved as PolicyGenerationModel;
   return 'claude-sonnet-4-6';
 };
 
@@ -26,6 +31,71 @@ export const getPolicyGenerationLength = (): PolicyLength => {
   if (saved === 'compact' || saved === 'concise' || saved === 'standard') return saved;
   return 'full';
 };
+
+export const getModelDisplayLabel = (model: string): string => {
+  const found = MODEL_OPTIONS.find(m => m.value === model);
+  return found?.label || model;
+};
+
+const MODEL_OPTIONS: { 
+  value: PolicyGenerationModel; 
+  label: string; 
+  provider: string;
+  badge: string; 
+  badgeVariant: 'default' | 'secondary' | 'outline';
+  stats: string; 
+  icon: typeof Sparkles;
+  requiresKey?: string;
+}[] = [
+  { 
+    value: 'claude-sonnet-4-6', 
+    label: 'Claude Sonnet 4.6', 
+    provider: 'Anthropic',
+    badge: 'Default', 
+    badgeVariant: 'default',
+    stats: 'Standard cost · ~5-10 min',
+    icon: Sparkles,
+  },
+  { 
+    value: 'claude-haiku-4-5', 
+    label: 'Claude Haiku 4.5', 
+    provider: 'Anthropic',
+    badge: 'Budget', 
+    badgeVariant: 'secondary',
+    stats: '~80% cheaper · ~2-3 min',
+    icon: Zap,
+  },
+  { 
+    value: 'gpt-4o-mini', 
+    label: 'GPT-4o Mini', 
+    provider: 'OpenAI',
+    badge: 'Budget', 
+    badgeVariant: 'secondary',
+    stats: '~80% cheaper · ~2-3 min',
+    icon: Zap,
+    requiresKey: 'OPENAI_API_KEY',
+  },
+  { 
+    value: 'gemini-2.0-flash', 
+    label: 'Gemini 2.0 Flash', 
+    provider: 'Google',
+    badge: 'Budget', 
+    badgeVariant: 'secondary',
+    stats: '~85% cheaper · ~2 min',
+    icon: Zap,
+    requiresKey: 'GOOGLE_AI_API_KEY',
+  },
+  { 
+    value: 'gemini-2.0-flash-thinking-exp', 
+    label: 'Gemini 2.0 Flash Thinking', 
+    provider: 'Google',
+    badge: 'Reasoning', 
+    badgeVariant: 'outline',
+    stats: '~75% cheaper · ~3-4 min',
+    icon: Brain,
+    requiresKey: 'GOOGLE_AI_API_KEY',
+  },
+];
 
 const LENGTH_OPTIONS: { value: PolicyLength; label: string; description: string; pages: string; time: string }[] = [
   { value: 'compact', label: 'Compact', description: 'Key essentials only — quick reference style', pages: '~8 pages', time: '~2 min' },
@@ -44,10 +114,9 @@ export const PolicyGenerationModelSettings = () => {
     setLength(getPolicyGenerationLength());
   }, []);
 
-  const handleToggle = (useHaiku: boolean) => {
-    const newModel: PolicyGenerationModel = useHaiku ? 'claude-haiku-4-5' : 'claude-sonnet-4-6';
-    setModel(newModel);
-    localStorage.setItem(MODEL_STORAGE_KEY, newModel);
+  const handleModelChange = (value: PolicyGenerationModel) => {
+    setModel(value);
+    localStorage.setItem(MODEL_STORAGE_KEY, value);
   };
 
   const handleLengthChange = (value: PolicyLength) => {
@@ -55,7 +124,7 @@ export const PolicyGenerationModelSettings = () => {
     localStorage.setItem(LENGTH_STORAGE_KEY, value);
   };
 
-  const isHaiku = model === 'claude-haiku-4-5';
+  const selectedModelOption = MODEL_OPTIONS.find(m => m.value === model);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -72,7 +141,7 @@ export const PolicyGenerationModelSettings = () => {
         </Tooltip>
       </TooltipProvider>
 
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5 text-primary" />
@@ -87,44 +156,44 @@ export const PolicyGenerationModelSettings = () => {
           {/* Model Selection */}
           <div>
             <Label className="text-sm font-medium mb-3 block">AI Model</Label>
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Use Budget Model</Label>
-                <p className="text-xs text-muted-foreground">
-                  Switch to Claude Haiku 4.5 for faster, cheaper generation
-                </p>
-              </div>
-              <Switch
-                checked={isHaiku}
-                onCheckedChange={handleToggle}
-              />
-            </div>
-
-            <div className={`mt-2 p-3 rounded-lg border-2 transition-colors ${isHaiku ? 'border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20' : 'border-primary/50 bg-primary/5'}`}>
-              <div className="flex items-center gap-2">
-                {isHaiku ? (
-                  <Zap className="h-4 w-4 text-amber-600" />
-                ) : (
-                  <Sparkles className="h-4 w-4 text-primary" />
-                )}
-                <span className="font-medium text-sm">
-                  {isHaiku ? 'Claude Haiku 4.5' : 'Claude Sonnet 4.6'}
-                </span>
-                <Badge variant={isHaiku ? 'secondary' : 'default'} className="text-xs">
-                  {isHaiku ? 'Budget' : 'Default'}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <PoundSterling className="h-3 w-3" />
-                  {isHaiku ? '~80% cheaper' : 'Standard cost'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Zap className="h-3 w-3" />
-                  {isHaiku ? '~2-3 min' : '~5-10 min'}
-                </span>
-              </div>
-            </div>
+            <RadioGroup
+              value={model}
+              onValueChange={(v) => handleModelChange(v as PolicyGenerationModel)}
+              className="space-y-2"
+            >
+              {MODEL_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                return (
+                  <div
+                    key={opt.value}
+                    className={`flex items-start space-x-3 p-3 border rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
+                      model === opt.value ? 'border-primary/50 bg-primary/5' : ''
+                    }`}
+                    onClick={() => handleModelChange(opt.value)}
+                  >
+                    <RadioGroupItem value={opt.value} id={`model-${opt.value}`} className="mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <Label htmlFor={`model-${opt.value}`} className="flex items-center gap-2 cursor-pointer text-sm font-medium flex-wrap">
+                        <Icon className="h-3.5 w-3.5 shrink-0" />
+                        {opt.label}
+                        <Badge variant={opt.badgeVariant} className="text-xs">{opt.badge}</Badge>
+                      </Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-muted-foreground">{opt.provider}</span>
+                        <span className="text-xs text-muted-foreground">·</span>
+                        <span className="text-xs text-muted-foreground">{opt.stats}</span>
+                      </div>
+                      {opt.requiresKey && (
+                        <div className="flex items-center gap-1 mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          <span>Requires {opt.requiresKey} in Supabase secrets</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </RadioGroup>
           </div>
 
           <Separator />
