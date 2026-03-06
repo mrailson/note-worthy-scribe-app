@@ -55,10 +55,10 @@ import { SavedGuidesPopover } from "@/components/policy/SavedGuidesPopover";
 const getExpectedMinutes = (job: PolicyJob): number => {
   const length = (job.metadata as any)?.policy_length;
   switch (length) {
-    case 'compact': return 2;
-    case 'concise': return 3;
-    case 'standard': return 6;
-    default: return 10;
+    case 'compact': return 1;
+    case 'concise': return 2;
+    case 'standard': return 3;
+    default: return 3;
   }
 };
 
