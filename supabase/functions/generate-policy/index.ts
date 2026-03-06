@@ -990,7 +990,7 @@ Now generate sections 4-5 only. Section 5 must be COMPLETE with all sub-sections
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART2A_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(8000),
+            scaleTokens(10000),
             generationModel
           );
 
