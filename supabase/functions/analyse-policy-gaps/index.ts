@@ -122,7 +122,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { extracted_text, action, audience, practice_name } = body;
+    const { extracted_text, action, audience, practice_name, policy_source } = body;
 
     if (!extracted_text) {
       throw new Error('extracted_text is required');
