@@ -186,6 +186,9 @@ Apply these overrides to every policy where the relevant topic appears. These ar
 ### CROSS-CUTTING LEGAL REQUIREMENT (APPLIES TO ALL POLICIES)
 17. DUTY OF CANDOUR: Every policy must reference Duty of Candour under Regulation 20 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014. Include the obligation to be open and honest with patients (or their families) when things go wrong, including notifiable safety incidents. This applies even where the policy topic is not primarily clinical — operational failures that affect patient care still trigger the duty. Reference CQC Regulation 20 explicitly.
 
+### CROSS-CUTTING MONITORING REQUIREMENT (APPLIES TO ALL POLICIES)
+18. SIGNIFICANT EVENT ANALYSIS (SEA): All policies — clinical and non-clinical — must include a Significant Event Analysis (SEA) subsection within the Monitoring section (Section 8). This must describe how incidents, near misses, and failures related to the specific policy topic are reported, reviewed, and learned from at practice level. Include who leads the SEA review, the frequency of review, how learning is disseminated to the team, and how changes are tracked to demonstrate improvement. This applies equally to clinical policies (e.g. medication errors) and non-clinical policies (e.g. information security breaches, GDPR incidents).
+
 IMPORTANT RULES:
 - Use specific named individuals from practice details provided (not just role titles)
 - Include current legislation with years
