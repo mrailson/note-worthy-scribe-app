@@ -486,7 +486,7 @@ const PolicyServiceMyPolicies = () => {
                         )}
 
                         {/* Countdown timer */}
-                        {['pending', 'generating', 'enhancing'].includes(job.status) && (
+                        {['pending', 'generating', 'enhancing', 'optimising'].includes(job.status) && (
                           <div className="flex items-center gap-2 my-2">
                             <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
                               <Coffee className="h-3.5 w-3.5" />
