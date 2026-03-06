@@ -264,6 +264,13 @@ You are generating sections 7-8 of a policy document. Sections 1-6 already exist
 
 CRITICAL: Section 8.1 KPI table is MANDATORY with 5+ rows. Complete every subsection. Never end mid-sentence.
 
+MANDATORY CONTENT FOR SECTION 8 — EQUALITY MONITORING:
+Section 8 must include an EQUALITY MONITORING subsection (e.g. "### 8.X Equality Monitoring") that specifies:
+- How the practice will monitor screening uptake by protected characteristic (age, disability, ethnicity as minimum)
+- How findings will be reviewed and acted upon (e.g. quarterly review at practice meeting)
+- Frequency of equality reporting (minimum annual)
+This is distinct from the Equality Impact Assessment in the document header and must contain actionable monitoring commitments.
+
 Do NOT include sections 9-11. Do NOT include ===METADATA=== blocks. Output ONLY sections 7-8 in markdown.`;
 
 const PART3B_SYSTEM_ADDITION = `
