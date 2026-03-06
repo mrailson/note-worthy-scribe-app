@@ -253,7 +253,8 @@ POLICY-SPECIFIC MANDATORY CONTENT (MINOR SURGERY):
   'prescribing': `
 POLICY-SPECIFIC MANDATORY CONTENT (PRESCRIBING):
 - MUST include Non-Medical Prescriber (NMP) governance — covering clinical supervision arrangements, defined scope of practice for each NMP, prescribing limitations (e.g. controlled drugs, high-risk medicines), annual competency review, and how NMP prescribing is audited and monitored.
-- MUST include FP10 prescription pad physical security — covering secure storage arrangements (locked facility), stock reconciliation procedures, process for reporting lost or stolen prescription pads (including notification to NHS England and the police), and audit trail for pad allocation and return.`,
+- MUST include FP10 prescription pad physical security — covering secure storage arrangements (locked facility), stock reconciliation procedures, process for reporting lost or stolen prescription pads (including notification to NHS England and the police), and audit trail for pad allocation and return.
+- MUST include a subsection on MHRA Drug Safety Updates and Patient Safety Alerts — covering how alerts are received (e.g. CAS alerts, MHRA email subscription), who is responsible for reviewing them (e.g. Lead GP or Prescribing Lead), how relevant alerts are actioned and communicated to all prescribing staff (including locums and NMPs), the timeframe for action, and how compliance with each alert is recorded and audited.`,
 
   'end of life': `
 POLICY-SPECIFIC MANDATORY CONTENT (END OF LIFE):
