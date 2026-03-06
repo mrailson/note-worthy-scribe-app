@@ -1096,7 +1096,7 @@ ${job.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${job.custom_instructions
 Generate the complete header and sections 1-3 only. IMPORTANT: Complete every subsection. Never end mid-sentence.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + lengthInstruction + PART1_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + geminiConciseInstruction + PART1_SYSTEM_ADDITION,
             userPrompt,
             scaleTokens(5200, 'generate_part_1'),
             generationModel
