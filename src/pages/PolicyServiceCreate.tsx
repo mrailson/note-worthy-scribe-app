@@ -266,7 +266,7 @@ const PolicyServiceCreate = () => {
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Generate up to {availableSlots} {availableSlots === 1 ? 'policy' : 'policies'} at once
-                    {isHaiku && <span className="text-primary ml-1">(Budget model — higher limit)</span>}
+                    {isBudgetModel && <span className="text-primary ml-1">(Budget model — up to {MAX_ACTIVE_JOBS_BUDGET})</span>}
                   </p>
                 </div>
               </div>
