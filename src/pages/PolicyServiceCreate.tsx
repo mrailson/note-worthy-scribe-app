@@ -162,7 +162,7 @@ const PolicyServiceCreate = () => {
 
       const selectedModel = getPolicyGenerationModel();
       
-      // Insert one job per policy — each with its own length
+      // Insert one job per policy
       const rows = policiesToGenerate.map(policy => ({
         user_id: user.id,
         policy_reference_id: policy.id,
@@ -172,7 +172,7 @@ const PolicyServiceCreate = () => {
         status: 'pending' as const,
         metadata: { 
           generation_model: selectedModel, 
-          policy_length: (policy as any)._length || 'standard',
+          policy_length: (policy as any)._length || 'full',
         } as any,
       }));
 
@@ -303,7 +303,6 @@ const PolicyServiceCreate = () => {
           </CardContent>
         </Card>
 
-
         {/* Batch Basket */}
         {batchMode && (
           <Card className="mt-6">
@@ -324,7 +323,7 @@ const PolicyServiceCreate = () => {
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {selectedPolicies.map(({ policy, length }) => (
+                  {selectedPolicies.map((policy) => (
                     <div
                       key={policy.id}
                       className="flex items-center justify-between p-3 rounded-md border bg-primary/5 border-primary/20 gap-2"
@@ -336,16 +335,6 @@ const PolicyServiceCreate = () => {
                           {policy.cqc_kloe}
                         </Badge>
                       </div>
-                      <Select value={length} onValueChange={(v) => handleBatchLengthChange(policy.id, v as PolicyLength)}>
-                        <SelectTrigger className="w-[160px] h-8 text-xs shrink-0">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LENGTH_OPTIONS.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                       <Button
                         variant="ghost"
                         size="sm"
