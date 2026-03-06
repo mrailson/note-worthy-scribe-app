@@ -228,6 +228,17 @@ Generate ONLY:
 
 CRITICAL: Section 5 must be COMPLETE. For clinical policies this includes ALL sub-sections — screening pathways, referral criteria, colposcopy referral pathways, HPV triage algorithms, follow-up protocols, etc. Do NOT truncate or abbreviate any sub-section. Complete every bullet point and every sub-heading fully before finishing.
 
+MANDATORY CONTENT FOR SECTION 5 — ALL FULL-LENGTH POLICIES:
+The following must be explicitly covered or a CQC inspection finding will result:
+
+1. SNOMED CT CODES — Include a subsection listing the specific SNOMED CT codes used in SystmOne for: routine screening, HPV negative result, HPV positive result, inadequate sample, deferral, ceasing, and colposcopy referral.
+
+2. HOME VISITS — Include a subsection covering cervical screening for housebound patients: eligibility assessment, how to request, which clinical staff can attend, equipment requirements, and documentation.
+
+3. TRANS/NON-BINARY PATIENTS — Include a named subsection (not just a passing mention) covering: manual recall oversight in SystmOne for patients registered as male, clinician sensitivity training, and preferred terminology guidance.
+
+4. FAILSAFE — Use the word "failsafe" explicitly in the three-contact escalation section heading (e.g. "### 5.X Failsafe Three-Contact Escalation Process").
+
 Do NOT regenerate header or sections 1-3.
 Do NOT include sections 6-11.
 Do NOT include ===METADATA=== blocks.
@@ -252,6 +263,13 @@ You are generating sections 7-8 of a policy document. Sections 1-6 already exist
 8. MONITORING AND COMPLIANCE (Section 8.1 MUST contain a KPI table with at least 5 measurable KPIs: KPI Name | Target/Standard | Measurement Method | Frequency | Responsible Person)
 
 CRITICAL: Section 8.1 KPI table is MANDATORY with 5+ rows. Complete every subsection. Never end mid-sentence.
+
+MANDATORY CONTENT FOR SECTION 8 — EQUALITY MONITORING:
+Section 8 must include an EQUALITY MONITORING subsection (e.g. "### 8.X Equality Monitoring") that specifies:
+- How the practice will monitor screening uptake by protected characteristic (age, disability, ethnicity as minimum)
+- How findings will be reviewed and acted upon (e.g. quarterly review at practice meeting)
+- Frequency of equality reporting (minimum annual)
+This is distinct from the Equality Impact Assessment in the document header and must contain actionable monitoring commitments.
 
 Do NOT include sections 9-11. Do NOT include ===METADATA=== blocks. Output ONLY sections 7-8 in markdown.`;
 
