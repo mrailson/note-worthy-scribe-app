@@ -83,7 +83,7 @@ const MODEL_OPTIONS: {
     badgeVariant: 'secondary',
     stats: '~85% cheaper · ~2 min',
     icon: Zap,
-    requiresKey: 'GOOGLE_AI_API_KEY',
+    requiresKey: 'GEMINI_API_KEY',
   },
   { 
     value: 'gemini-2.0-flash-thinking-exp', 
@@ -93,7 +93,7 @@ const MODEL_OPTIONS: {
     badgeVariant: 'outline',
     stats: '~75% cheaper · ~3-4 min',
     icon: Brain,
-    requiresKey: 'GOOGLE_AI_API_KEY',
+    requiresKey: 'GEMINI_API_KEY',
   },
 ];
 
