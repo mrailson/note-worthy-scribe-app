@@ -27,11 +27,11 @@ export const getPolicyGenerationLength = (): PolicyLength => {
   return 'full';
 };
 
-const LENGTH_OPTIONS: { value: PolicyLength; label: string; description: string; pages: string }[] = [
-  { value: 'compact', label: 'Compact', description: 'Key essentials only — quick reference style', pages: '~8 pages' },
-  { value: 'concise', label: 'Concise', description: 'Core requirements with essential detail', pages: '~13 pages' },
-  { value: 'standard', label: 'Standard', description: 'Balanced coverage with good detail', pages: '~20 pages' },
-  { value: 'full', label: 'Comprehensive', description: 'Full regulatory detail — CQC inspection-ready', pages: '~40 pages' },
+const LENGTH_OPTIONS: { value: PolicyLength; label: string; description: string; pages: string; time: string }[] = [
+  { value: 'compact', label: 'Compact', description: 'Key essentials only — quick reference style', pages: '~8 pages', time: '~2 min' },
+  { value: 'concise', label: 'Concise', description: 'Core requirements with essential detail', pages: '~13 pages', time: '~3 min' },
+  { value: 'standard', label: 'Standard', description: 'Balanced coverage with good detail', pages: '~20 pages', time: '~6 min' },
+  { value: 'full', label: 'Comprehensive', description: 'Full regulatory detail — CQC inspection-ready', pages: '~40 pages', time: '~10 min' },
 ];
 
 export const PolicyGenerationModelSettings = () => {
@@ -153,6 +153,7 @@ export const PolicyGenerationModelSettings = () => {
                     <Label htmlFor={`length-${opt.value}`} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
                       {opt.label}
                       <Badge variant="outline" className="text-xs font-normal">{opt.pages}</Badge>
+                      <Badge variant="outline" className="text-xs font-normal">{opt.time}</Badge>
                       {opt.value === 'full' && <Badge variant="default" className="text-xs">Default</Badge>}
                     </Label>
                     <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>
