@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, ArrowRight, FileText, Loader2, Clock, X, Layers } from "lucide-react";
+import { PolicyGenerationModelSettings, getPolicyGenerationModel } from "@/components/policy/PolicyGenerationModelSettings";
 import { useNavigate } from "react-router-dom";
 import { PolicyTypeSelector } from "@/components/policy/PolicyTypeSelector";
 import { toast } from "sonner";
@@ -149,6 +150,8 @@ const PolicyServiceCreate = () => {
         branch_site_phone: (practiceData as any).branch_site_phone || '',
       } : null;
 
+      const selectedModel = getPolicyGenerationModel();
+      
       // Insert one job per policy
       const rows = policiesToGenerate.map(policy => ({
         user_id: user.id,
@@ -157,6 +160,7 @@ const PolicyServiceCreate = () => {
         practice_details: practiceDetails as any,
         email_when_ready: false,
         status: 'pending' as const,
+        metadata: { generation_model: selectedModel } as any,
       }));
 
       const { error: insertError } = await supabase
@@ -218,9 +222,12 @@ const PolicyServiceCreate = () => {
         </Button>
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <FileText className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl sm:text-3xl font-bold">Create New Policy</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <FileText className="h-8 w-8 text-primary" />
+            <h1 className="text-2xl sm:text-3xl font-bold">Create New Policy</h1>
+          </div>
+          <PolicyGenerationModelSettings />
         </div>
 
         {/* Mode Toggle */}
