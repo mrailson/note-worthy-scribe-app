@@ -104,8 +104,8 @@ const PolicyServiceCreate = () => {
     if (!user) return;
 
     const policiesToGenerate = batchMode 
-      ? selectedPolicies.map(p => ({ ...p.policy, _length: p.length }))
-      : (selectedPolicy ? [{ ...selectedPolicy, _length: selectedPolicyLength }] : []);
+      ? selectedPolicies.map(p => ({ ...p, _length: DEFAULT_LENGTH }))
+      : (selectedPolicy ? [{ ...selectedPolicy, _length: DEFAULT_LENGTH }] : []);
     if (policiesToGenerate.length === 0) return;
 
     // Re-check slot availability
