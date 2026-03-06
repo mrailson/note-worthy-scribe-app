@@ -63,7 +63,7 @@ const getExpectedMinutes = (job: PolicyJob): number => {
 };
 
 const getCountdownText = (job: PolicyJob): string | null => {
-  if (!['pending', 'generating', 'enhancing'].includes(job.status)) return null;
+  if (!['pending', 'generating', 'enhancing', 'optimising'].includes(job.status)) return null;
   const expected = getExpectedMinutes(job);
   const elapsed = differenceInMinutes(new Date(), parseISO(job.created_at));
   const remaining = Math.max(0, expected - elapsed);
