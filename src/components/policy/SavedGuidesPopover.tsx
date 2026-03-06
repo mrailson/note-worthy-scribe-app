@@ -105,7 +105,7 @@ export const SavedGuidesPopover: React.FC<SavedGuidesPopoverProps> = ({
 
   return (
     <>
-      <Popover>
+      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="sm" className="gap-1 relative" title="Saved Quick Guides">
             <BookOpen className="h-4 w-4" />
