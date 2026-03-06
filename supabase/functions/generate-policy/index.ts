@@ -1264,13 +1264,13 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
 
           const fullContent = `${sections1to8.trim()}\n\n${sectionsContent}`;
 
-          // Determine next step: compact skips enhance & gap_check
-          const skipEnhance = policyLength === 'compact';
+          // Determine next step: compact and Haiku skip enhance & gap_check
+          const skipEnhance = policyLength === 'compact' || generationModel === 'claude-haiku-4-5';
           const nextStep = skipEnhance ? 'finalise' : 'enhance';
           const nextStatus = skipEnhance ? 'generating' : 'enhancing';
           const nextProgress = skipEnhance ? 90 : 80;
           if (skipEnhance) {
-            console.log(`[Step: generate_part_3b] Compact mode — skipping enhance & gap_check`);
+            console.log(`[Step: generate_part_3b] Skipping enhance & gap_check (compact=${policyLength === 'compact'}, haiku=${generationModel === 'claude-haiku-4-5'})`);
           }
 
           await serviceSupabase
