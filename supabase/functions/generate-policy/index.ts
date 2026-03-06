@@ -245,24 +245,27 @@ Do NOT include sections 7-11.
 Do NOT include ===METADATA=== blocks.
 Output ONLY section 6 in markdown.`;
 
-const PART3_SYSTEM_ADDITION = `
-You are generating the FINAL PART of a policy document. Sections 1-6 already exist and are provided for context. You must now generate ONLY:
+const PART3A_SYSTEM_ADDITION = `
+You are generating sections 7-8 of a policy document. Sections 1-6 already exist and are provided for context. Generate ONLY:
 
 7. RELATED POLICIES — You MUST output a bulleted list of at least 10 specific, named policies relevant to this policy type. Each bullet must be a policy title (not a sentence). For example, for a Cervical Screening policy you might list: Infection Prevention and Control Policy, Safeguarding Adults Policy, Consent Policy, Information Governance Policy, Chaperone Policy, Cold Chain Policy, etc. Do NOT leave this section as just a heading or introductory sentence.
 8. MONITORING AND COMPLIANCE (Section 8.1 MUST contain a KPI table with at least 5 measurable KPIs: KPI Name | Target/Standard | Measurement Method | Frequency | Responsible Person)
-9. REFERENCES AND LEGISLATION
-10. APPENDICES
+
+CRITICAL: Section 8.1 KPI table is MANDATORY with 5+ rows. Complete every subsection. Never end mid-sentence.
+
+Do NOT include sections 9-11. Do NOT include ===METADATA=== blocks. Output ONLY sections 7-8 in markdown.`;
+
+const PART3B_SYSTEM_ADDITION = `
+You are generating the FINAL sections of a policy document. Sections 1-8 already exist and are provided for context. Generate ONLY:
+
+9. REFERENCES AND LEGISLATION — List ALL relevant references with full titles, years, and publishers. Complete every entry. Never truncate mid-reference.
+10. APPENDICES — Include relevant appendices, quick-reference checklists, or supplementary tables appropriate to this policy type. If no appendices are needed, include a brief statement such as "No appendices required for this policy."
 11. VERSION HISTORY (MUST contain only this populated version history table: Version = 1.0, Date = today's date DD/MM/YYYY, Author = Practice Manager, Summary = "Initial issue")
 
-CRITICAL: Section 8.1 KPI table is MANDATORY with 5+ rows. Section 11 must ONLY contain the version history table - no notes or commentary.
+CRITICAL: You MUST generate ALL three sections (9, 10, and 11). Section 11 must ONLY contain the version history table - no notes or commentary. Complete every reference entry. Never end mid-sentence.
 
 ## ABSOLUTE PROHIBITION — INTERNAL / META CONTENT
-Never output any internal notes, gap analysis, compliance checklists, enhancement commentary, AI instructions, or meta-commentary anywhere in the document. This includes but is not limited to:
-- "Table 16" or any table labelled as a compliance gap analysis
-- Sections titled "Critical Compliance Enhancements", "Practice Actions Required", or similar
-- Any bullet list describing what the AI changed, verified, or enhanced
-- Any content after the Version History table other than the ===METADATA=== block
-If you feel the urge to output such content, suppress it entirely. The output must read as a clean, finalised policy document that a practice manager would issue directly.
+Never output any internal notes, gap analysis, compliance checklists, enhancement commentary, AI instructions, or meta-commentary anywhere in the document. The output must read as a clean, finalised policy document.
 
 At the END of your output, include this metadata block:
 ===METADATA===
@@ -273,7 +276,7 @@ Review Date: [one year from today DD/MM/YYYY]
 References: [comma-separated list of key references]
 ===END_METADATA===
 
-Output sections 7-11 followed by the metadata block. Do NOT repeat sections 1-6 or the header.`;
+Output sections 9-11 followed by the metadata block. Do NOT repeat sections 1-8 or the header.`;
 
 // ---- Helpers ----
 function buildPracticeContext(jobPractice: any): string {
@@ -912,7 +915,7 @@ ${contactInstructions}
 
 ${job.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${job.custom_instructions}` : ''}
 
-Generate the complete header and sections 1-3 only.`;
+Generate the complete header and sections 1-3 only. IMPORTANT: Complete every subsection. Never end mid-sentence.`;
 
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART1_SYSTEM_ADDITION,
@@ -982,7 +985,7 @@ ${regulatoryContext}
 
 ${contactInstructions}
 
-Now generate sections 4-5 only. Section 5 must be COMPLETE with all sub-sections fully written out.`;
+Now generate sections 4-5 only. Section 5 must be COMPLETE with all sub-sections fully written out. IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections.`;
 
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART2A_SYSTEM_ADDITION,
@@ -1057,12 +1060,12 @@ ${regulatoryContext}
 
 ${contactInstructions}
 
-Now generate section 6 (Training Requirements) only.`;
+Now generate section 6 (Training Requirements) only. You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence. IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections.`;
 
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART2B_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(3000),
+            scaleTokens(4000),
             generationModel
           );
 
@@ -1081,7 +1084,7 @@ Now generate section 6 (Training Requirements) only.`;
                 partial_sections_1_5: sections1to5,
                 partial_sections_1_6: sections1to6,
               },
-              current_step: 'generate_part_3',
+              current_step: 'generate_part_3a',
               progress_pct: 50,
               attempt_count: 0,
               next_retry_at: null,
@@ -1099,9 +1102,9 @@ Now generate section 6 (Training Requirements) only.`;
           });
         }
 
-        // ---- STEP: generate_part_3 ----
-        if (currentStep === 'generate_part_3') {
-          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_3', 65);
+        // ---- STEP: generate_part_3a (sections 7-8) ----
+        if (currentStep === 'generate_part_3a' || currentStep === 'generate_part_3') {
+          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_3a', 55);
 
           const sections1to6 = jobMetadata.partial_sections_1_6 || '';
           if (!sections1to6) {
@@ -1132,17 +1135,93 @@ ${regulatoryContext}
 
 ${contactInstructions}
 
-Now generate sections 7-11 to complete this policy, followed by the ===METADATA=== block.`;
+Now generate sections 7-8 only. IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + lengthInstruction + PART3_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + PART3A_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(7000),
+            scaleTokens(4000),
             generationModel
           );
 
-          if (!content || content.length < 200) {
-            throw new Error('Generation part 3 returned insufficient content');
+          if (!content || content.length < 150) {
+            throw new Error('Generation part 3a returned insufficient content');
+          }
+
+          const sections1to8 = `${sections1to6.trim()}\n\n${content.trim()}`;
+
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              metadata: {
+                ...jobMetadata,
+                partial_sections_1_3: jobMetadata.partial_sections_1_3,
+                partial_sections_1_5: jobMetadata.partial_sections_1_5,
+                partial_sections_1_6: sections1to6,
+                partial_sections_1_8: sections1to8,
+              },
+              current_step: 'generate_part_3b',
+              progress_pct: 60,
+              attempt_count: 0,
+              next_retry_at: null,
+              heartbeat_at: new Date().toISOString(),
+              lease_expires_at: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', job.id);
+
+          console.log(`[Step done: generate_part_3a] Job ${job.id} - ${content.length} chars`);
+          selfTrigger(targetUserId);
+
+          return new Response(JSON.stringify({ success: true, phase: 'generate_part_3a', jobId: job.id }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // ---- STEP: generate_part_3b (sections 9-11) ----
+        if (currentStep === 'generate_part_3b') {
+          await updateHeartbeat(serviceSupabase, job.id, 'generate_part_3b', 70);
+
+          const sections1to8 = jobMetadata.partial_sections_1_8 || '';
+          if (!sections1to8) {
+            await serviceSupabase
+              .from('policy_generation_jobs')
+              .update({
+                current_step: 'generate_part_3a',
+                attempt_count: 0,
+                lease_expires_at: null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', job.id);
+            selfTrigger(targetUserId);
+            return new Response(JSON.stringify({ success: true, phase: 'retry_part_3a' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          const userPrompt = `Here are sections 1-8 of the ${policyName} policy (already generated):
+
+---SECTIONS 1-8---
+${sections1to8}
+---END SECTIONS 1-8---
+
+${practiceContext}
+
+${regulatoryContext}
+
+${contactInstructions}
+
+Now generate sections 9-11 to complete this policy, followed by the ===METADATA=== block. IMPORTANT: Complete every reference entry. Never end mid-sentence. You MUST include Section 10 (Appendices) and Section 11 (Version History). If space is limited, shorten content rather than omitting sections.`;
+
+          const content = await callAnthropic(
+            BASE_SYSTEM_PROMPT + lengthInstruction + PART3B_SYSTEM_ADDITION,
+            userPrompt,
+            scaleTokens(3500),
+            generationModel
+          );
+
+          if (!content || content.length < 100) {
+            throw new Error('Generation part 3b returned insufficient content');
           }
 
           const metadataMatch = content.match(/===METADATA===([\s\S]*?)(?:===END_METADATA===|$)/);
@@ -1170,7 +1249,7 @@ Now generate sections 7-11 to complete this policy, followed by the ===METADATA=
             if (referencesMatch) metadata.references = referencesMatch[1].split(',').map((r: string) => r.trim());
           }
 
-          const fullContent = `${sections1to6.trim()}\n\n${sectionsContent}`;
+          const fullContent = `${sections1to8.trim()}\n\n${sectionsContent}`;
 
           // Determine next step: compact skips enhance & gap_check
           const skipEnhance = policyLength === 'compact';
@@ -1178,7 +1257,7 @@ Now generate sections 7-11 to complete this policy, followed by the ===METADATA=
           const nextStatus = skipEnhance ? 'generating' : 'enhancing';
           const nextProgress = skipEnhance ? 90 : 80;
           if (skipEnhance) {
-            console.log(`[Step: generate_part_3] Compact mode — skipping enhance & gap_check`);
+            console.log(`[Step: generate_part_3b] Compact mode — skipping enhance & gap_check`);
           }
 
           await serviceSupabase
@@ -1193,6 +1272,7 @@ Now generate sections 7-11 to complete this policy, followed by the ===METADATA=
                 partial_sections_1_3: undefined,
                 partial_sections_1_5: undefined,
                 partial_sections_1_6: undefined,
+                partial_sections_1_8: undefined,
               },
               current_step: nextStep,
               progress_pct: nextProgress,
@@ -1204,10 +1284,10 @@ Now generate sections 7-11 to complete this policy, followed by the ===METADATA=
             })
             .eq('id', job.id);
 
-          console.log(`[Step done: generate_part_3] Job ${job.id} - combined ${fullContent.length} chars`);
+          console.log(`[Step done: generate_part_3b] Job ${job.id} - combined ${fullContent.length} chars`);
           selfTrigger(targetUserId);
 
-          return new Response(JSON.stringify({ success: true, phase: 'generate_part_3', jobId: job.id }), {
+          return new Response(JSON.stringify({ success: true, phase: 'generate_part_3b', jobId: job.id }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
