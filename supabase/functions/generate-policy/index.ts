@@ -492,7 +492,7 @@ async function callOpenAI(system: string, userContent: string, maxTokens: number
 }
 
 async function callGemini(system: string, userContent: string, maxTokens: number, model: string): Promise<string> {
-  if (!GOOGLE_AI_API_KEY) throw new Error('GOOGLE_AI_API_KEY is not configured. Add it to Supabase edge function secrets.');
+  if (!GOOGLE_AI_API_KEY) throw new Error('GEMINI_API_KEY is not configured. Add it to Supabase edge function secrets.');
   const controller = new AbortController();
   const STREAM_TOTAL_TIMEOUT_MS = 300_000;
   const timeout = setTimeout(() => controller.abort(), STREAM_TOTAL_TIMEOUT_MS);
