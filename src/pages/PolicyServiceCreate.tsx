@@ -1,21 +1,11 @@
 import { useState, useEffect } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ArrowRight, FileText, Loader2, Clock, X, Layers } from "lucide-react";
+import { ArrowLeft, ArrowRight, FileText, Loader2, X, Layers } from "lucide-react";
 import { getPolicyGenerationModel } from "@/components/policy/PolicyGenerationModelSettings";
 import { useNavigate } from "react-router-dom";
 import { PolicyTypeSelector } from "@/components/policy/PolicyTypeSelector";
@@ -36,7 +26,7 @@ const PolicyServiceCreate = () => {
   const { user } = useAuth();
   const [selectedPolicy, setSelectedPolicy] = useState<PolicyReference | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  
 
   // Batch mode state
   const [batchMode, setBatchMode] = useState(false);
@@ -96,11 +86,10 @@ const PolicyServiceCreate = () => {
         return;
       }
     }
-    setShowConfirm(true);
+    handleConfirmGenerate();
   };
 
   const handleConfirmGenerate = async () => {
-    setShowConfirm(false);
     if (!user) return;
 
     const policiesToGenerate = batchMode 
@@ -379,50 +368,6 @@ const PolicyServiceCreate = () => {
         </div>
       </main>
 
-      {/* Confirmation dialog */}
-      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Please Allow Time for Generation
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="text-left space-y-3">
-                {batchMode && selectedPolicies.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p className="font-medium text-foreground text-sm">
-                      {selectedPolicies.length} {selectedPolicies.length === 1 ? 'policy' : 'policies'} to generate:
-                    </p>
-                    <ul className="list-disc list-inside text-sm space-y-0.5">
-                      {selectedPolicies.map((policy) => (
-                        <li key={policy.id}>{policy.policy_name}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {!batchMode && selectedPolicy && (
-                  <p className="font-medium text-foreground text-sm">
-                    Policy: {selectedPolicy.policy_name}
-                  </p>
-                )}
-                <p>
-                  Each policy typically takes <strong>~3 minutes</strong> to generate.
-                </p>
-                <p>
-                  Completed policies will appear on <strong>My Policies</strong> when ready. You can continue using other features while they generate.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmGenerate}>
-              Continue &amp; Generate
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
