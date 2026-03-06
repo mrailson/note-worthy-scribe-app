@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 interface GapAnalysis {
   policy_type: string;
+  policy_source?: 'notewell' | 'uploaded';
   gaps: string[];
   outdated_references: string[];
   missing_sections: string[];
@@ -63,13 +64,14 @@ export const usePolicyAnalysis = () => {
     }
   };
 
-  const analyseGaps = async (extractedText: string): Promise<GapAnalysis> => {
+  const analyseGaps = async (extractedText: string, policySource: 'notewell' | 'uploaded' = 'uploaded'): Promise<GapAnalysis> => {
     setIsAnalysing(true);
 
     try {
       const { data, error } = await supabase.functions.invoke('analyse-policy-gaps', {
         body: {
           extracted_text: extractedText,
+          policy_source: policySource,
         },
       });
 
@@ -83,6 +85,7 @@ export const usePolicyAnalysis = () => {
 
       return {
         policy_type: data.policy_type,
+        policy_source: data.policy_source || policySource,
         gaps: data.gaps || [],
         outdated_references: data.outdated_references || [],
         missing_sections: data.missing_sections || [],

@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 interface GapAnalysis {
   policy_type: string;
+  policy_source?: 'notewell' | 'uploaded';
   gaps: string[];
   outdated_references: string[];
   missing_sections: string[];

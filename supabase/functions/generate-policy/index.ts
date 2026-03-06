@@ -1757,6 +1757,7 @@ ${finalContent}`;
             policy_length: policyLength,
             generation_duration_seconds: generationDurationSeconds,
             generation_model: jobMetadata.generation_model || 'claude-sonnet-4-6',
+            policy_source: 'notewell',
           };
 
           await serviceSupabase.from('policy_completions').insert({
