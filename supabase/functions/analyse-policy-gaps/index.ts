@@ -82,6 +82,25 @@ NEVER FLAG:
    - Extract the last review date if present
    - Note if the policy appears overdue for review
 
+## CQC COMPLIANCE SCORING
+
+After completing your gap analysis, calculate a CQC Compliance Score out of 100 using the following method:
+
+Start at 100. Deduct points based on identified issues:
+
+DEDUCTIONS:
+- Each Clinical/Legal gap:         -8 points
+- Each CQC Inspection gap:         -5 points
+- Each Patient Safety gap:         -6 points
+- Each Outdated Reference:         -3 points
+- Each Missing Section:            -4 points
+- Incomplete document (truncated): -20 points
+- No named responsible person:     -5 points
+- No review date:                  -5 points
+- No version history:              -3 points
+
+Floor: minimum score is 0. Maximum is 100.
+
 You must respond in valid JSON format with the following structure:
 {
   "policy_type": "string - the identified policy type",
@@ -90,7 +109,9 @@ You must respond in valid JSON format with the following structure:
   "missing_sections": ["array of materially missing sections only"],
   "last_review_date": "string or null - extracted review date",
   "summary": "brief summary of the analysis",
-  "priority_actions": ["top 3 actions recommended"]
+  "priority_actions": ["top 3 actions recommended"],
+  "compliance_score": "number 0-100 calculated using the deduction method above",
+  "score_summary": "one sentence explanation e.g. 'Strong policy with 2 minor CQC inspection gaps'"
 }`;
 
 serve(async (req) => {
