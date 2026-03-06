@@ -214,6 +214,18 @@ POLICY-SPECIFIC MANDATORY CONTENT (SAFEGUARDING ADULTS):
 - MUST include the Making Safeguarding Personal (MSP) framework — the person-centred approach to safeguarding enquiries that ensures adults are involved in decisions about their safety and the outcomes they want.
 - Reference the six safeguarding principles: empowerment, prevention, proportionality, protection, partnership, accountability.
 - Include Care Act 2014 Section 42 enquiry duty and the local authority's role.`,
+
+  'safeguarding children': `
+POLICY-SPECIFIC MANDATORY CONTENT (SAFEGUARDING CHILDREN):
+- MUST include FGM mandatory reporting duty: the legal obligation under the Female Genital Mutilation Act 2003 (as amended by the Serious Crime Act 2015) for regulated health professionals to report known cases of FGM in girls under 18 to the police. Include the reporting process, timeframe, and who is responsible at the practice.
+- MUST include Serious Case Review / Child Safeguarding Practice Review (CSPR): reference the practice's duty to cooperate with any CSPR or Rapid Review initiated by the Local Safeguarding Children Partnership (LSCP), including how learning from reviews will be disseminated and embedded into practice procedures.
+- Reference "Working Together to Safeguard Children 2023" and the role of MASAs (Multi-Agency Safeguarding Arrangements).`,
+
+  'chaperone': `
+POLICY-SPECIFIC MANDATORY CONTENT (CHAPERONE):
+- MUST include same-sex chaperone rights: patients must be informed of their right to request a same-sex chaperone, and the practice must make reasonable efforts to accommodate this request, including offering to reschedule the appointment if a same-sex chaperone is unavailable at the time.
+- MUST include chilling effect warning: the policy must explicitly state that chaperones are offered, not mandatory — clinicians must not make a patient feel that declining a chaperone will affect the quality of their care or the clinician's willingness to proceed with the examination.
+- Reference GMC guidance (updated January 2024) and NHS England "Improving Chaperone Practice" (December 2025).`,
 };
 
 // Step-specific system prompt additions
