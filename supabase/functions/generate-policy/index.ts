@@ -1042,7 +1042,7 @@ Deno.serve(async (req) => {
               updated_at: new Date().toISOString(),
             })
             .eq('id', job.id);
-          job.status = ['enhance', 'gap_check', 'finalise'].includes(job.current_step) ? 'enhancing' : 'pending';
+          job.status = ['enhance', 'gap_check', 'finalise'].includes(job.current_step) ? 'enhancing' : (job.current_step?.startsWith('auto_quality') ? 'optimising' : 'pending');
         }
       }
 
