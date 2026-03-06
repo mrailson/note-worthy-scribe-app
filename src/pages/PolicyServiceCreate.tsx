@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, ArrowRight, FileText, Loader2, X, Layers } from "lucide-react";
-import { getPolicyGenerationModel, getAutoQualityLoop } from "@/components/policy/PolicyGenerationModelSettings";
+import { getPolicyGenerationModel, getAutoQualityLoop, PolicyGenerationModelSettings } from "@/components/policy/PolicyGenerationModelSettings";
 import { useNavigate } from "react-router-dom";
 import { PolicyTypeSelector } from "@/components/policy/PolicyTypeSelector";
 import { toast } from "sonner";
@@ -228,6 +228,9 @@ const PolicyServiceCreate = () => {
         <div className="flex items-center gap-3 mb-8">
           <FileText className="h-8 w-8 text-primary" />
           <h1 className="text-2xl sm:text-3xl font-bold">Create New Policy</h1>
+          <div className="ml-auto">
+            <PolicyGenerationModelSettings />
+          </div>
         </div>
 
         {/* Mode Toggle */}
