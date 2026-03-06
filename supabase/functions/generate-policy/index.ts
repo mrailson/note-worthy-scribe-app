@@ -1264,13 +1264,13 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
 
           const fullContent = `${sections1to8.trim()}\n\n${sectionsContent}`;
 
-          // Determine next step: compact skips enhance & gap_check
-          const skipEnhance = policyLength === 'compact';
+          // Determine next step: compact and Haiku skip enhance & gap_check
+          const skipEnhance = policyLength === 'compact' || generationModel === 'claude-haiku-4-5';
           const nextStep = skipEnhance ? 'finalise' : 'enhance';
           const nextStatus = skipEnhance ? 'generating' : 'enhancing';
           const nextProgress = skipEnhance ? 90 : 80;
           if (skipEnhance) {
-            console.log(`[Step: generate_part_3b] Compact mode — skipping enhance & gap_check`);
+            console.log(`[Step: generate_part_3b] Skipping enhance & gap_check (compact=${policyLength === 'compact'}, haiku=${generationModel === 'claude-haiku-4-5'})`);
           }
 
           await serviceSupabase
@@ -1313,7 +1313,7 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
           const enhanceRetries = jobMetadata.enhance_retries || 0;
           const practiceManagerName = (jobPractice as any)?.practice_manager_name || (jobPractice as any)?.practice_manager || 'Practice Manager';
 
-          if (enhanceRetries >= 2 || policyContent.length > 25000) {
+          if (enhanceRetries >= 2 || policyContent.length > 18000) {
             console.log(`[Step: enhance] Skipping enhancement (retries: ${enhanceRetries}, length: ${policyContent.length})`);
           } else {
             const enhancePrompt = `Please review and enhance the following ${policyName} policy for ${(jobPractice as any)?.practice_name || '[PRACTICE NAME]'} (ODS: ${(jobPractice as any)?.ods_code || '[ODS CODE]'}).
@@ -1358,7 +1358,7 @@ POLICY TO ENHANCE:
 ${policyContent}`;
 
             try {
-              const enhanced = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, enhancePrompt, 10000, generationModel);
+              const enhanced = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, enhancePrompt, 16384, generationModel);
               if (enhanced && enhanced.length > 500) {
                 policyContent = sanitisePolicyOutput(enhanced, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
                 console.log(`[Step: enhance] Enhancement succeeded - ${policyContent.length} chars (fully sanitised)`);
@@ -1464,7 +1464,7 @@ ${practiceContext}
 POLICY TO FIX:
 ${finalContent}`;
 
-                const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 10000, generationModel);
+                const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 16384, generationModel);
                 if (remediated && remediated.length > 500) {
                   finalContent = sanitisePolicyOutput(remediated, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
                   console.log(`[gap_check] Remediation succeeded - ${finalContent.length} chars`);
