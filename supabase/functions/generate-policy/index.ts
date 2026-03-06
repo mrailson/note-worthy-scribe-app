@@ -213,7 +213,8 @@ POLICY-SPECIFIC MANDATORY CONTENT (SAFEGUARDING ADULTS):
 - MUST explicitly reference CQC Regulation 13 (Safeguarding service users from abuse and improper treatment) under the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014.
 - MUST include the Making Safeguarding Personal (MSP) framework — the person-centred approach to safeguarding enquiries that ensures adults are involved in decisions about their safety and the outcomes they want.
 - Reference the six safeguarding principles: empowerment, prevention, proportionality, protection, partnership, accountability.
-- Include Care Act 2014 Section 42 enquiry duty and the local authority's role.`,
+- Include Care Act 2014 Section 42 enquiry duty and the local authority's role.
+- MUST include a Significant Event Analysis (SEA) subsection covering how safeguarding-related incidents, near misses, and concerns are reviewed at practice level, including the frequency of review (e.g. quarterly or after each referral) and who leads the review (e.g. Safeguarding Lead, Practice Manager).`,
 
   'safeguarding children': `
 POLICY-SPECIFIC MANDATORY CONTENT (SAFEGUARDING CHILDREN):
