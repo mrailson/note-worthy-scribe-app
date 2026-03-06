@@ -497,12 +497,14 @@ async function callGemini(system: string, userContent: string, maxTokens: number
   const STREAM_TOTAL_TIMEOUT_MS = 300_000;
   const timeout = setTimeout(() => controller.abort(), STREAM_TOTAL_TIMEOUT_MS);
 
-  // Map our model IDs to Gemini API model names
+  // Map deprecated/legacy thinking IDs to supported Gemini models
   const geminiModelMap: Record<string, string> = {
     'gemini-2.0-flash': 'gemini-2.0-flash',
-    'gemini-2.0-flash-thinking-exp': 'gemini-2.5-flash',
+    'gemini-2.0-flash-thinking-exp': 'gemini-2.0-flash',
+    'gemini-2.0-flash-thinking-exp-01-21': 'gemini-2.0-flash',
   };
   const geminiModel = geminiModelMap[model] || model;
+  console.log(`[Gemini] Requested model: ${model}; mapped model: ${geminiModel}`);
 
   try {
     const response = await fetch(
