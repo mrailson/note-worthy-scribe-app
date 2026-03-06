@@ -162,6 +162,7 @@ const PolicyServiceCreate = () => {
         metadata: { 
           generation_model: selectedModel, 
           policy_length: (policy as any)._length || 'full',
+          auto_quality_loop: getAutoQualityLoop(),
         } as any,
       }));
 

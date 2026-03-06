@@ -103,7 +103,7 @@ export const usePolicyJobs = () => {
   }, [user]);
 
   const activeJobCount = jobs.filter(
-    j => j.status === 'pending' || j.status === 'generating' || j.status === 'enhancing'
+    j => j.status === 'pending' || j.status === 'generating' || j.status === 'enhancing' || j.status === 'optimising'
   ).length;
 
   // Check for stale jobs using lease_expires_at (not raw updated_at)

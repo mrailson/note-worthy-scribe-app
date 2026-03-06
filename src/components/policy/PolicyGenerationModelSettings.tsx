@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 
 
 export type PolicyGenerationModel = 
@@ -20,6 +21,7 @@ export type PolicyLength = 'compact' | 'concise' | 'standard' | 'full';
 
 const MODEL_STORAGE_KEY = 'policy-generation-model';
 const LENGTH_STORAGE_KEY = 'policy-generation-length';
+const AUTO_QUALITY_LOOP_KEY = 'autoQualityLoop';
 
 
 export const getPolicyGenerationModel = (): PolicyGenerationModel => {
@@ -34,6 +36,9 @@ export const getPolicyGenerationLength = (): PolicyLength => {
   return 'full';
 };
 
+export const getAutoQualityLoop = (): boolean => {
+  return localStorage.getItem(AUTO_QUALITY_LOOP_KEY) === 'true';
+};
 
 export const getModelDisplayLabel = (model: string): string => {
   const found = MODEL_OPTIONS.find(m => m.value === model);
@@ -109,12 +114,14 @@ const LENGTH_OPTIONS: { value: PolicyLength; label: string; description: string;
 export const PolicyGenerationModelSettings = () => {
   const [model, setModel] = useState<PolicyGenerationModel>('gemini-2.5-flash');
   const [length, setLength] = useState<PolicyLength>('full');
+  const [autoQualityLoop, setAutoQualityLoop] = useState(false);
   const [open, setOpen] = useState(false);
 
 
   useEffect(() => {
     setModel(getPolicyGenerationModel());
     setLength(getPolicyGenerationLength());
+    setAutoQualityLoop(getAutoQualityLoop());
   }, []);
 
   const handleModelChange = (value: PolicyGenerationModel) => {
@@ -125,6 +132,11 @@ export const PolicyGenerationModelSettings = () => {
   const handleLengthChange = (value: PolicyLength) => {
     setLength(value);
     localStorage.setItem(LENGTH_STORAGE_KEY, value);
+  };
+
+  const handleAutoQualityLoopChange = (checked: boolean) => {
+    setAutoQualityLoop(checked);
+    localStorage.setItem(AUTO_QUALITY_LOOP_KEY, String(checked));
   };
 
   const selectedModelOption = MODEL_OPTIONS.find(m => m.value === model);
@@ -235,6 +247,32 @@ export const PolicyGenerationModelSettings = () => {
             </RadioGroup>
           </div>
 
+          <Separator />
+
+          {/* Auto Quality Loop */}
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Auto Quality Loop
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Automatically improves policy until CQC score reaches 90+. Adds up to 3 minutes. Max 3 attempts.
+                </p>
+              </div>
+              <Switch
+                checked={autoQualityLoop}
+                onCheckedChange={handleAutoQualityLoopChange}
+              />
+            </div>
+            {autoQualityLoop && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-md px-3 py-2">
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                <span>This adds up to 3 minutes to generation time</span>
+              </div>
+            )}
+          </div>
 
           <p className="text-xs text-muted-foreground">
             These settings apply to all new policy generations. Existing policies are not affected.
