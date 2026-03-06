@@ -467,7 +467,7 @@ const PolicyServiceMyPolicies = () => {
                           </div>
                         )}
 
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                           <span>Submitted: {format(parseISO(job.created_at), 'dd/MM/yyyy HH:mm')}</span>
                           {job.heartbeat_at && ['generating', 'enhancing'].includes(job.status) && (
                             <span>Last activity: {formatDistanceToNow(parseISO(job.heartbeat_at), { addSuffix: true })}</span>
@@ -476,6 +476,21 @@ const PolicyServiceMyPolicies = () => {
                             <span className="flex items-center gap-1">📧 Email notification on</span>
                           )}
                         </div>
+                        {/* Model & length metadata */}
+                        {(() => {
+                          const meta = (job as any).metadata;
+                          const model = meta?.generation_model;
+                          const length = meta?.policy_length;
+                          if (!model && !length) return null;
+                          const modelLabels: Record<string, string> = { 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-haiku-4-5': 'Haiku 4.5' };
+                          const lengthLabels: Record<string, string> = { compact: 'Compact', concise: 'Concise', standard: 'Standard', full: 'Comprehensive' };
+                          return (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                              {model && <span className="bg-muted px-1.5 py-0.5 rounded">🤖 {modelLabels[model] || model}</span>}
+                              {length && <span className="bg-muted px-1.5 py-0.5 rounded">📏 {lengthLabels[length] || length}</span>}
+                            </div>
+                          );
+                        })()}
                         {job.status === 'failed' && job.error_message && (
                           <p className="text-xs text-destructive mt-1">{job.error_message}</p>
                         )}
