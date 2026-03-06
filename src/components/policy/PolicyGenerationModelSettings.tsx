@@ -235,29 +235,6 @@ export const PolicyGenerationModelSettings = () => {
             </RadioGroup>
           </div>
 
-          <Separator />
-
-          {/* Dev: Gap Check for Gemini */}
-          <div className="border border-dashed border-muted-foreground/30 rounded-lg p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="gap-check-gemini" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                <FlaskConical className="h-4 w-4 text-amber-500" />
-                Gap Check for Gemini
-                <Badge variant="outline" className="text-[10px]">Test</Badge>
-              </Label>
-              <Switch
-                id="gap-check-gemini"
-                checked={gapCheckGemini}
-                onCheckedChange={(checked) => {
-                  setGapCheckGemini(checked);
-                  localStorage.setItem(GAP_CHECK_GEMINI_KEY, String(checked));
-                }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              When enabled, Gemini 2.5 Flash runs gap analysis &amp; remediation after generation. Enhance remains skipped. Adds ~1-2 min.
-            </p>
-          </div>
 
           <p className="text-xs text-muted-foreground">
             These settings apply to all new policy generations. Existing policies are not affected.
