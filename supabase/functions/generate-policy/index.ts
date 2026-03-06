@@ -873,7 +873,20 @@ serve(async (req) => {
         const policyLength = jobMetadata.policy_length || 'full'; // compact | concise | standard | full
         const lengthScale: Record<string, number> = { compact: 0.5, concise: 0.45, standard: 0.65, full: 1.0 };
         const scale = lengthScale[policyLength] || 1.0;
-        const scaleTokens = (base: number) => Math.max(4000, Math.round(base * scale));
+        // Hard-capped token map for compact mode (~8500 total ≈ 8-10 pages)
+        const COMPACT_TOKEN_MAP: Record<string, number> = {
+          generate_part_1: 1800,
+          generate_part_2a: 2500,
+          generate_part_2b: 1500,
+          generate_part_3a: 1200,
+          generate_part_3b: 1500,
+        };
+        const scaleTokens = (base: number, stepName?: string) => {
+          if (policyLength === 'compact' && stepName && COMPACT_TOKEN_MAP[stepName]) {
+            return COMPACT_TOKEN_MAP[stepName];
+          }
+          return Math.max(4000, Math.round(base * scale));
+        };
         
         // Build length instruction for the system prompt
         const lengthLabels: Record<string, string> = {
