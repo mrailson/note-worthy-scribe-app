@@ -1,58 +1,34 @@
 
 
-## Problem Analysis
+## Root Cause: Enhance Step Destroys Full-Length Haiku Policies
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+The document confirms sections 6-10 are entirely missing. Here's exactly what happened:
 
-### Root causes by issue:
+1. **Parts 1 → 3b all succeeded** — the 5-step pipeline generated all 11 sections correctly
+2. **The `enhance` step destroyed the document** — it sends the entire policy to the LLM and asks it to return the entire enhanced version, with `max_tokens: 10000`
+3. **Claude Haiku 4.5 has a hard output limit of 8192 tokens** (~6000 words / ~12 pages). Even the 10000 ceiling in code gets silently capped to 8192 by the API
+4. The LLM started writing the enhanced document from section 1, hit the 8192 token wall at section 5.4.4, and stopped
+5. The truncated output (sections 1-5 only) **replaced** the complete original, destroying sections 6-10
+6. The `finalise` step then appended section 11 (Version History), giving the final result: sections 1-5 → 11
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+The same risk exists for `gap_check` remediation (also 10000 max_tokens).
 
-## Plan
+The `policyContent.length > 25000` skip condition (line 1316) was supposed to catch this, but the full Cervical Screening content was likely just under 25000 chars at the enhance step — close enough to slip through.
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+## Fix
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+**Skip enhance and gap_check for Haiku models entirely.** Haiku is the "budget" model chosen for speed and cost — enhance doubles the API calls, and Haiku's 8192 token output limit makes it physically impossible to return a full-length policy without truncation.
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+### Changes to `supabase/functions/generate-policy/index.ts`:
 
-### 2. Raise Part 2b base tokens
+1. **In `generate_part_3b` step** (line 1267-1270): Add Haiku to the skip condition alongside compact:
+   ```
+   const skipEnhance = policyLength === 'compact' || generationModel === 'claude-haiku-4-5';
+   ```
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
+2. **As a safety net for Sonnet**, increase enhance max_tokens from `10000` to `16384` (line 1361 and 1467) to handle larger full-length documents without truncation.
 
-### 3. Add anti-truncation instructions to all step prompts
+3. **Lower the skip threshold** from `25000` to `18000` chars (line 1316) as an additional safeguard — if content is already 18000+ chars, the enhance LLM call risks truncation even with higher token limits.
 
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
-
-### 4. Update step labels and progress tracking
-
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
-
-### 5. Verify Version History enforcement
-
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
-
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+### No client-side changes needed.
 
