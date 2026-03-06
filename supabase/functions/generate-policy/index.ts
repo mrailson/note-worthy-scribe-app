@@ -1153,7 +1153,7 @@ Now generate sections 7-8 only. IMPORTANT: Complete every subsection. Never end 
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART3A_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(4000),
+            scaleTokens(4000, 'generate_part_3a'),
             generationModel
           );
 
