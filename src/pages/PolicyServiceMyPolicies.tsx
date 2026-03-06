@@ -562,6 +562,17 @@ const PolicyServiceMyPolicies = () => {
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-medium truncate">{completion.policy_title}</h3>
                         <Badge variant="secondary">v{completion.version}</Badge>
+                        {(completion.metadata as any)?.policy_length && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 capitalize">
+                            {(completion.metadata as any).policy_length}
+                          </Badge>
+                        )}
+                        {(completion.metadata as any)?.generation_duration_seconds && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
+                            <Clock className="h-2.5 w-2.5 mr-0.5" />
+                            {Math.floor((completion.metadata as any).generation_duration_seconds / 60)}m {(completion.metadata as any).generation_duration_seconds % 60}s
+                          </Badge>
+                        )}
                         {differenceInHours(new Date(), parseISO(completion.created_at)) < 24 && (
                           <Badge className="bg-green-600 hover:bg-green-600 text-white gap-0.5 text-[10px] px-1.5 py-0 h-4">
                             <Sparkles className="h-2.5 w-2.5" />

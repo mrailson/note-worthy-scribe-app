@@ -873,7 +873,20 @@ serve(async (req) => {
         const policyLength = jobMetadata.policy_length || 'full'; // compact | concise | standard | full
         const lengthScale: Record<string, number> = { compact: 0.5, concise: 0.45, standard: 0.65, full: 1.0 };
         const scale = lengthScale[policyLength] || 1.0;
-        const scaleTokens = (base: number) => Math.max(4000, Math.round(base * scale));
+        // Hard-capped token map for compact mode (~8500 total ≈ 8-10 pages)
+        const COMPACT_TOKEN_MAP: Record<string, number> = {
+          generate_part_1: 1800,
+          generate_part_2a: 2500,
+          generate_part_2b: 1500,
+          generate_part_3a: 1200,
+          generate_part_3b: 1500,
+        };
+        const scaleTokens = (base: number, stepName?: string) => {
+          if (policyLength === 'compact' && stepName && COMPACT_TOKEN_MAP[stepName]) {
+            return COMPACT_TOKEN_MAP[stepName];
+          }
+          return Math.max(4000, Math.round(base * scale));
+        };
         
         // Build length instruction for the system prompt
         const lengthLabels: Record<string, string> = {
@@ -920,7 +933,7 @@ Generate the complete header and sections 1-3 only. IMPORTANT: Complete every su
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART1_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(5200),
+            scaleTokens(5200, 'generate_part_1'),
             generationModel
           );
 
@@ -990,7 +1003,7 @@ Now generate sections 4-5 only. Section 5 must be COMPLETE with all sub-sections
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART2A_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(10000),
+            scaleTokens(10000, 'generate_part_2a'),
             generationModel
           );
 
@@ -1065,7 +1078,7 @@ Now generate section 6 (Training Requirements) only. You MUST complete ALL subse
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART2B_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(4000),
+            scaleTokens(4000, 'generate_part_2b'),
             generationModel
           );
 
@@ -1140,7 +1153,7 @@ Now generate sections 7-8 only. IMPORTANT: Complete every subsection. Never end 
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART3A_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(4000),
+            scaleTokens(4000, 'generate_part_3a'),
             generationModel
           );
 
@@ -1216,7 +1229,7 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART3B_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(5000),
+            scaleTokens(5000, 'generate_part_3b'),
             generationModel
           );
 
@@ -1503,12 +1516,22 @@ ${finalContent}`;
           try {
             const today = new Date().toISOString().split('T')[0];
             const reviewDate = new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0];
-            await serviceSupabase.from('policy_completions').insert({
+          // Calculate generation duration
+          const createdAt = new Date(job.created_at).getTime();
+          const generationDurationSeconds = Math.round((Date.now() - createdAt) / 1000);
+          const completionMetadata = {
+            ...jobMetadata,
+            policy_length: policyLength,
+            generation_duration_seconds: generationDurationSeconds,
+            generation_model: jobMetadata.generation_model || 'claude-sonnet-4-6',
+          };
+
+          await serviceSupabase.from('policy_completions').insert({
               user_id: job.user_id,
               policy_reference_id: job.policy_reference_id,
               policy_title: policyName,
               policy_content: policyContent,
-              metadata: jobMetadata,
+              metadata: completionMetadata,
               version: jobMetadata.version || '1.0',
               status: 'completed',
               effective_date: toISODate(jobMetadata.effective_date || today),
