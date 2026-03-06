@@ -1056,15 +1056,16 @@ Deno.serve(async (req) => {
       const currentStep = job.current_step || 'generate_part_1';
       const attemptCount = (job.attempt_count || 0) + 1;
 
-      const maxAttemptsForStep = currentStep === 'gap_check' ? 1 : MAX_STEP_ATTEMPTS;
+      const maxAttemptsForStep = (currentStep === 'gap_check' || currentStep.startsWith('auto_quality')) ? 1 : MAX_STEP_ATTEMPTS;
       if (attemptCount > maxAttemptsForStep) {
-        // gap_check exceeded its single attempt — skip to finalise instead of failing
-        if (currentStep === 'gap_check') {
-          console.warn(`[gap_check] Single attempt exceeded, skipping to finalise for job ${job.id}`);
+        // gap_check or auto_quality exceeded single attempt — skip to finalise
+        if (currentStep === 'gap_check' || currentStep.startsWith('auto_quality')) {
+          console.warn(`[${currentStep}] Single attempt exceeded, skipping to finalise for job ${job.id}`);
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
               current_step: 'finalise',
+              status: 'enhancing',
               progress_pct: 90,
               attempt_count: 0,
               lease_expires_at: null,
@@ -1073,7 +1074,7 @@ Deno.serve(async (req) => {
             })
             .eq('id', job.id);
           selfTrigger(targetUserId);
-          return new Response(JSON.stringify({ success: true, phase: 'gap_check_skipped', jobId: job.id }), {
+          return new Response(JSON.stringify({ success: true, phase: `${currentStep}_skipped`, jobId: job.id }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
