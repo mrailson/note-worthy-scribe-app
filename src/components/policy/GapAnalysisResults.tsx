@@ -111,7 +111,7 @@ export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }
             {analysis.gaps.map((gap, index) => (
               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                 <span className="text-orange-500 mt-1">•</span>
-                <span>{typeof gap === 'string' ? gap : `${(gap as any).issue}${(gap as any).reason ? ` — ${(gap as any).reason}` : ''}${(gap as any).section ? ` [${(gap as any).section}]` : ''}`}</span>
+                <span>{typeof gap === 'string' ? gap : `${(gap as any).description || (gap as any).issue || JSON.stringify(gap)}${(gap as any).reason ? ` — ${(gap as any).reason}` : ''}${(gap as any).section ? ` [${(gap as any).section}]` : ''}`}</span>
               </li>
             ))}
           </ul>
