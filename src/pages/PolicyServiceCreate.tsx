@@ -52,8 +52,8 @@ const PolicyServiceCreate = () => {
   const [loadingSlots, setLoadingSlots] = useState(true);
 
   const currentModel = getPolicyGenerationModel();
-  const isHaiku = currentModel === 'claude-haiku-4-5';
-  const maxActiveJobs = isHaiku ? MAX_ACTIVE_JOBS_HAIKU : MAX_ACTIVE_JOBS_SONNET;
+  const isBudgetModel = BUDGET_MODELS.includes(currentModel);
+  const maxActiveJobs = isBudgetModel ? MAX_ACTIVE_JOBS_BUDGET : MAX_ACTIVE_JOBS_SONNET;
   const availableSlots = Math.max(0, maxActiveJobs - activeJobCount);
 
   // Fetch active job count on mount
