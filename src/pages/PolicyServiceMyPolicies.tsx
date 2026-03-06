@@ -49,7 +49,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { QuickGuideDialog, QuickGuideOutput } from "@/components/policy/QuickGuideDialog";
+import { QuickGuideDialog, QuickGuideOutput, SavedQuickGuide } from "@/components/policy/QuickGuideDialog";
+import { SavedGuidesPopover } from "@/components/policy/SavedGuidesPopover";
 
 const getExpectedMinutes = (job: PolicyJob): number => {
   const length = (job.metadata as any)?.policy_length;
