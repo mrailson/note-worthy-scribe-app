@@ -34,9 +34,6 @@ export const getPolicyGenerationLength = (): PolicyLength => {
   return 'full';
 };
 
-export const getGapCheckForGemini = (): boolean => {
-  return localStorage.getItem(GAP_CHECK_GEMINI_KEY) === 'true';
-};
 
 export const getModelDisplayLabel = (model: string): string => {
   const found = MODEL_OPTIONS.find(m => m.value === model);
