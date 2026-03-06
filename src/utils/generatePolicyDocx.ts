@@ -709,9 +709,12 @@ function parseMarkdownToSections(markdown: string, titleToSkip?: string): (Parag
       }
       
       // Check if this is the document control table (skip it)
+      // Must match Document Control specifically — NOT the Version History table
+      // Document Control has "effective date" or "review date"; Version History has "summary"
       const allCellsJoined = tableLines.join(' ').toLowerCase();
       const isDocControlTable = allCellsJoined.includes('version') && 
-        (allCellsJoined.includes('effective date') || allCellsJoined.includes('review date') || allCellsJoined.includes('author'));
+        (allCellsJoined.includes('effective date') || allCellsJoined.includes('review date')) &&
+        !allCellsJoined.includes('summary');
       
       if (skipDocumentControlSection || isDocControlTable) {
         skipDocumentControlSection = false;
