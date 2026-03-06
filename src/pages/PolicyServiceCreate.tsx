@@ -96,7 +96,7 @@ const PolicyServiceCreate = () => {
         return;
       }
     }
-    setShowConfirm(true);
+    handleConfirmGenerate();
   };
 
   const handleConfirmGenerate = async () => {
