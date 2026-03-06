@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
+
 
 export type PolicyGenerationModel = 
   | 'claude-sonnet-4-6' 
