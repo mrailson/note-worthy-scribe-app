@@ -19,6 +19,7 @@ export type PolicyLength = 'compact' | 'concise' | 'standard' | 'full';
 
 const MODEL_STORAGE_KEY = 'policy-generation-model';
 const LENGTH_STORAGE_KEY = 'policy-generation-length';
+const GAP_CHECK_GEMINI_KEY = 'policy-gap-check-gemini';
 
 export const getPolicyGenerationModel = (): PolicyGenerationModel => {
   const saved = localStorage.getItem(MODEL_STORAGE_KEY);
@@ -30,6 +31,10 @@ export const getPolicyGenerationLength = (): PolicyLength => {
   const saved = localStorage.getItem(LENGTH_STORAGE_KEY);
   if (saved === 'compact' || saved === 'concise' || saved === 'standard') return saved;
   return 'full';
+};
+
+export const getGapCheckForGemini = (): boolean => {
+  return localStorage.getItem(GAP_CHECK_GEMINI_KEY) === 'true';
 };
 
 export const getModelDisplayLabel = (model: string): string => {
