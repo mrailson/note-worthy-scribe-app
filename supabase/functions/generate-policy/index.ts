@@ -219,6 +219,7 @@ POLICY-SPECIFIC MANDATORY CONTENT (SAFEGUARDING ADULTS):
 POLICY-SPECIFIC MANDATORY CONTENT (SAFEGUARDING CHILDREN):
 - MUST include FGM mandatory reporting duty: the legal obligation under the Female Genital Mutilation Act 2003 (as amended by the Serious Crime Act 2015) for regulated health professionals to report known cases of FGM in girls under 18 to the police. Include the reporting process, timeframe, and who is responsible at the practice.
 - MUST include Serious Case Review / Child Safeguarding Practice Review (CSPR): reference the practice's duty to cooperate with any CSPR or Rapid Review initiated by the Local Safeguarding Children Partnership (LSCP), including how learning from reviews will be disseminated and embedded into practice procedures.
+- MUST include Section 47 of the Children Act 1989: this is the legal basis for a local authority child protection enquiry when a child is suspected to be suffering, or likely to suffer, significant harm. The policy must describe the practice's role when a Section 47 enquiry is initiated, including cooperating with the investigating team (social workers, police, other agencies) and providing relevant clinical information in a timely manner.
 - Reference "Working Together to Safeguard Children 2023" and the role of MASAs (Multi-Agency Safeguarding Arrangements).`,
 
   'chaperone': `
