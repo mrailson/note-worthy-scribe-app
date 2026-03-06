@@ -705,8 +705,22 @@ const PolicyServiceMyPolicies = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => navigate(`/policy-service/my-policies/${completion.id}`)}
+                        title="View policy"
                       >
                         <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRerun(completion)}
+                        disabled={rerunningId === completion.id}
+                        title="Regenerate policy"
+                      >
+                        {rerunningId === completion.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
                       </Button>
                       <SavedGuidesPopover
                         guides={((completion.metadata as any)?.quick_guides || []) as SavedQuickGuide[]}
