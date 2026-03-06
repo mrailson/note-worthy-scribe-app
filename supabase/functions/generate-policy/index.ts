@@ -1925,16 +1925,22 @@ STRICT DEDUPLICATION: max 8 issues. Each issue must appear exactly once across t
                 if (actionableGaps.length > 0) {
                   // Run remediation
                   const gapsList = actionableGaps.map((g: any) => typeof g === 'string' ? g : (g.description || g.issue || JSON.stringify(g)));
-                  const remediationPrompt = `The following ${policyName} policy has been reviewed and these compliance gaps were identified:
+                  const remediationPrompt = `TASK: You MUST fix the following ${gapsList.length} compliance gaps in this ${policyName} policy. For each gap listed below, you MUST ADD the missing content directly into the appropriate section of the policy. Do not merely acknowledge the gaps — actually write the missing paragraphs, procedures, or subsections.
 
+COMPLIANCE GAPS TO FIX (each one MUST be addressed with new content):
 ${gapsList.map((g: string, i: number) => `${i + 1}. ${g}`).join('\n')}
 
-Please address EACH gap by adding or correcting the relevant content within the existing document structure. Do NOT restructure the document, do NOT add internal notes or gap analysis tables. Simply fix each issue in-place within the appropriate section.
+INSTRUCTIONS:
+- For each gap above, ADD a new subsection or paragraph in the most appropriate section of the policy
+- Include specific procedural detail, named responsibilities, and timeframes where relevant
+- Do NOT remove or restructure any existing content
+- Do NOT add meta-commentary, gap analysis tables, or notes about what was changed
+- Output the COMPLETE policy document with all existing content PLUS the new additions
 
 PRACTICE DATA:
 ${practiceContext}
 
-POLICY TO FIX:
+COMPLETE POLICY TO UPDATE:
 ${policyContent}`;
 
                   const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 32768, generationModel);
