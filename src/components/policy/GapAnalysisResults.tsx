@@ -4,6 +4,7 @@ import { AlertTriangle, FileX, Clock, AlertCircle, ArrowRight, Loader2 } from "l
 
 interface GapAnalysis {
   policy_type: string;
+  policy_source?: 'notewell' | 'uploaded';
   gaps: string[];
   outdated_references: string[];
   missing_sections: string[];
@@ -19,6 +20,12 @@ interface GapAnalysisResultsProps {
 export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }: GapAnalysisResultsProps) => {
   const totalIssues = analysis.gaps.length + analysis.outdated_references.length + analysis.missing_sections.length;
   const hasIssues = totalIssues > 0;
+  const isNotewell = analysis.policy_source === 'notewell';
+
+  const headingText = isNotewell ? 'Quality Review' : 'Gap Analysis';
+  const issueLabel = isNotewell
+    ? `${totalIssues} ${totalIssues === 1 ? 'suggestion' : 'suggestions'}`
+    : `${totalIssues} ${totalIssues === 1 ? 'issue' : 'issues'} found`;
 
   return (
     <div className="space-y-6">
@@ -38,9 +45,18 @@ export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }
 
       {/* Summary */}
       <div className="flex items-center gap-4">
-        <Badge variant={hasIssues ? "destructive" : "default"} className="text-sm px-3 py-1">
-          {totalIssues} {totalIssues === 1 ? 'issue' : 'issues'} found
-        </Badge>
+        {isNotewell ? (
+          <Badge
+            variant={hasIssues ? "outline" : "default"}
+            className={hasIssues ? "text-sm px-3 py-1 bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700" : "text-sm px-3 py-1"}
+          >
+            {issueLabel}
+          </Badge>
+        ) : (
+          <Badge variant={hasIssues ? "destructive" : "default"} className="text-sm px-3 py-1">
+            {issueLabel}
+          </Badge>
+        )}
         {!hasIssues && (
           <span className="text-sm text-green-600 dark:text-green-400">
             Your policy appears to be up to date
@@ -53,7 +69,7 @@ export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-orange-500" />
-            <h3 className="font-medium">Gaps Identified ({analysis.gaps.length})</h3>
+            <h3 className="font-medium">{isNotewell ? 'Suggestions' : 'Gaps Identified'} ({analysis.gaps.length})</h3>
           </div>
           <ul className="space-y-2 pl-7">
             {analysis.gaps.map((gap, index) => (
@@ -118,7 +134,7 @@ export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }
           )}
         </Button>
         <Button variant="outline" className="flex-1 sm:flex-none">
-          Export Gap Analysis
+          Export {headingText}
         </Button>
       </div>
 
@@ -129,7 +145,7 @@ export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }
           <div className="text-sm text-blue-700 dark:text-blue-300">
             <p className="font-medium">About the Updated Version</p>
             <p className="mt-1">
-              The AI will generate a new version of your policy that addresses the identified gaps,
+              The AI will generate a new version of your policy that addresses the identified {isNotewell ? 'suggestions' : 'gaps'},
               updates outdated references, and adds any missing sections while preserving your
               practice-specific content.
             </p>
