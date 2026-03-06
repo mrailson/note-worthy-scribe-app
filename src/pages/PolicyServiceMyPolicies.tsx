@@ -479,7 +479,7 @@ const PolicyServiceMyPolicies = () => {
                         </div>
 
                         {/* Progress bar for active jobs */}
-                        {['generating', 'enhancing'].includes(job.status) && (
+                        {['generating', 'enhancing', 'optimising'].includes(job.status) && (
                           <div className="my-2">
                             <Progress value={job.progress_pct || 0} className="h-2" />
                           </div>
