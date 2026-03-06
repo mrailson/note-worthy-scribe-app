@@ -87,7 +87,7 @@ const MODEL_OPTIONS: {
   },
   { 
     value: 'gemini-2.0-flash-thinking-exp', 
-    label: 'Gemini 2.5 Flash', 
+    label: 'Gemini 2.0 Flash Thinking', 
     provider: 'Google',
     badge: 'Reasoning', 
     badgeVariant: 'outline',
