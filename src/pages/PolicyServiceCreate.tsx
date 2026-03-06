@@ -26,7 +26,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PolicyReference } from "@/hooks/usePolicyReferenceLibrary";
 
 const MAX_ACTIVE_JOBS_SONNET = 3;
-const MAX_ACTIVE_JOBS_HAIKU = 5;
+const MAX_ACTIVE_JOBS_BUDGET = 10;
+
+const BUDGET_MODELS: string[] = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.5-flash', 'gemini-2.0-flash'];
 
 const LENGTH_OPTIONS: { value: PolicyLength; label: string }[] = [
   { value: 'compact', label: 'Compact (~8pp)' },
@@ -50,8 +52,8 @@ const PolicyServiceCreate = () => {
   const [loadingSlots, setLoadingSlots] = useState(true);
 
   const currentModel = getPolicyGenerationModel();
-  const isHaiku = currentModel === 'claude-haiku-4-5';
-  const maxActiveJobs = isHaiku ? MAX_ACTIVE_JOBS_HAIKU : MAX_ACTIVE_JOBS_SONNET;
+  const isBudgetModel = BUDGET_MODELS.includes(currentModel);
+  const maxActiveJobs = isBudgetModel ? MAX_ACTIVE_JOBS_BUDGET : MAX_ACTIVE_JOBS_SONNET;
   const availableSlots = Math.max(0, maxActiveJobs - activeJobCount);
 
   // Fetch active job count on mount
@@ -264,7 +266,7 @@ const PolicyServiceCreate = () => {
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Generate up to {availableSlots} {availableSlots === 1 ? 'policy' : 'policies'} at once
-                    {isHaiku && <span className="text-primary ml-1">(Budget model — higher limit)</span>}
+                    {isBudgetModel && <span className="text-primary ml-1">(Budget model — up to {MAX_ACTIVE_JOBS_BUDGET})</span>}
                   </p>
                 </div>
               </div>
