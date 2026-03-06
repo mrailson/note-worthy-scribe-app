@@ -41,7 +41,8 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { PolicyDocumentPreview } from "@/components/policy/PolicyDocumentPreview";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { QuickGuideDialog, QuickGuideOutput } from "@/components/policy/QuickGuideDialog";
+import { QuickGuideDialog, QuickGuideOutput, SavedQuickGuide } from "@/components/policy/QuickGuideDialog";
+import { SavedGuidesPopover } from "@/components/policy/SavedGuidesPopover";
 import {
   AlertDialog,
   AlertDialogAction,
