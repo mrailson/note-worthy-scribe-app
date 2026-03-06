@@ -29,12 +29,7 @@ const MAX_ACTIVE_JOBS_BUDGET = 10;
 
 const BUDGET_MODELS: string[] = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.5-flash', 'gemini-2.0-flash'];
 
-const LENGTH_OPTIONS: { value: PolicyLength; label: string }[] = [
-  { value: 'compact', label: 'Compact (~8pp)' },
-  { value: 'concise', label: 'Concise (~13pp)' },
-  { value: 'standard', label: 'Standard (~20pp)' },
-  { value: 'full', label: 'Comprehensive (~40pp)' },
-];
+const DEFAULT_LENGTH = 'full';
 
 const PolicyServiceCreate = () => {
   const navigate = useNavigate();
