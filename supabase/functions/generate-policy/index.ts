@@ -910,7 +910,7 @@ Deno.serve(async (req) => {
       const { data: legacyUsers } = await serviceSupabase
         .from('policy_generation_jobs')
         .select('user_id')
-        .in('status', ['generating', 'enhancing'])
+        .in('status', ['generating', 'enhancing', 'optimising'])
         .is('lease_expires_at', null);
 
       // Deduplicate user IDs
