@@ -568,6 +568,14 @@ const PolicyServiceMyPolicies = () => {
                             {(completion.metadata as any).policy_length}
                           </Badge>
                         )}
+                        {(completion.metadata as any)?.generation_model && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
+                            🤖 {(() => {
+                              const modelLabels: Record<string, string> = { 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-haiku-4-5': 'Haiku 4.5', 'gpt-4o-mini': 'GPT-4o Mini', 'gemini-2.0-flash': 'Gemini Flash', 'gemini-2.0-flash-thinking-exp': 'Gemini Thinking' };
+                              return modelLabels[(completion.metadata as any).generation_model] || (completion.metadata as any).generation_model;
+                            })()}
+                          </Badge>
+                        )}
                         {(completion.metadata as any)?.generation_duration_seconds && (
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
                             <Clock className="h-2.5 w-2.5 mr-0.5" />
