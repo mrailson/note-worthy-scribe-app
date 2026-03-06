@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, ArrowRight, FileText, Loader2, X, Layers } from "lucide-react";
-import { getPolicyGenerationModel } from "@/components/policy/PolicyGenerationModelSettings";
+import { getPolicyGenerationModel, getAutoQualityLoop } from "@/components/policy/PolicyGenerationModelSettings";
 import { useNavigate } from "react-router-dom";
 import { PolicyTypeSelector } from "@/components/policy/PolicyTypeSelector";
 import { toast } from "sonner";
@@ -162,6 +162,7 @@ const PolicyServiceCreate = () => {
         metadata: { 
           generation_model: selectedModel, 
           policy_length: (policy as any)._length || 'full',
+          auto_quality_loop: getAutoQualityLoop(),
         } as any,
       }));
 

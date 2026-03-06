@@ -903,14 +903,14 @@ Deno.serve(async (req) => {
       const { data: staleUsers } = await serviceSupabase
         .from('policy_generation_jobs')
         .select('user_id')
-        .in('status', ['generating', 'enhancing'])
+        .in('status', ['generating', 'enhancing', 'optimising'])
         .lt('lease_expires_at', now);
 
       // Also check for NULL lease (legacy)
       const { data: legacyUsers } = await serviceSupabase
         .from('policy_generation_jobs')
         .select('user_id')
-        .in('status', ['generating', 'enhancing'])
+        .in('status', ['generating', 'enhancing', 'optimising'])
         .is('lease_expires_at', null);
 
       // Deduplicate user IDs
@@ -923,7 +923,7 @@ Deno.serve(async (req) => {
       const { data: activeLeases } = await serviceSupabase
         .from('policy_generation_jobs')
         .select('user_id')
-        .in('status', ['generating', 'enhancing'])
+        .in('status', ['generating', 'enhancing', 'optimising'])
         .gt('lease_expires_at', now);
 
       const activeUserIds = new Set((activeLeases || []).map(r => r.user_id));
@@ -984,7 +984,7 @@ Deno.serve(async (req) => {
           .from('policy_generation_jobs')
           .select('*')
           .eq('user_id', targetUserId)
-          .in('status', ['generating', 'enhancing'])
+          .in('status', ['generating', 'enhancing', 'optimising'])
           .lt('lease_expires_at', now)
           .order('created_at', { ascending: true })
           .limit(10);
@@ -1001,7 +1001,7 @@ Deno.serve(async (req) => {
           .from('policy_generation_jobs')
           .select('*')
           .eq('user_id', targetUserId)
-          .in('status', ['generating', 'enhancing'])
+          .in('status', ['generating', 'enhancing', 'optimising'])
           .is('lease_expires_at', null)
           .order('created_at', { ascending: true })
           .limit(10);
@@ -1035,14 +1035,14 @@ Deno.serve(async (req) => {
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
-              status: ['enhance', 'gap_check', 'finalise'].includes(job.current_step) ? 'enhancing' : 'pending',
+              status: ['enhance', 'gap_check', 'finalise'].includes(job.current_step) ? 'enhancing' : (job.current_step?.startsWith('auto_quality') ? 'optimising' : 'pending'),
               lease_expires_at: null,
               next_retry_at: null,
               error_message: null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', job.id);
-          job.status = ['enhance', 'gap_check', 'finalise'].includes(job.current_step) ? 'enhancing' : 'pending';
+          job.status = ['enhance', 'gap_check', 'finalise'].includes(job.current_step) ? 'enhancing' : (job.current_step?.startsWith('auto_quality') ? 'optimising' : 'pending');
         }
       }
 
@@ -1056,15 +1056,16 @@ Deno.serve(async (req) => {
       const currentStep = job.current_step || 'generate_part_1';
       const attemptCount = (job.attempt_count || 0) + 1;
 
-      const maxAttemptsForStep = currentStep === 'gap_check' ? 1 : MAX_STEP_ATTEMPTS;
+      const maxAttemptsForStep = (currentStep === 'gap_check' || currentStep.startsWith('auto_quality')) ? 1 : MAX_STEP_ATTEMPTS;
       if (attemptCount > maxAttemptsForStep) {
-        // gap_check exceeded its single attempt — skip to finalise instead of failing
-        if (currentStep === 'gap_check') {
-          console.warn(`[gap_check] Single attempt exceeded, skipping to finalise for job ${job.id}`);
+        // gap_check or auto_quality exceeded single attempt — skip to finalise
+        if (currentStep === 'gap_check' || currentStep.startsWith('auto_quality')) {
+          console.warn(`[${currentStep}] Single attempt exceeded, skipping to finalise for job ${job.id}`);
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
               current_step: 'finalise',
+              status: 'enhancing',
               progress_pct: 90,
               attempt_count: 0,
               lease_expires_at: null,
@@ -1073,7 +1074,7 @@ Deno.serve(async (req) => {
             })
             .eq('id', job.id);
           selfTrigger(targetUserId);
-          return new Response(JSON.stringify({ success: true, phase: 'gap_check_skipped', jobId: job.id }), {
+          return new Response(JSON.stringify({ success: true, phase: `${currentStep}_skipped`, jobId: job.id }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -1097,7 +1098,7 @@ Deno.serve(async (req) => {
       await serviceSupabase
         .from('policy_generation_jobs')
         .update({
-           status: ['enhance', 'gap_check', 'finalise'].includes(currentStep) ? 'enhancing' : 'generating',
+           status: ['enhance', 'gap_check', 'finalise'].includes(currentStep) ? 'enhancing' : (currentStep.startsWith('auto_quality') ? 'optimising' : 'generating'),
           current_step: currentStep,
           heartbeat_at: now,
           lease_expires_at: new Date(Date.now() + LEASE_DURATION_MS).toISOString(),
@@ -1542,13 +1543,18 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
           const normalisedPolicyName = policyName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
           const runGapCheck = gapCheckPolicyTypes.some(t => normalisedPolicyName.includes(t)) && policyLength !== 'compact';
           const isCompact = policyLength === 'compact';
+          const autoQualityLoop = jobMetadata.auto_quality_loop === true;
           
           const budgetModels = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp', 'gemini-2.5-flash', 'gemini-2.5-pro'];
           const isBudget = budgetModels.includes(generationModel);
           const skipEnhance = isCompact || isBudget;
-          const nextStep = runGapCheck ? 'gap_check' : (skipEnhance ? 'finalise' : 'enhance');
-          const nextStatus = (nextStep === 'finalise' || nextStep === 'gap_check') ? 'generating' : 'enhancing';
-          const nextProgress = nextStep === 'finalise' ? 90 : (nextStep === 'gap_check' ? 82 : 80);
+          let nextStep = runGapCheck ? 'gap_check' : (skipEnhance ? 'finalise' : 'enhance');
+          // If skipping straight to finalise but auto quality loop is on, go to auto_quality_1 instead
+          if (nextStep === 'finalise' && autoQualityLoop) {
+            nextStep = 'auto_quality_1';
+          }
+          const nextStatus = ['finalise', 'gap_check', 'auto_quality_1'].includes(nextStep) ? 'generating' : 'enhancing';
+          const nextProgress = nextStep === 'finalise' ? 90 : (nextStep === 'auto_quality_1' ? 91 : (nextStep === 'gap_check' ? 82 : 80));
           if (skipEnhance && !runGapCheck) {
             console.log(`[Step: generate_part_3b] Skipping enhance & gap_check (compact=${isCompact}, model=${generationModel})`);
           }
@@ -1712,6 +1718,22 @@ SEVERITY FILTER — only flag:
 2. CQC INSPECTION RISK: a materially missing section a CQC inspector would specifically look for evidence of.
 3. PATIENT SAFETY / OPERATIONAL RISK: a process gap that could directly lead to patient harm or significant operational failure.
 
+SCOPE FILTERING — CRITICAL:
+Before reporting any gap, ask: does this gap belong directly within the scope of THIS specific policy type, or does it belong to a separate policy that should merely be cross-referenced?
+Do NOT report gaps that belong to these separate policies:
+- Business Continuity / SystmOne downtime procedures
+- Controlled Drugs Accountable Officer details
+- Whistleblowing / Freedom to Speak Up
+- HR / employment policies
+- Any other distinct policy with its own dedicated document
+For these topics, a cross-reference is sufficient — do not penalise their absence.
+
+Do NOT penalise or flag placeholder values including:
+- "Oak Lane Medical Practice", "Dr John Smith", "Malcolm Railson", "123 High Street"
+- Any similar template placeholders — these are intentional and will be replaced by the practice.
+
+PSIRF NOTE: The Patient Safety Incident Response Framework (PSIRF) replaced the Serious Incident Framework in 2023 for NHS providers. For PRIMARY CARE / GP PRACTICES, reference to PSIRF is best practice but not yet mandated — flag as a recommendation, not a Clinical/Legal gap.
+
 NEVER FLAG: minor wording, style, fax mentions, current DSPT versions, vendor names, case law that remains good law, anything covered elsewhere in the document.
 CRITICAL: Before flagging any gap, confirm the content is genuinely absent from the ENTIRE document — not just the expected section. If the substance is covered anywhere in the document, do not flag it.
 STRICT DEDUPLICATION: Each issue must appear exactly once across the entire output. Before returning, compare all gap descriptions — if two items refer to the same underlying gap (even worded differently), keep only the one under the most appropriate category and discard the other. Never list the same issue under both "gaps" and any other grouping.
@@ -1765,13 +1787,19 @@ ${finalContent}`;
             // finalContent remains the pre-gap-check policyContent — no changes lost
           }
 
-          // Advance to finalise regardless of outcome
+          // Advance to finalise (or auto_quality_1 if loop enabled)
+          const autoQualityLoop = jobMetadata.auto_quality_loop === true;
+          const gapNextStep = autoQualityLoop ? 'auto_quality_1' : 'finalise';
+          const gapNextStatus = autoQualityLoop ? 'optimising' : 'enhancing';
+          const gapNextProgress = autoQualityLoop ? 91 : 90;
+
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
               generated_content: finalContent,
-              current_step: 'finalise',
-              progress_pct: 90,
+              current_step: gapNextStep,
+              status: gapNextStatus,
+              progress_pct: gapNextProgress,
               attempt_count: 0,
               next_retry_at: null,
               heartbeat_at: new Date().toISOString(),
@@ -1780,10 +1808,173 @@ ${finalContent}`;
             })
             .eq('id', job.id);
 
-          console.log(`[Step done: gap_check] Job ${job.id} → finalise`);
+          console.log(`[Step done: gap_check] Job ${job.id} → ${gapNextStep}`);
           selfTrigger(targetUserId);
 
           return new Response(JSON.stringify({ success: true, phase: 'gap_check', jobId: job.id }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // ---- STEP: auto_quality_1/2/3 (Auto Quality Loop — opt-in) ----
+        if (currentStep.startsWith('auto_quality_')) {
+          const attemptNum = parseInt(currentStep.split('_')[2]) || 1;
+          await updateHeartbeat(serviceSupabase, job.id, currentStep, 91 + attemptNum);
+
+          const policyContent = job.generated_content || '';
+          const practiceManagerName = (jobPractice as any)?.practice_manager_name || (jobPractice as any)?.practice_manager || 'Practice Manager';
+          let improvedContent = policyContent;
+          let complianceScore = 100;
+          let scoreSummary = '';
+
+          try {
+            // Run gap analysis with scoring
+            const maxLength = 200000;
+            const documentText = policyContent.length > maxLength
+              ? policyContent.substring(0, maxLength) + '\n\n[Content truncated due to length]'
+              : policyContent;
+
+            const AUTO_QUALITY_GAP_SYSTEM = `You are an expert NHS policy analyst. Analyse this GP practice policy and return ONLY valid JSON:
+{
+  "gaps": [{ "description": "string", "severity": "Clinical/Legal|CQC Inspection|Patient Safety" }],
+  "has_material_gaps": true/false,
+  "compliance_score": number_0_to_100,
+  "score_summary": "one sentence summary"
+}
+
+SEVERITY FILTER — only flag:
+1. CLINICAL / LEGAL RISK: incorrect clinical intervals, superseded legislation cited as current, missing mandatory legal rights or statutory duties.
+2. CQC INSPECTION RISK: a materially missing section a CQC inspector would specifically look for evidence of.
+3. PATIENT SAFETY / OPERATIONAL RISK: a process gap that could directly lead to patient harm or significant operational failure.
+
+SCOPE FILTERING — CRITICAL:
+Before reporting any gap, ask: does this gap belong directly within the scope of THIS specific policy type, or does it belong to a separate policy that should merely be cross-referenced?
+Do NOT report gaps that belong to these separate policies:
+- Business Continuity / SystmOne downtime procedures
+- Controlled Drugs Accountable Officer details
+- Whistleblowing / Freedom to Speak Up
+- HR / employment policies
+- Any other distinct policy with its own dedicated document
+For these topics, a cross-reference is sufficient — do not penalise their absence.
+
+Do NOT penalise or flag placeholder values including:
+- "Oak Lane Medical Practice", "Dr John Smith", "Malcolm Railson", "123 High Street"
+- Any similar template placeholders — these are intentional and will be replaced by the practice.
+
+PSIRF NOTE: The Patient Safety Incident Response Framework (PSIRF) replaced the Serious Incident Framework in 2023 for NHS providers. For PRIMARY CARE / GP PRACTICES, reference to PSIRF is best practice but not yet mandated — flag as a recommendation, not a Clinical/Legal gap.
+
+NEVER FLAG: minor wording, style, fax mentions, current DSPT versions, vendor names, case law that remains good law, anything covered elsewhere in the document.
+
+SCORING: Start at 100. Deduct: Clinical/Legal gap -8, CQC Inspection gap -5, Patient Safety gap -6, Outdated Reference -3, Missing Section -4, Incomplete document -20, No named responsible person -5, No review date -5, No version history -3. This is a Notewell-generated policy so apply +10 baseline bonus before deductions (start at 110, cap at 100). Floor: 0. Max: 100.
+
+STRICT DEDUPLICATION: max 8 issues. Each issue must appear exactly once.`;
+
+            const gapResponse = await callAnthropic(AUTO_QUALITY_GAP_SYSTEM, `Analyse this policy document IN FULL.\n\n---POLICY DOCUMENT START---\n${documentText}\n---POLICY DOCUMENT END---`, 8192, generationModel);
+            const jsonMatch = gapResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              complianceScore = typeof parsed.compliance_score === 'number' ? Math.max(0, Math.min(100, parsed.compliance_score)) : 100;
+              scoreSummary = parsed.score_summary || '';
+
+              console.log(`[auto_quality_${attemptNum}] Score: ${complianceScore}/100 for job ${job.id}`);
+
+              // If score >= 90, we're done
+              if (complianceScore >= 90) {
+                console.log(`[auto_quality_${attemptNum}] Target reached (${complianceScore}/100), advancing to finalise`);
+              } else if (attemptNum < 3 && parsed.has_material_gaps && Array.isArray(parsed.gaps) && parsed.gaps.length > 0) {
+                // Filter to actionable gaps
+                const actionableGaps = parsed.gaps
+                  .filter((g: any) => {
+                    const sev = (g.severity || '').toLowerCase();
+                    return sev.includes('clinical') || sev.includes('legal') || sev.includes('cqc');
+                  })
+                  .filter((g: any) => {
+                    const d = (g.description || '').toLowerCase();
+                    return !d.includes('business continuity') &&
+                           !d.includes('accountable officer') &&
+                           !d.includes('whistleblow') &&
+                           !d.includes('placeholder') &&
+                           !d.includes('practice-specific') &&
+                           !d.includes('oak lane') &&
+                           !d.includes('unpopulated');
+                  });
+
+                if (actionableGaps.length > 0) {
+                  // Run remediation
+                  const gapsList = actionableGaps.map((g: any) => typeof g === 'string' ? g : (g.description || g.issue || JSON.stringify(g)));
+                  const remediationPrompt = `The following ${policyName} policy has been reviewed and these compliance gaps were identified:
+
+${gapsList.map((g: string, i: number) => `${i + 1}. ${g}`).join('\n')}
+
+Please address EACH gap by adding or correcting the relevant content within the existing document structure. Do NOT restructure the document, do NOT add internal notes or gap analysis tables. Simply fix each issue in-place within the appropriate section.
+
+PRACTICE DATA:
+${practiceContext}
+
+POLICY TO FIX:
+${policyContent}`;
+
+                  const remediated = await callAnthropic(ENHANCEMENT_SYSTEM_PROMPT, remediationPrompt, 32768, generationModel);
+                  if (remediated && remediated.length > 500) {
+                    improvedContent = sanitisePolicyOutput(remediated, practiceManagerName, buildSection11Details(jobPractice, jobMetadata));
+                    console.log(`[auto_quality_${attemptNum}] Remediation succeeded - ${improvedContent.length} chars, advancing to attempt ${attemptNum + 1}`);
+
+                    // Advance to next auto_quality attempt
+                    await serviceSupabase
+                      .from('policy_generation_jobs')
+                      .update({
+                        generated_content: improvedContent,
+                        current_step: `auto_quality_${attemptNum + 1}`,
+                        status: 'optimising',
+                        progress_pct: 91 + attemptNum + 1,
+                        attempt_count: 0,
+                        metadata: { ...jobMetadata, auto_quality_last_score: complianceScore, auto_quality_last_summary: scoreSummary },
+                        next_retry_at: null,
+                        heartbeat_at: new Date().toISOString(),
+                        lease_expires_at: null,
+                        updated_at: new Date().toISOString(),
+                      })
+                      .eq('id', job.id);
+
+                    selfTrigger(targetUserId);
+                    return new Response(JSON.stringify({ success: true, phase: currentStep, jobId: job.id, score: complianceScore }), {
+                      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    });
+                  }
+                }
+              }
+            }
+          } catch (aqErr) {
+            console.error(`[auto_quality_${attemptNum}] Error, advancing to finalise:`, aqErr);
+          }
+
+          // Done (either score >= 90, max attempts, no actionable gaps, or error) — advance to finalise
+          await serviceSupabase
+            .from('policy_generation_jobs')
+            .update({
+              generated_content: improvedContent,
+              current_step: 'finalise',
+              status: 'enhancing',
+              progress_pct: 95,
+              attempt_count: 0,
+              metadata: {
+                ...jobMetadata,
+                auto_quality_score: complianceScore,
+                auto_quality_attempts: attemptNum,
+                auto_quality_reached_target: complianceScore >= 90,
+                auto_quality_summary: scoreSummary,
+              },
+              next_retry_at: null,
+              heartbeat_at: new Date().toISOString(),
+              lease_expires_at: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', job.id);
+
+          console.log(`[auto_quality_${attemptNum}] Done (score: ${complianceScore}/100), advancing to finalise for job ${job.id}`);
+          selfTrigger(targetUserId);
+
+          return new Response(JSON.stringify({ success: true, phase: currentStep, jobId: job.id, finalScore: complianceScore }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -2170,7 +2361,7 @@ ${htmlBody}
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
-              status: ['enhance', 'gap_check', 'finalise'].includes(currentStep) ? 'enhancing' : 'generating',
+              status: ['enhance', 'gap_check', 'finalise'].includes(currentStep) ? 'enhancing' : (currentStep.startsWith('auto_quality') ? 'optimising' : 'generating'),
               lease_expires_at: retryAt,
               next_retry_at: retryAt,
               error_message: `Step ${currentStep} failed (attempt ${attemptCount}/${MAX_STEP_ATTEMPTS}): ${errMsg}. Retrying...`,

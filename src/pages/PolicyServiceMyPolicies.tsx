@@ -63,7 +63,7 @@ const getExpectedMinutes = (job: PolicyJob): number => {
 };
 
 const getCountdownText = (job: PolicyJob): string | null => {
-  if (!['pending', 'generating', 'enhancing'].includes(job.status)) return null;
+  if (!['pending', 'generating', 'enhancing', 'optimising'].includes(job.status)) return null;
   const expected = getExpectedMinutes(job);
   const elapsed = differenceInMinutes(new Date(), parseISO(job.created_at));
   const remaining = Math.max(0, expected - elapsed);
@@ -81,6 +81,8 @@ const getJobStatusBadge = (job: PolicyJob) => {
       return <Badge className="gap-1 bg-blue-600"><Loader2 className="h-3 w-3 animate-spin" />{label}</Badge>;
     case 'enhancing':
       return <Badge className="gap-1 bg-indigo-600"><Loader2 className="h-3 w-3 animate-spin" />{label}</Badge>;
+    case 'optimising':
+      return <Badge className="gap-1 bg-purple-600"><Loader2 className="h-3 w-3 animate-spin" />{label}</Badge>;
     case 'completed':
       return <Badge className="gap-1 bg-green-600"><CheckCircle2 className="h-3 w-3" />{label}</Badge>;
     case 'failed':
@@ -259,7 +261,7 @@ const PolicyServiceMyPolicies = () => {
           practice_details: practiceDetailsPayload as any,
           email_when_ready: false,
           status: 'pending' as const,
-          metadata: { generation_model: selectedModel, policy_length: policyLength } as any,
+          metadata: { generation_model: selectedModel, policy_length: policyLength, auto_quality_loop: meta.auto_quality_loop ?? false } as any,
         });
 
       if (insertError) throw insertError;
@@ -477,14 +479,14 @@ const PolicyServiceMyPolicies = () => {
                         </div>
 
                         {/* Progress bar for active jobs */}
-                        {['generating', 'enhancing'].includes(job.status) && (
+                        {['generating', 'enhancing', 'optimising'].includes(job.status) && (
                           <div className="my-2">
                             <Progress value={job.progress_pct || 0} className="h-2" />
                           </div>
                         )}
 
                         {/* Countdown timer */}
-                        {['pending', 'generating', 'enhancing'].includes(job.status) && (
+                        {['pending', 'generating', 'enhancing', 'optimising'].includes(job.status) && (
                           <div className="flex items-center gap-2 my-2">
                             <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
                               <Coffee className="h-3.5 w-3.5" />
@@ -518,7 +520,7 @@ const PolicyServiceMyPolicies = () => {
 
                         <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                           <span>Submitted: {format(parseISO(job.created_at), 'dd/MM/yyyy HH:mm')}</span>
-                          {job.heartbeat_at && ['generating', 'enhancing'].includes(job.status) && (
+                          {job.heartbeat_at && ['generating', 'enhancing', 'optimising'].includes(job.status) && (
                             <span>Last activity: {formatDistanceToNow(parseISO(job.heartbeat_at), { addSuffix: true })}</span>
                           )}
                           {job.email_when_ready && (
@@ -680,6 +682,25 @@ const PolicyServiceMyPolicies = () => {
                             New
                           </Badge>
                         )}
+                        {/* Auto Quality Loop badge */}
+                        {(() => {
+                          const meta = (completion.metadata as any);
+                          const score = meta?.auto_quality_score;
+                          const reachedTarget = meta?.auto_quality_reached_target;
+                          if (score == null) return null;
+                          if (reachedTarget) {
+                            return (
+                              <Badge className="bg-green-600 hover:bg-green-600 text-white gap-0.5 text-[10px] px-1.5 py-0 h-4">
+                                ✓ Auto-optimised · {score}/100
+                              </Badge>
+                            );
+                          }
+                          return (
+                            <Badge className="bg-amber-500 hover:bg-amber-500 text-white gap-0.5 text-[10px] px-1.5 py-0 h-4">
+                              ⚠ Optimised · {score}/100 — review recommended
+                            </Badge>
+                          );
+                        })()}
                       </div>
                       
                       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">

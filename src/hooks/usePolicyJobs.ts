@@ -7,7 +7,7 @@ export interface PolicyJob {
   user_id: string;
   policy_reference_id: string;
   policy_title: string;
-  status: 'pending' | 'generating' | 'enhancing' | 'completed' | 'failed';
+  status: 'pending' | 'generating' | 'enhancing' | 'optimising' | 'completed' | 'failed';
   email_when_ready: boolean;
   error_message: string | null;
   generated_content: string | null;
@@ -33,6 +33,9 @@ const STEP_LABELS: Record<string, string> = {
   generate_part_3b: 'Generating (part 5/5)',
   enhance: 'Enhancing',
   gap_check: 'Checking compliance',
+  auto_quality_1: 'Quality check 1 of 3…',
+  auto_quality_2: 'Quality check 2 of 3…',
+  auto_quality_3: 'Quality check 3 of 3…',
   finalise: 'Finalising',
   done: 'Complete',
 };
@@ -41,6 +44,7 @@ export const getStepLabel = (job: PolicyJob): string => {
   if (job.status === 'pending') return 'Queued';
   if (job.status === 'completed') return 'Complete';
   if (job.status === 'failed') return 'Failed';
+  if (job.status === 'optimising') return STEP_LABELS[job.current_step || ''] || 'Optimising quality…';
   return STEP_LABELS[job.current_step || ''] || job.status;
 };
 
@@ -99,7 +103,7 @@ export const usePolicyJobs = () => {
   }, [user]);
 
   const activeJobCount = jobs.filter(
-    j => j.status === 'pending' || j.status === 'generating' || j.status === 'enhancing'
+    j => j.status === 'pending' || j.status === 'generating' || j.status === 'enhancing' || j.status === 'optimising'
   ).length;
 
   // Check for stale jobs using lease_expires_at (not raw updated_at)
@@ -107,7 +111,7 @@ export const usePolicyJobs = () => {
     if (activeJobCount === 0) return;
 
     const hasStaleJobs = jobs.some(j => {
-      if (!['pending', 'generating', 'enhancing'].includes(j.status)) return false;
+      if (!['pending', 'generating', 'enhancing', 'optimising'].includes(j.status)) return false;
       // Pending jobs with no lease are always kickable
       if (j.status === 'pending') return true;
       // Jobs with expired lease are stale

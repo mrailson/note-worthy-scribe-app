@@ -53,6 +53,26 @@ NEVER FLAG:
 - Anything that would be fixed at the next annual review rather than now
 - Issues already covered adequately elsewhere in the document
 
+SCOPE FILTERING — CRITICAL:
+Before reporting any gap, ask: does this gap belong directly within the scope of THIS specific policy type, or does it belong to a separate policy that should merely be cross-referenced?
+Do NOT report gaps that belong to these separate policies:
+- Business Continuity / SystmOne downtime procedures
+- Controlled Drugs Accountable Officer details
+- Whistleblowing / Freedom to Speak Up
+- HR / employment policies
+- Any other distinct policy with its own dedicated document
+For these topics, a cross-reference is sufficient — do not penalise their absence from the current policy.
+
+Do NOT penalise or flag placeholder values including:
+- "Oak Lane Medical Practice"
+- "Dr John Smith"
+- "Malcolm Railson"
+- "123 High Street"
+- Any similar template placeholders
+These are intentional and will be replaced by the practice.
+
+PSIRF NOTE: The Patient Safety Incident Response Framework (PSIRF) replaced the Serious Incident Framework in 2023 for NHS providers. For PRIMARY CARE / GP PRACTICES, reference to PSIRF is best practice but not yet mandated — flag as a recommendation, not a Clinical/Legal gap.
+
 ## SCORING
 - Maximum 8 issues per review
 - Each issue must state: what is missing/wrong, why it matters (CQC/legal/patient safety), and the specific section where it should be addressed
