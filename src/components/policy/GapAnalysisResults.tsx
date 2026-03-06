@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, FileX, Clock, AlertCircle, ArrowRight, Loader2 } from "lucide-react";
+import { AlertTriangle, FileX, Clock, AlertCircle, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 
 interface GapAnalysis {
   policy_type: string;
@@ -9,6 +9,8 @@ interface GapAnalysis {
   outdated_references: string[];
   missing_sections: string[];
   last_review_date: string | null;
+  compliance_score?: number | null;
+  score_summary?: string | null;
 }
 
 interface GapAnalysisResultsProps {
@@ -16,6 +18,13 @@ interface GapAnalysisResultsProps {
   onGenerateUpdated: () => void;
   isGenerating: boolean;
 }
+
+const getScoreBand = (score: number) => {
+  if (score >= 90) return { label: 'CQC Ready', emoji: '🟢', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800', text: 'text-emerald-700 dark:text-emerald-300', scoreText: 'text-emerald-600 dark:text-emerald-400' };
+  if (score >= 75) return { label: 'Good — Minor Gaps', emoji: '🟡', bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800', text: 'text-amber-700 dark:text-amber-300', scoreText: 'text-amber-600 dark:text-amber-400' };
+  if (score >= 60) return { label: 'Needs Attention', emoji: '🟠', bg: 'bg-orange-50 dark:bg-orange-950/40', border: 'border-orange-200 dark:border-orange-800', text: 'text-orange-700 dark:text-orange-300', scoreText: 'text-orange-600 dark:text-orange-400' };
+  return { label: 'Significant Gaps', emoji: '🔴', bg: 'bg-red-50 dark:bg-red-950/40', border: 'border-red-200 dark:border-red-800', text: 'text-red-700 dark:text-red-300', scoreText: 'text-red-600 dark:text-red-400' };
+};
 
 export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }: GapAnalysisResultsProps) => {
   const totalIssues = analysis.gaps.length + analysis.outdated_references.length + analysis.missing_sections.length;
@@ -27,8 +36,35 @@ export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }
     ? `${totalIssues} ${totalIssues === 1 ? 'suggestion' : 'suggestions'}`
     : `${totalIssues} ${totalIssues === 1 ? 'issue' : 'issues'} found`;
 
+  const complianceScore = analysis.compliance_score;
+  const scoreSummary = analysis.score_summary;
+
   return (
     <div className="space-y-6">
+      {/* CQC Compliance Score */}
+      {complianceScore != null && (
+        (() => {
+          const band = getScoreBand(complianceScore);
+          return (
+            <div className={`rounded-lg border ${band.border} ${band.bg} p-5 text-center`}>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <ShieldCheck className={`h-5 w-5 ${band.scoreText}`} />
+                <p className={`text-sm font-medium ${band.text}`}>CQC Compliance Score</p>
+              </div>
+              <p className={`text-4xl font-bold ${band.scoreText}`}>
+                {complianceScore} <span className="text-lg font-normal opacity-70">/ 100</span>
+              </p>
+              <p className={`mt-1 text-sm font-medium ${band.text}`}>
+                {band.emoji} {band.label}
+              </p>
+              {scoreSummary && (
+                <p className="mt-2 text-sm text-muted-foreground italic">"{scoreSummary}"</p>
+              )}
+            </div>
+          );
+        })()
+      )}
+
       {/* Policy Type Detection */}
       <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
         <div>
