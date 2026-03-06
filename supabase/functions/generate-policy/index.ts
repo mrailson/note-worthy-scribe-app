@@ -2344,7 +2344,7 @@ ${htmlBody}
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
-              status: ['enhance', 'gap_check', 'finalise'].includes(currentStep) ? 'enhancing' : 'generating',
+              status: ['enhance', 'gap_check', 'finalise'].includes(currentStep) ? 'enhancing' : (currentStep.startsWith('auto_quality') ? 'optimising' : 'generating'),
               lease_expires_at: retryAt,
               next_retry_at: retryAt,
               error_message: `Step ${currentStep} failed (attempt ${attemptCount}/${MAX_STEP_ATTEMPTS}): ${errMsg}. Retrying...`,
