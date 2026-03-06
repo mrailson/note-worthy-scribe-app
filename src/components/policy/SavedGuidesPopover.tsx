@@ -46,6 +46,7 @@ export const SavedGuidesPopover: React.FC<SavedGuidesPopoverProps> = ({
   if (guides.length === 0) return null;
 
   const handlePreview = async (guide: SavedQuickGuide) => {
+    setIsPopoverOpen(false);
     setLoadingId(guide.id);
     try {
       const { data, error } = await supabase.storage
