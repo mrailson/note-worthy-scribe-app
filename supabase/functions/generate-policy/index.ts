@@ -1216,7 +1216,7 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
           const content = await callAnthropic(
             BASE_SYSTEM_PROMPT + lengthInstruction + PART3B_SYSTEM_ADDITION,
             userPrompt,
-            scaleTokens(3500),
+            scaleTokens(5000),
             generationModel
           );
 
