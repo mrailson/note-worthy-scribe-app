@@ -819,7 +819,7 @@ function buildSection11Details(jobPractice: any, jobMetadata: any): Section11Det
 }
 
 // ========== MAIN HANDLER ==========
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
