@@ -235,12 +235,9 @@ const PolicyServiceCreate = () => {
         </Button>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <FileText className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl sm:text-3xl font-bold">Create New Policy</h1>
-          </div>
-          <PolicyGenerationModelSettings />
+        <div className="flex items-center gap-3 mb-8">
+          <FileText className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-bold">Create New Policy</h1>
         </div>
 
         {/* Mode Toggle */}
