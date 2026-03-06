@@ -40,7 +40,7 @@ const PolicyServiceCreate = () => {
 
   // Batch mode state
   const [batchMode, setBatchMode] = useState(false);
-  const [selectedPolicies, setSelectedPolicies] = useState<{ policy: PolicyReference; length: PolicyLength }[]>([]);
+  const [selectedPolicies, setSelectedPolicies] = useState<PolicyReference[]>([]);
   const [activeJobCount, setActiveJobCount] = useState(0);
   const [loadingSlots, setLoadingSlots] = useState(true);
 
