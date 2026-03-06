@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Settings, Sparkles, Zap, PoundSterling, FileText, Brain, AlertTriangle } from 'lucide-react';
+import { Settings, Sparkles, Zap, PoundSterling, FileText, Brain, AlertTriangle, FlaskConical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 
 export type PolicyGenerationModel = 
   | 'claude-sonnet-4-6' 
@@ -19,6 +20,7 @@ export type PolicyLength = 'compact' | 'concise' | 'standard' | 'full';
 
 const MODEL_STORAGE_KEY = 'policy-generation-model';
 const LENGTH_STORAGE_KEY = 'policy-generation-length';
+const GAP_CHECK_GEMINI_KEY = 'policy-gap-check-gemini';
 
 export const getPolicyGenerationModel = (): PolicyGenerationModel => {
   const saved = localStorage.getItem(MODEL_STORAGE_KEY);
@@ -30,6 +32,10 @@ export const getPolicyGenerationLength = (): PolicyLength => {
   const saved = localStorage.getItem(LENGTH_STORAGE_KEY);
   if (saved === 'compact' || saved === 'concise' || saved === 'standard') return saved;
   return 'full';
+};
+
+export const getGapCheckForGemini = (): boolean => {
+  return localStorage.getItem(GAP_CHECK_GEMINI_KEY) === 'true';
 };
 
 export const getModelDisplayLabel = (model: string): string => {
@@ -108,9 +114,12 @@ export const PolicyGenerationModelSettings = () => {
   const [length, setLength] = useState<PolicyLength>('full');
   const [open, setOpen] = useState(false);
 
+  const [gapCheckGemini, setGapCheckGemini] = useState(false);
+
   useEffect(() => {
     setModel(getPolicyGenerationModel());
     setLength(getPolicyGenerationLength());
+    setGapCheckGemini(getGapCheckForGemini());
   }, []);
 
   const handleModelChange = (value: PolicyGenerationModel) => {
@@ -229,6 +238,30 @@ export const PolicyGenerationModelSettings = () => {
                 </div>
               ))}
             </RadioGroup>
+          </div>
+
+          <Separator />
+
+          {/* Dev: Gap Check for Gemini */}
+          <div className="border border-dashed border-muted-foreground/30 rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="gap-check-gemini" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <FlaskConical className="h-4 w-4 text-amber-500" />
+                Gap Check for Gemini
+                <Badge variant="outline" className="text-[10px]">Test</Badge>
+              </Label>
+              <Switch
+                id="gap-check-gemini"
+                checked={gapCheckGemini}
+                onCheckedChange={(checked) => {
+                  setGapCheckGemini(checked);
+                  localStorage.setItem(GAP_CHECK_GEMINI_KEY, String(checked));
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              When enabled, Gemini 2.5 Flash runs gap analysis &amp; remediation after generation. Enhance remains skipped. Adds ~1-2 min.
+            </p>
           </div>
 
           <p className="text-xs text-muted-foreground">

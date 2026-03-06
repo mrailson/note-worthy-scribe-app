@@ -175,6 +175,8 @@ const PolicyServiceCreate = () => {
       } : null;
 
       const selectedModel = getPolicyGenerationModel();
+      const { getGapCheckForGemini } = await import('@/components/policy/PolicyGenerationModelSettings');
+      const enableGapCheckGemini = getGapCheckForGemini();
       
       // Insert one job per policy — each with its own length
       const rows = policiesToGenerate.map(policy => ({
@@ -184,7 +186,11 @@ const PolicyServiceCreate = () => {
         practice_details: practiceDetails as any,
         email_when_ready: false,
         status: 'pending' as const,
-        metadata: { generation_model: selectedModel, policy_length: (policy as any)._length || 'standard' } as any,
+        metadata: { 
+          generation_model: selectedModel, 
+          policy_length: (policy as any)._length || 'standard',
+          ...(enableGapCheckGemini ? { enable_gap_check_for_gemini: true } : {}),
+        } as any,
       }));
 
       const { error: insertError } = await supabase

@@ -32,6 +32,7 @@ const STEP_LABELS: Record<string, string> = {
   generate_part_3a: 'Generating (part 4/5)',
   generate_part_3b: 'Generating (part 5/5)',
   enhance: 'Enhancing',
+  gap_check: 'Checking compliance',
   finalise: 'Finalising',
   done: 'Complete',
 };
