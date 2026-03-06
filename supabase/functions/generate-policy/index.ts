@@ -1172,19 +1172,30 @@ Now generate sections 7-11 to complete this policy, followed by the ===METADATA=
 
           const fullContent = `${sections1to6.trim()}\n\n${sectionsContent}`;
 
+          // Determine next step: compact skips enhance & gap_check
+          const skipEnhance = policyLength === 'compact';
+          const nextStep = skipEnhance ? 'finalise' : 'enhance';
+          const nextStatus = skipEnhance ? 'generating' : 'enhancing';
+          const nextProgress = skipEnhance ? 90 : 80;
+          if (skipEnhance) {
+            console.log(`[Step: generate_part_3] Compact mode — skipping enhance & gap_check`);
+          }
+
           await serviceSupabase
             .from('policy_generation_jobs')
             .update({
-              status: 'enhancing',
+              status: nextStatus,
               generated_content: fullContent,
               metadata: {
                 ...metadata,
+                generation_model: generationModel,
+                policy_length: policyLength,
                 partial_sections_1_3: undefined,
                 partial_sections_1_5: undefined,
                 partial_sections_1_6: undefined,
               },
-              current_step: 'enhance',
-              progress_pct: 80,
+              current_step: nextStep,
+              progress_pct: nextProgress,
               attempt_count: 0,
               next_retry_at: null,
               heartbeat_at: new Date().toISOString(),
