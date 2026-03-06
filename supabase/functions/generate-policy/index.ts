@@ -1053,6 +1053,16 @@ Deno.serve(async (req) => {
         const lengthInstruction = policyLength !== 'full' 
           ? `\n\nDOCUMENT LENGTH TARGET: ${lengthLabels[policyLength] || lengthLabels.full}\nScale ALL sections proportionally to meet this target. Do not pad or repeat content to fill space.`
           : '';
+
+        // Gemini-specific concise mode instruction
+        const geminiConciseInstruction = generationModel.startsWith('gemini-')
+          ? `\n\nGEMINI CONCISE MODE:
+- Write in direct, professional NHS policy style — no padding, repetition, or filler phrases.
+- Each procedural point should be one clear sentence unless clinical detail requires more.
+- Prefer structured bullet lists over paragraphs where appropriate.
+- Target 6,000–8,000 words for a full-length policy. Do NOT inflate to 12,000+.
+- Do NOT omit any required sections or subsections — brevity applies to prose style, not content coverage.`
+          : '';
         
         console.log(`Using model: ${generationModel}, length: ${policyLength} (scale: ${scale}) for job ${job.id}`);
         const policyName = policyRef.policy_name;
