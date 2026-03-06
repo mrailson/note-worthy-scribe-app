@@ -339,13 +339,23 @@ function buildPracticeContext(jobPractice: any): string {
 }
 
 async function callAnthropic(system: string, userContent: string, maxTokens: number, modelOverride?: string): Promise<string> {
-  const anthropicModel = modelOverride || 'claude-sonnet-4-6';
-  // Use streaming mode to prevent timeout on large generation steps.
-  // Non-streaming requests require Anthropic to generate the ENTIRE response
-  // before sending anything back, which can exceed the abort timeout for large outputs.
-  // Streaming keeps the connection alive with incremental data.
+  const modelId = modelOverride || 'claude-sonnet-4-6';
+  
+  // Route to the correct provider based on model ID
+  if (modelId === 'gpt-4o-mini') {
+    return callOpenAI(system, userContent, maxTokens, modelId);
+  }
+  if (modelId.startsWith('gemini-')) {
+    return callGemini(system, userContent, maxTokens, modelId);
+  }
+  
+  // Default: Anthropic (Claude models)
+  return callAnthropicDirect(system, userContent, maxTokens, modelId);
+}
+
+async function callAnthropicDirect(system: string, userContent: string, maxTokens: number, anthropicModel: string): Promise<string> {
+  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
   const controller = new AbortController();
-  // Allow up to 5 minutes for streamed responses (each chunk resets the idle timer)
   const STREAM_TOTAL_TIMEOUT_MS = 300_000;
   const timeout = setTimeout(() => controller.abort(), STREAM_TOTAL_TIMEOUT_MS);
 
@@ -354,7 +364,7 @@ async function callAnthropic(system: string, userContent: string, maxTokens: num
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY!,
+        'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -372,7 +382,6 @@ async function callAnthropic(system: string, userContent: string, maxTokens: num
       throw new Error(`Anthropic ${response.status}: ${errText.substring(0, 300)}`);
     }
 
-    // Read the SSE stream and collect the full content
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -406,6 +415,151 @@ async function callAnthropic(system: string, userContent: string, maxTokens: num
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error(`Anthropic timeout after ${Math.floor(STREAM_TOTAL_TIMEOUT_MS / 1000)}s`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function callOpenAI(system: string, userContent: string, maxTokens: number, model: string): Promise<string> {
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not configured. Add it to Supabase edge function secrets.');
+  const controller = new AbortController();
+  const STREAM_TOTAL_TIMEOUT_MS = 300_000;
+  const timeout = setTimeout(() => controller.abort(), STREAM_TOTAL_TIMEOUT_MS);
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        stream: true,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: userContent },
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenAI ${response.status}: ${errText.substring(0, 300)}`);
+    }
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullContent = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) fullContent += content;
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    return fullContent;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`OpenAI timeout after ${Math.floor(STREAM_TOTAL_TIMEOUT_MS / 1000)}s`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function callGemini(system: string, userContent: string, maxTokens: number, model: string): Promise<string> {
+  if (!GOOGLE_AI_API_KEY) throw new Error('GOOGLE_AI_API_KEY is not configured. Add it to Supabase edge function secrets.');
+  const controller = new AbortController();
+  const STREAM_TOTAL_TIMEOUT_MS = 300_000;
+  const timeout = setTimeout(() => controller.abort(), STREAM_TOTAL_TIMEOUT_MS);
+
+  // Map our model IDs to Gemini API model names
+  const geminiModelMap: Record<string, string> = {
+    'gemini-2.0-flash': 'gemini-2.0-flash',
+    'gemini-2.0-flash-thinking-exp': 'gemini-2.0-flash-thinking-exp',
+  };
+  const geminiModel = geminiModelMap[model] || model;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${GOOGLE_AI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            { role: 'user', parts: [{ text: userContent }] },
+          ],
+          systemInstruction: { parts: [{ text: system }] },
+          generationConfig: {
+            maxOutputTokens: maxTokens,
+          },
+        }),
+        signal: controller.signal,
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Gemini ${response.status}: ${errText.substring(0, 300)}`);
+    }
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullContent = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (!data) continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) fullContent += text;
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    return fullContent;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Gemini timeout after ${Math.floor(STREAM_TOTAL_TIMEOUT_MS / 1000)}s`);
     }
     throw error;
   } finally {
