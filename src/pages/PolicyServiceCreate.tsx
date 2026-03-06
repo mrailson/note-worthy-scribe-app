@@ -100,7 +100,6 @@ const PolicyServiceCreate = () => {
   };
 
   const handleConfirmGenerate = async () => {
-    setShowConfirm(false);
     if (!user) return;
 
     const policiesToGenerate = batchMode 
