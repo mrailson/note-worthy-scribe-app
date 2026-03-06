@@ -1053,6 +1053,16 @@ Deno.serve(async (req) => {
         const lengthInstruction = policyLength !== 'full' 
           ? `\n\nDOCUMENT LENGTH TARGET: ${lengthLabels[policyLength] || lengthLabels.full}\nScale ALL sections proportionally to meet this target. Do not pad or repeat content to fill space.`
           : '';
+
+        // Gemini-specific concise mode instruction
+        const geminiConciseInstruction = generationModel.startsWith('gemini-')
+          ? `\n\nGEMINI CONCISE MODE:
+- Write in direct, professional NHS policy style — no padding, repetition, or filler phrases.
+- Each procedural point should be one clear sentence unless clinical detail requires more.
+- Prefer structured bullet lists over paragraphs where appropriate.
+- Target 6,000–8,000 words for a full-length policy. Do NOT inflate to 12,000+.
+- Do NOT omit any required sections or subsections — brevity applies to prose style, not content coverage.`
+          : '';
         
         console.log(`Using model: ${generationModel}, length: ${policyLength} (scale: ${scale}) for job ${job.id}`);
         const policyName = policyRef.policy_name;
@@ -1086,7 +1096,7 @@ ${job.custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${job.custom_instructions
 Generate the complete header and sections 1-3 only. IMPORTANT: Complete every subsection. Never end mid-sentence.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + lengthInstruction + PART1_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + geminiConciseInstruction + PART1_SYSTEM_ADDITION,
             userPrompt,
             scaleTokens(5200, 'generate_part_1'),
             generationModel
@@ -1156,7 +1166,7 @@ ${contactInstructions}
 Now generate sections 4-5 only. Section 5 must be COMPLETE with all sub-sections fully written out. IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + lengthInstruction + PART2A_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + geminiConciseInstruction + PART2A_SYSTEM_ADDITION,
             userPrompt,
             scaleTokens(10000, 'generate_part_2a'),
             generationModel
@@ -1231,7 +1241,7 @@ ${contactInstructions}
 Now generate section 6 (Training Requirements) only. You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence. IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + lengthInstruction + PART2B_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + geminiConciseInstruction + PART2B_SYSTEM_ADDITION,
             userPrompt,
             scaleTokens(4000, 'generate_part_2b'),
             generationModel
@@ -1306,7 +1316,7 @@ ${contactInstructions}
 Now generate sections 7-8 only. IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + lengthInstruction + PART3A_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + geminiConciseInstruction + PART3A_SYSTEM_ADDITION,
             userPrompt,
             scaleTokens(4000, 'generate_part_3a'),
             generationModel
@@ -1382,7 +1392,7 @@ ${contactInstructions}
 Now generate sections 9-11 to complete this policy, followed by the ===METADATA=== block. IMPORTANT: Complete every reference entry. Never end mid-sentence. You MUST include Section 10 (Appendices) and Section 11 (Version History). If space is limited, shorten content rather than omitting sections.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + lengthInstruction + PART3B_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + geminiConciseInstruction + PART3B_SYSTEM_ADDITION,
             userPrompt,
             scaleTokens(5000, 'generate_part_3b'),
             generationModel
@@ -1420,7 +1430,7 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
           const fullContent = `${sections1to8.trim()}\n\n${sectionsContent}`;
 
           // Determine next step: compact and non-Sonnet models skip enhance & gap_check
-          const budgetModels = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp'];
+          const budgetModels = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp', 'gemini-2.5-flash', 'gemini-2.5-pro'];
           const skipEnhance = policyLength === 'compact' || budgetModels.includes(generationModel);
           const nextStep = skipEnhance ? 'finalise' : 'enhance';
           const nextStatus = skipEnhance ? 'generating' : 'enhancing';

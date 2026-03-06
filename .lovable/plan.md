@@ -1,62 +1,58 @@
 
 
-## Investigation Results
+## Problem Analysis
 
-### Issue 1: Missing Sections 7-10
+The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
 
-**Root cause identified.** The multi-step generation pipeline works correctly — logs confirm all 5 steps complete successfully for Gemini 2.5 Flash (part_1 through part_3b, producing 54,166 chars including sections 7-10). The problem occurs **after generation**, during the `enhance` and `gap_check` steps.
+### Root causes by issue:
 
-`gemini-2.5-flash` is **not** in the `budgetModels` list (line 1423), which currently only includes legacy model IDs:
-```
-['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp']
-```
-
-This means Gemini 2.5 Flash policies go through both the `enhance` step and `gap_check` remediation step. Both steps pass the **entire 54K-char document** to the LLM and ask it to return a complete rewritten version — but with only 16,384 max_tokens. Gemini 2.5 Flash truncates its output, dropping sections 7-10 and jumping straight to Version History (which is then re-enforced by `enforceSection11ExactTable`).
-
-**Fix:** Add `gemini-2.5-flash` and `gemini-2.5-pro` to the `budgetModels` list so they skip the destructive enhance/gap_check rewrite steps and go directly to `finalise`.
-
-### Issue 2: Concise Mode for Gemini
-
-A Gemini-specific concise writing instruction will be injected into the system prompt only when the selected model starts with `gemini-`. This targets prose style (no padding, prefer lists, direct sentences) without reducing section coverage.
-
----
+| Issue | Cause |
+|-------|-------|
+| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
+| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
+| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
+| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
 
 ## Plan
 
-### File: `supabase/functions/generate-policy/index.ts`
+### 1. Split Part 3 into two steps to prevent token exhaustion
 
-**Change 1 — Fix budgetModels list (line ~1423)**
+Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
+- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
+- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
 
-Add `gemini-2.5-flash` and `gemini-2.5-pro` to the array so Gemini models skip the enhance and gap_check steps that truncate their output:
+This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
 
-```typescript
-const budgetModels = [
-  'claude-haiku-4-5', 'gpt-4o-mini',
-  'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp',
-  'gemini-2.5-flash', 'gemini-2.5-pro',
-];
-```
+### 2. Raise Part 2b base tokens
 
-**Change 2 — Add Gemini concise mode instruction (after line ~1055)**
+Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
 
-Create a conditional concise-mode instruction block that is appended to the system prompt only for Gemini models:
+### 3. Add anti-truncation instructions to all step prompts
 
-```typescript
-const geminiConciseInstruction = generationModel.startsWith('gemini-')
-  ? `\n\nGEMINI CONCISE MODE:
-- Write in direct, professional NHS policy style — no padding, repetition, or filler phrases.
-- Each procedural point should be one clear sentence unless clinical detail requires more.
-- Prefer structured bullet lists over paragraphs where appropriate.
-- Target 6,000–8,000 words for a full-length policy. Do NOT inflate to 12,000+.
-- Do NOT omit any required sections or subsections — brevity applies to prose style, not content coverage.`
-  : '';
-```
+Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
 
-Then append `geminiConciseInstruction` alongside `lengthInstruction` in each step's `callAnthropic` system prompt argument (all 5 generation steps, lines ~1088, 1158, 1233, 1308, 1384):
+### 4. Update step labels and progress tracking
 
-```typescript
-BASE_SYSTEM_PROMPT + lengthInstruction + geminiConciseInstruction + PART1_SYSTEM_ADDITION
-```
+Add `generate_part_3a` and `generate_part_3b` to:
+- The edge function step routing
+- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
+- Progress percentages adjusted for 5 generation steps
 
-**Redeploy** the edge function after both changes.
+### 5. Verify Version History enforcement
+
+The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
+
+### Files to change
+
+1. **`supabase/functions/generate-policy/index.ts`**:
+   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
+   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
+   - Add new `generate_part_3b` step with its own prompt and token budget
+   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
+   - Add anti-truncation instruction to Part 2b user prompt
+   - Deploy the updated function
+
+2. **`src/hooks/usePolicyJobs.ts`**:
+   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
+   - Update label text to reflect 5 generation steps
 
