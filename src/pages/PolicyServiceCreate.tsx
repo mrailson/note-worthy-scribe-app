@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, ArrowRight, FileText, Loader2, Clock, X, Layers } from "lucide-react";
-import { PolicyGenerationModelSettings, getPolicyGenerationModel } from "@/components/policy/PolicyGenerationModelSettings";
+import { PolicyGenerationModelSettings, getPolicyGenerationModel, getPolicyGenerationLength } from "@/components/policy/PolicyGenerationModelSettings";
 import { useNavigate } from "react-router-dom";
 import { PolicyTypeSelector } from "@/components/policy/PolicyTypeSelector";
 import { toast } from "sonner";
@@ -151,6 +151,7 @@ const PolicyServiceCreate = () => {
       } : null;
 
       const selectedModel = getPolicyGenerationModel();
+      const selectedLength = getPolicyGenerationLength();
       
       // Insert one job per policy
       const rows = policiesToGenerate.map(policy => ({
@@ -160,7 +161,7 @@ const PolicyServiceCreate = () => {
         practice_details: practiceDetails as any,
         email_when_ready: false,
         status: 'pending' as const,
-        metadata: { generation_model: selectedModel } as any,
+        metadata: { generation_model: selectedModel, policy_length: selectedLength } as any,
       }));
 
       const { error: insertError } = await supabase
