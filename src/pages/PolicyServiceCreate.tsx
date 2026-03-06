@@ -15,8 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ArrowRight, FileText, Loader2, Clock, X, Layers } from "lucide-react";
-import { PolicyGenerationModelSettings, getPolicyGenerationModel, getPolicyGenerationLength } from "@/components/policy/PolicyGenerationModelSettings";
+import { PolicyGenerationModelSettings, getPolicyGenerationModel, getPolicyGenerationLength, type PolicyLength } from "@/components/policy/PolicyGenerationModelSettings";
 import { useNavigate } from "react-router-dom";
 import { PolicyTypeSelector } from "@/components/policy/PolicyTypeSelector";
 import { toast } from "sonner";
@@ -24,22 +25,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PolicyReference } from "@/hooks/usePolicyReferenceLibrary";
 
-const MAX_ACTIVE_JOBS = 3;
+const MAX_ACTIVE_JOBS_SONNET = 3;
+const MAX_ACTIVE_JOBS_HAIKU = 5;
+
+const LENGTH_OPTIONS: { value: PolicyLength; label: string }[] = [
+  { value: 'compact', label: 'Compact (~8pp)' },
+  { value: 'concise', label: 'Concise (~13pp)' },
+  { value: 'standard', label: 'Standard (~20pp)' },
+  { value: 'full', label: 'Comprehensive (~40pp)' },
+];
 
 const PolicyServiceCreate = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [selectedPolicy, setSelectedPolicy] = useState<PolicyReference | null>(null);
+  const [selectedPolicyLength, setSelectedPolicyLength] = useState<PolicyLength>(() => getPolicyGenerationLength());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   // Batch mode state
   const [batchMode, setBatchMode] = useState(false);
-  const [selectedPolicies, setSelectedPolicies] = useState<PolicyReference[]>([]);
+  const [selectedPolicies, setSelectedPolicies] = useState<{ policy: PolicyReference; length: PolicyLength }[]>([]);
   const [activeJobCount, setActiveJobCount] = useState(0);
   const [loadingSlots, setLoadingSlots] = useState(true);
 
-  const availableSlots = Math.max(0, MAX_ACTIVE_JOBS - activeJobCount);
+  const currentModel = getPolicyGenerationModel();
+  const isHaiku = currentModel === 'claude-haiku-4-5';
+  const maxActiveJobs = isHaiku ? MAX_ACTIVE_JOBS_HAIKU : MAX_ACTIVE_JOBS_SONNET;
+  const availableSlots = Math.max(0, maxActiveJobs - activeJobCount);
 
   // Fetch active job count on mount
   useEffect(() => {
@@ -68,12 +81,19 @@ const PolicyServiceCreate = () => {
 
   const handleAddToBatch = (policy: PolicyReference) => {
     if (selectedPolicies.length >= availableSlots) return;
-    if (selectedPolicies.some(p => p.id === policy.id)) return;
-    setSelectedPolicies(prev => [...prev, policy]);
+    if (selectedPolicies.some(p => p.policy.id === policy.id)) return;
+    const defaultLength = getPolicyGenerationLength();
+    setSelectedPolicies(prev => [...prev, { policy, length: defaultLength }]);
   };
 
   const handleRemoveFromBatch = (policyId: string) => {
-    setSelectedPolicies(prev => prev.filter(p => p.id !== policyId));
+    setSelectedPolicies(prev => prev.filter(p => p.policy.id !== policyId));
+  };
+
+  const handleBatchLengthChange = (policyId: string, length: PolicyLength) => {
+    setSelectedPolicies(prev => prev.map(p => 
+      p.policy.id === policyId ? { ...p, length } : p
+    ));
   };
 
   const handleGenerate = () => {
@@ -95,7 +115,9 @@ const PolicyServiceCreate = () => {
     setShowConfirm(false);
     if (!user) return;
 
-    const policiesToGenerate = batchMode ? selectedPolicies : (selectedPolicy ? [selectedPolicy] : []);
+    const policiesToGenerate = batchMode 
+      ? selectedPolicies.map(p => ({ ...p.policy, _length: p.length }))
+      : (selectedPolicy ? [{ ...selectedPolicy, _length: selectedPolicyLength }] : []);
     if (policiesToGenerate.length === 0) return;
 
     // Re-check slot availability
@@ -106,8 +128,8 @@ const PolicyServiceCreate = () => {
       .in('status', ['pending', 'generating', 'enhancing']);
 
     const currentActive = count ?? 0;
-    if (currentActive + policiesToGenerate.length > MAX_ACTIVE_JOBS) {
-      toast.error(`You can only have ${MAX_ACTIVE_JOBS} active jobs. You currently have ${currentActive}.`);
+    if (currentActive + policiesToGenerate.length > maxActiveJobs) {
+      toast.error(`You can only have ${maxActiveJobs} active jobs. You currently have ${currentActive}.`);
       setActiveJobCount(currentActive);
       return;
     }
@@ -151,9 +173,8 @@ const PolicyServiceCreate = () => {
       } : null;
 
       const selectedModel = getPolicyGenerationModel();
-      const selectedLength = getPolicyGenerationLength();
       
-      // Insert one job per policy
+      // Insert one job per policy — each with its own length
       const rows = policiesToGenerate.map(policy => ({
         user_id: user.id,
         policy_reference_id: policy.id,
@@ -161,7 +182,7 @@ const PolicyServiceCreate = () => {
         practice_details: practiceDetails as any,
         email_when_ready: false,
         status: 'pending' as const,
-        metadata: { generation_model: selectedModel, policy_length: selectedLength } as any,
+        metadata: { generation_model: selectedModel, policy_length: (policy as any)._length || 'standard' } as any,
       }));
 
       const { error: insertError } = await supabase
@@ -197,7 +218,7 @@ const PolicyServiceCreate = () => {
   };
 
   const generateButtonLabel = () => {
-    if (isSubmitting) return null; // handled separately
+    if (isSubmitting) return null;
     if (batchMode) {
       const count = selectedPolicies.length;
       if (count === 0) return 'Generate Policies';
@@ -243,6 +264,7 @@ const PolicyServiceCreate = () => {
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Generate up to {availableSlots} {availableSlots === 1 ? 'policy' : 'policies'} at once
+                    {isHaiku && <span className="text-primary ml-1">(Budget model — higher limit)</span>}
                   </p>
                 </div>
               </div>
@@ -250,7 +272,7 @@ const PolicyServiceCreate = () => {
                 {loadingSlots ? (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 ) : availableSlots === 0 ? (
-                  <span className="text-xs text-destructive font-medium">Queue full (3/3 active)</span>
+                  <span className="text-xs text-destructive font-medium">Queue full ({maxActiveJobs}/{maxActiveJobs} active)</span>
                 ) : (
                   <Switch
                     id="batch-mode"
@@ -286,12 +308,36 @@ const PolicyServiceCreate = () => {
               selectedPolicy={selectedPolicy}
               onSelect={handlePolicySelect}
               batchMode={batchMode}
-              selectedPolicies={selectedPolicies}
+              selectedPolicies={selectedPolicies.map(p => p.policy)}
               onAddToBatch={handleAddToBatch}
               maxSelections={availableSlots}
             />
           </CardContent>
         </Card>
+
+        {/* Single policy length selector */}
+        {!batchMode && selectedPolicy && (
+          <Card className="mt-6">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Policy Length</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Choose the level of detail for this policy</p>
+                </div>
+                <Select value={selectedPolicyLength} onValueChange={(v) => setSelectedPolicyLength(v as PolicyLength)}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LENGTH_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Batch Basket */}
         {batchMode && (
@@ -313,18 +359,28 @@ const PolicyServiceCreate = () => {
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {selectedPolicies.map(policy => (
+                  {selectedPolicies.map(({ policy, length }) => (
                     <div
                       key={policy.id}
-                      className="flex items-center justify-between p-3 rounded-md border bg-primary/5 border-primary/20"
+                      className="flex items-center justify-between p-3 rounded-md border bg-primary/5 border-primary/20 gap-2"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         <FileText className="h-4 w-4 text-primary shrink-0" />
                         <span className="text-sm font-medium truncate">{policy.policy_name}</span>
                         <Badge variant="outline" className={`text-xs shrink-0 ${kloeColors[policy.cqc_kloe] || ''}`}>
                           {policy.cqc_kloe}
                         </Badge>
                       </div>
+                      <Select value={length} onValueChange={(v) => handleBatchLengthChange(policy.id, v as PolicyLength)}>
+                        <SelectTrigger className="w-[160px] h-8 text-xs shrink-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LENGTH_OPTIONS.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -385,19 +441,19 @@ const PolicyServiceCreate = () => {
                       {selectedPolicies.length} {selectedPolicies.length === 1 ? 'policy' : 'policies'} to generate:
                     </p>
                     <ul className="list-disc list-inside text-sm space-y-0.5">
-                      {selectedPolicies.map(p => (
-                        <li key={p.id}>{p.policy_name}</li>
+                      {selectedPolicies.map(({ policy, length }) => (
+                        <li key={policy.id}>{policy.policy_name} <span className="text-muted-foreground">({LENGTH_OPTIONS.find(o => o.value === length)?.label})</span></li>
                       ))}
                     </ul>
                   </div>
                 )}
                 {!batchMode && selectedPolicy && (
                   <p className="font-medium text-foreground text-sm">
-                    Policy: {selectedPolicy.policy_name}
+                    Policy: {selectedPolicy.policy_name} <span className="text-muted-foreground">({LENGTH_OPTIONS.find(o => o.value === selectedPolicyLength)?.label})</span>
                   </p>
                 )}
                 <p>
-                  Each policy takes between <strong>5 and 10 minutes</strong> to produce. They go through a full and detailed review with a separate AI service to ensure regulatory compliance.
+                  Generation time depends on the selected length — from <strong>~2 minutes</strong> (Compact) to <strong>~10 minutes</strong> (Comprehensive).
                 </p>
                 <p>
                   Completed policies will appear on <strong>My Policies</strong> when ready. You can continue using other features while they generate.
