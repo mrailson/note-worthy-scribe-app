@@ -326,6 +326,14 @@ References: [comma-separated list of key references]
 Output sections 9-11 followed by the metadata block. Do NOT repeat sections 1-8 or the header.`;
 
 // ---- Helpers ----
+function getTopicAdditions(policyName: string): string {
+  const normalised = policyName.toLowerCase().trim();
+  for (const [key, addition] of Object.entries(POLICY_TOPIC_ADDITIONS)) {
+    if (normalised.includes(key)) return addition;
+  }
+  return '';
+}
+
 function buildPracticeContext(jobPractice: any): string {
   const servicesOffered = jobPractice?.services_offered
     ? Object.entries(jobPractice.services_offered)
