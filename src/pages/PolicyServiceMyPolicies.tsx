@@ -700,6 +700,25 @@ const PolicyServiceMyPolicies = () => {
                       </div>
                       
                       {getReviewStatusBadge(completion.review_date)}
+                      {/* Auto Quality Loop badge */}
+                      {(() => {
+                        const meta = (completion.metadata as any);
+                        const score = meta?.auto_quality_score;
+                        const reachedTarget = meta?.auto_quality_reached_target;
+                        if (score == null) return null;
+                        if (reachedTarget) {
+                          return (
+                            <Badge className="bg-green-600 hover:bg-green-600 text-white gap-0.5 text-[10px] px-1.5 py-0 h-4">
+                              ✓ Auto-optimised · {score}/100
+                            </Badge>
+                          );
+                        }
+                        return (
+                          <Badge className="bg-amber-500 hover:bg-amber-500 text-white gap-0.5 text-[10px] px-1.5 py-0 h-4">
+                            ⚠ Optimised · {score}/100 — review recommended
+                          </Badge>
+                        );
+                      })()}
                     </div>
                     
                     <div className="flex items-center gap-2 shrink-0">
