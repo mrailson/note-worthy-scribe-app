@@ -92,7 +92,7 @@ const MODEL_OPTIONS: {
     badgeVariant: 'outline',
     stats: '~50% cheaper · ~4-5 min',
     icon: Brain,
-    requiresKey: 'GEMINI_API_KEY',
+    
   },
 ];
 
