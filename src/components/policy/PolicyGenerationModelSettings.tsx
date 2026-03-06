@@ -23,7 +23,7 @@ const LENGTH_STORAGE_KEY = 'policy-generation-length';
 export const getPolicyGenerationModel = (): PolicyGenerationModel => {
   const saved = localStorage.getItem(MODEL_STORAGE_KEY);
   if (saved && MODEL_OPTIONS.some(m => m.value === saved)) return saved as PolicyGenerationModel;
-  return 'claude-sonnet-4-6';
+  return 'gemini-2.5-flash';
 };
 
 export const getPolicyGenerationLength = (): PolicyLength => {
