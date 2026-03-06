@@ -206,6 +206,89 @@ const PolicyServiceMyPolicies = () => {
     await deleteCompletion(completionId);
   };
 
+  const handleRerun = async (completion: typeof completions[0]) => {
+    if (!user) return;
+    setRerunningId(completion.id);
+    try {
+      // Fetch practice details for the job
+      const { data: practiceData } = await supabase
+        .from('practice_details')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('is_default', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const meta = (completion.metadata || {}) as any;
+      const selectedModel = meta.generation_model || 'gemini-2.5-flash';
+      const policyLength = meta.policy_length || 'full';
+
+      const practiceDetailsPayload = practiceData ? {
+        practice_name: practiceData.practice_name || '',
+        address: practiceData.address || '',
+        postcode: practiceData.postcode || '',
+        ods_code: practiceData.ods_code || '',
+        practice_manager_name: practiceData.practice_manager_name || '',
+        lead_gp_name: practiceData.lead_gp_name || '',
+        senior_gp_partner: (practiceData as any).senior_gp_partner || '',
+        caldicott_guardian: (practiceData as any).caldicott_guardian || '',
+        dpo_name: (practiceData as any).dpo_name || '',
+        siro: (practiceData as any).siro || '',
+        safeguarding_lead_adults: (practiceData as any).safeguarding_lead_adults || '',
+        safeguarding_lead_children: (practiceData as any).safeguarding_lead_children || '',
+        infection_control_lead: (practiceData as any).infection_control_lead || '',
+        complaints_lead: (practiceData as any).complaints_lead || '',
+        health_safety_lead: (practiceData as any).health_safety_lead || '',
+        fire_safety_officer: (practiceData as any).fire_safety_officer || '',
+        list_size: (practiceData as any).list_size || null,
+        services_offered: (practiceData as any).services_offered || {},
+        clinical_system: (practiceData as any).clinical_system || '',
+        has_branch_site: (practiceData as any).has_branch_site || false,
+        branch_site_name: (practiceData as any).branch_site_name || '',
+        branch_site_address: (practiceData as any).branch_site_address || '',
+        branch_site_postcode: (practiceData as any).branch_site_postcode || '',
+        branch_site_phone: (practiceData as any).branch_site_phone || '',
+      } : null;
+
+      const { error: insertError } = await supabase
+        .from('policy_generation_jobs')
+        .insert({
+          user_id: user.id,
+          policy_reference_id: completion.policy_reference_id,
+          policy_title: completion.policy_title,
+          practice_details: practiceDetailsPayload as any,
+          email_when_ready: false,
+          status: 'pending' as const,
+          metadata: { generation_model: selectedModel, policy_length: policyLength } as any,
+        });
+
+      if (insertError) throw insertError;
+
+      // Kick queue
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        fetch(`${supabaseUrl}/functions/v1/generate-policy`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ action: 'process-job', job_user_id: user.id }),
+        }).catch(() => {});
+      }
+
+      refetchJobs();
+      toast.success(`${completion.policy_title} queued for regeneration`);
+    } catch (error) {
+      console.error('Rerun error:', error);
+      toast.error('Failed to queue policy for regeneration');
+    } finally {
+      setRerunningId(null);
+    }
+  };
+
   const handleEmailToMe = async (completion: typeof completions[0]) => {
     const userEmail = user?.email;
     if (!userEmail) {
