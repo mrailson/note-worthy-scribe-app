@@ -36,7 +36,7 @@ const PolicyServiceCreate = () => {
   const { user } = useAuth();
   const [selectedPolicy, setSelectedPolicy] = useState<PolicyReference | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  
 
   // Batch mode state
   const [batchMode, setBatchMode] = useState(false);
