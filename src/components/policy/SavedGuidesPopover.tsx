@@ -42,7 +42,7 @@ export const SavedGuidesPopover: React.FC<SavedGuidesPopoverProps> = ({
 }) => {
   const [previewGuide, setPreviewGuide] = useState<{ guide: SavedQuickGuide; content: string | null; blobUrl: string | null } | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   if (guides.length === 0) return null;
 
   const handlePreview = async (guide: SavedQuickGuide) => {
