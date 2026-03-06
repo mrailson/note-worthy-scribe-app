@@ -608,11 +608,33 @@ const PolicyServiceMyPolicies = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
+                      <SavedGuidesPopover
+                        guides={((completion.metadata as any)?.quick_guides || []) as SavedQuickGuide[]}
+                        policyTitle={completion.policy_title}
+                        onDelete={async (guideId) => {
+                          try {
+                            const meta = (completion.metadata || {}) as any;
+                            const guides = (meta.quick_guides || []).filter((g: any) => g.id !== guideId);
+                            // Also delete from storage
+                            const deleted = (meta.quick_guides || []).find((g: any) => g.id === guideId);
+                            if (deleted?.storagePath) {
+                              await supabase.storage.from('quick-guides').remove([deleted.storagePath]);
+                            }
+                            await supabase
+                              .from('policy_completions')
+                              .update({ metadata: { ...meta, quick_guides: guides } })
+                              .eq('id', completion.id)
+                              .eq('user_id', user!.id);
+                            refreshCompletions();
+                            toast.success('Quick guide removed');
+                          } catch { toast.error('Failed to remove guide'); }
+                        }}
+                      />
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setQuickGuidePolicy({ id: completion.id, content: completion.policy_content, title: completion.policy_title })}
-                        title="Quick Guide"
+                        title="Create Quick Guide"
                       >
                         <BookOpen className="h-4 w-4" />
                       </Button>
