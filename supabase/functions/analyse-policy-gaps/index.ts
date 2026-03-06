@@ -819,6 +819,7 @@ Please analyse this policy against current NHS England and CQC requirements and 
     return new Response(JSON.stringify({
       success: true,
       policy_type: analysis.policy_type,
+      policy_source: policy_source || 'uploaded',
       gaps: analysis.gaps || [],
       outdated_references: analysis.outdated_references || [],
       missing_sections: analysis.missing_sections || [],
