@@ -275,6 +275,10 @@ POLICY-SPECIFIC MANDATORY CONTENT (CONFIDENTIALITY):
   'records management': `
 POLICY-SPECIFIC MANDATORY CONTENT (RECORDS MANAGEMENT):
 - MUST include a legal hold / litigation hold subsection covering: the obligation to suspend routine destruction of records when legal proceedings are anticipated or in progress (including complaints, claims, inquests, and regulatory investigations); who is responsible for issuing a legal hold notice (e.g. Practice Manager or Caldicott Guardian); how affected records are identified and preserved (including electronic and paper records); communication to staff about the hold; and when the hold can be lifted (written confirmation from the instructing solicitor or practice's legal adviser that proceedings have concluded).`,
+
+  'email': `
+POLICY-SPECIFIC MANDATORY CONTENT (EMAIL & ELECTRONIC COMMUNICATIONS):
+- MUST include a personal and private use subsection — covering whether staff may use practice email systems for personal communications, any limits that apply (e.g. incidental personal use only, no commercial or political use), how personal use is monitored, and that staff should have no expectation of privacy when using practice systems.`,
 };
 
 // Step-specific system prompt additions
