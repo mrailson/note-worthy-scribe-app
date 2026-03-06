@@ -1392,7 +1392,7 @@ ${contactInstructions}
 Now generate sections 9-11 to complete this policy, followed by the ===METADATA=== block. IMPORTANT: Complete every reference entry. Never end mid-sentence. You MUST include Section 10 (Appendices) and Section 11 (Version History). If space is limited, shorten content rather than omitting sections.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + lengthInstruction + PART3B_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + geminiConciseInstruction + PART3B_SYSTEM_ADDITION,
             userPrompt,
             scaleTokens(5000, 'generate_part_3b'),
             generationModel
