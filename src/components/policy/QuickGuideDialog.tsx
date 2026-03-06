@@ -11,10 +11,13 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { FileText, Image, Loader2, BookOpen, Users, Stethoscope, UserCog, Heart } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { FileText, Image, Loader2, BookOpen, Users, Stethoscope, UserCog, Heart, Download, ArrowLeft, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { generateCleanAIResponseDocument } from '@/utils/cleanWordExport';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export type QuickGuideAudience = 'all-staff' | 'non-clinical' | 'clinical' | 'patient';
 export type QuickGuideOrientation = 'landscape' | 'portrait';
@@ -36,6 +39,10 @@ interface QuickGuideDialogProps {
   onGenerated?: (output: QuickGuideOutput) => void;
 }
 
+type ResultState =
+  | { type: 'word'; text: string; fileName: string; output: QuickGuideOutput }
+  | { type: 'infographic'; blobUrl: string; fileName: string; output: QuickGuideOutput };
+
 export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
   open,
   onOpenChange,
@@ -49,6 +56,7 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
   const [generatingType, setGeneratingType] = useState<'word' | 'infographic' | null>(null);
   const [audience, setAudience] = useState<QuickGuideAudience>('all-staff');
   const [orientation, setOrientation] = useState<QuickGuideOrientation>('landscape');
+  const [result, setResult] = useState<ResultState | null>(null);
 
   const audienceLabels: Record<QuickGuideAudience, string> = {
     'all-staff': 'All Staff',
@@ -57,7 +65,6 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
     'patient': 'Patient',
   };
 
-  // Fetch canonical staff names and practice name from practice_details
   const fetchPracticeStaffNames = async (): Promise<{ names: string[]; practiceName: string }> => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -86,12 +93,9 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
     });
     if (error) throw error;
     if (!data?.success) throw new Error(data?.error || 'Failed to generate quick guide');
-    
-    // Surface manual review warning if flagged
     if (data.needs_manual_review) {
       toast.warning('Quick guide may need manual review — some staff name substitutions were detected and cleaned automatically.');
     }
-    
     return data.quick_guide;
   };
 
@@ -105,48 +109,16 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
       const guideText = await generateQuickGuideText();
       if (!guideText) return;
 
-      // Fetch review date from policy_cover table (not staff name fields)
-      let reviewDateNote = '';
-      if (policyId) {
-        try {
-          const { data: coverData } = await supabase
-            .from('policy_completions')
-            .select('metadata')
-            .eq('id', policyId)
-            .maybeSingle();
-          const meta = coverData?.metadata as any;
-          const reviewDate = meta?.review_date || meta?.next_review_date;
-          if (reviewDate) {
-            const formatted = new Date(reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-            reviewDateNote = ` | Next review: ${formatted}`;
-          }
-        } catch {
-          // Silently continue without review date
-        }
-      }
-
       const fileName = `Quick_Guide_${safeTitleUnderscore}_${audienceLabels[audience].replace(/\s+/g, '_')}.docx`;
-      const persistedLogoPosition = (localStorage.getItem('policy_docx_logo_position') as 'left' | 'center' | 'right') || 'left';
-      await generateCleanAIResponseDocument(
-        guideText,
-        `Quick Guide - ${safeTitle} (${audienceLabels[audience]})`,
-        {
-          footerNote: `For more details, see the Practice Policy on "${policyTitle}".${reviewDateNote}`,
-          logoUrl: logoUrl || undefined,
-          logoPosition: persistedLogoPosition,
-        }
-      );
-
       const output: QuickGuideOutput = {
         type: 'word',
         audience,
         generatedAt: new Date().toISOString(),
         fileName,
       };
-      onGenerated?.(output);
 
-      toast.success('Quick guide Word document downloaded');
-      onOpenChange(false);
+      setResult({ type: 'word', text: guideText, fileName, output });
+      onGenerated?.(output);
     } catch (err: any) {
       console.error('Quick guide Word error:', err);
       toast.error(err.message || 'Failed to generate quick guide');
@@ -154,6 +126,39 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
       setIsGenerating(false);
       setGeneratingType(null);
     }
+  };
+
+  const handleDownloadWord = async () => {
+    if (result?.type !== 'word') return;
+
+    let reviewDateNote = '';
+    if (policyId) {
+      try {
+        const { data: coverData } = await supabase
+          .from('policy_completions')
+          .select('metadata')
+          .eq('id', policyId)
+          .maybeSingle();
+        const meta = coverData?.metadata as any;
+        const reviewDate = meta?.review_date || meta?.next_review_date;
+        if (reviewDate) {
+          const formatted = new Date(reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+          reviewDateNote = ` | Next review: ${formatted}`;
+        }
+      } catch { /* silently continue */ }
+    }
+
+    const persistedLogoPosition = (localStorage.getItem('policy_docx_logo_position') as 'left' | 'center' | 'right') || 'left';
+    await generateCleanAIResponseDocument(
+      result.text,
+      `Quick Guide - ${safeTitle} (${audienceLabels[audience]})`,
+      {
+        footerNote: `For more details, see the Practice Policy on "${policyTitle}".${reviewDateNote}`,
+        logoUrl: logoUrl || undefined,
+        logoPosition: persistedLogoPosition,
+      }
+    );
+    toast.success('Quick guide Word document downloaded');
   };
 
   const handleInfographic = async () => {
@@ -164,9 +169,7 @@ export const QuickGuideDialog: React.FC<QuickGuideDialogProps> = ({
       if (!guideText) return;
 
       const isLandscape = orientation === 'landscape';
-      const aspectRatio = isLandscape ? '16:9' : '3:4';
       const orientationLabel = isLandscape ? 'landscape (16:9)' : 'portrait (3:4)';
-
       const isPatient = audience === 'patient';
       const infographicType = isPatient ? 'patient information leaflet' : 'staff quick guide';
       const infographicDesignFor = isPatient ? 'waiting rooms, practice websites, and patient information displays' : 'staff notice boards, team meetings, and quick reference';
@@ -216,13 +219,11 @@ ${isPatient ? '- Use warm, reassuring visual tone appropriate for patients\n- Av
       });
 
       const { data: response, error: fnError } = await Promise.race([invokePromise, timeoutPromise]);
-
       if (fnError) throw new Error(fnError.message || 'Failed to generate infographic');
 
       const imageUrl = response?.image?.url;
       if (!imageUrl) throw new Error(response?.error || response?.textResponse || 'No image generated');
 
-      // Convert to blob and download
       let blob: Blob;
       if (imageUrl.startsWith('data:')) {
         const base64Data = imageUrl.split(',')[1];
@@ -240,13 +241,6 @@ ${isPatient ? '- Use warm, reassuring visual tone appropriate for patients\n- Av
 
       const blobUrl = URL.createObjectURL(blob);
       const fileName = `Quick_Guide_${safeTitleUnderscore}_${audienceLabels[audience].replace(/\s+/g, '_')}_${orientation}_Infographic.png`;
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
       const output: QuickGuideOutput = {
         type: 'infographic',
@@ -254,10 +248,9 @@ ${isPatient ? '- Use warm, reassuring visual tone appropriate for patients\n- Av
         generatedAt: new Date().toISOString(),
         fileName,
       };
-      onGenerated?.(output);
 
-      toast.success('Quick guide infographic downloaded');
-      onOpenChange(false);
+      setResult({ type: 'infographic', blobUrl, fileName, output });
+      onGenerated?.(output);
     } catch (err: any) {
       console.error('Quick guide infographic error:', err);
       toast.error(err.message || 'Failed to generate infographic');
@@ -267,8 +260,114 @@ ${isPatient ? '- Use warm, reassuring visual tone appropriate for patients\n- Av
     }
   };
 
+  const handleDownloadInfographic = () => {
+    if (result?.type !== 'infographic') return;
+    const link = document.createElement('a');
+    link.href = result.blobUrl;
+    link.download = result.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Quick guide infographic downloaded');
+  };
+
+  const handleOpenFullSize = () => {
+    if (result?.type !== 'infographic') return;
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>${result.fileName}</title>
+          <style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1a1a1a}img{max-width:100%;max-height:100vh;object-fit:contain}</style></head>
+          <body><img src="${result.blobUrl}" alt="Quick Guide Infographic" /></body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
+  };
+
+  const handleBack = () => {
+    if (result?.type === 'infographic') {
+      URL.revokeObjectURL(result.blobUrl);
+    }
+    setResult(null);
+  };
+
+  const handleClose = (openState: boolean) => {
+    if (!openState) {
+      if (result?.type === 'infographic') {
+        URL.revokeObjectURL(result.blobUrl);
+      }
+      setResult(null);
+    }
+    onOpenChange(openState);
+  };
+
+  // Result preview view
+  if (result) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className={result.type === 'infographic' ? 'sm:max-w-3xl max-h-[90vh]' : 'sm:max-w-2xl max-h-[90vh]'}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {result.type === 'word' ? (
+                <FileText className="h-5 w-5 text-primary" />
+              ) : (
+                <Image className="h-5 w-5 text-primary" />
+              )}
+              Quick Guide — {result.type === 'word' ? 'Word Preview' : 'Infographic'}
+            </DialogTitle>
+            <DialogDescription>
+              {audienceLabels[audience]} • {policyTitle}
+            </DialogDescription>
+          </DialogHeader>
+
+          {result.type === 'word' ? (
+            <ScrollArea className="max-h-[55vh] border rounded-md p-4 bg-background">
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.text}</ReactMarkdown>
+              </div>
+            </ScrollArea>
+          ) : (
+            <div className="flex justify-center bg-muted rounded-md overflow-hidden max-h-[55vh]">
+              <img
+                src={result.blobUrl}
+                alt="Quick Guide Infographic"
+                className="max-h-[55vh] object-contain cursor-pointer"
+                onClick={handleOpenFullSize}
+                title="Click to open full size"
+              />
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={handleBack}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <div className="flex-1" />
+            {result.type === 'infographic' && (
+              <Button variant="outline" size="sm" onClick={handleOpenFullSize}>
+                <ExternalLink className="h-4 w-4 mr-1" />
+                Full Size
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={result.type === 'word' ? handleDownloadWord : handleDownloadInfographic}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Download {result.type === 'word' ? '.docx' : '.png'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
-    <Dialog open={open} onOpenChange={isGenerating ? undefined : onOpenChange}>
+    <Dialog open={open} onOpenChange={isGenerating ? undefined : handleClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -356,7 +455,6 @@ ${isPatient ? '- Use warm, reassuring visual tone appropriate for patients\n- Av
           </Button>
 
           <div className="flex flex-col gap-2">
-            {/* Orientation slider above infographic button */}
             <div className="flex items-center justify-center gap-2 px-1">
               <span className={`text-xs font-medium transition-colors ${orientation === 'landscape' ? 'text-foreground' : 'text-muted-foreground'}`}>Landscape</span>
               <Switch
