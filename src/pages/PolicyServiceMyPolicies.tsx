@@ -576,6 +576,14 @@ const PolicyServiceMyPolicies = () => {
                             })()}
                           </Badge>
                         )}
+                        {completion.policy_content && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
+                            📝 {(() => {
+                              const count = completion.policy_content.split(/\s+/).filter(Boolean).length;
+                              return count >= 1000 ? `${(count / 1000).toFixed(1)}K` : `${count}`;
+                            })()}  words
+                          </Badge>
+                        )}
                         {(completion.metadata as any)?.generation_duration_seconds && (
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
                             <Clock className="h-2.5 w-2.5 mr-0.5" />
