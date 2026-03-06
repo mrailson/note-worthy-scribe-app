@@ -237,7 +237,9 @@ The following must be explicitly covered or a CQC inspection finding will result
 
 3. TRANS/NON-BINARY PATIENTS — Include a named subsection (not just a passing mention) covering: manual recall oversight in SystmOne for patients registered as male, clinician sensitivity training, and preferred terminology guidance.
 
-4. FAILSAFE — Use the word "failsafe" explicitly in the three-contact escalation section heading (e.g. "### 5.X Failsafe Three-Contact Escalation Process").
+4. FAILSAFE — Use the exact heading "Three-Contact Failsafe Protocol" for the escalation section (e.g. "### 5.X Three-Contact Failsafe Protocol").
+
+5. HPV TRIAGE ALGORITHM — Include a subsection explicitly labelled "HPV Triage Algorithm" showing the decision pathway for all HPV result combinations (HPV negative, HPV positive/cytology normal, HPV positive/cytology abnormal, HPV positive/cytology inadequate), including recall intervals and referral triggers for each pathway.
 
 Do NOT regenerate header or sections 1-3.
 Do NOT include sections 6-11.
