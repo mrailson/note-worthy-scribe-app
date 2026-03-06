@@ -502,6 +502,7 @@ async function callGemini(system: string, userContent: string, maxTokens: number
     'gemini-2.0-flash-thinking-exp': 'gemini-2.5-flash',
     'gemini-2.0-flash-thinking-exp-01-21': 'gemini-2.5-flash',
     'gemini-2.5-flash': 'gemini-2.5-flash',
+    'gemini-2.5-pro': 'gemini-2.5-pro',
   };
   const geminiModel = geminiModelMap[model] || model;
   console.log(`[Gemini] Requested model: ${model}; mapped model: ${geminiModel}`);

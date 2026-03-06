@@ -12,8 +12,8 @@ export type PolicyGenerationModel =
   | 'claude-sonnet-4-6' 
   | 'claude-haiku-4-5' 
   | 'gpt-4o-mini' 
-  | 'gemini-2.0-flash' 
-  | 'gemini-2.0-flash-thinking-exp';
+  | 'gemini-2.5-flash' 
+  | 'gemini-2.5-pro';
 
 export type PolicyLength = 'compact' | 'concise' | 'standard' | 'full';
 
@@ -76,8 +76,8 @@ const MODEL_OPTIONS: {
     requiresKey: 'OPENAI_API_KEY',
   },
   { 
-    value: 'gemini-2.0-flash', 
-    label: 'Gemini 2.0 Flash', 
+    value: 'gemini-2.5-flash', 
+    label: 'Gemini 2.5 Flash', 
     provider: 'Google',
     badge: 'Budget', 
     badgeVariant: 'secondary',
@@ -86,12 +86,12 @@ const MODEL_OPTIONS: {
     requiresKey: 'GEMINI_API_KEY',
   },
   { 
-    value: 'gemini-2.0-flash-thinking-exp', 
-    label: 'Gemini 2.0 Flash Thinking', 
+    value: 'gemini-2.5-pro', 
+    label: 'Gemini 2.5 Pro', 
     provider: 'Google',
     badge: 'Reasoning', 
     badgeVariant: 'outline',
-    stats: '~75% cheaper · ~3-4 min',
+    stats: '~50% cheaper · ~4-5 min',
     icon: Brain,
     requiresKey: 'GEMINI_API_KEY',
   },
