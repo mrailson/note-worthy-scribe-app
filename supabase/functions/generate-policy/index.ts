@@ -984,7 +984,7 @@ Deno.serve(async (req) => {
           .from('policy_generation_jobs')
           .select('*')
           .eq('user_id', targetUserId)
-          .in('status', ['generating', 'enhancing'])
+          .in('status', ['generating', 'enhancing', 'optimising'])
           .lt('lease_expires_at', now)
           .order('created_at', { ascending: true })
           .limit(10);
