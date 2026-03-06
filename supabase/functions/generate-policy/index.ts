@@ -903,7 +903,7 @@ Deno.serve(async (req) => {
       const { data: staleUsers } = await serviceSupabase
         .from('policy_generation_jobs')
         .select('user_id')
-        .in('status', ['generating', 'enhancing'])
+        .in('status', ['generating', 'enhancing', 'optimising'])
         .lt('lease_expires_at', now);
 
       // Also check for NULL lease (legacy)
