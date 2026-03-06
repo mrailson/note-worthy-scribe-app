@@ -1166,7 +1166,7 @@ ${contactInstructions}
 Now generate sections 4-5 only. Section 5 must be COMPLETE with all sub-sections fully written out. IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections.`;
 
           const content = await callAnthropic(
-            BASE_SYSTEM_PROMPT + lengthInstruction + PART2A_SYSTEM_ADDITION,
+            BASE_SYSTEM_PROMPT + lengthInstruction + geminiConciseInstruction + PART2A_SYSTEM_ADDITION,
             userPrompt,
             scaleTokens(10000, 'generate_part_2a'),
             generationModel
