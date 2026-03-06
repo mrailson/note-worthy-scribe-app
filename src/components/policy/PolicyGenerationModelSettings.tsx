@@ -104,7 +104,7 @@ const LENGTH_OPTIONS: { value: PolicyLength; label: string; description: string;
 ];
 
 export const PolicyGenerationModelSettings = () => {
-  const [model, setModel] = useState<PolicyGenerationModel>('claude-sonnet-4-6');
+  const [model, setModel] = useState<PolicyGenerationModel>('gemini-2.5-flash');
   const [length, setLength] = useState<PolicyLength>('full');
   const [open, setOpen] = useState(false);
 

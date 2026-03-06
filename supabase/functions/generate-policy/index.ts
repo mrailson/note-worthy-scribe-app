@@ -1054,14 +1054,22 @@ Deno.serve(async (req) => {
           ? `\n\nDOCUMENT LENGTH TARGET: ${lengthLabels[policyLength] || lengthLabels.full}\nScale ALL sections proportionally to meet this target. Do not pad or repeat content to fill space.`
           : '';
 
-        // Gemini-specific concise mode instruction
+        // Gemini-specific writing style instruction with dynamic word targets
+        const geminiWordTargets: Record<string, string> = {
+          compact: '1,500–2,500 words (~8 pages). Key essentials only — one bullet per requirement, no elaboration.',
+          concise: '3,000–4,500 words (~13 pages). Core requirements with essential clinical detail.',
+          standard: '5,000–7,000 words (~20 pages). Good coverage with procedural detail.',
+          full: '7,000–9,000 words (~40 pages). Full regulatory detail, CQC inspection-ready.',
+        };
+
         const geminiConciseInstruction = generationModel.startsWith('gemini-')
-          ? `\n\nGEMINI CONCISE MODE:
-- Write in direct, professional NHS policy style — no padding, repetition, or filler phrases.
+          ? `\n\nGEMINI WRITING STYLE:
+- Write in direct, professional NHS policy style — no padding, filler phrases, or repetition.
+- Prefer structured bullet lists over prose paragraphs where appropriate.
 - Each procedural point should be one clear sentence unless clinical detail requires more.
-- Prefer structured bullet lists over paragraphs where appropriate.
-- Target 6,000–8,000 words total. Stop adding content once a section is complete — do not repeat or elaborate beyond what is clinically necessary.
-- Complete every required section and subsection — brevity applies to prose style, not content coverage.`
+- Target length: ${geminiWordTargets[policyLength] || geminiWordTargets['full']}
+- CRITICAL: Do NOT omit any required sections or subsections regardless of length — brevity applies to prose style only, not content coverage.
+- All sections 1–11 must be present and complete in every output.`
           : '';
         
         console.log(`Using model: ${generationModel}, length: ${policyLength} (scale: ${scale}) for job ${job.id}`);
