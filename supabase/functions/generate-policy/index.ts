@@ -1718,6 +1718,22 @@ SEVERITY FILTER — only flag:
 2. CQC INSPECTION RISK: a materially missing section a CQC inspector would specifically look for evidence of.
 3. PATIENT SAFETY / OPERATIONAL RISK: a process gap that could directly lead to patient harm or significant operational failure.
 
+SCOPE FILTERING — CRITICAL:
+Before reporting any gap, ask: does this gap belong directly within the scope of THIS specific policy type, or does it belong to a separate policy that should merely be cross-referenced?
+Do NOT report gaps that belong to these separate policies:
+- Business Continuity / SystmOne downtime procedures
+- Controlled Drugs Accountable Officer details
+- Whistleblowing / Freedom to Speak Up
+- HR / employment policies
+- Any other distinct policy with its own dedicated document
+For these topics, a cross-reference is sufficient — do not penalise their absence.
+
+Do NOT penalise or flag placeholder values including:
+- "Oak Lane Medical Practice", "Dr John Smith", "Malcolm Railson", "123 High Street"
+- Any similar template placeholders — these are intentional and will be replaced by the practice.
+
+PSIRF NOTE: The Patient Safety Incident Response Framework (PSIRF) replaced the Serious Incident Framework in 2023 for NHS providers. For PRIMARY CARE / GP PRACTICES, reference to PSIRF is best practice but not yet mandated — flag as a recommendation, not a Clinical/Legal gap.
+
 NEVER FLAG: minor wording, style, fax mentions, current DSPT versions, vendor names, case law that remains good law, anything covered elsewhere in the document.
 CRITICAL: Before flagging any gap, confirm the content is genuinely absent from the ENTIRE document — not just the expected section. If the substance is covered anywhere in the document, do not flag it.
 STRICT DEDUPLICATION: Each issue must appear exactly once across the entire output. Before returning, compare all gap descriptions — if two items refer to the same underlying gap (even worded differently), keep only the one under the most appropriate category and discard the other. Never list the same issue under both "gaps" and any other grouping.
