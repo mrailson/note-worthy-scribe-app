@@ -83,7 +83,6 @@ const MODEL_OPTIONS: {
     badgeVariant: 'secondary',
     stats: '~85% cheaper · ~2 min',
     icon: Zap,
-    requiresKey: 'GEMINI_API_KEY',
   },
   { 
     value: 'gemini-2.5-pro', 
