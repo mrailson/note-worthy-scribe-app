@@ -23,7 +23,7 @@ const LENGTH_STORAGE_KEY = 'policy-generation-length';
 export const getPolicyGenerationModel = (): PolicyGenerationModel => {
   const saved = localStorage.getItem(MODEL_STORAGE_KEY);
   if (saved && MODEL_OPTIONS.some(m => m.value === saved)) return saved as PolicyGenerationModel;
-  return 'claude-sonnet-4-6';
+  return 'gemini-2.5-flash';
 };
 
 export const getPolicyGenerationLength = (): PolicyLength => {
@@ -97,14 +97,14 @@ const MODEL_OPTIONS: {
 ];
 
 const LENGTH_OPTIONS: { value: PolicyLength; label: string; description: string; pages: string; time: string }[] = [
-  { value: 'compact', label: 'Compact', description: 'Key essentials only — quick reference style', pages: '~8 pages', time: '~2 min' },
+  { value: 'compact', label: 'Compact', description: 'Key essentials — quick reference style', pages: '~8 pages', time: '~2 min' },
   { value: 'concise', label: 'Concise', description: 'Core requirements with essential detail', pages: '~13 pages', time: '~3 min' },
-  { value: 'standard', label: 'Standard', description: 'Balanced coverage with good detail', pages: '~20 pages', time: '~6 min' },
+  { value: 'standard', label: 'Standard', description: 'Balanced coverage with good procedural detail', pages: '~20 pages', time: '~6 min' },
   { value: 'full', label: 'Comprehensive', description: 'Full regulatory detail — CQC inspection-ready', pages: '~40 pages', time: '~10 min' },
 ];
 
 export const PolicyGenerationModelSettings = () => {
-  const [model, setModel] = useState<PolicyGenerationModel>('claude-sonnet-4-6');
+  const [model, setModel] = useState<PolicyGenerationModel>('gemini-2.5-flash');
   const [length, setLength] = useState<PolicyLength>('full');
   const [open, setOpen] = useState(false);
 
