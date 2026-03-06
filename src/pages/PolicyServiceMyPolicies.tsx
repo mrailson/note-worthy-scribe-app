@@ -733,17 +733,28 @@ const PolicyServiceMyPolicies = () => {
           policyId={quickGuidePolicy.id}
           logoUrl={practiceLogoUrl}
           onGenerated={async (output: QuickGuideOutput) => {
-            // Persist to policy metadata
             if (user && quickGuidePolicy) {
               try {
                 const completion = completions.find(c => c.id === quickGuidePolicy.id);
                 const currentMeta = (completion?.metadata || {}) as any;
-                const updatedMeta = { ...currentMeta, last_quick_guide: output };
+                const existingGuides: SavedQuickGuide[] = currentMeta.quick_guides || [];
+                const newGuide: SavedQuickGuide = {
+                  id: crypto.randomUUID(),
+                  type: output.type,
+                  audience: output.audience,
+                  fileName: output.fileName,
+                  storagePath: output.storagePath || '',
+                  generatedAt: output.generatedAt,
+                };
+                // Cap at 10 guides, remove oldest if needed
+                const updatedGuides = [...existingGuides, newGuide].slice(-10);
+                const updatedMeta = { ...currentMeta, quick_guides: updatedGuides, last_quick_guide: output };
                 await supabase
                   .from('policy_completions')
                   .update({ metadata: updatedMeta })
                   .eq('id', quickGuidePolicy.id)
                   .eq('user_id', user.id);
+                refreshCompletions();
               } catch (err) {
                 console.error('Failed to persist quick guide metadata:', err);
               }
