@@ -127,7 +127,7 @@ const PolicyServiceMyPolicies = () => {
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [expandedVersionHistory, setExpandedVersionHistory] = useState<Set<string>>(new Set());
   const [newVersionModal, setNewVersionModal] = useState<{ id: string; content: string; version: string; metadata: any; prefilledSummary?: string; prefilledChangeType?: string } | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'needs_review' | 'overdue' | 'profile_changed'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'needs_review' | 'overdue' | 'profile_changed'>(urlFilter === 'profile_changed' ? 'profile_changed' : 'all');
   const [viewingVersion, setViewingVersion] = useState<{ version: PolicyVersion; currentVersion: string } | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
     practice_name?: string;
