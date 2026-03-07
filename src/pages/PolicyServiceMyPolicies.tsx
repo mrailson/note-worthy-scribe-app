@@ -726,6 +726,23 @@ const PolicyServiceMyPolicies = () => {
                           </Badge>
                         );
                       })()}
+                      {/* Profile change flag badge */}
+                      {(profileFlags[completion.id] || []).length > 0 && (
+                        <PolicyProfileFlagBadge
+                          flags={profileFlags[completion.id]}
+                          onCreateVersion={(summary) => {
+                            setNewVersionModal({
+                              id: completion.id,
+                              content: completion.policy_content,
+                              version: completion.version,
+                              metadata: completion.metadata,
+                              prefilledSummary: summary,
+                              prefilledChangeType: 'staff_update',
+                            });
+                          }}
+                          onDismissAll={() => dismissAllForPolicy(completion.id)}
+                        />
+                      )}
                     </div>
                     
                     <div className="flex items-center gap-2 shrink-0">
