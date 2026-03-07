@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePracticeContext } from "@/hooks/usePracticeContext";
+import { useProfileFlags, NAMED_PERSON_FIELDS, getFieldLabel } from "@/hooks/useProfileFlags";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface BranchSite {
@@ -122,12 +124,16 @@ const serviceOptions = [
 export const PolicyProfileDefaults = () => {
   const { user } = useAuth();
   const { practiceDetails: sharedPracticeDetails } = usePracticeContext();
+  const { scanAndFlagPolicies } = useProfileFlags();
+  const navigate = useNavigate();
   const [data, setData] = useState<PolicyProfileData>(defaultData);
+  const savedDataRef = useRef<PolicyProfileData>(defaultData);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [practiceDetailsId, setPracticeDetailsId] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [sharedProfileSource, setSharedProfileSource] = useState<string | null>(null);
+  const [profileChangeBanner, setProfileChangeBanner] = useState<{ count: number; oldValue: string } | null>(null);
 
   // Load existing practice details
   useEffect(() => {
@@ -250,6 +256,21 @@ export const PolicyProfileDefaults = () => {
               ? (pd as any).services_offered 
               : ((sharedPd as any)?.services_offered || {}),
           });
+          savedDataRef.current = {
+            ...defaultData,
+            practice_manager_name: (pd as any).practice_manager_name || (sharedPd as any)?.practice_manager_name || "",
+            lead_gp_name: (pd as any).lead_gp_name || (sharedPd as any)?.lead_gp_name || "",
+            senior_gp_partner: (pd as any).senior_gp_partner || (sharedPd as any)?.senior_gp_partner || "",
+            caldicott_guardian: (pd as any).caldicott_guardian || (sharedPd as any)?.caldicott_guardian || "",
+            dpo_name: (pd as any).dpo_name || (sharedPd as any)?.dpo_name || "",
+            siro: (pd as any).siro || (sharedPd as any)?.siro || "",
+            safeguarding_lead_adults: (pd as any).safeguarding_lead_adults || (sharedPd as any)?.safeguarding_lead_adults || "",
+            safeguarding_lead_children: (pd as any).safeguarding_lead_children || (sharedPd as any)?.safeguarding_lead_children || "",
+            infection_control_lead: (pd as any).infection_control_lead || (sharedPd as any)?.infection_control_lead || "",
+            health_safety_lead: (pd as any).health_safety_lead || (sharedPd as any)?.health_safety_lead || "",
+            fire_safety_officer: (pd as any).fire_safety_officer || (sharedPd as any)?.fire_safety_officer || "",
+            complaints_lead: (pd as any).complaints_lead || (sharedPd as any)?.complaints_lead || "",
+          };
 
           if (mergedFromShared) {
             const sourceName = (sharedPd as any)?.practice_manager_name || 'Practice Manager';
@@ -506,6 +527,25 @@ export const PolicyProfileDefaults = () => {
 
       toast.success('Policy profile defaults saved successfully');
       setHasChanges(false);
+
+      // Scan for named person changes and flag affected policies
+      let totalAffected = 0;
+      let firstOldValue = '';
+      for (const field of NAMED_PERSON_FIELDS) {
+        const oldVal = (savedDataRef.current as any)[field] || '';
+        const newVal = (data as any)[field] || '';
+        if (oldVal && newVal && oldVal !== newVal) {
+          const affected = await scanAndFlagPolicies(field, oldVal, newVal, practiceDetailsId || undefined);
+          if (affected > 0 && !firstOldValue) firstOldValue = oldVal;
+          totalAffected += affected;
+        }
+      }
+      // Update saved ref
+      savedDataRef.current = { ...data };
+
+      if (totalAffected > 0) {
+        setProfileChangeBanner({ count: totalAffected, oldValue: firstOldValue });
+      }
     } catch (error) {
       console.error('❌ Error saving practice details:', error);
       toast.error('Failed to save practice details');
@@ -536,6 +576,25 @@ export const PolicyProfileDefaults = () => {
 
   return (
     <div className="space-y-6">
+      {/* Profile Change Banner */}
+      {profileChangeBanner && (
+        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+            <AlertCircle className="h-5 w-5" />
+            <span className="text-sm">
+              Profile updated. <strong>{profileChangeBanner.count} {profileChangeBanner.count === 1 ? 'policy contains' : 'policies contain'}</strong> "{profileChangeBanner.oldValue}" and may need updating to reflect this change.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="link" size="sm" className="text-amber-800 dark:text-amber-200" onClick={() => navigate('/policy-service/my-policies?filter=profile_changed')}>
+              View affected policies →
+            </Button>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProfileChangeBanner(null)}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
       {/* Unsaved Changes Banner */}
       {hasChanges && (
         <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-center justify-between">

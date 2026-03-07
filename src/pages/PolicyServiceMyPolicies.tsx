@@ -34,6 +34,8 @@ import { usePolicyVersions, PolicyVersion, ChangeType } from "@/hooks/usePolicyV
 import { VersionHistoryPanel } from "@/components/policy/VersionHistoryPanel";
 import { CreateNewVersionModal } from "@/components/policy/CreateNewVersionModal";
 import { HistoricalVersionViewer } from "@/components/policy/HistoricalVersionViewer";
+import { PolicyProfileFlagBadge } from "@/components/policy/PolicyProfileFlagBadge";
+import { useProfileFlags } from "@/hooks/useProfileFlags";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
 import { format, parseISO, formatDistanceToNow, differenceInHours, differenceInMinutes } from "date-fns";
@@ -101,9 +103,13 @@ const getJobStatusBadge = (job: PolicyJob) => {
 const PolicyServiceMyPolicies = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  // Check URL for filter param
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlFilter = urlParams.get('filter');
   const { completions, isLoading, getDaysUntilReview, deleteCompletion, refreshCompletions } = usePolicyCompletions();
   const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue, refetch: refetchJobs } = usePolicyJobs();
   const { versions, fetchVersions, ensureInitialVersion, createVersion, saveDraft } = usePolicyVersions();
+  const { flags: profileFlags, dismissAllForPolicy, fetchFlags: refreshProfileFlags } = useProfileFlags();
   const prevActiveJobCountRef = useRef(activeJobCount);
 
   // Auto-refresh completions when active jobs finish (count drops)
@@ -120,7 +126,8 @@ const PolicyServiceMyPolicies = () => {
   const [quickGuidePolicy, setQuickGuidePolicy] = useState<{ id: string; content: string; title: string } | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [expandedVersionHistory, setExpandedVersionHistory] = useState<Set<string>>(new Set());
-  const [newVersionModal, setNewVersionModal] = useState<{ id: string; content: string; version: string; metadata: any } | null>(null);
+  const [newVersionModal, setNewVersionModal] = useState<{ id: string; content: string; version: string; metadata: any; prefilledSummary?: string; prefilledChangeType?: string } | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'needs_review' | 'overdue' | 'profile_changed'>(urlFilter === 'profile_changed' ? 'profile_changed' : 'all');
   const [viewingVersion, setViewingVersion] = useState<{ version: PolicyVersion; currentVersion: string } | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
     practice_name?: string;
@@ -153,9 +160,20 @@ const PolicyServiceMyPolicies = () => {
     fetchPractice();
   }, [user]);
 
-  const filteredCompletions = completions.filter(c =>
-    c.policy_title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const profileChangedCount = completions.filter(c => (profileFlags[c.id] || []).length > 0).length;
+
+  const filteredCompletions = completions.filter(c => {
+    // Text search
+    if (searchQuery && !c.policy_title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    // Tab filter
+    if (activeFilter === 'overdue') return getDaysUntilReview(c.review_date) < 0;
+    if (activeFilter === 'needs_review') {
+      const days = getDaysUntilReview(c.review_date);
+      return days >= 0 && days <= 30;
+    }
+    if (activeFilter === 'profile_changed') return (profileFlags[c.id] || []).length > 0;
+    return true;
+  });
 
   const overdueCount = filteredCompletions.filter(c => getDaysUntilReview(c.review_date) < 0).length;
   const dueSoonCount = filteredCompletions.filter(c => {
@@ -615,6 +633,33 @@ const PolicyServiceMyPolicies = () => {
           </Card>
         </div>
 
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-2 mb-4">
+          {[
+            { key: 'all' as const, label: 'All' },
+            { key: 'needs_review' as const, label: 'Needs Review' },
+            { key: 'overdue' as const, label: 'Overdue' },
+            { key: 'profile_changed' as const, label: `⚠ Profile Changed${profileChangedCount > 0 ? ` (${profileChangedCount})` : ''}` },
+          ].map(tab => (
+            <Button
+              key={tab.key}
+              variant={activeFilter === tab.key ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveFilter(tab.key)}
+              className="text-xs"
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Profile Changed Banner */}
+        {activeFilter === 'profile_changed' && profileChangedCount > 0 && (
+          <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-sm">
+            {profileChangedCount} {profileChangedCount === 1 ? 'policy' : 'policies'} flagged following profile updates. Updating these will create new versions automatically.
+          </div>
+        )}
+
         {/* Search */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -726,6 +771,23 @@ const PolicyServiceMyPolicies = () => {
                           </Badge>
                         );
                       })()}
+                      {/* Profile change flag badge */}
+                      {(profileFlags[completion.id] || []).length > 0 && (
+                        <PolicyProfileFlagBadge
+                          flags={profileFlags[completion.id]}
+                          onCreateVersion={(summary) => {
+                            setNewVersionModal({
+                              id: completion.id,
+                              content: completion.policy_content,
+                              version: completion.version,
+                              metadata: completion.metadata,
+                              prefilledSummary: summary,
+                              prefilledChangeType: 'staff_update',
+                            });
+                          }}
+                          onDismissAll={() => dismissAllForPolicy(completion.id)}
+                        />
+                      )}
                     </div>
                     
                     <div className="flex items-center gap-2 shrink-0">
@@ -928,6 +990,8 @@ const PolicyServiceMyPolicies = () => {
           currentVersion={newVersionModal.version}
           policyContent={newVersionModal.content}
           metadata={newVersionModal.metadata}
+          prefilledSummary={newVersionModal.prefilledSummary}
+          prefilledChangeType={newVersionModal.prefilledChangeType as any}
           onPublish={async (data) => {
             await createVersion({
               policyId: newVersionModal.id,
@@ -939,7 +1003,10 @@ const PolicyServiceMyPolicies = () => {
               approvedBy: data.approvedBy,
               nextReviewDate: data.nextReviewDate,
             });
+            // Auto-resolve profile flags for this policy on version publish
+            await dismissAllForPolicy(newVersionModal.id);
             refreshCompletions();
+            refreshProfileFlags();
           }}
           onSaveDraft={async (data) => {
             await saveDraft({

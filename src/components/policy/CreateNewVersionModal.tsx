@@ -18,6 +18,8 @@ interface CreateNewVersionModalProps {
   currentVersion: string;
   policyContent: string;
   metadata: any;
+  prefilledSummary?: string;
+  prefilledChangeType?: ChangeType;
   onPublish: (data: {
     changeType: ChangeType;
     changeSummary: string;
@@ -40,13 +42,15 @@ export const CreateNewVersionModal = ({
   currentVersion,
   policyContent,
   metadata,
+  prefilledSummary,
+  prefilledChangeType,
   onPublish,
   onSaveDraft,
 }: CreateNewVersionModalProps) => {
   const [step, setStep] = useState(1);
-  const [changeType, setChangeType] = useState<ChangeType>('content_change');
+  const [changeType, setChangeType] = useState<ChangeType>(prefilledChangeType || 'content_change');
   const [editedContent, setEditedContent] = useState(policyContent);
-  const [changeSummary, setChangeSummary] = useState('');
+  const [changeSummary, setChangeSummary] = useState(prefilledSummary || '');
   const [approvedBy, setApprovedBy] = useState(metadata?.approved_by || '');
   const [nextReviewDate, setNextReviewDate] = useState<Date>(addYears(new Date(), 1));
   const [isSubmitting, setIsSubmitting] = useState(false);
