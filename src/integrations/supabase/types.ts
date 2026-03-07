@@ -8190,6 +8190,44 @@ export type Database = {
           },
         ]
       }
+      policy_library_access: {
+        Row: {
+          access_level: Database["public"]["Enums"]["policy_access_level"]
+          created_at: string
+          granted_by: string
+          id: string
+          practice_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_level?: Database["public"]["Enums"]["policy_access_level"]
+          created_at?: string
+          granted_by: string
+          id?: string
+          practice_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_level?: Database["public"]["Enums"]["policy_access_level"]
+          created_at?: string
+          granted_by?: string
+          id?: string
+          practice_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_library_access_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       policy_profile_flags: {
         Row: {
           dismissed_at: string | null
@@ -11784,6 +11822,10 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: string[]
       }
+      get_policy_library_access: {
+        Args: { _practice_id: string; _user_id: string }
+        Returns: string
+      }
       get_policy_usage_report: {
         Args: never
         Returns: {
@@ -12337,6 +12379,7 @@ export type Database = {
       file_type: "folder" | "file"
       permission_action: "view" | "edit" | "delete" | "share" | "upload"
       permission_level: "owner" | "editor" | "viewer" | "no_access"
+      policy_access_level: "none" | "read" | "edit"
       practice_role:
         | "gp_partner"
         | "salaried_gp"
@@ -12573,6 +12616,7 @@ export const Constants = {
       file_type: ["folder", "file"],
       permission_action: ["view", "edit", "delete", "share", "upload"],
       permission_level: ["owner", "editor", "viewer", "no_access"],
+      policy_access_level: ["none", "read", "edit"],
       practice_role: [
         "gp_partner",
         "salaried_gp",
