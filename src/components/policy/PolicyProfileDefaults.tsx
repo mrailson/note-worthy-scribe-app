@@ -527,6 +527,25 @@ export const PolicyProfileDefaults = () => {
 
       toast.success('Policy profile defaults saved successfully');
       setHasChanges(false);
+
+      // Scan for named person changes and flag affected policies
+      let totalAffected = 0;
+      let firstOldValue = '';
+      for (const field of NAMED_PERSON_FIELDS) {
+        const oldVal = (savedDataRef.current as any)[field] || '';
+        const newVal = (data as any)[field] || '';
+        if (oldVal && newVal && oldVal !== newVal) {
+          const affected = await scanAndFlagPolicies(field, oldVal, newVal, practiceDetailsId || undefined);
+          if (affected > 0 && !firstOldValue) firstOldValue = oldVal;
+          totalAffected += affected;
+        }
+      }
+      // Update saved ref
+      savedDataRef.current = { ...data };
+
+      if (totalAffected > 0) {
+        setProfileChangeBanner({ count: totalAffected, oldValue: firstOldValue });
+      }
     } catch (error) {
       console.error('❌ Error saving practice details:', error);
       toast.error('Failed to save practice details');
