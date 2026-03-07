@@ -46,6 +46,7 @@ export const SDAExecutiveSummary = () => {
   const [buybackBtnHovered, setBuybackBtnHovered] = useState(false);
   const [showReportingPreview, setShowReportingPreview] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
+  const [showBuybackExplainer, setShowBuybackExplainer] = useState(false);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
