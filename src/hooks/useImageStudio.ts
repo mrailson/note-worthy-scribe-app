@@ -463,8 +463,13 @@ export function useImageStudio() {
 
         console.log('✅ Image generated successfully');
 
+        // Convert base64 to blob URL to free memory
+        const blobUrl = await base64ToBlobUrl(data.image.url);
+        trackBlobUrl(blobUrl);
+        console.log(`🧠 Memory: converted base64 (${Math.round((data.image.url?.length || 0) / 1024)}KB) → blob URL`);
+
         const result: GeneratedImage = {
-          url: data.image.url,
+          url: blobUrl,
           alt: data.image.alt || settings.description.substring(0, 100),
           prompt: settings.description,
           requestType: data.image.requestType || (settings.purpose === 'banner' ? 'general' : settings.purpose as GeneratedImage['requestType']),
