@@ -217,7 +217,7 @@ export default function SDAClaimingGuide(){
 
 </main>
 <footer style={{borderTop:`1px solid ${T.border}`,padding:"16px 48px",display:"flex",justifyContent:"space-between",background:T.card}}>
-<div style={{fontSize:11,color:T.muted}}>NRES Part A: SDA Claiming Guide · Notewell by PCN Services Ltd</div>
+<div style={{fontSize:11,color:T.muted}}>NRES Part A: SDA Claiming Guide · Notewell</div>
 <div style={{fontSize:11,color:T.muted}}>Prepared by Malcolm Railson, NRES Neighbourhood Manager · March 2026</div>
 </footer>
 </div>);

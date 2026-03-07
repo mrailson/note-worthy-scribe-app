@@ -1287,7 +1287,7 @@ export default function BoardPresentation() {
       {/* ═══ FOOTER ═══ */}
       <footer style={{background:"linear-gradient(135deg, #1A3A5C, #1E5F7A)",padding:"10px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <span style={{fontSize:10,color:"#475569",fontFamily:"'DM Sans',sans-serif"}}>
-          NRES SDA Claims System · Notewell by PCN Services Ltd · Programme Board Presentation · March 2026
+          NRES SDA Claims System · Notewell · Programme Board Presentation · March 2026
         </span>
         <div style={{display:"flex",gap:8}}>
           {SECTIONS.map((s,i) => (
