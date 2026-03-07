@@ -28,6 +28,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import BoardPresentationExplainer from './BoardPresentationExplainer';
+import BoardPresentation from './BoardPresentation';
 
 /** Format a number as £X,XXX.XX */
 function fmtGBP(n: number): string {
@@ -384,7 +385,7 @@ export function BuyBackClaimsTab() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
-                  <BoardPresentationExplainer />
+                  <BoardPresentation />
                 </DialogContent>
               </Dialog>
             </div>
