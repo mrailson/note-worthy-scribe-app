@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProgrammePlanGantt } from "./programme-plan";
 import { SDAPartnerQuickGuide } from "./SDAPartnerQuickGuide";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import BoardPresentationExplainer from "@/components/nres/hours-tracker/BoardPresentationExplainer";
 
 
 const NRESReportingRequirements = lazy(() => import("@/components/sda/NRESReportingRequirements"));
