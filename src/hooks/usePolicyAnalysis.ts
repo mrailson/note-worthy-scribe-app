@@ -85,12 +85,25 @@ export const usePolicyAnalysis = () => {
         throw new Error(data?.error || 'Gap analysis failed');
       }
 
+      const stringifyItem = (item: unknown): string => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+          const obj = item as Record<string, unknown>;
+          const desc = obj.description || obj.issue || obj.name || obj.reference || '';
+          const reason = obj.reason ? ` — ${obj.reason}` : '';
+          const section = obj.section ? ` [${obj.section}]` : '';
+          const severity = obj.severity ? ` (${obj.severity})` : '';
+          return `${desc}${severity}${reason}${section}` || JSON.stringify(item);
+        }
+        return String(item);
+      };
+
       return {
         policy_type: data.policy_type,
         policy_source: data.policy_source || policySource,
-        gaps: data.gaps || [],
-        outdated_references: data.outdated_references || [],
-        missing_sections: data.missing_sections || [],
+        gaps: (data.gaps || []).map(stringifyItem),
+        outdated_references: (data.outdated_references || []).map(stringifyItem),
+        missing_sections: (data.missing_sections || []).map(stringifyItem),
         last_review_date: data.last_review_date,
         compliance_score: typeof data.compliance_score === 'number' ? data.compliance_score : null,
         score_summary: data.score_summary || null,
