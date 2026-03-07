@@ -119,10 +119,8 @@ export const SDAExecutiveSummary = () => {
                     </div>
                     <div className="flex-1" />
                     {/* Workforce Buy-Back Explainer Button */}
-                    <a
-                      href="/buyback-explainer"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <div
+                      onClick={() => setShowBuybackExplainer(true)}
                       onMouseEnter={() => setBuybackBtnHovered(true)}
                       onMouseLeave={() => setBuybackBtnHovered(false)}
                       style={{
@@ -205,7 +203,7 @@ export const SDAExecutiveSummary = () => {
                           </svg>
                         </div>
                       </div>
-                    </a>
+                    </div>
                     <p className="text-[10px] text-slate-400 mt-2">Updated: 25 February 2026</p>
                   </CardContent>
                 </Card>
