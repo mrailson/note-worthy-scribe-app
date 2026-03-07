@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useRef } from "react";
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -47,24 +46,24 @@ const PAY_CFG = {
 // ── Slide Components ────────────────────────────────────────────────────
 const SlideTitle = ({children,sub}) => (
   <div style={{marginBottom:28}}>
-    <h2 style={{fontSize:26,fontWeight:800,color:"#0C2D48",margin:0,letterSpacing:-0.8,lineHeight:1.2}}>{children}</h2>
-    {sub && <p style={{fontSize:14,color:"#64748B",margin:"6px 0 0",fontWeight:400}}>{sub}</p>}
+    <h2 style={{fontFamily:"'Source Serif 4','Georgia',serif",fontSize:28,fontWeight:800,color:"#0C2D48",margin:0,letterSpacing:-0.5,lineHeight:1.2}}>{children}</h2>
+    {sub && <p style={{fontSize:14,color:"#475569",margin:"6px 0 0",fontWeight:400}}>{sub}</p>}
   </div>
 );
 
-const Stat = ({label,value,sub,color="#0C4A6E",bg="#E0F2FE"}) => (
-  <div style={{background:bg,borderRadius:14,padding:"20px 18px",borderLeft:`4px solid ${color}`,flex:1}}>
-    <div style={{fontSize:11,color,fontWeight:600,letterSpacing:0.3}}>{label}</div>
+const Stat = ({label,value,sub,color="#0C2D48",bg="#F1F5F9"}) => (
+  <div style={{background:bg,borderRadius:12,padding:"20px 18px",borderLeft:`4px solid ${color}`,flex:1}}>
+    <div style={{fontSize:10,color,fontWeight:700,letterSpacing:0.5}}>{label}</div>
     <div style={{fontSize:28,fontWeight:800,color,marginTop:4,lineHeight:1}}>{value}</div>
-    {sub && <div style={{fontSize:11,color:"#64748B",marginTop:4}}>{sub}</div>}
+    {sub && <div style={{fontSize:11,color:"#475569",marginTop:4}}>{sub}</div>}
   </div>
 );
 
-const InfoCard = ({icon,title,children,accent="#0C4A6E"}) => (
+const InfoCard = ({icon,title,children,accent="#0C2D48"}) => (
   <div style={{background:"#fff",borderRadius:12,padding:"20px 18px",border:"1px solid #E2E8F0",borderTop:`3px solid ${accent}`}}>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
       <span style={{fontSize:22}}>{icon}</span>
-      <span style={{fontSize:15,fontWeight:800,color:"#0C2D48"}}>{title}</span>
+      <span style={{fontFamily:"'Source Serif 4','Georgia',serif",fontFamily:"'Source Serif 4','Georgia',serif",fontSize:16,fontWeight:800,color:"#0C2D48"}}>{title}</span>
     </div>
     <div style={{fontSize:13,color:"#475569",lineHeight:1.7}}>{children}</div>
   </div>
@@ -158,7 +157,7 @@ export default function BoardPresentation() {
       <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
       {/* ═══ HEADER ═══ */}
-      <header style={{background:"#0C2D48",padding:"10px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+      <header style={{background:"linear-gradient(135deg, #1A3A5C 0%, #1E5F7A 50%, #2A7A94 100%)",padding:"10px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:14}}>
           <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#10B981,#059669)",
             display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:"#fff"}}>N</div>
@@ -174,12 +173,12 @@ export default function BoardPresentation() {
 
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
         {/* ═══ SIDEBAR NAV ═══ */}
-        <nav style={{width:210,background:"#0F1B2D",padding:"16px 0",overflowY:"auto",flexShrink:0}}>
+        <nav style={{width:210,background:"#1A3A5C",padding:"16px 0",overflowY:"auto",flexShrink:0}}>
           {SECTIONS.map((s,i) => (
             <button key={s.id} onClick={()=>setSection(s.id)} style={{
               display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 18px",
               border:"none",cursor:"pointer",textAlign:"left",transition:"all 0.15s",
-              background:section===s.id?"#1E3A5F":"transparent",
+              background:section===s.id?"#143050":"transparent",
               borderLeft:section===s.id?"3px solid #10B981":"3px solid transparent",
               fontFamily:"'DM Sans',sans-serif",
             }}>
@@ -190,7 +189,7 @@ export default function BoardPresentation() {
               </div>
             </button>
           ))}
-          <div style={{padding:"20px 18px",borderTop:"1px solid #1E3A5F",marginTop:12}}>
+          <div style={{padding:"20px 18px",borderTop:"1px solid #2A5070",marginTop:12}}>
             <div style={{fontSize:10,color:"#475569",fontFamily:"'DM Sans',sans-serif",lineHeight:1.6}}>
               Prepared by<br/><span style={{color:"#94A3B8",fontWeight:600}}>Malcolm Railson</span><br/>
               NRES Neighbourhood Manager<br/>PCN Services Ltd
@@ -206,7 +205,7 @@ export default function BoardPresentation() {
             <div style={{display:"flex",flexDirection:"column",justifyContent:"center",minHeight:"70vh"}}>
               <div style={{maxWidth:700}}>
                 <div style={{fontSize:11,color:"#D97706",fontWeight:700,letterSpacing:1.5,marginBottom:12}}>NRES PROGRAMME · MARCH 2026</div>
-                <h1 style={{fontSize:38,fontWeight:900,color:"#0C2D48",margin:"0 0 16px",lineHeight:1.15,letterSpacing:-1}}>
+                <h1 style={{fontFamily:"'Source Serif 4','Georgia',serif",fontSize:38,fontWeight:800,color:"#0C2D48",margin:"0 0 16px",lineHeight:1.15,letterSpacing:-0.5}}>
                   SDA Part A Claims System<br/>
                   <span style={{color:"#059669"}}>Digital Enhancement Proposal</span>
                 </h1>
@@ -240,7 +239,7 @@ export default function BoardPresentation() {
                 ].map((c,i) => (
                   <div key={i} style={{background:"#fff",borderRadius:14,padding:22,borderTop:`4px solid ${c.accent}`,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
                     <div style={{fontSize:24,marginBottom:8}}>{c.icon}</div>
-                    <div style={{fontSize:16,fontWeight:800,color:"#0C2D48",marginBottom:8}}>{c.title}</div>
+                    <div style={{fontFamily:"'Source Serif 4','Georgia',serif",fontSize:16,fontWeight:800,color:"#0C2D48",marginBottom:8}}>{c.title}</div>
                     <div style={{fontSize:13,color:"#475569",lineHeight:1.7}}>{c.body}</div>
                   </div>
                 ))}
@@ -825,7 +824,7 @@ export default function BoardPresentation() {
                           {l:"Awaiting SNO",n:counts.verified,c:"#D97706",bg:"#FEF3C7"},
                           {l:"Approved",n:counts.approved,c:"#059669",bg:"#D1FAE5"},
                         ].map((c,i)=>(
-                          <div key={i} style={{background:c.bg,borderRadius:10,padding:"14px 12px",borderLeft:`3px solid ${c.c}`}}>
+                          <div key={i} style={{background:c.bg,borderRadius:10,padding:"14px 12px",borderLeft:`4px solid ${c.c}`}}>
                             <div style={{fontSize:10,color:c.c,fontWeight:500}}>{c.l}</div>
                             <div style={{fontSize:24,fontWeight:800,color:c.c}}>{c.n}</div>
                           </div>
@@ -1018,7 +1017,7 @@ export default function BoardPresentation() {
 
                                 {/* Audit trail */}
                                 {(cl.submAt||cl.verAt||cl.appAt) && (
-                                  <div style={{marginTop:6,padding:"6px 10px",background:"#F1F5F9",borderRadius:6,fontSize:10,color:"#64748B",display:"flex",gap:12,flexWrap:"wrap"}}>
+                                  <div style={{marginTop:6,padding:"6px 10px",background:"#F0F4F8",borderRadius:6,fontSize:10,color:"#64748B",display:"flex",gap:12,flexWrap:"wrap"}}>
                                     {cl.submAt && <span>📤 Submitted {fDate(cl.submAt)}</span>}
                                     {cl.verAt && <span>✅ Verified by {cl.verBy} — {fDate(cl.verAt)}</span>}
                                     {cl.appAt && <span>🟢 Approved by {cl.appBy} — {fDate(cl.appAt)}</span>}
@@ -1285,7 +1284,7 @@ export default function BoardPresentation() {
       </div>
 
       {/* ═══ FOOTER ═══ */}
-      <footer style={{background:"#0C2D48",padding:"10px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+      <footer style={{background:"linear-gradient(135deg, #1A3A5C, #1E5F7A)",padding:"10px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <span style={{fontSize:10,color:"#475569",fontFamily:"'DM Sans',sans-serif"}}>
           NRES SDA Claims System · Notewell by PCN Services Ltd · Programme Board Presentation · March 2026
         </span>
@@ -1293,7 +1292,7 @@ export default function BoardPresentation() {
           {SECTIONS.map((s,i) => (
             <div key={s.id} onClick={()=>setSection(s.id)} style={{
               width:8,height:8,borderRadius:"50%",cursor:"pointer",
-              background:section===s.id?"#10B981":"#1E3A5F",transition:"background 0.2s",
+              background:section===s.id?"#10B981":"#0C2D48",transition:"background 0.2s",
             }} />
           ))}
         </div>
