@@ -1081,7 +1081,7 @@ export default function BoardPresentation() {
 
                 {/* App footer */}
                 <div style={{background:"#0C2D48",padding:"6px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span style={{fontSize:9,color:"#475569"}}>Notewell · PCN Services Ltd · Prototype</span>
+                  <span style={{fontSize:9,color:"#475569"}}>Notewell · Prototype</span>
                   <span style={{fontSize:9,color:"#475569"}}>Switch roles above to see different user perspectives</span>
                 </div>
               </div>
