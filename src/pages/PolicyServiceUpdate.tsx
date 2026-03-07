@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Check, RefreshCw, Upload, FileText, Loader2, Info, ChevronDown } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, RefreshCw, Upload, FileText, Loader2, Info, ChevronDown, CheckCircle2, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import { GapAnalysisResults } from "@/components/policy/GapAnalysisResults";
 import { PolicyPreviewPanel } from "@/components/policy/PolicyPreviewPanel";
 import { usePolicyAnalysis } from "@/hooks/usePolicyAnalysis";
+import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
+import { usePolicyVersions } from "@/hooks/usePolicyVersions";
 import { toast } from "sonner";
 
 interface GapAnalysis {
