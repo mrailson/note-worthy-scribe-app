@@ -103,6 +103,9 @@ const getJobStatusBadge = (job: PolicyJob) => {
 const PolicyServiceMyPolicies = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  // Check URL for filter param
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlFilter = urlParams.get('filter');
   const { completions, isLoading, getDaysUntilReview, deleteCompletion, refreshCompletions } = usePolicyCompletions();
   const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue, refetch: refetchJobs } = usePolicyJobs();
   const { versions, fetchVersions, ensureInitialVersion, createVersion, saveDraft } = usePolicyVersions();
