@@ -338,7 +338,6 @@ export function BuyBackClaimsTab() {
     );
   }
 
-  const [proposalOpen, setProposalOpen] = useState(false);
 
   return (
     <div className="space-y-6">
