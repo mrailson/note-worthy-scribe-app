@@ -73,6 +73,13 @@ export const SDAExecutiveSummary = () => {
           </Suspense>
         </div>
       )}
+
+      {/* Buy-Back Explainer Fullscreen Dialog */}
+      <Dialog open={showBuybackExplainer} onOpenChange={setShowBuybackExplainer}>
+        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
+          <BoardPresentationExplainer />
+        </DialogContent>
+      </Dialog>
     <div className="space-y-6">
       {/* Collapsible Key Metrics Row */}
       <Collapsible open={metricsOpen} onOpenChange={setMetricsOpen}>
