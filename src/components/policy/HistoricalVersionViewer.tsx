@@ -91,7 +91,7 @@ export const HistoricalVersionViewer = ({
         <div className="flex justify-end gap-2 px-6 py-3 border-t bg-muted/30">
           <Button variant="outline" onClick={() => onDownload(version)}>
             <Download className="h-4 w-4 mr-2" />
-            Download PDF
+            Download Word
           </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             <X className="h-4 w-4 mr-2" />
