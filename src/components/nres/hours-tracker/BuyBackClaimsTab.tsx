@@ -385,7 +385,7 @@ export function BuyBackClaimsTab() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
-                  <BoardPresentationExplainer />
+                  <BoardPresentation />
                 </DialogContent>
               </Dialog>
             </div>
