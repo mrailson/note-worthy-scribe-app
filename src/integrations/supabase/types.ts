@@ -7988,6 +7988,7 @@ export type Database = {
       policy_completions: {
         Row: {
           created_at: string
+          current_version_id: string | null
           effective_date: string
           id: string
           metadata: Json
@@ -8003,6 +8004,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_version_id?: string | null
           effective_date: string
           id?: string
           metadata?: Json
@@ -8018,6 +8020,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_version_id?: string | null
           effective_date?: string
           id?: string
           metadata?: Json
@@ -8032,6 +8035,13 @@ export type Database = {
           version?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "policy_completions_current_version_id_fkey"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "policy_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "policy_completions_policy_reference_id_fkey"
             columns: ["policy_reference_id"]
@@ -8266,6 +8276,62 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      policy_versions: {
+        Row: {
+          approved_by: string | null
+          change_summary: string
+          change_type: string
+          content: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          next_review_date: string | null
+          policy_id: string
+          status: string
+          superseded_at: string | null
+          user_id: string
+          version_number: string
+        }
+        Insert: {
+          approved_by?: string | null
+          change_summary?: string
+          change_type?: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          next_review_date?: string | null
+          policy_id: string
+          status?: string
+          superseded_at?: string | null
+          user_id: string
+          version_number?: string
+        }
+        Update: {
+          approved_by?: string | null
+          change_summary?: string
+          change_type?: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          next_review_date?: string | null
+          policy_id?: string
+          status?: string
+          superseded_at?: string | null
+          user_id?: string
+          version_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_versions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_completions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       practice_details: {
         Row: {

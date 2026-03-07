@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { 
   ArrowLeft, 
@@ -24,10 +25,15 @@ import {
   Coffee,
   BookOpen,
   Mail,
+  ChevronDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
 import { usePolicyJobs, PolicyJob, getStepLabel } from "@/hooks/usePolicyJobs";
+import { usePolicyVersions, PolicyVersion, ChangeType } from "@/hooks/usePolicyVersions";
+import { VersionHistoryPanel } from "@/components/policy/VersionHistoryPanel";
+import { CreateNewVersionModal } from "@/components/policy/CreateNewVersionModal";
+import { HistoricalVersionViewer } from "@/components/policy/HistoricalVersionViewer";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
 import { format, parseISO, formatDistanceToNow, differenceInHours, differenceInMinutes } from "date-fns";
@@ -97,6 +103,7 @@ const PolicyServiceMyPolicies = () => {
   const { user } = useAuth();
   const { completions, isLoading, getDaysUntilReview, deleteCompletion, refreshCompletions } = usePolicyCompletions();
   const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue, refetch: refetchJobs } = usePolicyJobs();
+  const { versions, fetchVersions, ensureInitialVersion, createVersion, saveDraft } = usePolicyVersions();
   const prevActiveJobCountRef = useRef(activeJobCount);
 
   // Auto-refresh completions when active jobs finish (count drops)
@@ -112,6 +119,9 @@ const PolicyServiceMyPolicies = () => {
   const [rerunningId, setRerunningId] = useState<string | null>(null);
   const [quickGuidePolicy, setQuickGuidePolicy] = useState<{ id: string; content: string; title: string } | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
+  const [expandedVersionHistory, setExpandedVersionHistory] = useState<Set<string>>(new Set());
+  const [newVersionModal, setNewVersionModal] = useState<{ id: string; content: string; version: string; metadata: any } | null>(null);
+  const [viewingVersion, setViewingVersion] = useState<{ version: PolicyVersion; currentVersion: string } | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
     practice_name?: string;
     address?: string;
@@ -633,7 +643,32 @@ const PolicyServiceMyPolicies = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-medium truncate">{completion.policy_title}</h3>
-                        <Badge variant="secondary">v{completion.version}</Badge>
+                        <TooltipProvider>
+                          <Tooltip delayDuration={200}>
+                            <TooltipTrigger asChild>
+                              <button
+                                className="cursor-pointer"
+                                onClick={async () => {
+                                  const id = completion.id;
+                                  // Ensure initial version exists
+                                  await ensureInitialVersion(id, completion.policy_content, completion.metadata, completion.created_at);
+                                  await fetchVersions(id);
+                                  setExpandedVersionHistory(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(id)) next.delete(id); else next.add(id);
+                                    return next;
+                                  });
+                                }}
+                              >
+                                <Badge variant="secondary" className="gap-0.5 cursor-pointer hover:bg-secondary/80 transition-colors">
+                                  v{completion.version}
+                                  <ChevronDown className={`h-3 w-3 transition-transform ${expandedVersionHistory.has(completion.id) ? 'rotate-180' : ''}`} />
+                                </Badge>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top"><p>View version history</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         {completion.policy_content && (
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
                             📝 {(() => {
@@ -705,15 +740,15 @@ const PolicyServiceMyPolicies = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRerun(completion)}
-                        disabled={rerunningId === completion.id}
-                        title="Regenerate policy"
+                        onClick={() => setNewVersionModal({
+                          id: completion.id,
+                          content: completion.policy_content,
+                          version: completion.version,
+                          metadata: completion.metadata,
+                        })}
+                        title="Create new version"
                       >
-                        {rerunningId === completion.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="h-4 w-4" />
-                        )}
+                        <RefreshCw className="h-4 w-4" />
                       </Button>
                       <SavedGuidesPopover
                         guides={((completion.metadata as any)?.quick_guides || []) as SavedQuickGuide[]}
@@ -794,6 +829,21 @@ const PolicyServiceMyPolicies = () => {
                       </AlertDialog>
                     </div>
                   </div>
+
+                  {/* Version History Panel */}
+                  <VersionHistoryPanel
+                    versions={versions[completion.id] || []}
+                    isOpen={expandedVersionHistory.has(completion.id)}
+                    onViewVersion={(version) => setViewingVersion({ version, currentVersion: completion.version })}
+                    onDownloadVersion={async (version) => {
+                      try {
+                        const vContent = (version.content as any)?.policy_content || '';
+                        const vMeta = (version.content as any)?.metadata || completion.metadata;
+                        await generatePolicyDocx(vContent, vMeta, completion.policy_title, getPersistedDocxOptions());
+                        toast.success(`Version ${version.version_number} downloaded`);
+                      } catch { toast.error('Failed to download version'); }
+                    }}
+                  />
                 </CardContent>
               </Card>
             ))}
@@ -869,6 +919,58 @@ const PolicyServiceMyPolicies = () => {
           }}
         />
       )}
+
+      {/* Create New Version Modal */}
+      {newVersionModal && (
+        <CreateNewVersionModal
+          open={!!newVersionModal}
+          onOpenChange={(open) => { if (!open) setNewVersionModal(null); }}
+          currentVersion={newVersionModal.version}
+          policyContent={newVersionModal.content}
+          metadata={newVersionModal.metadata}
+          onPublish={async (data) => {
+            await createVersion({
+              policyId: newVersionModal.id,
+              currentVersion: newVersionModal.version,
+              changeType: data.changeType,
+              changeSummary: data.changeSummary,
+              policyContent: data.policyContent,
+              metadata: { ...newVersionModal.metadata, version: undefined },
+              approvedBy: data.approvedBy,
+              nextReviewDate: data.nextReviewDate,
+            });
+            refreshCompletions();
+          }}
+          onSaveDraft={async (data) => {
+            await saveDraft({
+              policyId: newVersionModal.id,
+              currentVersion: newVersionModal.version,
+              changeType: data.changeType,
+              changeSummary: data.changeSummary,
+              policyContent: data.policyContent,
+              metadata: { ...newVersionModal.metadata, version: undefined },
+              approvedBy: data.approvedBy,
+              nextReviewDate: data.nextReviewDate,
+            });
+          }}
+        />
+      )}
+
+      {/* Historical Version Viewer */}
+      <HistoricalVersionViewer
+        open={!!viewingVersion}
+        onOpenChange={(open) => { if (!open) setViewingVersion(null); }}
+        version={viewingVersion?.version || null}
+        currentVersion={viewingVersion?.currentVersion || '1.0'}
+        onDownload={async (version) => {
+          try {
+            const vContent = (version.content as any)?.policy_content || '';
+            const vMeta = (version.content as any)?.metadata || {};
+            await generatePolicyDocx(vContent, vMeta, 'Policy', getPersistedDocxOptions());
+            toast.success(`Version ${version.version_number} downloaded`);
+          } catch { toast.error('Failed to download version'); }
+        }}
+      />
     </div>
   );
 };
