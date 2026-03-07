@@ -717,16 +717,24 @@ function parseMarkdownToSections(markdown: string, titleToSkip?: string): (Parag
       .replace(/&#x26;/g, '&');
 
     // Check for markdown table (starts with |)
-    if (cleanedLine.startsWith('|') && (cleanedLine.includes('|') || (i + 1 < lines.length && lines[i + 1].includes('---')))) {
+    if (cleanedLine.startsWith('|')) {
       const tableLines: string[] = [];
-      while (i < lines.length && (lines[i].includes('|') || lines[i].trim().includes('---'))) {
-        tableLines.push(lines[i]);
-        i++;
+      while (i < lines.length) {
+        const tLine = lines[i].trim();
+        // Only consume lines that start with | (table rows) or are separator lines (---|---|---)
+        if (tLine.startsWith('|')) {
+          tableLines.push(lines[i]);
+          i++;
+        } else if (/^[\s|:-]+$/.test(tLine) && tLine.includes('-') && tLine.includes('|')) {
+          // Separator line like |---|---|
+          tableLines.push(lines[i]);
+          i++;
+        } else {
+          break;
+        }
       }
       
       // Check if this is the document control table (skip it)
-      // Must match Document Control specifically — NOT the Version History table
-      // Document Control has "effective date" or "review date"; Version History has "summary"
       const allCellsJoined = tableLines.join(' ').toLowerCase();
       const isDocControlTable = allCellsJoined.includes('version') && 
         (allCellsJoined.includes('effective date') || allCellsJoined.includes('review date')) &&
