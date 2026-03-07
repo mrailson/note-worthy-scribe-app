@@ -643,7 +643,32 @@ const PolicyServiceMyPolicies = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-medium truncate">{completion.policy_title}</h3>
-                        <Badge variant="secondary">v{completion.version}</Badge>
+                        <TooltipProvider>
+                          <Tooltip delayDuration={200}>
+                            <TooltipTrigger asChild>
+                              <button
+                                className="cursor-pointer"
+                                onClick={async () => {
+                                  const id = completion.id;
+                                  // Ensure initial version exists
+                                  await ensureInitialVersion(id, completion.policy_content, completion.metadata, completion.created_at);
+                                  await fetchVersions(id);
+                                  setExpandedVersionHistory(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(id)) next.delete(id); else next.add(id);
+                                    return next;
+                                  });
+                                }}
+                              >
+                                <Badge variant="secondary" className="gap-0.5 cursor-pointer hover:bg-secondary/80 transition-colors">
+                                  v{completion.version}
+                                  <ChevronDown className={`h-3 w-3 transition-transform ${expandedVersionHistory.has(completion.id) ? 'rotate-180' : ''}`} />
+                                </Badge>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top"><p>View version history</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         {completion.policy_content && (
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
                             📝 {(() => {
