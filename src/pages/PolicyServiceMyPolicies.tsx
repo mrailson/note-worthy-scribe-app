@@ -962,6 +962,8 @@ const PolicyServiceMyPolicies = () => {
         onOpenChange={(open) => { if (!open) setViewingVersion(null); }}
         version={viewingVersion?.version || null}
         currentVersion={viewingVersion?.currentVersion || '1.0'}
+        practiceLogoUrl={practiceLogoUrl}
+        practiceDetails={practiceDetails}
         onDownload={async (version) => {
           try {
             const vContent = (version.content as any)?.policy_content || '';
