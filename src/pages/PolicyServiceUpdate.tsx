@@ -329,20 +329,38 @@ const PolicyServiceUpdate = () => {
             )}
 
             {step === 3 && updatedContent && (
-              <PolicyPreviewPanel
-                content={updatedContent}
-                metadata={updatedMetadata}
-                policyName={gapAnalysis?.policy_type || "Updated Policy"}
-                generationId={generationId}
-                isUpdate
-              />
+              <div className="space-y-4">
+                {savedVersionLabel && (
+                  <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                        Saved as v{savedVersionLabel} on your policy card
+                      </p>
+                      <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">
+                        The updated policy has been automatically saved to My Policies
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/policy-service/my-policies')}
+                      className="shrink-0"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                      View in My Policies
+                    </Button>
+                  </div>
+                )}
+                <PolicyPreviewPanel
+                  content={updatedContent}
+                  metadata={updatedMetadata}
+                  policyName={gapAnalysis?.policy_type || "Updated Policy"}
+                  generationId={generationId}
+                  isUpdate
+                />
+              </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-6">
-          <Button 
             variant="outline" 
             onClick={() => step === 1 ? navigate('/policy-service') : setStep(step - 1)}
           >
