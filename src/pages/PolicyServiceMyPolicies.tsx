@@ -510,6 +510,52 @@ const PolicyServiceMyPolicies = () => {
           </div>
         </div>
 
+        {/* Top-level tab: My Policies vs Practice Policies */}
+        {(hasPracticeAccess || isPracticeManager) && (
+          <div className="flex items-center gap-2 mb-6 border-b pb-3">
+            <Button
+              variant={activeTab === 'my' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('my')}
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              My Policies
+            </Button>
+            <Button
+              variant={activeTab === 'practice' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('practice')}
+              className="gap-2"
+            >
+              <Building2 className="h-4 w-4" />
+              Practice Policies
+              {practicePolicies.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                  {practicePolicies.length}
+                </Badge>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Practice Policies Tab Content */}
+        {activeTab === 'practice' && (hasPracticeAccess || isPracticeManager) ? (
+          <PracticePoliciesTab
+            practiceName={practiceName}
+            policies={practicePolicies}
+            accessLevel={myAccessLevel}
+            isPracticeManager={isPracticeManager}
+            canEdit={canEditPractice}
+            canDelete={canDeletePractice}
+            isLoading={isLoadingPolicies}
+            practiceUsers={practiceUsers}
+            isLoadingUsers={isLoadingUsers}
+            onSaveAccess={saveAllAccess}
+          />
+        ) : (
+        <>
+
         {/* In Progress Jobs */}
         {(activeJobs.length > 0 || recentFailedJobs.length > 0) && (
           <div className="mb-6">
