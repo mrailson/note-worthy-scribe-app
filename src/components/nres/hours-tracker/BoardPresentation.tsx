@@ -193,7 +193,7 @@ export default function BoardPresentation() {
           <div style={{padding:"20px 18px",borderTop:"1px solid #2A5070",marginTop:12}}>
             <div style={{fontSize:10,color:"#475569",fontFamily:"'DM Sans',sans-serif",lineHeight:1.6}}>
               Prepared by<br/><span style={{color:"#94A3B8",fontWeight:600}}>Malcolm Railson</span><br/>
-              NRES Neighbourhood Manager<br/>PCN Services Ltd
+              NRES Neighbourhood Manager
             </div>
           </div>
         </nav>
