@@ -19,6 +19,29 @@ import type { GeneratedImage } from '@/types/ai4gp';
 import { optimiseImageForUpload, getBase64SizeKB } from '@/utils/imageOptimiser';
 import { userNameCorrections } from '@/utils/UserNameCorrections';
 
+// --- Memory management helpers ---
+
+/** Convert a base64 data URL to a blob URL to free memory */
+async function base64ToBlobUrl(base64: string): Promise<string> {
+  // If it's not a data URL, return as-is (already a URL)
+  if (!base64 || !base64.startsWith('data:')) return base64;
+  try {
+    const res = await fetch(base64);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch (err) {
+    console.warn('⚠️ base64ToBlobUrl conversion failed, using original:', err);
+    return base64;
+  }
+}
+
+/** Revoke a blob URL safely */
+function revokeBlobUrl(url: string | undefined | null) {
+  if (url && url.startsWith('blob:')) {
+    try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+  }
+}
+
 // Error codes from edge function
 type ErrorCode = 'RATE_LIMIT' | 'CONTENT_MODERATION' | 'PAYMENT_REQUIRED' | 'TIMEOUT' | 'UNKNOWN';
 
@@ -52,7 +75,7 @@ function parseErrorCode(error: any): ErrorCode {
 }
 
 const HISTORY_STORAGE_KEY = 'image-studio-history';
-const MAX_HISTORY_ITEMS = 20;
+const MAX_HISTORY_ITEMS = 10;
 
 // Helper to load history from localStorage
 const loadHistoryFromStorage = (): GenerationHistoryItem[] => {
@@ -75,8 +98,22 @@ const loadHistoryFromStorage = (): GenerationHistoryItem[] => {
 // Helper to save history to localStorage
 const saveHistoryToStorage = (history: GenerationHistoryItem[]) => {
   try {
-    // Only store the last MAX_HISTORY_ITEMS
-    const toStore = history.slice(0, MAX_HISTORY_ITEMS);
+    // Only store the last MAX_HISTORY_ITEMS, and strip large image data
+    const toStore = history.slice(0, MAX_HISTORY_ITEMS).map(item => ({
+      ...item,
+      result: {
+        ...item.result,
+        // Don't persist blob: or data: URLs — they won't work on reload anyway
+        url: (item.result.url?.startsWith('blob:') || item.result.url?.startsWith('data:'))
+          ? '' : item.result.url,
+      },
+      settings: {
+        ...item.settings,
+        // Strip reference image content (base64) from persisted history
+        referenceImages: undefined,
+        customLogoData: undefined,
+      },
+    }));
     safeSetItem(HISTORY_STORAGE_KEY, JSON.stringify(toStore));
   } catch (error) {
     console.warn('Failed to save image studio history:', error);
@@ -134,6 +171,30 @@ export function useImageStudio() {
   }));
   
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Track all blob URLs created so we can revoke them on unmount
+  const blobUrlsRef = useRef<string[]>([]);
+  const isMountedRef = useRef(true);
+
+  // Cleanup all blob URLs on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      // Abort any in-flight generation
+      abortControllerRef.current?.abort();
+      // Revoke all tracked blob URLs
+      console.log(`🧹 Image Studio unmount: revoking ${blobUrlsRef.current.length} blob URLs`);
+      blobUrlsRef.current.forEach(url => revokeBlobUrl(url));
+      blobUrlsRef.current = [];
+    };
+  }, []);
+
+  // Helper: track a blob URL for later cleanup
+  const trackBlobUrl = useCallback((url: string) => {
+    if (url && url.startsWith('blob:')) {
+      blobUrlsRef.current.push(url);
+    }
+  }, []);
 
   // Save history to localStorage whenever it changes
   useEffect(() => {
@@ -416,8 +477,13 @@ export function useImageStudio() {
 
         console.log('✅ Image generated successfully');
 
+        // Convert base64 to blob URL to free memory
+        const blobUrl = await base64ToBlobUrl(data.image.url);
+        trackBlobUrl(blobUrl);
+        console.log(`🧠 Memory: converted base64 (${Math.round((data.image.url?.length || 0) / 1024)}KB) → blob URL`);
+
         const result: GeneratedImage = {
-          url: data.image.url,
+          url: blobUrl,
           alt: data.image.alt || settings.description.substring(0, 100),
           prompt: settings.description,
           requestType: data.image.requestType || (settings.purpose === 'banner' ? 'general' : settings.purpose as GeneratedImage['requestType']),
@@ -446,7 +512,9 @@ export function useImageStudio() {
       const result = await attemptGeneration(selectedModel);
       
       if (result) {
-        // Add to history
+        if (!isMountedRef.current) return result; // Don't update state if unmounted
+
+        // Add to history (cap at 10 to limit memory, revoke dropped items)
         const historyItem: GenerationHistoryItem = {
           id: `gen-${Date.now()}`,
           timestamp: new Date(),
@@ -454,14 +522,21 @@ export function useImageStudio() {
           result,
         };
 
-        setState(prev => ({
-          ...prev,
-          isGenerating: false,
-          generationProgress: 100,
-          currentResult: result,
-          generationHistory: [historyItem, ...prev.generationHistory.slice(0, 19)],
-          activeTab: 'generate',
-        }));
+        setState(prev => {
+          const newHistory = [historyItem, ...prev.generationHistory];
+          // Revoke blob URLs of items being dropped
+          if (newHistory.length > 10) {
+            newHistory.slice(10).forEach(item => revokeBlobUrl(item.result?.url));
+          }
+          return {
+            ...prev,
+            isGenerating: false,
+            generationProgress: 100,
+            currentResult: result,
+            generationHistory: newHistory.slice(0, 10),
+            activeTab: 'generate',
+          };
+        });
 
         // Auto-save to gallery in background (fire-and-forget)
         saveToGallery(result).catch(err => {
@@ -676,8 +751,12 @@ export function useImageStudio() {
 
         console.log('✅ Quick edit successful');
 
+        // Convert base64 to blob URL to free memory
+        const blobUrl = await base64ToBlobUrl(data.image.url);
+        trackBlobUrl(blobUrl);
+
         const result: GeneratedImage = {
-          url: data.image.url,
+          url: blobUrl,
           alt: data.image.alt || editInstructions.substring(0, 100),
           prompt: editInstructions,
         };
@@ -704,7 +783,8 @@ export function useImageStudio() {
       const result = await attemptEdit(selectedModel);
 
       if (result) {
-        // Add to history
+        if (!isMountedRef.current) return result;
+
         const historyItem: GenerationHistoryItem = {
           id: `edit-${Date.now()}`,
           timestamp: new Date(),
@@ -712,13 +792,19 @@ export function useImageStudio() {
           result,
         };
 
-        setState(prev => ({
-          ...prev,
-          isGenerating: false,
-          generationProgress: 100,
-          currentResult: result,
-          generationHistory: [historyItem, ...prev.generationHistory.slice(0, 19)],
-        }));
+        setState(prev => {
+          const newHistory = [historyItem, ...prev.generationHistory];
+          if (newHistory.length > 10) {
+            newHistory.slice(10).forEach(item => revokeBlobUrl(item.result?.url));
+          }
+          return {
+            ...prev,
+            isGenerating: false,
+            generationProgress: 100,
+            currentResult: result,
+            generationHistory: newHistory.slice(0, 10),
+          };
+        });
 
         toast.success('Image edited successfully!');
         return result;
