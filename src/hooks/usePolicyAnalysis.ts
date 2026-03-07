@@ -110,27 +110,86 @@ export const usePolicyAnalysis = () => {
     setIsGenerating(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-policy', {
-        body: {
+      // The generate-policy function returns an SSE stream, not JSON.
+      // We must consume it manually instead of using supabase.functions.invoke.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-policy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({
           generation_type: 'update',
           original_policy_text: originalText,
           gap_analysis: gapAnalysis,
-        },
+        }),
       });
 
-      if (error) {
-        throw new Error(error.message || 'Failed to generate updated policy');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to generate updated policy: ${errorText}`);
       }
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'Policy update generation failed');
+      // Read the SSE stream and extract the final result
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let result: UpdatedPolicyResult | null = null;
+      let errorMsg: string | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (!data || data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === 'result' && parsed.data) {
+              const resultData = typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data;
+              if (resultData.success) {
+                result = {
+                  content: resultData.content,
+                  metadata: resultData.metadata,
+                  generationId: resultData.generation_id,
+                };
+              } else {
+                errorMsg = resultData.error || 'Policy update generation failed';
+              }
+            } else if (parsed.type === 'error') {
+              errorMsg = parsed.error || 'Policy update generation failed';
+            }
+          } catch {
+            // Ignore parse errors for ping/progress events
+          }
+        }
       }
 
-      return {
-        content: data.content,
-        metadata: data.metadata,
-        generationId: data.generation_id,
-      };
+      if (errorMsg) {
+        throw new Error(errorMsg);
+      }
+
+      if (!result) {
+        throw new Error('No result received from policy generation');
+      }
+
+      return result;
     } catch (error) {
       console.error('Updated policy generation error:', error);
       throw error;
