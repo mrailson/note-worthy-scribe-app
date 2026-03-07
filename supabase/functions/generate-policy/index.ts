@@ -720,12 +720,20 @@ function removeForbiddenGapAnalysisTables(content: string): string {
   return kept.join('\n');
 }
 
+interface VersionHistoryRow {
+  version: string;
+  date: string;
+  author: string;
+  summary: string;
+}
+
 interface Section11Details {
   practiceManagerName: string;
   practiceName: string;
   practiceAddress: string;
   leadGpName: string;
   reviewDate: string; // DD/MM/YYYY or similar
+  versionHistory?: VersionHistoryRow[]; // All version rows to display
 }
 
 function enforceSection11ExactTable(content: string, details: Section11Details): string {
