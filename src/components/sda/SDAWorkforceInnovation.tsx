@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, FileText, AlertCircle, Briefcase, Download, ExternalLink, ClipboardCheck, UserCheck, Calendar, Presentation, Bell, BarChart3, X } from "lucide-react";
+import { Users, FileText, AlertCircle, Briefcase, Download, ExternalLink, ClipboardCheck, UserCheck, Calendar, Presentation, BarChart3, X } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
 import { ACPRecruitmentPanel } from "./recruitment/ACPRecruitmentPanel";
@@ -98,18 +98,6 @@ export const SDAWorkforceInnovation = () => {
     <div className="space-y-6">
 
 
-      {/* Update Notice */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <Bell className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold text-amber-800">Update – 10 February 2026</p>
-            <p className="text-sm text-amber-700 mt-1">
-              Salaried GP Redundancy Liability briefing added — based on LMC/BMA guidance. See below for key points and full document download. PML will be bringing updates to the Programme Board with suggested contract wording and other mitigating factors. A new risk analysis will be completed and presented to the PB. Further updates expected from PML for the next PB on Tuesday 24th February 2026.
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* GP Redundancy Liability Briefing */}
       <CollapsibleCard
