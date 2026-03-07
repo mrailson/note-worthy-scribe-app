@@ -576,6 +576,25 @@ export const PolicyProfileDefaults = () => {
 
   return (
     <div className="space-y-6">
+      {/* Profile Change Banner */}
+      {profileChangeBanner && (
+        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+            <AlertCircle className="h-5 w-5" />
+            <span className="text-sm">
+              Profile updated. <strong>{profileChangeBanner.count} {profileChangeBanner.count === 1 ? 'policy contains' : 'policies contain'}</strong> "{profileChangeBanner.oldValue}" and may need updating to reflect this change.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="link" size="sm" className="text-amber-800 dark:text-amber-200" onClick={() => navigate('/policy-service/my-policies?filter=profile_changed')}>
+              View affected policies →
+            </Button>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProfileChangeBanner(null)}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
       {/* Unsaved Changes Banner */}
       {hasChanges && (
         <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-center justify-between">
