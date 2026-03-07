@@ -103,6 +103,7 @@ const PolicyServiceMyPolicies = () => {
   const { user } = useAuth();
   const { completions, isLoading, getDaysUntilReview, deleteCompletion, refreshCompletions } = usePolicyCompletions();
   const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue, refetch: refetchJobs } = usePolicyJobs();
+  const { versions, fetchVersions, ensureInitialVersion, createVersion, saveDraft } = usePolicyVersions();
   const prevActiveJobCountRef = useRef(activeJobCount);
 
   // Auto-refresh completions when active jobs finish (count drops)
@@ -118,6 +119,9 @@ const PolicyServiceMyPolicies = () => {
   const [rerunningId, setRerunningId] = useState<string | null>(null);
   const [quickGuidePolicy, setQuickGuidePolicy] = useState<{ id: string; content: string; title: string } | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
+  const [expandedVersionHistory, setExpandedVersionHistory] = useState<Set<string>>(new Set());
+  const [newVersionModal, setNewVersionModal] = useState<{ id: string; content: string; version: string; metadata: any } | null>(null);
+  const [viewingVersion, setViewingVersion] = useState<{ version: PolicyVersion; currentVersion: string } | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
     practice_name?: string;
     address?: string;
