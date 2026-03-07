@@ -25,7 +25,9 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { cn } from '@/lib/utils';
 import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import BoardPresentation from './BoardPresentation';
 
 /** Format a number as £X,XXX.XX */
 function fmtGBP(n: number): string {
@@ -264,6 +266,7 @@ export function BuyBackClaimsTab() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const [guideOpen, setGuideOpen] = useState(false);
+  const [proposalOpen, setProposalOpen] = useState(false);
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
@@ -335,8 +338,60 @@ export function BuyBackClaimsTab() {
     );
   }
 
+
   return (
     <div className="space-y-6">
+      {/* Programme Board Proposal */}
+      <div className="bg-white rounded-lg shadow-sm border-2 border-amber-300 overflow-hidden">
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between p-4 hover:bg-amber-50/50 transition-colors text-left">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-amber-100 text-amber-700">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h2 className="text-lg font-bold text-[#003087]">Programme Board Proposal — 10th March 2026</h2>
+                    <Badge className="bg-amber-100 text-amber-800 text-xs">FOR DECISION</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    SDA Part A Claims System — Digital Enhancement Proposal for Board consideration. Compares the manual process (Option A) with a digital solution (Option B) for managing claims, evidence, and payments across 7 NRES practices.
+                  </p>
+                </div>
+              </div>
+              <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0 ml-2" />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="border-t border-amber-200 p-4 bg-amber-50/30 space-y-3">
+              <div className="text-sm text-muted-foreground leading-relaxed">
+                <p className="mb-2">
+                  This proposal has been prepared by Malcolm Railson (Neighbourhood Manager, PCN Services Ltd) for the NRES Programme Board meeting on <strong>10th March 2026</strong>. It presents two options for managing the SDA Part A reimbursement claims process across the seven NRES member practices for the £2.34M Neighbourhood Access Service contract.
+                </p>
+                <p className="mb-2">
+                  <strong>Option A</strong> outlines a fully manual process using email, spreadsheets, and shared drives. <strong>Option B</strong> proposes a digital enhancement to the existing Notewell platform, adding end-to-end claims, evidence, workflow, and payment tracking capabilities.
+                </p>
+                <p>
+                  The full presentation includes a detailed comparison, an interactive live prototype, an implementation plan, and a 2-year cost analysis. The Board is asked to review both options and confirm which approach to adopt for the April 2026 claiming cycle.
+                </p>
+              </div>
+              <Dialog open={proposalOpen} onOpenChange={setProposalOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="default" className="gap-2">
+                    <ExternalLink className="w-4 h-4" />
+                    Open Full Presentation
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
+                  <BoardPresentation />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+
       {/* Guide */}
       <Collapsible open={guideOpen} onOpenChange={setGuideOpen}>
         <div className="bg-white rounded-lg shadow-sm border border-teal-200 overflow-hidden">
