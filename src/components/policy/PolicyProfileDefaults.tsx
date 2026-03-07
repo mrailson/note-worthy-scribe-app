@@ -256,6 +256,21 @@ export const PolicyProfileDefaults = () => {
               ? (pd as any).services_offered 
               : ((sharedPd as any)?.services_offered || {}),
           });
+          savedDataRef.current = {
+            ...defaultData,
+            practice_manager_name: (pd as any).practice_manager_name || (sharedPd as any)?.practice_manager_name || "",
+            lead_gp_name: (pd as any).lead_gp_name || (sharedPd as any)?.lead_gp_name || "",
+            senior_gp_partner: (pd as any).senior_gp_partner || (sharedPd as any)?.senior_gp_partner || "",
+            caldicott_guardian: (pd as any).caldicott_guardian || (sharedPd as any)?.caldicott_guardian || "",
+            dpo_name: (pd as any).dpo_name || (sharedPd as any)?.dpo_name || "",
+            siro: (pd as any).siro || (sharedPd as any)?.siro || "",
+            safeguarding_lead_adults: (pd as any).safeguarding_lead_adults || (sharedPd as any)?.safeguarding_lead_adults || "",
+            safeguarding_lead_children: (pd as any).safeguarding_lead_children || (sharedPd as any)?.safeguarding_lead_children || "",
+            infection_control_lead: (pd as any).infection_control_lead || (sharedPd as any)?.infection_control_lead || "",
+            health_safety_lead: (pd as any).health_safety_lead || (sharedPd as any)?.health_safety_lead || "",
+            fire_safety_officer: (pd as any).fire_safety_officer || (sharedPd as any)?.fire_safety_officer || "",
+            complaints_lead: (pd as any).complaints_lead || (sharedPd as any)?.complaints_lead || "",
+          };
 
           if (mergedFromShared) {
             const sourceName = (sharedPd as any)?.practice_manager_name || 'Practice Manager';
