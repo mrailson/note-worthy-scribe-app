@@ -2044,27 +2044,77 @@ ${policyContent}`;
           // Check if a completion already exists for this policy_reference_id + user
           const { data: existingCompletion } = await serviceSupabase
             .from('policy_completions')
-            .select('id')
+            .select('id, version')
             .eq('user_id', job.user_id)
             .eq('policy_reference_id', job.policy_reference_id)
             .limit(1)
             .maybeSingle();
 
           if (existingCompletion) {
-            // Update existing card (replace content, keep same card)
+            // --- Auto-version: bump version and create version history entry ---
+            // Get the latest active version number
+            const { data: latestVersion } = await serviceSupabase
+              .from('policy_versions')
+              .select('version_number')
+              .eq('policy_id', existingCompletion.id)
+              .eq('status', 'active')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            const currentVersion = latestVersion?.version_number || existingCompletion.version || '1.0';
+            // Minor bump for regeneration (e.g., 1.0 -> 1.1, 1.1 -> 1.2)
+            const vParts = currentVersion.split('.');
+            const majorV = parseInt(vParts[0]) || 1;
+            const minorV = parseInt(vParts[1]) || 0;
+            const newVersion = `${majorV}.${minorV + 1}`;
+
+            // Update the version in the generated content itself
+            const versionedContent = policyContent
+              .replace(/\|\s*\*\*Version\*\*\s*\|\s*[\d.]+\s*\|/g, `| **Version** | ${newVersion} |`)
+              .replace(/^(\*\*Version:\*\*\s*)[\d.]+/m, `$1${newVersion}`);
+
+            // Also update metadata
+            completionMetadata.version = newVersion;
+
+            // Supersede old active versions
+            await serviceSupabase
+              .from('policy_versions')
+              .update({ status: 'superseded', superseded_at: new Date().toISOString() })
+              .eq('policy_id', existingCompletion.id)
+              .eq('status', 'active');
+
+            // Get user email for created_by
+            const { data: userData } = await serviceSupabase.auth.admin.getUserById(job.user_id);
+            const userEmail = userData?.user?.email || 'system';
+
+            // Create new version entry
+            await serviceSupabase.from('policy_versions').insert({
+              policy_id: existingCompletion.id,
+              version_number: newVersion,
+              status: 'active',
+              content: { policy_content: versionedContent, metadata: completionMetadata },
+              change_type: 'content_change',
+              change_summary: 'Policy regenerated with latest content',
+              created_by: userEmail,
+              next_review_date: toISODate(jobMetadata.review_date || reviewDate),
+              user_id: job.user_id,
+            });
+
+            // Update existing card with new content and version
             await serviceSupabase.from('policy_completions')
               .update({
                 policy_title: policyName,
-                policy_content: policyContent,
+                policy_content: versionedContent,
                 metadata: completionMetadata,
-                version: jobMetadata.version || '1.0',
+                version: newVersion,
                 status: 'completed',
                 effective_date: toISODate(jobMetadata.effective_date || today),
                 review_date: toISODate(jobMetadata.review_date || reviewDate),
                 updated_at: new Date().toISOString(),
               })
               .eq('id', existingCompletion.id);
-            console.log(`[Finalise] Updated existing completion ${existingCompletion.id}`);
+            console.log(`[Finalise] Updated existing completion ${existingCompletion.id} to v${newVersion}`);
           } else {
             // Create new card
             await serviceSupabase.from('policy_completions').insert({
