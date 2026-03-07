@@ -737,8 +737,12 @@ export function useImageStudio() {
 
         console.log('✅ Quick edit successful');
 
+        // Convert base64 to blob URL to free memory
+        const blobUrl = await base64ToBlobUrl(data.image.url);
+        trackBlobUrl(blobUrl);
+
         const result: GeneratedImage = {
-          url: data.image.url,
+          url: blobUrl,
           alt: data.image.alt || editInstructions.substring(0, 100),
           prompt: editInstructions,
         };
