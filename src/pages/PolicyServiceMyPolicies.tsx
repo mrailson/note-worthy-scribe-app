@@ -25,10 +25,15 @@ import {
   Coffee,
   BookOpen,
   Mail,
+  ChevronDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
 import { usePolicyJobs, PolicyJob, getStepLabel } from "@/hooks/usePolicyJobs";
+import { usePolicyVersions, PolicyVersion, ChangeType } from "@/hooks/usePolicyVersions";
+import { VersionHistoryPanel } from "@/components/policy/VersionHistoryPanel";
+import { CreateNewVersionModal } from "@/components/policy/CreateNewVersionModal";
+import { HistoricalVersionViewer } from "@/components/policy/HistoricalVersionViewer";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
 import { format, parseISO, formatDistanceToNow, differenceInHours, differenceInMinutes } from "date-fns";
