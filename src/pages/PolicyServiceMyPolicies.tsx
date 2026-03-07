@@ -26,6 +26,7 @@ import {
   BookOpen,
   Mail,
   ChevronDown,
+  Upload,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
@@ -35,6 +36,13 @@ import { VersionHistoryPanel } from "@/components/policy/VersionHistoryPanel";
 import { CreateNewVersionModal } from "@/components/policy/CreateNewVersionModal";
 import { HistoricalVersionViewer } from "@/components/policy/HistoricalVersionViewer";
 import { PolicyProfileFlagBadge } from "@/components/policy/PolicyProfileFlagBadge";
+import { UploadRevisedVersionModal } from "@/components/policy/UploadRevisedVersionModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useProfileFlags } from "@/hooks/useProfileFlags";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
@@ -129,6 +137,7 @@ const PolicyServiceMyPolicies = () => {
   const [newVersionModal, setNewVersionModal] = useState<{ id: string; content: string; version: string; metadata: any; prefilledSummary?: string; prefilledChangeType?: string } | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'needs_review' | 'overdue' | 'profile_changed'>(urlFilter === 'profile_changed' ? 'profile_changed' : 'all');
   const [viewingVersion, setViewingVersion] = useState<{ version: PolicyVersion; currentVersion: string } | null>(null);
+  const [uploadModal, setUploadModal] = useState<{ id: string; content: string; version: string; metadata: any; title: string } | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
     practice_name?: string;
     address?: string;
@@ -855,18 +864,41 @@ const PolicyServiceMyPolicies = () => {
                           <Mail className="h-4 w-4" />
                         )}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownload(completion)}
-                        disabled={downloadingId === completion.id}
-                      >
-                        {downloadingId === completion.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="h-4 w-4" />
-                        )}
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={downloadingId === completion.id}
+                            title="Download or upload revision"
+                          >
+                            {downloadingId === completion.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Download className="h-4 w-4" />
+                                <ChevronDown className="h-3 w-3 ml-0.5" />
+                              </>
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleDownload(completion)}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download current version (.docx)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setUploadModal({
+                            id: completion.id,
+                            content: completion.policy_content,
+                            version: completion.version,
+                            metadata: completion.metadata,
+                            title: completion.policy_title,
+                          })}>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload revised version…
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
@@ -1040,6 +1072,45 @@ const PolicyServiceMyPolicies = () => {
           } catch { toast.error('Failed to download version'); }
         }}
       />
+
+      {/* Upload Revised Version Modal */}
+      {uploadModal && (
+        <UploadRevisedVersionModal
+          open={!!uploadModal}
+          onOpenChange={(open) => { if (!open) setUploadModal(null); }}
+          policyTitle={uploadModal.title}
+          currentVersion={uploadModal.version}
+          currentContent={uploadModal.content}
+          metadata={uploadModal.metadata}
+          onPublish={async (data) => {
+            await createVersion({
+              policyId: uploadModal.id,
+              currentVersion: uploadModal.version,
+              changeType: data.changeType,
+              changeSummary: data.changeSummary,
+              policyContent: data.policyContent,
+              metadata: { ...uploadModal.metadata, version: undefined },
+              approvedBy: data.approvedBy,
+              nextReviewDate: data.nextReviewDate,
+            });
+            await dismissAllForPolicy(uploadModal.id);
+            refreshCompletions();
+            refreshProfileFlags();
+          }}
+          onSaveDraft={async (data) => {
+            await saveDraft({
+              policyId: uploadModal.id,
+              currentVersion: uploadModal.version,
+              changeType: data.changeType,
+              changeSummary: data.changeSummary,
+              policyContent: data.policyContent,
+              metadata: { ...uploadModal.metadata, version: undefined },
+              approvedBy: data.approvedBy,
+              nextReviewDate: data.nextReviewDate,
+            });
+          }}
+        />
+      )}
     </div>
   );
 };
