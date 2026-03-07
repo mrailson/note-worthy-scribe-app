@@ -75,7 +75,7 @@ function parseErrorCode(error: any): ErrorCode {
 }
 
 const HISTORY_STORAGE_KEY = 'image-studio-history';
-const MAX_HISTORY_ITEMS = 20;
+const MAX_HISTORY_ITEMS = 10;
 
 // Helper to load history from localStorage
 const loadHistoryFromStorage = (): GenerationHistoryItem[] => {
