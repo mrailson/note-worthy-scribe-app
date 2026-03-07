@@ -4456,6 +4456,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           <TabsContent value="settings" className="space-y-6">
             <PolicyEnhancementModelSettings />
             
+            <PolicyRegenerateButtonSettings />
+            
             <ConsultationVisibilitySettings />
             
             <AdminVideoUpload />
