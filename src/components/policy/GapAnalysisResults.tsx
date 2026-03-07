@@ -160,11 +160,11 @@ export const GapAnalysisResults = ({ analysis, onGenerateUpdated, isGenerating }
           {isGenerating ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Generating Updated Policy...
+              Fixing Issues & Saving...
             </>
           ) : (
             <>
-              Generate Updated Version
+              Fix Issues & Save New Version
               <ArrowRight className="h-4 w-4 ml-2" />
             </>
           )}
