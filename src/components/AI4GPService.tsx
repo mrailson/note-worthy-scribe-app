@@ -82,6 +82,11 @@ interface AI4GPServiceProps {
 }
 
 const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
+  // ═══ DEBUG: Render counter ═══
+  const renderCountRef = useRef(0);
+  renderCountRef.current++;
+  console.log(`🔄 AI4GPService RENDER COUNT: ${renderCountRef.current}`);
+  
   const inputRef = useRef<InputAreaRef | FloatingMobileInputRef>(null);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
