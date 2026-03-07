@@ -516,12 +516,17 @@ export function BuyBackClaimsTab() {
                 </p>
               </div>
               <div className="pt-1">
-                <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-50" asChild>
-                  <a href="/buyback-explainer" target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    View Buy-Back Explainer Guide
-                  </a>
-                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-50">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      View Buy-Back Explainer Guide
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
+                    <BoardPresentationExplainer />
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </CollapsibleContent>
