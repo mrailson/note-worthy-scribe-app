@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, FileText, AlertCircle, Briefcase, Download, ExternalLink, ClipboardCheck, UserCheck, Calendar, Presentation, Bell, BarChart3, X } from "lucide-react";
+import { Users, FileText, AlertCircle, Briefcase, Download, ExternalLink, ClipboardCheck, UserCheck, Calendar, Presentation, BarChart3, X } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
 import { ACPRecruitmentPanel } from "./recruitment/ACPRecruitmentPanel";
