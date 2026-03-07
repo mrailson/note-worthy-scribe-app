@@ -102,6 +102,9 @@ export const generatePolicyDocx = async (
   // Clean AI enhancement artifacts before parsing
   processedContent = cleanEnhancementArtifacts(processedContent);
 
+  // Post-process: fill blank external contact sections with placeholders
+  processedContent = fillBlankContactSections(processedContent);
+
   // Parse markdown content into sections, passing title to skip duplicate
   const sections = parseMarkdownToSections(processedContent, metadata.title);
 
