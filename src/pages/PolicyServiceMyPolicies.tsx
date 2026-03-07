@@ -1039,6 +1039,9 @@ const PolicyServiceMyPolicies = () => {
           </Card>
         )}
 
+        </>
+        )}
+
       </main>
 
       {quickGuidePolicy && (
