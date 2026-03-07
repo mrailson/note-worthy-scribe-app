@@ -34,6 +34,8 @@ import { usePolicyVersions, PolicyVersion, ChangeType } from "@/hooks/usePolicyV
 import { VersionHistoryPanel } from "@/components/policy/VersionHistoryPanel";
 import { CreateNewVersionModal } from "@/components/policy/CreateNewVersionModal";
 import { HistoricalVersionViewer } from "@/components/policy/HistoricalVersionViewer";
+import { PolicyProfileFlagBadge } from "@/components/policy/PolicyProfileFlagBadge";
+import { useProfileFlags } from "@/hooks/useProfileFlags";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
 import { format, parseISO, formatDistanceToNow, differenceInHours, differenceInMinutes } from "date-fns";
