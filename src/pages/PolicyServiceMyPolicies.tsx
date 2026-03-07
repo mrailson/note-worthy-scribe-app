@@ -136,6 +136,7 @@ const PolicyServiceMyPolicies = () => {
   const [newVersionModal, setNewVersionModal] = useState<{ id: string; content: string; version: string; metadata: any; prefilledSummary?: string; prefilledChangeType?: string } | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'needs_review' | 'overdue' | 'profile_changed'>(urlFilter === 'profile_changed' ? 'profile_changed' : 'all');
   const [viewingVersion, setViewingVersion] = useState<{ version: PolicyVersion; currentVersion: string } | null>(null);
+  const [uploadModal, setUploadModal] = useState<{ id: string; content: string; version: string; metadata: any; title: string } | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
     practice_name?: string;
     address?: string;
