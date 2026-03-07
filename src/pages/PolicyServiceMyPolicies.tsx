@@ -27,9 +27,12 @@ import {
   Mail,
   ChevronDown,
   Upload,
+  Building2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
+import { usePolicyLibraryAccess } from "@/hooks/usePolicyLibraryAccess";
+import { PracticePoliciesTab } from "@/components/policy/PracticePoliciesTab";
 import { usePolicyJobs, PolicyJob, getStepLabel } from "@/hooks/usePolicyJobs";
 import { usePolicyVersions, PolicyVersion, ChangeType } from "@/hooks/usePolicyVersions";
 import { VersionHistoryPanel } from "@/components/policy/VersionHistoryPanel";
@@ -120,6 +123,20 @@ const PolicyServiceMyPolicies = () => {
   const { versions, fetchVersions, ensureInitialVersion, createVersion, saveDraft } = usePolicyVersions();
   const { flags: profileFlags, dismissAllForPolicy, fetchFlags: refreshProfileFlags } = useProfileFlags();
   const { visible: showRegenerateButton } = usePolicyRegenerateVisible();
+  const {
+    isPracticeManager,
+    practiceName,
+    myAccessLevel,
+    hasAccess: hasPracticeAccess,
+    canEdit: canEditPractice,
+    canDelete: canDeletePractice,
+    practiceUsers,
+    practicePolicies,
+    isLoadingUsers,
+    isLoadingPolicies,
+    saveAllAccess,
+  } = usePolicyLibraryAccess();
+  const [activeTab, setActiveTab] = useState<'my' | 'practice'>('my');
   const prevActiveJobCountRef = useRef(activeJobCount);
 
   // Auto-refresh completions when active jobs finish (count drops)
@@ -493,6 +510,52 @@ const PolicyServiceMyPolicies = () => {
             </div>
           </div>
         </div>
+
+        {/* Top-level tab: My Policies vs Practice Policies */}
+        {(hasPracticeAccess || isPracticeManager) && (
+          <div className="flex items-center gap-2 mb-6 border-b pb-3">
+            <Button
+              variant={activeTab === 'my' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('my')}
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              My Policies
+            </Button>
+            <Button
+              variant={activeTab === 'practice' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('practice')}
+              className="gap-2"
+            >
+              <Building2 className="h-4 w-4" />
+              Practice Policies
+              {practicePolicies.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                  {practicePolicies.length}
+                </Badge>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Practice Policies Tab Content */}
+        {activeTab === 'practice' && (hasPracticeAccess || isPracticeManager) ? (
+          <PracticePoliciesTab
+            practiceName={practiceName}
+            policies={practicePolicies}
+            accessLevel={myAccessLevel}
+            isPracticeManager={isPracticeManager}
+            canEdit={canEditPractice}
+            canDelete={canDeletePractice}
+            isLoading={isLoadingPolicies}
+            practiceUsers={practiceUsers}
+            isLoadingUsers={isLoadingUsers}
+            onSaveAccess={saveAllAccess}
+          />
+        ) : (
+        <>
 
         {/* In Progress Jobs */}
         {(activeJobs.length > 0 || recentFailedJobs.length > 0) && (
@@ -975,6 +1038,9 @@ const PolicyServiceMyPolicies = () => {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        </>
         )}
 
       </main>
