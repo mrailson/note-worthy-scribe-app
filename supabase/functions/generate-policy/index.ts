@@ -2154,7 +2154,7 @@ ${policyContent}`;
             await serviceSupabase.from('policy_completions')
               .update({
                 policy_title: policyName,
-                policy_content: versionedContent,
+                policy_content: versionedContentWithHistory,
                 metadata: completionMetadata,
                 version: newVersion,
                 status: 'completed',
