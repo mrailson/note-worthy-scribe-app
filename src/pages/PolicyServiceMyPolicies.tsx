@@ -740,15 +740,15 @@ const PolicyServiceMyPolicies = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRerun(completion)}
-                        disabled={rerunningId === completion.id}
-                        title="Regenerate policy"
+                        onClick={() => setNewVersionModal({
+                          id: completion.id,
+                          content: completion.policy_content,
+                          version: completion.version,
+                          metadata: completion.metadata,
+                        })}
+                        title="Create new version"
                       >
-                        {rerunningId === completion.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="h-4 w-4" />
-                        )}
+                        <RefreshCw className="h-4 w-4" />
                       </Button>
                       <SavedGuidesPopover
                         guides={((completion.metadata as any)?.quick_guides || []) as SavedQuickGuide[]}
