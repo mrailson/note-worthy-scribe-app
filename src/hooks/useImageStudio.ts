@@ -98,8 +98,22 @@ const loadHistoryFromStorage = (): GenerationHistoryItem[] => {
 // Helper to save history to localStorage
 const saveHistoryToStorage = (history: GenerationHistoryItem[]) => {
   try {
-    // Only store the last MAX_HISTORY_ITEMS
-    const toStore = history.slice(0, MAX_HISTORY_ITEMS);
+    // Only store the last MAX_HISTORY_ITEMS, and strip large image data
+    const toStore = history.slice(0, MAX_HISTORY_ITEMS).map(item => ({
+      ...item,
+      result: {
+        ...item.result,
+        // Don't persist blob: or data: URLs — they won't work on reload anyway
+        url: (item.result.url?.startsWith('blob:') || item.result.url?.startsWith('data:'))
+          ? '' : item.result.url,
+      },
+      settings: {
+        ...item.settings,
+        // Strip reference image content (base64) from persisted history
+        referenceImages: undefined,
+        customLogoData: undefined,
+      },
+    }));
     safeSetItem(HISTORY_STORAGE_KEY, JSON.stringify(toStore));
   } catch (error) {
     console.warn('Failed to save image studio history:', error);

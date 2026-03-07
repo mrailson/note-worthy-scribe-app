@@ -1,4 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+// Memory helper: convert base64 to blob URL
+async function toSafeBlobUrl(dataUrl: string): Promise<string> {
+  if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
+  try {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch { return dataUrl; }
+}
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
