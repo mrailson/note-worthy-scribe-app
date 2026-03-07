@@ -720,12 +720,20 @@ function removeForbiddenGapAnalysisTables(content: string): string {
   return kept.join('\n');
 }
 
+interface VersionHistoryRow {
+  version: string;
+  date: string;
+  author: string;
+  summary: string;
+}
+
 interface Section11Details {
   practiceManagerName: string;
   practiceName: string;
   practiceAddress: string;
   leadGpName: string;
   reviewDate: string; // DD/MM/YYYY or similar
+  versionHistory?: VersionHistoryRow[]; // All version rows to display
 }
 
 function enforceSection11ExactTable(content: string, details: Section11Details): string {
@@ -740,9 +748,19 @@ function enforceSection11ExactTable(content: string, details: Section11Details):
   const leadGpName = details.leadGpName || '[Lead GP]';
   const reviewDate = details.reviewDate || new Date(Date.now() + 365 * 86400000).toLocaleDateString('en-GB');
 
+  // Build version rows — use provided history or default to single v1.0 row
+  let tableRows: string;
+  if (details.versionHistory && details.versionHistory.length > 0) {
+    tableRows = details.versionHistory
+      .map(r => `| ${r.version} | ${r.date} | ${r.author} | ${r.summary} |`)
+      .join('\n');
+  } else {
+    tableRows = `| 1.0 | ${todayFormatted} | ${author} | Initial issue. New policy created for ${practiceName}. |`;
+  }
+
   const exactTable = `| Version | Date | Author | Summary of Changes |
 |---------|------|--------|--------------------|
-| 1.0 | ${todayFormatted} | ${author} | Initial issue. New policy created for ${practiceName}. |`;
+${tableRows}`;
 
   const ownershipFooter = `*This policy is the property of ${practiceName}, ${practiceAddress}. It will be reviewed annually by ${author} and approved by ${leadGpName}. Next review due: ${reviewDate}.*`;
 
@@ -2101,11 +2119,42 @@ ${policyContent}`;
               user_id: job.user_id,
             });
 
+            // Fetch ALL versions (including the one just inserted) to build Section 11 history
+            const { data: allVersions } = await serviceSupabase
+              .from('policy_versions')
+              .select('version_number, created_at, created_by, change_summary')
+              .eq('policy_id', existingCompletion.id)
+              .order('created_at', { ascending: true });
+
+            const versionHistoryRows: VersionHistoryRow[] = (allVersions || []).map((v: any) => {
+              const d = new Date(v.created_at);
+              const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+              return {
+                version: v.version_number,
+                date: `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`,
+                author: v.created_by || practiceManagerName,
+                summary: v.change_summary || 'Policy updated',
+              };
+            });
+
+            // Re-enforce Section 11 with full version history
+            const s11DetailsWithHistory: Section11Details = {
+              ...s11Details,
+              versionHistory: versionHistoryRows,
+            };
+            const versionedContentWithHistory = enforceSection11ExactTable(versionedContent, s11DetailsWithHistory);
+
+            // Update the content stored in the version entry too
+            await serviceSupabase.from('policy_versions')
+              .update({ content: { policy_content: versionedContentWithHistory, metadata: completionMetadata } })
+              .eq('policy_id', existingCompletion.id)
+              .eq('version_number', newVersion);
+
             // Update existing card with new content and version
             await serviceSupabase.from('policy_completions')
               .update({
                 policy_title: policyName,
-                policy_content: versionedContent,
+                policy_content: versionedContentWithHistory,
                 metadata: completionMetadata,
                 version: newVersion,
                 status: 'completed',
