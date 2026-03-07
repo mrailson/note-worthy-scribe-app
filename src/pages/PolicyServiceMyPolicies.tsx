@@ -919,6 +919,58 @@ const PolicyServiceMyPolicies = () => {
           }}
         />
       )}
+
+      {/* Create New Version Modal */}
+      {newVersionModal && (
+        <CreateNewVersionModal
+          open={!!newVersionModal}
+          onOpenChange={(open) => { if (!open) setNewVersionModal(null); }}
+          currentVersion={newVersionModal.version}
+          policyContent={newVersionModal.content}
+          metadata={newVersionModal.metadata}
+          onPublish={async (data) => {
+            await createVersion({
+              policyId: newVersionModal.id,
+              currentVersion: newVersionModal.version,
+              changeType: data.changeType,
+              changeSummary: data.changeSummary,
+              policyContent: data.policyContent,
+              metadata: { ...newVersionModal.metadata, version: undefined },
+              approvedBy: data.approvedBy,
+              nextReviewDate: data.nextReviewDate,
+            });
+            refreshCompletions();
+          }}
+          onSaveDraft={async (data) => {
+            await saveDraft({
+              policyId: newVersionModal.id,
+              currentVersion: newVersionModal.version,
+              changeType: data.changeType,
+              changeSummary: data.changeSummary,
+              policyContent: data.policyContent,
+              metadata: { ...newVersionModal.metadata, version: undefined },
+              approvedBy: data.approvedBy,
+              nextReviewDate: data.nextReviewDate,
+            });
+          }}
+        />
+      )}
+
+      {/* Historical Version Viewer */}
+      <HistoricalVersionViewer
+        open={!!viewingVersion}
+        onOpenChange={(open) => { if (!open) setViewingVersion(null); }}
+        version={viewingVersion?.version || null}
+        currentVersion={viewingVersion?.currentVersion || '1.0'}
+        onDownload={async (version) => {
+          try {
+            const vContent = (version.content as any)?.policy_content || '';
+            const vMeta = (version.content as any)?.metadata || {};
+            await generatePolicyDocx(vContent, vMeta, 'Policy', getPersistedDocxOptions());
+            toast.success(`Version ${version.version_number} downloaded`);
+          } catch { toast.error('Failed to download version'); }
+        }}
+      />
     </div>
   );
 };
