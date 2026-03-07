@@ -35,6 +35,13 @@ import { VersionHistoryPanel } from "@/components/policy/VersionHistoryPanel";
 import { CreateNewVersionModal } from "@/components/policy/CreateNewVersionModal";
 import { HistoricalVersionViewer } from "@/components/policy/HistoricalVersionViewer";
 import { PolicyProfileFlagBadge } from "@/components/policy/PolicyProfileFlagBadge";
+import { UploadRevisedVersionModal } from "@/components/policy/UploadRevisedVersionModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useProfileFlags } from "@/hooks/useProfileFlags";
 import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
 import { toast } from "sonner";
