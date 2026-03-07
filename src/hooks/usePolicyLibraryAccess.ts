@@ -28,6 +28,7 @@ export const usePolicyLibraryAccess = () => {
   const { user } = useAuth();
   const [isPracticeManager, setIsPracticeManager] = useState(false);
   const [practiceId, setPracticeId] = useState<string | null>(null);
+  const [gpPracticeId, setGpPracticeId] = useState<string | null>(null);
   const [practiceName, setPracticeName] = useState<string | null>(null);
   const [myAccessLevel, setMyAccessLevel] = useState<PolicyAccessLevel | null>(null);
   const [practiceUsers, setPracticeUsers] = useState<PracticeUserWithAccess[]>([]);
