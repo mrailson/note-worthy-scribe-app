@@ -829,6 +829,21 @@ const PolicyServiceMyPolicies = () => {
                       </AlertDialog>
                     </div>
                   </div>
+
+                  {/* Version History Panel */}
+                  <VersionHistoryPanel
+                    versions={versions[completion.id] || []}
+                    isOpen={expandedVersionHistory.has(completion.id)}
+                    onViewVersion={(version) => setViewingVersion({ version, currentVersion: completion.version })}
+                    onDownloadVersion={async (version) => {
+                      try {
+                        const vContent = (version.content as any)?.policy_content || '';
+                        const vMeta = (version.content as any)?.metadata || completion.metadata;
+                        await generatePolicyDocx(vContent, vMeta, completion.policy_title, getPersistedDocxOptions());
+                        toast.success(`Version ${version.version_number} downloaded`);
+                      } catch { toast.error('Failed to download version'); }
+                    }}
+                  />
                 </CardContent>
               </Card>
             ))}
