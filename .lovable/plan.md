@@ -1,58 +1,44 @@
 
 
-## Problem Analysis
+## Plan: Auto-save Generated Updated Version to Policy Card
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+### Problem
+Currently, the "Generate Updated Version" button on the Update Policy page (`/policy-service/update`) generates an updated policy and displays it in a preview panel (step 3), but doesn't save it back to the user's existing policy card in My Policies. The user must manually handle this.
 
-### Root causes by issue:
+### Solution
+After generating the updated policy content, automatically match it to the user's existing `policy_completions` record (by policy type name), then create a new version in `policy_versions` and update the `policy_completions` record — all without requiring the user to do anything extra.
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+### Changes
 
-## Plan
+**1. `src/pages/PolicyServiceUpdate.tsx`**
+- Import `usePolicyCompletions` and `usePolicyVersions` hooks
+- After `generateUpdatedPolicy` succeeds (in `handleGenerateUpdated`):
+  - Search existing completions for a matching policy by title/type (fuzzy match on `policy_type` from gap analysis)
+  - If a match is found:
+    - Call `ensureInitialVersion` to guarantee a v1.0 exists
+    - Call `createVersion` with change type `content_change`, the updated content, and a summary referencing the gap analysis fixes
+    - Update the completion record with the new content
+    - Show a success toast: "Saved as v{X.Y} on your policy card"
+  - If no match is found:
+    - Save as a new completion via `saveCompletion`
+    - Show toast: "Saved as a new policy"
+- Remove or simplify step 3 (the preview) — still show it but with a "Saved" confirmation badge instead of requiring manual action
+- Add a "View in My Policies" button to navigate to `/policy-service/my-policies` after save
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+**2. `src/components/policy/GapAnalysisResults.tsx`**
+- Update button text from "Generate Updated Version" to "Fix Issues & Save New Version" (clearer intent)
+- Update the info box text to explain that changes will be saved automatically
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+**3. No database changes required** — all existing tables (`policy_completions`, `policy_versions`) already support this workflow.
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+### Matching Logic
+- Fetch user's completions via `usePolicyCompletions`
+- Match `gapAnalysis.policy_type` against `completion.policy_title` using case-insensitive contains/similarity
+- If multiple matches, use the most recently updated one
 
-### 2. Raise Part 2b base tokens
-
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
-
-### 3. Add anti-truncation instructions to all step prompts
-
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
-
-### 4. Update step labels and progress tracking
-
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
-
-### 5. Verify Version History enforcement
-
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
-
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+### User Flow (After)
+1. Upload policy → Extract text
+2. View gap analysis results → Click "Fix Issues & Save New Version"
+3. AI generates updated content → Automatically saved as new version on the matching policy card
+4. User sees success confirmation with link to My Policies
 
