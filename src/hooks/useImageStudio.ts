@@ -769,7 +769,8 @@ export function useImageStudio() {
       const result = await attemptEdit(selectedModel);
 
       if (result) {
-        // Add to history
+        if (!isMountedRef.current) return result;
+
         const historyItem: GenerationHistoryItem = {
           id: `edit-${Date.now()}`,
           timestamp: new Date(),
@@ -777,13 +778,19 @@ export function useImageStudio() {
           result,
         };
 
-        setState(prev => ({
-          ...prev,
-          isGenerating: false,
-          generationProgress: 100,
-          currentResult: result,
-          generationHistory: [historyItem, ...prev.generationHistory.slice(0, 19)],
-        }));
+        setState(prev => {
+          const newHistory = [historyItem, ...prev.generationHistory];
+          if (newHistory.length > 10) {
+            newHistory.slice(10).forEach(item => revokeBlobUrl(item.result?.url));
+          }
+          return {
+            ...prev,
+            isGenerating: false,
+            generationProgress: 100,
+            currentResult: result,
+            generationHistory: newHistory.slice(0, 10),
+          };
+        });
 
         toast.success('Image edited successfully!');
         return result;
