@@ -46,7 +46,9 @@ export const usePolicyLibraryAccess = () => {
 
       if (pmPracticeId) {
         setIsPracticeManager(true);
-        // Find the practice_details record for this gp_practices id
+        setGpPracticeId(pmPracticeId);
+
+        // Get practice name from gp_practices
         const { data: gpPractice } = await supabase
           .from('gp_practices')
           .select('name')
