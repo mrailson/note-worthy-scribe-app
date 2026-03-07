@@ -124,12 +124,16 @@ const serviceOptions = [
 export const PolicyProfileDefaults = () => {
   const { user } = useAuth();
   const { practiceDetails: sharedPracticeDetails } = usePracticeContext();
+  const { scanAndFlagPolicies } = useProfileFlags();
+  const navigate = useNavigate();
   const [data, setData] = useState<PolicyProfileData>(defaultData);
+  const savedDataRef = useRef<PolicyProfileData>(defaultData);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [practiceDetailsId, setPracticeDetailsId] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [sharedProfileSource, setSharedProfileSource] = useState<string | null>(null);
+  const [profileChangeBanner, setProfileChangeBanner] = useState<{ count: number; oldValue: string } | null>(null);
 
   // Load existing practice details
   useEffect(() => {
