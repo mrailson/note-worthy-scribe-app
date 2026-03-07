@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProgrammePlanGantt } from "./programme-plan";
 import { SDAPartnerQuickGuide } from "./SDAPartnerQuickGuide";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import BoardPresentationExplainer from "@/components/nres/hours-tracker/BoardPresentationExplainer";
 
 
 const NRESReportingRequirements = lazy(() => import("@/components/sda/NRESReportingRequirements"));
@@ -45,6 +46,7 @@ export const SDAExecutiveSummary = () => {
   const [buybackBtnHovered, setBuybackBtnHovered] = useState(false);
   const [showReportingPreview, setShowReportingPreview] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
+  const [showBuybackExplainer, setShowBuybackExplainer] = useState(false);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
@@ -71,6 +73,13 @@ export const SDAExecutiveSummary = () => {
           </Suspense>
         </div>
       )}
+
+      {/* Buy-Back Explainer Fullscreen Dialog */}
+      <Dialog open={showBuybackExplainer} onOpenChange={setShowBuybackExplainer}>
+        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
+          <BoardPresentationExplainer />
+        </DialogContent>
+      </Dialog>
     <div className="space-y-6">
       {/* Collapsible Key Metrics Row */}
       <Collapsible open={metricsOpen} onOpenChange={setMetricsOpen}>
@@ -117,10 +126,8 @@ export const SDAExecutiveSummary = () => {
                     </div>
                     <div className="flex-1" />
                     {/* Workforce Buy-Back Explainer Button */}
-                    <a
-                      href="/buyback-explainer"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <div
+                      onClick={() => setShowBuybackExplainer(true)}
                       onMouseEnter={() => setBuybackBtnHovered(true)}
                       onMouseLeave={() => setBuybackBtnHovered(false)}
                       style={{
@@ -203,7 +210,7 @@ export const SDAExecutiveSummary = () => {
                           </svg>
                         </div>
                       </div>
-                    </a>
+                    </div>
                     <p className="text-[10px] text-slate-400 mt-2">Updated: 25 February 2026</p>
                   </CardContent>
                 </Card>
