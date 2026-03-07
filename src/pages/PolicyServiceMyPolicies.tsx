@@ -987,6 +987,8 @@ const PolicyServiceMyPolicies = () => {
           currentVersion={newVersionModal.version}
           policyContent={newVersionModal.content}
           metadata={newVersionModal.metadata}
+          prefilledSummary={newVersionModal.prefilledSummary}
+          prefilledChangeType={newVersionModal.prefilledChangeType as any}
           onPublish={async (data) => {
             await createVersion({
               policyId: newVersionModal.id,
@@ -998,7 +1000,10 @@ const PolicyServiceMyPolicies = () => {
               approvedBy: data.approvedBy,
               nextReviewDate: data.nextReviewDate,
             });
+            // Auto-resolve profile flags for this policy on version publish
+            await dismissAllForPolicy(newVersionModal.id);
             refreshCompletions();
+            refreshProfileFlags();
           }}
           onSaveDraft={async (data) => {
             await saveDraft({
