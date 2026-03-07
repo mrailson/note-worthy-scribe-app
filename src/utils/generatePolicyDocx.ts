@@ -666,10 +666,11 @@ function parseMarkdownToSections(markdown: string, titleToSkip?: string): (Parag
       continue;
     }
     
-    // Also skip generic POLICY/PROCEDURE titles
-    if (/^[A-Z][A-Z\s&,()-]+POLICY$/i.test(trimmed) || 
+    // Also skip generic POLICY/PROCEDURE titles (but NOT appendix headings)
+    if (!(/^appendix/i.test(trimmed)) &&
+        (/^[A-Z][A-Z\s&,()-]+POLICY$/i.test(trimmed) || 
         /^[A-Z][A-Z\s&,()-]+PROCEDURE$/i.test(trimmed) ||
-        /^[A-Z][A-Z\s&,()-]+POLICY\s+AND\s+PROCEDURE$/i.test(trimmed)) {
+        /^[A-Z][A-Z\s&,()-]+POLICY\s+AND\s+PROCEDURE$/i.test(trimmed))) {
       i++;
       continue;
     }
