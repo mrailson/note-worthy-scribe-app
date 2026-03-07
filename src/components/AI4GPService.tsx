@@ -82,6 +82,11 @@ interface AI4GPServiceProps {
 }
 
 const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
+  // ═══ DEBUG: Render counter ═══
+  const renderCountRef = useRef(0);
+  renderCountRef.current++;
+  console.log(`🔄 AI4GPService RENDER COUNT: ${renderCountRef.current}`);
+  
   const inputRef = useRef<InputAreaRef | FloatingMobileInputRef>(null);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -347,6 +352,24 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
     imageGenerationModel,
     setImageGenerationModel,
   } = useAI4GPService();
+
+  // ═══ DEBUG: Messages array length on every render ═══
+  console.log(`📨 AI4GPService messages.length: ${messages.length}`);
+  
+  // ═══ DEBUG: Track key dependency changes ═══
+  const prevDepsRef = useRef({ messagesLen: 0, isLoading: false, userId: '', selectedModel: '' });
+  useEffect(() => {
+    const prev = prevDepsRef.current;
+    const changes: string[] = [];
+    if (prev.messagesLen !== messages.length) changes.push(`messages: ${prev.messagesLen}→${messages.length}`);
+    if (prev.isLoading !== isLoading) changes.push(`isLoading: ${prev.isLoading}→${isLoading}`);
+    if (prev.userId !== user?.id) changes.push(`userId changed`);
+    if (prev.selectedModel !== selectedModel) changes.push(`model: ${prev.selectedModel}→${selectedModel}`);
+    if (changes.length > 0) {
+      console.log(`🔍 AI4GPService dependency changes: ${changes.join(', ')}`);
+    }
+    prevDepsRef.current = { messagesLen: messages.length, isLoading, userId: user?.id || '', selectedModel };
+  });
 
   const { practiceContext, practiceDetails } = usePracticeContext();
   
