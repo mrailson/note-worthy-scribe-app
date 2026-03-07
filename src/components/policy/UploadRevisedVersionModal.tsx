@@ -73,24 +73,83 @@ const parseSections = (content: string): { title: string; body: string }[] => {
 
 const isSection11 = (title: string) => /section\s*11|11[\.\):]?\s*version\s*history|version\s*history/i.test(title);
 
+/**
+ * Strip markdown formatting so raw markdown and plain-text extractions
+ * can be compared on content alone.
+ */
+const normaliseForComparison = (text: string): string => {
+  return text
+    // Remove markdown table rows (lines starting with |)
+    .replace(/^\|.*$/gm, '')
+    // Remove markdown heading markers
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove bold/italic markers
+    .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
+    // Remove underscores for emphasis
+    .replace(/_{1,3}([^_]+)_{1,3}/g, '$1')
+    // Remove horizontal rules
+    .replace(/^[-*_]{3,}\s*$/gm, '')
+    // Remove inline code backticks
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove link syntax [text](url)
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove bullet markers (*, -, •)
+    .replace(/^[\s]*[*\-•]\s+/gm, '')
+    // Remove numbered list prefixes like "5.1.1 " or "1. "
+    .replace(/^[\s]*\d+[\.\)]\s+/gm, '')
+    // Collapse all whitespace
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+};
+
 const computeDiff = (oldContent: string, newContent: string): SectionDiff[] => {
   const oldSections = parseSections(oldContent);
   const newSections = parseSections(newContent);
   const diffs: SectionDiff[] = [];
 
-  const maxLen = Math.max(oldSections.length, newSections.length);
-  for (let i = 0; i < maxLen; i++) {
+  // Match sections by title similarity rather than purely by index
+  const matchedNew = new Set<number>();
+
+  for (let i = 0; i < oldSections.length; i++) {
     const oldSec = oldSections[i];
-    const newSec = newSections[i];
-    const title = newSec?.title || oldSec?.title || `Section ${i + 1}`;
+    const oldTitleNorm = oldSec.title.replace(/\s+/g, ' ').trim().toLowerCase();
+
+    // Find best matching new section (prefer same index, then title match)
+    let bestIdx = -1;
+    if (i < newSections.length && !matchedNew.has(i)) {
+      const candidateTitleNorm = newSections[i].title.replace(/\s+/g, ' ').trim().toLowerCase();
+      if (candidateTitleNorm === oldTitleNorm || candidateTitleNorm.includes(oldTitleNorm) || oldTitleNorm.includes(candidateTitleNorm)) {
+        bestIdx = i;
+      }
+    }
+    if (bestIdx === -1) {
+      for (let j = 0; j < newSections.length; j++) {
+        if (matchedNew.has(j)) continue;
+        const candidateTitleNorm = newSections[j].title.replace(/\s+/g, ' ').trim().toLowerCase();
+        if (candidateTitleNorm === oldTitleNorm || candidateTitleNorm.includes(oldTitleNorm) || oldTitleNorm.includes(candidateTitleNorm)) {
+          bestIdx = j;
+          break;
+        }
+      }
+    }
+    // Fallback: same index if not yet matched
+    if (bestIdx === -1 && i < newSections.length && !matchedNew.has(i)) {
+      bestIdx = i;
+    }
+
+    const newSec = bestIdx >= 0 ? newSections[bestIdx] : undefined;
+    if (bestIdx >= 0) matchedNew.add(bestIdx);
+
+    const title = newSec?.title || oldSec.title;
 
     if (isSection11(title)) {
       diffs.push({ title, status: 'auto' });
       continue;
     }
 
-    const oldBody = (oldSec?.body || '').replace(/\s+/g, ' ').trim();
-    const newBody = (newSec?.body || '').replace(/\s+/g, ' ').trim();
+    const oldBody = normaliseForComparison(oldSec.body || '');
+    const newBody = normaliseForComparison(newSec?.body || '');
 
     if (oldBody === newBody) {
       diffs.push({ title, status: 'unchanged' });
@@ -98,11 +157,23 @@ const computeDiff = (oldContent: string, newContent: string): SectionDiff[] => {
       diffs.push({
         title,
         status: 'modified',
-        oldText: oldSec?.body || '',
+        oldText: oldSec.body || '',
         newText: newSec?.body || '',
       });
     }
   }
+
+  // Any unmatched new sections are additions
+  for (let j = 0; j < newSections.length; j++) {
+    if (matchedNew.has(j)) continue;
+    const title = newSections[j].title;
+    if (isSection11(title)) {
+      diffs.push({ title, status: 'auto' });
+    } else {
+      diffs.push({ title, status: 'modified', newText: newSections[j].body });
+    }
+  }
+
   return diffs;
 };
 
