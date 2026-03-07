@@ -11,7 +11,7 @@ const sans=`'DM Sans','Segoe UI',sans-serif`;
 export default function SDAClaimingGuide(){
   const [tab,setTab]=useState("overview");
   return(
-<div style={{fontFamily:sans,background:T.bg,minHeight:"100vh",color:T.text}}>
+<div style={{fontFamily:sans,background:T.bg,minHeight:"100%",height:"100%",color:T.text,overflowY:"auto"}}>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <header style={{background:"linear-gradient(135deg, #1A3A5C 0%, #1E5F7A 50%, #2A7A94 100%)",padding:"32px 48px 24px",position:"relative"}}>
 <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 20%,rgba(255,255,255,0.08) 0%,transparent 60%)"}}/>
