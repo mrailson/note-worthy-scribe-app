@@ -27,6 +27,7 @@ import {
   Mail,
   ChevronDown,
   Upload,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
 import { usePolicyJobs, PolicyJob, getStepLabel } from "@/hooks/usePolicyJobs";
