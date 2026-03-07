@@ -266,6 +266,7 @@ export function BuyBackClaimsTab() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const [guideOpen, setGuideOpen] = useState(false);
+  const [proposalOpen, setProposalOpen] = useState(false);
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
