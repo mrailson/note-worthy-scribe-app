@@ -19,6 +19,29 @@ import type { GeneratedImage } from '@/types/ai4gp';
 import { optimiseImageForUpload, getBase64SizeKB } from '@/utils/imageOptimiser';
 import { userNameCorrections } from '@/utils/UserNameCorrections';
 
+// --- Memory management helpers ---
+
+/** Convert a base64 data URL to a blob URL to free memory */
+async function base64ToBlobUrl(base64: string): Promise<string> {
+  // If it's not a data URL, return as-is (already a URL)
+  if (!base64 || !base64.startsWith('data:')) return base64;
+  try {
+    const res = await fetch(base64);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch (err) {
+    console.warn('⚠️ base64ToBlobUrl conversion failed, using original:', err);
+    return base64;
+  }
+}
+
+/** Revoke a blob URL safely */
+function revokeBlobUrl(url: string | undefined | null) {
+  if (url && url.startsWith('blob:')) {
+    try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+  }
+}
+
 // Error codes from edge function
 type ErrorCode = 'RATE_LIMIT' | 'CONTENT_MODERATION' | 'PAYMENT_REQUIRED' | 'TIMEOUT' | 'UNKNOWN';
 
