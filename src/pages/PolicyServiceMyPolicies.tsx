@@ -67,6 +67,7 @@ import {
 } from "@/components/ui/popover";
 import { QuickGuideDialog, QuickGuideOutput, SavedQuickGuide } from "@/components/policy/QuickGuideDialog";
 import { SavedGuidesPopover } from "@/components/policy/SavedGuidesPopover";
+import { usePolicyRegenerateVisible } from "@/hooks/usePolicyRegenerateVisible";
 
 const getExpectedMinutes = (job: PolicyJob): number => {
   const length = (job.metadata as any)?.policy_length;
@@ -118,6 +119,7 @@ const PolicyServiceMyPolicies = () => {
   const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue, refetch: refetchJobs } = usePolicyJobs();
   const { versions, fetchVersions, ensureInitialVersion, createVersion, saveDraft } = usePolicyVersions();
   const { flags: profileFlags, dismissAllForPolicy, fetchFlags: refreshProfileFlags } = useProfileFlags();
+  const { visible: showRegenerateButton } = usePolicyRegenerateVisible();
   const prevActiveJobCountRef = useRef(activeJobCount);
 
   // Auto-refresh completions when active jobs finish (count drops)
@@ -808,19 +810,21 @@ const PolicyServiceMyPolicies = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setNewVersionModal({
-                          id: completion.id,
-                          content: completion.policy_content,
-                          version: completion.version,
-                          metadata: completion.metadata,
-                        })}
-                        title="Create new version"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
+                      {showRegenerateButton && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setNewVersionModal({
+                            id: completion.id,
+                            content: completion.policy_content,
+                            version: completion.version,
+                            metadata: completion.metadata,
+                          })}
+                          title="Create new version"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      )}
                       <SavedGuidesPopover
                         guides={((completion.metadata as any)?.quick_guides || []) as SavedQuickGuide[]}
                         policyTitle={completion.policy_title}

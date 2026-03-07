@@ -76,6 +76,7 @@ import { StorageManagement } from '@/components/admin/StorageManagement';
 import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAccess';
 import { AI4GPServicesOverview } from '@/components/admin/AI4GPServicesOverview';
 import { PolicyEnhancementModelSettings } from '@/components/admin/PolicyEnhancementModelSettings';
+import { PolicyRegenerateButtonSettings } from '@/components/admin/PolicyRegenerateButtonSettings';
 import { ICBTrafficLightManager } from '@/components/admin/ICBTrafficLightManager';
 import { EdgeFunctionAudit } from '@/components/admin/EdgeFunctionAudit';
 import { PageRouteAudit } from '@/components/admin/PageRouteAudit';
@@ -4454,6 +4455,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             <PolicyEnhancementModelSettings />
+            
+            <PolicyRegenerateButtonSettings />
             
             <ConsultationVisibilitySettings />
             
