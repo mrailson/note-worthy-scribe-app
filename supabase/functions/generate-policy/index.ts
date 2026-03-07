@@ -2041,7 +2041,33 @@ ${policyContent}`;
             policy_source: 'notewell',
           };
 
-          await serviceSupabase.from('policy_completions').insert({
+          // Check if a completion already exists for this policy_reference_id + user
+          const { data: existingCompletion } = await serviceSupabase
+            .from('policy_completions')
+            .select('id')
+            .eq('user_id', job.user_id)
+            .eq('policy_reference_id', job.policy_reference_id)
+            .limit(1)
+            .maybeSingle();
+
+          if (existingCompletion) {
+            // Update existing card (replace content, keep same card)
+            await serviceSupabase.from('policy_completions')
+              .update({
+                policy_title: policyName,
+                policy_content: policyContent,
+                metadata: completionMetadata,
+                version: jobMetadata.version || '1.0',
+                status: 'completed',
+                effective_date: toISODate(jobMetadata.effective_date || today),
+                review_date: toISODate(jobMetadata.review_date || reviewDate),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', existingCompletion.id);
+            console.log(`[Finalise] Updated existing completion ${existingCompletion.id}`);
+          } else {
+            // Create new card
+            await serviceSupabase.from('policy_completions').insert({
               user_id: job.user_id,
               policy_reference_id: job.policy_reference_id,
               policy_title: policyName,
@@ -2052,6 +2078,8 @@ ${policyContent}`;
               effective_date: toISODate(jobMetadata.effective_date || today),
               review_date: toISODate(jobMetadata.review_date || reviewDate),
             });
+            console.log(`[Finalise] Created new completion for ${policyName}`);
+          }
           } catch (saveErr) {
             console.error(`[Finalise] Failed to save completion:`, saveErr);
           }
