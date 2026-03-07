@@ -748,9 +748,19 @@ function enforceSection11ExactTable(content: string, details: Section11Details):
   const leadGpName = details.leadGpName || '[Lead GP]';
   const reviewDate = details.reviewDate || new Date(Date.now() + 365 * 86400000).toLocaleDateString('en-GB');
 
+  // Build version rows — use provided history or default to single v1.0 row
+  let tableRows: string;
+  if (details.versionHistory && details.versionHistory.length > 0) {
+    tableRows = details.versionHistory
+      .map(r => `| ${r.version} | ${r.date} | ${r.author} | ${r.summary} |`)
+      .join('\n');
+  } else {
+    tableRows = `| 1.0 | ${todayFormatted} | ${author} | Initial issue. New policy created for ${practiceName}. |`;
+  }
+
   const exactTable = `| Version | Date | Author | Summary of Changes |
 |---------|------|--------|--------------------|
-| 1.0 | ${todayFormatted} | ${author} | Initial issue. New policy created for ${practiceName}. |`;
+${tableRows}`;
 
   const ownershipFooter = `*This policy is the property of ${practiceName}, ${practiceAddress}. It will be reviewed annually by ${author} and approved by ${leadGpName}. Next review due: ${reviewDate}.*`;
 
