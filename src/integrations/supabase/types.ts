@@ -8190,6 +8190,61 @@ export type Database = {
           },
         ]
       }
+      policy_profile_flags: {
+        Row: {
+          dismissed_at: string | null
+          dismissed_by: string | null
+          flagged_at: string
+          id: string
+          policy_id: string
+          profile_change_id: string
+          resolved_by_version_id: string | null
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          flagged_at?: string
+          id?: string
+          policy_id: string
+          profile_change_id: string
+          resolved_by_version_id?: string | null
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          flagged_at?: string
+          id?: string
+          policy_id?: string
+          profile_change_id?: string
+          resolved_by_version_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_profile_flags_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_completions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_profile_flags_profile_change_id_fkey"
+            columns: ["profile_change_id"]
+            isOneToOne: false
+            referencedRelation: "profile_change_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_profile_flags_resolved_by_version_id_fkey"
+            columns: ["resolved_by_version_id"]
+            isOneToOne: false
+            referencedRelation: "policy_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       policy_reference_library: {
         Row: {
           category: string
@@ -8771,6 +8826,42 @@ export type Database = {
           id?: string
           pcn_code?: string
           pcn_name?: string
+        }
+        Relationships: []
+      }
+      profile_change_log: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          field_name: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          policies_affected: number
+          practice_id: string | null
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          field_name: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          policies_affected?: number
+          practice_id?: string | null
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          policies_affected?: number
+          practice_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
