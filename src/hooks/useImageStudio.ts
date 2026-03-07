@@ -498,7 +498,9 @@ export function useImageStudio() {
       const result = await attemptGeneration(selectedModel);
       
       if (result) {
-        // Add to history
+        if (!isMountedRef.current) return result; // Don't update state if unmounted
+
+        // Add to history (cap at 10 to limit memory, revoke dropped items)
         const historyItem: GenerationHistoryItem = {
           id: `gen-${Date.now()}`,
           timestamp: new Date(),
@@ -506,14 +508,21 @@ export function useImageStudio() {
           result,
         };
 
-        setState(prev => ({
-          ...prev,
-          isGenerating: false,
-          generationProgress: 100,
-          currentResult: result,
-          generationHistory: [historyItem, ...prev.generationHistory.slice(0, 19)],
-          activeTab: 'generate',
-        }));
+        setState(prev => {
+          const newHistory = [historyItem, ...prev.generationHistory];
+          // Revoke blob URLs of items being dropped
+          if (newHistory.length > 10) {
+            newHistory.slice(10).forEach(item => revokeBlobUrl(item.result?.url));
+          }
+          return {
+            ...prev,
+            isGenerating: false,
+            generationProgress: 100,
+            currentResult: result,
+            generationHistory: newHistory.slice(0, 10),
+            activeTab: 'generate',
+          };
+        });
 
         // Auto-save to gallery in background (fire-and-forget)
         saveToGallery(result).catch(err => {
