@@ -1,12 +1,11 @@
-// @ts-nocheck
 import { useState } from "react";
 const T = {
-  navy:"#1B2A4A",deep:"#0F1D35",emerald:"#0D9668",lightEm:"#10B981",
-  r1:"#2563EB",r2:"#C2410C",gold:"#B8941B",
-  bg:"#FAFBFD",card:"#fff",surface:"#F3F5F9",border:"#E2E7F0",
-  text:"#1B2A4A",sub:"#5A6B82",muted:"#94A0B4",
+  navy:"#0C2D48",deep:"#0C2D48",emerald:"#059669",lightEm:"#10B981",
+  r1:"#1565C0",r2:"#E65100",gold:"#BF8C00",
+  bg:"#FAF6F0",card:"#fff",surface:"#F5F0E8",border:"#E0D6C8",
+  text:"#2C2418",sub:"#6B5D4F",muted:"#8D7B68",
 };
-const fonts=`'Crimson Pro','Georgia',serif`;
+const fonts=`'Source Serif 4','Georgia',serif`;
 const sans=`'DM Sans','Segoe UI',sans-serif`;
 
 export default function SDAClaimingGuide(){
@@ -14,15 +13,15 @@ export default function SDAClaimingGuide(){
   return(
 <div style={{fontFamily:sans,background:T.bg,minHeight:"100vh",color:T.text}}>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-<header style={{background:T.deep,padding:"32px 48px 24px",position:"relative"}}>
-<div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 20%,rgba(13,150,104,0.08) 0%,transparent 60%)"}}/>
+<header style={{background:"linear-gradient(135deg, #1A3A5C 0%, #1E5F7A 50%, #2A7A94 100%)",padding:"32px 48px 24px",position:"relative"}}>
+<div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 20%,rgba(255,255,255,0.08) 0%,transparent 60%)"}}/>
 <div style={{position:"relative"}}>
 <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
 <div style={{width:36,height:36,borderRadius:8,background:T.emerald,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:"#fff"}}>N</div>
 <div style={{fontSize:10,fontWeight:700,letterSpacing:2,color:T.muted}}>NRES PROGRAMME · BOARD BRIEFING</div>
 </div>
 <h1 style={{fontFamily:fonts,fontSize:38,fontWeight:800,color:"#fff",margin:"0 0 8px",lineHeight:1.1,letterSpacing:-0.5}}>Part A: Same Day Access Claiming Guide</h1>
-<p style={{fontSize:14,color:"#8BA4C4",margin:0,fontWeight:400,maxWidth:600}}>How NRES practices claim for SDA resource — the two routes, evidence requirements, and approval process</p>
+<p style={{fontSize:14,color:"#D4E4F0",margin:0,fontWeight:400,maxWidth:600}}>How NRES practices claim for SDA resource — the two routes, evidence requirements, and approval process</p>
 </div>
 </header>
 <nav style={{padding:"0 48px",background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",gap:0}}>
@@ -92,10 +91,10 @@ export default function SDAClaimingGuide(){
 <div style={{borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`,marginBottom:32,background:T.card}}>
 <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
 <thead><tr>
-<th style={{padding:"14px 20px",textAlign:"left",background:T.navy,color:"#8BA4C4",fontWeight:600,fontSize:11,letterSpacing:0.5,width:"24%"}}>EVIDENCE</th>
+<th style={{padding:"14px 20px",textAlign:"left",background:T.navy,color:"#B8A898",fontWeight:600,fontSize:11,letterSpacing:0.5,width:"24%"}}>EVIDENCE</th>
 <th style={{padding:"14px 20px",textAlign:"center",background:T.r1,color:"#fff",fontWeight:700,fontSize:11,letterSpacing:0.5,width:"26%"}}>ROUTE 1: NEW SDA</th>
 <th style={{padding:"14px 20px",textAlign:"center",background:T.r2,color:"#fff",fontWeight:700,fontSize:11,letterSpacing:0.5,width:"26%"}}>ROUTE 2: BUYBACK</th>
-<th style={{padding:"14px 20px",textAlign:"left",background:T.navy,color:"#8BA4C4",fontWeight:600,fontSize:11,letterSpacing:0.5,width:"24%"}}>WHEN</th>
+<th style={{padding:"14px 20px",textAlign:"left",background:T.navy,color:"#B8A898",fontWeight:600,fontSize:11,letterSpacing:0.5,width:"24%"}}>WHEN</th>
 </tr></thead>
 <tbody>
 {[{doc:"Part A Claim Form",r1:"Required",r1d:"Hire details, role, WTE, start",r2:"Required",r2d:"Clinician, sessions, SDA attribution",when:"At submission",s1:"req",s2:"req"},
@@ -198,21 +197,21 @@ export default function SDAClaimingGuide(){
 ].map((s,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:12}}><div style={{width:24,height:24,borderRadius:"50%",background:T.r2,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{s.n}</div><div><div style={{fontSize:12,fontWeight:700,color:T.navy}}>{s.t}</div><div style={{fontSize:11,color:T.sub,lineHeight:1.6}}>{s.d}</div></div></div>)}
 </div></div>
 </div>
-<div style={{background:T.navy,borderRadius:12,padding:"26px 28px",color:"#fff"}}>
+<div style={{background:"linear-gradient(135deg, #1A3A5C, #1E5F7A)",borderRadius:12,padding:"26px 28px",color:"#fff"}}>
 <div style={{fontFamily:fonts,fontSize:20,fontWeight:800,marginBottom:18}}>Cost Calculation Methodology</div>
 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
 {[{type:"Sessions (GPs)",formula:"Sessions × Annual Session Rate × 1.2938 ÷ 12",ex:"4 × £11,000 × 1.2938 ÷ 12 = £4,739.73",note:"GP rates are per-session, not salary"},
 {type:"Hours",formula:"(Hours ÷ 37.5) × Annual Salary × 1.2938 ÷ 12",ex:"15h ÷ 37.5 = 0.4 WTE × £55,000 × 1.2938 ÷ 12 = £2,371.97",note:"Converted to WTE fraction first"},
 {type:"WTE",formula:"WTE × Annual Salary × 1.2938 ÷ 12",ex:"0.4 × £50,000 × 1.2938 ÷ 12 = £2,156.33",note:"Direct WTE fraction applied"}
 ].map((c,i)=>
-<div key={i} style={{background:"rgba(255,255,255,0.06)",borderRadius:10,padding:16}}>
-<div style={{fontSize:13,fontWeight:700,color:T.lightEm,marginBottom:8}}>{c.type}</div>
-<div style={{fontSize:11,color:"#8BA4C4",lineHeight:1.6,marginBottom:8}}>{c.formula}</div>
-<div style={{fontSize:11,fontFamily:"'DM Sans',monospace",background:"rgba(0,0,0,0.25)",borderRadius:6,padding:"8px 10px",color:"#A8C7E8",lineHeight:1.4,marginBottom:8}}>{c.ex}</div>
-<div style={{fontSize:10,color:"#6882A0"}}>{c.note}</div>
+<div key={i} style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:16}}>
+<div style={{fontSize:13,fontWeight:700,color:"#5EEAD4",marginBottom:8}}>{c.type}</div>
+<div style={{fontSize:11,color:"#CBD5E1",lineHeight:1.6,marginBottom:8}}>{c.formula}</div>
+<div style={{fontSize:11,fontFamily:"'DM Sans',monospace",background:"rgba(0,0,0,0.2)",borderRadius:6,padding:"8px 10px",color:"#E2E8F0",lineHeight:1.4,marginBottom:8}}>{c.ex}</div>
+<div style={{fontSize:10,color:"#94A3B8"}}>{c.note}</div>
 </div>)}
 </div>
-<div style={{marginTop:16,padding:"12px 16px",background:"rgba(255,255,255,0.04)",borderRadius:8,fontSize:12,color:"#8BA4C4",lineHeight:1.6}}><strong style={{color:"#A8C7E8"}}>On-costs:</strong> Employer NI (15%) + Employer Pension (14.38%) = 29.38%. Applied as ×1.2938 multiplier. Centrally managed — practices do not calculate this themselves.</div>
+<div style={{marginTop:16,padding:"12px 16px",background:"rgba(255,255,255,0.08)",borderRadius:8,fontSize:12,color:"#CBD5E1",lineHeight:1.6}}><strong style={{color:"#5EEAD4"}}>On-costs:</strong> Employer NI (15%) + Employer Pension (14.38%) = 29.38%. Applied as ×1.2938 multiplier. Centrally managed — practices do not calculate this themselves.</div>
 </div>
 </div>)}
 
