@@ -1836,7 +1836,7 @@ ${finalContent}`;
 
             const AUTO_QUALITY_GAP_SYSTEM = `You are an expert NHS policy analyst specialising in GP practice policy compliance. Analyse this GP practice policy and return ONLY valid JSON:
 {
-  "gaps": [{ "description": "string", "severity": "Clinical/Legal|CQC Inspection|Patient Safety" }],
+  "gaps": [{ "description": "string", "severity": "Clinical/Legal|CQC Inspection|Patient Safety", "section": "string" }],
   "has_material_gaps": true/false,
   "compliance_score": number_0_to_100,
   "score_summary": "one sentence summary"
@@ -1844,10 +1844,11 @@ ${finalContent}`;
 
 SEVERITY FILTER — only flag:
 1. CLINICAL / LEGAL RISK: incorrect clinical intervals or thresholds, superseded legislation cited as current, missing mandatory legal rights, missing statutory duties.
+   Flag if: incorrect clinical intervals or thresholds, superseded legislation cited as current, missing mandatory legal rights (e.g. right to erasure), missing statutory duties (e.g. safeguarding referral obligations).
    Do NOT flag: case law that remains good law even if old, minor wording preferences, references that are technically superseded but still valid.
 2. CQC INSPECTION RISK: a materially missing section a CQC inspector would specifically look for evidence of. Only flag if the gap is material — a missing heading is not the same as missing content.
    Do NOT flag: absence of nice-to-have sections, vendor neutrality preferences, stylistic observations.
-3. PATIENT SAFETY / OPERATIONAL RISK: a process gap that could directly lead to patient harm or significant operational failure.
+3. PATIENT SAFETY / OPERATIONAL RISK: a process gap that could directly lead to patient harm or significant operational failure (e.g. no failsafe process, no escalation pathway for abnormal results).
    Do NOT flag: theoretical risks, minor process improvements, observations about best practice that are not required.
 
 NEVER FLAG:
@@ -1875,25 +1876,28 @@ Do NOT penalise or flag placeholder values including:
 
 PSIRF NOTE: The Patient Safety Incident Response Framework (PSIRF) replaced the Serious Incident Framework in 2023 for NHS providers. For PRIMARY CARE / GP PRACTICES, reference to PSIRF is best practice but not yet mandated — flag as a recommendation, not a Clinical/Legal gap.
 
-CERVICAL SCREENING NON-RESPONDER FOLLOW-UP: If this policy relates to Sample Handling, Cervical Screening, or references cervical screening processes, check for non-responder follow-up. The NHS Cervical Screening Programme requires follow-up of non-responders within 8-12 weeks of first invitation. If the policy references cervical screening but does not include a non-responder follow-up process with a defined timeline, flag as a Patient Safety gap.
+CERVICAL SCREENING NON-RESPONDER FOLLOW-UP: If this policy relates to Sample Handling, Cervical Screening, or references cervical screening processes, you MUST check for non-responder follow-up. The NHS Cervical Screening Programme requires:
+- Follow-up of non-responders within 8-12 weeks of first invitation
+- A defined timeline for each follow-up contact attempt
+- Escalation to the patient's named/usual GP after 3 failed contacts for a personal approach at next attendance
+If the policy references cervical screening but does not include a non-responder follow-up process with a SPECIFIC timeline (e.g. "8-12 weeks"), flag as a Patient Safety gap with severity "Patient Safety". Do not accept vague wording like "timely follow-up" — the 8-12 week timeframe must be explicitly stated.
 
-CRITICAL: Before flagging any gap, confirm the content is genuinely absent from the ENTIRE document — not just the expected section. If the substance is covered anywhere in the document, do not flag it.
+CRITICAL: Before flagging any gap, you MUST confirm the content is genuinely absent from the ENTIRE document — not just the expected section heading. Read the full document body. If the substance is covered anywhere in the document, do not flag it as a gap. A gap is only valid if the content is completely absent from the entire policy.
 
 CQC COMPLIANCE SCORING:
-Start at 100. Deduct points based on identified issues:
+Start at 110 and cap at 100 (this is a Notewell-generated policy — the +10 baseline bonus reflects structural and governance standards already met).
+Deduct points based on identified issues using the severity from each gap:
 - Each Clinical/Legal gap: -8 points
 - Each CQC Inspection gap: -5 points
 - Each Patient Safety gap: -6 points
-- Each Outdated Reference: -3 points
-- Each Missing Section: -4 points
 - Incomplete document (truncated): -20 points
 - No named responsible person: -5 points
 - No review date: -5 points
 - No version history: -3 points
-NOTEWELL BONUS: This is a Notewell-generated policy — apply +10 baseline bonus (start at 110, cap at 100).
 Floor: 0. Maximum: 100.
 
-CRITICAL: Before flagging any gap, confirm the content is genuinely absent from the ENTIRE document — not just the expected section. If the substance is covered anywhere in the document, do not flag it.
+IMPORTANT: Do NOT automatically score 100. You must genuinely assess the document. If there are gaps, the score MUST reflect the deductions. A score of 100 means zero gaps were found — if you listed any gaps, the score must be lower than 100.
+
 STRICT DEDUPLICATION: max 8 issues. Each issue must appear exactly once across the entire output.`;
 
             const gapResponse = await callAnthropic(AUTO_QUALITY_GAP_SYSTEM, `Analyse this policy document IN FULL.\n\n---POLICY DOCUMENT START---\n${documentText}\n---POLICY DOCUMENT END---`, 8192, generationModel);
