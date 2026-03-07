@@ -1180,8 +1180,6 @@ const PolicyServiceMyPolicies = () => {
           }}
         />
       )}
-        </>
-        )}
     </div>
   );
 };
