@@ -157,9 +157,20 @@ const PolicyServiceMyPolicies = () => {
     fetchPractice();
   }, [user]);
 
-  const filteredCompletions = completions.filter(c =>
-    c.policy_title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const profileChangedCount = completions.filter(c => (profileFlags[c.id] || []).length > 0).length;
+
+  const filteredCompletions = completions.filter(c => {
+    // Text search
+    if (searchQuery && !c.policy_title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    // Tab filter
+    if (activeFilter === 'overdue') return getDaysUntilReview(c.review_date) < 0;
+    if (activeFilter === 'needs_review') {
+      const days = getDaysUntilReview(c.review_date);
+      return days >= 0 && days <= 30;
+    }
+    if (activeFilter === 'profile_changed') return (profileFlags[c.id] || []).length > 0;
+    return true;
+  });
 
   const overdueCount = filteredCompletions.filter(c => getDaysUntilReview(c.review_date) < 0).length;
   const dueSoonCount = filteredCompletions.filter(c => {
