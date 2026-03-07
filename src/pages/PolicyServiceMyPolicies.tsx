@@ -119,6 +119,7 @@ const PolicyServiceMyPolicies = () => {
   const { jobs, activeJobCount, isLoading: jobsLoading, kickQueue, refetch: refetchJobs } = usePolicyJobs();
   const { versions, fetchVersions, ensureInitialVersion, createVersion, saveDraft } = usePolicyVersions();
   const { flags: profileFlags, dismissAllForPolicy, fetchFlags: refreshProfileFlags } = useProfileFlags();
+  const { visible: showRegenerateButton } = usePolicyRegenerateVisible();
   const prevActiveJobCountRef = useRef(activeJobCount);
 
   // Auto-refresh completions when active jobs finish (count drops)
