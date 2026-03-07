@@ -116,45 +116,9 @@ export const usePolicyLibraryAccess = () => {
 
   // Load practice users with their access levels (PM only)
   const loadPracticeUsers = useCallback(async () => {
-    if (!user || !practiceId || !isPracticeManager) return;
+    if (!user || !practiceId || !isPracticeManager || !gpPracticeId) return;
     setIsLoadingUsers(true);
     try {
-      // Get the gp_practices id for this practice
-      const { data: pd } = await supabase
-        .from('practice_details')
-        .select('practice_name')
-        .eq('id', practiceId)
-        .single();
-
-      if (!pd) return;
-
-      // Find matching gp_practice
-      const { data: gpPractices } = await supabase
-        .from('gp_practices')
-        .select('id');
-
-      // Use the get_practice_users RPC to get users at this practice
-      let gpPracticeId: string | null = null;
-      if (gpPractices) {
-        for (const gp of gpPractices) {
-          const { data: gpData } = await supabase
-            .from('gp_practices')
-            .select('id, name')
-            .eq('id', gp.id)
-            .single();
-          if (gpData) {
-            const gpName = gpData.name.replace(/^The\s+/i, '').toLowerCase();
-            const pdName = pd.practice_name.replace(/^The\s+/i, '').toLowerCase();
-            if (gpName === pdName || gpName.includes(pdName) || pdName.includes(gpName)) {
-              gpPracticeId = gpData.id;
-              break;
-            }
-          }
-        }
-      }
-
-      if (!gpPracticeId) return;
-
       const { data: users, error } = await supabase
         .rpc('get_practice_users', { p_practice_id: gpPracticeId });
 
@@ -186,7 +150,7 @@ export const usePolicyLibraryAccess = () => {
     } finally {
       setIsLoadingUsers(false);
     }
-  }, [user, practiceId, isPracticeManager]);
+  }, [user, practiceId, gpPracticeId, isPracticeManager]);
 
   // Load practice policies (for users with access)
   const loadPracticePolicies = useCallback(async () => {
