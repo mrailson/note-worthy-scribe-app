@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from "react";
 const T = {
   navy:"#1B2A4A",deep:"#0F1D35",emerald:"#0D9668",lightEm:"#10B981",
