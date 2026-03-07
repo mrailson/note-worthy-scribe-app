@@ -23,6 +23,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePracticeContext } from "@/hooks/usePracticeContext";
+import { useProfileFlags, NAMED_PERSON_FIELDS, getFieldLabel } from "@/hooks/useProfileFlags";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface BranchSite {
