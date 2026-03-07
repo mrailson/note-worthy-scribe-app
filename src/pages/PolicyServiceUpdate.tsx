@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Check, RefreshCw, Upload, FileText, Loader2, Info, ChevronDown } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, RefreshCw, Upload, FileText, Loader2, Info, ChevronDown, CheckCircle2, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import { GapAnalysisResults } from "@/components/policy/GapAnalysisResults";
 import { PolicyPreviewPanel } from "@/components/policy/PolicyPreviewPanel";
 import { usePolicyAnalysis } from "@/hooks/usePolicyAnalysis";
+import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
+import { usePolicyVersions } from "@/hooks/usePolicyVersions";
 import { toast } from "sonner";
 
 interface GapAnalysis {
@@ -30,8 +32,11 @@ const PolicyServiceUpdate = () => {
   const [updatedContent, setUpdatedContent] = useState<string | null>(null);
   const [updatedMetadata, setUpdatedMetadata] = useState<any>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
+  const [savedVersionLabel, setSavedVersionLabel] = useState<string | null>(null);
 
   const { extractText, analyseGaps, generateUpdatedPolicy, isExtracting, isAnalysing, isGenerating } = usePolicyAnalysis();
+  const { completions, saveCompletion } = usePolicyCompletions();
+  const { ensureInitialVersion, createVersion } = usePolicyVersions();
 
   const steps = [
     { number: 1, title: "Upload Document" },
@@ -99,6 +104,52 @@ const PolicyServiceUpdate = () => {
       setUpdatedContent(result.content);
       setUpdatedMetadata(result.metadata);
       setGenerationId(result.generationId);
+
+      // Auto-save: find matching policy completion
+      const policyType = gapAnalysis.policy_type.toLowerCase();
+      const matchedCompletion = completions
+        .filter(c => c.policy_title.toLowerCase().includes(policyType) || policyType.includes(c.policy_title.toLowerCase()))
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+
+      if (matchedCompletion) {
+        // Ensure v1.0 exists, then create new version
+        await ensureInitialVersion(
+          matchedCompletion.id,
+          matchedCompletion.policy_content,
+          matchedCompletion.metadata,
+          matchedCompletion.created_at
+        );
+
+        const totalIssues = gapAnalysis.gaps.length + gapAnalysis.outdated_references.length + gapAnalysis.missing_sections.length;
+        const changeSummary = `Gap analysis auto-fix: addressed ${totalIssues} issue${totalIssues !== 1 ? 's' : ''} (${gapAnalysis.gaps.length} gaps, ${gapAnalysis.outdated_references.length} outdated references, ${gapAnalysis.missing_sections.length} missing sections)`;
+
+        const newVersion = await createVersion({
+          policyId: matchedCompletion.id,
+          currentVersion: matchedCompletion.version || '1.0',
+          changeType: 'content_change',
+          changeSummary,
+          policyContent: result.content,
+          metadata: result.metadata,
+          approvedBy: '',
+          nextReviewDate: result.metadata?.review_date || '',
+        });
+
+        if (newVersion) {
+          setSavedVersionLabel(newVersion.version_number);
+          toast.success(`Saved as v${newVersion.version_number} on your policy card`);
+        }
+      } else {
+        // No match — save as new completion
+        await saveCompletion({
+          policyReferenceId: gapAnalysis.policy_type,
+          policyTitle: gapAnalysis.policy_type,
+          policyContent: result.content,
+          metadata: result.metadata,
+        });
+        setSavedVersionLabel('1.0');
+        toast.success('Saved as a new policy in My Policies');
+      }
+
       setStep(3);
     } catch (error) {
       console.error("Generation error:", error);
@@ -278,13 +329,37 @@ const PolicyServiceUpdate = () => {
             )}
 
             {step === 3 && updatedContent && (
-              <PolicyPreviewPanel
-                content={updatedContent}
-                metadata={updatedMetadata}
-                policyName={gapAnalysis?.policy_type || "Updated Policy"}
-                generationId={generationId}
-                isUpdate
-              />
+              <div className="space-y-4">
+                {savedVersionLabel && (
+                  <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                        Saved as v{savedVersionLabel} on your policy card
+                      </p>
+                      <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">
+                        The updated policy has been automatically saved to My Policies
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/policy-service/my-policies')}
+                      className="shrink-0"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                      View in My Policies
+                    </Button>
+                  </div>
+                )}
+                <PolicyPreviewPanel
+                  content={updatedContent}
+                  metadata={updatedMetadata}
+                  policyName={gapAnalysis?.policy_type || "Updated Policy"}
+                  generationId={generationId}
+                  isUpdate
+                />
+              </div>
             )}
           </CardContent>
         </Card>
@@ -319,8 +394,8 @@ const PolicyServiceUpdate = () => {
           )}
 
           {step === 3 && (
-            <Button onClick={() => navigate('/policy-service')}>
-              Done
+            <Button onClick={() => navigate('/policy-service/my-policies')}>
+              View in My Policies
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           )}
