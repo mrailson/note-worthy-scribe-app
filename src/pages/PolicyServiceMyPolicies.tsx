@@ -810,19 +810,21 @@ const PolicyServiceMyPolicies = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setNewVersionModal({
-                          id: completion.id,
-                          content: completion.policy_content,
-                          version: completion.version,
-                          metadata: completion.metadata,
-                        })}
-                        title="Create new version"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
+                      {showRegenerateButton && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setNewVersionModal({
+                            id: completion.id,
+                            content: completion.policy_content,
+                            version: completion.version,
+                            metadata: completion.metadata,
+                          })}
+                          title="Create new version"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      )}
                       <SavedGuidesPopover
                         guides={((completion.metadata as any)?.quick_guides || []) as SavedQuickGuide[]}
                         policyTitle={completion.policy_title}
