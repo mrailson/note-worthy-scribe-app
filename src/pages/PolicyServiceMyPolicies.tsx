@@ -122,6 +122,20 @@ const PolicyServiceMyPolicies = () => {
   const { versions, fetchVersions, ensureInitialVersion, createVersion, saveDraft } = usePolicyVersions();
   const { flags: profileFlags, dismissAllForPolicy, fetchFlags: refreshProfileFlags } = useProfileFlags();
   const { visible: showRegenerateButton } = usePolicyRegenerateVisible();
+  const {
+    isPracticeManager,
+    practiceName,
+    myAccessLevel,
+    hasAccess: hasPracticeAccess,
+    canEdit: canEditPractice,
+    canDelete: canDeletePractice,
+    practiceUsers,
+    practicePolicies,
+    isLoadingUsers,
+    isLoadingPolicies,
+    saveAllAccess,
+  } = usePolicyLibraryAccess();
+  const [activeTab, setActiveTab] = useState<'my' | 'practice'>('my');
   const prevActiveJobCountRef = useRef(activeJobCount);
 
   // Auto-refresh completions when active jobs finish (count drops)
