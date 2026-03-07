@@ -64,7 +64,7 @@ const InfoCard = ({icon,title,children,accent="#0C2D48"}) => (
   <div style={{background:"#fff",borderRadius:12,padding:"20px 18px",border:"1px solid #E2E8F0",borderTop:`3px solid ${accent}`}}>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
       <span style={{fontSize:22}}>{icon}</span>
-      <span style={{fontFamily:"'Source Serif 4','Georgia',serif",fontFamily:"'Source Serif 4','Georgia',serif",fontSize:16,fontWeight:800,color:"#0C2D48"}}>{title}</span>
+      <span style={{fontFamily:"'Source Serif 4','Georgia',serif",fontSize:16,fontWeight:800,color:"#0C2D48"}}>{title}</span>
     </div>
     <div style={{fontSize:13,color:"#475569",lineHeight:1.7}}>{children}</div>
   </div>
