@@ -625,6 +625,50 @@ function createMarkdownTable(lines: string[]): Table {
   });
 }
 
+/**
+ * Post-process content to fill blank external contact sections with placeholders.
+ * Detects NHS England FTSU Guardian / Primary Care Lead sections with missing contact details
+ * and inserts [PRACTICE TO COMPLETE] markers so they are visually flagged in the document.
+ */
+function fillBlankContactSections(content: string): string {
+  // Known NHS England Midlands FTSU contacts (publicly available)
+  const nhsEnglandContacts: Record<string, string> = {
+    'NHS England Midlands FTSU Guardian': 'england.ftsu.midlands@nhs.net',
+    'NHS England Primary Care Lead': '[PRACTICE TO COMPLETE — Contact your NHS England regional team]',
+  };
+
+  let processed = content;
+
+  // Pattern: a heading/label line for external contacts followed by blank or whitespace-only lines
+  // e.g. "**NHS England Midlands FTSU Guardian:**\n\n" → fill with placeholder
+  for (const [label, contact] of Object.entries(nhsEnglandContacts)) {
+    // Match the label (with optional bold/colon) followed by empty content before next heading or section
+    const labelPattern = new RegExp(
+      `(\\*{0,2}${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[:\\s]*\\*{0,2})\\s*\\n(\\s*\\n)+`,
+      'gi'
+    );
+    processed = processed.replace(labelPattern, `$1\n${contact}\n\n`);
+  }
+
+  // Generic catch-all: detect lines ending with ":" followed by blank lines in contact/reporting sections
+  // Only apply within sections that look like external reporting pathways
+  const lines = processed.split('\n');
+  const result: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    result.push(lines[i]);
+    const trimmed = lines[i].trim().replace(/\*\*/g, '');
+    // If line looks like a contact field label ending with ":" and next non-empty line is a heading or another label
+    if (/^(Name|Email|Telephone|Phone|Contact|Address|Role):?\s*$/i.test(trimmed)) {
+      // Check if next line is blank (meaning the field is empty)
+      if (i + 1 < lines.length && !lines[i + 1].trim()) {
+        result.push('[PRACTICE TO COMPLETE]');
+      }
+    }
+  }
+
+  return result.join('\n');
+}
+
 function parseMarkdownToSections(markdown: string, titleToSkip?: string): (Paragraph | Table)[] {
   const elements: (Paragraph | Table)[] = [];
   const lines = markdown.split('\n');
