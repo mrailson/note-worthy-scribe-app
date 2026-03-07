@@ -74,6 +74,20 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
   const recognitionRef = useRef<any>(null);
   const preVoiceTextRef = useRef<string>('');
   const refFileInputRef = useRef<HTMLInputElement>(null);
+  const blobUrlsRef = useRef<string[]>([]);
+
+  // Track blob URL for cleanup
+  const trackBlob = useCallback((url: string) => {
+    if (url?.startsWith('blob:')) blobUrlsRef.current.push(url);
+  }, []);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach(u => { try { URL.revokeObjectURL(u); } catch {} });
+      blobUrlsRef.current = [];
+    };
+  }, []);
 
   // Load initial image if provided
   useEffect(() => {
@@ -90,17 +104,16 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
       toast.error('Please paste an image file');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setUploadedImage({
-        content: reader.result as string,
-        name: file.name || 'Pasted Image',
-      });
-      setEditResult(null);
-      setSavedImageId(null);
-    };
-    reader.readAsDataURL(file);
-  }, []);
+    // Use blob URL instead of base64 data URL to save memory
+    const blobUrl = URL.createObjectURL(file);
+    trackBlob(blobUrl);
+    setUploadedImage({
+      content: blobUrl,
+      name: file.name || 'Pasted Image',
+    });
+    setEditResult(null);
+    setSavedImageId(null);
+  }, [trackBlob]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
