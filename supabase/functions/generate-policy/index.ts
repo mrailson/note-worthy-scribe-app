@@ -2119,6 +2119,37 @@ ${policyContent}`;
               user_id: job.user_id,
             });
 
+            // Fetch ALL versions (including the one just inserted) to build Section 11 history
+            const { data: allVersions } = await serviceSupabase
+              .from('policy_versions')
+              .select('version_number, created_at, created_by, change_summary')
+              .eq('policy_id', existingCompletion.id)
+              .order('created_at', { ascending: true });
+
+            const versionHistoryRows: VersionHistoryRow[] = (allVersions || []).map((v: any) => {
+              const d = new Date(v.created_at);
+              const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+              return {
+                version: v.version_number,
+                date: `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`,
+                author: v.created_by || practiceManagerName,
+                summary: v.change_summary || 'Policy updated',
+              };
+            });
+
+            // Re-enforce Section 11 with full version history
+            const s11DetailsWithHistory: Section11Details = {
+              ...s11Details,
+              versionHistory: versionHistoryRows,
+            };
+            const versionedContentWithHistory = enforceSection11ExactTable(versionedContent, s11DetailsWithHistory);
+
+            // Update the content stored in the version entry too
+            await serviceSupabase.from('policy_versions')
+              .update({ content: { policy_content: versionedContentWithHistory, metadata: completionMetadata } })
+              .eq('policy_id', existingCompletion.id)
+              .eq('version_number', newVersion);
+
             // Update existing card with new content and version
             await serviceSupabase.from('policy_completions')
               .update({
