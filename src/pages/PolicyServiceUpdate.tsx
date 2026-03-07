@@ -104,6 +104,52 @@ const PolicyServiceUpdate = () => {
       setUpdatedContent(result.content);
       setUpdatedMetadata(result.metadata);
       setGenerationId(result.generationId);
+
+      // Auto-save: find matching policy completion
+      const policyType = gapAnalysis.policy_type.toLowerCase();
+      const matchedCompletion = completions
+        .filter(c => c.policy_title.toLowerCase().includes(policyType) || policyType.includes(c.policy_title.toLowerCase()))
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+
+      if (matchedCompletion) {
+        // Ensure v1.0 exists, then create new version
+        await ensureInitialVersion(
+          matchedCompletion.id,
+          matchedCompletion.policy_content,
+          matchedCompletion.metadata,
+          matchedCompletion.created_at
+        );
+
+        const totalIssues = gapAnalysis.gaps.length + gapAnalysis.outdated_references.length + gapAnalysis.missing_sections.length;
+        const changeSummary = `Gap analysis auto-fix: addressed ${totalIssues} issue${totalIssues !== 1 ? 's' : ''} (${gapAnalysis.gaps.length} gaps, ${gapAnalysis.outdated_references.length} outdated references, ${gapAnalysis.missing_sections.length} missing sections)`;
+
+        const newVersion = await createVersion({
+          policyId: matchedCompletion.id,
+          currentVersion: matchedCompletion.version || '1.0',
+          changeType: 'content_change',
+          changeSummary,
+          policyContent: result.content,
+          metadata: result.metadata,
+          approvedBy: '',
+          nextReviewDate: result.metadata?.review_date || '',
+        });
+
+        if (newVersion) {
+          setSavedVersionLabel(newVersion.version_number);
+          toast.success(`Saved as v${newVersion.version_number} on your policy card`);
+        }
+      } else {
+        // No match — save as new completion
+        await saveCompletion({
+          policyReferenceId: gapAnalysis.policy_type,
+          policyTitle: gapAnalysis.policy_type,
+          policyContent: result.content,
+          metadata: result.metadata,
+        });
+        setSavedVersionLabel('1.0');
+        toast.success('Saved as a new policy in My Policies');
+      }
+
       setStep(3);
     } catch (error) {
       console.error("Generation error:", error);
