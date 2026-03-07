@@ -630,6 +630,33 @@ const PolicyServiceMyPolicies = () => {
           </Card>
         </div>
 
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-2 mb-4">
+          {[
+            { key: 'all' as const, label: 'All' },
+            { key: 'needs_review' as const, label: 'Needs Review' },
+            { key: 'overdue' as const, label: 'Overdue' },
+            { key: 'profile_changed' as const, label: `⚠ Profile Changed${profileChangedCount > 0 ? ` (${profileChangedCount})` : ''}` },
+          ].map(tab => (
+            <Button
+              key={tab.key}
+              variant={activeFilter === tab.key ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveFilter(tab.key)}
+              className="text-xs"
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Profile Changed Banner */}
+        {activeFilter === 'profile_changed' && profileChangedCount > 0 && (
+          <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-sm">
+            {profileChangedCount} {profileChangedCount === 1 ? 'policy' : 'policies'} flagged following profile updates. Updating these will create new versions automatically.
+          </div>
+        )}
+
         {/* Search */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
