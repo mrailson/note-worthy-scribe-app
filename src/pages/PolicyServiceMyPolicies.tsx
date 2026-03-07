@@ -1072,6 +1072,45 @@ const PolicyServiceMyPolicies = () => {
           } catch { toast.error('Failed to download version'); }
         }}
       />
+
+      {/* Upload Revised Version Modal */}
+      {uploadModal && (
+        <UploadRevisedVersionModal
+          open={!!uploadModal}
+          onOpenChange={(open) => { if (!open) setUploadModal(null); }}
+          policyTitle={uploadModal.title}
+          currentVersion={uploadModal.version}
+          currentContent={uploadModal.content}
+          metadata={uploadModal.metadata}
+          onPublish={async (data) => {
+            await createVersion({
+              policyId: uploadModal.id,
+              currentVersion: uploadModal.version,
+              changeType: data.changeType,
+              changeSummary: data.changeSummary,
+              policyContent: data.policyContent,
+              metadata: { ...uploadModal.metadata, version: undefined },
+              approvedBy: data.approvedBy,
+              nextReviewDate: data.nextReviewDate,
+            });
+            await dismissAllForPolicy(uploadModal.id);
+            refreshCompletions();
+            refreshProfileFlags();
+          }}
+          onSaveDraft={async (data) => {
+            await saveDraft({
+              policyId: uploadModal.id,
+              currentVersion: uploadModal.version,
+              changeType: data.changeType,
+              changeSummary: data.changeSummary,
+              policyContent: data.policyContent,
+              metadata: { ...uploadModal.metadata, version: undefined },
+              approvedBy: data.approvedBy,
+              nextReviewDate: data.nextReviewDate,
+            });
+          }}
+        />
+      )}
     </div>
   );
 };
