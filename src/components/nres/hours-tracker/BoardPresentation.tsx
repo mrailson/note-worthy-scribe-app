@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 
 /* ═══════════════════════════════════════════════════════════════════════
    NRES SDA Claims System — Programme Board Presentation
-   Notewell · PCN Services Ltd · March 2026
+   Notewell · March 2026
    ═══════════════════════════════════════════════════════════════════════ */
 
 // ── Shared Config ───────────────────────────────────────────────────────
@@ -193,7 +193,7 @@ export default function BoardPresentation() {
           <div style={{padding:"20px 18px",borderTop:"1px solid #2A5070",marginTop:12}}>
             <div style={{fontSize:10,color:"#475569",fontFamily:"'DM Sans',sans-serif",lineHeight:1.6}}>
               Prepared by<br/><span style={{color:"#94A3B8",fontWeight:600}}>Malcolm Railson</span><br/>
-              NRES Neighbourhood Manager<br/>PCN Services Ltd
+              NRES Neighbourhood Manager
             </div>
           </div>
         </nav>
@@ -1081,7 +1081,7 @@ export default function BoardPresentation() {
 
                 {/* App footer */}
                 <div style={{background:"#0C2D48",padding:"6px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span style={{fontSize:9,color:"#475569"}}>Notewell · PCN Services Ltd · Prototype</span>
+                  <span style={{fontSize:9,color:"#475569"}}>Notewell · Prototype</span>
                   <span style={{fontSize:9,color:"#475569"}}>Switch roles above to see different user perspectives</span>
                 </div>
               </div>
@@ -1287,7 +1287,7 @@ export default function BoardPresentation() {
       {/* ═══ FOOTER ═══ */}
       <footer style={{background:"linear-gradient(135deg, #1A3A5C, #1E5F7A)",padding:"10px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <span style={{fontSize:10,color:"#475569",fontFamily:"'DM Sans',sans-serif"}}>
-          NRES SDA Claims System · Notewell by PCN Services Ltd · Programme Board Presentation · March 2026
+          NRES SDA Claims System · Notewell · Programme Board Presentation · March 2026
         </span>
         <div style={{display:"flex",gap:8}}>
           {SECTIONS.map((s,i) => (
