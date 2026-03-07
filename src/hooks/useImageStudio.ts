@@ -157,6 +157,30 @@ export function useImageStudio() {
   }));
   
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Track all blob URLs created so we can revoke them on unmount
+  const blobUrlsRef = useRef<string[]>([]);
+  const isMountedRef = useRef(true);
+
+  // Cleanup all blob URLs on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      // Abort any in-flight generation
+      abortControllerRef.current?.abort();
+      // Revoke all tracked blob URLs
+      console.log(`🧹 Image Studio unmount: revoking ${blobUrlsRef.current.length} blob URLs`);
+      blobUrlsRef.current.forEach(url => revokeBlobUrl(url));
+      blobUrlsRef.current = [];
+    };
+  }, []);
+
+  // Helper: track a blob URL for later cleanup
+  const trackBlobUrl = useCallback((url: string) => {
+    if (url && url.startsWith('blob:')) {
+      blobUrlsRef.current.push(url);
+    }
+  }, []);
 
   // Save history to localStorage whenever it changes
   useEffect(() => {
