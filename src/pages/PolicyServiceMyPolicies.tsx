@@ -123,7 +123,8 @@ const PolicyServiceMyPolicies = () => {
   const [quickGuidePolicy, setQuickGuidePolicy] = useState<{ id: string; content: string; title: string } | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [expandedVersionHistory, setExpandedVersionHistory] = useState<Set<string>>(new Set());
-  const [newVersionModal, setNewVersionModal] = useState<{ id: string; content: string; version: string; metadata: any } | null>(null);
+  const [newVersionModal, setNewVersionModal] = useState<{ id: string; content: string; version: string; metadata: any; prefilledSummary?: string; prefilledChangeType?: string } | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'needs_review' | 'overdue' | 'profile_changed'>('all');
   const [viewingVersion, setViewingVersion] = useState<{ version: PolicyVersion; currentVersion: string } | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<{
     practice_name?: string;
