@@ -32,8 +32,11 @@ const PolicyServiceUpdate = () => {
   const [updatedContent, setUpdatedContent] = useState<string | null>(null);
   const [updatedMetadata, setUpdatedMetadata] = useState<any>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
+  const [savedVersionLabel, setSavedVersionLabel] = useState<string | null>(null);
 
   const { extractText, analyseGaps, generateUpdatedPolicy, isExtracting, isAnalysing, isGenerating } = usePolicyAnalysis();
+  const { completions, saveCompletion } = usePolicyCompletions();
+  const { ensureInitialVersion, createVersion } = usePolicyVersions();
 
   const steps = [
     { number: 1, title: "Upload Document" },
