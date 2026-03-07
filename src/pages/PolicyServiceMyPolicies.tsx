@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
+import { usePolicyLibraryAccess } from "@/hooks/usePolicyLibraryAccess";
+import { PracticePoliciesTab } from "@/components/policy/PracticePoliciesTab";
 import { usePolicyJobs, PolicyJob, getStepLabel } from "@/hooks/usePolicyJobs";
 import { usePolicyVersions, PolicyVersion, ChangeType } from "@/hooks/usePolicyVersions";
 import { VersionHistoryPanel } from "@/components/policy/VersionHistoryPanel";
