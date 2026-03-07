@@ -863,18 +863,41 @@ const PolicyServiceMyPolicies = () => {
                           <Mail className="h-4 w-4" />
                         )}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownload(completion)}
-                        disabled={downloadingId === completion.id}
-                      >
-                        {downloadingId === completion.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="h-4 w-4" />
-                        )}
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={downloadingId === completion.id}
+                            title="Download or upload revision"
+                          >
+                            {downloadingId === completion.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Download className="h-4 w-4" />
+                                <ChevronDown className="h-3 w-3 ml-0.5" />
+                              </>
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleDownload(completion)}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download current version (.docx)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setUploadModal({
+                            id: completion.id,
+                            content: completion.policy_content,
+                            version: completion.version,
+                            metadata: completion.metadata,
+                            title: completion.policy_title,
+                          })}>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload revised version…
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
