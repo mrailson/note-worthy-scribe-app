@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 
 /* ═══════════════════════════════════════════════════════════════════════
    NRES SDA Claims System — Programme Board Presentation
-   Notewell · PCN Services Ltd · March 2026
+   Notewell · March 2026
    ═══════════════════════════════════════════════════════════════════════ */
 
 // ── Shared Config ───────────────────────────────────────────────────────
