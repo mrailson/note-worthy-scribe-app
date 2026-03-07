@@ -361,6 +361,12 @@ const PolicyServiceUpdate = () => {
                 />
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between mt-6">
+          <Button 
             variant="outline" 
             onClick={() => step === 1 ? navigate('/policy-service') : setStep(step - 1)}
           >
@@ -388,8 +394,8 @@ const PolicyServiceUpdate = () => {
           )}
 
           {step === 3 && (
-            <Button onClick={() => navigate('/policy-service')}>
-              Done
+            <Button onClick={() => navigate('/policy-service/my-policies')}>
+              View in My Policies
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           )}
