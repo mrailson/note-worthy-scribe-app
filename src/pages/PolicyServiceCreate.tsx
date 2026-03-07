@@ -147,7 +147,7 @@ const PolicyServiceCreate = () => {
         branch_site_address: (practiceData as any).branch_site_address || '',
         branch_site_postcode: (practiceData as any).branch_site_postcode || '',
         branch_site_phone: (practiceData as any).branch_site_phone || '',
-      } : null;
+      } : {};
 
       const selectedModel = getPolicyGenerationModel();
       
