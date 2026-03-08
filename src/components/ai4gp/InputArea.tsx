@@ -57,6 +57,13 @@ const getPlaceholderTip = (role?: string): string => {
   return DEFAULT_TIP;
 };
 
+// Detect image-creation intent
+const IMAGE_INTENT_WORDS = ['poster', 'notice', 'image', 'design', 'visual', 'flyer', 'leaflet', 'infographic', 'banner', 'sign'];
+const hasImageIntent = (text: string) => {
+  const lower = text.toLowerCase();
+  return IMAGE_INTENT_WORDS.some(word => lower.includes(word));
+};
+
 interface InputAreaProps {
   input: string;
   setInput: (input: string) => void;
@@ -70,6 +77,7 @@ interface InputAreaProps {
   userRole?: string;
   practiceContext?: PracticeContext;
   onShowPMGenie?: () => void;
+  onOpenImageStudio?: (initialDescription?: string) => void;
 }
 
 export interface InputAreaRef {
