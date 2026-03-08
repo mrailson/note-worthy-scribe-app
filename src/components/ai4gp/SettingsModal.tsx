@@ -168,6 +168,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [isSaving, setIsSaving] = useState(false);
 
+  // Build live preview text for profile context
+  const contextPreviewText = useMemo(() => {
+    if (!profileContextEnabled) return 'Profile context is disabled — no details will be sent to AI.';
+    const lines: string[] = [];
+    const isGPPractice = !practiceContext?.organisationType || practiceContext?.organisationType === 'GP Practice';
+    const entityLabel = isGPPractice ? 'Practice' : 'Organisation';
+    if (profileContextShowPracticeName && practiceContext?.practiceName) lines.push(`${entityLabel} Name: ${practiceContext.practiceName}`);
+    if (practiceContext?.organisationType && !isGPPractice) lines.push(`Organisation Type: ${practiceContext.organisationType}`);
+    if (profileContextShowPracticeAddress && practiceContext?.practiceAddress) lines.push(`${entityLabel} Address: ${practiceContext.practiceAddress}`);
+    if (profileContextShowPracticePhone && practiceContext?.practicePhone) lines.push(`${entityLabel} Phone: ${practiceContext.practicePhone}`);
+    if (profileContextShowPracticeEmail && practiceContext?.practiceEmail) lines.push(`${entityLabel} Email: ${practiceContext.practiceEmail}`);
+    if (profileContextShowPracticeWebsite && practiceContext?.practiceWebsite) lines.push(`${entityLabel} Website: ${practiceContext.practiceWebsite}`);
+    if (profileContextShowUserName && practiceContext?.userFullName) lines.push(`User Name: ${practiceContext.userFullName}`);
+    if (profileContextShowUserEmail && practiceContext?.userEmail) lines.push(`User Email: ${practiceContext.userEmail}`);
+    if (profileContextShowPracticeManager && practiceContext?.practiceManagerName) lines.push(`${isGPPractice ? 'Practice' : 'Organisation'} Manager: ${practiceContext.practiceManagerName}`);
+    if (profileContextShowPCN && practiceContext?.pcnName) lines.push(`PCN: ${practiceContext.pcnName}`);
+    if (profileContextShowNeighbourhood && practiceContext?.neighbourhoodName) lines.push(`Neighbourhood: ${practiceContext.neighbourhoodName}`);
+    if (profileContextShowSignatures && practiceContext?.emailSignature) lines.push(`Email Signature: Available`);
+    if (profileContextShowSignatures && practiceContext?.letterSignature) lines.push(`Letter Signature: Available`);
+    return lines.length > 0 ? lines.join('\n') : 'No profile details will be included (all toggles are off or no data available).';
+  }, [profileContextEnabled, profileContextShowPracticeName, profileContextShowPracticeAddress, profileContextShowPracticePhone, profileContextShowPracticeEmail, profileContextShowPracticeWebsite, profileContextShowUserName, profileContextShowUserEmail, profileContextShowPracticeManager, profileContextShowPCN, profileContextShowNeighbourhood, profileContextShowSignatures, practiceContext]);
+
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
