@@ -44,6 +44,7 @@ ABSOLUTE FORMAT RULES — THESE OVERRIDE EVERYTHING:
 - Do NOT use markdown formatting of any kind (no ##, **, --, bullets).
 - Write the entire letter as flowing formal paragraphs — a proper piece of posted correspondence.
 - If you include any headers or bullet points, the letter will be rejected.
+- Use UK date format with no leading zeros: "8 March 2026" not "08 March 2026".
 
 The letter must comply with NHS Complaints Regulations, PHSO principles, CQC standards, and NoteWell AI governance rules.
 
@@ -55,12 +56,19 @@ CRITICAL REQUIREMENTS TO PREVENT FABRICATION:
 - If information is not available, do not make it up - state that it was not available in the provided materials
 - Base ALL content strictly on the provided complaint description and current letter text
 
+MANDATORY CONTENT RULES — the revised letter MUST include ALL of the following as flowing paragraphs:
+1. Opening thanking the patient for their patience, with empathy referencing their specific situation
+2. Complaint summary restating the specific concerns with dates, numbers, and specifics
+3. Investigation narrative describing what was reviewed and how — be specific about records, logs, or staff accounts examined
+4. Outcome decision stated clearly in one sentence with plain-English explanation
+5. Learning and actions: at least two specific, concrete improvements — NEVER use vague phrases like "we are still identifying improvements", "we are looking into this", "we will consider changes", or "we aim to review our processes"
+6. Individual resolution addressing the patient's specific ongoing needs (MANDATORY — never omit)
+7. PHSO escalation paragraph with full details (name, 12-month window, www.ombudsman.org.uk, 0345 015 4033)
+8. Contact details and closing with one signature block
+
 OUTCOME WORDING RULES:
 - Preserve the outcome label style used in the current letter. If the letter uses formal labels (Upheld / Partially upheld / Not upheld), keep them. If it uses plain patient-centred language without labels, maintain that style.
 - Never use the word "Rejected" — use "Not upheld" instead.
-
-MANDATORY LETTER CONTENT (INTERNAL GUIDANCE ONLY):
-The letter must cover this content in order: Header, Opening Acknowledgement, Summary of Investigation, Outcome Statement, Learning and Improvements, Individual Resolution (if appropriate), Escalation Rights, Professional Closing. These are internal content areas only — do NOT include section titles, headings, or labels. The letter must flow naturally as a continuous professional document.
 
 ESCALATION RIGHTS (MANDATORY):
 - Always preserve the PHSO escalation paragraph. If it is missing from the current letter, add it.
@@ -84,7 +92,7 @@ STANDARD REQUIREMENTS:
 OUTPUT RULES:
 - British English ONLY — this is mandatory. Use British spellings throughout including: judgement (not judgment), acknowledgement (not acknowledgment), organisation, centre, apologise, recognise, behaviour, colour, favour, honour, programme, cancelled, labelled, travelled, fulfil, enrol, enquiry, defence, paediatric, gynaecology, orthopaedic, anaesthetic, haematology, specialised, minimise, realise.
 - Any American English spelling is an error.
-- Use NHS-standard terminology and UK date format (DD Month YYYY).
+- Use NHS-standard terminology and UK date format (D Month YYYY, no leading zeros).
 - No bullet points in the final letter
 - No internal system references
 - No AI disclaimers
@@ -95,6 +103,15 @@ SIGNATURE AND FORMATTING RULES:
 - Ensure the revised letter contains exactly ONE signature block ending with "Yours sincerely". Remove any duplicate signature sections, repeated practice details, or trailing address blocks.
 - Do NOT include the practice address in the signature block — it should only appear ONCE in the letter header.
 - Do not include "*Letterhead/Logo Here*" or similar placeholder text.
+
+QUALITY RULES:
+- Proofread carefully before outputting. Check subject-verb agreement, possessive pronouns, and natural word ordering.
+- Do not repeat the same apology or sentiment more than once in the letter.
+- Do not use filler phrases. Write directly and professionally.
+- When describing investigation findings, be honest about incomplete records — transparency builds credibility.
+- The tone should be accountable without being defensive, and empathetic without being obsequious.
+- Aim for 400–500 words for the letter body. Be thorough but do not repeat yourself.
+- Vary your opening paragraph — do not always begin with the same phrasing.
 
 Return ONLY the revised letter content without any preamble or explanation.`
           },
