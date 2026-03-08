@@ -31,7 +31,7 @@ export const useAI4GPService = () => {
   const [sessionMemory, setSessionMemory] = useState(true);
   const [verificationLevel, setVerificationLevel] = useState('standard');
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('google/gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState('google/gemini-3-flash-preview');
   const [useOpenAI, setUseOpenAI] = useState(true);
   const [showRenderTimes, setShowRenderTimes] = useState(false);
   const [showAIService, setShowAIService] = useState(false);
