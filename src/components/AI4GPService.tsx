@@ -1209,9 +1209,13 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
       <Suspense fallback={<LazyLoader />}>
         <ImageStudioModal
           open={showImageStudio}
-          onOpenChange={setShowImageStudio}
+          onOpenChange={(open) => {
+            setShowImageStudio(open);
+            if (!open) setImageStudioInitialDescription(undefined);
+          }}
           imageGenerationModel={imageGenerationModel}
           initialMode={imageStudioInitialMode}
+          initialDescription={imageStudioInitialDescription}
         />
       </Suspense>
 
