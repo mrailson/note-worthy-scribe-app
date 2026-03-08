@@ -412,9 +412,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const handleExportWord = () => {
-    if (onExportWord) {
-      onExportWord(message.content, 'AI Generated Document');
-    }
+    setShowDocumentPreview(true);
   };
 
   const handleExportPowerPoint = (slideCount: number = 4) => {
@@ -430,13 +428,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const handleExportPDF = () => {
-    import('@/utils/documentGenerators').then(({ generatePDF }) => {
-      generatePDF(message.content, 'AI Generated Document');
-      toast.success('PDF download started');
-    }).catch((error) => {
-      console.error('Failed to generate PDF:', error);
-      toast.error('Failed to generate PDF');
-    });
+    setShowDocumentPreview(true);
   };
 
   const handleEmailToMe = async () => {
