@@ -449,13 +449,12 @@ serve(async (req) => {
       return 'google/gemini-3-flash-preview';
     }
 
-    // GPT-5 full is too slow - remap to Gemini 3 Flash
+    // GPT-5 full — pass through as valid gateway model
     if (input === 'gpt-5' || input === 'gpt-5-2025-08-07') {
-      console.log(`↩️ Remapping slow model '${input}' to 'google/gemini-3-flash-preview'`);
-      return 'google/gemini-3-flash-preview';
+      return 'openai/gpt-5';
     }
 
-    // Balanced option: GPT-5 mini (~3-5s)
+    // Balanced option: GPT-5 mini
     if (input === 'gpt-5-mini' || input === 'gpt-5-instant' || input === 'chatgpt5') {
       return 'openai/gpt-5-mini';
     }
