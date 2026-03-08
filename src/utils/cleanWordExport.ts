@@ -221,7 +221,14 @@ export async function generateCleanAIResponseDocument(
   let lastType: string = '';
   
   for (const line of lines) {
-    if (!line.trim()) {
+    const trimmedLine = line.trim();
+    
+    // Skip horizontal rules / separators (match preview behaviour)
+    if (/^[-*_]{3,}$/.test(trimmedLine)) {
+      continue;
+    }
+    
+    if (!trimmedLine) {
       // Empty line - add small spacing paragraph
       if (lastType !== 'empty') {
         children.push(new Paragraph({

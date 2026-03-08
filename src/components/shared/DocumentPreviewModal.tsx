@@ -197,7 +197,7 @@ function renderPreviewContent(content: string): React.ReactNode[] {
     // Regular paragraph
     flushList();
     elements.push(
-      <p key={`p-${keyIndex++}`} className="text-sm leading-relaxed mb-3" style={{ color: COLORS.textGrey }}>
+      <p key={`p-${keyIndex++}`} className="text-sm leading-relaxed mb-4" style={{ color: COLORS.textGrey }}>
         {formatInline(trimmed)}
       </p>
     );
