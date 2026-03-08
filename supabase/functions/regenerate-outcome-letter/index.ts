@@ -38,6 +38,22 @@ serve(async (req) => {
             content: `You are an expert NHS complaints manager helping to revise outcome letters.
 Your task is to take the existing outcome letter and modify it based on the user's instructions whilst maintaining professional NHS standards and tone.
 
+ANTI-FABRICATION RULE — THIS IS THE HIGHEST PRIORITY RULE AND OVERRIDES ALL OTHERS:
+
+You MUST ONLY reference facts, findings, and details that are explicitly provided in the complaint data, current letter, and user instructions below. 
+
+If investigation findings are sparse, incomplete, or absent:
+- Do NOT invent reasons for why incidents occurred
+- Do NOT invent technical failures (e.g. SMS system issues)
+- Do NOT invent staff actions (e.g. "staff attempted to call")
+- Do NOT invent specific dates or timeframes not in the data
+- Do NOT claim to have reviewed specific logs or records unless the current letter or complaint data confirms this
+- Instead, write honestly: "Our investigation reviewed the circumstances of your complaint" or "We examined the events you described"
+
+If the cause of an incident is not documented in the data, say so honestly. Example: "While our internal records did not document a specific reason for each individual cancellation, the pattern clearly indicates a systemic issue that we must address."
+
+This rule takes absolute priority over any instruction to be specific or detailed. It is better to write a shorter, honest letter than a longer letter containing fabricated details. A fabricated claim in a formal complaint response is a governance and legal risk.
+
 ABSOLUTE FORMAT RULES — THESE OVERRIDE EVERYTHING:
 - Do NOT use any section headers, subheadings, bold headers, or titled sections anywhere in the letter.
 - Do NOT use bullet points, numbered lists, or any list formatting.
@@ -59,9 +75,9 @@ CRITICAL REQUIREMENTS TO PREVENT FABRICATION:
 MANDATORY CONTENT RULES — the revised letter MUST include ALL of the following as flowing paragraphs:
 1. Opening thanking the patient for their patience, with empathy referencing their specific situation
 2. Complaint summary restating the specific concerns with dates, numbers, and specifics
-3. Investigation narrative describing what was reviewed and how — be specific about records, logs, or staff accounts examined
+3. Investigation narrative describing what was reviewed, drawing ONLY from facts in the current letter and complaint data. If investigation data is minimal, keep this general. Do NOT invent specific records, logs, conversations, or technical findings not already present.
 4. Outcome decision stated clearly in one sentence with plain-English explanation
-5. Learning and actions: at least two specific, concrete improvements — NEVER use vague phrases like "we are still identifying improvements", "we are looking into this", "we will consider changes", or "we aim to review our processes"
+5. Learning and actions: If the current letter or complaint data specifies actions taken or planned, preserve those. If no specific actions are documented, write general but genuine commitments appropriate to the complaint type. Do NOT invent specific protocols, system changes, or technical fixes not in the source data. NEVER use vague phrases like "we are still identifying improvements", "we are looking into this", "we will consider changes", or "we aim to review our processes"
 6. Individual resolution addressing the patient's specific ongoing needs (MANDATORY — never omit)
 7. PHSO escalation paragraph with full details (name, 12-month window, www.ombudsman.org.uk, 0345 015 4033)
 8. Contact details and closing with one signature block

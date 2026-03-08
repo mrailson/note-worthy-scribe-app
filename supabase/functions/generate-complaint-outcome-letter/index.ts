@@ -242,6 +242,23 @@ Tone: ${questionnaireData.tone === 'professional' ? 'Professional and balanced' 
 
     const systemPrompt = `You are generating a final NHS complaint outcome letter on behalf of a GP practice in England, following a completed local complaint investigation.
 
+ANTI-FABRICATION RULE — THIS IS THE HIGHEST PRIORITY RULE AND OVERRIDES ALL OTHERS:
+
+You MUST ONLY reference facts, findings, and details that are explicitly provided in the complaint data, investigation findings, staff responses, evidence summaries, and questionnaire data below. 
+
+If investigation findings are sparse, incomplete, or absent:
+- Do NOT invent reasons for why incidents occurred
+- Do NOT invent technical failures (e.g. SMS system issues)
+- Do NOT invent staff actions (e.g. "staff attempted to call")
+- Do NOT invent specific dates or timeframes not in the data
+- Do NOT claim to have reviewed specific logs or records unless the investigation data confirms this
+- Instead, write honestly: "Our investigation reviewed the circumstances of your complaint" or "We examined the events you described"
+
+If the cause of an incident is not documented in the investigation data, say so honestly. Example: "While our internal records did not document a specific reason for each individual cancellation, the pattern clearly indicates a systemic issue that we must address."
+
+This rule takes absolute priority over any instruction to be specific or detailed. It is better to write a shorter, honest letter than a longer letter containing fabricated details. A fabricated claim in a formal complaint response is a governance and legal risk.
+
+
 ABSOLUTE FORMAT RULES — THESE OVERRIDE EVERYTHING:
 - Do NOT use any section headers, subheadings, bold headers, or titled sections anywhere in the letter.
 - Do NOT use bullet points, numbered lists, or any list formatting.
@@ -256,18 +273,17 @@ MANDATORY CONTENT RULES — every outcome letter MUST include ALL of the followi
 
 2. COMPLAINT SUMMARY: Restate what the patient complained about in your own words, demonstrating genuine understanding of their specific concerns. Name dates, numbers, and specifics from the complaint data.
 
-3. INVESTIGATION NARRATIVE: Describe what was reviewed and how. Be specific — mention what records, logs, or staff accounts were examined. Never write vague statements like "we looked into it". Example: "We reviewed our appointment scheduling logs and spoke with the administrative staff responsible for managing cancellations during that period."
+3. INVESTIGATION NARRATIVE: Describe what was reviewed, drawing ONLY from the investigation findings and evidence provided. If specific investigation data has been provided (staff responses, evidence summaries, meeting notes), reference it. If investigation data is minimal or absent, keep this section general: "We reviewed the circumstances surrounding your complaint and examined our internal processes." Do NOT invent specific records, logs, conversations, or technical findings that are not in the data provided to you.
 
 4. OUTCOME DECISION: State the formal outcome clearly in one sentence: "Your complaint has been upheld" / "Your complaint has been partially upheld" / "Your complaint has not been upheld". Follow this with a plain-English explanation of what this means and why this decision was reached.
 
-5. LEARNING AND ACTIONS: Describe at least two specific, concrete improvements the practice will make as a result of this complaint. These must be real, actionable changes — not vague commitments. 
+5. LEARNING AND ACTIONS: If the investigation data or questionnaire specifies actions taken or planned, describe those. If no specific actions are documented, write general but genuine commitments that are appropriate to the type of complaint — for example, "reviewing our appointment notification procedures" or "briefing our administrative team on the importance of timely patient communication." Do NOT invent specific protocols, system changes, or technical fixes unless they are documented in the investigation data.
    NEVER use phrases like:
    - "we are still identifying improvements"
    - "we are looking into this"  
    - "we will consider changes"
    - "we aim to review our processes"
    These are unacceptable in a FINAL response letter. The patient deserves to know what WILL change, not what MIGHT change.
-   GOOD examples: "We are implementing a protocol requiring administrative staff to telephone patients within two hours of any cancellation", "We have updated our booking system to send automated SMS notifications when appointments are rescheduled", "We have briefed all reception staff on the impact of late-notice cancellations and introduced a checklist for same-day schedule changes."
 
 6. INDIVIDUAL RESOLUTION: This paragraph is MANDATORY. Address the patient's specific ongoing needs arising from the complaint. If the complaint involved treatment delays, state that the clinical team has been asked to review the patient's records to ensure their care plan is current and any necessary follow-up appointments are prioritised. If the complaint involved a communication failure, explain what the patient can expect going forward. Never omit this — it shows the practice cares about the individual, not just the process.
 
