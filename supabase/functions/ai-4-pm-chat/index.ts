@@ -2120,7 +2120,7 @@ serve(async (req) => {
       response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3.1-pro-preview', files);
     } else if (selectedModel === 'gemini-1.5-flash') {
       // Legacy Gemini Flash — route through gateway with updated model
-      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3.1-flash-lite-preview', files);
+      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-2.5-flash', files);
     } else if (selectedModel === 'deepseek-chat') {
       response = await callDeepseek(processedMessages, finalSystemPrompt, files);
     } else if (selectedModel.startsWith('google/') || selectedModel.startsWith('openai/')) {
