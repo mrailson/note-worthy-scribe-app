@@ -109,6 +109,13 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
     quickEdit,
   } = useImageStudio();
 
+  // When initialDescription is provided, pre-fill the description
+  useEffect(() => {
+    if (initialDescription && open) {
+      updateSettings({ description: initialDescription });
+    }
+  }, [initialDescription, open, updateSettings]);
+
   const dismissOnboarding = () => {
     setShowOnboarding(false);
     try { localStorage.setItem(ONBOARDING_KEY, 'true'); } catch {}
