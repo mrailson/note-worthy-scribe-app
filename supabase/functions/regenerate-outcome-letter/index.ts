@@ -23,6 +23,107 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error('Server misconfiguration: Supabase credentials missing');
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const [findingsResult, decisionsResult, evidenceResult, transcriptResult] = await Promise.all([
+      supabase
+        .from('complaint_investigation_findings')
+        .select('investigation_summary, findings_text, evidence_notes')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('complaint_investigation_decisions')
+        .select('decision_reasoning, corrective_actions, lessons_learned')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('complaint_investigation_evidence')
+        .select('description, ai_summary')
+        .eq('complaint_id', complaintId),
+      supabase
+        .from('complaint_investigation_transcripts')
+        .select('transcript_text')
+        .eq('complaint_id', complaintId),
+    ]);
+
+    const investigationFindings = [
+      findingsResult.data?.investigation_summary,
+      findingsResult.data?.findings_text,
+      findingsResult.data?.evidence_notes,
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+
+    const investigationDecisions = [
+      decisionsResult.data?.decision_reasoning,
+      decisionsResult.data?.corrective_actions,
+      decisionsResult.data?.lessons_learned,
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+
+    const evidenceSummaries = (evidenceResult.data || [])
+      .map((e: any) => `${e.description || ''} ${e.ai_summary || ''}`.trim())
+      .filter(Boolean);
+
+    const transcriptSummaries = (transcriptResult.data || [])
+      .map((t: any) => t.transcript_text?.trim())
+      .filter(Boolean);
+
+    const hasInvestigationEvidence =
+      (investigationFindings && investigationFindings.trim().length > 0) ||
+      (investigationDecisions && investigationDecisions.trim().length > 0) ||
+      (evidenceSummaries && evidenceSummaries.length > 0) ||
+      (transcriptSummaries && transcriptSummaries.length > 0);
+
+    let userPrompt = `Here is the current outcome letter:
+
+${currentLetter}
+
+Complaint reference: ${referenceNumber}
+Original complaint: ${complaintDescription}
+
+Use formal outcome labels in patient letters: ${useFormalLabels === true ? 'YES' : useFormalLabels === 'YES' ? 'YES' : currentLetter.match(/Outcome:\s*(Upheld|Partially upheld|Not upheld)/i) ? 'YES' : 'NO'}
+
+Please revise this letter according to these instructions:
+${instructions}
+
+Return only the revised letter content.`;
+
+    if (!hasInvestigationEvidence) {
+      const prewrittenInvestigation =
+        `IMPORTANT: Use the following pre-written investigation paragraph EXACTLY as provided. ` +
+        `Do not modify it, expand it, or add any findings, root causes, system failures, or staff conduct details:\n\n` +
+        `"We have reviewed the circumstances of your complaint. Our investigation confirmed that ` +
+        `the events you described did occur and that our communication processes did not meet ` +
+        `the standard we expect. We acknowledge that you were not provided with adequate notice ` +
+        `of the changes to your appointments and we recognise the impact this had on you."`;
+
+      const prewrittenLearning =
+        `IMPORTANT: Use the following pre-written learning paragraph EXACTLY as provided. ` +
+        `Do not add any specific system failures, technical fixes, or protocol changes:\n\n` +
+        `"We are committed to learning from your experience to improve our service. ` +
+        `We are reviewing our appointment management and communication procedures to ensure ` +
+        `that patients are informed promptly of any changes to their scheduled care. ` +
+        `We have also briefed our administrative team on the importance of timely ` +
+        `patient communication."`;
+
+      userPrompt += `\n\n${prewrittenInvestigation}`;
+      userPrompt += `\n\n${prewrittenLearning}`;
+    }
+
     // Call Lovable AI to regenerate the outcome letter
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -33,8 +134,6 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-3-flash-preview',
         messages: [
-          {
-            role: 'system',
             content: `You are an expert NHS complaints manager helping to revise outcome letters.
 Your task is to take the existing outcome letter and modify it based on the user's instructions whilst maintaining professional NHS standards and tone.
 
