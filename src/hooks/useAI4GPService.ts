@@ -396,102 +396,108 @@ You are processing ${fileCount} files. To ensure accuracy:
 - Double-check any cross-file calculations or comparisons`;
     }
 
-    // Add practice/organisation context if available
-    if (practiceContext.practiceName) {
+    // Add practice/organisation context if available (gated by profile context preferences)
+    if (practiceContext.practiceName && prefs?.profileContext_enabled !== false) {
       // Determine if this is a GP Practice or another organisation type
       const isGPPractice = !practiceContext.organisationType || practiceContext.organisationType === 'GP Practice';
       const entityLabel = isGPPractice ? 'Practice' : 'Organisation';
       
       console.log('✅ Adding organisation details to system prompt:', practiceContext.practiceName, '(', practiceContext.organisationType || 'GP Practice', ')');
       
-      prompt += `\n\n=== YOUR ${entityLabel.toUpperCase()} INFORMATION (ALWAYS USE THIS WHEN CREATING DOCUMENTS) ===
-${entityLabel} Name: ${practiceContext.practiceName}`;
+      let contextBlock = '';
+      
+      if (prefs?.profileContext_showPracticeName !== false && practiceContext.practiceName) {
+        contextBlock += `\n${entityLabel} Name: ${practiceContext.practiceName}`;
+      }
       
       if (practiceContext.organisationType && !isGPPractice) {
-        prompt += `\nOrganisation Type: ${practiceContext.organisationType}`;
+        contextBlock += `\nOrganisation Type: ${practiceContext.organisationType}`;
       }
       
-      if (practiceContext.practiceAddress) {
-        prompt += `\n${entityLabel} Address: ${practiceContext.practiceAddress}`;
+      if (prefs?.profileContext_showPracticeAddress !== false && practiceContext.practiceAddress) {
+        contextBlock += `\n${entityLabel} Address: ${practiceContext.practiceAddress}`;
       }
       
-      if (practiceContext.practicePhone) {
-        prompt += `\n${entityLabel} Phone: ${practiceContext.practicePhone}`;
+      if (prefs?.profileContext_showPracticePhone !== false && practiceContext.practicePhone) {
+        contextBlock += `\n${entityLabel} Phone: ${practiceContext.practicePhone}`;
       }
       
-      if (practiceContext.practiceEmail) {
-        prompt += `\n${entityLabel} Email: ${practiceContext.practiceEmail}`;
+      if (prefs?.profileContext_showPracticeEmail !== false && practiceContext.practiceEmail) {
+        contextBlock += `\n${entityLabel} Email: ${practiceContext.practiceEmail}`;
       }
       
-      if (practiceContext.practiceWebsite) {
-        prompt += `\n${entityLabel} Website: ${practiceContext.practiceWebsite}`;
+      if (prefs?.profileContext_showPracticeWebsite !== false && practiceContext.practiceWebsite) {
+        contextBlock += `\n${entityLabel} Website: ${practiceContext.practiceWebsite}`;
       }
       
-      if (practiceContext.userFullName) {
-        prompt += `\nUser Name: ${practiceContext.userFullName}`;
+      if (prefs?.profileContext_showUserName !== false && practiceContext.userFullName) {
+        contextBlock += `\nUser Name: ${practiceContext.userFullName}`;
       }
       
-      if (practiceContext.userEmail) {
-        prompt += `\nUser Email: ${practiceContext.userEmail}`;
+      if (prefs?.profileContext_showUserEmail !== false && practiceContext.userEmail) {
+        contextBlock += `\nUser Email: ${practiceContext.userEmail}`;
       }
       
-      // Note: We intentionally don't include the raw system role (e.g., system_admin, gp_admin)
-      // in the prompt as it's an internal identifier. The user's professional title from their
-      // profile should be used for any clinician signatures instead.
-      
-      if (practiceContext.practiceManagerName) {
-        prompt += `\n${isGPPractice ? 'Practice' : 'Organisation'} Manager: ${practiceContext.practiceManagerName}`;
+      if (prefs?.profileContext_showPracticeManager !== false && practiceContext.practiceManagerName) {
+        contextBlock += `\n${isGPPractice ? 'Practice' : 'Organisation'} Manager: ${practiceContext.practiceManagerName}`;
       }
       
-      if (practiceContext.pcnName) {
-        prompt += `\nPrimary Care Network (PCN): ${practiceContext.pcnName}`;
+      if (prefs?.profileContext_showPCN !== false && practiceContext.pcnName) {
+        contextBlock += `\nPrimary Care Network (PCN): ${practiceContext.pcnName}`;
       }
       
-      if (practiceContext.neighbourhoodName) {
-        prompt += `\nNeighbourhood: ${practiceContext.neighbourhoodName}`;
+      if (prefs?.profileContext_showNeighbourhood !== false && practiceContext.neighbourhoodName) {
+        contextBlock += `\nNeighbourhood: ${practiceContext.neighbourhoodName}`;
       }
       
-      if (practiceContext.otherPracticesInPCN?.length > 0) {
-        prompt += `\nOther practices in the same PCN: ${practiceContext.otherPracticesInPCN.join(', ')}`;
+      if (prefs?.profileContext_showPCN !== false && practiceContext.otherPracticesInPCN?.length > 0) {
+        contextBlock += `\nOther practices in the same PCN: ${practiceContext.otherPracticesInPCN.join(', ')}`;
       }
       
-      if (practiceContext.emailSignature) {
-        prompt += `\nEmail Signature Available: Yes (can be used in email drafts when appropriate)`;
+      if (prefs?.profileContext_showSignatures !== false && practiceContext.emailSignature) {
+        contextBlock += `\nEmail Signature Available: Yes (can be used in email drafts when appropriate)`;
       }
       
-      if (practiceContext.letterSignature) {
-        prompt += `\nLetter Signature Available: Yes (can be used in formal letters when appropriate)`;
+      if (prefs?.profileContext_showSignatures !== false && practiceContext.letterSignature) {
+        contextBlock += `\nLetter Signature Available: Yes (can be used in formal letters when appropriate)`;
       }
       
-      prompt += `\n=== END ${entityLabel.toUpperCase()} INFORMATION ===
+      // Only add the block if there's actual content
+      if (contextBlock.trim()) {
+        prompt += `\n\n=== YOUR ${entityLabel.toUpperCase()} INFORMATION (ALWAYS USE THIS WHEN CREATING DOCUMENTS) ===${contextBlock}`;
+        prompt += `\n=== END ${entityLabel.toUpperCase()} INFORMATION ===
 
 CRITICAL: When creating any documents, letters, or responses, you MUST use the actual ${entityLabel.toLowerCase()} information listed above. NEVER use placeholder text like "[Your ${entityLabel} Address]" or "[Phone Number]". Always use the real ${entityLabel.toLowerCase()} name, address, phone, and email provided above.
 
-EXAMPLES OF CORRECT USAGE:
-- Use "${practiceContext.practiceName}" not "[${entityLabel} Name]"`;
-      
-      if (practiceContext.practiceAddress) {
-        prompt += `\n- Use "${practiceContext.practiceAddress}" not "[Your ${entityLabel} Address]"`;
-      }
-      
-      if (practiceContext.practicePhone) {
-        prompt += `\n- Use "${practiceContext.practicePhone}" not "[Phone Number]"`;
-      }
-      
-      if (practiceContext.practiceEmail) {
-        prompt += `\n- Use "${practiceContext.practiceEmail}" not "[Email Address]"`;
-      }
-      
-      if (practiceContext.practiceWebsite) {
-        prompt += `\n- Use "${practiceContext.practiceWebsite}" not "[Website]" - display as plain text, NOT as a markdown link`;
-      }
+EXAMPLES OF CORRECT USAGE:`;
+        
+        if (prefs?.profileContext_showPracticeName !== false && practiceContext.practiceName) {
+          prompt += `\n- Use "${practiceContext.practiceName}" not "[${entityLabel} Name]"`;
+        }
+        
+        if (prefs?.profileContext_showPracticeAddress !== false && practiceContext.practiceAddress) {
+          prompt += `\n- Use "${practiceContext.practiceAddress}" not "[Your ${entityLabel} Address]"`;
+        }
+        
+        if (prefs?.profileContext_showPracticePhone !== false && practiceContext.practicePhone) {
+          prompt += `\n- Use "${practiceContext.practicePhone}" not "[Phone Number]"`;
+        }
+        
+        if (prefs?.profileContext_showPracticeEmail !== false && practiceContext.practiceEmail) {
+          prompt += `\n- Use "${practiceContext.practiceEmail}" not "[Email Address]"`;
+        }
+        
+        if (prefs?.profileContext_showPracticeWebsite !== false && practiceContext.practiceWebsite) {
+          prompt += `\n- Use "${practiceContext.practiceWebsite}" not "[Website]" - display as plain text, NOT as a markdown link`;
+        }
 
-      prompt += `\n\nWhen relevant to queries, you can reference this ${entityLabel.toLowerCase()} and user information to provide more personalised and contextual responses. For example:
+        prompt += `\n\nWhen relevant to queries, you can reference this ${entityLabel.toLowerCase()} and user information to provide more personalised and contextual responses. For example:
 - Use the ${entityLabel.toLowerCase()} name and address when creating letters or referrals
 - Reference the user's role when providing role-specific guidance
 - Include contact details when generating ${entityLabel.toLowerCase()} communications
 - Use available signatures when creating formal documents`;
-    } else {
+      }
+    } else if (!practiceContext.practiceName) {
       console.log('❌ No practice/organisation name found in context:', practiceContext);
     }
 
