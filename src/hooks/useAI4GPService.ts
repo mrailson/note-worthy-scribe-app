@@ -1507,7 +1507,20 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         autoCollapseUserPrompts,
         chatHistoryRetentionDays,
         hideGPClinical,
-        imageGenerationModel
+        imageGenerationModel,
+        // Profile context toggles
+        profileContext_enabled: profileContextEnabled,
+        profileContext_showUserName: profileContextShowUserName,
+        profileContext_showUserEmail: profileContextShowUserEmail,
+        profileContext_showPracticeName: profileContextShowPracticeName,
+        profileContext_showPracticeAddress: profileContextShowPracticeAddress,
+        profileContext_showPracticePhone: profileContextShowPracticePhone,
+        profileContext_showPracticeEmail: profileContextShowPracticeEmail,
+        profileContext_showPracticeWebsite: profileContextShowPracticeWebsite,
+        profileContext_showPracticeManager: profileContextShowPracticeManager,
+        profileContext_showPCN: profileContextShowPCN,
+        profileContext_showNeighbourhood: profileContextShowNeighbourhood,
+        profileContext_showSignatures: profileContextShowSignatures,
       };
 
       console.log('Saving AI4GP preferences:', preferences);
