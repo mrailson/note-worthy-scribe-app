@@ -543,6 +543,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     // Use the provided model, but auto-upgrade for clinical queries
     const isClinicalUpgrade = isClinicalRef.current || verificationLevel === 'clinical';
     const modelToUse = isClinicalUpgrade ? 'google/gemini-3.1-pro-preview' : selectedModel;
+    if (isClinicalUpgrade && selectedModel !== 'google/gemini-3.1-pro-preview') {
+      console.log('🔬 Clinical mode — using Gemini 3.1 Pro');
+      toast.info('🔬 Clinical mode — using Gemini 3.1 Pro');
+    }
     console.log('🤖 Model selection:', { selectedModel, modelToUse, clinicalUpgrade: isClinicalUpgrade });
     
     // Enhance the message content when files are attached
