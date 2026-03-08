@@ -17,7 +17,9 @@ import {
   PenLine,
   Plus,
   Loader2,
-  Library
+  Library,
+  Lightbulb,
+  X
 } from 'lucide-react';
 import { useImageStudio } from '@/hooks/useImageStudio';
 import { useImageGallery } from '@/hooks/useImageGallery';
@@ -35,12 +37,16 @@ import { cn } from '@/lib/utils';
 // Lazy load ImageGalleryModal to break circular dependency
 const ImageGalleryModal = lazy(() => import('./ImageGalleryModal').then(m => ({ default: m.ImageGalleryModal })));
 
+// Onboarding key for localStorage
+const ONBOARDING_KEY = 'image_studio_onboarded';
+
 interface ImageStudioModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   initialEditImage?: { url: string; name: string } | null;
   initialMode?: 'create' | 'edit' | 'stock';
+  initialDescription?: string;
 }
 
 export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
