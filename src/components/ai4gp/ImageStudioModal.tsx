@@ -131,11 +131,11 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   };
 
   const tabs = [
-    { id: 'context' as const, label: 'Context', icon: MessageSquare },
-    { id: 'style' as const, label: 'Style', icon: Palette },
-    { id: 'branding' as const, label: 'Branding', icon: Building2 },
-    { id: 'reference' as const, label: 'Reference', icon: ImageIcon },
-    { id: 'generate' as const, label: 'Generate', icon: Sparkles },
+    { id: 'context' as const, label: 'Content', icon: MessageSquare, step: 1 },
+    { id: 'style' as const, label: 'Style', icon: Palette, step: 2 },
+    { id: 'branding' as const, label: 'Branding', icon: Building2, step: 3 },
+    { id: 'reference' as const, label: 'Reference', icon: ImageIcon, step: 4 },
+    { id: 'generate' as const, label: 'Generate', icon: Sparkles, step: 5 },
   ];
 
   return (
@@ -237,9 +237,9 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
             className="flex-1 flex flex-col min-h-0 overflow-hidden"
           >
             <TabsList className="grid grid-cols-5 mx-4 mt-2 flex-shrink-0">
-              {tabs.map(({ id, label, icon: Icon }) => (
-                <TabsTrigger key={id} value={id} className="gap-1.5 text-xs sm:text-sm">
-                  <Icon className="h-4 w-4" />
+              {tabs.map(({ id, label, step }) => (
+                <TabsTrigger key={id} value={id} className="group gap-1 text-xs sm:text-sm">
+                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex-shrink-0 group-data-[state=active]:bg-white group-data-[state=active]:text-primary">{step}</span>
                   <span className="hidden sm:inline">{label}</span>
                 </TabsTrigger>
               ))}
