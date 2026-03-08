@@ -10,6 +10,7 @@ export function useAutoEmail() {
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
   const { profile } = useUserProfile();
+  const { practiceContext } = usePracticeContext();
 
   const sendEmailAutomatically = async (content: string, defaultSubject?: string) => {
     if (!profile?.email) {
