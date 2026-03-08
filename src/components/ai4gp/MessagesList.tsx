@@ -5,7 +5,7 @@ import { Message } from '@/types/ai4gp';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ArrowDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { ChatViewSettings } from '@/types/chatViewSettings';
 
 interface MessagesListProps {
@@ -25,7 +25,6 @@ interface MessagesListProps {
   imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   autoScroll?: boolean;
   onAutoScrollChange?: (value: boolean) => void;
-  // New chat view settings props
   chatFontSize?: ChatViewSettings['fontSize'];
   compactView?: boolean;
   bubbleStyle?: ChatViewSettings['bubbleStyle'];
@@ -33,7 +32,7 @@ interface MessagesListProps {
   containerSize?: ChatViewSettings['containerSize'];
 }
 
-const AUTO_SCROLL_STORAGE_KEY = 'ai4gp-chat-auto-scroll';
+const SCROLL_THRESHOLD = 150;
 
 export const MessagesList: React.FC<MessagesListProps> = ({
   messages,
@@ -59,48 +58,32 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   containerSize = 'normal',
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
-  const previousMessageCountRef = useRef(0);
+  const previousMessageCountRef = useRef(messages.length);
   const messagesRef = useRef(messages);
   const deviceInfo = useDeviceInfo();
-  const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Auto-scroll state - use prop if provided, otherwise manage internally with localStorage
-  const [internalAutoScroll, setInternalAutoScroll] = useState(() => {
-    const saved = localStorage.getItem(AUTO_SCROLL_STORAGE_KEY);
-    return saved !== null ? saved === 'true' : true;
-  });
-  
-  const autoScroll = autoScrollProp !== undefined ? autoScrollProp : internalAutoScroll;
-  const setAutoScroll = onAutoScrollChange || setInternalAutoScroll;
-  
-  // Track if user is manually scrolling
-  const [isUserScrolling, setIsUserScrolling] = useState(false);
-  
+
+  // --- Auto-scroll lock ref (not state — avoids re-renders) ---
+  const autoScrollLocked = useRef(true);
+  const isLoadingRef = useRef(isLoading);
+  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
+
   // Show floating button when not at bottom
   const [showScrollButton, setShowScrollButton] = useState(false);
-  
+
   // Keep messages ref up to date
   messagesRef.current = messages;
-
-  // Persist auto-scroll preference
-  useEffect(() => {
-    if (autoScrollProp === undefined) {
-      localStorage.setItem(AUTO_SCROLL_STORAGE_KEY, String(internalAutoScroll));
-    }
-  }, [internalAutoScroll, autoScrollProp]);
 
   // Stable count for virtualiser
   const itemCount = messages.length + (isLoading ? 1 : 0);
 
-  // Keep virtualiser option callbacks stable (prevents internal option-reset loops)
+  // Keep virtualiser option callbacks stable
   const getScrollElement = useCallback(() => parentRef.current, []);
-  const estimateSize = useCallback(() => 200, []); // fixed estimate; measureElement handles actual sizing
+  const estimateSize = useCallback(() => 200, []);
   const getItemKey = useCallback((index: number) => {
     if (index >= messagesRef.current.length) return 'loading-indicator';
     return messagesRef.current[index]?.id || `msg-${index}`;
   }, []);
 
-  // Virtual list configuration
   const virtualizer = useVirtualizer({
     count: itemCount,
     getScrollElement,
@@ -109,95 +92,102 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     getItemKey,
   });
 
-  // Check if scrolled near bottom
+  // --- Near-bottom check ---
   const isNearBottom = useCallback(() => {
-    const container = parentRef.current;
-    if (!container) return true;
-    const threshold = 100; // pixels from bottom
-    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    const el = parentRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
   }, []);
 
-  // Scroll to bottom helper
-  const scrollToBottom = useCallback(() => {
-    if (messages.length > 0) {
-      virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' });
-      setShowScrollButton(false);
-      setIsUserScrolling(false);
-    }
-  }, [messages.length, virtualizer]);
+  // --- Smooth scroll helper ---
+  const smoothScrollToBottom = useCallback(() => {
+    const el = parentRef.current;
+    if (!el || !autoScrollLocked.current) return;
 
-  // Handle user scroll detection
-  const handleScroll = useCallback(() => {
-    const nearBottom = isNearBottom();
-    setShowScrollButton(!nearBottom);
-    
-    if (!autoScroll) return;
-    
-    // If user scrolled away from bottom, mark as user scrolling
-    if (!nearBottom) {
-      setIsUserScrolling(true);
-      
-      // Clear any existing timeout
-      if (userScrollTimeoutRef.current) {
-        clearTimeout(userScrollTimeoutRef.current);
-      }
-      
-      // Resume auto-scroll after 5 seconds of no manual scrolling
-      userScrollTimeoutRef.current = setTimeout(() => {
-        setIsUserScrolling(false);
-      }, 5000);
+    if (isLoadingRef.current) {
+      // During streaming: instant jump via rAF for responsiveness
+      el.scrollTop = el.scrollHeight;
     } else {
-      setIsUserScrolling(false);
+      // After streaming: smooth finish
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     }
-  }, [autoScroll, isNearBottom]);
+  }, []);
 
-  // Attach scroll listener
+  // --- Public scroll-to-bottom (button click) ---
+  const scrollToBottom = useCallback(() => {
+    autoScrollLocked.current = true;
+    setShowScrollButton(false);
+    parentRef.current?.scrollTo({ top: parentRef.current.scrollHeight, behavior: 'smooth' });
+  }, []);
+
+  // --- Lock auto-scroll when streaming starts ---
   useEffect(() => {
-    const container = parentRef.current;
-    if (!container) return;
-    
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
+    if (isLoading) {
+      autoScrollLocked.current = isNearBottom();
+    }
+  }, [isLoading, isNearBottom]);
+
+  // --- Scroll event handler ---
+  const handleScroll = useCallback(() => {
+    const el = parentRef.current;
+    if (!el) return;
+
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
+
+    // If user scrolled away during streaming, break the lock
+    if (isLoadingRef.current && !nearBottom) {
+      autoScrollLocked.current = false;
+    }
+
+    // If user scrolls back to bottom, re-engage
+    if (nearBottom) {
+      autoScrollLocked.current = true;
+    }
+
+    setShowScrollButton(!nearBottom);
+  }, []);
+
+  // Attach scroll listener (passive for perf)
+  useEffect(() => {
+    const el = parentRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  // Cleanup timeout on unmount
+  // --- Scroll on new messages (non-streaming) ---
   useEffect(() => {
-    return () => {
-      if (userScrollTimeoutRef.current) {
-        clearTimeout(userScrollTimeoutRef.current);
-      }
-    };
-  }, []);
+    const prevCount = previousMessageCountRef.current;
+    const newCount = messages.length;
+    previousMessageCountRef.current = newCount;
 
-  // Scroll to bottom when new message is added
-  useEffect(() => {
-    const currentMessageCount = messages.length;
-    
-    if (currentMessageCount > previousMessageCountRef.current && currentMessageCount > 0) {
-      if (autoScroll && !isUserScrolling) {
-        const timeoutId = setTimeout(() => {
-          virtualizer.scrollToIndex(currentMessageCount - 1, { align: 'end', behavior: 'smooth' });
-        }, 50);
-        previousMessageCountRef.current = currentMessageCount;
-        return () => clearTimeout(timeoutId);
+    if (newCount > prevCount && newCount > 0) {
+      const lastMsg = messages[newCount - 1];
+
+      if (lastMsg?.role === 'user') {
+        // Always scroll to show the user's own message
+        autoScrollLocked.current = true;
+        requestAnimationFrame(() => {
+          parentRef.current?.scrollTo({ top: parentRef.current!.scrollHeight, behavior: 'smooth' });
+        });
+      } else if (isNearBottom()) {
+        requestAnimationFrame(() => smoothScrollToBottom());
       }
-      previousMessageCountRef.current = currentMessageCount;
     }
-  }, [messages.length, autoScroll, isUserScrolling, virtualizer]);
+  }, [messages.length, isNearBottom, smoothScrollToBottom]);
 
-  // Keep scroll at bottom during streaming - watch content length
+  // --- Streaming content updates ---
   const lastMessage = messages[messages.length - 1];
-  const isStreaming = lastMessage?.isStreaming;
   const lastMessageContentLength = lastMessage?.content?.length || 0;
-  
+
   useEffect(() => {
-    if (isStreaming && autoScroll && scrollDuringStreamingProp && !isUserScrolling && messages.length > 0) {
-      const scrollTimeout = setTimeout(() => {
-        virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
-      }, 100);
-      return () => clearTimeout(scrollTimeout);
+    if (isLoading && autoScrollLocked.current && scrollDuringStreamingProp) {
+      requestAnimationFrame(() => {
+        const el = parentRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+      });
     }
-  }, [isStreaming, lastMessageContentLength, autoScroll, scrollDuringStreamingProp, isUserScrolling, messages.length, virtualizer]);
+  }, [lastMessageContentLength, isLoading, scrollDuringStreamingProp]);
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
@@ -312,12 +302,14 @@ export const MessagesList: React.FC<MessagesListProps> = ({
           variant="secondary"
           className={cn(
             "absolute bottom-4 left-1/2 -translate-x-1/2 z-10",
+            "absolute bottom-4 left-1/2 -translate-x-1/2 z-10",
             "shadow-lg border border-border/50 rounded-full",
             "animate-in fade-in slide-in-from-bottom-2 duration-200",
-            "h-8 w-8"
+            "h-9 w-9"
           )}
+          title="Scroll to bottom"
         >
-          <ArrowDown className="h-4 w-4" />
+          <ChevronDown className="h-4 w-4" />
         </Button>
       )}
     </div>
