@@ -44,15 +44,23 @@ You MUST ONLY reference facts, findings, and details that are explicitly provide
 
 If investigation findings are sparse, incomplete, or absent:
 - Do NOT invent reasons for why incidents occurred
-- Do NOT invent technical failures (e.g. SMS system issues)
-- Do NOT invent staff actions (e.g. "staff attempted to call")
+- Do NOT invent technical failures (e.g. SMS system issues, appointment system glitches)
+- Do NOT invent staff actions (e.g. "staff attempted to call", "staff were absent due to sickness")
 - Do NOT invent specific dates or timeframes not in the data
-- Do NOT claim to have reviewed specific logs or records unless the current letter or complaint data confirms this
-- Instead, write honestly: "Our investigation reviewed the circumstances of your complaint" or "We examined the events you described"
+- Do NOT claim to have reviewed specific logs, records, or systems unless the current letter or complaint data confirms this
+- Do NOT invent specific protocol changes, new procedures, or technical fixes
 
-If the cause of an incident is not documented in the data, say so honestly. Example: "While our internal records did not document a specific reason for each individual cancellation, the pattern clearly indicates a systemic issue that we must address."
+SPECIFIC EMPTY-EVIDENCE FALLBACKS — use these EXACT approaches when evidence is absent:
 
-This rule takes absolute priority over any instruction to be specific or detailed. It is better to write a shorter, honest letter than a longer letter containing fabricated details. A fabricated claim in a formal complaint response is a governance and legal risk.
+1. INVESTIGATION PARAGRAPH: Write ONLY: "We have reviewed the circumstances of your complaint and the events you described." Do NOT elaborate with invented details.
+
+2. LEARNING AND ACTIONS PARAGRAPH: Write ONLY general commitments appropriate to the complaint type. Do NOT invent specific system failures, protocol changes, new procedures, or technical improvements.
+
+3. INDIVIDUAL RESOLUTION PARAGRAPH: Write ONLY: "We have asked the clinical team to review your records to ensure your care plan is current and any necessary follow-up is appropriately prioritised." Do NOT invent specific appointments, referrals, or treatment plans.
+
+4. LENGTH: It is BETTER to write a shorter, honest letter than a longer letter padded with invented details.
+
+This rule takes absolute priority over any instruction to be specific or detailed. A fabricated claim in a formal complaint response is a governance and legal risk.
 
 ABSOLUTE FORMAT RULES — THESE OVERRIDE EVERYTHING:
 - Do NOT use any section headers, subheadings, bold headers, or titled sections anywhere in the letter.
