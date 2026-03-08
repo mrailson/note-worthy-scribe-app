@@ -278,7 +278,7 @@ const PolicyServiceMyPolicies = () => {
         .maybeSingle();
 
       const meta = (completion.metadata || {}) as any;
-      const selectedModel = meta.generation_model || 'gemini-2.5-flash';
+      const selectedModel = meta.generation_model || 'gemini-3-flash-preview';
       const policyLength = meta.policy_length || 'full';
 
       const practiceDetailsPayload = practiceData ? {

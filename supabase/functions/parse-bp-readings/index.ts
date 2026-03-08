@@ -242,7 +242,7 @@ function detectSitStandMode(text: string): boolean {
 // Run single extraction with specified model
 async function runExtraction(
   content: { type: 'text'; text: string } | { type: 'image'; dataUrl: string },
-  model: string = 'google/gemini-2.5-flash',
+  model: string = 'google/gemini-3-flash-preview',
   isSitStandMode: boolean = false
 ): Promise<BPReading[]> {
   const messages: any[] = [];
@@ -419,7 +419,7 @@ serve(async (req) => {
     const imageSource = imageData || dataUrl; // Support both parameter names
     
     // Default to Flash for speed
-    const model = 'google/gemini-2.5-flash';
+    const model = 'google/gemini-3-flash-preview';
     console.log(`Processing BP readings in ${mode} mode with ${model}, sitStandMode: ${isSitStandMode}`);
     const startTime = Date.now();
 

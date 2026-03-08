@@ -218,7 +218,7 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
           message: userMessage,
           conversationHistory: conversationHistory,
           systemPrompt: systemContext,
-          model: 'google/gemini-2.5-flash'
+          model: 'google/gemini-3-flash-preview'
         }
       });
 

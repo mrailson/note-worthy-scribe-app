@@ -1099,7 +1099,7 @@ ${contextInfo}
 Transcript:
 ${cleanedTranscript}`;
 
-    console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
+    console.log('🔧 Using Lovable AI with google/gemini-3-flash-preview');
     console.log('📊 System prompt length:', systemPrompt.length, 'chars');
     console.log('📊 User prompt length:', userPrompt.length, 'chars');
     
@@ -1117,7 +1117,7 @@ ${cleanedTranscript}`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-3-flash-preview',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }

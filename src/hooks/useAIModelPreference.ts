@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-// Speed: Gemini 3.1 Flash-Lite | Balanced: GPT-5 Mini (~3-5s)
+// Speed: Gemini 3 Flash | Balanced: GPT-5 Mini (~3-5s)
 export type AIModel = 'grok' | 'chatgpt5';
 
 interface UseAIModelPreferenceReturn {
@@ -9,7 +9,7 @@ interface UseAIModelPreferenceReturn {
 }
 
 export const useAIModelPreference = (): UseAIModelPreferenceReturn => {
-  // Default to speed (grok = Gemini 3.1 Flash-Lite)
+  // Default to speed (grok = Gemini 3 Flash)
   const [selectedModel, setSelectedModelState] = useState<AIModel>('grok');
 
   // Load preference from localStorage on mount

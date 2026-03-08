@@ -157,7 +157,7 @@ export function LGVerifyServiceModal({ patient, onVerificationComplete }: LGVeri
     const names: Record<string, string> = {
       'gpt-5': 'GPT-5',
       'claude-sonnet-4': 'Claude Sonnet 4',
-      'gemini-2.5-flash': 'Gemini Flash',
+      'gemini-3-flash': 'Gemini Flash',
       'gemini-2.5-pro': 'Gemini Pro',
     };
     return names[model] || model;

@@ -17,9 +17,9 @@ export interface ModelOption {
 
 export const AVAILABLE_MODELS: ModelOption[] = [
   {
-    id: 'google/gemini-2.5-flash',
-    label: 'Gemini 2.5 Flash',
-    description: 'Fastest & most cost-efficient. Best for general queries.',
+    id: 'google/gemini-3-flash-preview',
+    label: 'Gemini 3 Flash',
+    description: 'Fast & reliable. Best for general queries.',
     tier: 'standard',
     provider: 'google',
     badge: 'Recommended',
@@ -34,15 +34,6 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     badge: 'Premium',
     badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400 border-purple-200 dark:border-purple-800',
     infoNote: 'Most capable model. May experience occasional delays during high demand.',
-  },
-  {
-    id: 'google/gemini-3-flash-preview',
-    label: 'Gemini 3 Flash',
-    description: 'Proven reliability. Good all-rounder.',
-    tier: 'stable',
-    provider: 'google',
-    badge: 'Stable',
-    badgeClass: 'bg-muted text-muted-foreground border-border',
   },
   {
     id: 'openai/gpt-5',
@@ -60,7 +51,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
   },
 ];
 
-const DEFAULT_MODEL = 'google/gemini-2.5-flash';
+const DEFAULT_MODEL = 'google/gemini-3-flash-preview';
 
 interface ModelSelectorProps {
   selectedModel: string;

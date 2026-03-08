@@ -14,7 +14,7 @@ export type PolicyGenerationModel =
   | 'claude-sonnet-4-6' 
   | 'claude-haiku-4-5' 
   | 'gpt-4o-mini' 
-  | 'gemini-2.5-flash' 
+  | 'gemini-3-flash-preview' 
   | 'gemini-2.5-pro';
 
 export type PolicyLength = 'compact' | 'concise' | 'standard' | 'full';
@@ -27,7 +27,7 @@ const AUTO_QUALITY_LOOP_KEY = 'autoQualityLoop';
 export const getPolicyGenerationModel = (): PolicyGenerationModel => {
   const saved = localStorage.getItem(MODEL_STORAGE_KEY);
   if (saved && MODEL_OPTIONS.some(m => m.value === saved)) return saved as PolicyGenerationModel;
-  return 'gemini-2.5-flash';
+  return 'gemini-3-flash-preview';
 };
 
 export const getPolicyGenerationLength = (): PolicyLength => {
@@ -84,8 +84,8 @@ const MODEL_OPTIONS: {
     
   },
   { 
-    value: 'gemini-2.5-flash', 
-    label: 'Gemini 2.5 Flash', 
+    value: 'gemini-3-flash-preview', 
+    label: 'Gemini 3 Flash', 
     provider: 'Google',
     badge: 'Budget', 
     badgeVariant: 'secondary',
@@ -112,7 +112,7 @@ const LENGTH_OPTIONS: { value: PolicyLength; label: string; description: string;
 ];
 
 export const PolicyGenerationModelSettings = () => {
-  const [model, setModel] = useState<PolicyGenerationModel>('gemini-2.5-flash');
+  const [model, setModel] = useState<PolicyGenerationModel>('gemini-3-flash-preview');
   const [length, setLength] = useState<PolicyLength>('full');
   const [autoQualityLoop, setAutoQualityLoop] = useState(false);
   const [open, setOpen] = useState(false);
