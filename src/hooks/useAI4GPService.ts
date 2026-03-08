@@ -1937,6 +1937,31 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     hideGPClinical,
     setHideGPClinical,
     imageGenerationModel,
-    setImageGenerationModel
+    setImageGenerationModel,
+    // Profile Context toggles
+    profileContextEnabled,
+    setProfileContextEnabled,
+    profileContextShowUserName,
+    setProfileContextShowUserName,
+    profileContextShowUserEmail,
+    setProfileContextShowUserEmail,
+    profileContextShowPracticeName,
+    setProfileContextShowPracticeName,
+    profileContextShowPracticeAddress,
+    setProfileContextShowPracticeAddress,
+    profileContextShowPracticePhone,
+    setProfileContextShowPracticePhone,
+    profileContextShowPracticeEmail,
+    setProfileContextShowPracticeEmail,
+    profileContextShowPracticeWebsite,
+    setProfileContextShowPracticeWebsite,
+    profileContextShowPracticeManager,
+    setProfileContextShowPracticeManager,
+    profileContextShowPCN,
+    setProfileContextShowPCN,
+    profileContextShowNeighbourhood,
+    setProfileContextShowNeighbourhood,
+    profileContextShowSignatures,
+    setProfileContextShowSignatures
   };
 };
