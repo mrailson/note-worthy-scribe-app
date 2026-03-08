@@ -252,19 +252,7 @@ Return ONLY the revised letter content without any preamble or explanation.`
           },
           {
             role: 'user',
-            content: `Here is the current outcome letter:
-
-${currentLetter}
-
-Complaint reference: ${referenceNumber}
-Original complaint: ${complaintDescription}
-
-Use formal outcome labels in patient letters: ${useFormalLabels === true ? 'YES' : useFormalLabels === 'YES' ? 'YES' : currentLetter.match(/Outcome:\s*(Upheld|Partially upheld|Not upheld)/i) ? 'YES' : 'NO'}
-
-Please revise this letter according to these instructions:
-${instructions}
-
-Return only the revised letter content.`
+            content: userPrompt
           }
         ],
         max_completion_tokens: 4000,
