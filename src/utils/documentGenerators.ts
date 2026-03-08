@@ -1671,36 +1671,14 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
         pdf.text(bulletSymbol, bulletX, y);
 
         const textX = bulletX + pdf.getTextWidth(bulletSymbol + ' ');
-        const textWidth = pageWidth - margin - textX;
-        const wrapped = pdf.splitTextToSize(cleanMd(bulletText), textWidth);
-        for (let w = 0; w < wrapped.length; w++) {
-          checkPage(5.5);
-          renderFormattedLine(w === 0 ? bulletText : wrapped[w], 10, textX);
-          if (w === 0) {
-            // First line uses formatted render, but only output plain for subsequent
-          }
-          y += 5.5;
-        }
+        addFormattedParagraph(bulletText, 10, textX);
         i++;
         continue;
       }
 
       // ---- REGULAR PARAGRAPH ----
       checkPage(6);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(...PDF_COLORS.black);
-      const paraWidth = maxLineWidth;
-      const wrapped = pdf.splitTextToSize(cleanMd(trimmed), paraWidth);
-      for (let w = 0; w < wrapped.length; w++) {
-        checkPage(5.5);
-        if (w === 0) {
-          renderFormattedLine(trimmed, 10, margin);
-        } else {
-          pdf.text(wrapped[w], margin, y);
-        }
-        y += 5.5;
-      }
+      addFormattedParagraph(trimmed, 10, margin);
       y += 2;
       i++;
     }
