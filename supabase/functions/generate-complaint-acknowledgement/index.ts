@@ -347,53 +347,42 @@ CRITICAL CONTACT INFORMATION RULES:
 - Use the ACTUAL values provided in the Signature Details and Practice Details sections above
 - Include contact details as plain text in the letter body, NOT as bold-labelled lines in the signature`;
 
-    console.log('Making OpenAI API request...');
+    console.log('Making Lovable AI Gateway request...');
     
-    // Create AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 second timeout
-    
-    let response;
-    try {
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          max_tokens: 1500,
-        }),
-        signal: controller.signal,
-      });
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        console.error('OpenAI API request timed out');
-        throw new Error('Request to OpenAI timed out. Please try again.');
-      }
-      console.error('OpenAI API fetch error:', fetchError);
-      throw new Error(`Failed to connect to OpenAI: ${fetchError.message}`);
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_completion_tokens: 1500,
+      }),
+    });
 
-    console.log('OpenAI API response status:', response.status);
+    console.log('AI Gateway response status:', response.status);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenAI API error response:', errorText);
-      try {
-        const errorData = JSON.parse(errorText);
-        throw new Error(errorData.error?.message || 'OpenAI API error');
-      } catch {
-        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Rate limits exceeded. Please try again later.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'Payment required. Please add credits to your Lovable AI workspace.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const errorText = await response.text();
+      console.error('AI gateway error:', response.status, errorText);
+      throw new Error('AI gateway error');
     }
 
     const data = await response.json();
