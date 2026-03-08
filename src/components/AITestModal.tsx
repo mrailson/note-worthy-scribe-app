@@ -310,14 +310,12 @@ const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
       
       // Use the working ai-api-test approach for all models consistently
       const testPromises = [
-        // All models via direct API (this approach works for all)
-        testClinicalModelDirect('gpt-5-2025-08-07'),
-        testClinicalModelDirect('gpt-4o'),
-        testClinicalModelDirect('gpt-4o-mini'),
+        testClinicalModelDirect('google/gemini-3.1-pro-preview'),
+        testClinicalModelDirect('google/gemini-3.1-flash-lite-preview'),
+        testClinicalModelDirect('google/gemini-3-flash-preview'),
+        testClinicalModelDirect('openai/gpt-5'),
+        testClinicalModelDirect('openai/gpt-5-mini'),
         testClinicalModelDirect('claude-4-sonnet'),
-        testClinicalModelDirect('grok-beta'),
-        testClinicalModelDirect('gemini-1.5-pro'),
-        testClinicalModelDirect('deepseek-chat')
       ];
 
       const results = await Promise.all(testPromises);
