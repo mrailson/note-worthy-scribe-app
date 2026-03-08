@@ -100,11 +100,11 @@ export const DocumentAIEditPanel: React.FC<DocumentAIEditPanelProps> = ({
       {/* Toggle button */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-primary hover:bg-muted/40 transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors border-b border-dashed border-primary/20"
       >
-        <Brain className="h-3.5 w-3.5" />
-        AI Edit & Regenerate
-        {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+        <Brain className="h-4 w-4" />
+        ✨ AI Edit & Regenerate
+        {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
       </button>
 
       {isOpen && (
