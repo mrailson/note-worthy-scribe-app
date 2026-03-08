@@ -419,7 +419,7 @@ serve(async (req) => {
     const imageSource = imageData || dataUrl; // Support both parameter names
     
     // Default to Flash for speed
-    const model = 'google/gemini-2.5-flash';
+    const model = 'google/gemini-3.1-flash-lite-preview';
     console.log(`Processing BP readings in ${mode} mode with ${model}, sitStandMode: ${isSitStandMode}`);
     const startTime = Date.now();
 
