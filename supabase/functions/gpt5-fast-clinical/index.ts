@@ -489,9 +489,9 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    // Timeout guard: GPT-5 / streaming responses can legitimately take longer than 15s.
-    // Keep a finite timeout to avoid true hangs, but allow enough time for real-world latency.
-    const timeoutMs = gatewayModel.startsWith('openai/gpt-5') ? 90000 : 60000;
+    // Timeout: 120s for Gemini 3.1 Pro (known latency issues), 60s for others, 90s for GPT-5
+    const timeoutMs = gatewayModel === 'google/gemini-3.1-pro-preview' ? 120000 :
+                      gatewayModel.startsWith('openai/gpt-5') ? 90000 : 60000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.log(`Request timeout after ${Math.round(timeoutMs / 1000)}s for model ${gatewayModel}`);
@@ -518,26 +518,81 @@ serve(async (req) => {
     }
   };
 
-  try {
-    // Prefer GPT-5-mini via Lovable Gateway for fast, high-quality output
-    const requestedModel = model;
-    const resolvedModel = (requestedModel || 'openai/gpt-5-mini');
-    console.log(`Starting request with model: ${resolvedModel}, tokens: ${finalMaxTokens}, webSearch: ${searchPerformed}`);
-    const resp = await tryModel(resolvedModel, true);
+  // Fallback chain: primary model → retry once → fallback models
+  const FALLBACK_CHAIN: Record<string, string[]> = {
+    'google/gemini-3.1-pro-preview': ['google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview'],
+    'google/gemini-3.1-flash-lite-preview': ['google/gemini-3-flash-preview', 'openai/gpt-5-mini'],
+    'google/gemini-3-flash-preview': ['google/gemini-3.1-flash-lite-preview', 'openai/gpt-5-mini'],
+  };
 
-    if (!resp.ok) {
-      const errorText = await resp.text();
-      console.error(`Model failed:`, errorText);
-      return sseError(`AI API error: ${errorText}`, resp.status);
+  const MODEL_LABELS: Record<string, string> = {
+    'google/gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+    'google/gemini-3.1-flash-lite-preview': 'Gemini 3.1 Flash-Lite',
+    'google/gemini-3-flash-preview': 'Gemini 3 Flash',
+    'openai/gpt-5-mini': 'GPT-5 Mini',
+    'openai/gpt-5': 'GPT-5',
+  };
+
+  try {
+    const requestedModel = model;
+    const resolvedModel = resolveGatewayModel(requestedModel || 'openai/gpt-5-mini');
+    console.log(`Starting request with model: ${resolvedModel}, tokens: ${finalMaxTokens}, webSearch: ${searchPerformed}`);
+    
+    let resp: Response | null = null;
+    let usedModel = resolvedModel;
+    let fallbackUsed = false;
+
+    // Try primary model
+    try {
+      resp = await tryModel(resolvedModel, true);
+      if (resp.status === 503 || resp.status === 429) {
+        console.log(`Primary model ${resolvedModel} returned ${resp.status}, retrying once...`);
+        resp = await tryModel(resolvedModel, true);
+      }
+    } catch (e) {
+      console.error(`Primary model ${resolvedModel} failed:`, e);
     }
 
-    console.log(`Successfully got response from AI gateway`);
-    
-    // If web search was performed, prepend a meta message indicating this
-    if (searchPerformed) {
-      const metaMessage = `data: ${JSON.stringify({ _meta: { webSearchPerformed: true } })}\n\n`;
+    // If primary failed or returned error, try fallback chain
+    if (!resp || !resp.ok) {
+      const fallbacks = FALLBACK_CHAIN[resolvedModel] || ['google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview'];
       
-      // Create a new ReadableStream that prepends the meta message
+      for (const fallbackModel of fallbacks) {
+        try {
+          console.log(`Trying fallback model: ${fallbackModel}`);
+          resp = await tryModel(fallbackModel, true);
+          if (resp.ok) {
+            usedModel = fallbackModel;
+            fallbackUsed = true;
+            console.log(`Fallback to ${fallbackModel} succeeded`);
+            break;
+          }
+        } catch (e) {
+          console.error(`Fallback ${fallbackModel} failed:`, e);
+        }
+      }
+    }
+
+    if (!resp || !resp.ok) {
+      const errorText = resp ? await resp.text() : 'All models failed';
+      console.error(`All models failed:`, errorText);
+      return sseError(`AI API error: ${errorText}`, resp?.status || 500);
+    }
+
+    console.log(`Successfully got response from AI gateway using ${usedModel}`);
+    
+    // Build meta message with fallback info and/or web search info
+    const metaInfo: Record<string, any> = {};
+    if (searchPerformed) metaInfo.webSearchPerformed = true;
+    if (fallbackUsed) {
+      metaInfo.fallbackUsed = true;
+      metaInfo.fallbackModel = usedModel;
+      metaInfo.fallbackModelLabel = MODEL_LABELS[usedModel] || usedModel;
+    }
+
+    if (Object.keys(metaInfo).length > 0) {
+      const metaMessage = `data: ${JSON.stringify({ _meta: metaInfo })}\n\n`;
+      
       const originalBody = resp.body;
       const newStream = new ReadableStream({
         async start(controller) {
