@@ -240,8 +240,29 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
     }
   };
 
+  // Handle paste (Ctrl+V) for file uploads
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    }
+    
+    if (files.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      await onDrop(files);
+    }
+  }, [onDrop]);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onPaste={handlePaste}>
       {/* 1. PROMINENT DRAG & DROP ZONE — Top of page */}
       <div
         {...getRootProps()}
@@ -267,7 +288,7 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
               {isDragActive ? "Drop files here..." : "Upload a document or image"}
             </p>
             <p className="text-xs text-muted-foreground">
-              Drop files here or click to browse — PDF, Word, Excel, PowerPoint, images
+              Drop files here, click to browse, or <span className="font-medium text-primary/80">Ctrl+V</span> to paste
             </p>
             <p className="text-xs text-primary/70 font-medium mt-1">
               💡 Upload a document and we'll turn it into a professional infographic
