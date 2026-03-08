@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { DocumentPreviewModal } from '@/components/shared/DocumentPreviewModal';
+import { DocumentAIEditPanel } from '@/components/shared/DocumentAIEditPanel';
 import { toast } from 'sonner';
 import { FileProcessorManager } from '@/utils/fileProcessors/FileProcessorManager';
 import ReactMarkdown from 'react-markdown';
@@ -27,6 +28,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const [showPreview, setShowPreview] = useState(false);
+  const [showAIEdit, setShowAIEdit] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const processUploadedFiles = async (): Promise<string[]> => {
@@ -223,6 +225,17 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
               <p className="text-xs text-primary font-medium mt-3 border-t pt-2">Click to view full document...</p>
             )}
           </div>
+        </div>
+
+        {/* AI Edit Panel — inline on generate tab */}
+        <div className="border rounded-xl overflow-hidden">
+          <DocumentAIEditPanel
+            content={state.generatedContent}
+            title={state.generatedTitle || state.selectedType?.display_name || 'Document'}
+            onContentUpdated={(newContent) => onUpdateState({ generatedContent: newContent })}
+            isOpen={showAIEdit}
+            onToggle={() => setShowAIEdit(v => !v)}
+          />
         </div>
 
         {/* Actions */}
