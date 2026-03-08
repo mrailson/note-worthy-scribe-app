@@ -351,7 +351,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     }, 3000);
 
     try {
-      const result = await generateInfographic(content, documentTitle, {
+      const result = await generateInfographic(activeContent, documentTitle, {
         orientation,
         imageModel: imageGenerationModel,
         practiceName: infographicPracticeName || practiceName || undefined,

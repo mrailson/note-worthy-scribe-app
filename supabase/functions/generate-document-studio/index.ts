@@ -23,6 +23,10 @@ serve(async (req) => {
       return await handleGenerateDocument(body, LOVABLE_API_KEY);
     }
 
+    if (action === 'refine_document') {
+      return await handleRefineDocument(body, LOVABLE_API_KEY);
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
