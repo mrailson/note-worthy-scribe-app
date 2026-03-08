@@ -260,10 +260,15 @@ If investigation findings, staff responses, and evidence are absent or empty:
 
 SPECIFIC EMPTY-EVIDENCE FALLBACKS — use these EXACT approaches when evidence is absent:
 
-1. INVESTIGATION PARAGRAPH (when no investigation findings, staff responses, or evidence exist):
-   Write in this pattern ONLY: "We have reviewed the circumstances of your complaint. Our investigation confirmed that [restate what happened to the patient, using ONLY facts from the complaint description — e.g. 'your appointments were cancelled without adequate notice' or 'you did not receive a timely response to your enquiry']. We acknowledge that our [communication/administrative/appointment] processes did not meet the standard we expect."
-   Do NOT elaborate with invented root causes, system failures, or staff conduct findings.
-   Do NOT claim specific systems failed or specific staff did not follow protocols.
+1. INVESTIGATION PARAGRAPH — WHEN EVIDENCE DATA IS ABSENT OR EMPTY:
+   HARD OVERRIDE: Your investigation paragraph MUST follow this exact pattern and NOTHING MORE:
+   "We have reviewed the circumstances of your complaint. Our investigation confirmed that [restate ONLY what the patient reported — e.g. 'four appointments were cancelled without adequate notice' or 'you were not informed of the cancellation before arriving at the surgery']. We acknowledge that our processes did not meet the standard we expect."
+   You MUST NOT add any explanation of WHY things went wrong. Specifically:
+   - Do NOT mention SMS systems, notification systems, or any technology
+   - Do NOT mention staff failing to follow protocols or procedures
+   - Do NOT mention any system failures, technical issues, or process breakdowns
+   - Do NOT claim to have reviewed specific logs, records, or communication systems
+   - ONLY confirm WHAT happened (from the patient's complaint) — never explain WHY it happened
 
 2. LEARNING AND ACTIONS PARAGRAPH (when no specific actions are documented):
    Write ONLY general commitments appropriate to the complaint type, e.g.:
