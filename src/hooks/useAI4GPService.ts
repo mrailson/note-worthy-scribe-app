@@ -1639,7 +1639,21 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     try {
       const startTime = Date.now();
-      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel);
+      const profileContextPrefs = {
+        profileContext_enabled: profileContextEnabled,
+        profileContext_showUserName: profileContextShowUserName,
+        profileContext_showUserEmail: profileContextShowUserEmail,
+        profileContext_showPracticeName: profileContextShowPracticeName,
+        profileContext_showPracticeAddress: profileContextShowPracticeAddress,
+        profileContext_showPracticePhone: profileContextShowPracticePhone,
+        profileContext_showPracticeEmail: profileContextShowPracticeEmail,
+        profileContext_showPracticeWebsite: profileContextShowPracticeWebsite,
+        profileContext_showPracticeManager: profileContextShowPracticeManager,
+        profileContext_showPCN: profileContextShowPCN,
+        profileContext_showNeighbourhood: profileContextShowNeighbourhood,
+        profileContext_showSignatures: profileContextShowSignatures,
+      };
+      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel, profileContextPrefs);
       
       // Prepare messages for API
       const messagesForAPI = newMessages.map(msg => {
