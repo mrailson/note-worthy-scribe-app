@@ -1000,6 +1000,19 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   
                   try {
                     const parsed = JSON.parse(data);
+                    
+                    // Handle fallback meta messages
+                    if (parsed._meta?.fallbackUsed) {
+                      const fallbackLabel = parsed._meta.fallbackModelLabel || parsed._meta.fallbackModel || 'alternative model';
+                      toast.info(`⚡ Switched to ${fallbackLabel} — primary model was unavailable`, {
+                        duration: 5000,
+                      });
+                      continue;
+                    }
+                    
+                    // Skip other meta messages
+                    if (parsed._meta) continue;
+                    
                     const content = parsed.choices?.[0]?.delta?.content || '';
                     
                     if (content) {
