@@ -26,6 +26,8 @@ const CLINICAL_TIPS = [
   "Help with clinical letters, patient information leaflets, or treatment plans...",
   "Check BNF guidance, calculate doses, or review QOF indicators...",
   "Summarise uploaded documents, draft referrals, or explain conditions...",
+  "Try: 'Create a flu vaccination poster for the waiting room'",
+  "Try: 'Design a patient notice about our new extended hours'",
 ];
 
 const MANAGER_TIPS = [
@@ -34,6 +36,8 @@ const MANAGER_TIPS = [
   "Draft emails, meeting agendas, or staff announcements...",
   "Summarise uploaded documents, create action plans, or check regulations...",
   "Get guidance on contracts, governance, or practice operations...",
+  "Try: 'Create a staff poster about the new appointment system'",
+  "Try: 'Design a patient notice for flu vaccination clinics'",
 ];
 
 const DEFAULT_TIP = "Ask about NHS guidance, policies, documents, or practice operations...";
