@@ -259,7 +259,12 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     right: 'justify-end',
   }[prefs.logoPosition] || 'justify-start';
 
-  const previewElements = useMemo(() => renderPreviewContent(content), [content]);
+  const previewElements = useMemo(() => renderPreviewContent(activeContent), [activeContent]);
+
+  const handleContentUpdated = useCallback((newContent: string) => {
+    setEditableContent(newContent);
+    onContentUpdated?.(newContent);
+  }, [onContentUpdated]);
 
   // Reset infographic state when modal closes
   const handleClose = useCallback(() => {
@@ -267,6 +272,8 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     setInfographicUrl(null);
     setInfographicProgress(0);
     setInfographicFullscreen(false);
+    setShowAIEdit(false);
+    setEditableContent(null);
     onClose();
   }, [onClose]);
 
