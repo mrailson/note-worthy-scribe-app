@@ -29,7 +29,7 @@ type ActiveView =
   | { type: 'prompts'; category: MainCategory; subCategory: SubCategory }
   | { type: 'bnf-lookup' };
 
-export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput, onBNFViewChange, onOpenImageStudio }) => {
+export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput, onBNFViewChange, onOpenImageStudio, onOpenDocumentStudio }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const [activeView, setActiveView] = useState<ActiveView>({ type: 'main' });
   const [showBanner, setShowBanner] = useState(false);
