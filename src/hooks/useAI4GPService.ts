@@ -531,9 +531,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     
     console.log('🔄 Proceeding with send - creating user message...');
     
-    // Use the provided model instead of useOpenAI setting for model selection
-    const modelToUse = selectedModel;
-    console.log('🤖 Model selection:', { selectedModel, modelToUse });
+    // Use the provided model, but auto-upgrade for clinical queries
+    const isClinicalUpgrade = isClinicalRef.current || verificationLevel === 'clinical';
+    const modelToUse = isClinicalUpgrade ? 'google/gemini-3.1-pro-preview' : selectedModel;
+    console.log('🤖 Model selection:', { selectedModel, modelToUse, clinicalUpgrade: isClinicalUpgrade });
     
     // Enhance the message content when files are attached
     let messageContent = messageToUse;
