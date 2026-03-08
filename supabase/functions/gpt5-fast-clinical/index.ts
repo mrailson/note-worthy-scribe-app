@@ -488,9 +488,8 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    // Timeout: 120s for Gemini 3.1 Pro (known latency issues), 60s for others, 90s for GPT-5
-    const timeoutMs = gatewayModel === 'google/gemini-3.1-pro-preview' ? 120000 :
-                      gatewayModel.startsWith('openai/gpt-5') ? 90000 : 60000;
+    // Timeout: 120s for Gemini 3.1 Pro (known latency issues), 60s for all others
+    const timeoutMs = gatewayModel === 'google/gemini-3.1-pro-preview' ? 120000 : 60000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.log(`Request timeout after ${Math.round(timeoutMs / 1000)}s for model ${gatewayModel}`);
