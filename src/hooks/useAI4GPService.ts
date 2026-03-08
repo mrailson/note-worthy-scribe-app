@@ -41,6 +41,20 @@ export const useAI4GPService = () => {
   const [hideGPClinical, setHideGPClinical] = useState(false);
   const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1'>('google/gemini-3-pro-image-preview');
   
+  // Profile Context toggles
+  const [profileContextEnabled, setProfileContextEnabled] = useState(true);
+  const [profileContextShowUserName, setProfileContextShowUserName] = useState(true);
+  const [profileContextShowUserEmail, setProfileContextShowUserEmail] = useState(true);
+  const [profileContextShowPracticeName, setProfileContextShowPracticeName] = useState(true);
+  const [profileContextShowPracticeAddress, setProfileContextShowPracticeAddress] = useState(false);
+  const [profileContextShowPracticePhone, setProfileContextShowPracticePhone] = useState(false);
+  const [profileContextShowPracticeEmail, setProfileContextShowPracticeEmail] = useState(false);
+  const [profileContextShowPracticeWebsite, setProfileContextShowPracticeWebsite] = useState(false);
+  const [profileContextShowPracticeManager, setProfileContextShowPracticeManager] = useState(false);
+  const [profileContextShowPCN, setProfileContextShowPCN] = useState(false);
+  const [profileContextShowNeighbourhood, setProfileContextShowNeighbourhood] = useState(false);
+  const [profileContextShowSignatures, setProfileContextShowSignatures] = useState(true);
+  
   // Refs for tracking active timeouts to prevent memory leaks
   const streamTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
