@@ -37,7 +37,7 @@ const INITIAL_STATE: DocumentStudioState = {
   supportingText: '',
   uploadedFiles: [],
   generatedContent: null,
-  isGenerating: false,
+  generatedTitle: null,
   version: 1,
   versionLabel: 'v1.0',
   harmTriageResult: null,

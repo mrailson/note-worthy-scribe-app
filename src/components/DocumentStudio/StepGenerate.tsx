@@ -92,8 +92,11 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
       }
       if (!data?.content) throw new Error('No content returned from AI');
 
+      const docTitle = data.title || state.selectedType?.display_name || state.freeFormRequest || 'Document';
+
       onUpdateState({
         generatedContent: data.content,
+        generatedTitle: docTitle,
         isGenerating: false,
       });
       
