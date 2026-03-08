@@ -9,6 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { gpCategories, type MainCategory, type SubCategory, type PromptItem } from './gpPromptCategories';
 import { ContextBanner } from './ContextBanner';
@@ -18,6 +19,7 @@ interface GPHomeScreenProps {
   setInput: (text: string) => void;
   focusInput?: () => void;
   onBNFViewChange?: (isActive: boolean) => void;
+  onOpenImageStudio?: () => void;
 }
 
 type ActiveView = 
