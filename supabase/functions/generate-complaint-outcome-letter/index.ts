@@ -273,7 +273,7 @@ MANDATORY CONTENT RULES — every outcome letter MUST include ALL of the followi
 
 2. COMPLAINT SUMMARY: Restate what the patient complained about in your own words, demonstrating genuine understanding of their specific concerns. Name dates, numbers, and specifics from the complaint data.
 
-3. INVESTIGATION NARRATIVE: Describe what was reviewed and how. Be specific — mention what records, logs, or staff accounts were examined. Never write vague statements like "we looked into it". Example: "We reviewed our appointment scheduling logs and spoke with the administrative staff responsible for managing cancellations during that period."
+3. INVESTIGATION NARRATIVE: Describe what was reviewed, drawing ONLY from the investigation findings and evidence provided. If specific investigation data has been provided (staff responses, evidence summaries, meeting notes), reference it. If investigation data is minimal or absent, keep this section general: "We reviewed the circumstances surrounding your complaint and examined our internal processes." Do NOT invent specific records, logs, conversations, or technical findings that are not in the data provided to you.
 
 4. OUTCOME DECISION: State the formal outcome clearly in one sentence: "Your complaint has been upheld" / "Your complaint has been partially upheld" / "Your complaint has not been upheld". Follow this with a plain-English explanation of what this means and why this decision was reached.
 
