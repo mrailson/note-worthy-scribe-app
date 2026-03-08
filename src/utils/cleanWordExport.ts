@@ -481,3 +481,171 @@ export async function generateCleanAIResponseDocument(
   const filename = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.docx`;
   saveAs(blob, filename);
 }
+
+/**
+ * Generate a clean AI response document as a Blob (for email attachments etc.)
+ * Uses the same formatting as the modal export.
+ */
+export async function generateCleanAIResponseBlob(
+  content: string,
+  title: string = "AI Assistant Response",
+  options?: { footerNote?: string; logoUrl?: string; logoPosition?: 'left' | 'center' | 'right' }
+): Promise<Blob> {
+  const children: (Paragraph | Table)[] = [];
+
+  // Insert practice logo if provided
+  if (options?.logoUrl) {
+    try {
+      const response = await fetch(options.logoUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const logoAlign = options?.logoPosition || 'left';
+        const alignMap = { left: AlignmentType.LEFT, center: AlignmentType.CENTER, right: AlignmentType.RIGHT };
+        children.push(new Paragraph({
+          children: [
+            new ImageRun({
+              data: uint8Array,
+              transformation: { width: 160, height: 60 },
+              type: 'png',
+            } as any),
+          ],
+          alignment: alignMap[logoAlign],
+          spacing: { after: 200 },
+        }));
+      }
+    } catch (e) {
+      console.warn('Failed to fetch logo for Word document:', e);
+    }
+  }
+
+  // Reuse the same document building logic
+  // Title
+  children.push(new Paragraph({
+    children: [
+      new TextRun({
+        text: title,
+        bold: true,
+        font: FONTS.default,
+        size: FONTS.size.title,
+        color: COLORS.headingBlue,
+      }),
+    ],
+    spacing: { before: 100, after: 60 },
+    alignment: AlignmentType.CENTER,
+  }));
+
+  // Date
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  children.push(new Paragraph({
+    children: [
+      new TextRun({
+        text: `${dateStr} at ${timeStr}`,
+        font: FONTS.default,
+        size: FONTS.size.small,
+        color: COLORS.dateGrey,
+        italics: true,
+      }),
+    ],
+    spacing: { after: 200 },
+    alignment: AlignmentType.CENTER,
+  }));
+
+  // Parse and add content lines
+  const lines = content.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (/^[-*_]{3,}$/.test(trimmed)) continue;
+
+    // Table detection
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      // Collect table lines
+      const tableStartIdx = lines.indexOf(line);
+      // Skip individual table lines here — they're handled in the main function
+      // For blob generation, render as plain text
+      children.push(new Paragraph({
+        children: createTextRuns(trimmed.replace(/\|/g, '  ').trim()),
+        spacing: { after: 60 },
+      }));
+      continue;
+    }
+
+    const parsed = parseMarkdownLine(trimmed);
+    switch (parsed.type) {
+      case 'heading1':
+        children.push(new Paragraph({
+          children: [new TextRun({ text: parsed.content, bold: true, font: FONTS.default, size: FONTS.size.heading1, color: COLORS.headingBlue })],
+          spacing: { before: 240, after: 120 },
+        }));
+        break;
+      case 'heading2':
+      case 'heading3':
+        children.push(new Paragraph({
+          children: [new TextRun({ text: parsed.content, bold: true, font: FONTS.default, size: FONTS.size.heading2, color: COLORS.headingBlue })],
+          spacing: { before: 200, after: 100 },
+        }));
+        break;
+      case 'bullet':
+        children.push(new Paragraph({
+          children: createTextRuns(parsed.content),
+          bullet: { level: 0 },
+          spacing: { after: 60 },
+          indent: { left: convertInchesToTwip(0.25) },
+        }));
+        break;
+      case 'numbered':
+        children.push(new Paragraph({
+          children: [
+            new TextRun({ text: `${parsed.number}. `, bold: true, font: FONTS.default, size: FONTS.size.body, color: COLORS.textGrey }),
+            ...createTextRuns(parsed.content),
+          ],
+          spacing: { after: 60 },
+          indent: { left: convertInchesToTwip(0.25) },
+        }));
+        break;
+      default:
+        if (parsed.content) {
+          children.push(new Paragraph({
+            children: createTextRuns(parsed.content),
+            spacing: { after: 120 },
+            alignment: AlignmentType.LEFT,
+          }));
+        }
+    }
+  }
+
+  // Footer
+  if (options?.footerNote) {
+    children.push(new Paragraph({ children: [new TextRun({ text: '' })], spacing: { after: 200 } }));
+    children.push(new Paragraph({
+      children: [new TextRun({ text: options.footerNote, font: FONTS.default, size: FONTS.size.body, color: COLORS.dateGrey, italics: true })],
+      spacing: { before: 300, after: 60 },
+      alignment: AlignmentType.LEFT,
+    }));
+  }
+
+  const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: { font: FONTS.default, size: FONTS.size.body, color: COLORS.textGrey },
+          paragraph: { spacing: { line: 276, after: 120 } },
+        },
+      },
+    },
+    sections: [{
+      properties: {
+        page: {
+          margin: { top: convertInchesToTwip(1), bottom: convertInchesToTwip(1), left: convertInchesToTwip(1), right: convertInchesToTwip(1) },
+        },
+      },
+      children,
+    }],
+  });
+
+  return await Packer.toBlob(doc);
+}
