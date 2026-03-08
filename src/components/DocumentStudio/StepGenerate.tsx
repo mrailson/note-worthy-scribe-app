@@ -246,7 +246,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
         {/* Document Preview Modal */}
         <DocumentPreviewModal
           content={state.generatedContent}
-          title={state.selectedType?.display_name || 'Custom Document'}
+          title={state.generatedTitle || state.selectedType?.display_name || 'Document'}
           isOpen={showPreview}
           onClose={() => setShowPreview(false)}
         />
