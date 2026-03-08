@@ -177,35 +177,6 @@ export const StepChoose: React.FC<StepChooseProps> = ({
         </div>
       )}
 
-      {/* Free-form fallback */}
-      <div className="pt-2 border-t">
-        <p className="text-xs text-muted-foreground mb-2">Or describe what you need in your own words...</p>
-        <div className="flex gap-2">
-          <Input
-            placeholder="e.g. A letter to the ICB requesting additional funding for..."
-            value={freeFormText}
-            onChange={(e) => setFreeFormText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && freeFormText.trim()) {
-                onFreeFormSelect(freeFormText.trim());
-              }
-            }}
-            className="flex-1"
-          />
-          <button
-            onClick={() => freeFormText.trim() && onFreeFormSelect(freeFormText.trim())}
-            disabled={!freeFormText.trim()}
-            className={cn(
-              'px-4 py-2 rounded-[10px] text-sm font-semibold transition-all',
-              freeFormText.trim()
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-muted text-muted-foreground cursor-not-allowed'
-            )}
-          >
-            Go
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
