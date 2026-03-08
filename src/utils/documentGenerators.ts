@@ -1701,6 +1701,19 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
       i++;
     }
 
+    // Add footer to all pages
+    if (options?.footerNote) {
+      const totalPages = pdf.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        pdf.setPage(p);
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(...PDF_COLORS.grey);
+        pdf.text(options.footerNote, margin, pageHeight - 8);
+        pdf.text(`Page ${p} of ${totalPages}`, pageWidth - margin - 20, pageHeight - 8);
+      }
+    }
+
     // Save
     const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
     pdf.save(fileName);
