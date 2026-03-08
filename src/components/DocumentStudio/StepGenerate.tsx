@@ -227,6 +227,17 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
           </div>
         </div>
 
+        {/* AI Edit Panel — inline on generate tab */}
+        <div className="border rounded-xl overflow-hidden">
+          <DocumentAIEditPanel
+            content={state.generatedContent}
+            title={state.generatedTitle || state.selectedType?.display_name || 'Document'}
+            onContentUpdated={(newContent) => onUpdateState({ generatedContent: newContent })}
+            isOpen={showAIEdit}
+            onToggle={() => setShowAIEdit(v => !v)}
+          />
+        </div>
+
         {/* Actions */}
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setShowPreview(true)}>
