@@ -91,6 +91,86 @@ export interface MainCategory {
 export const mainCategories: MainCategory[] = [
   // Row 1 — Respond first, then Documents
   {
+    id: 'respond',
+    shortTitle: 'Respond',
+    title: 'Respond & Draft',
+    description: 'Draft responses, letters, and emails',
+    icon: MessageSquare,
+    gradient: 'from-red-500 to-red-600',
+    subCategories: [
+      {
+        id: 'complaints',
+        shortTitle: 'Complaints',
+        title: 'Complaint Responses',
+        description: 'Professional complaint handling',
+        icon: AlertTriangle,
+        gradient: 'from-red-400 to-red-500',
+        prompts: [
+          { id: 'comp-ack', shortTitle: 'Acknowledgement', title: 'Complaint Acknowledgement', description: 'Draft complaint acknowledgement', prompt: 'Draft a professional complaint acknowledgement letter. The complaint is about:' },
+          { id: 'comp-response', shortTitle: 'Full Response', title: 'Complaint Response', description: 'Draft full complaint response', prompt: 'Draft a comprehensive complaint response letter addressing:' },
+          { id: 'comp-apology', shortTitle: 'Apology', title: 'Apology Letter', description: 'Draft sincere apology', prompt: 'Draft a sincere apology letter for a complaint regarding:' },
+          { id: 'comp-resolution', shortTitle: 'Resolution', title: 'Resolution Letter', description: 'Draft resolution outcome', prompt: 'Draft a resolution letter explaining the outcome and actions taken for:' },
+        ]
+      },
+      {
+        id: 'letters',
+        shortTitle: 'Letters',
+        title: 'Professional Letters',
+        description: 'Formal business correspondence',
+        icon: Mail,
+        gradient: 'from-red-500 to-red-600',
+        prompts: [
+          { id: 'let-patient', shortTitle: 'Patient Letter', title: 'Patient Letter', description: 'Draft patient communication', prompt: 'Draft a professional letter to a patient regarding:' },
+          { id: 'let-referral', shortTitle: 'Referral', title: 'Referral Letter', description: 'Draft referral letter', prompt: 'Draft a referral letter for a patient being referred for:' },
+          { id: 'let-nhs', shortTitle: 'NHS/ICB', title: 'NHS Letter', description: 'Draft NHS correspondence', prompt: 'Draft a formal letter to NHS England/ICB regarding:' },
+          { id: 'let-stakeholder', shortTitle: 'Stakeholder', title: 'Stakeholder Letter', description: 'Draft stakeholder communication', prompt: 'Draft a letter to our stakeholders about:' },
+        ]
+      },
+      {
+        id: 'emails',
+        shortTitle: 'Emails',
+        title: 'Email Drafts',
+        description: 'Professional email communications',
+        icon: MessageCircle,
+        gradient: 'from-orange-500 to-orange-600',
+        prompts: [
+          { id: 'email-staff', shortTitle: 'Staff Update', title: 'Staff Email', description: 'Draft staff email', prompt: 'Draft a professional email to all staff about:' },
+          { id: 'email-patient', shortTitle: 'Patient Comms', title: 'Patient Email', description: 'Draft patient email', prompt: 'Draft a patient communication email about:' },
+          { id: 'email-external', shortTitle: 'External', title: 'External Email', description: 'Draft external email', prompt: 'Draft a professional email to an external organisation about:' },
+          { id: 'email-followup', shortTitle: 'Follow-up', title: 'Follow-up Email', description: 'Draft follow-up email', prompt: 'Draft a follow-up email regarding:' },
+          { id: 'email-polish', shortTitle: 'Polish Draft', title: 'Polish My Email', description: 'Review and improve your draft email', prompt: `Please review and polish my draft email below. Check for:
+
+1. **Accuracy** - Ensure all facts, dates, and details are consistent and clear
+2. **Professional Tone** - Make it appropriately formal for NHS/healthcare communication
+3. **NHS Best Practice** - Follow NHS communication guidelines (clear, concise, patient-centred)
+4. **Grammar & Spelling** - Correct any errors
+5. **Structure** - Ensure logical flow with clear opening, body, and closing
+6. **Clarity** - Remove jargon and ensure the message is easily understood
+
+Please provide:
+- The polished version of my email
+- A brief summary of changes made
+- Any suggestions for improvement
+
+My draft email:` },
+        ]
+      },
+      {
+        id: 'phone-scripts',
+        shortTitle: 'Phone Scripts',
+        title: 'Telephone Scripts',
+        description: 'Scripts for phone conversations',
+        icon: Phone,
+        gradient: 'from-yellow-500 to-yellow-600',
+        prompts: [
+          { id: 'phone-callback', shortTitle: 'Callback', title: 'Callback Script', description: 'Patient callback script', prompt: 'Create a professional telephone script for calling patients back about:' },
+          { id: 'phone-difficult', shortTitle: 'Difficult Calls', title: 'Difficult Conversation', description: 'Difficult conversation script', prompt: 'Create a script for handling a difficult phone conversation about:' },
+          { id: 'phone-triage', shortTitle: 'Triage', title: 'Triage Script', description: 'Telephone triage script', prompt: 'Create a telephone triage script for assessing:' },
+        ]
+      },
+    ]
+  },
+  {
     id: 'documents',
     shortTitle: 'Documents',
     title: 'Create Documents',
@@ -169,87 +249,6 @@ export const mainCategories: MainCategory[] = [
           { id: 'qr-website', shortTitle: 'Website', title: 'Website QR Code', description: 'Create website QR code', prompt: 'Create a QR code linking to our practice website' },
           { id: 'qr-feedback', shortTitle: 'Feedback Form', title: 'Feedback QR Code', description: 'Create feedback QR code', prompt: 'Create a QR code for our online patient feedback form' },
           { id: 'qr-nhsapp', shortTitle: 'NHS App', title: 'NHS App QR Code', description: 'Create NHS App QR code', prompt: 'Create a QR code linking to the NHS App download page' },
-        ]
-      },
-    ]
-  },
-  // Note: "Visuals" category removed - use Image Studio or Presentation Studio instead
-  {
-    id: 'respond',
-    shortTitle: 'Respond',
-    title: 'Respond & Draft',
-    description: 'Draft responses, letters, and emails',
-    icon: MessageSquare,
-    gradient: 'from-red-500 to-red-600',
-    subCategories: [
-      {
-        id: 'complaints',
-        shortTitle: 'Complaints',
-        title: 'Complaint Responses',
-        description: 'Professional complaint handling',
-        icon: AlertTriangle,
-        gradient: 'from-red-400 to-red-500',
-        prompts: [
-          { id: 'comp-ack', shortTitle: 'Acknowledgement', title: 'Complaint Acknowledgement', description: 'Draft complaint acknowledgement', prompt: 'Draft a professional complaint acknowledgement letter. The complaint is about:' },
-          { id: 'comp-response', shortTitle: 'Full Response', title: 'Complaint Response', description: 'Draft full complaint response', prompt: 'Draft a comprehensive complaint response letter addressing:' },
-          { id: 'comp-apology', shortTitle: 'Apology', title: 'Apology Letter', description: 'Draft sincere apology', prompt: 'Draft a sincere apology letter for a complaint regarding:' },
-          { id: 'comp-resolution', shortTitle: 'Resolution', title: 'Resolution Letter', description: 'Draft resolution outcome', prompt: 'Draft a resolution letter explaining the outcome and actions taken for:' },
-        ]
-      },
-      {
-        id: 'letters',
-        shortTitle: 'Letters',
-        title: 'Professional Letters',
-        description: 'Formal business correspondence',
-        icon: Mail,
-        gradient: 'from-red-500 to-red-600',
-        prompts: [
-          { id: 'let-patient', shortTitle: 'Patient Letter', title: 'Patient Letter', description: 'Draft patient communication', prompt: 'Draft a professional letter to a patient regarding:' },
-          { id: 'let-referral', shortTitle: 'Referral', title: 'Referral Letter', description: 'Draft referral letter', prompt: 'Draft a referral letter for a patient being referred for:' },
-          { id: 'let-nhs', shortTitle: 'NHS/ICB', title: 'NHS Letter', description: 'Draft NHS correspondence', prompt: 'Draft a formal letter to NHS England/ICB regarding:' },
-          { id: 'let-stakeholder', shortTitle: 'Stakeholder', title: 'Stakeholder Letter', description: 'Draft stakeholder communication', prompt: 'Draft a letter to our stakeholders about:' },
-        ]
-      },
-      {
-        id: 'emails',
-        shortTitle: 'Emails',
-        title: 'Email Drafts',
-        description: 'Professional email communications',
-        icon: MessageCircle,
-        gradient: 'from-orange-500 to-orange-600',
-        prompts: [
-          { id: 'email-staff', shortTitle: 'Staff Update', title: 'Staff Email', description: 'Draft staff email', prompt: 'Draft a professional email to all staff about:' },
-          { id: 'email-patient', shortTitle: 'Patient Comms', title: 'Patient Email', description: 'Draft patient email', prompt: 'Draft a patient communication email about:' },
-          { id: 'email-external', shortTitle: 'External', title: 'External Email', description: 'Draft external email', prompt: 'Draft a professional email to an external organisation about:' },
-          { id: 'email-followup', shortTitle: 'Follow-up', title: 'Follow-up Email', description: 'Draft follow-up email', prompt: 'Draft a follow-up email regarding:' },
-          { id: 'email-polish', shortTitle: 'Polish Draft', title: 'Polish My Email', description: 'Review and improve your draft email', prompt: `Please review and polish my draft email below. Check for:
-
-1. **Accuracy** - Ensure all facts, dates, and details are consistent and clear
-2. **Professional Tone** - Make it appropriately formal for NHS/healthcare communication
-3. **NHS Best Practice** - Follow NHS communication guidelines (clear, concise, patient-centred)
-4. **Grammar & Spelling** - Correct any errors
-5. **Structure** - Ensure logical flow with clear opening, body, and closing
-6. **Clarity** - Remove jargon and ensure the message is easily understood
-
-Please provide:
-- The polished version of my email
-- A brief summary of changes made
-- Any suggestions for improvement
-
-My draft email:` },
-        ]
-      },
-      {
-        id: 'phone-scripts',
-        shortTitle: 'Phone Scripts',
-        title: 'Telephone Scripts',
-        description: 'Scripts for phone conversations',
-        icon: Phone,
-        gradient: 'from-yellow-500 to-yellow-600',
-        prompts: [
-          { id: 'phone-callback', shortTitle: 'Callback', title: 'Callback Script', description: 'Patient callback script', prompt: 'Create a professional telephone script for calling patients back about:' },
-          { id: 'phone-difficult', shortTitle: 'Difficult Calls', title: 'Difficult Conversation', description: 'Difficult conversation script', prompt: 'Create a script for handling a difficult phone conversation about:' },
-          { id: 'phone-triage', shortTitle: 'Triage', title: 'Triage Script', description: 'Telephone triage script', prompt: 'Create a telephone triage script for assessing:' },
         ]
       },
     ]
