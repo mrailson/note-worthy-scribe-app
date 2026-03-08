@@ -161,7 +161,7 @@ export const DocumentStudioModal: React.FC<DocumentStudioModalProps> = ({ open, 
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleReset(); onOpenChange(v); }}>
-      <DialogContent className="max-w-5xl h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
+      <DialogContent className="max-w-6xl h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
         {/* Header */}
         <DialogHeader className="p-4 pb-2 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
