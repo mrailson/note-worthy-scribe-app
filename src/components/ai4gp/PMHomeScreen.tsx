@@ -190,8 +190,8 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
   );
 
   return (
-    <div className="p-3 sm:p-4">
-      <div className="space-y-3">
+    <div className="p-2 sm:p-3">
+      <div className="space-y-2">
         {activeView.type === 'main' ? (
           <>
             <div className="grid grid-cols-3 gap-2 max-w-2xl mx-auto">

@@ -820,7 +820,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                           <>
                             
                             {/* Role Selection Toggle with Prompts Link */}
-                            <div className="flex items-center justify-center gap-3 mb-2">
+                            <div className="flex items-center justify-center gap-3 mb-1">
                               <RoleToggle
                                 selectedRole={selectedRole}
                                 onRoleChange={setSelectedRole}
