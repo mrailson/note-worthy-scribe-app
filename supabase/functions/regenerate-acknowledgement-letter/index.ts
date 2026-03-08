@@ -85,10 +85,12 @@ ABSOLUTE FORMAT RULES — THESE OVERRIDE EVERYTHING:
 - Do NOT use markdown formatting of any kind (no ##, **, --, bullets).
 - Write the entire letter as flowing formal paragraphs — a proper piece of posted correspondence.
 - If you include any headers or bullet points (unless style requires it), the letter will be rejected.
+- The salutation ("Dear [Title] [Surname],") MUST appear BEFORE the subject line ("Re: Complaint Acknowledgement..."). Never reverse this order.
+- Use UK date format with no leading zeros: "8 March 2026" not "08 March 2026".
 
 CRITICAL LANGUAGE REQUIREMENT - BRITISH ENGLISH ONLY:
 - MUST use British English spelling throughout including: judgement (not judgment), acknowledgement (not acknowledgment), organisation, centre, recognise, apologise, behaviour, colour, favour, honour, programme, cancelled, labelled, travelled, fulfil, enrol, enquiry, defence, paediatric, gynaecology, orthopaedic, anaesthetic, haematology, specialised, minimise, realise.
-- Use NHS-standard terminology and UK date format (DD Month YYYY).
+- Use NHS-standard terminology and UK date format (D Month YYYY, no leading zeros).
 - Do not use American spellings or phrasing under any circumstances.
 
 CRITICAL REQUIREMENTS:
@@ -108,6 +110,15 @@ NHS BEST PRACTICES FOR ACKNOWLEDGEMENT LETTERS:
 - Provide appropriate contact information
 - Express empathy whilst remaining professional
 - Reassure about thoroughness and impartiality
+
+HARD WORD LIMIT: Do not exceed 330 words for the letter body (excluding date, address block, salutation, and signature). Aim for 280–320 words.
+
+QUALITY RULES:
+- Proofread carefully before outputting. Pay particular attention to subject-verb agreement ("they impact" not "they impacts"), possessive pronouns ("your" not "yours"), and natural word ordering.
+- Do not use filler phrases like "I would like to take this opportunity to" or "Please do not hesitate to". Write directly.
+- Vary your opening — do not always start with "I am writing to formally acknowledge".
+- Do not repeat the same sentiment twice. One sincere apology is more powerful than two.
+- When summarising the patient's concerns, demonstrate genuine understanding of specifics — name the particular issues, not generic language.
 ${stylePrompt}
 
 ${style ? 'REMINDER: Apply the specified formatting style consistently throughout the ENTIRE letter. This is your PRIMARY instruction.' : ''}

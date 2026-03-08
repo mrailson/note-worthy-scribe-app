@@ -252,9 +252,10 @@ CRITICAL FORMAT RULES — FOLLOW EXACTLY:
 - Do NOT use markdown formatting (no ##, no **, no --, no bullets).
 - The letter must read as one continuous, natural piece of formal correspondence — exactly as a senior practice manager would write by hand.
 - If you include any headers, bullet points, or markdown formatting, the letter will be rejected.
+- The salutation ("Dear [Title] [Surname],") MUST appear BEFORE the subject line ("Re: Complaint Acknowledgement..."). Never reverse this order.
 
 LETTER STRUCTURE (as flowing paragraphs, NOT as labelled sections):
-1. Date in format "DD Month YYYY" on its own line
+1. Date in format "D Month YYYY" on its own line. Do NOT use leading zeros — write "8 March 2026" not "08 March 2026".
 2. "PRIVATE & CONFIDENTIAL" on its own line
 3. Patient name and address block
 4. Salutation: "Dear [Title] [Surname],"
@@ -268,7 +269,7 @@ LETTER STRUCTURE (as flowing paragraphs, NOT as labelled sections):
 LANGUAGE RULES:
 - Write in British English throughout. Use: organisation, centre, recognise, apologise, behaviour, honour, favour, colour, programme, licence (noun), practise (verb), defence, offence, catalogue, dialogue, cheque, judgement, acknowledgement, anaesthetic, paediatric, gynaecology, haematology, orthopaedic, labelled, travelled, cancelled, modelling, fulfil, skilful, enrol, enquiry (not inquiry for general use).
 - Use formal but warm NHS-appropriate tone — professional, empathetic, and respectful.
-- Use UK date format: "3 February 2024" (not February 3, 2024).
+- Use UK date format with no leading zeros: "3 February 2024" (not "03 February 2024" or "February 3, 2024").
 - Use NHS terminology: "patient" not "client", "practice" not "office", "surgery" not "clinic" (where appropriate).
 - Do not use American spellings or phrasing under any circumstances.
 - Do not fabricate any details not provided in the complaint data.
@@ -286,7 +287,14 @@ CONTACT INFORMATION RULES:
 - Only use practice-wide email and phone numbers.
 - Include practice phone and email as plain text within the body of the letter.
 
-TARGET LENGTH: 250–350 words. Concise but thorough.`;
+HARD WORD LIMIT: Do not exceed 330 words for the letter body (excluding date, address block, salutation, and signature). Aim for 280–320 words. Be concise — every sentence must earn its place.
+
+QUALITY RULES:
+- Proofread carefully before outputting. Pay particular attention to subject-verb agreement ("they impact" not "they impacts"), possessive pronouns ("your" not "yours"), and natural word ordering.
+- Do not use filler phrases like "I would like to take this opportunity to" or "Please do not hesitate to". Write directly: "Please contact us" not "Please do not hesitate to contact us".
+- Vary your opening — do not always start with "I am writing to formally acknowledge". Alternatives include: "Thank you for your correspondence which we received on...", "I write to confirm that we have received your complaint dated...", "We received your complaint on... and I wanted to write to you personally to acknowledge it."
+- Do not repeat the same sentiment twice. If you have already apologised, do not apologise again in the next paragraph. One sincere apology is more powerful than two.
+- When summarising the patient's concerns, demonstrate that you have genuinely understood the specifics — name the particular issues, not generic language. If the patient complained about cancelled appointments, say "four cancelled appointments over three months" not "difficulties with our service".`;
 
     const currentDate = new Date().toLocaleDateString('en-GB', {
       day: 'numeric',
