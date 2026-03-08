@@ -16,7 +16,7 @@ interface NoteTypeConfig {
 const noteConfigs: NoteTypeConfig[] = [
   {
     type: 'brief',
-    model: 'google/gemini-2.5-flash',
+    model: 'google/gemini-3.1-flash-lite-preview',
     systemPrompt: `Create a BRIEF GP/PCN Executive Summary with excellent formatting using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise'). Focus on key healthcare decisions, practice impacts, and immediate action items. Target busy GP Partners and Practice Managers who need quick operational insights.
 
 Format:
