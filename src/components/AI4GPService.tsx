@@ -960,6 +960,10 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         userRole={practiceContext?.userRole}
                         practiceContext={practiceContext}
                         onShowPMGenie={handleShowEmbeddedPMGenie}
+                        onOpenImageStudio={(desc?: string) => {
+                          setImageStudioInitialDescription(desc);
+                          setShowImageStudio(true);
+                        }}
                       />
                     </div>
                   )}
