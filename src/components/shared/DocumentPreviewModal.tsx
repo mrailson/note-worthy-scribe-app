@@ -228,6 +228,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
   const [infographicProgress, setInfographicProgress] = useState(0);
   const [infographicTipIdx, setInfographicTipIdx] = useState(0);
+  const [infographicFullscreen, setInfographicFullscreen] = useState(false);
   const { generateInfographic, isGenerating: isInfographicGenerating, currentPhase, error: infographicError } = useContentInfographic();
 
   const documentTitle = externalTitle || extractTitle(content);
