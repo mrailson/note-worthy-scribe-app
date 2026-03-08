@@ -222,7 +222,8 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
                   category.description,
                   category.icon,
                   category.gradient,
-                  () => handleCategoryClick(category)
+                  () => handleCategoryClick(category),
+                  category.isNew
                 )
               )}
             </div>
