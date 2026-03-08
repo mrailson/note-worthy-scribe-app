@@ -311,7 +311,7 @@ const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
       // Use the working ai-api-test approach for all models consistently
       const testPromises = [
         testClinicalModelDirect('google/gemini-3.1-pro-preview'),
-        testClinicalModelDirect('google/gemini-3.1-flash-lite-preview'),
+        testClinicalModelDirect('google/gemini-2.5-flash'),
         testClinicalModelDirect('google/gemini-3-flash-preview'),
         testClinicalModelDirect('openai/gpt-5'),
         testClinicalModelDirect('openai/gpt-5-mini'),
