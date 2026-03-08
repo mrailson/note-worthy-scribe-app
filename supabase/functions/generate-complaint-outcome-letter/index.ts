@@ -513,6 +513,38 @@ ${questionnaireData.additional_context ? `Additional Context: ${questionnaireDat
         }).join('\n')}\n`
       : '';
 
+    const investigationFindingsText = [
+      investigationFindings?.investigation_summary,
+      investigationFindings?.findings_text,
+      investigationFindings?.evidence_notes,
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+
+    const investigationDecisions = [
+      investigationDecision?.decision_reasoning,
+      investigationDecision?.corrective_actions,
+      investigationDecision?.lessons_learned,
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+
+    const evidenceSummaries = filteredEvidence
+      .map((e: any) => `${e.description || ''} ${e.ai_summary || ''}`.trim())
+      .filter(Boolean);
+
+    const transcriptSummaries = filteredTranscripts
+      .map((t: any) => t.transcript_text?.trim())
+      .filter(Boolean);
+
+    const hasInvestigationEvidence =
+      (investigationFindingsText && investigationFindingsText.trim().length > 0) ||
+      (investigationDecisions && investigationDecisions.trim().length > 0) ||
+      (evidenceSummaries && evidenceSummaries.length > 0) ||
+      (transcriptSummaries && transcriptSummaries.length > 0);
+
     // Build critical friend review context
     const criticalFriendContext = investigationFindings?.critical_friend_review
       ? `\nCRITICAL FRIEND REVIEW:\n${investigationFindings.critical_friend_review}\n`
@@ -544,7 +576,7 @@ ${internalNotes}
 ` : ''}
 ${evidenceContext}${transcriptContext}${criticalFriendContext}`;
 
-    const userPrompt = `Generate an outcome letter for this complaint using ONLY the information provided below. Ensure the letter covers all required content areas (opening acknowledgement, investigation summary, outcome, learning and improvements, individual resolution if appropriate, escalation rights, closing) but present them as a single flowing letter without any section headings or titles. Do not use bullet points anywhere in the letter.
+    let userPrompt = `Generate an outcome letter for this complaint using ONLY the information provided below. Ensure the letter covers all required content areas (opening acknowledgement, investigation summary, outcome, learning and improvements, individual resolution if appropriate, escalation rights, closing) but present them as a single flowing letter without any section headings or titles. Do not use bullet points anywhere in the letter.
 
 ========== COMPLAINT INFORMATION ==========
 Reference: ${complaint.reference_number}
@@ -625,6 +657,28 @@ CRITICAL SIGNATURE FORMATTING:
 - Never include personal email addresses or direct contact details in the signature
 - Do not include "*Letterhead/Logo Here*" or similar placeholder text anywhere in the letter
 - ${practiceDetails?.email ? `Use the practice email: ${practiceDetails.email}` : 'Use a generic practice email'} ${practiceDetails?.phone ? `and practice phone number: ${practiceDetails.phone}` : ''} for contact information.`;
+
+    if (!hasInvestigationEvidence) {
+      const prewrittenInvestigation =
+        `IMPORTANT: Use the following pre-written investigation paragraph EXACTLY as provided. ` +
+        `Do not modify it, expand it, or add any findings, root causes, system failures, or staff conduct details:\n\n` +
+        `"We have reviewed the circumstances of your complaint. Our investigation confirmed that ` +
+        `the events you described did occur and that our communication processes did not meet ` +
+        `the standard we expect. We acknowledge that you were not provided with adequate notice ` +
+        `of the changes to your appointments and we recognise the impact this had on you."`;
+
+      const prewrittenLearning =
+        `IMPORTANT: Use the following pre-written learning paragraph EXACTLY as provided. ` +
+        `Do not add any specific system failures, technical fixes, or protocol changes:\n\n` +
+        `"We are committed to learning from your experience to improve our service. ` +
+        `We are reviewing our appointment management and communication procedures to ensure ` +
+        `that patients are informed promptly of any changes to their scheduled care. ` +
+        `We have also briefed our administrative team on the importance of timely ` +
+        `patient communication."`;
+
+      userPrompt += `\n\n${prewrittenInvestigation}`;
+      userPrompt += `\n\n${prewrittenLearning}`;
+    }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
