@@ -38,7 +38,10 @@ interface ParsedLine {
 function parseMarkdownLine(line: string): ParsedLine {
   const trimmed = line.trim();
   
-  // Headings
+  // Headings (most specific first)
+  if (trimmed.startsWith('#### ')) {
+    return { type: 'heading3', content: cleanText(trimmed.slice(5)) };
+  }
   if (trimmed.startsWith('### ')) {
     return { type: 'heading3', content: cleanText(trimmed.slice(4)) };
   }
@@ -218,7 +221,14 @@ export async function generateCleanAIResponseDocument(
   let lastType: string = '';
   
   for (const line of lines) {
-    if (!line.trim()) {
+    const trimmedLine = line.trim();
+    
+    // Skip horizontal rules / separators (match preview behaviour)
+    if (/^[-*_]{3,}$/.test(trimmedLine)) {
+      continue;
+    }
+    
+    if (!trimmedLine) {
       // Empty line - add small spacing paragraph
       if (lastType !== 'empty') {
         children.push(new Paragraph({
