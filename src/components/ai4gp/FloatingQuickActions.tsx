@@ -60,11 +60,6 @@ export const FloatingQuickActions: React.FC<FloatingQuickActionsProps> = ({
       icon: Zap,
       label: 'Quick Image',
       action: onOpenQuickImageModal
-    },
-    {
-      icon: Palette,
-      label: 'Image Maker',
-      action: onOpenImageService
     }
   ];
 
