@@ -55,11 +55,17 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
   initialEditImage,
   initialMode,
+  initialDescription,
 }) => {
   const [showGallery, setShowGallery] = useState(false);
   const [studioMode, setStudioMode] = useState<'create' | 'edit' | 'stock'>(initialMode || 'create');
   const [pendingEditImage, setPendingEditImage] = useState<{ url: string; name: string } | null>(null);
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try {
+      return !localStorage.getItem(ONBOARDING_KEY);
+    } catch { return true; }
+  });
   
   const { fetchImages } = useImageGallery();
   const { allImages: stockImages, isAdmin, replaceStockImage, isReplacing } = useStockImages({ enabled: false });
