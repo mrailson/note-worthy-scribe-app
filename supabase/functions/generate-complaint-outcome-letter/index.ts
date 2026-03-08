@@ -513,6 +513,38 @@ ${questionnaireData.additional_context ? `Additional Context: ${questionnaireDat
         }).join('\n')}\n`
       : '';
 
+    const investigationFindingsText = [
+      investigationFindings?.investigation_summary,
+      investigationFindings?.findings_text,
+      investigationFindings?.evidence_notes,
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+
+    const investigationDecisions = [
+      investigationDecision?.decision_reasoning,
+      investigationDecision?.corrective_actions,
+      investigationDecision?.lessons_learned,
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+
+    const evidenceSummaries = filteredEvidence
+      .map((e: any) => `${e.description || ''} ${e.ai_summary || ''}`.trim())
+      .filter(Boolean);
+
+    const transcriptSummaries = filteredTranscripts
+      .map((t: any) => t.transcript_text?.trim())
+      .filter(Boolean);
+
+    const hasInvestigationEvidence =
+      (investigationFindingsText && investigationFindingsText.trim().length > 0) ||
+      (investigationDecisions && investigationDecisions.trim().length > 0) ||
+      (evidenceSummaries && evidenceSummaries.length > 0) ||
+      (transcriptSummaries && transcriptSummaries.length > 0);
+
     // Build critical friend review context
     const criticalFriendContext = investigationFindings?.critical_friend_review
       ? `\nCRITICAL FRIEND REVIEW:\n${investigationFindings.critical_friend_review}\n`
