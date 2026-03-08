@@ -17,8 +17,8 @@ export interface ModelOption {
 
 export const AVAILABLE_MODELS: ModelOption[] = [
   {
-    id: 'google/gemini-3.1-flash-lite-preview',
-    label: 'Gemini 3.1 Flash-Lite',
+    id: 'google/gemini-2.5-flash',
+    label: 'Gemini 2.5 Flash',
     description: 'Fastest & most cost-efficient. Best for general queries.',
     tier: 'standard',
     provider: 'google',
