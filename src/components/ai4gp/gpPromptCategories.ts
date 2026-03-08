@@ -579,7 +579,20 @@ export const gpCategories: MainCategory[] = [
     ]
   },
 
-  // 10. Ask AI Anything
+  // 10. Image Studio
+  {
+    id: 'image-studio',
+    shortTitle: 'Image Studio',
+    title: 'Image Studio',
+    description: 'Create professional patient posters, clinical notices, and visual aids',
+    icon: Palette,
+    gradient: 'from-fuchsia-500 to-purple-600',
+    subCategories: [],
+    opensImageStudio: true,
+    isNew: true,
+  },
+
+  // 11. Ask AI Anything
   {
     id: 'ask-anything',
     shortTitle: 'Ask AI',
