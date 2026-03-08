@@ -242,7 +242,7 @@ function detectSitStandMode(text: string): boolean {
 // Run single extraction with specified model
 async function runExtraction(
   content: { type: 'text'; text: string } | { type: 'image'; dataUrl: string },
-  model: string = 'google/gemini-2.5-flash',
+  model: string = 'google/gemini-3.1-flash-lite-preview',
   isSitStandMode: boolean = false
 ): Promise<BPReading[]> {
   const messages: any[] = [];
