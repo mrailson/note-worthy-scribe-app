@@ -80,6 +80,8 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
   const handleCategoryClick = (category: MainCategory) => {
     if (category.opensImageStudio) {
       onOpenImageStudio?.();
+    } else if (category.opensDocumentStudio) {
+      onOpenDocumentStudio?.();
     } else if (category.focusOnly) {
       focusInput?.();
     } else if (category.id === 'plt-planning') {

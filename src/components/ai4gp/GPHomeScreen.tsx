@@ -76,6 +76,8 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
   const handleCategoryClick = (category: MainCategory) => {
     if (category.opensImageStudio) {
       onOpenImageStudio?.();
+    } else if (category.opensDocumentStudio) {
+      onOpenDocumentStudio?.();
     } else if (category.focusOnly) {
       focusInput?.();
     } else if (category.subCategories.length > 0) {
