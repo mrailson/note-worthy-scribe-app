@@ -1384,193 +1384,292 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 20;
-    const lineHeight = 7;
     const maxLineWidth = pageWidth - (margin * 2);
-    let yPosition = margin;
+    let y = margin;
 
-    // Helper function to add a new page if needed
-    const addNewPageIfNeeded = (requiredHeight: number) => {
-      if (yPosition + requiredHeight > pageHeight - margin) {
+    const PDF_COLORS = {
+      headingBlue: [30, 58, 138] as [number, number, number],
+      subHeadingBlue: [37, 99, 235] as [number, number, number],
+      black: [0, 0, 0] as [number, number, number],
+      grey: [107, 114, 128] as [number, number, number],
+      tableHeaderBg: [30, 58, 138] as [number, number, number],
+      tableHeaderText: [255, 255, 255] as [number, number, number],
+      tableStripeBg: [248, 250, 252] as [number, number, number],
+      tableBorder: [203, 213, 225] as [number, number, number],
+      white: [255, 255, 255] as [number, number, number],
+    };
+
+    const checkPage = (needed: number) => {
+      if (y + needed > pageHeight - margin) {
         pdf.addPage();
-        yPosition = margin;
+        y = margin;
       }
     };
 
-    // Helper function to process text with formatting and proper wrapping
-    const addFormattedText = (text: string, fontSize: number, xPos: number = margin) => {
-      pdf.setFontSize(fontSize);
-      
-      // First, split the text into words to handle wrapping properly
-      const words = text.split(' ');
-      let currentLine = '';
-      let currentX = xPos;
-      
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i];
-        const testLine = currentLine + (currentLine ? ' ' : '') + word;
-        
-        // Check if this word contains formatting
-        const hasFormatting = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/.test(word);
-        
-        // Calculate width of test line
-        pdf.setFont('helvetica', 'normal'); // Reset to measure properly
-        const testWidth = pdf.getTextWidth(testLine);
-        
-        if (testWidth > maxLineWidth && currentLine !== '') {
-          // Current line is full, render it and start new line
-          renderFormattedLine(currentLine, fontSize, currentX);
-          yPosition += lineHeight;
-          addNewPageIfNeeded(lineHeight);
-          currentLine = word;
-          currentX = margin;
-        } else {
-          currentLine = testLine;
-        }
-      }
-      
-      // Render the last line
-      if (currentLine) {
-        renderFormattedLine(currentLine, fontSize, currentX);
-      }
+    const cleanMd = (text: string): string => {
+      return text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/`/g, '').trim();
     };
-    
-    // Helper function to render a line with formatting
-    const renderFormattedLine = (text: string, fontSize: number, xPos: number) => {
-      const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/);
-      let currentX = xPos;
-      
+
+    // Render a line with bold/italic inline formatting
+    const renderFormattedLine = (text: string, fontSize: number, x: number, color: [number, number, number] = PDF_COLORS.black, baseBold = false) => {
       pdf.setFontSize(fontSize);
-      
+      const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+      let cx = x;
       for (const part of parts) {
         if (!part) continue;
-        
-        let displayText = part;
-        let isBold = false;
-        let isItalic = false;
-        let isCode = false;
-        
-        // Check formatting
+        let display = part;
+        let bold = baseBold;
+        let italic = false;
         if (part.startsWith('**') && part.endsWith('**')) {
-          displayText = part.slice(2, -2);
-          isBold = true;
+          display = part.slice(2, -2);
+          bold = true;
         } else if (part.startsWith('*') && part.endsWith('*')) {
-          displayText = part.slice(1, -1);
-          isItalic = true;
-        } else if (part.startsWith('`') && part.endsWith('`')) {
-          displayText = part.slice(1, -1);
-          isCode = true;
+          display = part.slice(1, -1);
+          italic = true;
         }
-        
-        // Set font style
-        if (isBold && isItalic) {
-          pdf.setFont('helvetica', 'bolditalic');
-        } else if (isBold) {
-          pdf.setFont('helvetica', 'bold');
-        } else if (isItalic) {
-          pdf.setFont('helvetica', 'italic');
-        } else if (isCode) {
-          pdf.setFont('courier', 'normal');
-        } else {
-          pdf.setFont('helvetica', 'normal');
+        const style = bold && italic ? 'bolditalic' : bold ? 'bold' : italic ? 'italic' : 'normal';
+        pdf.setFont('helvetica', style);
+        pdf.setTextColor(...color);
+        const w = pdf.getTextWidth(display);
+        if (cx + w > pageWidth - margin && cx > x) {
+          y += fontSize * 0.5;
+          checkPage(fontSize * 0.5);
+          cx = x;
         }
-        
-        // Add text at current position
-        pdf.text(displayText, currentX, yPosition);
-        currentX += pdf.getTextWidth(displayText);
+        pdf.text(display, cx, y);
+        cx += w;
       }
-      
-      // Reset font
       pdf.setFont('helvetica', 'normal');
     };
 
-    // Add title
+    const addWrappedText = (text: string, fontSize: number, x: number, color: [number, number, number] = PDF_COLORS.black, baseBold = false) => {
+      const clean = text.replace(/`/g, '');
+      pdf.setFontSize(fontSize);
+      pdf.setFont('helvetica', baseBold ? 'bold' : 'normal');
+      const effectiveWidth = maxLineWidth - (x - margin);
+      const wrapped = pdf.splitTextToSize(cleanMd(clean), effectiveWidth);
+      for (let i = 0; i < wrapped.length; i++) {
+        checkPage(fontSize * 0.5);
+        renderFormattedLine(text.length === cleanMd(text).length ? wrapped[i] : (i === 0 ? text : ''), fontSize, x, color, baseBold);
+        if (i === 0 && text !== cleanMd(text)) {
+          // Only first line keeps formatting, rest are plain
+        }
+        y += fontSize * 0.5;
+      }
+    };
+
+    // ---- TITLE ----
+    checkPage(20);
     pdf.setFontSize(20);
     pdf.setFont('helvetica', 'bold');
-    pdf.text(title, margin, yPosition);
-    yPosition += lineHeight + 5;
+    pdf.setTextColor(...PDF_COLORS.headingBlue);
+    const titleLines = pdf.splitTextToSize(title, maxLineWidth);
+    for (const tl of titleLines) {
+      pdf.text(tl, margin, y);
+      y += 9;
+    }
+    y += 2;
 
-    // Add generation date
-    pdf.setFontSize(10);
+    // Date line
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(128, 128, 128);
-    pdf.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, margin, yPosition);
-    yPosition += lineHeight * 2;
+    pdf.setTextColor(...PDF_COLORS.grey);
+    pdf.text(`Generated on ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`, margin, y);
+    y += 10;
 
-    // Reset text color
-    pdf.setTextColor(0, 0, 0);
+    // Divider line
+    pdf.setDrawColor(...PDF_COLORS.tableBorder);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 8;
 
-    // Process content
-    const sections = content.split('\n\n');
-    
-    for (const section of sections) {
-      const trimmedSection = section.trim();
-      if (!trimmedSection) continue;
+    pdf.setTextColor(...PDF_COLORS.black);
 
-      const lines = trimmedSection.split('\n');
-      
-      for (const line of lines) {
-        if (!line.trim()) continue;
+    // ---- PROCESS CONTENT ----
+    const cleaned = content
+      .replace(/^```html\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```\s*$/i, '')
+      .replace(/^html\s*/i, '')
+      .replace(/\s*```[a-z]*\s*$/gi, '')
+      .replace(/<[^>]*>/g, '')
+      .trim();
 
-        // Check if it's a heading
-        const headingMatch = line.match(/^(#+)\s+(.+)$/);
-        if (headingMatch) {
-          const level = Math.min(headingMatch[1].length, 6);
-          const headingText = headingMatch[2];
-          
-          // Add space before heading
-          yPosition += 5;
-          addNewPageIfNeeded(lineHeight + 5);
-          
-          // Set heading style
-          const fontSize = 16 - (level * 1);
-          pdf.setFontSize(fontSize);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setTextColor(46, 92, 138); // Blue color
-          
-          addFormattedText(headingText, fontSize);
-          yPosition += lineHeight + 3;
-          
-          // Reset style
-          pdf.setFont('helvetica', 'normal');
-          pdf.setTextColor(0, 0, 0);
-          
-        } else {
-          // Regular text - preserve formatting
-          if (!line.trim()) continue;
-          
-          // Check if line contains table indicators
-          if (line.includes('|') && line.split('|').length > 2) {
-            // Simple table handling - split by pipes
-            const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
-            if (cells.length > 0 && !cells.every(cell => /^[-\s]*$/.test(cell))) {
-              addNewPageIfNeeded(lineHeight);
-              pdf.setFontSize(10);
-              pdf.setFont('helvetica', 'normal');
-              
-              const cellWidth = (maxLineWidth - 10) / cells.length; // Leave some margin
-              cells.forEach((cell, index) => {
-                const xPos = margin + (index * cellWidth);
-                // Use simple text for table cells to avoid formatting issues
-                const cleanText = cleanMarkdown(cell);
-                const wrappedText = pdf.splitTextToSize(cleanText, cellWidth - 5);
-                pdf.text(wrappedText[0] || '', xPos, yPosition); // Just first line for tables
-              });
-              yPosition += lineHeight;
-            }
-          } else {
-            // Regular paragraph with formatting
-            addNewPageIfNeeded(lineHeight);
-            addFormattedText(line, 11);
-            yPosition += lineHeight;
-          }
-        }
+    const lines = cleaned.split('\n');
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      // Skip empty lines (add small spacing)
+      if (!trimmed) {
+        y += 3;
+        i++;
+        continue;
       }
-      
-      // Add space between sections
-      yPosition += 5;
+
+      // Skip horizontal rules
+      if (/^[-*_]{3,}$/.test(trimmed)) {
+        i++;
+        continue;
+      }
+
+      // ---- HEADINGS ----
+      const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const headingText = headingMatch[2].replace(/\*\*/g, '').replace(/\*/g, '');
+        y += level <= 2 ? 6 : 4;
+        const fontSize = level === 1 ? 16 : level === 2 ? 14 : level === 3 ? 12 : 11;
+        const color = level <= 2 ? PDF_COLORS.headingBlue : PDF_COLORS.subHeadingBlue;
+        checkPage(fontSize * 0.6 + 4);
+        pdf.setFontSize(fontSize);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...color);
+        const wrapped = pdf.splitTextToSize(headingText, maxLineWidth);
+        for (const wl of wrapped) {
+          pdf.text(wl, margin, y);
+          y += fontSize * 0.5;
+        }
+        y += 3;
+        // Add underline for h1/h2
+        if (level <= 2) {
+          pdf.setDrawColor(...color);
+          pdf.setLineWidth(0.3);
+          pdf.line(margin, y - 2, margin + Math.min(pdf.getTextWidth(headingText), maxLineWidth), y - 2);
+          y += 2;
+        }
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(...PDF_COLORS.black);
+        i++;
+        continue;
+      }
+
+      // ---- TABLES ----
+      if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+        const tableRows: string[][] = [];
+        let hasHeader = false;
+
+        while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+          const row = lines[i].trim();
+          // Skip separator rows
+          if (/^\|[\s\-:|]+\|$/.test(row)) {
+            hasHeader = tableRows.length === 1;
+            i++;
+            continue;
+          }
+          const cells = row.split('|').slice(1, -1).map(c => c.trim());
+          tableRows.push(cells);
+          i++;
+        }
+
+        if (tableRows.length > 0) {
+          const colCount = Math.max(...tableRows.map(r => r.length));
+          const colWidth = maxLineWidth / colCount;
+          const rowHeight = 8;
+          const cellPadding = 2;
+
+          y += 3;
+
+          for (let r = 0; r < tableRows.length; r++) {
+            checkPage(rowHeight + 2);
+            const isHeaderRow = hasHeader && r === 0;
+            const isStripe = !isHeaderRow && r % 2 === 0;
+
+            // Background
+            if (isHeaderRow) {
+              pdf.setFillColor(...PDF_COLORS.tableHeaderBg);
+              pdf.rect(margin, y - 5, maxLineWidth, rowHeight, 'F');
+            } else if (isStripe) {
+              pdf.setFillColor(...PDF_COLORS.tableStripeBg);
+              pdf.rect(margin, y - 5, maxLineWidth, rowHeight, 'F');
+            }
+
+            // Border
+            pdf.setDrawColor(...PDF_COLORS.tableBorder);
+            pdf.setLineWidth(0.2);
+            pdf.rect(margin, y - 5, maxLineWidth, rowHeight, 'S');
+
+            // Cell borders and text
+            for (let c = 0; c < colCount; c++) {
+              const cellX = margin + (c * colWidth);
+              // Vertical cell border
+              if (c > 0) {
+                pdf.line(cellX, y - 5, cellX, y - 5 + rowHeight);
+              }
+              const cellText = cleanMd(tableRows[r][c] || '');
+              pdf.setFontSize(9);
+              if (isHeaderRow) {
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(...PDF_COLORS.tableHeaderText);
+              } else {
+                pdf.setFont('helvetica', 'normal');
+                pdf.setTextColor(...PDF_COLORS.black);
+              }
+              // Truncate if too wide
+              const truncated = pdf.splitTextToSize(cellText, colWidth - (cellPadding * 2));
+              pdf.text(truncated[0] || '', cellX + cellPadding, y);
+            }
+            y += rowHeight;
+          }
+          y += 4;
+          pdf.setTextColor(...PDF_COLORS.black);
+          pdf.setFont('helvetica', 'normal');
+        }
+        continue;
+      }
+
+      // ---- BULLET POINTS ----
+      const bulletMatch = trimmed.match(/^(\s*)([-•*]|\d+[.)]) (.+)$/);
+      if (bulletMatch) {
+        const indent = bulletMatch[1] ? Math.min(Math.floor(bulletMatch[1].length / 2), 3) : 0;
+        const bulletText = bulletMatch[3];
+        const bulletX = margin + (indent * 6);
+        const bulletSymbol = /^\d/.test(bulletMatch[2]) ? bulletMatch[2] : indent === 0 ? '•' : indent === 1 ? '◦' : '–';
+
+        checkPage(7);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(...PDF_COLORS.black);
+        pdf.text(bulletSymbol, bulletX, y);
+
+        const textX = bulletX + pdf.getTextWidth(bulletSymbol + ' ');
+        const textWidth = pageWidth - margin - textX;
+        const wrapped = pdf.splitTextToSize(cleanMd(bulletText), textWidth);
+        for (let w = 0; w < wrapped.length; w++) {
+          checkPage(5.5);
+          renderFormattedLine(w === 0 ? bulletText : wrapped[w], 10, textX);
+          if (w === 0) {
+            // First line uses formatted render, but only output plain for subsequent
+          }
+          y += 5.5;
+        }
+        i++;
+        continue;
+      }
+
+      // ---- REGULAR PARAGRAPH ----
+      checkPage(6);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...PDF_COLORS.black);
+      const paraWidth = maxLineWidth;
+      const wrapped = pdf.splitTextToSize(cleanMd(trimmed), paraWidth);
+      for (let w = 0; w < wrapped.length; w++) {
+        checkPage(5.5);
+        if (w === 0) {
+          renderFormattedLine(trimmed, 10, margin);
+        } else {
+          pdf.text(wrapped[w], margin, y);
+        }
+        y += 5.5;
+      }
+      y += 2;
+      i++;
     }
 
-    // Save the PDF
+    // Save
     const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
     pdf.save(fileName);
     
