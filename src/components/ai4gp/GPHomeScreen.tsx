@@ -180,7 +180,7 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
       )}>
         <Icon className="w-4 h-4 text-white" />
       </div>
-      <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
+      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
         {shortTitle}
       </span>
     </button>
