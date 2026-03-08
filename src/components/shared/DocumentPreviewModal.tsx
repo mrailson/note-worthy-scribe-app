@@ -577,6 +577,46 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           )}
         </div>
       </DialogContent>
+
+      {/* Fullscreen infographic lightbox */}
+      {infographicFullscreen && infographicUrl && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center cursor-pointer"
+          onClick={() => setInfographicFullscreen(false)}
+        >
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadInfographic();
+              }}
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              onClick={() => setInfographicFullscreen(false)}
+            >
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
+          <img
+            src={infographicUrl}
+            alt="Infographic fullscreen"
+            className="max-w-[95vw] max-h-[95vh] object-contain select-none"
+            draggable={false}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm">
+            Click backdrop or <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-xs">Esc</kbd> to close
+          </div>
+        </div>
+      )}
     </Dialog>
   );
 };
