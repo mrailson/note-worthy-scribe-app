@@ -1414,7 +1414,7 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
       return text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/`/g, '').trim();
     };
 
-    // Render a line with bold/italic inline formatting
+    // Render a single pre-wrapped line with bold/italic inline formatting
     const renderFormattedLine = (text: string, fontSize: number, x: number, color: [number, number, number] = PDF_COLORS.black, baseBold = false) => {
       pdf.setFontSize(fontSize);
       const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
@@ -1434,32 +1434,33 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
         const style = bold && italic ? 'bolditalic' : bold ? 'bold' : italic ? 'italic' : 'normal';
         pdf.setFont('helvetica', style);
         pdf.setTextColor(...color);
-        const w = pdf.getTextWidth(display);
-        if (cx + w > pageWidth - margin && cx > x) {
-          y += fontSize * 0.5;
-          checkPage(fontSize * 0.5);
-          cx = x;
+        // Word-wrap within each part
+        const words = display.split(' ');
+        for (let wi = 0; wi < words.length; wi++) {
+          const word = (wi > 0 ? ' ' : '') + words[wi];
+          const ww = pdf.getTextWidth(word);
+          if (cx + ww > pageWidth - margin && cx > x) {
+            y += fontSize * 0.5;
+            checkPage(fontSize * 0.5);
+            cx = x;
+            // Re-draw without leading space
+            const trimWord = word.trimStart();
+            pdf.text(trimWord, cx, y);
+            cx += pdf.getTextWidth(trimWord);
+          } else {
+            pdf.text(word, cx, y);
+            cx += ww;
+          }
         }
-        pdf.text(display, cx, y);
-        cx += w;
       }
       pdf.setFont('helvetica', 'normal');
     };
 
-    const addWrappedText = (text: string, fontSize: number, x: number, color: [number, number, number] = PDF_COLORS.black, baseBold = false) => {
-      const clean = text.replace(/`/g, '');
-      pdf.setFontSize(fontSize);
-      pdf.setFont('helvetica', baseBold ? 'bold' : 'normal');
-      const effectiveWidth = maxLineWidth - (x - margin);
-      const wrapped = pdf.splitTextToSize(cleanMd(clean), effectiveWidth);
-      for (let i = 0; i < wrapped.length; i++) {
-        checkPage(fontSize * 0.5);
-        renderFormattedLine(text.length === cleanMd(text).length ? wrapped[i] : (i === 0 ? text : ''), fontSize, x, color, baseBold);
-        if (i === 0 && text !== cleanMd(text)) {
-          // Only first line keeps formatting, rest are plain
-        }
-        y += fontSize * 0.5;
-      }
+    // Add wrapped text using clean text for measurement, formatted for rendering
+    const addFormattedParagraph = (text: string, fontSize: number, x: number, color: [number, number, number] = PDF_COLORS.black, baseBold = false) => {
+      checkPage(fontSize * 0.5);
+      renderFormattedLine(text, fontSize, x, color, baseBold);
+      y += fontSize * 0.5;
     };
 
     // ---- LOGO ----
