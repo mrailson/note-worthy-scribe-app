@@ -385,42 +385,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   Session Settings
                 </h3>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="space-y-1">
-                      <Label htmlFor="response-metrics" className="text-sm font-medium cursor-pointer">
-                        Show Performance Metrics
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Display response time, token usage, and performance metrics
-                      </p>
-                    </div>
-                    <Switch
-                      id="response-metrics"
-                      checked={showResponseMetrics}
-                      onCheckedChange={(checked) => {
-                        onShowResponseMetricsChange(checked);
-                        onShowRenderTimesChange(checked);
-                      }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="space-y-1">
-                      <Label htmlFor="ai-service" className="text-sm font-medium cursor-pointer">
-                        Show AI Service
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Display which AI model was used
-                      </p>
-                    </div>
-                    <Switch
-                      id="ai-service"
-                      checked={showAIService}
-                      onCheckedChange={onShowAIServiceChange}
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Interface Features */}
