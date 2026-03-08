@@ -2129,7 +2129,7 @@ serve(async (req) => {
     } else {
       // Fallback to Lovable AI Gateway with default model
       console.log(`Unsupported model ${selectedModel}, falling back to Lovable AI Gateway`);
-      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3.1-flash-lite-preview', files);
+      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-2.5-flash', files);
     }
   
   console.log('Model call completed successfully');
