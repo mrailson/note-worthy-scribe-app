@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { DocumentPreviewModal } from '@/components/shared/DocumentPreviewModal';
+import { DocumentAIEditPanel } from '@/components/shared/DocumentAIEditPanel';
 import { toast } from 'sonner';
 import { FileProcessorManager } from '@/utils/fileProcessors/FileProcessorManager';
 import ReactMarkdown from 'react-markdown';
