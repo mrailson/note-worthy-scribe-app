@@ -38,7 +38,10 @@ interface ParsedLine {
 function parseMarkdownLine(line: string): ParsedLine {
   const trimmed = line.trim();
   
-  // Headings
+  // Headings (most specific first)
+  if (trimmed.startsWith('#### ')) {
+    return { type: 'heading3', content: cleanText(trimmed.slice(5)) };
+  }
   if (trimmed.startsWith('### ')) {
     return { type: 'heading3', content: cleanText(trimmed.slice(4)) };
   }
