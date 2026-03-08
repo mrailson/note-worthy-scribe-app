@@ -1,0 +1,248 @@
+import React, { useState, useCallback, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Sparkles, Loader2, RefreshCw, PenLine, Save, Download, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { DocumentPreviewModal } from '@/components/shared/DocumentPreviewModal';
+import { toast } from 'sonner';
+import { FileProcessorManager } from '@/utils/fileProcessors/FileProcessorManager';
+import type { DocumentStudioState } from './DocumentStudioModal';
+
+interface StepGenerateProps {
+  state: DocumentStudioState;
+  onUpdateState: (updates: Partial<DocumentStudioState>) => void;
+  onEditAndRegenerate: () => void;
+  onReset: () => void;
+}
+
+export const StepGenerate: React.FC<StepGenerateProps> = ({
+  state,
+  onUpdateState,
+  onEditAndRegenerate,
+  onReset,
+}) => {
+  const { practiceContext, practiceDetails } = usePracticeContext();
+  const [showPreview, setShowPreview] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const processUploadedFiles = async (): Promise<string[]> => {
+    const contents: string[] = [];
+    for (const file of state.uploadedFiles) {
+      try {
+        if (FileProcessorManager.isSupported(file.name)) {
+          const processed = await FileProcessorManager.processFile(file);
+          contents.push(`--- File: ${processed.name} ---\n${processed.content}`);
+        }
+      } catch (err) {
+        console.warn(`Could not process file: ${file.name}`, err);
+      }
+    }
+    return contents;
+  };
+
+  const handleGenerate = useCallback(async () => {
+    onUpdateState({ isGenerating: true, generatedContent: null });
+    setProgress(0);
+    
+    const progressInterval = setInterval(() => {
+      setProgress(prev => Math.min(prev + 2, 90));
+    }, 500);
+
+    try {
+      // Process uploaded files
+      const fileContents = await processUploadedFiles();
+
+      // Build the request
+      const body: Record<string, unknown> = {
+        action: 'generate_document',
+        documentType: state.selectedType?.type_key || 'custom',
+        documentTypeName: state.selectedType?.display_name || 'Custom Document',
+        systemPrompt: state.selectedType?.system_prompt_template || '',
+        freeFormRequest: state.freeFormRequest,
+        clarifyingAnswers: state.clarifyingAnswers,
+        supportingText: state.supportingText,
+        fileContents,
+        harmTriageResult: state.harmTriageResult,
+        practiceContext: {
+          practiceName: practiceContext.practiceName || practiceDetails?.practice_name,
+          practiceAddress: practiceContext.practiceAddress || practiceDetails?.address,
+          practicePhone: practiceContext.practicePhone || practiceDetails?.phone,
+          practiceEmail: practiceContext.practiceEmail || practiceDetails?.email,
+          userName: practiceContext.userName,
+        },
+      };
+
+      const { data, error } = await supabase.functions.invoke('generate-document-studio', {
+        body,
+      });
+
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      if (error) throw error;
+      if (!data?.content) throw new Error('No content returned');
+
+      onUpdateState({
+        generatedContent: data.content,
+        isGenerating: false,
+      });
+      
+      toast.success('Document generated successfully');
+    } catch (err) {
+      clearInterval(progressInterval);
+      console.error('Generation error:', err);
+      toast.error('Failed to generate document. Please try again.');
+      onUpdateState({ isGenerating: false });
+    }
+  }, [state, onUpdateState, practiceContext, practiceDetails]);
+
+  const handleRegenerate = useCallback(async () => {
+    const newVersion = state.version + 1;
+    const minor = newVersion > 1 ? newVersion - 1 : 0;
+    onUpdateState({
+      version: newVersion,
+      versionLabel: `v1.${minor}`,
+    });
+    await handleGenerate();
+  }, [state.version, onUpdateState, handleGenerate]);
+
+  const handleSave = useCallback(async () => {
+    if (!state.generatedContent) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please sign in to save documents');
+        return;
+      }
+
+      const title = state.selectedType?.display_name || state.freeFormRequest || 'Untitled Document';
+
+      const { error } = await supabase
+        .from('document_studio_documents')
+        .insert({
+          user_id: user.id,
+          document_type: state.selectedType?.type_key || 'custom',
+          title,
+          content: state.generatedContent,
+          version: state.version,
+          version_label: state.versionLabel,
+          inputs_json: {
+            freeFormRequest: state.freeFormRequest,
+            supportingText: state.supportingText,
+          },
+          clarifying_answers_json: state.clarifyingAnswers,
+          status: 'draft',
+        });
+
+      if (error) throw error;
+      toast.success('Document saved to My Documents');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save document');
+    }
+  }, [state]);
+
+  // Auto-generate on mount if no content yet
+  useEffect(() => {
+    if (!state.generatedContent && !state.isGenerating) {
+      handleGenerate();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Loading state
+  if (state.isGenerating) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm font-medium text-foreground">
+          Generating your {state.selectedType?.display_name || 'document'}...
+        </p>
+        <div className="w-64">
+          <Progress value={progress} className="h-2" />
+        </div>
+        <p className="text-xs text-muted-foreground">This may take a moment</p>
+      </div>
+    );
+  }
+
+  // Result
+  if (state.generatedContent) {
+    return (
+      <div className="space-y-4">
+        {/* Document info bar */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-foreground">
+              {state.selectedType?.display_name || 'Custom Document'}
+            </span>
+            <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+              {state.versionLabel}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Preview area - shows first ~500 chars */}
+        <div
+          className="border rounded-xl p-4 max-h-[45vh] overflow-y-auto cursor-pointer hover:border-primary/50 transition-colors"
+          onClick={() => setShowPreview(true)}
+        >
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            {state.generatedContent.slice(0, 2000).split('\n').map((line, i) => (
+              <p key={i} className="text-sm text-foreground mb-1">{line || '\u00A0'}</p>
+            ))}
+            {state.generatedContent.length > 2000 && (
+              <p className="text-xs text-primary font-medium mt-2">Click to view full document...</p>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setShowPreview(true)}>
+            <Download className="h-4 w-4 mr-2" />
+            View & Download
+          </Button>
+          <Button variant="outline" onClick={handleRegenerate}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Regenerate
+          </Button>
+          <Button variant="outline" onClick={onEditAndRegenerate}>
+            <PenLine className="h-4 w-4 mr-2" />
+            Edit & Regenerate
+          </Button>
+          <Button variant="outline" onClick={handleSave}>
+            <Save className="h-4 w-4 mr-2" />
+            Save to My Documents
+          </Button>
+        </div>
+
+        <Button variant="ghost" size="sm" onClick={onReset} className="text-muted-foreground">
+          <Sparkles className="h-4 w-4 mr-2" />
+          Start a new document
+        </Button>
+
+        {/* Document Preview Modal */}
+        <DocumentPreviewModal
+          content={state.generatedContent}
+          title={state.selectedType?.display_name || 'Custom Document'}
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+        />
+      </div>
+    );
+  }
+
+  // Fallback — shouldn't normally show
+  return (
+    <div className="flex flex-col items-center justify-center py-16 gap-4">
+      <Button onClick={handleGenerate}>
+        <Sparkles className="h-4 w-4 mr-2" />
+        Generate Document
+      </Button>
+    </div>
+  );
+};
