@@ -901,7 +901,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       };
 
       // Check if model supports streaming
-      const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-3-flash-preview', 'google/gemini-2.5-flash-lite', 'openai/gpt-5', 'openai/gpt-5-mini'];
+      const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-3-flash-preview', 'google/gemini-2.5-pro', 'openai/gpt-5', 'openai/gpt-5.2'];
       const canStream = streamableModels.includes(modelToUse);
       
       if (canStream) {
