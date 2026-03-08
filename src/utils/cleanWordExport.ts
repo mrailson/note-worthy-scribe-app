@@ -219,14 +219,40 @@ export async function generateCleanAIResponseDocument(
   // Split into lines and process
   const lines = cleanedContent.split('\n');
   let lastType: string = '';
+  let i = 0;
   
-  for (const line of lines) {
-    const trimmedLine = line.trim();
+  while (i < lines.length) {
+    const trimmedLine = lines[i].trim();
     
     // Skip horizontal rules / separators (match preview behaviour)
     if (/^[-*_]{3,}$/.test(trimmedLine)) {
+      i++;
       continue;
     }
+    
+    // Detect markdown table (line starts with |)
+    if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
+      // Collect all consecutive table lines
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+        tableLines.push(lines[i].trim());
+        i++;
+      }
+      
+      if (tableLines.length >= 2) {
+        const wordTable = buildWordTable(tableLines);
+        if (wordTable) {
+          children.push(wordTable);
+          lastType = 'table';
+          continue;
+        }
+      }
+      // If table parsing failed, fall through and re-process
+      i -= tableLines.length;
+    }
+    
+    const line = lines[i];
+    i++;
     
     if (!trimmedLine) {
       // Empty line - add small spacing paragraph
