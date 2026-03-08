@@ -1466,17 +1466,20 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
     // ---- LOGO ----
     if (options?.logoUrl) {
       try {
-        const imgResponse = await fetch(options.logoUrl);
+        const imgResponse = await fetch(options.logoUrl, { mode: 'cors' });
         if (imgResponse.ok) {
           const blob = await imgResponse.blob();
-          const reader = new FileReader();
-          const dataUrl = await new Promise<string>((resolve) => {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          const imgFormat = options.logoUrl.toLowerCase().includes('.png') ? 'PNG' : 'JPEG';
-          const logoWidth = 35;
-          const logoHeight = 18;
+          // Detect format from blob type or URL
+          const isPng = blob.type === 'image/png' || options.logoUrl.toLowerCase().includes('.png');
+          const imgFormat = isPng ? 'PNG' : 'JPEG';
+          const logoWidth = 40;
+          const logoHeight = 20;
           let logoX = margin;
           if (options.logoPosition === 'center') {
             logoX = (pageWidth - logoWidth) / 2;
@@ -1484,7 +1487,7 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
             logoX = pageWidth - margin - logoWidth;
           }
           pdf.addImage(dataUrl, imgFormat, logoX, y, logoWidth, logoHeight);
-          y += logoHeight + 4;
+          y += logoHeight + 5;
         }
       } catch (logoErr) {
         console.warn('Failed to add logo to PDF:', logoErr);
