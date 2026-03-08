@@ -701,6 +701,19 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                           <span className="hidden sm:inline text-xs">Image Studio</span>
                         </Button>
                       )}
+                      
+                      {/* Doc Studio link - hidden on mobile */}
+                      {!isMobile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-1 px-2 sm:px-3"
+                          onClick={() => setShowDocumentStudio(true)}
+                        >
+                          <FileText className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                          <span className="hidden sm:inline text-xs">Doc Studio</span>
+                        </Button>
+                      )}
                     </CardTitle>
                   </div>
                   
