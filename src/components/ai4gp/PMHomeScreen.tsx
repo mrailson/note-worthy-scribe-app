@@ -77,7 +77,9 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
   };
 
   const handleCategoryClick = (category: MainCategory) => {
-    if (category.focusOnly) {
+    if (category.opensImageStudio) {
+      onOpenImageStudio?.();
+    } else if (category.focusOnly) {
       focusInput?.();
     } else if (category.id === 'plt-planning') {
       // PLT Planning has special handling - show calendar first
