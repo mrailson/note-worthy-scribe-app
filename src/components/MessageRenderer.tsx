@@ -1637,6 +1637,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         practiceName={infographicPracticeName}
         spellingCorrections={infographicSpellingCorrections}
       />
+
+      {/* Document Preview Modal */}
+      <DocumentPreviewModal
+        content={message.content}
+        isOpen={showDocumentPreview}
+        onClose={() => setShowDocumentPreview(false)}
+      />
     </div>
   );
 };
