@@ -1550,7 +1550,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }, [setMessagesWithLimit]);
 
   // Handle quick action responses
-  const handleQuickResponse = useCallback(async (quickResponse: string, practiceContext: any, selectedModel: string = 'google/gemini-3.1-flash-lite-preview') => {
+  const handleQuickResponse = useCallback(async (quickResponse: string, practiceContext: any, selectedModel: string = 'google/gemini-2.5-flash') => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
