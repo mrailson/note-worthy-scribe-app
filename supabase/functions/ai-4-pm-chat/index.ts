@@ -1815,6 +1815,14 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
     }
   }
 
+  // Set timeout based on model: 120s for Gemini 3.1 Pro, 60s for others
+  const timeoutMs = model === 'google/gemini-3.1-pro-preview' ? 120000 : 60000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.log(`[stream] Timeout after ${timeoutMs / 1000}s for model ${model}`);
+    controller.abort();
+  }, timeoutMs);
+
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -1827,7 +1835,10 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
       max_tokens: 4096,
       stream: true
     }),
+    signal: controller.signal
   });
+
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     const errorText = await response.text();
