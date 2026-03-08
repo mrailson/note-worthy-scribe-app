@@ -1,58 +1,61 @@
 
 
-## Problem Analysis
+## Feature: Ask AI Profile Context Settings
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+### Overview
+Add per-field toggle controls that let users choose which personal and practice details are injected into the Ask AI system prompt. Uses the existing `ai4gp_preferences` JSON blob in `user_settings` — no new tables or migrations required.
 
-### Root causes by issue:
+### Files to Modify
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+**1. `src/hooks/useAI4GPService.ts`**
 
-## Plan
+- Add new state variables for all 12 `profileContext_*` toggles with sensible defaults (master on, name/practice name/signatures on, address/phone/email/website/manager/PCN/neighbourhood off).
+- Include these in the `preferences` object inside `saveUserSettings()` so they persist via the existing upsert.
+- Load them back from stored preferences in the settings-load effect.
+- Add all 12 keys to the debounce `useEffect` dependency array.
+- Modify `buildSystemPrompt()` signature to accept a `prefs` parameter (the preferences object). Gate the entire practice context block behind `prefs.profileContext_enabled !== false`. Within that block, wrap each field injection (practice name, address, phone, email, website, user name, user email, manager, PCN, neighbourhood, signatures) behind its corresponding `profileContext_show*` check. Also gate the "EXAMPLES OF CORRECT USAGE" lines the same way.
+- Expose the new state + setters from the hook's return object.
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+**2. `src/components/ai4gp/SettingsModal.tsx`**
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+- Add new props for the 12 `profileContext_*` values and their change handlers.
+- Add a `practiceContext` prop (the resolved practice data) so toggle labels can show current values.
+- Add a new **6th tab** called "Context" (icon: `User` or `Building2`) to the tab bar (change grid from `grid-cols-5` to `grid-cols-6`).
+- Tab content structure:
+  - **Master toggle**: "Include my profile details in AI responses" → `profileContext_enabled`
+  - When master is ON, show grouped toggles:
+    - **Your Details** section: Name, Email, Signatures
+    - **Practice Details** section: Practice Name, Address, Phone, Email, Website, Practice Manager
+    - **Network** section: PCN, Neighbourhood
+  - Each toggle row shows the field label and the current value in muted text beneath (e.g. "Dr Smith", "Oak Lane Medical Practice").
+  - When master is OFF, grey out / hide individual toggles.
+  - **Live preview box** at the bottom showing the exact context text that will be injected, updating reactively as toggles change. Reuse the same field-gating logic from `buildSystemPrompt` to generate preview text.
+- Wire save via the existing `onSaveSettings` callback (already debounced).
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+**3. `src/components/AI4GPService.tsx`**
 
-### 2. Raise Part 2b base tokens
+- Pass the new `profileContext_*` state values and setters from the hook through to `<SettingsModal>`.
+- Pass `practiceContext` (already available in this component) to `<SettingsModal>` for the value previews.
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
+### Implementation Details
 
-### 3. Add anti-truncation instructions to all step prompts
+- **Default behaviour preserved**: All checks use `!== false` so existing users without these keys see no change — everything remains included.
+- **No migrations**: Keys are added to the existing JSON blob; Supabase handles arbitrary JSON in `setting_value`.
+- **Prompt gating pattern**:
+```typescript
+// In buildSystemPrompt:
+if (prefs.profileContext_enabled !== false) {
+  if (prefs.profileContext_showPracticeName !== false && practiceContext.practiceName) {
+    prompt += `\n${entityLabel} Name: ${practiceContext.practiceName}`;
+  }
+  // ... same pattern for each field
+}
+```
 
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
+- **Live preview** generates a read-only text block using the same conditional logic, so users see exactly what the AI will receive.
 
-### 4. Update step labels and progress tracking
-
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
-
-### 5. Verify Version History enforcement
-
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
-
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+### Scope
+- No new Supabase tables, edge functions, or migrations
+- No changes to `usePracticeContext.ts` — it continues fetching all data; the filtering happens at prompt-build time
+- Approximately 3 files modified
 
