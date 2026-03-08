@@ -134,6 +134,8 @@ Return only the revised letter content.`;
       body: JSON.stringify({
         model: 'google/gemini-3-flash-preview',
         messages: [
+          {
+            role: 'system',
             content: `You are an expert NHS complaints manager helping to revise outcome letters.
 Your task is to take the existing outcome letter and modify it based on the user's instructions whilst maintaining professional NHS standards and tone.
 
