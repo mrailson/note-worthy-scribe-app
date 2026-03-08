@@ -27,7 +27,7 @@ type ActiveView =
   | { type: 'prompts'; category: MainCategory; subCategory: SubCategory }
   | { type: 'plt-planning'; category: MainCategory };
 
-export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput }) => {
+export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput, onOpenImageStudio }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const [activeView, setActiveView] = useState<ActiveView>({ type: 'main' });
   const [showBanner, setShowBanner] = useState(false);
