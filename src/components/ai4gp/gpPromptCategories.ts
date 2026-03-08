@@ -70,6 +70,7 @@ export interface MainCategory {
   subCategories: SubCategory[];
   focusOnly?: boolean;
   opensImageStudio?: boolean;
+  opensDocumentStudio?: boolean;
   isNew?: boolean;
   prompt?: string;
 }
