@@ -45,7 +45,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
   };
 
   const handleGenerate = useCallback(async () => {
-    onUpdateState({ isGenerating: true, generatedContent: null });
+    onUpdateState({ isGenerating: true, generatedContent: null, generatedTitle: null });
     setProgress(0);
     
     const progressInterval = setInterval(() => {
