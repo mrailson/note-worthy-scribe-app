@@ -674,17 +674,7 @@ My draft email:` },
       },
     ]
   },
-  {
-    id: 'image-studio',
-    shortTitle: 'Image Studio',
-    title: 'Image Studio',
-    description: 'Create professional posters, patient notices, and staff communications',
-    icon: Palette,
-    gradient: 'from-fuchsia-500 to-purple-600',
-    subCategories: [],
-    opensImageStudio: true,
-    isNew: true,
-  },
+  // Image Studio - moved to nav bar
   {
     id: 'document-studio',
     shortTitle: 'Doc Studio',
