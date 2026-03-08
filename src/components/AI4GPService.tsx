@@ -44,6 +44,7 @@ const TranslationToolInterface = lazy(() => import('@/components/TranslationTool
 const MeetingPreviewDrawer = lazy(() => import('@/components/ai4gp/MeetingPreviewDrawer').then(m => ({ default: m.MeetingPreviewDrawer })));
 const ImageStudioModal = lazy(() => import('@/components/ai4gp/ImageStudioModal').then(m => ({ default: m.ImageStudioModal })));
 const PresentationStudioModal = lazy(() => import('@/components/ai4gp/PresentationStudioModal').then(m => ({ default: m.PresentationStudioModal })));
+const DocumentStudioModal = lazy(() => import('@/components/DocumentStudio/DocumentStudioModal').then(m => ({ default: m.default })));
 const AdminDictatePanel = lazy(() => import('@/components/ai4gp/AdminDictatePanel').then(m => ({ default: m.AdminDictatePanel })));
 const TranslationServicePanel = lazy(() => import('@/components/ai4gp/TranslationServicePanel').then(m => ({ default: m.TranslationServicePanel })));
 const EmbeddedPMGenie = lazy(() => import('@/components/ai4gp/EmbeddedPMGenie').then(m => ({ default: m.EmbeddedPMGenie })));
