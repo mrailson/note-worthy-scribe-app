@@ -20,6 +20,7 @@ interface GPHomeScreenProps {
   focusInput?: () => void;
   onBNFViewChange?: (isActive: boolean) => void;
   onOpenImageStudio?: () => void;
+  onOpenDocumentStudio?: () => void;
 }
 
 type ActiveView = 
