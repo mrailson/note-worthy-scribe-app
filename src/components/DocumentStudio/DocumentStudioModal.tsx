@@ -57,9 +57,10 @@ const STEPS: { id: Step; label: string; num: number }[] = [
 interface DocumentStudioModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode?: 'pm' | 'gp';
 }
 
-export const DocumentStudioModal: React.FC<DocumentStudioModalProps> = ({ open, onOpenChange }) => {
+export const DocumentStudioModal: React.FC<DocumentStudioModalProps> = ({ open, onOpenChange, mode = 'pm' }) => {
   const [currentStep, setCurrentStep] = useState<Step>('choose');
   const [state, setState] = useState<DocumentStudioState>(INITIAL_STATE);
   const [showMyDocuments, setShowMyDocuments] = useState(false);
