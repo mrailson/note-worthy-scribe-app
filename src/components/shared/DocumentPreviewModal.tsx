@@ -237,7 +237,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const [infographicFullscreen, setInfographicFullscreen] = useState(false);
   const { generateInfographic, isGenerating: isInfographicGenerating, currentPhase, error: infographicError } = useContentInfographic();
 
-  const documentTitle = externalTitle || extractTitle(content);
+  // documentTitle already declared above with activeContent
   const logoUrl = practiceContext?.logoUrl;
   const practiceName = practiceContext?.practiceName;
   const practiceAddress = practiceContext?.practiceAddress;
