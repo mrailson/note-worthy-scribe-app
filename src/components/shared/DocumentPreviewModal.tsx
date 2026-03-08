@@ -225,8 +225,11 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const isMobile = useIsMobile();
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [showAIEdit, setShowAIEdit] = useState(false);
+  const [editableContent, setEditableContent] = useState<string | null>(null);
 
-  // Infographic state
+  const activeContent = editableContent ?? content;
+  const documentTitle = externalTitle || extractTitle(activeContent);
   const [infographicView, setInfographicView] = useState<'document' | 'infographic'>('document');
   const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
   const [infographicProgress, setInfographicProgress] = useState(0);
