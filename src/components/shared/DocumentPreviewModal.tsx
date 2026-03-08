@@ -591,33 +591,38 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 {isDownloadingWord ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                 Word
               </Button>
-              <Button variant="outline" onClick={handleDownloadPdf} disabled={isDownloadingPdf} className="gap-2">
-                {isDownloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                PDF
-              </Button>
+              {prefs.showPdfDownload && (
+                <Button variant="outline" onClick={handleDownloadPdf} disabled={isDownloadingPdf} className="gap-2">
+                  {isDownloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  PDF
+                </Button>
+              )}
 
-              <div className="h-6 w-px bg-border mx-1" />
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleGenerateInfographic('landscape')}
-                disabled={isInfographicGenerating}
-                className="gap-2 text-xs"
-              >
-                <Monitor className="h-4 w-4" />
-                Infographic (Landscape)
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleGenerateInfographic('portrait')}
-                disabled={isInfographicGenerating}
-                className="gap-2 text-xs"
-              >
-                <ImageIcon className="h-4 w-4" />
-                Infographic (Portrait)
-              </Button>
+              {prefs.showInfographic && (
+                <>
+                  <div className="h-6 w-px bg-border mx-1" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleGenerateInfographic('landscape')}
+                    disabled={isInfographicGenerating}
+                    className="gap-2 text-xs"
+                  >
+                    <Monitor className="h-4 w-4" />
+                    Landscape
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleGenerateInfographic('portrait')}
+                    disabled={isInfographicGenerating}
+                    className="gap-2 text-xs"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Portrait
+                  </Button>
+                </>
+              )}
 
               <Button variant="ghost" onClick={handleClose} className="ml-auto">
                 Cancel
