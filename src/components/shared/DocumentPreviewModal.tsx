@@ -316,7 +316,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     try {
       const { generatePDF } = await import('@/utils/documentGenerators');
       const pdfLogoPosition = prefs.logoPosition === 'centre' ? 'center' : prefs.logoPosition;
-      await generatePDF(content, documentTitle, {
+      await generatePDF(activeContent, documentTitle, {
         logoUrl: prefs.showLogo ? logoUrl : undefined,
         logoPosition: pdfLogoPosition as 'left' | 'center' | 'right',
         footerNote: prefs.showFooter && practiceName
