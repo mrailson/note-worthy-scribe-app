@@ -21,6 +21,7 @@ interface DocumentPreviewModalProps {
   imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   infographicPracticeName?: string;
   infographicSpellingCorrections?: { incorrect: string; correct: string }[];
+  onContentUpdated?: (newContent: string) => void;
 }
 
 // Extract a sensible title from content
