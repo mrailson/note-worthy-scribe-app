@@ -386,6 +386,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   Session Settings
                 </h3>
 
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">AI Model</Label>
+                  <ModelSelector
+                    selectedModel={selectedModel}
+                    onModelChange={onModelChange}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Clinical queries automatically upgrade to Gemini 3.1 Pro regardless of selection
+                  </p>
+                </div>
               </div>
 
               {/* Interface Features */}
