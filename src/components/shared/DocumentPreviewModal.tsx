@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Download, FileText, X, Loader2, ImageIcon, Monitor, ArrowLeft } from 'lucide-react';
+import { DocumentAIEditPanel } from '@/components/shared/DocumentAIEditPanel';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useContentInfographic } from '@/hooks/useContentInfographic';
