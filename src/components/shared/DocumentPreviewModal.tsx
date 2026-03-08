@@ -216,7 +216,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   title: externalTitle,
   isOpen,
   onClose,
-  imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
+  imageGenerationModel = 'google/gemini-3-pro-image-preview',
   infographicPracticeName,
   infographicSpellingCorrections,
   onContentUpdated,

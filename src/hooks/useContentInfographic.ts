@@ -100,7 +100,7 @@ export const useContentInfographic = () => {
     const { 
       style = 'professional', 
       detailLevel = 'standard',
-      imageModel = 'google/gemini-2.5-flash-image-preview',
+      imageModel = 'google/gemini-3-pro-image-preview',
       orientation = 'landscape',
       practiceName,
       spellingCorrections,
