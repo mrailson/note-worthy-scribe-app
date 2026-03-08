@@ -806,8 +806,8 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                     /* Welcome Screen - Compact, mobile-optimized - Hidden when PM Genie is active */
                     <div className={cn(
                       "flex-1 overflow-y-auto",
-                      isMobile ? "p-0 pb-36" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
-                    )} style={{ WebkitOverflowScrolling: 'touch' }}>
+                    isMobile ? "p-0 pb-36" : "p-2 sm:p-4 space-y-2 sm:space-y-3"
+                  )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className={cn("w-full mx-auto space-y-4", isBNFViewActive ? "max-w-5xl" : "max-w-2xl")}>
                         {/* Mobile: Show quick picks inside the white bubble area */}
                         {isMobile ? (
