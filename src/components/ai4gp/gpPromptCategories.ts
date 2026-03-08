@@ -68,6 +68,8 @@ export interface MainCategory {
   gradient: string;
   subCategories: SubCategory[];
   focusOnly?: boolean;
+  opensImageStudio?: boolean;
+  isNew?: boolean;
   prompt?: string;
 }
 
