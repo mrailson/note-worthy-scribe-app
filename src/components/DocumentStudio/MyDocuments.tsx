@@ -28,11 +28,11 @@ export const MyDocuments: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('document_studio_documents')
+      const { data, error } = await (supabase
+        .from('document_studio_documents' as any)
         .select('id, title, document_type, content, version_label, status, created_at')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as any);
 
       if (error) throw error;
       setDocuments((data as SavedDocument[]) || []);
