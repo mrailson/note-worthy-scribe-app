@@ -592,6 +592,17 @@ export const gpCategories: MainCategory[] = [
     opensImageStudio: true,
     isNew: true,
   },
+  {
+    id: 'document-studio',
+    shortTitle: 'Doc Studio',
+    title: 'Document Studio',
+    description: 'Reports, letters & reviews — generate professional documents',
+    icon: FileText,
+    gradient: 'from-teal-500 to-teal-600',
+    subCategories: [],
+    opensDocumentStudio: true,
+    isNew: true,
+  },
 
   // 11. Ask AI Anything
   {
