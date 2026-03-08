@@ -218,6 +218,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
   infographicPracticeName,
   infographicSpellingCorrections,
+  onContentUpdated,
 }) => {
   const { prefs, updatePref } = useDocumentPreviewPrefs();
   const { practiceContext } = usePracticeContext();
