@@ -39,7 +39,7 @@ interface ClinicalTestResult {
 // AI Models Configuration  
 const AI_MODELS = [
   { id: 'google/gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', service: 'google' },
-  { id: 'google/gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash-Lite', service: 'google' },
+  { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', service: 'google' },
   { id: 'google/gemini-3-flash-preview', name: 'Gemini 3 Flash', service: 'google' },
   { id: 'openai/gpt-5', name: 'GPT-5', service: 'openai' },
   { id: 'openai/gpt-5-mini', name: 'GPT-5 Mini', service: 'openai' },
