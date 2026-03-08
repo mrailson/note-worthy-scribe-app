@@ -500,8 +500,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                   <img
                     src={infographicUrl}
                     alt="Generated infographic"
-                    className="max-w-full rounded-lg shadow-md border"
+                    className="max-w-full rounded-lg shadow-md border cursor-pointer hover:opacity-90 transition-opacity"
                     style={{ maxHeight: '60vh' }}
+                    onClick={() => setInfographicFullscreen(true)}
+                    title="Click to view fullscreen"
                   />
                   <Button onClick={handleDownloadInfographic} className="gap-2">
                     <Download className="h-4 w-4" />
