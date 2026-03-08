@@ -131,11 +131,11 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   };
 
   const tabs = [
-    { id: 'context' as const, label: 'Context', icon: MessageSquare },
-    { id: 'style' as const, label: 'Style', icon: Palette },
-    { id: 'branding' as const, label: 'Branding', icon: Building2 },
-    { id: 'reference' as const, label: 'Reference', icon: ImageIcon },
-    { id: 'generate' as const, label: 'Generate', icon: Sparkles },
+    { id: 'context' as const, label: 'Content', icon: MessageSquare, step: 1 },
+    { id: 'style' as const, label: 'Style', icon: Palette, step: 2 },
+    { id: 'branding' as const, label: 'Branding', icon: Building2, step: 3 },
+    { id: 'reference' as const, label: 'Reference', icon: ImageIcon, step: 4 },
+    { id: 'generate' as const, label: 'Generate', icon: Sparkles, step: 5 },
   ];
 
   return (
