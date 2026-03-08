@@ -658,6 +658,28 @@ CRITICAL SIGNATURE FORMATTING:
 - Do not include "*Letterhead/Logo Here*" or similar placeholder text anywhere in the letter
 - ${practiceDetails?.email ? `Use the practice email: ${practiceDetails.email}` : 'Use a generic practice email'} ${practiceDetails?.phone ? `and practice phone number: ${practiceDetails.phone}` : ''} for contact information.`;
 
+    if (!hasInvestigationEvidence) {
+      const prewrittenInvestigation =
+        `IMPORTANT: Use the following pre-written investigation paragraph EXACTLY as provided. ` +
+        `Do not modify it, expand it, or add any findings, root causes, system failures, or staff conduct details:\n\n` +
+        `"We have reviewed the circumstances of your complaint. Our investigation confirmed that ` +
+        `the events you described did occur and that our communication processes did not meet ` +
+        `the standard we expect. We acknowledge that you were not provided with adequate notice ` +
+        `of the changes to your appointments and we recognise the impact this had on you."`;
+
+      const prewrittenLearning =
+        `IMPORTANT: Use the following pre-written learning paragraph EXACTLY as provided. ` +
+        `Do not add any specific system failures, technical fixes, or protocol changes:\n\n` +
+        `"We are committed to learning from your experience to improve our service. ` +
+        `We are reviewing our appointment management and communication procedures to ensure ` +
+        `that patients are informed promptly of any changes to their scheduled care. ` +
+        `We have also briefed our administrative team on the importance of timely ` +
+        `patient communication."`;
+
+      userPrompt += `\n\n${prewrittenInvestigation}`;
+      userPrompt += `\n\n${prewrittenLearning}`;
+    }
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
