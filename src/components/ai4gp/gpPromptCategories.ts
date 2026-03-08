@@ -36,7 +36,8 @@ import {
   Beaker,
   Tablets,
   Hospital,
-  Accessibility
+  Accessibility,
+  Palette
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
