@@ -242,6 +242,13 @@ Tone: ${questionnaireData.tone === 'professional' ? 'Professional and balanced' 
 
     const systemPrompt = `You are generating a final NHS complaint outcome letter on behalf of a GP practice in England, following a completed local complaint investigation.
 
+ABSOLUTE FORMAT RULES — THESE OVERRIDE EVERYTHING:
+- Do NOT use any section headers, subheadings, bold headers, or titled sections anywhere in the letter.
+- Do NOT use bullet points, numbered lists, or any list formatting.
+- Do NOT use markdown formatting of any kind (no ##, **, --, bullets).
+- Write the entire letter as flowing formal paragraphs — a proper piece of posted correspondence.
+- If you include any headers or bullet points, the letter will be rejected.
+
 The letter must comply with:
 - NHS Complaints Regulations (England)
 - Parliamentary and Health Service Ombudsman (PHSO) principles
@@ -319,8 +326,10 @@ ${toneInstruction || 'Tone: Professional'}
 - Never sound dismissive, defensive, or adversarial
 
 --- SECTION 6: OUTPUT REQUIREMENTS ---
-- British English ONLY — this is mandatory. Use British spellings throughout (e.g., "minimise" not "minimize", "recognised" not "recognized", "centre" not "center", "behaviour" not "behavior", "colour" not "color", "organised" not "organized", "apologise" not "apologize", "specialised" not "specialized", "programme" not "program"). Any American English spelling is an error.
+- British English ONLY — this is mandatory. Use British spellings throughout including: judgement (not judgment), acknowledgement (not acknowledgment), organisation, centre, apologise, recognise, behaviour, colour, favour, honour, programme, cancelled, labelled, travelled, fulfil, enrol, enquiry, defence, paediatric, gynaecology, orthopaedic, anaesthetic, haematology, specialised, minimise, realise.
+- Any American English spelling is an error.
 - UK date format: DD Month YYYY
+- Use NHS-standard terminology and UK date format (DD Month YYYY).
 - Formal letter format with clear paragraphs
 - No bullet points in the final letter
 - No internal system references
@@ -345,7 +354,8 @@ FINAL QUALITY CHECK:
 - Outcome is clear and consistent with the internal decision
 - Tone matches questionnaire setting
 - Letter reads as calm, respectful, and proportionate
-- Language is suitable for CQC inspection and Ombudsman review`;
+- Language is suitable for CQC inspection and Ombudsman review
+- No headers, subheadings, bold titles, or bullet points anywhere in the letter body`;
 
     const currentDate = new Date().toLocaleDateString('en-GB', {
       day: 'numeric',
