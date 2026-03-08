@@ -264,7 +264,19 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     onClose();
   }, [onClose]);
 
-  const handleDownloadWord = async () => {
+  // Escape key closes fullscreen lightbox
+  useEffect(() => {
+    if (!infographicFullscreen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setInfographicFullscreen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKey, true);
+    return () => document.removeEventListener('keydown', handleKey, true);
+  }, [infographicFullscreen]);
+
     setIsDownloadingWord(true);
     try {
       const { generateCleanAIResponseDocument } = await import('@/utils/cleanWordExport');
