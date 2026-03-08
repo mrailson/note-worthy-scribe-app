@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState, us
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, QrCode, Monitor, AlertCircle, X, Phone } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, QrCode, Monitor, AlertCircle, X, Phone, Sparkles } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
