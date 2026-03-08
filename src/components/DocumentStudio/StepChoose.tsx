@@ -162,11 +162,6 @@ export const StepChoose: React.FC<StepChooseProps> = ({
         })}
       </div>
 
-      {filteredTypes.length === 0 && searchQuery.trim() && (
-        <div className="text-center py-8 text-muted-foreground text-sm">
-          No matching document types found.
-        </div>
-      )}
 
     </div>
   );
