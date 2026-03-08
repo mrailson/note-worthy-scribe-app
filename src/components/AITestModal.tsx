@@ -312,8 +312,9 @@ const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
       const testPromises = [
         testClinicalModelDirect('google/gemini-3-flash-preview'),
         testClinicalModelDirect('google/gemini-3.1-pro-preview'),
+        testClinicalModelDirect('google/gemini-2.5-pro'),
+        testClinicalModelDirect('openai/gpt-5.2'),
         testClinicalModelDirect('openai/gpt-5'),
-        testClinicalModelDirect('openai/gpt-5-mini'),
         testClinicalModelDirect('claude-4-sonnet'),
       ];
 
