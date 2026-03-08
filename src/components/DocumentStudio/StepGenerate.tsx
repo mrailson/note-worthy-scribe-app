@@ -81,8 +81,14 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
       clearInterval(progressInterval);
       setProgress(100);
 
-      if (error) throw error;
-      if (!data?.content) throw new Error('No content returned');
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Edge function call failed');
+      }
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+      if (!data?.content) throw new Error('No content returned from AI');
 
       onUpdateState({
         generatedContent: data.content,
@@ -90,10 +96,17 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
       });
       
       toast.success('Document generated successfully');
-    } catch (err) {
+    } catch (err: any) {
       clearInterval(progressInterval);
       console.error('Generation error:', err);
-      toast.error('Failed to generate document. Please try again.');
+      const message = err?.message || 'Unknown error';
+      if (message.includes('Rate limit') || message.includes('429')) {
+        toast.error('Rate limit exceeded. Please wait a moment and try again.');
+      } else if (message.includes('402') || message.includes('credits')) {
+        toast.error('Usage limit reached. Please add credits to continue.');
+      } else {
+        toast.error(`Document generation failed: ${message}`);
+      }
       onUpdateState({ isGenerating: false });
     }
   }, [state, onUpdateState, practiceContext, practiceDetails]);
