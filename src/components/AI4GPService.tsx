@@ -1236,6 +1236,14 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
         />
       </Suspense>
 
+      {/* Document Studio Modal */}
+      <Suspense fallback={<LazyLoader />}>
+        <DocumentStudioModal
+          open={showDocumentStudio}
+          onOpenChange={setShowDocumentStudio}
+        />
+      </Suspense>
+
     </TooltipProvider>
   );
 };
