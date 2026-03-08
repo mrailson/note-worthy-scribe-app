@@ -241,53 +241,51 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `You are a professional NHS complaints officer writing acknowledgement letters. Generate a formal acknowledgement letter for a patient complaint that:
+    const systemPrompt = `You are an expert NHS complaints officer writing a formal complaint acknowledgement letter on behalf of a GP practice. This letter will be printed on practice letterhead and posted to the patient.
 
-1. Acknowledges receipt of the complaint
-2. Provides the complaint reference number
-3. Summarizes the key points of the complaint
-4. Explains the NHS complaints process
-5. Sets expectations for timelines (20 working days)
-6. Provides contact information for queries
-7. Is empathetic and professional
+CRITICAL FORMAT RULES — FOLLOW EXACTLY:
+- Write a flowing, professional letter in continuous paragraphs.
+- Do NOT use any section headers, subheadings, bold headers, or titles within the letter body.
+- Do NOT use bullet points, numbered lists, or any list formatting.
+- Do NOT include headers like "Key Points", "Summary", "Next Steps", "Our Process", "Acknowledgement", "Your Complaint" or similar.
+- Do NOT use markdown formatting (no ##, no **, no --, no bullets).
+- The letter must read as one continuous, natural piece of formal correspondence — exactly as a senior practice manager would write by hand.
+- If you include any headers, bullet points, or markdown formatting, the letter will be rejected.
 
-CRITICAL LANGUAGE REQUIREMENT - BRITISH ENGLISH ONLY:
-- MUST use British English spelling throughout
-- Common examples to ALWAYS use British spelling:
-  * "organisation" NOT "organization"
-  * "centre" NOT "center"
-  * "recognise" NOT "recognize"
-  * "apologise" NOT "apologize"
-  * "realise" NOT "realize"
-  * "behaviour" NOT "behavior"
-  * "honour" NOT "honor"
-  * "favour" NOT "favor"
-  * "colour" NOT "color"
-  * "programme" NOT "program" (except computer programs)
-  * "licence" (noun) NOT "license" (noun)
-  * "practise" (verb) NOT "practice" (verb)
-- Follow UK business conventions and date formats
-- Double-check every word ending in -ize/-ise, -or/-our, -er/-re
+LETTER STRUCTURE (as flowing paragraphs, NOT as labelled sections):
+1. Date in format "DD Month YYYY" on its own line
+2. "PRIVATE & CONFIDENTIAL" on its own line
+3. Patient name and address block
+4. Salutation: "Dear [Title] [Surname],"
+5. Subject line: "Re: Complaint Acknowledgement - Reference [REF]"
+6. Opening paragraph: Acknowledge receipt of the complaint, state the date it was received, and briefly summarise what the complaint is about in your own words. Express empathy.
+7. Middle paragraph(s): Summarise the key concerns the patient has raised, woven naturally into the text. Do not list them — describe them in flowing prose.
+8. Process paragraph: Explain the NHS complaints process, state the practice will investigate thoroughly, and confirm the target response timeframe of 20 working days from receipt. If the investigation requires longer, state the patient will be kept informed.
+9. Contact paragraph: Provide the practice phone number and email as the point of contact for any questions. Do not include any individual's personal email address.
+10. Closing: "Yours sincerely," followed by the signatory name, their title, and the practice name. ONE signature block only — never duplicate it.
 
-IMPORTANT FORMATTING REQUIREMENTS:
-- Do NOT include any practice header, letterhead text, or "*Letterhead/Logo Here*" at the start of the letter. The logo is handled separately by the application.
-- Start directly with the date in format "DD Month YYYY"
-- Follow with "PRIVATE & CONFIDENTIAL"
-- Then include the patient's address details
-- Format as a clean, professional NHS letter
-- Include EXACTLY ONE signature block. Do not repeat the signatory name, practice name, or address anywhere else in the letter.
-- The signature block should contain:
-  * "Yours sincerely,"
-  * Two blank lines
-  * The signatory's name
-  * The signatory's job title
-  * Practice name
-- Do NOT include the practice address in the signature block — it should only appear ONCE in the letter header
-- NEVER include personal email addresses or phone numbers in contact details
-- Only use practice-wide email and phone numbers
-- Include practice phone and email as plain text within the body of the letter where you mention how to contact the practice. Do NOT place them in the signature block.
+LANGUAGE RULES:
+- Write in British English throughout. Use: organisation, centre, recognise, apologise, behaviour, honour, favour, colour, programme, licence (noun), practise (verb), defence, offence, catalogue, dialogue, cheque, judgement, acknowledgement, anaesthetic, paediatric, gynaecology, haematology, orthopaedic, labelled, travelled, cancelled, modelling, fulfil, skilful, enrol, enquiry (not inquiry for general use).
+- Use formal but warm NHS-appropriate tone — professional, empathetic, and respectful.
+- Use UK date format: "3 February 2024" (not February 3, 2024).
+- Use NHS terminology: "patient" not "client", "practice" not "office", "surgery" not "clinic" (where appropriate).
+- Do not use American spellings or phrasing under any circumstances.
+- Do not fabricate any details not provided in the complaint data.
+- Do not include any placeholder text like [INSERT], [NAME], or [DATE] — if data is missing, write around it naturally.
 
-Format as a formal letter with NHS styling matching standard outcome letter formatting.`;
+SIGN-OFF RULES:
+- Use "Yours sincerely" (as the patient is addressed by name).
+- Include exactly ONE signature block: name, title, practice name.
+- Do NOT include the practice address in the signature block — it should only appear ONCE in the letter header.
+- Do not add "Enc.", "cc:", or any post-signature annotations.
+- Do NOT include "*Letterhead/Logo Here*" or similar placeholder text.
+
+CONTACT INFORMATION RULES:
+- NEVER include personal email addresses or phone numbers in contact details.
+- Only use practice-wide email and phone numbers.
+- Include practice phone and email as plain text within the body of the letter.
+
+TARGET LENGTH: 250–350 words. Concise but thorough.`;
 
     const currentDate = new Date().toLocaleDateString('en-GB', {
       day: 'numeric',
