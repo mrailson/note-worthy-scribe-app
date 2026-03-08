@@ -129,14 +129,15 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
     description: string,
     Icon: React.ElementType,
     gradient: string,
-    onClick: () => void
+    onClick: () => void,
+    isNew?: boolean
   ) => (
     <Tooltip key={id}>
       <TooltipTrigger asChild>
         <button
           onClick={onClick}
           className={cn(
-            "group flex items-center gap-2 p-2.5",
+            "group flex items-center gap-2 p-2.5 relative",
             "bg-card border border-border rounded-lg",
             "hover:border-primary/50 hover:bg-accent/50",
             "transition-all duration-150",
@@ -153,6 +154,11 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
           <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
             {shortTitle}
           </span>
+          {isNew && (
+            <Badge className="absolute -top-1.5 -right-1.5 px-1.5 py-0 text-[10px] leading-4 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white border-0 animate-pulse">
+              NEW
+            </Badge>
+          )}
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-xs">
