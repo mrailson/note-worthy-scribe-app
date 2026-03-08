@@ -295,7 +295,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     try {
       const { generateCleanAIResponseDocument } = await import('@/utils/cleanWordExport');
       const docxLogoPosition = prefs.logoPosition === 'centre' ? 'center' : prefs.logoPosition;
-      await generateCleanAIResponseDocument(content, documentTitle, {
+      await generateCleanAIResponseDocument(activeContent, documentTitle, {
         logoUrl: prefs.showLogo ? logoUrl : undefined,
         logoPosition: docxLogoPosition as 'left' | 'center' | 'right',
         footerNote: prefs.showFooter && practiceName
