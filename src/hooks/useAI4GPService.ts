@@ -1560,7 +1560,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       return () => clearTimeout(timeoutId);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, saveUserSettings]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, saveUserSettings, profileContextEnabled, profileContextShowUserName, profileContextShowUserEmail, profileContextShowPracticeName, profileContextShowPracticeAddress, profileContextShowPracticePhone, profileContextShowPracticeEmail, profileContextShowPracticeWebsite, profileContextShowPracticeManager, profileContextShowPCN, profileContextShowNeighbourhood, profileContextShowSignatures]);
 
   // Use Display Settings Effect to apply CSS classes
   useEffect(() => {
