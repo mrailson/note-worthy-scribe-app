@@ -228,6 +228,7 @@ export const DocumentStudioModal: React.FC<DocumentStudioModalProps> = ({ open, 
                   onFreeFormSelect={handleFreeFormSelect}
                   selectedType={state.selectedType}
                   freeFormRequest={state.freeFormRequest}
+                  mode={mode}
                 />
               )}
               {currentStep === 'brief' && (
