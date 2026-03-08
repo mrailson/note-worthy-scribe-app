@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ModelSelector } from './ModelSelector';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
