@@ -1352,7 +1352,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setSessionMemory(preferences.sessionMemory ?? true);
           setVerificationLevel(preferences.verificationLevel ?? 'standard');
           setShowResponseMetrics(preferences.showResponseMetrics ?? false);
-          setSelectedModel(preferences.selectedModel ?? 'gpt-5-2025-08-07');
+          setSelectedModel(preferences.selectedModel ?? 'google/gemini-3.1-flash-lite-preview');
           setUseOpenAI(preferences.useOpenAI ?? true);
           setShowRenderTimes(preferences.showRenderTimes ?? false);
           setShowAIService(preferences.showAIService ?? false);
