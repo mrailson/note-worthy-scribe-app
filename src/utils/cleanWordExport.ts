@@ -4,7 +4,7 @@
  * without excessive italics or indentation issues.
  */
 
-import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, AlignmentType, convertInchesToTwip } from "docx";
+import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, AlignmentType, convertInchesToTwip, Table, TableRow, TableCell, WidthType, BorderStyle, VerticalAlign, ShadingType } from "docx";
 import { saveAs } from "file-saver";
 
 // Professional colour scheme
