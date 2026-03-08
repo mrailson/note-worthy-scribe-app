@@ -260,6 +260,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     setInfographicView('document');
     setInfographicUrl(null);
     setInfographicProgress(0);
+    setInfographicFullscreen(false);
     onClose();
   }, [onClose]);
 
