@@ -1815,6 +1815,14 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
     }
   }
 
+  // Set timeout based on model: 120s for Gemini 3.1 Pro, 60s for others
+  const timeoutMs = model === 'google/gemini-3.1-pro-preview' ? 120000 : 60000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.log(`[stream] Timeout after ${timeoutMs / 1000}s for model ${model}`);
+    controller.abort();
+  }, timeoutMs);
+
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -1827,7 +1835,10 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
       max_tokens: 4096,
       stream: true
     }),
+    signal: controller.signal
   });
+
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -2003,24 +2014,75 @@ serve(async (req) => {
     const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview', 'google/gemini-2.5-flash', 'openai/gpt-5', 'openai/gpt-5-mini'];
     const canStream = streamRequested && streamableModels.includes(selectedModel);
 
-    // Handle streaming response for supported models
+    // Handle streaming response for supported models with fallback chain
     if (canStream) {
       console.log('🔄 Starting streaming response for model:', selectedModel);
       
-      try {
-        const streamBody = await streamLovableAIGateway(processedMessages, finalSystemPrompt, selectedModel, files);
+      // Fallback chain for streaming models
+      const STREAM_FALLBACK: Record<string, string[]> = {
+        'google/gemini-3.1-pro-preview': ['google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview'],
+        'google/gemini-3.1-flash-lite-preview': ['google/gemini-3-flash-preview'],
+        'google/gemini-3-flash-preview': ['google/gemini-3.1-flash-lite-preview'],
+      };
+      
+      const MODEL_LABELS: Record<string, string> = {
+        'google/gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+        'google/gemini-3.1-flash-lite-preview': 'Gemini 3.1 Flash-Lite',
+        'google/gemini-3-flash-preview': 'Gemini 3 Flash',
+      };
+
+      const modelsToTry = [selectedModel, ...(STREAM_FALLBACK[selectedModel] || [])];
+      
+      for (let i = 0; i < modelsToTry.length; i++) {
+        const modelToTry = modelsToTry[i];
+        const isFallback = i > 0;
         
-        return new Response(streamBody, {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-          },
-        });
-      } catch (error) {
-        console.error('Streaming failed, falling back to non-streaming:', error);
-        // Fall through to non-streaming response
+        try {
+          console.log(`${isFallback ? '🔄 Fallback' : '🎯 Primary'}: trying ${modelToTry}`);
+          const streamBody = await streamLovableAIGateway(processedMessages, finalSystemPrompt, modelToTry, files);
+          
+          // If fallback was used, prepend a meta message
+          if (isFallback) {
+            const metaMessage = `data: ${JSON.stringify({ _meta: { fallbackUsed: true, fallbackModel: modelToTry, fallbackModelLabel: MODEL_LABELS[modelToTry] || modelToTry } })}\n\n`;
+            const encoder = new TextEncoder();
+            const newStream = new ReadableStream({
+              async start(controller) {
+                controller.enqueue(encoder.encode(metaMessage));
+                const reader = streamBody.getReader();
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  controller.enqueue(value);
+                }
+                controller.close();
+              }
+            });
+            
+            return new Response(newStream, {
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+              },
+            });
+          }
+          
+          return new Response(streamBody, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            },
+          });
+        } catch (error) {
+          console.error(`Streaming failed for ${modelToTry}:`, error);
+          if (i === modelsToTry.length - 1) {
+            console.error('All streaming models failed, falling back to non-streaming');
+            // Fall through to non-streaming response
+          }
+        }
       }
     }
 
