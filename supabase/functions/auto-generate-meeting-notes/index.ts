@@ -354,7 +354,7 @@ serve(async (req) => {
                 meeting_id: meetingId,
                 summary: consolidatedResult.content,
                 summary_type: 'consolidated',
-                model_used: 'gemini-2.5-flash',
+                model_used: 'gemini-3.1-flash-lite',
                 updated_at: new Date().toISOString()
               }, { onConflict: 'meeting_id' });
             
