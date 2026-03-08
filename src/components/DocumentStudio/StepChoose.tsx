@@ -50,7 +50,6 @@ export const StepChoose: React.FC<StepChooseProps> = ({
   freeFormRequest,
   mode = 'pm',
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<FilterCategory>('top10');
   const [freeFormText, setFreeFormText] = useState(freeFormRequest);
 
@@ -67,16 +66,8 @@ export const StepChoose: React.FC<StepChooseProps> = ({
       types = types.filter(t => t.category === activeCategory);
     }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      types = types.filter(t =>
-        t.display_name.toLowerCase().includes(q) ||
-        t.use_when.toLowerCase().includes(q) ||
-        t.category.toLowerCase().includes(q)
-      );
-    }
     return types;
-  }, [activeCategory, searchQuery, top10Keys]);
+  }, [activeCategory, top10Keys]);
 
   return (
     <div className="space-y-4">
