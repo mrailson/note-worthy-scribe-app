@@ -191,6 +191,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const [showPromptsModal, setShowPromptsModal] = useState(false);
   const [showImageStudio, setShowImageStudio] = useState(false);
   const [imageStudioInitialMode, setImageStudioInitialMode] = useState<'create' | 'edit' | 'stock'>('create');
+  const [imageStudioInitialDescription, setImageStudioInitialDescription] = useState<string | undefined>();
   const [showPresentationStudio, setShowPresentationStudio] = useState(false);
   const [showAdminDictate, setShowAdminDictate] = useState(false);
   const [showTranslationService, setShowTranslationService] = useState(false);
