@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen, Languages, PanelLeft, Lightbulb, Loader2 } from 'lucide-react';
+import { Sparkles, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen, Languages, PanelLeft, Lightbulb, Loader2, FileText } from 'lucide-react';
 
 // Core component imports (always loaded)
 import { LoginForm } from '@/components/LoginForm';
@@ -699,6 +699,19 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         >
                           <Palette className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                           <span className="hidden sm:inline text-xs">Image Studio</span>
+                        </Button>
+                      )}
+                      
+                      {/* Doc Studio link - hidden on mobile */}
+                      {!isMobile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-1 px-2 sm:px-3"
+                          onClick={() => setShowDocumentStudio(true)}
+                        >
+                          <FileText className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                          <span className="hidden sm:inline text-xs">Doc Studio</span>
                         </Button>
                       )}
                     </CardTitle>

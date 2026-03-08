@@ -675,15 +675,5 @@ My draft email:` },
     ]
   },
   // Image Studio - moved to nav bar
-  {
-    id: 'document-studio',
-    shortTitle: 'Doc Studio',
-    title: 'Document Studio',
-    description: 'Reports, letters & reviews — generate professional documents',
-    icon: FileText,
-    gradient: 'from-teal-500 to-teal-600',
-    subCategories: [],
-    opensDocumentStudio: true,
-    isNew: true,
-  },
+  // Document Studio - moved to nav bar
 ];
