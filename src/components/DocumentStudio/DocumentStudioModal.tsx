@@ -169,12 +169,18 @@ export const DocumentStudioModal: React.FC<DocumentStudioModalProps> = ({ open, 
               <FileText className="h-5 w-5 text-primary" />
               Document Studio
             </DialogTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowMyDocuments(true)}>
-                <FolderOpen className="h-4 w-4 mr-2" />
-                My Documents
-              </Button>
-            </div>
+              <div className="flex gap-2">
+                {currentStep === 'generate' && state.generatedContent && (
+                  <Button variant="outline" size="sm" onClick={handleReset}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Start a new document
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={() => setShowMyDocuments(true)}>
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  My Documents
+                </Button>
+              </div>
           </div>
         </DialogHeader>
 
