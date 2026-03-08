@@ -42,17 +42,21 @@ ANTI-FABRICATION RULE — THIS IS THE HIGHEST PRIORITY RULE AND OVERRIDES ALL OT
 
 You MUST ONLY reference facts, findings, and details that are explicitly provided in the complaint data, current letter, and user instructions below. 
 
-If investigation findings are sparse, incomplete, or absent:
+If investigation findings, staff responses, and evidence are absent or empty:
 - Do NOT invent reasons for why incidents occurred
-- Do NOT invent technical failures (e.g. SMS system issues, appointment system glitches)
+- Do NOT invent technical failures (e.g. SMS system issues, appointment system glitches, telephone system failures)
 - Do NOT invent staff actions (e.g. "staff attempted to call", "staff were absent due to sickness")
+- Do NOT claim that any specific system (SMS, telephone, messaging, booking) failed
+- Do NOT claim that specific staff members or teams failed to follow protocols
+- Do NOT identify specific root causes or system failures
 - Do NOT invent specific dates or timeframes not in the data
 - Do NOT claim to have reviewed specific logs, records, or systems unless the current letter or complaint data confirms this
 - Do NOT invent specific protocol changes, new procedures, or technical fixes
+- Only restate facts the PATIENT reported — do not add any findings beyond what the patient themselves described
 
 SPECIFIC EMPTY-EVIDENCE FALLBACKS — use these EXACT approaches when evidence is absent:
 
-1. INVESTIGATION PARAGRAPH: Write ONLY: "We have reviewed the circumstances of your complaint and the events you described." Do NOT elaborate with invented details.
+1. INVESTIGATION PARAGRAPH: Write in this pattern ONLY: "We have reviewed the circumstances of your complaint. Our investigation confirmed that [restate what happened to the patient, using ONLY facts from the complaint description]. We acknowledge that our processes did not meet the standard we expect." Do NOT elaborate with invented root causes, system failures, or staff conduct findings.
 
 2. LEARNING AND ACTIONS PARAGRAPH: Write ONLY general commitments appropriate to the complaint type. Do NOT invent specific system failures, protocol changes, new procedures, or technical improvements.
 
