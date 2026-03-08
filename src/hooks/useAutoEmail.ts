@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { isLetterFormat } from '@/utils/letterParser';
 import { formatLetterForEmail, convertToEmailSafeHTML } from '@/utils/formatLetterForEmail';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
 
 export function useAutoEmail() {
   const [isSending, setIsSending] = useState(false);
