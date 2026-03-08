@@ -77,7 +77,7 @@ MANDATORY CONTENT RULES — the revised letter MUST include ALL of the following
 2. Complaint summary restating the specific concerns with dates, numbers, and specifics
 3. Investigation narrative describing what was reviewed, drawing ONLY from facts in the current letter and complaint data. If investigation data is minimal, keep this general. Do NOT invent specific records, logs, conversations, or technical findings not already present.
 4. Outcome decision stated clearly in one sentence with plain-English explanation
-5. Learning and actions: at least two specific, concrete improvements — NEVER use vague phrases like "we are still identifying improvements", "we are looking into this", "we will consider changes", or "we aim to review our processes"
+5. Learning and actions: If the current letter or complaint data specifies actions taken or planned, preserve those. If no specific actions are documented, write general but genuine commitments appropriate to the complaint type. Do NOT invent specific protocols, system changes, or technical fixes not in the source data. NEVER use vague phrases like "we are still identifying improvements", "we are looking into this", "we will consider changes", or "we aim to review our processes"
 6. Individual resolution addressing the patient's specific ongoing needs (MANDATORY — never omit)
 7. PHSO escalation paragraph with full details (name, 12-month window, www.ombudsman.org.uk, 0345 015 4033)
 8. Contact details and closing with one signature block
