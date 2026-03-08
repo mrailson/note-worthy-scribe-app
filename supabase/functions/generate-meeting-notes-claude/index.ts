@@ -29,7 +29,7 @@ Additional Behavioural Rules:
 
 // Handle large transcripts with Gemini's 2M token context
 function handleLargeTranscript(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
-  console.log('🔧 Using Lovable AI with google/gemini-2.5-flash (2M token context)');
+  console.log('🔧 Using Lovable AI with google/gemini-3.1-flash-lite-preview');
   
   // Gemini can handle ~2M tokens (~500K characters) - much larger than GPT-5-nano
   if (transcript.length > 500000) {
