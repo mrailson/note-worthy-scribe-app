@@ -195,7 +195,7 @@ Be comprehensive but concise. Preserve all important details, dates, figures, an
     },
     body: JSON.stringify({
       // Fast + cheap summarisation model
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: chunk }
