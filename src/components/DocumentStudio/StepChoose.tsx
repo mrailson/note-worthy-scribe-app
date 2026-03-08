@@ -9,25 +9,65 @@ interface StepChooseProps {
   onFreeFormSelect: (text: string) => void;
   selectedType: DocumentType | null;
   freeFormRequest: string;
+  mode?: 'pm' | 'gp';
 }
 
-const ALL_CATEGORIES: ('all' | DocumentCategory)[] = ['all', 'nmp', 'clinical', 'governance', 'hr', 'letters', 'finance'];
+// Top 10 type_keys for Practice Managers
+const PM_TOP_10: string[] = [
+  'board_report',
+  'formal_letter',
+  'meeting_minutes',
+  'cqc_preparation',
+  'policy_summariser',
+  'business_case',
+  'hr_document',
+  'staff_appraisal',
+  'risk_assessment',
+  'service_change_impact',
+];
+
+// Top 10 type_keys for GPs
+const GP_TOP_10: string[] = [
+  'learning_event',
+  'clinical_audit',
+  'formal_letter',
+  'patient_survey_report',
+  'qof_report',
+  'nmp_prescribing_review',
+  'nmp_case_review',
+  'patient_communication',
+  'training_needs',
+  'meeting_minutes',
+];
+
+type FilterCategory = 'top10' | 'all' | DocumentCategory;
+
+const ALL_CATEGORIES: FilterCategory[] = ['top10', 'all', 'nmp', 'clinical', 'governance', 'hr', 'letters', 'finance'];
 
 export const StepChoose: React.FC<StepChooseProps> = ({
   onSelectType,
   onFreeFormSelect,
   selectedType,
   freeFormRequest,
+  mode = 'pm',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<'all' | DocumentCategory>('all');
+  const [activeCategory, setActiveCategory] = useState<FilterCategory>('top10');
   const [freeFormText, setFreeFormText] = useState(freeFormRequest);
+
+  const top10Keys = mode === 'gp' ? GP_TOP_10 : PM_TOP_10;
 
   const filteredTypes = useMemo(() => {
     let types = DOCUMENT_TYPES;
-    if (activeCategory !== 'all') {
+
+    if (activeCategory === 'top10') {
+      types = top10Keys
+        .map(key => DOCUMENT_TYPES.find(t => t.type_key === key))
+        .filter(Boolean) as DocumentType[];
+    } else if (activeCategory !== 'all') {
       types = types.filter(t => t.category === activeCategory);
     }
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       types = types.filter(t =>
@@ -37,7 +77,7 @@ export const StepChoose: React.FC<StepChooseProps> = ({
       );
     }
     return types;
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, top10Keys]);
 
   return (
     <div className="space-y-4">
@@ -47,7 +87,10 @@ export const StepChoose: React.FC<StepChooseProps> = ({
         <Input
           placeholder="Search document types or describe what you need..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            if (e.target.value.trim()) setActiveCategory('all');
+          }}
           className="pl-10"
         />
       </div>
@@ -65,7 +108,7 @@ export const StepChoose: React.FC<StepChooseProps> = ({
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             )}
           >
-            {cat === 'all' ? 'All' : CATEGORY_LABELS[cat]}
+            {cat === 'top10' ? 'Top 10' : cat === 'all' ? 'All' : CATEGORY_LABELS[cat]}
           </button>
         ))}
       </div>
