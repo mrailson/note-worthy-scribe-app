@@ -11,9 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { showShadcnToast } from '@/utils/toastWrapper';
+import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { SpeechToText } from '@/components/SpeechToText';
-import { CheckCircle2, AlertCircle, Loader2, CheckCircle, ClipboardCheck, Sparkles, Wand2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, CheckCircle, ClipboardCheck, Sparkles, Wand2, Info } from 'lucide-react';
 
 interface QuestionnaireData {
   investigation_complete: boolean;
@@ -25,6 +26,7 @@ interface QuestionnaireData {
   additional_context: string;
   is_vexatious: boolean;
   use_formal_outcome_labels: boolean;
+  field_sources?: Record<string, 'human' | 'ai_generated' | 'ai_reviewed'>;
 }
 
 interface ComplianceCheck {
@@ -66,8 +68,8 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [aiSuggestedOutcome, setAiSuggestedOutcome] = useState<string>('');
   const [aiAnalysisText, setAiAnalysisText] = useState<string>('');
   const [confirmProfessionalJudgement, setConfirmProfessionalJudgement] = useState<boolean>(false);
-  const [enableAiAnalysis, setEnableAiAnalysis] = useState<boolean>(false); // Default to OFF
-  const [aiAnalysisComplete, setAiAnalysisComplete] = useState<boolean>(false); // Track background completion
+  const [enableAiAnalysis, setEnableAiAnalysis] = useState<boolean>(false);
+  const [aiAnalysisComplete, setAiAnalysisComplete] = useState<boolean>(false);
   const [data, setData] = useState<QuestionnaireData>({
     investigation_complete: true,
     outcome_type: undefined,
@@ -78,6 +80,7 @@ export const ComplaintOutcomeQuestionnaire = ({
     additional_context: '',
     is_vexatious: false,
     use_formal_outcome_labels: true,
+    field_sources: {},
   });
   const [complianceChecks, setComplianceChecks] = useState<ComplianceCheck[]>([]);
   const [complianceSummary, setComplianceSummary] = useState<any>(null);
@@ -93,11 +96,74 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingFromEvidence, setIsGeneratingFromEvidence] = useState(false);
   const [generatingEvidenceField, setGeneratingEvidenceField] = useState<string | null>(null);
+  
+  // Evidence availability tracking
+  const [hasEvidence, setHasEvidence] = useState<boolean | null>(null); // null = not yet checked
+  const [isCheckingEvidence, setIsCheckingEvidence] = useState(false);
+  // Track which fields were AI-filled
+  const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
 
   const complaintReference = complaintData.reference_number || '';
+
+  // Check evidence availability when dialog opens
+  useEffect(() => {
+    const checkEvidenceAvailability = async () => {
+      if (!open || !complaintId) return;
+      
+      setIsCheckingEvidence(true);
+      try {
+        const [findingsRes, decisionsRes, evidenceRes, transcriptsRes, partiesRes] = await Promise.all([
+          supabase
+            .from('complaint_investigation_findings')
+            .select('id')
+            .eq('complaint_id', complaintId)
+            .limit(1),
+          supabase
+            .from('complaint_investigation_decisions')
+            .select('id')
+            .eq('complaint_id', complaintId)
+            .limit(1),
+          supabase
+            .from('complaint_investigation_evidence')
+            .select('id')
+            .eq('complaint_id', complaintId)
+            .limit(1),
+          supabase
+            .from('complaint_investigation_transcripts')
+            .select('id')
+            .eq('complaint_id', complaintId)
+            .limit(1),
+          supabase
+            .from('complaint_involved_parties')
+            .select('id, response_text')
+            .eq('complaint_id', complaintId),
+        ]);
+
+        // Check if any meaningful evidence exists
+        const hasFindings = (findingsRes.data?.length ?? 0) > 0;
+        const hasDecisions = (decisionsRes.data?.length ?? 0) > 0;
+        const hasEvidenceFiles = (evidenceRes.data?.length ?? 0) > 0;
+        const hasTranscripts = (transcriptsRes.data?.length ?? 0) > 0;
+        // Only count staff responses that have actual response text (human-entered)
+        const hasStaffResponses = (partiesRes.data || []).some(p => p.response_text && p.response_text.trim().length > 0);
+
+        const evidenceExists = hasFindings || hasDecisions || hasEvidenceFiles || hasTranscripts || hasStaffResponses;
+        setHasEvidence(evidenceExists);
+        
+        console.log('📋 Evidence check:', { hasFindings, hasDecisions, hasEvidenceFiles, hasTranscripts, hasStaffResponses, evidenceExists });
+      } catch (error) {
+        console.error('Error checking evidence availability:', error);
+        setHasEvidence(false);
+      } finally {
+        setIsCheckingEvidence(false);
+      }
+    };
+
+    checkEvidenceAvailability();
+  }, [open, complaintId]);
 
   // Format AI analysis with NHS styling
   const formatAiAnalysis = (text: string) => {
@@ -114,7 +180,6 @@ export const ComplaintOutcomeQuestionnaire = ({
           const heading = lines[0];
           const content = lines.slice(1);
           
-          // Check if this is a heading line (contains uppercase or ends with :)
           const isHeading = heading.includes(':') || heading === heading.toUpperCase();
           
           return (
@@ -160,7 +225,6 @@ export const ComplaintOutcomeQuestionnaire = ({
       setDemoSource(null);
       
       try {
-        // Step 1: Normalize and attempt direct lookup
         const normalizedRef = complaintReference.trim().toUpperCase();
         console.log('🔍 Looking up demo response for:', normalizedRef);
         
@@ -176,26 +240,17 @@ export const ComplaintOutcomeQuestionnaire = ({
         
         if (directResponse) {
           console.log('✅ Direct demo response found:', normalizedRef);
-          console.log('📊 Content lengths:', {
-            key_findings: directResponse.key_findings?.length,
-            actions_taken: directResponse.actions_taken?.length,
-            improvements_made: directResponse.improvements_made?.length,
-            additional_context: directResponse.additional_context?.length
-          });
           setDemoResponse(directResponse);
           setDemoSource('direct');
           return;
         }
         
-        // Step 2: No direct match - check if this is a demo complaint by patient name
         const isDemoComplaint = complaintData.patient_name && 
           complaintData.patient_name.toLowerCase().includes('james robert williams');
         
         if (isDemoComplaint && complaintData.category) {
           console.log('🎭 Demo complaint detected: James Robert Williams');
-          console.log('📊 Loading demo response for category:', complaintData.category);
           
-          // Fetch all demo responses
           const { data: allDemoResponses, error: demoError } = await supabase
             .from('complaint_demo_responses')
             .select('complaint_reference, key_findings, actions_taken, improvements_made, additional_context');
@@ -205,7 +260,6 @@ export const ComplaintOutcomeQuestionnaire = ({
           }
           
           if (allDemoResponses && allDemoResponses.length > 0) {
-            // Find a complaint reference that matches this category
             const demoReferenceNumbers = allDemoResponses.map(r => r.complaint_reference);
             
             const { data: matchingComplaint, error: matchError } = await supabase
@@ -221,19 +275,12 @@ export const ComplaintOutcomeQuestionnaire = ({
             }
             
             if (matchingComplaint) {
-              // Find the demo response for this matched complaint
               const demoResponse = allDemoResponses.find(
                 r => r.complaint_reference === matchingComplaint.reference_number
               );
               
               if (demoResponse) {
                 console.log('✅ Demo response loaded from:', matchingComplaint.reference_number);
-                console.log('📊 Demo content lengths:', {
-                  key_findings: demoResponse.key_findings?.length,
-                  actions_taken: demoResponse.actions_taken?.length,
-                  improvements_made: demoResponse.improvements_made?.length,
-                  additional_context: demoResponse.additional_context?.length
-                });
                 setDemoResponse(demoResponse);
                 setDemoSource('category-based');
                 return;
@@ -253,14 +300,10 @@ export const ComplaintOutcomeQuestionnaire = ({
     }
   }, [open, complaintReference, complaintData.category]);
 
-  // Get demo replies from database (or return empty for non-demo complaints)
   const getDemoReplies = () => {
-    // If we have a demo response from the database, use it
     if (demoResponse) {
       return demoResponse;
     }
-    
-    // No demo response available - return empty for non-demo complaints
     return {
       key_findings: "",
       actions_taken: "",
@@ -270,7 +313,6 @@ export const ComplaintOutcomeQuestionnaire = ({
   };
 
   const loadDemoReply = async (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
-    // If still loading, return without action
     if (isDemoLoading || isGenerating) {
       return;
     }
@@ -278,7 +320,6 @@ export const ComplaintOutcomeQuestionnaire = ({
     const demoReplies = getDemoReplies();
     const content = demoReplies[field];
     
-    // If we have existing demo content, use it
     if (content && content.trim() !== '') {
       setData(prevData => ({ ...prevData, [field]: content }));
       
@@ -292,7 +333,6 @@ export const ComplaintOutcomeQuestionnaire = ({
       return;
     }
     
-    // No demo content exists - generate it with AI
     console.log('🤖 No demo response found, generating with AI...');
     setIsGenerating(true);
     
@@ -320,11 +360,9 @@ export const ComplaintOutcomeQuestionnaire = ({
       if (aiResponse?.success && aiResponse.demoResponse) {
         console.log('✅ AI generated response:', aiResponse.demoResponse);
         
-        // Store the generated response
         setDemoResponse(aiResponse.demoResponse);
         setDemoSource('ai-generated');
         
-        // Load the requested field
         const generatedContent = aiResponse.demoResponse[field];
         if (generatedContent) {
           setData(prevData => ({ ...prevData, [field]: generatedContent }));
@@ -344,8 +382,41 @@ export const ComplaintOutcomeQuestionnaire = ({
     }
   };
 
+  // Helper to mark a field as AI-filled and track provenance
+  const markFieldAsAiFilled = (field: string) => {
+    setAiFilledFields(prev => new Set(prev).add(field));
+    setData(prevData => ({
+      ...prevData,
+      field_sources: {
+        ...prevData.field_sources,
+        [field]: 'ai_generated' as const,
+      },
+    }));
+  };
+
+  // Helper to mark a field as human-edited (when user types in an AI-filled field)
+  const handleFieldEdit = (field: string, value: string) => {
+    setData(prevData => ({
+      ...prevData,
+      [field]: value,
+      field_sources: {
+        ...prevData.field_sources,
+        [field]: aiFilledFields.has(field) ? 'ai_reviewed' as const : 'human' as const,
+      },
+    }));
+  };
+
   const loadFromEvidence = async (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
     if (isGeneratingFromEvidence) return;
+    
+    // Guard: block when no evidence
+    if (hasEvidence === false) {
+      showToast.warning(
+        'No investigation evidence found. Please add investigation findings, upload evidence, or record staff responses before using auto-fill.',
+        { section: 'complaints' }
+      );
+      return;
+    }
     
     setIsGeneratingFromEvidence(true);
     setGeneratingEvidenceField(field);
@@ -373,6 +444,7 @@ export const ComplaintOutcomeQuestionnaire = ({
         const generatedContent = aiResponse.demoResponse[field];
         if (generatedContent) {
           setData(prevData => ({ ...prevData, [field]: generatedContent }));
+          markFieldAsAiFilled(field);
           console.log(`✅ Evidence-based content loaded for ${field}: ${generatedContent.length} chars`);
         }
       } else if (aiResponse?.error) {
@@ -400,6 +472,15 @@ export const ComplaintOutcomeQuestionnaire = ({
   const loadAllFromEvidence = async () => {
     if (isGeneratingFromEvidence) return;
     
+    // Guard: block when no evidence
+    if (hasEvidence === false) {
+      showToast.warning(
+        'No investigation evidence found. Please add investigation findings, upload evidence, or record staff responses before using auto-fill. Auto-fill cannot generate accurate content without source data.',
+        { section: 'complaints' }
+      );
+      return;
+    }
+    
     setIsGeneratingFromEvidence(true);
     setGeneratingEvidenceField('all');
     
@@ -423,6 +504,7 @@ export const ComplaintOutcomeQuestionnaire = ({
       }
 
       if (aiResponse?.success && aiResponse.demoResponse) {
+        const fields = ['key_findings', 'actions_taken', 'improvements_made', 'additional_context'] as const;
         setData(prevData => ({
           ...prevData,
           key_findings: aiResponse.demoResponse.key_findings || prevData.key_findings,
@@ -430,10 +512,25 @@ export const ComplaintOutcomeQuestionnaire = ({
           improvements_made: aiResponse.demoResponse.improvements_made || prevData.improvements_made,
           additional_context: aiResponse.demoResponse.additional_context || prevData.additional_context,
         }));
+        // Mark all fields as AI-filled
+        const newAiFields = new Set(aiFilledFields);
+        const newSources: Record<string, 'ai_generated'> = {};
+        for (const f of fields) {
+          if (aiResponse.demoResponse[f]) {
+            newAiFields.add(f);
+            newSources[f] = 'ai_generated';
+          }
+        }
+        setAiFilledFields(newAiFields);
+        setData(prevData => ({
+          ...prevData,
+          field_sources: { ...prevData.field_sources, ...newSources },
+        }));
+        
         console.log('✅ All fields populated from evidence');
         showShadcnToast({
           title: 'Evidence Loaded',
-          description: 'All fields have been populated from investigation evidence. You can edit them before proceeding.',
+          description: 'All fields have been populated from investigation evidence. Please review before proceeding — AI drafts must be verified.',
           section: 'complaints',
         });
       } else if (aiResponse?.error) {
@@ -466,7 +563,6 @@ export const ComplaintOutcomeQuestionnaire = ({
 
   const fetchComplianceChecks = async () => {
     try {
-      // Initialize compliance checks if they don't exist
       const { error: initError } = await supabase
         .rpc('initialize_complaint_compliance', { p_complaint_id: complaintId });
 
@@ -474,7 +570,6 @@ export const ComplaintOutcomeQuestionnaire = ({
         console.error('Error initializing compliance:', initError);
       }
 
-      // Fetch compliance checks
       const { data: checks, error: checksError } = await supabase
         .from('complaint_compliance_checks')
         .select('*')
@@ -482,20 +577,17 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       if (checksError) throw checksError;
 
-      // Auto-confirm eligible items when outcome is being created
       const user = await supabase.auth.getUser();
       if (user.data.user && checks) {
         for (const check of checks) {
           let shouldAutoConfirm = false;
           let autoConfirmNote = 'Auto-confirmed based on complaint data';
           
-          // Auto-confirm: Complaint logged in practice register (always when outcome created)
           if (check.compliance_item.includes('logged in practice register') && !check.is_compliant) {
             shouldAutoConfirm = true;
             autoConfirmNote = 'Auto-confirmed - complaint processed through system';
           }
           
-          // Auto-confirm: Acknowledgement sent within 3 working days
           if (check.compliance_item.includes('Acknowledgement sent within 3 working days') && 
               !check.is_compliant &&
               complaintData.acknowledged_at && complaintData.created_at) {
@@ -508,7 +600,6 @@ export const ComplaintOutcomeQuestionnaire = ({
             }
           }
           
-          // Auto-confirm: Investigation completed within 20 working days (when outcome created)
           if (check.compliance_item.includes('Investigation completed within 20 working days') && 
               !check.is_compliant && complaintData.created_at) {
             const created = new Date(complaintData.created_at);
@@ -520,37 +611,31 @@ export const ComplaintOutcomeQuestionnaire = ({
             }
           }
           
-          // Auto-confirm: Response addresses all points raised (when outcome is created)
           if (check.compliance_item.includes('Response addresses all points raised') && !check.is_compliant) {
             shouldAutoConfirm = true;
             autoConfirmNote = 'Auto-confirmed - outcome letter generated addressing complaint points';
           }
           
-          // Auto-confirm: Response letter includes escalation routes (outcome letters include PHSO info)
           if (check.compliance_item.includes('Response letter includes escalation routes') && !check.is_compliant) {
             shouldAutoConfirm = true;
             autoConfirmNote = 'Auto-confirmed - PHSO escalation route included in outcome letter';
           }
           
-          // Auto-confirm: Fair and thorough investigation conducted (when outcome created)
           if (check.compliance_item.includes('Fair and thorough investigation conducted') && !check.is_compliant) {
             shouldAutoConfirm = true;
             autoConfirmNote = 'Auto-confirmed - investigation completed and outcome documented';
           }
           
-          // Auto-confirm: Senior management oversight documented (when outcome created)
           if (check.compliance_item.includes('Senior management oversight documented') && !check.is_compliant) {
             shouldAutoConfirm = true;
             autoConfirmNote = 'Auto-confirmed - outcome authorised by complaints manager';
           }
           
-          // Auto-confirm: Confidentiality maintained throughout (if reached outcome stage)
           if (check.compliance_item.includes('Confidentiality maintained throughout') && !check.is_compliant) {
             shouldAutoConfirm = true;
             autoConfirmNote = 'Auto-confirmed - complaint handled through secure system';
           }
           
-          // Update in database if should be auto-confirmed
           if (shouldAutoConfirm) {
             await supabase
               .from('complaint_compliance_checks')
@@ -565,7 +650,6 @@ export const ComplaintOutcomeQuestionnaire = ({
         }
       }
 
-      // Fetch updated checks
       const { data: updatedChecks, error: updatedError } = await supabase
         .from('complaint_compliance_checks')
         .select('*')
@@ -575,13 +659,11 @@ export const ComplaintOutcomeQuestionnaire = ({
       const { deduplicateComplianceChecks } = await import('@/utils/cleanupComplianceChecks');
       setComplianceChecks(deduplicateComplianceChecks(updatedChecks || []));
 
-      // Get compliance summary
       const { data: summary, error: summaryError } = await supabase
         .rpc('get_complaint_compliance_summary', { p_complaint_id: complaintId });
 
       if (summaryError) throw summaryError;
       if (summary && summary.length > 0) {
-        // Map the response to match the expected structure
         const summaryData = summary[0];
         setComplianceSummary({
           total_items: Number(summaryData.total_checks),
@@ -613,7 +695,6 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       if (error) throw error;
 
-      // Update local state
       setComplianceChecks(prev => 
         prev.map(check => 
           check.id === checkId 
@@ -622,7 +703,6 @@ export const ComplaintOutcomeQuestionnaire = ({
         )
       );
 
-      // Refresh compliance summary
       fetchComplianceChecks();
     } catch (error) {
       console.error('Error updating compliance check:', error);
@@ -689,7 +769,6 @@ export const ComplaintOutcomeQuestionnaire = ({
       if (analysisData?.analysis) {
         setAiAnalysisText(analysisData.analysis);
         
-        // Extract suggested outcome from analysis
         const analysisLower = analysisData.analysis.toLowerCase();
         if (analysisLower.includes('rejected') || analysisLower.includes('not upheld') || analysisLower.includes('not_upheld')) {
           setAiSuggestedOutcome('not_upheld');
@@ -702,19 +781,16 @@ export const ComplaintOutcomeQuestionnaire = ({
       }
     } catch (error: any) {
       console.error('AI analysis error:', error);
-      // Don't show error toast for background analysis
-      setAiAnalysisComplete(true); // Mark as complete even if failed
+      setAiAnalysisComplete(true);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // Save AI analysis preference to localStorage
   useEffect(() => {
     localStorage.setItem('complaint-ai-analysis-enabled', JSON.stringify(enableAiAnalysis));
   }, [enableAiAnalysis]);
 
-  // ALWAYS trigger AI analysis in background when reaching Step 3
   useEffect(() => {
     if (step === 3 && open && !aiAnalysisText && !isAnalyzing) {
       analyzeComplaintOutcome();
@@ -729,7 +805,6 @@ export const ComplaintOutcomeQuestionnaire = ({
     }
 
     if (step === 4) {
-      // Ensure outcome is selected before proceeding
       if (!data.outcome_type) {
         showShadcnToast({
           title: 'Outcome Required',
@@ -740,7 +815,6 @@ export const ComplaintOutcomeQuestionnaire = ({
         return;
       }
       
-      // Ensure professional judgement confirmation is checked
       if (!confirmProfessionalJudgement) {
         showShadcnToast({
           title: 'Confirmation Required',
@@ -760,7 +834,6 @@ export const ComplaintOutcomeQuestionnaire = ({
   const handleSubmit = async () => {
     console.log('=== Starting outcome letter generation ===');
     
-    // Validate outcome type is selected
     if (!data.outcome_type) {
       showShadcnToast({
         title: 'Outcome Required',
@@ -774,24 +847,19 @@ export const ComplaintOutcomeQuestionnaire = ({
     setIsSubmitting(true);
 
     try {
-      // Get current user
       console.log('Step 1: Getting current user...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
       console.log('User authenticated:', user.id);
 
-      // Auto-set vexatious flag based on tone
       const finalData = {
         ...data,
         is_vexatious: data.tone === 'strong' || data.tone === 'firm',
-        ai_analysis: aiAnalysisText // Save AI analysis for future reference
+        ai_analysis: aiAnalysisText,
       };
       console.log('Final data prepared:', finalData);
 
-      // Save questionnaire to database using RPC function
       console.log('Step 2: Saving questionnaire to database via RPC...');
-      console.log('Questionnaire data:', finalData);
-      console.log('Complaint ID:', complaintId);
       
       const { data: questionnaireId, error: saveError } = await supabase
         .rpc('create_complaint_outcome_questionnaire', {
@@ -814,13 +882,7 @@ export const ComplaintOutcomeQuestionnaire = ({
       
       console.log('✓ Questionnaire saved successfully (RPC returned id):', questionnaireId);
 
-      // Generate outcome letter using edge function
       console.log('Step 3: Calling edge function to generate letter...');
-      console.log('Edge function params:', {
-        complaintId,
-        outcomeType: finalData.outcome_type,
-        outcomeSummaryLength: finalData.key_findings?.length,
-      });
       
       const { data: letterData, error: letterError } = await supabase.functions.invoke(
         'generate-complaint-outcome-letter',
@@ -846,22 +908,13 @@ export const ComplaintOutcomeQuestionnaire = ({
       
       console.log('Outcome letter generated successfully, length:', letterData.outcomeLetter?.length);
 
-      // Ensure outcome type is valid before saving
       if (!finalData.outcome_type || !['upheld', 'partially_upheld', 'not_upheld'].includes(finalData.outcome_type)) {
         throw new Error('Invalid outcome type selected');
       }
 
-      // Map UI value to DB-allowed values
       const dbOutcomeType = finalData.outcome_type === 'not_upheld' ? 'rejected' : finalData.outcome_type;
 
-      // Save the generated outcome letter using RPC function
       console.log('Step 4: Saving outcome letter to database via RPC...');
-      console.log('Outcome data to save:', {
-        complaint_id: complaintId,
-        outcome_type: dbOutcomeType,
-        outcome_summary: finalData.key_findings,
-        letter_length: letterData.outcomeLetter?.length,
-      });
       
       const { data: outcomeId, error: outcomeError } = await supabase
         .rpc('create_complaint_outcome', {
@@ -873,10 +926,7 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       if (outcomeError) {
         console.error('!!! RPC ERROR SAVING OUTCOME LETTER !!!');
-        console.error('Error code:', outcomeError.code);
-        console.error('Error message:', outcomeError.message);
-        console.error('Error details:', outcomeError.details);
-        console.error('Error hint:', outcomeError.hint);
+        console.error('Error details:', outcomeError);
         alert(`Failed to save outcome letter via RPC: ${outcomeError.message}. Check console for details.`);
         throw outcomeError;
       }
@@ -888,7 +938,6 @@ export const ComplaintOutcomeQuestionnaire = ({
         console.log('✓ Outcome letter saved successfully via RPC, ID:', outcomeId);
       }
 
-      // Update complaint status to closed
       console.log('Step 5: Updating complaint status to closed...');
       const { error: statusError } = await supabase
         .from('complaints')
@@ -900,12 +949,10 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       if (statusError) {
         console.error('Failed to update complaint status:', statusError);
-        // Don't fail the main process, outcome letter was still saved
       } else {
         console.log('Complaint status updated to closed');
       }
 
-      // Automatically generate executive audio summary in background
       console.log('Step 6: Triggering audio overview generation in background...');
       setTimeout(async () => {
         try {
@@ -913,7 +960,7 @@ export const ComplaintOutcomeQuestionnaire = ({
             body: { 
               complaintId,
               voiceProvider: 'elevenlabs',
-              voiceId: 'Xb7hH8MSUJpSbSDYk0k2' // Alice voice (default)
+              voiceId: 'Xb7hH8MSUJpSbSDYk0k2'
             }
           });
           
@@ -929,9 +976,8 @@ export const ComplaintOutcomeQuestionnaire = ({
           }
         } catch (error) {
           console.error('Failed to start audio generation:', error);
-          // Don't show error to user - this is background task
         }
-      }, 500); // Small delay to let main success flow complete first
+      }, 500);
 
       console.log('=== Outcome letter generation completed successfully ===');
       onSuccess();
@@ -939,13 +985,25 @@ export const ComplaintOutcomeQuestionnaire = ({
     } catch (error: any) {
       console.error('!!! ERROR IN OUTCOME LETTER GENERATION !!!');
       console.error('Error details:', error);
-      console.error('Error message:', error?.message);
-      console.error('Error stack:', error?.stack);
       alert(`Failed to generate outcome letter: ${error?.message || 'Unknown error'}. Check console for details.`);
     } finally {
       setIsSubmitting(false);
       console.log('=== Outcome letter generation process ended ===');
     }
+  };
+
+  // Evidence buttons disabled state
+  const evidenceButtonsDisabled = hasEvidence === false || isCheckingEvidence;
+
+  // Helper to render AI draft badge
+  const renderAiDraftBadge = (field: string) => {
+    if (!aiFilledFields.has(field)) return null;
+    return (
+      <Badge variant="outline" className="ml-2 text-xs border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+        <Sparkles className="h-3 w-3 mr-1" />
+        AI Draft — please review
+      </Badge>
+    );
   };
 
   return (
@@ -965,38 +1023,55 @@ export const ComplaintOutcomeQuestionnaire = ({
         {/* Step 1: Letter Details */}
         {step === 1 && (
           <div className="space-y-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={loadAllFromEvidence}
-              disabled={isGeneratingFromEvidence}
-              className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
-            >
-              {isGeneratingFromEvidence && generatingEvidenceField === 'all' ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating from evidence...
-                </>
-              ) : (
-                <>
-                  <ClipboardCheck className="h-4 w-4 mr-2" />
-                  Auto-fill All from Evidence
-                </>
+            {/* Auto-fill All button with evidence guard */}
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={loadAllFromEvidence}
+                disabled={isGeneratingFromEvidence || evidenceButtonsDisabled}
+                className={`w-full ${evidenceButtonsDisabled ? 'border-muted text-muted-foreground cursor-not-allowed' : 'border-blue-300 text-blue-700 hover:bg-blue-50'}`}
+              >
+                {isGeneratingFromEvidence && generatingEvidenceField === 'all' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating from evidence...
+                  </>
+                ) : isCheckingEvidence ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Checking evidence...
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCheck className="h-4 w-4 mr-2" />
+                    Auto-fill All from Evidence
+                  </>
+                )}
+              </Button>
+              {hasEvidence === false && (
+                <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                  <Info className="h-3 w-3" />
+                  Add investigation evidence to enable auto-fill
+                </p>
               )}
-            </Button>
+            </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-semibold mb-2">
-                  Brief Summary of Key Findings *
-                </Label>
+                <div className="flex items-center">
+                  <Label className="text-sm font-semibold">
+                    Brief Summary of Key Findings *
+                  </Label>
+                  {renderAiDraftBadge('key_findings')}
+                </div>
               </div>
               <Textarea
                 value={data.key_findings}
-                onChange={(e) => setData({ ...data, key_findings: e.target.value })}
+                onChange={(e) => handleFieldEdit('key_findings', e.target.value)}
                 placeholder="Summarise the main findings in 2-3 sentences..."
                 rows={3}
-                className="mb-2 bg-white dark:bg-background"
+                className={`mb-2 ${aiFilledFields.has('key_findings') ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200' : 'bg-white dark:bg-background'}`}
               />
               <div className="flex gap-2">
                 <SpeechToText
@@ -1022,24 +1097,27 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadFromEvidence('key_findings')}
                   className="h-8 w-8 shrink-0"
-                  title={isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
-                  disabled={isGeneratingFromEvidence}
+                  title={evidenceButtonsDisabled ? "No investigation evidence available" : isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
+                  disabled={isGeneratingFromEvidence || evidenceButtonsDisabled}
                 >
-                  {isGeneratingFromEvidence && (generatingEvidenceField === 'key_findings' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
+                  {isGeneratingFromEvidence && (generatingEvidenceField === 'key_findings' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className={`h-4 w-4 ${evidenceButtonsDisabled ? 'text-muted-foreground' : ''}`} />}
                 </Button>
               </div>
             </div>
 
             <div>
-              <Label className="text-sm font-semibold mb-2">
-                Actions Already Taken or Planned (optional)
-              </Label>
+              <div className="flex items-center mb-2">
+                <Label className="text-sm font-semibold">
+                  Actions Already Taken or Planned (optional)
+                </Label>
+                {renderAiDraftBadge('actions_taken')}
+              </div>
               <Textarea
                 value={data.actions_taken}
-                onChange={(e) => setData({ ...data, actions_taken: e.target.value })}
+                onChange={(e) => handleFieldEdit('actions_taken', e.target.value)}
                 placeholder="What actions have been or will be taken?"
                 rows={2}
-                className="mb-2 bg-white dark:bg-background"
+                className={`mb-2 ${aiFilledFields.has('actions_taken') ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200' : 'bg-white dark:bg-background'}`}
               />
               <div className="flex gap-2">
                 <SpeechToText
@@ -1065,24 +1143,27 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadFromEvidence('actions_taken')}
                   className="h-8 w-8 shrink-0"
-                  title={isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
-                  disabled={isGeneratingFromEvidence}
+                  title={evidenceButtonsDisabled ? "No investigation evidence available" : isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
+                  disabled={isGeneratingFromEvidence || evidenceButtonsDisabled}
                 >
-                  {isGeneratingFromEvidence && (generatingEvidenceField === 'actions_taken' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
+                  {isGeneratingFromEvidence && (generatingEvidenceField === 'actions_taken' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className={`h-4 w-4 ${evidenceButtonsDisabled ? 'text-muted-foreground' : ''}`} />}
                 </Button>
               </div>
             </div>
 
             <div>
-              <Label className="text-sm font-semibold mb-2">
-                Service Improvements Made (optional)
-              </Label>
+              <div className="flex items-center mb-2">
+                <Label className="text-sm font-semibold">
+                  Service Improvements Made (optional)
+                </Label>
+                {renderAiDraftBadge('improvements_made')}
+              </div>
               <Textarea
                 value={data.improvements_made}
-                onChange={(e) => setData({ ...data, improvements_made: e.target.value })}
+                onChange={(e) => handleFieldEdit('improvements_made', e.target.value)}
                 placeholder="What improvements have been made to prevent recurrence?"
                 rows={2}
-                className="mb-2 bg-white dark:bg-background"
+                className={`mb-2 ${aiFilledFields.has('improvements_made') ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200' : 'bg-white dark:bg-background'}`}
               />
               <div className="flex gap-2">
                 <SpeechToText
@@ -1108,10 +1189,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadFromEvidence('improvements_made')}
                   className="h-8 w-8 shrink-0"
-                  title={isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
-                  disabled={isGeneratingFromEvidence}
+                  title={evidenceButtonsDisabled ? "No investigation evidence available" : isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
+                  disabled={isGeneratingFromEvidence || evidenceButtonsDisabled}
                 >
-                  {isGeneratingFromEvidence && (generatingEvidenceField === 'improvements_made' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
+                  {isGeneratingFromEvidence && (generatingEvidenceField === 'improvements_made' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className={`h-4 w-4 ${evidenceButtonsDisabled ? 'text-muted-foreground' : ''}`} />}
                 </Button>
               </div>
             </div>
@@ -1131,32 +1212,47 @@ export const ComplaintOutcomeQuestionnaire = ({
                 <div>
                   <span className="font-medium">Investigation:</span> ✓ Complete
                 </div>
-                <div>
-                  <span className="font-medium">Key Findings:</span> {data.key_findings}
+                <div className="flex items-start gap-1">
+                  <span className="font-medium shrink-0">Key Findings:</span>
+                  <span>{data.key_findings}</span>
+                  {aiFilledFields.has('key_findings') && (
+                    <Badge variant="outline" className="ml-1 text-[10px] border-amber-300 bg-amber-50 text-amber-700 shrink-0">AI</Badge>
+                  )}
                 </div>
                 {data.actions_taken && (
-                  <div>
-                    <span className="font-medium">Actions:</span> {data.actions_taken}
+                  <div className="flex items-start gap-1">
+                    <span className="font-medium shrink-0">Actions:</span>
+                    <span>{data.actions_taken}</span>
+                    {aiFilledFields.has('actions_taken') && (
+                      <Badge variant="outline" className="ml-1 text-[10px] border-amber-300 bg-amber-50 text-amber-700 shrink-0">AI</Badge>
+                    )}
                   </div>
                 )}
                 {data.improvements_made && (
-                  <div>
-                    <span className="font-medium">Improvements:</span> {data.improvements_made}
+                  <div className="flex items-start gap-1">
+                    <span className="font-medium shrink-0">Improvements:</span>
+                    <span>{data.improvements_made}</span>
+                    {aiFilledFields.has('improvements_made') && (
+                      <Badge variant="outline" className="ml-1 text-[10px] border-amber-300 bg-amber-50 text-amber-700 shrink-0">AI</Badge>
+                    )}
                   </div>
                 )}
               </div>
             </div>
 
             <div>
-              <Label className="text-sm font-semibold mb-2">
-                Any Additional Context (optional)
-              </Label>
+              <div className="flex items-center mb-2">
+                <Label className="text-sm font-semibold">
+                  Any Additional Context (optional)
+                </Label>
+                {renderAiDraftBadge('additional_context')}
+              </div>
               <Textarea
                 value={data.additional_context}
-                onChange={(e) => setData({ ...data, additional_context: e.target.value })}
+                onChange={(e) => handleFieldEdit('additional_context', e.target.value)}
                 placeholder="Any other context or special instructions for the letter..."
                 rows={3}
-                className="mb-2 bg-white dark:bg-background"
+                className={`mb-2 ${aiFilledFields.has('additional_context') ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200' : 'bg-white dark:bg-background'}`}
               />
               <div className="flex gap-2">
                 <SpeechToText
@@ -1182,13 +1278,24 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadFromEvidence('additional_context')}
                   className="h-8 w-8 shrink-0"
-                  title={isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
-                  disabled={isGeneratingFromEvidence}
+                  title={evidenceButtonsDisabled ? "No investigation evidence available" : isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
+                  disabled={isGeneratingFromEvidence || evidenceButtonsDisabled}
                 >
-                  {isGeneratingFromEvidence && (generatingEvidenceField === 'additional_context' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
+                  {isGeneratingFromEvidence && (generatingEvidenceField === 'additional_context' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className={`h-4 w-4 ${evidenceButtonsDisabled ? 'text-muted-foreground' : ''}`} />}
                 </Button>
               </div>
             </div>
+
+            {/* Warning if AI fields haven't been reviewed */}
+            {aiFilledFields.size > 0 && (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800">AI-generated content detected</AlertTitle>
+                <AlertDescription className="text-amber-700 text-xs">
+                  {aiFilledFields.size} field{aiFilledFields.size > 1 ? 's were' : ' was'} populated by AI. Please review and edit as needed before proceeding. AI drafts may contain inaccuracies.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="bg-blue-50 p-3 rounded text-sm text-blue-900">
               <p className="font-medium mb-1">Next step:</p>
