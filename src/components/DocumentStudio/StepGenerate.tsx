@@ -70,7 +70,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
           practiceAddress: practiceContext.practiceAddress || practiceDetails?.address,
           practicePhone: practiceContext.practicePhone || practiceDetails?.phone,
           practiceEmail: practiceContext.practiceEmail || practiceDetails?.email,
-          userName: practiceContext.userName,
+          userName: practiceContext.userFullName,
         },
       };
 
