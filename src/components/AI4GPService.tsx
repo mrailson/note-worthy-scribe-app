@@ -869,12 +869,14 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                               <PMHomeScreen
                                 setInput={setInput}
                                 focusInput={() => inputRef.current?.focus()}
+                                onOpenImageStudio={() => setShowImageStudio(true)}
                               />
                             ) : (
                               <GPHomeScreen
                                 setInput={setInput}
                                 focusInput={() => inputRef.current?.focus()}
                                 onBNFViewChange={setIsBNFViewActive}
+                                onOpenImageStudio={() => setShowImageStudio(true)}
                               />
                             )}
                             
