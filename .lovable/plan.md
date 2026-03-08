@@ -1,58 +1,61 @@
 
 
-## Problem Analysis
+## Plan: Add AI Edit & Quick Pick Adjustment Options to Document Preview Modal
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+### What We're Building
+Adding an "AI Edit" feature to the `DocumentPreviewModal` that allows users to refine the generated document via:
+1. **Typed instructions** — a text input for custom edit requests
+2. **Voice input** — microphone button for dictating instructions
+3. **Quick Pick flyout** — a popover with the top 10 most common adjustment options
 
-### Root causes by issue:
+### Quick Pick Options (Top 10)
+1. Make it longer
+2. Make it shorter
+3. Add more detail
+4. Remove all names
+5. Simplify the language
+6. Make it more formal
+7. Make it more empathetic
+8. Add bullet points
+9. Remove jargon
+10. Summarise key points
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+### UI Design
+- Add an **"AI Edit"** button (with Brain icon) to the bottom action bar of `DocumentPreviewModal`, next to Word/PDF buttons
+- Clicking opens a **popover/sheet** with:
+  - Quick Pick chips (10 pre-set options) — clicking one auto-fills the instruction field
+  - A textarea for typed instructions
+  - A voice input button (using existing `AssemblyAISpeechToText` component)
+  - A "Regenerate" submit button
+- The regenerated content replaces the current preview content in-place
 
-## Plan
+### Technical Approach
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+**1. New component: `src/components/shared/DocumentAIEditPanel.tsx`**
+- Renders as a collapsible panel or popover within the modal
+- Contains: quick pick chips, textarea, voice input button, submit button
+- Props: `content`, `title`, `onContentUpdated`, `isProcessing`
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+**2. Modify `DocumentPreviewModal.tsx`**
+- Add state: `showAIEdit`, `isAIEditing`, `editableContent` (to allow in-place content updates)
+- Add "AI Edit" button to the bottom action bar
+- When AI edit completes, update the displayed content with the new version
+- Pass an `onContentUpdated` callback so parent components (like `StepGenerate`) can sync state
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+**3. New/reuse edge function for document refinement**
+- Reuse the existing `generate-document-studio` edge function with a new action `refine_document`
+- Send: current content, user instructions, document title
+- Returns: refined content
 
-### 2. Raise Part 2b base tokens
+**4. Props update for `DocumentPreviewModal`**
+- Add optional `onContentUpdated?: (newContent: string) => void` prop
+- `StepGenerate` passes a callback to update `state.generatedContent`
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
-
-### 3. Add anti-truncation instructions to all step prompts
-
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
-
-### 4. Update step labels and progress tracking
-
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
-
-### 5. Verify Version History enforcement
-
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
-
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+### File Changes
+| File | Change |
+|------|--------|
+| `src/components/shared/DocumentAIEditPanel.tsx` | **New** — Quick pick chips, textarea, voice input, submit |
+| `src/components/shared/DocumentPreviewModal.tsx` | Add AI Edit button, state management, content update flow |
+| `src/components/DocumentStudio/StepGenerate.tsx` | Pass `onContentUpdated` callback to modal |
+| `supabase/functions/generate-document-studio/index.ts` | Add `refine_document` action handler |
 
