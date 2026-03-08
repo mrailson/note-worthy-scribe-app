@@ -9,6 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { mainCategories, type MainCategory, type SubCategory, type PromptItem } from './pmPromptCategories';
 import { ContextBanner } from './ContextBanner';
@@ -17,6 +18,7 @@ import { PLTCalendar } from './PLTCalendar';
 interface PMHomeScreenProps {
   setInput: (text: string) => void;
   focusInput?: () => void;
+  onOpenImageStudio?: () => void;
 }
 
 type ActiveView = 
