@@ -347,6 +347,31 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
     setHideGPClinical,
     imageGenerationModel,
     setImageGenerationModel,
+    // Profile Context toggles
+    profileContextEnabled,
+    setProfileContextEnabled,
+    profileContextShowUserName,
+    setProfileContextShowUserName,
+    profileContextShowUserEmail,
+    setProfileContextShowUserEmail,
+    profileContextShowPracticeName,
+    setProfileContextShowPracticeName,
+    profileContextShowPracticeAddress,
+    setProfileContextShowPracticeAddress,
+    profileContextShowPracticePhone,
+    setProfileContextShowPracticePhone,
+    profileContextShowPracticeEmail,
+    setProfileContextShowPracticeEmail,
+    profileContextShowPracticeWebsite,
+    setProfileContextShowPracticeWebsite,
+    profileContextShowPracticeManager,
+    setProfileContextShowPracticeManager,
+    profileContextShowPCN,
+    setProfileContextShowPCN,
+    profileContextShowNeighbourhood,
+    setProfileContextShowNeighbourhood,
+    profileContextShowSignatures,
+    setProfileContextShowSignatures,
   } = useAI4GPService();
 
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -1032,6 +1057,31 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
           onHideGPClinicalChange={setHideGPClinical}
           imageGenerationModel={imageGenerationModel}
           onImageGenerationModelChange={setImageGenerationModel}
+          practiceContext={practiceContext}
+          profileContextEnabled={profileContextEnabled}
+          onProfileContextEnabledChange={setProfileContextEnabled}
+          profileContextShowUserName={profileContextShowUserName}
+          onProfileContextShowUserNameChange={setProfileContextShowUserName}
+          profileContextShowUserEmail={profileContextShowUserEmail}
+          onProfileContextShowUserEmailChange={setProfileContextShowUserEmail}
+          profileContextShowPracticeName={profileContextShowPracticeName}
+          onProfileContextShowPracticeNameChange={setProfileContextShowPracticeName}
+          profileContextShowPracticeAddress={profileContextShowPracticeAddress}
+          onProfileContextShowPracticeAddressChange={setProfileContextShowPracticeAddress}
+          profileContextShowPracticePhone={profileContextShowPracticePhone}
+          onProfileContextShowPracticePhoneChange={setProfileContextShowPracticePhone}
+          profileContextShowPracticeEmail={profileContextShowPracticeEmail}
+          onProfileContextShowPracticeEmailChange={setProfileContextShowPracticeEmail}
+          profileContextShowPracticeWebsite={profileContextShowPracticeWebsite}
+          onProfileContextShowPracticeWebsiteChange={setProfileContextShowPracticeWebsite}
+          profileContextShowPracticeManager={profileContextShowPracticeManager}
+          onProfileContextShowPracticeManagerChange={setProfileContextShowPracticeManager}
+          profileContextShowPCN={profileContextShowPCN}
+          onProfileContextShowPCNChange={setProfileContextShowPCN}
+          profileContextShowNeighbourhood={profileContextShowNeighbourhood}
+          onProfileContextShowNeighbourhoodChange={setProfileContextShowNeighbourhood}
+          profileContextShowSignatures={profileContextShowSignatures}
+          onProfileContextShowSignaturesChange={setProfileContextShowSignatures}
         />
 
       {/* Quick Image Modal */}

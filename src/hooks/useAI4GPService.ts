@@ -41,6 +41,20 @@ export const useAI4GPService = () => {
   const [hideGPClinical, setHideGPClinical] = useState(false);
   const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1'>('google/gemini-3-pro-image-preview');
   
+  // Profile Context toggles
+  const [profileContextEnabled, setProfileContextEnabled] = useState(true);
+  const [profileContextShowUserName, setProfileContextShowUserName] = useState(true);
+  const [profileContextShowUserEmail, setProfileContextShowUserEmail] = useState(true);
+  const [profileContextShowPracticeName, setProfileContextShowPracticeName] = useState(true);
+  const [profileContextShowPracticeAddress, setProfileContextShowPracticeAddress] = useState(false);
+  const [profileContextShowPracticePhone, setProfileContextShowPracticePhone] = useState(false);
+  const [profileContextShowPracticeEmail, setProfileContextShowPracticeEmail] = useState(false);
+  const [profileContextShowPracticeWebsite, setProfileContextShowPracticeWebsite] = useState(false);
+  const [profileContextShowPracticeManager, setProfileContextShowPracticeManager] = useState(false);
+  const [profileContextShowPCN, setProfileContextShowPCN] = useState(false);
+  const [profileContextShowNeighbourhood, setProfileContextShowNeighbourhood] = useState(false);
+  const [profileContextShowSignatures, setProfileContextShowSignatures] = useState(true);
+  
   // Refs for tracking active timeouts to prevent memory leaks
   const streamTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -322,7 +336,7 @@ export const useAI4GPService = () => {
     }
   };
 
-  const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string) => {
+  const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string, prefs?: any) => {
     // Avoid logging full practiceContext (may contain large base64 signature HTML)
     console.log('🔧 Building system prompt (context summary):', {
       practiceName: practiceContext?.practiceName,
@@ -382,102 +396,108 @@ You are processing ${fileCount} files. To ensure accuracy:
 - Double-check any cross-file calculations or comparisons`;
     }
 
-    // Add practice/organisation context if available
-    if (practiceContext.practiceName) {
+    // Add practice/organisation context if available (gated by profile context preferences)
+    if (practiceContext.practiceName && prefs?.profileContext_enabled !== false) {
       // Determine if this is a GP Practice or another organisation type
       const isGPPractice = !practiceContext.organisationType || practiceContext.organisationType === 'GP Practice';
       const entityLabel = isGPPractice ? 'Practice' : 'Organisation';
       
       console.log('✅ Adding organisation details to system prompt:', practiceContext.practiceName, '(', practiceContext.organisationType || 'GP Practice', ')');
       
-      prompt += `\n\n=== YOUR ${entityLabel.toUpperCase()} INFORMATION (ALWAYS USE THIS WHEN CREATING DOCUMENTS) ===
-${entityLabel} Name: ${practiceContext.practiceName}`;
+      let contextBlock = '';
+      
+      if (prefs?.profileContext_showPracticeName !== false && practiceContext.practiceName) {
+        contextBlock += `\n${entityLabel} Name: ${practiceContext.practiceName}`;
+      }
       
       if (practiceContext.organisationType && !isGPPractice) {
-        prompt += `\nOrganisation Type: ${practiceContext.organisationType}`;
+        contextBlock += `\nOrganisation Type: ${practiceContext.organisationType}`;
       }
       
-      if (practiceContext.practiceAddress) {
-        prompt += `\n${entityLabel} Address: ${practiceContext.practiceAddress}`;
+      if (prefs?.profileContext_showPracticeAddress !== false && practiceContext.practiceAddress) {
+        contextBlock += `\n${entityLabel} Address: ${practiceContext.practiceAddress}`;
       }
       
-      if (practiceContext.practicePhone) {
-        prompt += `\n${entityLabel} Phone: ${practiceContext.practicePhone}`;
+      if (prefs?.profileContext_showPracticePhone !== false && practiceContext.practicePhone) {
+        contextBlock += `\n${entityLabel} Phone: ${practiceContext.practicePhone}`;
       }
       
-      if (practiceContext.practiceEmail) {
-        prompt += `\n${entityLabel} Email: ${practiceContext.practiceEmail}`;
+      if (prefs?.profileContext_showPracticeEmail !== false && practiceContext.practiceEmail) {
+        contextBlock += `\n${entityLabel} Email: ${practiceContext.practiceEmail}`;
       }
       
-      if (practiceContext.practiceWebsite) {
-        prompt += `\n${entityLabel} Website: ${practiceContext.practiceWebsite}`;
+      if (prefs?.profileContext_showPracticeWebsite !== false && practiceContext.practiceWebsite) {
+        contextBlock += `\n${entityLabel} Website: ${practiceContext.practiceWebsite}`;
       }
       
-      if (practiceContext.userFullName) {
-        prompt += `\nUser Name: ${practiceContext.userFullName}`;
+      if (prefs?.profileContext_showUserName !== false && practiceContext.userFullName) {
+        contextBlock += `\nUser Name: ${practiceContext.userFullName}`;
       }
       
-      if (practiceContext.userEmail) {
-        prompt += `\nUser Email: ${practiceContext.userEmail}`;
+      if (prefs?.profileContext_showUserEmail !== false && practiceContext.userEmail) {
+        contextBlock += `\nUser Email: ${practiceContext.userEmail}`;
       }
       
-      // Note: We intentionally don't include the raw system role (e.g., system_admin, gp_admin)
-      // in the prompt as it's an internal identifier. The user's professional title from their
-      // profile should be used for any clinician signatures instead.
-      
-      if (practiceContext.practiceManagerName) {
-        prompt += `\n${isGPPractice ? 'Practice' : 'Organisation'} Manager: ${practiceContext.practiceManagerName}`;
+      if (prefs?.profileContext_showPracticeManager !== false && practiceContext.practiceManagerName) {
+        contextBlock += `\n${isGPPractice ? 'Practice' : 'Organisation'} Manager: ${practiceContext.practiceManagerName}`;
       }
       
-      if (practiceContext.pcnName) {
-        prompt += `\nPrimary Care Network (PCN): ${practiceContext.pcnName}`;
+      if (prefs?.profileContext_showPCN !== false && practiceContext.pcnName) {
+        contextBlock += `\nPrimary Care Network (PCN): ${practiceContext.pcnName}`;
       }
       
-      if (practiceContext.neighbourhoodName) {
-        prompt += `\nNeighbourhood: ${practiceContext.neighbourhoodName}`;
+      if (prefs?.profileContext_showNeighbourhood !== false && practiceContext.neighbourhoodName) {
+        contextBlock += `\nNeighbourhood: ${practiceContext.neighbourhoodName}`;
       }
       
-      if (practiceContext.otherPracticesInPCN?.length > 0) {
-        prompt += `\nOther practices in the same PCN: ${practiceContext.otherPracticesInPCN.join(', ')}`;
+      if (prefs?.profileContext_showPCN !== false && practiceContext.otherPracticesInPCN?.length > 0) {
+        contextBlock += `\nOther practices in the same PCN: ${practiceContext.otherPracticesInPCN.join(', ')}`;
       }
       
-      if (practiceContext.emailSignature) {
-        prompt += `\nEmail Signature Available: Yes (can be used in email drafts when appropriate)`;
+      if (prefs?.profileContext_showSignatures !== false && practiceContext.emailSignature) {
+        contextBlock += `\nEmail Signature Available: Yes (can be used in email drafts when appropriate)`;
       }
       
-      if (practiceContext.letterSignature) {
-        prompt += `\nLetter Signature Available: Yes (can be used in formal letters when appropriate)`;
+      if (prefs?.profileContext_showSignatures !== false && practiceContext.letterSignature) {
+        contextBlock += `\nLetter Signature Available: Yes (can be used in formal letters when appropriate)`;
       }
       
-      prompt += `\n=== END ${entityLabel.toUpperCase()} INFORMATION ===
+      // Only add the block if there's actual content
+      if (contextBlock.trim()) {
+        prompt += `\n\n=== YOUR ${entityLabel.toUpperCase()} INFORMATION (ALWAYS USE THIS WHEN CREATING DOCUMENTS) ===${contextBlock}`;
+        prompt += `\n=== END ${entityLabel.toUpperCase()} INFORMATION ===
 
 CRITICAL: When creating any documents, letters, or responses, you MUST use the actual ${entityLabel.toLowerCase()} information listed above. NEVER use placeholder text like "[Your ${entityLabel} Address]" or "[Phone Number]". Always use the real ${entityLabel.toLowerCase()} name, address, phone, and email provided above.
 
-EXAMPLES OF CORRECT USAGE:
-- Use "${practiceContext.practiceName}" not "[${entityLabel} Name]"`;
-      
-      if (practiceContext.practiceAddress) {
-        prompt += `\n- Use "${practiceContext.practiceAddress}" not "[Your ${entityLabel} Address]"`;
-      }
-      
-      if (practiceContext.practicePhone) {
-        prompt += `\n- Use "${practiceContext.practicePhone}" not "[Phone Number]"`;
-      }
-      
-      if (practiceContext.practiceEmail) {
-        prompt += `\n- Use "${practiceContext.practiceEmail}" not "[Email Address]"`;
-      }
-      
-      if (practiceContext.practiceWebsite) {
-        prompt += `\n- Use "${practiceContext.practiceWebsite}" not "[Website]" - display as plain text, NOT as a markdown link`;
-      }
+EXAMPLES OF CORRECT USAGE:`;
+        
+        if (prefs?.profileContext_showPracticeName !== false && practiceContext.practiceName) {
+          prompt += `\n- Use "${practiceContext.practiceName}" not "[${entityLabel} Name]"`;
+        }
+        
+        if (prefs?.profileContext_showPracticeAddress !== false && practiceContext.practiceAddress) {
+          prompt += `\n- Use "${practiceContext.practiceAddress}" not "[Your ${entityLabel} Address]"`;
+        }
+        
+        if (prefs?.profileContext_showPracticePhone !== false && practiceContext.practicePhone) {
+          prompt += `\n- Use "${practiceContext.practicePhone}" not "[Phone Number]"`;
+        }
+        
+        if (prefs?.profileContext_showPracticeEmail !== false && practiceContext.practiceEmail) {
+          prompt += `\n- Use "${practiceContext.practiceEmail}" not "[Email Address]"`;
+        }
+        
+        if (prefs?.profileContext_showPracticeWebsite !== false && practiceContext.practiceWebsite) {
+          prompt += `\n- Use "${practiceContext.practiceWebsite}" not "[Website]" - display as plain text, NOT as a markdown link`;
+        }
 
-      prompt += `\n\nWhen relevant to queries, you can reference this ${entityLabel.toLowerCase()} and user information to provide more personalised and contextual responses. For example:
+        prompt += `\n\nWhen relevant to queries, you can reference this ${entityLabel.toLowerCase()} and user information to provide more personalised and contextual responses. For example:
 - Use the ${entityLabel.toLowerCase()} name and address when creating letters or referrals
 - Reference the user's role when providing role-specific guidance
 - Include contact details when generating ${entityLabel.toLowerCase()} communications
 - Use available signatures when creating formal documents`;
-    } else {
+      }
+    } else if (!practiceContext.practiceName) {
       console.log('❌ No practice/organisation name found in context:', practiceContext);
     }
 
@@ -723,7 +743,21 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       }
       // Note: Image and PowerPoint generation removed from inline chat
       // Use Image Studio or Presentation Studio for these features
-      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel);
+      const profileContextPrefs = {
+        profileContext_enabled: profileContextEnabled,
+        profileContext_showUserName: profileContextShowUserName,
+        profileContext_showUserEmail: profileContextShowUserEmail,
+        profileContext_showPracticeName: profileContextShowPracticeName,
+        profileContext_showPracticeAddress: profileContextShowPracticeAddress,
+        profileContext_showPracticePhone: profileContextShowPracticePhone,
+        profileContext_showPracticeEmail: profileContextShowPracticeEmail,
+        profileContext_showPracticeWebsite: profileContextShowPracticeWebsite,
+        profileContext_showPracticeManager: profileContextShowPracticeManager,
+        profileContext_showPCN: profileContextShowPCN,
+        profileContext_showNeighbourhood: profileContextShowNeighbourhood,
+        profileContext_showSignatures: profileContextShowSignatures,
+      };
+      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel, profileContextPrefs);
       console.log('📄 Final system prompt (first 500 chars):', systemPrompt.substring(0, 500));
       
       // Prepare optimised messages for API using conversation memory management
@@ -1419,6 +1453,19 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setChatHistoryRetentionDays(preferences.chatHistoryRetentionDays ?? 30);
           setHideGPClinical(preferences.hideGPClinical ?? false);
           setImageGenerationModel(preferences.imageGenerationModel ?? 'google/gemini-3-pro-image-preview');
+          // Load profile context toggles
+          setProfileContextEnabled(preferences.profileContext_enabled ?? true);
+          setProfileContextShowUserName(preferences.profileContext_showUserName ?? true);
+          setProfileContextShowUserEmail(preferences.profileContext_showUserEmail ?? true);
+          setProfileContextShowPracticeName(preferences.profileContext_showPracticeName ?? true);
+          setProfileContextShowPracticeAddress(preferences.profileContext_showPracticeAddress ?? false);
+          setProfileContextShowPracticePhone(preferences.profileContext_showPracticePhone ?? false);
+          setProfileContextShowPracticeEmail(preferences.profileContext_showPracticeEmail ?? false);
+          setProfileContextShowPracticeWebsite(preferences.profileContext_showPracticeWebsite ?? false);
+          setProfileContextShowPracticeManager(preferences.profileContext_showPracticeManager ?? false);
+          setProfileContextShowPCN(preferences.profileContext_showPCN ?? false);
+          setProfileContextShowNeighbourhood(preferences.profileContext_showNeighbourhood ?? false);
+          setProfileContextShowSignatures(preferences.profileContext_showSignatures ?? true);
           // includePracticeLogo removed - use Image Studio
           console.log('AI4GP settings loaded successfully');
         } else {
@@ -1460,7 +1507,20 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         autoCollapseUserPrompts,
         chatHistoryRetentionDays,
         hideGPClinical,
-        imageGenerationModel
+        imageGenerationModel,
+        // Profile context toggles
+        profileContext_enabled: profileContextEnabled,
+        profileContext_showUserName: profileContextShowUserName,
+        profileContext_showUserEmail: profileContextShowUserEmail,
+        profileContext_showPracticeName: profileContextShowPracticeName,
+        profileContext_showPracticeAddress: profileContextShowPracticeAddress,
+        profileContext_showPracticePhone: profileContextShowPracticePhone,
+        profileContext_showPracticeEmail: profileContextShowPracticeEmail,
+        profileContext_showPracticeWebsite: profileContextShowPracticeWebsite,
+        profileContext_showPracticeManager: profileContextShowPracticeManager,
+        profileContext_showPCN: profileContextShowPCN,
+        profileContext_showNeighbourhood: profileContextShowNeighbourhood,
+        profileContext_showSignatures: profileContextShowSignatures,
       };
 
       console.log('Saving AI4GP preferences:', preferences);
@@ -1489,7 +1549,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, imageGenerationModel]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, imageGenerationModel, profileContextEnabled, profileContextShowUserName, profileContextShowUserEmail, profileContextShowPracticeName, profileContextShowPracticeAddress, profileContextShowPracticePhone, profileContextShowPracticeEmail, profileContextShowPracticeWebsite, profileContextShowPracticeManager, profileContextShowPCN, profileContextShowNeighbourhood, profileContextShowSignatures]);
 
   // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
@@ -1500,7 +1560,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       return () => clearTimeout(timeoutId);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, saveUserSettings]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, saveUserSettings, profileContextEnabled, profileContextShowUserName, profileContextShowUserEmail, profileContextShowPracticeName, profileContextShowPracticeAddress, profileContextShowPracticePhone, profileContextShowPracticeEmail, profileContextShowPracticeWebsite, profileContextShowPracticeManager, profileContextShowPCN, profileContextShowNeighbourhood, profileContextShowSignatures]);
 
   // Use Display Settings Effect to apply CSS classes
   useEffect(() => {
@@ -1605,7 +1665,21 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     try {
       const startTime = Date.now();
-      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel);
+      const profileContextPrefs = {
+        profileContext_enabled: profileContextEnabled,
+        profileContext_showUserName: profileContextShowUserName,
+        profileContext_showUserEmail: profileContextShowUserEmail,
+        profileContext_showPracticeName: profileContextShowPracticeName,
+        profileContext_showPracticeAddress: profileContextShowPracticeAddress,
+        profileContext_showPracticePhone: profileContextShowPracticePhone,
+        profileContext_showPracticeEmail: profileContextShowPracticeEmail,
+        profileContext_showPracticeWebsite: profileContextShowPracticeWebsite,
+        profileContext_showPracticeManager: profileContextShowPracticeManager,
+        profileContext_showPCN: profileContextShowPCN,
+        profileContext_showNeighbourhood: profileContextShowNeighbourhood,
+        profileContext_showSignatures: profileContextShowSignatures,
+      };
+      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel, profileContextPrefs);
       
       // Prepare messages for API
       const messagesForAPI = newMessages.map(msg => {
@@ -1863,6 +1937,31 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     hideGPClinical,
     setHideGPClinical,
     imageGenerationModel,
-    setImageGenerationModel
+    setImageGenerationModel,
+    // Profile Context toggles
+    profileContextEnabled,
+    setProfileContextEnabled,
+    profileContextShowUserName,
+    setProfileContextShowUserName,
+    profileContextShowUserEmail,
+    setProfileContextShowUserEmail,
+    profileContextShowPracticeName,
+    setProfileContextShowPracticeName,
+    profileContextShowPracticeAddress,
+    setProfileContextShowPracticeAddress,
+    profileContextShowPracticePhone,
+    setProfileContextShowPracticePhone,
+    profileContextShowPracticeEmail,
+    setProfileContextShowPracticeEmail,
+    profileContextShowPracticeWebsite,
+    setProfileContextShowPracticeWebsite,
+    profileContextShowPracticeManager,
+    setProfileContextShowPracticeManager,
+    profileContextShowPCN,
+    setProfileContextShowPCN,
+    profileContextShowNeighbourhood,
+    setProfileContextShowNeighbourhood,
+    profileContextShowSignatures,
+    setProfileContextShowSignatures
   };
 };

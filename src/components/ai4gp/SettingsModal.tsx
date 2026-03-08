@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ModelSelector } from './ModelSelector';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Clock, Save, Loader2, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Settings, Volume2, Image, Bot } from 'lucide-react';
+import { Brain, Clock, Save, Loader2, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Settings, Volume2, Image, Bot, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { VoicePreviewDemo } from './VoicePreviewDemo';
+import { PracticeContext } from '@/types/ai4gp';
 
 export type ImageGenerationModel = 
   | 'google/gemini-3-pro-image-preview' 
@@ -72,6 +73,32 @@ interface SettingsModalProps {
   onHideGPClinicalChange: (enabled: boolean) => void;
   imageGenerationModel: ImageGenerationModel;
   onImageGenerationModelChange: (model: ImageGenerationModel) => void;
+  // Profile Context
+  practiceContext?: PracticeContext;
+  profileContextEnabled: boolean;
+  onProfileContextEnabledChange: (enabled: boolean) => void;
+  profileContextShowUserName: boolean;
+  onProfileContextShowUserNameChange: (enabled: boolean) => void;
+  profileContextShowUserEmail: boolean;
+  onProfileContextShowUserEmailChange: (enabled: boolean) => void;
+  profileContextShowPracticeName: boolean;
+  onProfileContextShowPracticeNameChange: (enabled: boolean) => void;
+  profileContextShowPracticeAddress: boolean;
+  onProfileContextShowPracticeAddressChange: (enabled: boolean) => void;
+  profileContextShowPracticePhone: boolean;
+  onProfileContextShowPracticePhoneChange: (enabled: boolean) => void;
+  profileContextShowPracticeEmail: boolean;
+  onProfileContextShowPracticeEmailChange: (enabled: boolean) => void;
+  profileContextShowPracticeWebsite: boolean;
+  onProfileContextShowPracticeWebsiteChange: (enabled: boolean) => void;
+  profileContextShowPracticeManager: boolean;
+  onProfileContextShowPracticeManagerChange: (enabled: boolean) => void;
+  profileContextShowPCN: boolean;
+  onProfileContextShowPCNChange: (enabled: boolean) => void;
+  profileContextShowNeighbourhood: boolean;
+  onProfileContextShowNeighbourhoodChange: (enabled: boolean) => void;
+  profileContextShowSignatures: boolean;
+  onProfileContextShowSignaturesChange: (enabled: boolean) => void;
 }
 
 
@@ -113,8 +140,55 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onHideGPClinicalChange,
   imageGenerationModel,
   onImageGenerationModelChange,
+  practiceContext,
+  profileContextEnabled,
+  onProfileContextEnabledChange,
+  profileContextShowUserName,
+  onProfileContextShowUserNameChange,
+  profileContextShowUserEmail,
+  onProfileContextShowUserEmailChange,
+  profileContextShowPracticeName,
+  onProfileContextShowPracticeNameChange,
+  profileContextShowPracticeAddress,
+  onProfileContextShowPracticeAddressChange,
+  profileContextShowPracticePhone,
+  onProfileContextShowPracticePhoneChange,
+  profileContextShowPracticeEmail,
+  onProfileContextShowPracticeEmailChange,
+  profileContextShowPracticeWebsite,
+  onProfileContextShowPracticeWebsiteChange,
+  profileContextShowPracticeManager,
+  onProfileContextShowPracticeManagerChange,
+  profileContextShowPCN,
+  onProfileContextShowPCNChange,
+  profileContextShowNeighbourhood,
+  onProfileContextShowNeighbourhoodChange,
+  profileContextShowSignatures,
+  onProfileContextShowSignaturesChange,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
+
+  // Build live preview text for profile context
+  const contextPreviewText = useMemo(() => {
+    if (!profileContextEnabled) return 'Profile context is disabled — no details will be sent to AI.';
+    const lines: string[] = [];
+    const isGPPractice = !practiceContext?.organisationType || practiceContext?.organisationType === 'GP Practice';
+    const entityLabel = isGPPractice ? 'Practice' : 'Organisation';
+    if (profileContextShowPracticeName && practiceContext?.practiceName) lines.push(`${entityLabel} Name: ${practiceContext.practiceName}`);
+    if (practiceContext?.organisationType && !isGPPractice) lines.push(`Organisation Type: ${practiceContext.organisationType}`);
+    if (profileContextShowPracticeAddress && practiceContext?.practiceAddress) lines.push(`${entityLabel} Address: ${practiceContext.practiceAddress}`);
+    if (profileContextShowPracticePhone && practiceContext?.practicePhone) lines.push(`${entityLabel} Phone: ${practiceContext.practicePhone}`);
+    if (profileContextShowPracticeEmail && practiceContext?.practiceEmail) lines.push(`${entityLabel} Email: ${practiceContext.practiceEmail}`);
+    if (profileContextShowPracticeWebsite && practiceContext?.practiceWebsite) lines.push(`${entityLabel} Website: ${practiceContext.practiceWebsite}`);
+    if (profileContextShowUserName && practiceContext?.userFullName) lines.push(`User Name: ${practiceContext.userFullName}`);
+    if (profileContextShowUserEmail && practiceContext?.userEmail) lines.push(`User Email: ${practiceContext.userEmail}`);
+    if (profileContextShowPracticeManager && practiceContext?.practiceManagerName) lines.push(`${isGPPractice ? 'Practice' : 'Organisation'} Manager: ${practiceContext.practiceManagerName}`);
+    if (profileContextShowPCN && practiceContext?.pcnName) lines.push(`PCN: ${practiceContext.pcnName}`);
+    if (profileContextShowNeighbourhood && practiceContext?.neighbourhoodName) lines.push(`Neighbourhood: ${practiceContext.neighbourhoodName}`);
+    if (profileContextShowSignatures && practiceContext?.emailSignature) lines.push(`Email Signature: Available`);
+    if (profileContextShowSignatures && practiceContext?.letterSignature) lines.push(`Letter Signature: Available`);
+    return lines.length > 0 ? lines.join('\n') : 'No profile details will be included (all toggles are off or no data available).';
+  }, [profileContextEnabled, profileContextShowPracticeName, profileContextShowPracticeAddress, profileContextShowPracticePhone, profileContextShowPracticeEmail, profileContextShowPracticeWebsite, profileContextShowUserName, profileContextShowUserEmail, profileContextShowPracticeManager, profileContextShowPCN, profileContextShowNeighbourhood, profileContextShowSignatures, practiceContext]);
 
 
   const handleSaveSettings = async () => {
@@ -149,7 +223,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <Tabs defaultValue="display" className="flex-1 flex flex-col min-h-0">
           {/* Tab Navigation */}
           <div className="px-8 pt-4 pb-2 bg-muted/30">
-            <TabsList className="grid w-full grid-cols-5 h-11 p-1 bg-muted/50 rounded-lg">
+            <TabsList className="grid w-full grid-cols-6 h-11 p-1 bg-muted/50 rounded-lg">
               <TabsTrigger 
                 value="display" 
                 className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
@@ -163,6 +237,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 <Brain className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Session</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="context" 
+                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+              >
+                <Building2 className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Context</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="local" 
@@ -432,6 +513,107 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+            </TabsContent>
+
+            {/* Profile Context Tab */}
+            <TabsContent value="context" className="mt-0 space-y-8">
+              {/* Master Toggle */}
+              <div className="space-y-5">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  Profile Context
+                </h3>
+
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div className="space-y-1">
+                    <Label htmlFor="profile-context-master" className="text-sm font-medium cursor-pointer">
+                      Include my profile details in AI responses
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, your practice and personal details are shared with the AI to personalise responses
+                    </p>
+                  </div>
+                  <Switch
+                    id="profile-context-master"
+                    checked={profileContextEnabled}
+                    onCheckedChange={onProfileContextEnabledChange}
+                  />
+                </div>
+              </div>
+
+              {profileContextEnabled && (
+                <>
+                  {/* Your Details */}
+                  <div className="space-y-4 pt-6 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your Details</h4>
+                    
+                    {[
+                      { id: 'ctx-user-name', label: 'Name', value: practiceContext?.userFullName, checked: profileContextShowUserName, onChange: onProfileContextShowUserNameChange },
+                      { id: 'ctx-user-email', label: 'Email', value: practiceContext?.userEmail, checked: profileContextShowUserEmail, onChange: onProfileContextShowUserEmailChange },
+                      { id: 'ctx-signatures', label: 'Signatures', value: practiceContext?.emailSignature ? 'Available' : undefined, checked: profileContextShowSignatures, onChange: onProfileContextShowSignaturesChange },
+                    ].map(item => (
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+                        <div className="space-y-0.5">
+                          <Label htmlFor={item.id} className="text-sm font-medium cursor-pointer">{item.label}</Label>
+                          {item.value && <p className="text-xs text-muted-foreground">{item.value}</p>}
+                          {!item.value && <p className="text-xs text-muted-foreground italic">Not set</p>}
+                        </div>
+                        <Switch id={item.id} checked={item.checked} onCheckedChange={item.onChange} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Practice Details */}
+                  <div className="space-y-4 pt-6 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Practice Details</h4>
+                    
+                    {[
+                      { id: 'ctx-practice-name', label: 'Practice Name', value: practiceContext?.practiceName, checked: profileContextShowPracticeName, onChange: onProfileContextShowPracticeNameChange },
+                      { id: 'ctx-practice-address', label: 'Address', value: practiceContext?.practiceAddress, checked: profileContextShowPracticeAddress, onChange: onProfileContextShowPracticeAddressChange },
+                      { id: 'ctx-practice-phone', label: 'Phone', value: practiceContext?.practicePhone, checked: profileContextShowPracticePhone, onChange: onProfileContextShowPracticePhoneChange },
+                      { id: 'ctx-practice-email', label: 'Email', value: practiceContext?.practiceEmail, checked: profileContextShowPracticeEmail, onChange: onProfileContextShowPracticeEmailChange },
+                      { id: 'ctx-practice-website', label: 'Website', value: practiceContext?.practiceWebsite, checked: profileContextShowPracticeWebsite, onChange: onProfileContextShowPracticeWebsiteChange },
+                      { id: 'ctx-practice-manager', label: 'Practice Manager', value: practiceContext?.practiceManagerName, checked: profileContextShowPracticeManager, onChange: onProfileContextShowPracticeManagerChange },
+                    ].map(item => (
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+                        <div className="space-y-0.5">
+                          <Label htmlFor={item.id} className="text-sm font-medium cursor-pointer">{item.label}</Label>
+                          {item.value && <p className="text-xs text-muted-foreground">{item.value}</p>}
+                          {!item.value && <p className="text-xs text-muted-foreground italic">Not set</p>}
+                        </div>
+                        <Switch id={item.id} checked={item.checked} onCheckedChange={item.onChange} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Network */}
+                  <div className="space-y-4 pt-6 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Network</h4>
+                    
+                    {[
+                      { id: 'ctx-pcn', label: 'PCN', value: practiceContext?.pcnName, checked: profileContextShowPCN, onChange: onProfileContextShowPCNChange },
+                      { id: 'ctx-neighbourhood', label: 'Neighbourhood', value: practiceContext?.neighbourhoodName, checked: profileContextShowNeighbourhood, onChange: onProfileContextShowNeighbourhoodChange },
+                    ].map(item => (
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+                        <div className="space-y-0.5">
+                          <Label htmlFor={item.id} className="text-sm font-medium cursor-pointer">{item.label}</Label>
+                          {item.value && <p className="text-xs text-muted-foreground">{item.value}</p>}
+                          {!item.value && <p className="text-xs text-muted-foreground italic">Not set</p>}
+                        </div>
+                        <Switch id={item.id} checked={item.checked} onCheckedChange={item.onChange} />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Live Preview */}
+              <div className="p-4 bg-muted/40 rounded-xl border border-border/50">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Context sent to AI</div>
+                <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed max-h-40 overflow-y-auto">
+                  {contextPreviewText}
+                </pre>
               </div>
             </TabsContent>
 
