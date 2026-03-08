@@ -96,7 +96,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   onNewChat,
   userRole,
   practiceContext,
-  onShowPMGenie
+  onShowPMGenie,
+  onOpenImageStudio
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
