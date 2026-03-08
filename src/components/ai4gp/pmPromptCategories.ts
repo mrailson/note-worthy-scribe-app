@@ -82,7 +82,9 @@ export interface MainCategory {
   gradient: string;
   subCategories: SubCategory[];
   focusOnly?: boolean;
+  opensImageStudio?: boolean;
   prompt?: string;
+  isNew?: boolean;
 }
 
 export const mainCategories: MainCategory[] = [
