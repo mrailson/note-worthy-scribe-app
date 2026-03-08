@@ -131,8 +131,89 @@ function createTextRuns(text: string, baseSize: number = FONTS.size.body): TextR
 }
 
 /**
- * Generate a clean, professional Word document from AI response content
+ * Parse markdown table lines into a proper Word Table
  */
+function buildWordTable(tableLines: string[]): Table | null {
+  // Parse cells from a pipe-delimited line
+  const parseCells = (line: string): string[] => {
+    const raw = line.split('|').map(c => c.trim());
+    return raw.slice(1, -1); // remove empty first/last from pipe borders
+  };
+
+  // First line = headers
+  const headers = parseCells(tableLines[0]);
+  if (headers.length === 0) return null;
+
+  // Find separator row (contains :--- or --- patterns)
+  let dataStartIndex = 1;
+  if (tableLines.length > 1 && /^[\s|:\-]+$/.test(tableLines[1])) {
+    dataStartIndex = 2;
+  }
+
+  // Data rows
+  const dataRows = tableLines.slice(dataStartIndex).map(parseCells);
+
+  const colCount = headers.length;
+  const colWidth = Math.floor(9000 / colCount); // distribute width evenly
+
+  const thinBorder = { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" };
+  const borders = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
+
+  // Header row
+  const headerRow = new TableRow({
+    tableHeader: true,
+    children: headers.map(h =>
+      new TableCell({
+        width: { size: colWidth, type: WidthType.DXA },
+        borders,
+        shading: { type: ShadingType.SOLID, color: COLORS.headingBlue, fill: COLORS.headingBlue },
+        verticalAlign: VerticalAlign.CENTER,
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanText(h),
+                bold: true,
+                font: FONTS.default,
+                size: FONTS.size.body,
+                color: "FFFFFF",
+              }),
+            ],
+            spacing: { before: 60, after: 60 },
+          }),
+        ],
+      })
+    ),
+  });
+
+  // Data rows
+  const rows = dataRows.map((cells, rowIndex) => {
+    const bgColor = rowIndex % 2 === 0 ? "FFFFFF" : "F8FAFC";
+    return new TableRow({
+      children: Array.from({ length: colCount }, (_, ci) =>
+        new TableCell({
+          width: { size: colWidth, type: WidthType.DXA },
+          borders,
+          shading: { type: ShadingType.SOLID, color: bgColor, fill: bgColor },
+          verticalAlign: VerticalAlign.CENTER,
+          children: [
+            new Paragraph({
+              children: createTextRuns(cleanText(cells[ci] || '')),
+              spacing: { before: 40, after: 40 },
+            }),
+          ],
+        })
+      ),
+    });
+  });
+
+  return new Table({
+    width: { size: 9000, type: WidthType.DXA },
+    rows: [headerRow, ...rows],
+  });
+}
+
+
 export async function generateCleanAIResponseDocument(
   content: string,
   title: string = "AI Assistant Response",
