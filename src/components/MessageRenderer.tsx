@@ -127,6 +127,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [infographicSpellingCorrections, setInfographicSpellingCorrections] = useState<{ incorrect: string; correct: string }[]>([]);
   const [verificationData, setVerificationData] = useState(null);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
+  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
   
   const isMobile = useIsMobile();
   
