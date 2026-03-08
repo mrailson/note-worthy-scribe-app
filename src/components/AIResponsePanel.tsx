@@ -168,5 +168,13 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
       </SheetContent>
       
     </Sheet>
+
+      <DocumentPreviewModal
+        content={response}
+        title="AI Assistant Response"
+        isOpen={showDocPreview}
+        onClose={() => setShowDocPreview(false)}
+      />
+    </>
   );
 };
