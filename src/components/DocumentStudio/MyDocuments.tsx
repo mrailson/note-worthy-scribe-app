@@ -47,10 +47,10 @@ export const MyDocuments: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('document_studio_documents')
+      const { error } = await (supabase
+        .from('document_studio_documents' as any)
         .delete()
-        .eq('id', id);
+        .eq('id', id) as any);
       if (error) throw error;
       setDocuments(prev => prev.filter(d => d.id !== id));
       toast.success('Document deleted');

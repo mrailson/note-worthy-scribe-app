@@ -7,7 +7,15 @@ interface SignpostingPageProps {
   onBack: () => void;
 }
 
-const SEVERE_HARM_LINKS = [
+interface SignpostLink {
+  title: string;
+  description: string;
+  colour: string;
+  url?: string;
+  isEmergency?: boolean;
+}
+
+const SEVERE_HARM_LINKS: SignpostLink[] = [
   {
     title: 'Learning from Patient Safety Events (LFPSE)',
     description: 'Report this event via the national patient safety reporting system',
@@ -38,7 +46,7 @@ const SEVERE_HARM_LINKS = [
   },
 ];
 
-const SAFEGUARDING_LINKS = [
+const SAFEGUARDING_LINKS: SignpostLink[] = [
   {
     title: 'Local MASH / Adult Social Care',
     description: 'Report safeguarding concerns to your local Multi-Agency Safeguarding Hub or Adult Social Care team',
@@ -84,7 +92,7 @@ export const SignpostingPage: React.FC<SignpostingPageProps> = ({ type, onBack }
               : 'Document Studio cannot process safeguarding concerns. Please use the following resources.'
             }
           </p>
-          <p className="text-xs text-red-600 dark:text-red-400 font-medium mt-2">
+          <p className="text-xs text-destructive font-medium mt-2">
             No data has been recorded or saved.
           </p>
         </div>
@@ -99,9 +107,9 @@ export const SignpostingPage: React.FC<SignpostingPageProps> = ({ type, onBack }
             style={{ borderLeftColor: link.colour }}
           >
             {link.isEmergency ? (
-              <Phone className="h-4.5 w-4.5 flex-shrink-0 mt-0.5" style={{ color: link.colour }} />
+              <Phone className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: link.colour }} />
             ) : (
-              <AlertTriangle className="h-4.5 w-4.5 flex-shrink-0 mt-0.5" style={{ color: link.colour }} />
+              <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: link.colour }} />
             )}
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground">{link.title}</p>
@@ -111,8 +119,7 @@ export const SignpostingPage: React.FC<SignpostingPageProps> = ({ type, onBack }
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs underline flex items-center gap-1 mt-1"
-                  style={{ color: link.colour }}
+                  className="text-xs text-primary underline flex items-center gap-1 mt-1"
                 >
                   Open resource <ExternalLink className="h-3 w-3" />
                 </a>

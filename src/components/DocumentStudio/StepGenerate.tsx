@@ -121,7 +121,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
       const title = state.selectedType?.display_name || state.freeFormRequest || 'Untitled Document';
 
       const { error } = await supabase
-        .from('document_studio_documents')
+        .from('document_studio_documents' as any)
         .insert({
           user_id: user.id,
           document_type: state.selectedType?.type_key || 'custom',
