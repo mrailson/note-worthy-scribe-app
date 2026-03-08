@@ -1,58 +1,67 @@
 
 
-## Problem Analysis
+## Document Preview Modal — Fixes and Infographic Integration
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+### Problems Identified
 
-### Root causes by issue:
+1. **Scrolling broken**: The `ScrollArea` (Radix) inside the fixed-height `DialogContent` (`max-h-[92vh]`) isn't scrolling because the inner content overflows without proper height constraints. The `flex-1 min-h-0` pattern requires explicit height propagation that Radix ScrollArea sometimes doesn't respect.
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+2. **`####` and `---` rendering as raw text**: The `renderPreviewContent` function only handles `#`, `##`, `###` headings. Lines starting with `####` fall through to the paragraph renderer and display literally. Similarly, `---` horizontal rules are treated as bullet-point triggers (the regex `^[-•*]\s+` doesn't match `---`, but `---` without a space just becomes a paragraph showing `---`).
 
-## Plan
+3. **No infographic option in the modal**: Currently, infographics are only accessible from the message dropdown menu. The user wants Landscape and Portrait infographic buttons inside the DocumentPreviewModal itself, which silently trigger generation and display the result inline.
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+---
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+### Plan
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+#### File: `src/components/shared/DocumentPreviewModal.tsx`
 
-### 2. Raise Part 2b base tokens
+**Fix 1 — Scrolling**
+- Replace `<ScrollArea>` with a plain `<div>` using `overflow-y-auto flex-1 min-h-0` — this avoids the Radix ScrollArea height calculation issue inside flex containers.
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
+**Fix 2 — Markdown parsing gaps**
+In `renderPreviewContent`:
+- Add `####` heading support (render as `<h4>` styled similarly to `<h3>` but slightly smaller).
+- Add `---` / `***` / `___` horizontal rule detection — skip these lines entirely (don't render them) since the user doesn't want separators.
+- Ensure the heading detection order goes `####` → `###` → `##` → `#` (most specific first).
 
-### 3. Add anti-truncation instructions to all step prompts
+**Fix 3 — Infographic generation inside the modal**
+- Add new props: `imageGenerationModel`, `practiceName`, `spellingCorrections` (passed from `MessageRenderer`).
+- Add state: `infographicMode` (`null | 'generating' | 'landscape' | 'portrait'`), `infographicUrl`, `infographicError`, `infographicProgress`.
+- Add two buttons in the bottom action bar: "Infographic (Landscape)" and "Infographic (Portrait)" with the `ImageIcon` and `Monitor`/`FileText` icons.
+- When clicked: set `infographicMode`, call `useContentInfographic().generateInfographic()` silently, show a progress indicator overlaying the preview area.
+- On completion: replace the document preview with the generated infographic image displayed at full width inside the preview area. Show download button for the image.
+- On error: show error message with retry option.
+- Add a "Back to Document" button to return to the text preview.
 
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
+#### File: `src/components/MessageRenderer.tsx`
 
-### 4. Update step labels and progress tracking
+- Pass `imageGenerationModel`, `infographicPracticeName`, and `infographicSpellingCorrections` to `DocumentPreviewModal` so it can trigger infographic generation.
 
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
+---
 
-### 5. Verify Version History enforcement
+### Technical Detail
 
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
+**Heading order fix** (line ~146 area):
+```
+if (trimmed.startsWith('#### ')) → <h4> styled
+if (trimmed.startsWith('### '))  → <h3> (existing)
+if (trimmed.startsWith('## '))   → <h2> (existing)  
+if (trimmed.startsWith('# '))    → <h1> (existing)
+```
 
-### Files to change
+**HR detection** (before bullet check):
+```
+if (/^[-*_]{3,}$/.test(trimmed)) → skip (continue)
+```
+This must come before the bullet regex `^[-•*]\s+` to prevent `---` being mishandled.
 
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
+**Scrolling fix**:
+Replace line 334's `<ScrollArea className="flex-1 min-h-0 ...">` with `<div className="flex-1 min-h-0 overflow-y-auto ...">` and remove the closing `</ScrollArea>`.
 
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+**Infographic in modal** — reuses `useContentInfographic` hook directly (same as `ContentInfographicModal` does). Progress UI shown inline in the preview area with the same rotating tips pattern.
+
+### Files to Modify
+1. `src/components/shared/DocumentPreviewModal.tsx` — all three fixes
+2. `src/components/MessageRenderer.tsx` — pass additional props to DocumentPreviewModal
 
