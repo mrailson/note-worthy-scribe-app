@@ -7,6 +7,8 @@ export interface DocumentPreviewPrefs {
   logoPosition: LogoPosition;
   showFooter: boolean;
   showPageNumbers: boolean;
+  showPdfDownload: boolean;
+  showInfographic: boolean;
 }
 
 const STORAGE_KEY = 'notewell-doc-preview-prefs';
@@ -16,6 +18,8 @@ const DEFAULTS: DocumentPreviewPrefs = {
   logoPosition: 'left',
   showFooter: true,
   showPageNumbers: true,
+  showPdfDownload: true,
+  showInfographic: true,
 };
 
 function loadPrefs(): DocumentPreviewPrefs {
