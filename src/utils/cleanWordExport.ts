@@ -219,7 +219,7 @@ export async function generateCleanAIResponseDocument(
   title: string = "AI Assistant Response",
   options?: { footerNote?: string; logoUrl?: string; logoPosition?: 'left' | 'center' | 'right' }
 ): Promise<void> {
-  const children: Paragraph[] = [];
+  const children: (Paragraph | Table)[] = [];
 
   // Insert practice logo if provided
   if (options?.logoUrl) {
