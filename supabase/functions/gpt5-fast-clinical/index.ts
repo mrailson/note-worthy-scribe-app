@@ -518,21 +518,26 @@ serve(async (req) => {
 
   // Fallback chain: primary model → retry once → fallback models
   const FALLBACK_CHAIN: Record<string, string[]> = {
-    'google/gemini-3.1-pro-preview': ['google/gemini-3-flash-preview', 'openai/gpt-5-mini'],
-    'google/gemini-3-flash-preview': ['openai/gpt-5-mini'],
+    'google/gemini-3.1-pro-preview': ['google/gemini-2.5-pro'],
+    'google/gemini-3-flash-preview': ['google/gemini-2.5-pro'],
+    'google/gemini-2.5-pro': ['openai/gpt-5'],
+    'openai/gpt-5': ['google/gemini-3-flash-preview'],
+    'openai/gpt-5.2': ['google/gemini-3-flash-preview'],
+    'openai/gpt-5-mini': ['google/gemini-3-flash-preview'],
   };
 
   const MODEL_LABELS: Record<string, string> = {
     'google/gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
     'google/gemini-3-flash-preview': 'Gemini 3 Flash',
-    'google/gemini-3-flash-preview': 'Gemini 3 Flash',
-    'openai/gpt-5-mini': 'GPT-5 Mini',
+    'google/gemini-2.5-pro': 'Gemini 2.5 Pro',
     'openai/gpt-5': 'GPT-5',
+    'openai/gpt-5.2': 'GPT-5.2',
+    'openai/gpt-5-mini': 'GPT-5 Mini',
   };
 
   try {
     const requestedModel = model;
-    const resolvedModel = resolveGatewayModel(requestedModel || 'openai/gpt-5-mini');
+    const resolvedModel = resolveGatewayModel(requestedModel || 'google/gemini-3-flash-preview');
     console.log(`Starting request with model: ${resolvedModel}, tokens: ${finalMaxTokens}, webSearch: ${searchPerformed}`);
     
     let resp: Response | null = null;
