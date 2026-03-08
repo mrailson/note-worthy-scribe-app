@@ -19,6 +19,7 @@ interface PMHomeScreenProps {
   setInput: (text: string) => void;
   focusInput?: () => void;
   onOpenImageStudio?: () => void;
+  onOpenDocumentStudio?: () => void;
 }
 
 type ActiveView = 
@@ -27,7 +28,7 @@ type ActiveView =
   | { type: 'prompts'; category: MainCategory; subCategory: SubCategory }
   | { type: 'plt-planning'; category: MainCategory };
 
-export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput, onOpenImageStudio }) => {
+export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput, onOpenImageStudio, onOpenDocumentStudio }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const [activeView, setActiveView] = useState<ActiveView>({ type: 'main' });
   const [showBanner, setShowBanner] = useState(false);
@@ -79,6 +80,8 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
   const handleCategoryClick = (category: MainCategory) => {
     if (category.opensImageStudio) {
       onOpenImageStudio?.();
+    } else if (category.opensDocumentStudio) {
+      onOpenDocumentStudio?.();
     } else if (category.focusOnly) {
       focusInput?.();
     } else if (category.id === 'plt-planning') {

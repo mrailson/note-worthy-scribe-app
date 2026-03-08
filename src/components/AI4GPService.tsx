@@ -44,6 +44,7 @@ const TranslationToolInterface = lazy(() => import('@/components/TranslationTool
 const MeetingPreviewDrawer = lazy(() => import('@/components/ai4gp/MeetingPreviewDrawer').then(m => ({ default: m.MeetingPreviewDrawer })));
 const ImageStudioModal = lazy(() => import('@/components/ai4gp/ImageStudioModal').then(m => ({ default: m.ImageStudioModal })));
 const PresentationStudioModal = lazy(() => import('@/components/ai4gp/PresentationStudioModal').then(m => ({ default: m.PresentationStudioModal })));
+const DocumentStudioModal = lazy(() => import('@/components/DocumentStudio/DocumentStudioModal').then(m => ({ default: m.default })));
 const AdminDictatePanel = lazy(() => import('@/components/ai4gp/AdminDictatePanel').then(m => ({ default: m.AdminDictatePanel })));
 const TranslationServicePanel = lazy(() => import('@/components/ai4gp/TranslationServicePanel').then(m => ({ default: m.TranslationServicePanel })));
 const EmbeddedPMGenie = lazy(() => import('@/components/ai4gp/EmbeddedPMGenie').then(m => ({ default: m.EmbeddedPMGenie })));
@@ -193,6 +194,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const [imageStudioInitialMode, setImageStudioInitialMode] = useState<'create' | 'edit' | 'stock'>('create');
   const [imageStudioInitialDescription, setImageStudioInitialDescription] = useState<string | undefined>();
   const [showPresentationStudio, setShowPresentationStudio] = useState(false);
+  const [showDocumentStudio, setShowDocumentStudio] = useState(false);
   const [showAdminDictate, setShowAdminDictate] = useState(false);
   const [showTranslationService, setShowTranslationService] = useState(false);
   const [showEmbeddedPMGenie, setShowEmbeddedPMGenie] = useState(false);
@@ -871,6 +873,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                                 setInput={setInput}
                                 focusInput={() => inputRef.current?.focus()}
                                 onOpenImageStudio={() => setShowImageStudio(true)}
+                                onOpenDocumentStudio={() => setShowDocumentStudio(true)}
                               />
                             ) : (
                               <GPHomeScreen
@@ -878,6 +881,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                                 focusInput={() => inputRef.current?.focus()}
                                 onBNFViewChange={setIsBNFViewActive}
                                 onOpenImageStudio={() => setShowImageStudio(true)}
+                                onOpenDocumentStudio={() => setShowDocumentStudio(true)}
                               />
                             )}
                             
@@ -1229,6 +1233,14 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
             setImageStudioInitialMode('stock');
             setShowImageStudio(true);
           }}
+        />
+      </Suspense>
+
+      {/* Document Studio Modal */}
+      <Suspense fallback={<LazyLoader />}>
+        <DocumentStudioModal
+          open={showDocumentStudio}
+          onOpenChange={setShowDocumentStudio}
         />
       </Suspense>
 

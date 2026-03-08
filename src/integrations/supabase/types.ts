@@ -3407,6 +3407,57 @@ export type Database = {
         }
         Relationships: []
       }
+      document_studio_documents: {
+        Row: {
+          clarifying_answers_json: Json | null
+          content: string | null
+          created_at: string | null
+          document_type: string
+          id: string
+          inputs_json: Json | null
+          practice_id: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          uploaded_file_refs: Json | null
+          user_id: string
+          version: number | null
+          version_label: string | null
+        }
+        Insert: {
+          clarifying_answers_json?: Json | null
+          content?: string | null
+          created_at?: string | null
+          document_type: string
+          id?: string
+          inputs_json?: Json | null
+          practice_id?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          uploaded_file_refs?: Json | null
+          user_id: string
+          version?: number | null
+          version_label?: string | null
+        }
+        Update: {
+          clarifying_answers_json?: Json | null
+          content?: string | null
+          created_at?: string | null
+          document_type?: string
+          id?: string
+          inputs_json?: Json | null
+          practice_id?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          uploaded_file_refs?: Json | null
+          user_id?: string
+          version?: number | null
+          version_label?: string | null
+        }
+        Relationships: []
+      }
       drug_synonyms: {
         Row: {
           created_at: string

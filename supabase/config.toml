@@ -485,3 +485,6 @@ verify_jwt = false
 
 [functions.generate-stock-images]
 verify_jwt = false
+
+[functions.generate-document-studio]
+verify_jwt = false

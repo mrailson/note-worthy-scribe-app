@@ -70,6 +70,7 @@ export interface MainCategory {
   subCategories: SubCategory[];
   focusOnly?: boolean;
   opensImageStudio?: boolean;
+  opensDocumentStudio?: boolean;
   isNew?: boolean;
   prompt?: string;
 }
@@ -589,6 +590,17 @@ export const gpCategories: MainCategory[] = [
     gradient: 'from-fuchsia-500 to-purple-600',
     subCategories: [],
     opensImageStudio: true,
+    isNew: true,
+  },
+  {
+    id: 'document-studio',
+    shortTitle: 'Doc Studio',
+    title: 'Document Studio',
+    description: 'Reports, letters & reviews — generate professional documents',
+    icon: FileText,
+    gradient: 'from-teal-500 to-teal-600',
+    subCategories: [],
+    opensDocumentStudio: true,
     isNew: true,
   },
 
