@@ -264,7 +264,7 @@ ${liveTranscript}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3.1-flash-lite-preview',
         messages: [
           { role: 'system', content: DUAL_TRANSCRIPT_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
