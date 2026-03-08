@@ -127,7 +127,7 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
         <button
           onClick={onClick}
           className={cn(
-            "group flex items-center gap-2 p-3 min-h-[48px]",
+            "group flex items-center gap-2 p-2 min-h-[40px]",
             "bg-card border border-border rounded-lg",
             "hover:border-primary/50 hover:bg-accent/50",
             "transition-shadow duration-150",
