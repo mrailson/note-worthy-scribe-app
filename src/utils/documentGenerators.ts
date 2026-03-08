@@ -1462,6 +1462,34 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
       }
     };
 
+    // ---- LOGO ----
+    if (options?.logoUrl) {
+      try {
+        const imgResponse = await fetch(options.logoUrl);
+        if (imgResponse.ok) {
+          const blob = await imgResponse.blob();
+          const reader = new FileReader();
+          const dataUrl = await new Promise<string>((resolve) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+          const imgFormat = options.logoUrl.toLowerCase().includes('.png') ? 'PNG' : 'JPEG';
+          const logoWidth = 35;
+          const logoHeight = 18;
+          let logoX = margin;
+          if (options.logoPosition === 'center') {
+            logoX = (pageWidth - logoWidth) / 2;
+          } else if (options.logoPosition === 'right') {
+            logoX = pageWidth - margin - logoWidth;
+          }
+          pdf.addImage(dataUrl, imgFormat, logoX, y, logoWidth, logoHeight);
+          y += logoHeight + 4;
+        }
+      } catch (logoErr) {
+        console.warn('Failed to add logo to PDF:', logoErr);
+      }
+    }
+
     // ---- TITLE ----
     checkPage(20);
     pdf.setFontSize(20);
