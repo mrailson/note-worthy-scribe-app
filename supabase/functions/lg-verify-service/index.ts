@@ -377,15 +377,15 @@ serve(async (req) => {
     // Use Lovable AI (Gemini)
     if (lovableKey) {
       verificationPromises.push(
-        verifyWithModel('google/gemini-2.5-flash', 'gemini-2.5-flash', lovableKey, summaryJson, snomedJson, ocrText, 'https://ai.gateway.lovable.dev/v1/chat/completions')
+        verifyWithModel('google/gemini-3.1-flash-lite-preview', 'gemini-3.1-flash-lite', lovableKey, summaryJson, snomedJson, ocrText, 'https://ai.gateway.lovable.dev/v1/chat/completions')
       );
-      modelsUsed.push('gemini-2.5-flash');
+      modelsUsed.push('gemini-3.1-flash-lite');
 
-      // Also use Gemini Pro for additional verification
+      // Also use Gemini 3.1 Pro for additional verification
       verificationPromises.push(
-        verifyWithModel('google/gemini-2.5-pro', 'gemini-2.5-pro', lovableKey, summaryJson, snomedJson, ocrText, 'https://ai.gateway.lovable.dev/v1/chat/completions')
+        verifyWithModel('google/gemini-3.1-pro-preview', 'gemini-3.1-pro', lovableKey, summaryJson, snomedJson, ocrText, 'https://ai.gateway.lovable.dev/v1/chat/completions')
       );
-      modelsUsed.push('gemini-2.5-pro');
+      modelsUsed.push('gemini-3.1-pro');
     }
 
     const assessments = await Promise.all(verificationPromises);
