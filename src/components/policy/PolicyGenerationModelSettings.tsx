@@ -27,7 +27,7 @@ const AUTO_QUALITY_LOOP_KEY = 'autoQualityLoop';
 export const getPolicyGenerationModel = (): PolicyGenerationModel => {
   const saved = localStorage.getItem(MODEL_STORAGE_KEY);
   if (saved && MODEL_OPTIONS.some(m => m.value === saved)) return saved as PolicyGenerationModel;
-  return 'gemini-2.5-flash';
+  return 'gemini-3-flash-preview';
 };
 
 export const getPolicyGenerationLength = (): PolicyLength => {
