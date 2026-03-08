@@ -546,6 +546,17 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           )}
         </div>
 
+        {/* AI Edit Panel */}
+        {infographicView === 'document' && (
+          <DocumentAIEditPanel
+            content={activeContent}
+            title={documentTitle}
+            onContentUpdated={handleContentUpdated}
+            isOpen={showAIEdit}
+            onToggle={() => setShowAIEdit(v => !v)}
+          />
+        )}
+
         {/* Bottom actions */}
         <div className="px-4 sm:px-6 py-3 border-t bg-muted/30 flex flex-wrap items-center gap-2">
           {infographicView === 'document' ? (
