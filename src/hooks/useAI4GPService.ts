@@ -1453,6 +1453,19 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setChatHistoryRetentionDays(preferences.chatHistoryRetentionDays ?? 30);
           setHideGPClinical(preferences.hideGPClinical ?? false);
           setImageGenerationModel(preferences.imageGenerationModel ?? 'google/gemini-3-pro-image-preview');
+          // Load profile context toggles
+          setProfileContextEnabled(preferences.profileContext_enabled ?? true);
+          setProfileContextShowUserName(preferences.profileContext_showUserName ?? true);
+          setProfileContextShowUserEmail(preferences.profileContext_showUserEmail ?? true);
+          setProfileContextShowPracticeName(preferences.profileContext_showPracticeName ?? true);
+          setProfileContextShowPracticeAddress(preferences.profileContext_showPracticeAddress ?? false);
+          setProfileContextShowPracticePhone(preferences.profileContext_showPracticePhone ?? false);
+          setProfileContextShowPracticeEmail(preferences.profileContext_showPracticeEmail ?? false);
+          setProfileContextShowPracticeWebsite(preferences.profileContext_showPracticeWebsite ?? false);
+          setProfileContextShowPracticeManager(preferences.profileContext_showPracticeManager ?? false);
+          setProfileContextShowPCN(preferences.profileContext_showPCN ?? false);
+          setProfileContextShowNeighbourhood(preferences.profileContext_showNeighbourhood ?? false);
+          setProfileContextShowSignatures(preferences.profileContext_showSignatures ?? true);
           // includePracticeLogo removed - use Image Studio
           console.log('AI4GP settings loaded successfully');
         } else {
