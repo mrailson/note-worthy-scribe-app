@@ -1330,7 +1330,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                     </Button>
 
                     {/* Export dropdown button - hidden on mobile */}
-                    {!isMobile && onExportWord && (
+                    {!isMobile && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
