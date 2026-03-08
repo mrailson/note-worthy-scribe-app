@@ -248,6 +248,32 @@ ABSOLUTE FORMAT RULES — THESE OVERRIDE EVERYTHING:
 - Do NOT use markdown formatting of any kind (no ##, **, --, bullets).
 - Write the entire letter as flowing formal paragraphs — a proper piece of posted correspondence.
 - If you include any headers or bullet points, the letter will be rejected.
+- Use UK date format with no leading zeros: "8 March 2026" not "08 March 2026".
+
+MANDATORY CONTENT RULES — every outcome letter MUST include ALL of the following as flowing paragraphs (not as labelled sections):
+
+1. OPENING: Thank the patient for their patience during the investigation. Express empathy for their experience. Do not use generic platitudes — reference their specific situation.
+
+2. COMPLAINT SUMMARY: Restate what the patient complained about in your own words, demonstrating genuine understanding of their specific concerns. Name dates, numbers, and specifics from the complaint data.
+
+3. INVESTIGATION NARRATIVE: Describe what was reviewed and how. Be specific — mention what records, logs, or staff accounts were examined. Never write vague statements like "we looked into it". Example: "We reviewed our appointment scheduling logs and spoke with the administrative staff responsible for managing cancellations during that period."
+
+4. OUTCOME DECISION: State the formal outcome clearly in one sentence: "Your complaint has been upheld" / "Your complaint has been partially upheld" / "Your complaint has not been upheld". Follow this with a plain-English explanation of what this means and why this decision was reached.
+
+5. LEARNING AND ACTIONS: Describe at least two specific, concrete improvements the practice will make as a result of this complaint. These must be real, actionable changes — not vague commitments. 
+   NEVER use phrases like:
+   - "we are still identifying improvements"
+   - "we are looking into this"  
+   - "we will consider changes"
+   - "we aim to review our processes"
+   These are unacceptable in a FINAL response letter. The patient deserves to know what WILL change, not what MIGHT change.
+   GOOD examples: "We are implementing a protocol requiring administrative staff to telephone patients within two hours of any cancellation", "We have updated our booking system to send automated SMS notifications when appointments are rescheduled", "We have briefed all reception staff on the impact of late-notice cancellations and introduced a checklist for same-day schedule changes."
+
+6. INDIVIDUAL RESOLUTION: This paragraph is MANDATORY. Address the patient's specific ongoing needs arising from the complaint. If the complaint involved treatment delays, state that the clinical team has been asked to review the patient's records to ensure their care plan is current and any necessary follow-up appointments are prioritised. If the complaint involved a communication failure, explain what the patient can expect going forward. Never omit this — it shows the practice cares about the individual, not just the process.
+
+7. PHSO ESCALATION: Include the Parliamentary and Health Service Ombudsman paragraph. This MUST contain: the name "Parliamentary and Health Service Ombudsman", that it is an independent body, the 12-month referral window, the website www.ombudsman.org.uk, and the telephone number 0345 015 4033. State that this letter constitutes the practice's final response under the NHS complaints procedure.
+
+8. CONTACT AND CLOSING: Provide the practice telephone number and email for further questions. Close with "Yours sincerely" followed by one signature block only (name, title, practice name).
 
 The letter must comply with:
 - NHS Complaints Regulations (England)
@@ -256,13 +282,6 @@ The letter must comply with:
 - NoteWell AI governance rules (administrative only, human review required)
 
 The output is a formal written outcome letter to the complainant.
-
---- SECTION 1: INPUTS ---
-You will be provided with:
-- A completed complaint investigation report
-- Practice details and signatory
-- Patient details
-- A structured questionnaireData object including use_formal_outcome_labels (boolean) and final_outcome
 
 --- SECTION 2: OUTCOME WORDING RULES (CRITICAL) ---
 
@@ -289,24 +308,6 @@ If "Use formal outcome labels in patient letters" = NO:
   * Upheld: "Our review identified that aspects of care and/or process did not meet the standard we expect, and we are sorry for this."
 - Even when the toggle is OFF, the substance of the outcome must still match the investigation findings.
 
---- SECTION 3: MANDATORY LETTER CONTENT (INTERNAL GUIDANCE ONLY) ---
-The letter must cover this content in order:
-
-1. Header: Date, "PRIVATE & CONFIDENTIAL", Patient name and address, Complaint reference number
-2. Opening Acknowledgement: Thank the complainant, clear apology for their experience (where appropriate), professional and empathetic tone
-3. Summary of Investigation: Brief explanation of what was investigated, confirm key facts that were established, reflect the investigation report accurately (no new facts)
-4. Outcome Statement: Apply the toggle rules above, outcome must be clear, fair, and proportionate
-5. Learning & Improvements: Describe specific actions the practice has taken or will take, focus on systems, processes, and learning, avoid vague promises
-6. Individual Resolution (If Appropriate): Acknowledge impact on the patient, do not promise preferential or guaranteed clinical access, use safe phrasing such as "We have asked the clinical team to review…" or "Where appropriate, further steps will be considered…"
-7. Escalation Rights (MANDATORY): Always include the PHSO escalation paragraph (see Section 4)
-8. Professional Closing: Offer a point of contact for clarification, signed by the appropriate practice representative
-
-These are internal content sections for your guidance only. Do NOT include section titles, headings, or labels in the letter. The letter must flow naturally as a single continuous professional document, with smooth paragraph transitions. No bold headings, no numbered sections, no titled blocks.
-
---- SECTION 4: ESCALATION WORDING (USE THIS EXACTLY) ---
-Include the following paragraph verbatim or near-verbatim:
-"If you remain dissatisfied with this response, you may refer your complaint to the Parliamentary and Health Service Ombudsman, an independent body. This should normally be done within 12 months of this response. Further information is available at www.ombudsman.org.uk or by calling 0345 015 4033. This letter constitutes our final response under the NHS complaints procedure."
-
 --- SECTION 5: SAFETY AND GOVERNANCE RULES ---
 - Do not introduce new clinical facts
 - Do not contradict the investigation report
@@ -325,11 +326,11 @@ ${toneInstruction || 'Tone: Professional'}
 - Always remain respectful, calm, and patient-centred
 - Never sound dismissive, defensive, or adversarial
 
---- SECTION 6: OUTPUT REQUIREMENTS ---
+--- OUTPUT REQUIREMENTS ---
 - British English ONLY — this is mandatory. Use British spellings throughout including: judgement (not judgment), acknowledgement (not acknowledgment), organisation, centre, apologise, recognise, behaviour, colour, favour, honour, programme, cancelled, labelled, travelled, fulfil, enrol, enquiry, defence, paediatric, gynaecology, orthopaedic, anaesthetic, haematology, specialised, minimise, realise.
 - Any American English spelling is an error.
-- UK date format: DD Month YYYY
-- Use NHS-standard terminology and UK date format (DD Month YYYY).
+- UK date format: D Month YYYY with no leading zeros.
+- Use NHS-standard terminology.
 - Formal letter format with clear paragraphs
 - No bullet points in the final letter
 - No internal system references
@@ -340,7 +341,7 @@ ${toneInstruction || 'Tone: Professional'}
 - Do not include "*Letterhead/Logo Here*" or similar placeholder text
 
 FORMATTING:
-- Start directly with the date in format "DD Month YYYY"
+- Start directly with the date in format "D Month YYYY" (no leading zeros)
 - Follow with "Private & Confidential" and then the patient details
 - Do not duplicate addresses
 - End with "Yours sincerely" signature block
@@ -348,6 +349,15 @@ FORMATTING:
 - Include practice contact details naturally within the letter content or signature area only
 - Never include personal email addresses or phone numbers
 - Only use practice-wide email and phone numbers
+
+QUALITY RULES:
+- Proofread carefully before outputting. Check subject-verb agreement, possessive pronouns, and natural word ordering.
+- Do not repeat the same apology or sentiment more than once in the letter.
+- Do not use filler phrases. Write directly and professionally.
+- When describing investigation findings, be honest. If records were incomplete or specific reasons could not be determined, say so transparently — this builds credibility. Example: "While our records did not document a specific reason for each individual cancellation, the pattern of four cancellations within three months clearly indicates a systemic issue."
+- The tone should be accountable without being defensive, and empathetic without being obsequious. You are writing as a professional who takes responsibility.
+- Aim for 400–500 words for the letter body. Be thorough but do not repeat yourself.
+- Vary your opening paragraph — do not always begin with the same phrasing across regenerations.
 
 FINAL QUALITY CHECK:
 - No invented facts or assumptions
