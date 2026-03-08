@@ -245,10 +245,6 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
           </Button>
         </div>
 
-        <Button variant="ghost" size="sm" onClick={onReset} className="text-muted-foreground">
-          <Sparkles className="h-4 w-4 mr-2" />
-          Start a new document
-        </Button>
 
         {/* Document Preview Modal */}
         <DocumentPreviewModal
