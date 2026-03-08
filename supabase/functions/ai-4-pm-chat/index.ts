@@ -2000,7 +2000,7 @@ serve(async (req) => {
     const finalSystemPrompt = enhancedSystemPrompt + sourceContext;
 
     // Check if streaming is supported for the selected model
-    const streamableModels = ['google/gemini-3-flash-preview', 'google/gemini-3-pro-preview', 'google/gemini-2.5-flash', 'openai/gpt-5', 'openai/gpt-5-mini'];
+    const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview', 'google/gemini-2.5-flash', 'openai/gpt-5', 'openai/gpt-5-mini'];
     const canStream = streamRequested && streamableModels.includes(selectedModel);
 
     // Handle streaming response for supported models
