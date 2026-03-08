@@ -14,7 +14,7 @@ export type PolicyGenerationModel =
   | 'claude-sonnet-4-6' 
   | 'claude-haiku-4-5' 
   | 'gpt-4o-mini' 
-  | 'gemini-2.5-flash' 
+  | 'gemini-3-flash-preview' 
   | 'gemini-2.5-pro';
 
 export type PolicyLength = 'compact' | 'concise' | 'standard' | 'full';
