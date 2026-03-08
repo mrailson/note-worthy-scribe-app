@@ -223,7 +223,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <Tabs defaultValue="display" className="flex-1 flex flex-col min-h-0">
           {/* Tab Navigation */}
           <div className="px-8 pt-4 pb-2 bg-muted/30">
-            <TabsList className="grid w-full grid-cols-5 h-11 p-1 bg-muted/50 rounded-lg">
+            <TabsList className="grid w-full grid-cols-6 h-11 p-1 bg-muted/50 rounded-lg">
               <TabsTrigger 
                 value="display" 
                 className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
@@ -237,6 +237,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 <Brain className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Session</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="context" 
+                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+              >
+                <Building2 className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Context</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="local" 
