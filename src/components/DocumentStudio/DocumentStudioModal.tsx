@@ -25,6 +25,7 @@ export interface DocumentStudioState {
   uploadedFiles: File[];
   generatedContent: string | null;
   generatedTitle: string | null;
+  isGenerating: boolean;
   version: number;
   versionLabel: string;
   harmTriageResult: string | null;
