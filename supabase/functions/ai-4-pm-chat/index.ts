@@ -2011,7 +2011,7 @@ serve(async (req) => {
     const finalSystemPrompt = enhancedSystemPrompt + sourceContext;
 
     // Check if streaming is supported for the selected model
-    const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-3-flash-preview', 'google/gemini-2.5-flash-lite', 'openai/gpt-5', 'openai/gpt-5-mini'];
+    const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-3-flash-preview', 'google/gemini-2.5-pro', 'openai/gpt-5', 'openai/gpt-5.2', 'openai/gpt-5-mini'];
     const canStream = streamRequested && streamableModels.includes(selectedModel);
 
     // Handle streaming response for supported models with fallback chain
@@ -2020,13 +2020,19 @@ serve(async (req) => {
       
       // Fallback chain for streaming models
       const STREAM_FALLBACK: Record<string, string[]> = {
-        'google/gemini-3.1-pro-preview': ['google/gemini-3-flash-preview', 'openai/gpt-5-mini'],
-        'google/gemini-3-flash-preview': ['openai/gpt-5-mini'],
+        'google/gemini-3.1-pro-preview': ['google/gemini-2.5-pro'],
+        'google/gemini-3-flash-preview': ['google/gemini-2.5-pro'],
+        'google/gemini-2.5-pro': ['openai/gpt-5'],
+        'openai/gpt-5': ['google/gemini-3-flash-preview'],
+        'openai/gpt-5.2': ['google/gemini-3-flash-preview'],
       };
       
       const MODEL_LABELS: Record<string, string> = {
         'google/gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
         'google/gemini-3-flash-preview': 'Gemini 3 Flash',
+        'google/gemini-2.5-pro': 'Gemini 2.5 Pro',
+        'openai/gpt-5': 'GPT-5',
+        'openai/gpt-5.2': 'GPT-5.2',
       };
 
       const modelsToTry = [selectedModel, ...(STREAM_FALLBACK[selectedModel] || [])];
