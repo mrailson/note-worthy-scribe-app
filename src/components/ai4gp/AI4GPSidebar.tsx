@@ -99,7 +99,6 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
     { icon: Activity, label: 'BP Average Service', action: onShowBPCalculator },
     { icon: Mic, label: 'Dictate', action: onShowAdminDictate },
     { icon: Presentation, label: 'Presentation Studio', action: onShowPresentationStudio },
-    { icon: Palette, label: 'Image Studio', action: onShowImageStudio },
   ];
 
   const SidebarButton = ({ icon: Icon, label, action, className }: { 
