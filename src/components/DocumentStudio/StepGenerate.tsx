@@ -195,7 +195,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
             <span className="font-semibold text-foreground">
-              {state.selectedType?.display_name || 'Custom Document'}
+              {state.generatedTitle || state.selectedType?.display_name || 'Document'}
             </span>
             <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
               {state.versionLabel}
