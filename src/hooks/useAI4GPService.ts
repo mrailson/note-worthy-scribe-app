@@ -743,7 +743,21 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       }
       // Note: Image and PowerPoint generation removed from inline chat
       // Use Image Studio or Presentation Studio for these features
-      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel);
+      const profileContextPrefs = {
+        profileContext_enabled: profileContextEnabled,
+        profileContext_showUserName: profileContextShowUserName,
+        profileContext_showUserEmail: profileContextShowUserEmail,
+        profileContext_showPracticeName: profileContextShowPracticeName,
+        profileContext_showPracticeAddress: profileContextShowPracticeAddress,
+        profileContext_showPracticePhone: profileContextShowPracticePhone,
+        profileContext_showPracticeEmail: profileContextShowPracticeEmail,
+        profileContext_showPracticeWebsite: profileContextShowPracticeWebsite,
+        profileContext_showPracticeManager: profileContextShowPracticeManager,
+        profileContext_showPCN: profileContextShowPCN,
+        profileContext_showNeighbourhood: profileContextShowNeighbourhood,
+        profileContext_showSignatures: profileContextShowSignatures,
+      };
+      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel, profileContextPrefs);
       console.log('📄 Final system prompt (first 500 chars):', systemPrompt.substring(0, 500));
       
       // Prepare optimised messages for API using conversation memory management
