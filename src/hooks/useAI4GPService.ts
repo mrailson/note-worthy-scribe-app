@@ -336,7 +336,7 @@ export const useAI4GPService = () => {
     }
   };
 
-  const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string) => {
+  const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string, prefs?: any) => {
     // Avoid logging full practiceContext (may contain large base64 signature HTML)
     console.log('🔧 Building system prompt (context summary):', {
       practiceName: practiceContext?.practiceName,
