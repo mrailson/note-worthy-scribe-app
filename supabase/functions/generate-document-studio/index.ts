@@ -158,7 +158,14 @@ TONE:
     if (practiceContext.practiceAddress) systemPrompt += `\n- Address: ${practiceContext.practiceAddress}`;
     if (practiceContext.practicePhone) systemPrompt += `\n- Phone: ${practiceContext.practicePhone}`;
     if (practiceContext.practiceEmail) systemPrompt += `\n- Email: ${practiceContext.practiceEmail}`;
+    if (practiceContext.practiceWebsite) systemPrompt += `\n- Website: ${practiceContext.practiceWebsite}`;
     if (practiceContext.userName) systemPrompt += `\n- Author: ${practiceContext.userName}`;
+    if (practiceContext.userRole) systemPrompt += `\n- Author Role: ${practiceContext.userRole}`;
+  }
+
+  // Add signature block if available
+  if (practiceContext?.letterSignature) {
+    systemPrompt += `\n\nSIGNATURE BLOCK (use at the end of letters/formal documents where a sign-off is appropriate):\n${practiceContext.letterSignature}`;
   }
 
   // Add harm triage context for Learning Events
