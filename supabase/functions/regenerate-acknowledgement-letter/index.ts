@@ -27,11 +27,11 @@ serve(async (req) => {
 
     // Define style-specific formatting instructions
     const styleInstructions: Record<string, string> = {
-      'professional-bullet': `FORMAT AS PROFESSIONAL BULLET POINT STYLE:
-- Use a blue left border on the subject line (Re: Acknowledgement...)
-- Present key concerns and investigation points as clear bullet points with • symbols
-- Keep paragraphs concise between bullet sections
-- Use bold for section headers`,
+      'professional-flowing': `FORMAT AS PROFESSIONAL FLOWING STYLE:
+- Use continuous, well-structured paragraphs throughout
+- Professional formal business letter tone
+- Smooth transitions between paragraphs
+- No bullet points, no numbered lists, no headers within the body`,
       
       'formal-paragraph': `FORMAT AS FORMAL PARAGRAPH STYLE:
 - Use traditional paragraph-based format throughout
@@ -46,22 +46,16 @@ serve(async (req) => {
 - Easy to reference and track`,
       
       'executive-brief': `FORMAT AS EXECUTIVE BRIEF STYLE:
-- Concise paragraph style with bold section headers
-- Use **bold text** for key terms and important points
+- Concise paragraph style
 - Short, direct paragraphs
-- Highlight critical information clearly`,
+- Highlight critical information clearly
+- No bullet points or lists`,
       
       'detailed-narrative': `FORMAT AS DETAILED NARRATIVE STYLE:
 - Fuller, more detailed paragraphs
 - Flowing narrative with smooth transitions
 - Comprehensive explanations
-- Professional storytelling approach`,
-      
-      'highlighted-points': `FORMAT AS HIGHLIGHTED KEY POINTS STYLE:
-- Use text emphasis with **bold** for key concerns
-- Highlight important dates and timelines
-- Visual separation between sections
-- Use indentation for sub-points`
+- Professional storytelling approach`
     };
 
     const stylePrompt = style && styleInstructions[style] 
@@ -85,23 +79,17 @@ serve(async (req) => {
             content: `You are an expert NHS complaints manager helping to revise acknowledgement letters.
 Your task is to take the existing acknowledgement letter and modify it based on the user's instructions whilst maintaining professional NHS standards and compliance with complaints handling best practices.
 
+ABSOLUTE FORMAT RULES — THESE OVERRIDE EVERYTHING:
+- Do NOT use any section headers, subheadings, bold headers, or titled sections anywhere in the letter body.
+- Do NOT use bullet points, numbered lists, or any list formatting (unless the selected style explicitly requires numbered lists).
+- Do NOT use markdown formatting of any kind (no ##, **, --, bullets).
+- Write the entire letter as flowing formal paragraphs — a proper piece of posted correspondence.
+- If you include any headers or bullet points (unless style requires it), the letter will be rejected.
+
 CRITICAL LANGUAGE REQUIREMENT - BRITISH ENGLISH ONLY:
-- MUST use British English spelling throughout
-- Common examples to ALWAYS use British spelling:
-  * "organisation" NOT "organization"
-  * "centre" NOT "center"
-  * "recognise" NOT "recognize"
-  * "apologise" NOT "apologize"
-  * "realise" NOT "realize"
-  * "behaviour" NOT "behavior"
-  * "honour" NOT "honor"
-  * "favour" NOT "favor"
-  * "colour" NOT "color"
-  * "programme" NOT "program" (except computer programs)
-  * "licence" (noun) NOT "license" (noun)
-  * "practise" (verb) NOT "practice" (verb)
-- Follow UK business conventions and date formats
-- Double-check every word ending in -ize/-ise, -or/-our, -er/-re
+- MUST use British English spelling throughout including: judgement (not judgment), acknowledgement (not acknowledgment), organisation, centre, recognise, apologise, behaviour, colour, favour, honour, programme, cancelled, labelled, travelled, fulfil, enrol, enquiry, defence, paediatric, gynaecology, orthopaedic, anaesthetic, haematology, specialised, minimise, realise.
+- Use NHS-standard terminology and UK date format (DD Month YYYY).
+- Do not use American spellings or phrasing under any circumstances.
 
 CRITICAL REQUIREMENTS:
 - Maintain compliance with NHS complaints handling procedures
