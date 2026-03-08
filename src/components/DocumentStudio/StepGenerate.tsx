@@ -45,7 +45,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
   };
 
   const handleGenerate = useCallback(async () => {
-    onUpdateState({ isGenerating: true, generatedContent: null });
+    onUpdateState({ isGenerating: true, generatedContent: null, generatedTitle: null });
     setProgress(0);
     
     const progressInterval = setInterval(() => {
@@ -92,8 +92,11 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
       }
       if (!data?.content) throw new Error('No content returned from AI');
 
+      const docTitle = data.title || state.selectedType?.display_name || state.freeFormRequest || 'Document';
+
       onUpdateState({
         generatedContent: data.content,
+        generatedTitle: docTitle,
         isGenerating: false,
       });
       
@@ -133,7 +136,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
         return;
       }
 
-      const title = state.selectedType?.display_name || state.freeFormRequest || 'Untitled Document';
+      const title = state.generatedTitle || state.selectedType?.display_name || state.freeFormRequest || 'Untitled Document';
 
       const { error } = await supabase
         .from('document_studio_documents' as any)
@@ -192,7 +195,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
             <span className="font-semibold text-foreground">
-              {state.selectedType?.display_name || 'Custom Document'}
+              {state.generatedTitle || state.selectedType?.display_name || 'Document'}
             </span>
             <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
               {state.versionLabel}
@@ -243,7 +246,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
         {/* Document Preview Modal */}
         <DocumentPreviewModal
           content={state.generatedContent}
-          title={state.selectedType?.display_name || 'Custom Document'}
+          title={state.generatedTitle || state.selectedType?.display_name || 'Document'}
           isOpen={showPreview}
           onClose={() => setShowPreview(false)}
         />

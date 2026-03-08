@@ -24,6 +24,7 @@ export interface DocumentStudioState {
   supportingText: string;
   uploadedFiles: File[];
   generatedContent: string | null;
+  generatedTitle: string | null;
   isGenerating: boolean;
   version: number;
   versionLabel: string;
@@ -37,6 +38,7 @@ const INITIAL_STATE: DocumentStudioState = {
   supportingText: '',
   uploadedFiles: [],
   generatedContent: null,
+  generatedTitle: null,
   isGenerating: false,
   version: 1,
   versionLabel: 'v1.0',

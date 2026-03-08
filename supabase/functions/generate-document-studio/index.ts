@@ -207,7 +207,21 @@ TONE:
     });
   }
 
-  return new Response(JSON.stringify({ content: result.content }), {
+  // Generate a concise title from the content
+  let title = documentTypeName || 'Document';
+  try {
+    const titleResult = await callAI([
+      { role: "system", content: "You are a document title generator. Given a document's content, return ONLY a short, professional title (5-10 words max). No quotes, no explanation, just the title. Use British English." },
+      { role: "user", content: `Generate a title for this document:\n\n${result.content.slice(0, 1500)}` },
+    ], apiKey, 15000);
+    if (titleResult.content && !titleResult.error) {
+      title = titleResult.content.trim().replace(/^["']|["']$/g, '');
+    }
+  } catch {
+    // Keep default title on failure
+  }
+
+  return new Response(JSON.stringify({ content: result.content, title }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
