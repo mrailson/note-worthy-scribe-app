@@ -213,7 +213,8 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
                   category.description,
                   category.icon,
                   category.gradient,
-                  () => handleCategoryClick(category)
+                  () => handleCategoryClick(category),
+                  category.isNew
                 )
               )}
             </div>

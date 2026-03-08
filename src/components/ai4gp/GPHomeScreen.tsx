@@ -73,7 +73,9 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
   };
 
   const handleCategoryClick = (category: MainCategory) => {
-    if (category.focusOnly) {
+    if (category.opensImageStudio) {
+      onOpenImageStudio?.();
+    } else if (category.focusOnly) {
       focusInput?.();
     } else if (category.subCategories.length > 0) {
       setActiveView({ type: 'subcategories', category });
