@@ -36,7 +36,8 @@ import {
   Beaker,
   Tablets,
   Hospital,
-  Accessibility
+  Accessibility,
+  Palette
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -68,6 +69,8 @@ export interface MainCategory {
   gradient: string;
   subCategories: SubCategory[];
   focusOnly?: boolean;
+  opensImageStudio?: boolean;
+  isNew?: boolean;
   prompt?: string;
 }
 
@@ -576,7 +579,20 @@ export const gpCategories: MainCategory[] = [
     ]
   },
 
-  // 10. Ask AI Anything
+  // 10. Image Studio
+  {
+    id: 'image-studio',
+    shortTitle: 'Image Studio',
+    title: 'Image Studio',
+    description: 'Create professional patient posters, clinical notices, and visual aids',
+    icon: Palette,
+    gradient: 'from-fuchsia-500 to-purple-600',
+    subCategories: [],
+    opensImageStudio: true,
+    isNew: true,
+  },
+
+  // 11. Ask AI Anything
   {
     id: 'ask-anything',
     shortTitle: 'Ask AI',

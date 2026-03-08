@@ -9,6 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { mainCategories, type MainCategory, type SubCategory, type PromptItem } from './pmPromptCategories';
 import { ContextBanner } from './ContextBanner';
@@ -17,6 +18,7 @@ import { PLTCalendar } from './PLTCalendar';
 interface PMHomeScreenProps {
   setInput: (text: string) => void;
   focusInput?: () => void;
+  onOpenImageStudio?: () => void;
 }
 
 type ActiveView = 
@@ -25,7 +27,7 @@ type ActiveView =
   | { type: 'prompts'; category: MainCategory; subCategory: SubCategory }
   | { type: 'plt-planning'; category: MainCategory };
 
-export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput }) => {
+export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput, onOpenImageStudio }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const [activeView, setActiveView] = useState<ActiveView>({ type: 'main' });
   const [showBanner, setShowBanner] = useState(false);
@@ -75,7 +77,9 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
   };
 
   const handleCategoryClick = (category: MainCategory) => {
-    if (category.focusOnly) {
+    if (category.opensImageStudio) {
+      onOpenImageStudio?.();
+    } else if (category.focusOnly) {
       focusInput?.();
     } else if (category.id === 'plt-planning') {
       // PLT Planning has special handling - show calendar first
@@ -125,14 +129,15 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
     description: string,
     Icon: React.ElementType,
     gradient: string,
-    onClick: () => void
+    onClick: () => void,
+    isNew?: boolean
   ) => (
     <Tooltip key={id}>
       <TooltipTrigger asChild>
         <button
           onClick={onClick}
           className={cn(
-            "group flex items-center gap-2 p-2.5",
+            "group flex items-center gap-2 p-2.5 relative",
             "bg-card border border-border rounded-lg",
             "hover:border-primary/50 hover:bg-accent/50",
             "transition-all duration-150",
@@ -149,6 +154,11 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
           <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
             {shortTitle}
           </span>
+          {isNew && (
+            <Badge className="absolute -top-1.5 -right-1.5 px-1.5 py-0 text-[10px] leading-4 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white border-0 animate-pulse">
+              NEW
+            </Badge>
+          )}
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-xs">
@@ -203,7 +213,8 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
                   category.description,
                   category.icon,
                   category.gradient,
-                  () => handleCategoryClick(category)
+                  () => handleCategoryClick(category),
+                  category.isNew
                 )
               )}
             </div>

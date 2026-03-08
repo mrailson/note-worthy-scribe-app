@@ -17,7 +17,9 @@ import {
   PenLine,
   Plus,
   Loader2,
-  Library
+  Library,
+  Lightbulb,
+  X
 } from 'lucide-react';
 import { useImageStudio } from '@/hooks/useImageStudio';
 import { useImageGallery } from '@/hooks/useImageGallery';
@@ -35,12 +37,16 @@ import { cn } from '@/lib/utils';
 // Lazy load ImageGalleryModal to break circular dependency
 const ImageGalleryModal = lazy(() => import('./ImageGalleryModal').then(m => ({ default: m.ImageGalleryModal })));
 
+// Onboarding key for localStorage
+const ONBOARDING_KEY = 'image_studio_onboarded';
+
 interface ImageStudioModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   initialEditImage?: { url: string; name: string } | null;
   initialMode?: 'create' | 'edit' | 'stock';
+  initialDescription?: string;
 }
 
 export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
@@ -49,11 +55,17 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
   initialEditImage,
   initialMode,
+  initialDescription,
 }) => {
   const [showGallery, setShowGallery] = useState(false);
   const [studioMode, setStudioMode] = useState<'create' | 'edit' | 'stock'>(initialMode || 'create');
   const [pendingEditImage, setPendingEditImage] = useState<{ url: string; name: string } | null>(null);
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try {
+      return !localStorage.getItem(ONBOARDING_KEY);
+    } catch { return true; }
+  });
   
   const { fetchImages } = useImageGallery();
   const { allImages: stockImages, isAdmin, replaceStockImage, isReplacing } = useStockImages({ enabled: false });
@@ -66,6 +78,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
       setStudioMode(initialMode);
     }
   }, [initialEditImage, initialMode, open]);
+
 
   // Clear pending edit image when modal closes
   useEffect(() => {
@@ -95,6 +108,18 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
     saveToGallery,
     quickEdit,
   } = useImageStudio();
+
+  // When initialDescription is provided, pre-fill the description
+  useEffect(() => {
+    if (initialDescription && open) {
+      updateSettings({ description: initialDescription });
+    }
+  }, [initialDescription, open, updateSettings]);
+
+  const dismissOnboarding = () => {
+    setShowOnboarding(false);
+    try { localStorage.setItem(ONBOARDING_KEY, 'true'); } catch {}
+  };
 
   const handleGenerate = () => {
     generateImage(imageGenerationModel);
@@ -221,6 +246,42 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
             </TabsList>
 
             <div className="flex-1 overflow-y-auto min-h-0 p-4">
+              {/* First-time onboarding guide */}
+              {showOnboarding && activeTab === 'context' && (
+                <div className="mb-4 p-4 rounded-lg border border-primary/20 bg-primary/5 relative">
+                  <button
+                    onClick={dismissOnboarding}
+                    className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+                    aria-label="Dismiss guide"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <div className="flex items-start gap-3">
+                    <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-foreground">
+                        Welcome to Image Studio!
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Create professional posters, patient notices, and staff communications in 4 simple steps:
+                      </p>
+                      <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                        <li><strong>Context</strong> — Describe what you want and who it's for</li>
+                        <li><strong>Style</strong> — Choose colours, layout, and visual tone</li>
+                        <li><strong>Branding</strong> — Add your practice logo and colours</li>
+                        <li><strong>Generate</strong> — Review and create your image</li>
+                      </ol>
+                      <p className="text-xs text-muted-foreground italic">
+                        Try it: Click "Staff Poster" or "Patient Notice" above for a quick-start template.
+                      </p>
+                      <Button variant="outline" size="sm" onClick={dismissOnboarding} className="mt-1 h-7 text-xs">
+                        Got it
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <TabsContent value="context" className="mt-0 data-[state=inactive]:hidden">
                 <ContextTab settings={settings} onUpdate={updateSettings} onFilesChange={setHasUploadedFiles} />
               </TabsContent>

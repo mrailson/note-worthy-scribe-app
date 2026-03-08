@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState, us
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, QrCode, Monitor, AlertCircle, X, Phone } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, QrCode, Monitor, AlertCircle, X, Phone, Sparkles } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,6 +26,8 @@ const CLINICAL_TIPS = [
   "Help with clinical letters, patient information leaflets, or treatment plans...",
   "Check BNF guidance, calculate doses, or review QOF indicators...",
   "Summarise uploaded documents, draft referrals, or explain conditions...",
+  "Try: 'Create a flu vaccination poster for the waiting room'",
+  "Try: 'Design a patient notice about our new extended hours'",
 ];
 
 const MANAGER_TIPS = [
@@ -34,6 +36,8 @@ const MANAGER_TIPS = [
   "Draft emails, meeting agendas, or staff announcements...",
   "Summarise uploaded documents, create action plans, or check regulations...",
   "Get guidance on contracts, governance, or practice operations...",
+  "Try: 'Create a staff poster about the new appointment system'",
+  "Try: 'Design a patient notice for flu vaccination clinics'",
 ];
 
 const DEFAULT_TIP = "Ask about NHS guidance, policies, documents, or practice operations...";
@@ -53,6 +57,13 @@ const getPlaceholderTip = (role?: string): string => {
   return DEFAULT_TIP;
 };
 
+// Detect image-creation intent
+const IMAGE_INTENT_WORDS = ['poster', 'notice', 'image', 'design', 'visual', 'flyer', 'leaflet', 'infographic', 'banner', 'sign'];
+const hasImageIntent = (text: string) => {
+  const lower = text.toLowerCase();
+  return IMAGE_INTENT_WORDS.some(word => lower.includes(word));
+};
+
 interface InputAreaProps {
   input: string;
   setInput: (input: string) => void;
@@ -66,6 +77,7 @@ interface InputAreaProps {
   userRole?: string;
   practiceContext?: PracticeContext;
   onShowPMGenie?: () => void;
+  onOpenImageStudio?: (initialDescription?: string) => void;
 }
 
 export interface InputAreaRef {
@@ -84,7 +96,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   onNewChat,
   userRole,
   practiceContext,
-  onShowPMGenie
+  onShowPMGenie,
+  onOpenImageStudio
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -403,6 +416,25 @@ ${pastedText.trim()}
         disabled={isLoading}
       />
       
+      {/* Image Studio intent detection banner */}
+      {onOpenImageStudio && input.trim().length > 5 && hasImageIntent(input) && (
+        <div className="flex items-center gap-2 p-2 rounded-lg border border-primary/20 bg-primary/5">
+          <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+          <span className="text-xs text-muted-foreground flex-1">It looks like you want to create a visual</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-xs px-2 rounded-full border-primary/30"
+            onClick={() => {
+              onOpenImageStudio(input);
+              setInput('');
+            }}
+          >
+            Open Image Studio
+          </Button>
+        </div>
+      )}
+
       <div className="flex gap-3">
         <div className="flex-1 relative">
           <Textarea

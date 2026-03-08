@@ -9,6 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { gpCategories, type MainCategory, type SubCategory, type PromptItem } from './gpPromptCategories';
 import { ContextBanner } from './ContextBanner';
@@ -18,6 +19,7 @@ interface GPHomeScreenProps {
   setInput: (text: string) => void;
   focusInput?: () => void;
   onBNFViewChange?: (isActive: boolean) => void;
+  onOpenImageStudio?: () => void;
 }
 
 type ActiveView = 
@@ -26,7 +28,7 @@ type ActiveView =
   | { type: 'prompts'; category: MainCategory; subCategory: SubCategory }
   | { type: 'bnf-lookup' };
 
-export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput, onBNFViewChange }) => {
+export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput, onBNFViewChange, onOpenImageStudio }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const [activeView, setActiveView] = useState<ActiveView>({ type: 'main' });
   const [showBanner, setShowBanner] = useState(false);
@@ -71,7 +73,9 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
   };
 
   const handleCategoryClick = (category: MainCategory) => {
-    if (category.focusOnly) {
+    if (category.opensImageStudio) {
+      onOpenImageStudio?.();
+    } else if (category.focusOnly) {
       focusInput?.();
     } else if (category.subCategories.length > 0) {
       setActiveView({ type: 'subcategories', category });
@@ -120,14 +124,15 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
     description: string,
     Icon: React.ElementType,
     gradient: string,
-    onClick: () => void
+    onClick: () => void,
+    isNew?: boolean
   ) => (
     <Tooltip key={id}>
       <TooltipTrigger asChild>
         <button
           onClick={onClick}
           className={cn(
-            "group flex items-center gap-2 p-2 min-h-[40px]",
+            "group flex items-center gap-2 p-2 min-h-[40px] relative",
             "bg-card border border-border rounded-lg",
             "hover:border-primary/50 hover:bg-accent/50",
             "transition-shadow duration-150",
@@ -145,6 +150,11 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
           <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
             {shortTitle}
           </span>
+          {isNew && (
+            <Badge className="absolute -top-1.5 -right-1.5 px-1.5 py-0 text-[10px] leading-4 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white border-0 animate-pulse">
+              NEW
+            </Badge>
+          )}
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-xs">
@@ -212,7 +222,8 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
                   category.description,
                   category.icon,
                   category.gradient,
-                  () => handleCategoryClick(category)
+                  () => handleCategoryClick(category),
+                  category.isNew
                 )
               )}
             </div>

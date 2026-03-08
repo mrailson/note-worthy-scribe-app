@@ -191,6 +191,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const [showPromptsModal, setShowPromptsModal] = useState(false);
   const [showImageStudio, setShowImageStudio] = useState(false);
   const [imageStudioInitialMode, setImageStudioInitialMode] = useState<'create' | 'edit' | 'stock'>('create');
+  const [imageStudioInitialDescription, setImageStudioInitialDescription] = useState<string | undefined>();
   const [showPresentationStudio, setShowPresentationStudio] = useState(false);
   const [showAdminDictate, setShowAdminDictate] = useState(false);
   const [showTranslationService, setShowTranslationService] = useState(false);
@@ -869,12 +870,14 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                               <PMHomeScreen
                                 setInput={setInput}
                                 focusInput={() => inputRef.current?.focus()}
+                                onOpenImageStudio={() => setShowImageStudio(true)}
                               />
                             ) : (
                               <GPHomeScreen
                                 setInput={setInput}
                                 focusInput={() => inputRef.current?.focus()}
                                 onBNFViewChange={setIsBNFViewActive}
+                                onOpenImageStudio={() => setShowImageStudio(true)}
                               />
                             )}
                             
@@ -957,6 +960,10 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         userRole={practiceContext?.userRole}
                         practiceContext={practiceContext}
                         onShowPMGenie={handleShowEmbeddedPMGenie}
+                        onOpenImageStudio={(desc?: string) => {
+                          setImageStudioInitialDescription(desc);
+                          setShowImageStudio(true);
+                        }}
                       />
                     </div>
                   )}
@@ -1202,9 +1209,13 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
       <Suspense fallback={<LazyLoader />}>
         <ImageStudioModal
           open={showImageStudio}
-          onOpenChange={setShowImageStudio}
+          onOpenChange={(open) => {
+            setShowImageStudio(open);
+            if (!open) setImageStudioInitialDescription(undefined);
+          }}
           imageGenerationModel={imageGenerationModel}
           initialMode={imageStudioInitialMode}
+          initialDescription={imageStudioInitialDescription}
         />
       </Suspense>
 
