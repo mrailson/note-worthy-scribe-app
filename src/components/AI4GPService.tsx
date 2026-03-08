@@ -871,6 +871,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                                 setInput={setInput}
                                 focusInput={() => inputRef.current?.focus()}
                                 onOpenImageStudio={() => setShowImageStudio(true)}
+                                onOpenDocumentStudio={() => setShowDocumentStudio(true)}
                               />
                             ) : (
                               <GPHomeScreen
@@ -878,6 +879,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                                 focusInput={() => inputRef.current?.focus()}
                                 onBNFViewChange={setIsBNFViewActive}
                                 onOpenImageStudio={() => setShowImageStudio(true)}
+                                onOpenDocumentStudio={() => setShowDocumentStudio(true)}
                               />
                             )}
                             
