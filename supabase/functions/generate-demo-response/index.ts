@@ -154,7 +154,44 @@ serve(async (req) => {
 
       console.log('Evidence context built, length:', evidenceContext.length);
 
+      // Check if any meaningful evidence was found beyond just the complaint description
+      const hasFindings = findingsRes.data && findingsRes.data.length > 0;
+      const hasDecisions = decisionsRes.data && decisionsRes.data.length > 0;
+      const hasEvidenceFiles = evidenceFiles.length > 0;
+      const hasTranscripts = transcripts.length > 0;
+      const hasStaffResponses = (partiesRes.data || []).some(p => p.response_text && p.response_text.trim().length > 0);
+      const hasNotes = notesRes.data && notesRes.data.length > 0;
+
+      const hasMeaningfulEvidence = hasFindings || hasDecisions || hasEvidenceFiles || hasTranscripts || hasStaffResponses;
+
+      if (!hasMeaningfulEvidence) {
+        console.log('⚠️ No meaningful investigation evidence found — returning insufficient evidence response');
+        return new Response(
+          JSON.stringify({
+            success: true,
+            demoResponse: {
+              key_findings: 'No investigation findings have been recorded yet. Please complete the investigation and add findings before generating this field.',
+              actions_taken: 'No actions have been documented yet. Please record any actions taken during the investigation.',
+              improvements_made: 'No service improvements have been documented yet. Please record any improvements identified during the investigation.',
+              additional_context: 'No supporting evidence, staff responses, or transcripts have been uploaded. Please add investigation evidence before using auto-fill.',
+            },
+            insufficientEvidence: true,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+
       const evidenceSystemPrompt = `You are an NHS complaints investigation analyst generating questionnaire field answers based strictly on provided evidence.
+
+ANTI-FABRICATION RULE — THIS IS THE HIGHEST PRIORITY RULE AND OVERRIDES ALL OTHERS:
+You MUST ONLY reference facts, findings, and details that are explicitly provided in the evidence data below.
+- If investigation findings are sparse or incomplete, state what IS available and note gaps honestly.
+- Do NOT invent reasons for why incidents occurred (e.g. staff sickness, system failures).
+- Do NOT invent staff actions (e.g. "staff attempted to call", "SMS system experienced lag").
+- Do NOT invent specific dates, timeframes, protocols, or technical details not in the data.
+- Do NOT claim to have reviewed specific logs or records unless the evidence confirms this.
+- If the cause of an incident is not documented, say so: "The specific cause was not identified in the investigation data."
+- It is better to write a shorter, honest answer than a longer answer containing fabricated details.
 
 ABSOLUTE RULES — VIOLATIONS WILL INVALIDATE THE OUTPUT:
 1. Generate content based STRICTLY on the provided evidence — never fabricate facts.
