@@ -73,6 +73,32 @@ interface SettingsModalProps {
   onHideGPClinicalChange: (enabled: boolean) => void;
   imageGenerationModel: ImageGenerationModel;
   onImageGenerationModelChange: (model: ImageGenerationModel) => void;
+  // Profile Context
+  practiceContext?: PracticeContext;
+  profileContextEnabled: boolean;
+  onProfileContextEnabledChange: (enabled: boolean) => void;
+  profileContextShowUserName: boolean;
+  onProfileContextShowUserNameChange: (enabled: boolean) => void;
+  profileContextShowUserEmail: boolean;
+  onProfileContextShowUserEmailChange: (enabled: boolean) => void;
+  profileContextShowPracticeName: boolean;
+  onProfileContextShowPracticeNameChange: (enabled: boolean) => void;
+  profileContextShowPracticeAddress: boolean;
+  onProfileContextShowPracticeAddressChange: (enabled: boolean) => void;
+  profileContextShowPracticePhone: boolean;
+  onProfileContextShowPracticePhoneChange: (enabled: boolean) => void;
+  profileContextShowPracticeEmail: boolean;
+  onProfileContextShowPracticeEmailChange: (enabled: boolean) => void;
+  profileContextShowPracticeWebsite: boolean;
+  onProfileContextShowPracticeWebsiteChange: (enabled: boolean) => void;
+  profileContextShowPracticeManager: boolean;
+  onProfileContextShowPracticeManagerChange: (enabled: boolean) => void;
+  profileContextShowPCN: boolean;
+  onProfileContextShowPCNChange: (enabled: boolean) => void;
+  profileContextShowNeighbourhood: boolean;
+  onProfileContextShowNeighbourhoodChange: (enabled: boolean) => void;
+  profileContextShowSignatures: boolean;
+  onProfileContextShowSignaturesChange: (enabled: boolean) => void;
 }
 
 
