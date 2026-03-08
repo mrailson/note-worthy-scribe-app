@@ -68,6 +68,7 @@ import { stripMarkdown, copyPlainTextToClipboard, copyRichTextToClipboard } from
 import { Message, UploadedFile } from '@/types/ai4gp';
 import { LeaveCalendarDownloadButton } from '@/components/ai4gp/LeaveCalendarDownloadButton';
 import { VoiceAudioPlayer } from '@/components/ai4gp/VoiceAudioPlayer';
+import { DocumentPreviewModal } from '@/components/shared/DocumentPreviewModal';
 import { PowerPointDownloadCard } from '@/components/ai4gp/PowerPointDownloadCard';
 import { supabase } from '@/integrations/supabase/client';
 import { userNameCorrections } from '@/utils/UserNameCorrections';
@@ -126,6 +127,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [infographicSpellingCorrections, setInfographicSpellingCorrections] = useState<{ incorrect: string; correct: string }[]>([]);
   const [verificationData, setVerificationData] = useState(null);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
+  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
   
   const isMobile = useIsMobile();
   
@@ -410,9 +412,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const handleExportWord = () => {
-    if (onExportWord) {
-      onExportWord(message.content, 'AI Generated Document');
-    }
+    setShowDocumentPreview(true);
   };
 
   const handleExportPowerPoint = (slideCount: number = 4) => {
@@ -428,13 +428,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const handleExportPDF = () => {
-    import('@/utils/documentGenerators').then(({ generatePDF }) => {
-      generatePDF(message.content, 'AI Generated Document');
-      toast.success('PDF download started');
-    }).catch((error) => {
-      console.error('Failed to generate PDF:', error);
-      toast.error('Failed to generate PDF');
-    });
+    setShowDocumentPreview(true);
   };
 
   const handleEmailToMe = async () => {
@@ -1336,7 +1330,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                     </Button>
 
                     {/* Export dropdown button - hidden on mobile */}
-                    {!isMobile && onExportWord && (
+                    {!isMobile && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1642,6 +1636,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         orientation={infographicOrientation}
         practiceName={infographicPracticeName}
         spellingCorrections={infographicSpellingCorrections}
+      />
+
+      {/* Document Preview Modal */}
+      <DocumentPreviewModal
+        content={message.content}
+        isOpen={showDocumentPreview}
+        onClose={() => setShowDocumentPreview(false)}
       />
     </div>
   );

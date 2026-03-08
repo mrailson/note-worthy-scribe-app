@@ -7,7 +7,7 @@ import { Copy, Sparkles, Maximize2, X, Download, Printer, Mail } from 'lucide-re
 import { showToast } from "@/utils/toastWrapper";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
-import { generateCleanAIResponseDocument } from '@/utils/cleanWordExport';
+import { DocumentPreviewModal } from '@/components/shared/DocumentPreviewModal';
 
 interface AIResponsePanelProps {
   response: string;
@@ -23,6 +23,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
   onCopy
 }) => {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [showDocPreview, setShowDocPreview] = useState(false);
   const isMobile = useIsMobile();
   const { sendEmailAutomatically, isSending } = useAutoEmail();
   
@@ -31,15 +32,9 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
     return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
   };
 
-  // Handle Word document export with clean formatting
-  const handleWordExport = async () => {
-    try {
-      await generateCleanAIResponseDocument(response, "AI Assistant Response");
-      showToast.success("Word document downloaded successfully", { section: 'ai4gp' });
-    } catch (error) {
-      console.error('Error exporting to Word:', error);
-      showToast.error("Failed to export Word document", { section: 'ai4gp' });
-    }
+  // Handle Word/PDF document export via preview modal
+  const handleWordExport = () => {
+    setShowDocPreview(true);
   };
 
   // Handle print
@@ -84,6 +79,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
     await sendEmailAutomatically(response, `Medical Consultation Notes - ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`);
   };
   return (
+    <>
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent
         side={isMobile ? "bottom" : "right"}
@@ -173,5 +169,13 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
       </SheetContent>
       
     </Sheet>
+
+      <DocumentPreviewModal
+        content={response}
+        title="AI Assistant Response"
+        isOpen={showDocPreview}
+        onClose={() => setShowDocPreview(false)}
+      />
+    </>
   );
 };
