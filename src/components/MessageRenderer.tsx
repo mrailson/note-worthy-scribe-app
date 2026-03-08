@@ -68,6 +68,7 @@ import { stripMarkdown, copyPlainTextToClipboard, copyRichTextToClipboard } from
 import { Message, UploadedFile } from '@/types/ai4gp';
 import { LeaveCalendarDownloadButton } from '@/components/ai4gp/LeaveCalendarDownloadButton';
 import { VoiceAudioPlayer } from '@/components/ai4gp/VoiceAudioPlayer';
+import { DocumentPreviewModal } from '@/components/shared/DocumentPreviewModal';
 import { PowerPointDownloadCard } from '@/components/ai4gp/PowerPointDownloadCard';
 import { supabase } from '@/integrations/supabase/client';
 import { userNameCorrections } from '@/utils/UserNameCorrections';
