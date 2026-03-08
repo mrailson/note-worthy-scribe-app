@@ -243,7 +243,7 @@ Generate a SPECIFIC, descriptive title (4-15 words) that clearly identifies what
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3-flash-preview',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
