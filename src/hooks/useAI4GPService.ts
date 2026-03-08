@@ -181,9 +181,9 @@ export const useAI4GPService = () => {
   ): Promise<{ response: string; webSearchPerformed: boolean }> => {
     try {
       // Map model selections to gateway-compatible identifiers
-      const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'google/gemini-2.5-flash' :
+      const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'google/gemini-3-flash-preview' :
                          selectedModel === 'gpt-5-mini-2025-08-07' ? 'openai/gpt-5-mini' :
-                         selectedModel === 'grok' ? 'google/gemini-2.5-flash' :
+                         selectedModel === 'grok' ? 'google/gemini-3-flash-preview' :
                          selectedModel === 'chatgpt5' ? 'openai/gpt-5-mini' :
                          selectedModel;
 
