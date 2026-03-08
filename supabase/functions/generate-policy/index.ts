@@ -597,13 +597,13 @@ async function callGemini(system: string, userContent: string, maxTokens: number
 
   // Map all Gemini model IDs to Lovable gateway model names
   const geminiModelMap: Record<string, string> = {
-    'gemini-2.0-flash': 'google/gemini-2.5-flash',
-    'gemini-2.0-flash-thinking-exp': 'google/gemini-2.5-flash',
-    'gemini-2.0-flash-thinking-exp-01-21': 'google/gemini-2.5-flash',
-    'gemini-2.5-flash': 'google/gemini-2.5-flash',
-    'gemini-2.5-pro': 'google/gemini-2.5-pro',
+    'gemini-2.0-flash': 'google/gemini-3.1-flash-lite-preview',
+    'gemini-2.0-flash-thinking-exp': 'google/gemini-3.1-flash-lite-preview',
+    'gemini-2.0-flash-thinking-exp-01-21': 'google/gemini-3.1-flash-lite-preview',
+    'gemini-2.5-flash': 'google/gemini-3.1-flash-lite-preview',
+    'gemini-2.5-pro': 'google/gemini-3.1-pro-preview',
   };
-  const gatewayModel = geminiModelMap[model] || 'google/gemini-2.5-flash';
+  const gatewayModel = geminiModelMap[model] || 'google/gemini-3.1-flash-lite-preview';
   console.log(`[Gemini via Lovable] Requested model: ${model}; gateway model: ${gatewayModel}`);
 
   try {
