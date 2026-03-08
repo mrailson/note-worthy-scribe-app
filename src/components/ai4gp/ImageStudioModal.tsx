@@ -237,9 +237,9 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
             className="flex-1 flex flex-col min-h-0 overflow-hidden"
           >
             <TabsList className="grid grid-cols-5 mx-4 mt-2 flex-shrink-0">
-              {tabs.map(({ id, label, icon: Icon, step }) => (
-                <TabsTrigger key={id} value={id} className="gap-1 text-xs sm:text-sm">
-                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex-shrink-0 data-[state=active]:bg-white data-[state=active]:text-primary">{step}</span>
+              {tabs.map(({ id, label, step }) => (
+                <TabsTrigger key={id} value={id} className="group gap-1 text-xs sm:text-sm">
+                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex-shrink-0 group-data-[state=active]:bg-white group-data-[state=active]:text-primary">{step}</span>
                   <span className="hidden sm:inline">{label}</span>
                 </TabsTrigger>
               ))}
