@@ -449,13 +449,12 @@ serve(async (req) => {
       return 'google/gemini-3-flash-preview';
     }
 
-    // GPT-5 full is too slow - remap to Gemini 3 Flash
+    // GPT-5 full — pass through as valid gateway model
     if (input === 'gpt-5' || input === 'gpt-5-2025-08-07') {
-      console.log(`↩️ Remapping slow model '${input}' to 'google/gemini-3-flash-preview'`);
-      return 'google/gemini-3-flash-preview';
+      return 'openai/gpt-5';
     }
 
-    // Balanced option: GPT-5 mini (~3-5s)
+    // Balanced option: GPT-5 mini
     if (input === 'gpt-5-mini' || input === 'gpt-5-instant' || input === 'chatgpt5') {
       return 'openai/gpt-5-mini';
     }
@@ -489,9 +488,8 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    // Timeout: 120s for Gemini 3.1 Pro (known latency issues), 60s for others, 90s for GPT-5
-    const timeoutMs = gatewayModel === 'google/gemini-3.1-pro-preview' ? 120000 :
-                      gatewayModel.startsWith('openai/gpt-5') ? 90000 : 60000;
+    // Timeout: 120s for Gemini 3.1 Pro (known latency issues), 60s for all others
+    const timeoutMs = gatewayModel === 'google/gemini-3.1-pro-preview' ? 120000 : 60000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.log(`Request timeout after ${Math.round(timeoutMs / 1000)}s for model ${gatewayModel}`);
@@ -520,21 +518,26 @@ serve(async (req) => {
 
   // Fallback chain: primary model → retry once → fallback models
   const FALLBACK_CHAIN: Record<string, string[]> = {
-    'google/gemini-3.1-pro-preview': ['google/gemini-3-flash-preview', 'openai/gpt-5-mini'],
-    'google/gemini-3-flash-preview': ['openai/gpt-5-mini'],
+    'google/gemini-3.1-pro-preview': ['google/gemini-2.5-pro'],
+    'google/gemini-3-flash-preview': ['google/gemini-2.5-pro'],
+    'google/gemini-2.5-pro': ['openai/gpt-5'],
+    'openai/gpt-5': ['google/gemini-3-flash-preview'],
+    'openai/gpt-5.2': ['google/gemini-3-flash-preview'],
+    'openai/gpt-5-mini': ['google/gemini-3-flash-preview'],
   };
 
   const MODEL_LABELS: Record<string, string> = {
     'google/gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
     'google/gemini-3-flash-preview': 'Gemini 3 Flash',
-    'google/gemini-3-flash-preview': 'Gemini 3 Flash',
-    'openai/gpt-5-mini': 'GPT-5 Mini',
+    'google/gemini-2.5-pro': 'Gemini 2.5 Pro',
     'openai/gpt-5': 'GPT-5',
+    'openai/gpt-5.2': 'GPT-5.2',
+    'openai/gpt-5-mini': 'GPT-5 Mini',
   };
 
   try {
     const requestedModel = model;
-    const resolvedModel = resolveGatewayModel(requestedModel || 'openai/gpt-5-mini');
+    const resolvedModel = resolveGatewayModel(requestedModel || 'google/gemini-3-flash-preview');
     console.log(`Starting request with model: ${resolvedModel}, tokens: ${finalMaxTokens}, webSearch: ${searchPerformed}`);
     
     let resp: Response | null = null;
@@ -554,7 +557,7 @@ serve(async (req) => {
 
     // If primary failed or returned error, try fallback chain
     if (!resp || !resp.ok) {
-      const fallbacks = FALLBACK_CHAIN[resolvedModel] || ['google/gemini-3-flash-preview', 'openai/gpt-5-mini'];
+      const fallbacks = FALLBACK_CHAIN[resolvedModel] || ['google/gemini-2.5-pro', 'openai/gpt-5'];
       
       for (const fallbackModel of fallbacks) {
         try {

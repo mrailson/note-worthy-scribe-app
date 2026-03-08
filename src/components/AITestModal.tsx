@@ -40,8 +40,9 @@ interface ClinicalTestResult {
 const AI_MODELS = [
   { id: 'google/gemini-3-flash-preview', name: 'Gemini 3 Flash', service: 'google' },
   { id: 'google/gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', service: 'google' },
+  { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro', service: 'google' },
+  { id: 'openai/gpt-5.2', name: 'GPT-5.2', service: 'openai' },
   { id: 'openai/gpt-5', name: 'GPT-5', service: 'openai' },
-  { id: 'openai/gpt-5-mini', name: 'GPT-5 Mini', service: 'openai' },
   { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', service: 'anthropic' },
 ];
 
@@ -311,8 +312,9 @@ const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
       const testPromises = [
         testClinicalModelDirect('google/gemini-3-flash-preview'),
         testClinicalModelDirect('google/gemini-3.1-pro-preview'),
+        testClinicalModelDirect('google/gemini-2.5-pro'),
+        testClinicalModelDirect('openai/gpt-5.2'),
         testClinicalModelDirect('openai/gpt-5'),
-        testClinicalModelDirect('openai/gpt-5-mini'),
         testClinicalModelDirect('claude-4-sonnet'),
       ];
 
