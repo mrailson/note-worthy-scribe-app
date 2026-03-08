@@ -1643,6 +1643,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         content={message.content}
         isOpen={showDocumentPreview}
         onClose={() => setShowDocumentPreview(false)}
+        imageGenerationModel={imageGenerationModel}
+        infographicPracticeName={infographicPracticeName}
+        infographicSpellingCorrections={infographicSpellingCorrections}
       />
     </div>
   );
