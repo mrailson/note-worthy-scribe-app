@@ -372,7 +372,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0 [&>button[data-radix-collection-item]]:hidden [&>.absolute]:hidden">
         {/* Top bar */}
         <div className="px-4 sm:px-6 py-3 border-b bg-muted/30">
           <div className="flex items-center justify-between gap-3">
