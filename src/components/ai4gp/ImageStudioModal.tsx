@@ -115,6 +115,11 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
     quickEdit,
   } = useImageStudio();
 
+  const dismissOnboarding = () => {
+    setShowOnboarding(false);
+    try { localStorage.setItem(ONBOARDING_KEY, 'true'); } catch {}
+  };
+
   const handleGenerate = () => {
     generateImage(imageGenerationModel);
   };
