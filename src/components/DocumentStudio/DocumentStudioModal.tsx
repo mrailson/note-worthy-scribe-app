@@ -57,9 +57,10 @@ const STEPS: { id: Step; label: string; num: number }[] = [
 interface DocumentStudioModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode?: 'pm' | 'gp';
 }
 
-export const DocumentStudioModal: React.FC<DocumentStudioModalProps> = ({ open, onOpenChange }) => {
+export const DocumentStudioModal: React.FC<DocumentStudioModalProps> = ({ open, onOpenChange, mode = 'pm' }) => {
   const [currentStep, setCurrentStep] = useState<Step>('choose');
   const [state, setState] = useState<DocumentStudioState>(INITIAL_STATE);
   const [showMyDocuments, setShowMyDocuments] = useState(false);
@@ -133,7 +134,7 @@ export const DocumentStudioModal: React.FC<DocumentStudioModalProps> = ({ open, 
   if (showMyDocuments) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
+        <DialogContent className="max-w-6xl h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
           <DialogHeader className="p-4 pb-2 border-b flex-shrink-0">
             <div className="flex items-center justify-between">
               <DialogTitle className="flex items-center gap-2">
@@ -160,7 +161,7 @@ export const DocumentStudioModal: React.FC<DocumentStudioModalProps> = ({ open, 
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleReset(); onOpenChange(v); }}>
-      <DialogContent className="max-w-5xl h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
+      <DialogContent className="max-w-6xl h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
         {/* Header */}
         <DialogHeader className="p-4 pb-2 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -227,6 +228,7 @@ export const DocumentStudioModal: React.FC<DocumentStudioModalProps> = ({ open, 
                   onFreeFormSelect={handleFreeFormSelect}
                   selectedType={state.selectedType}
                   freeFormRequest={state.freeFormRequest}
+                  mode={mode}
                 />
               )}
               {currentStep === 'brief' && (

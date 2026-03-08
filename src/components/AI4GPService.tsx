@@ -1241,6 +1241,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
         <DocumentStudioModal
           open={showDocumentStudio}
           onOpenChange={setShowDocumentStudio}
+          mode={selectedRole === 'practice-manager' ? 'pm' : 'gp'}
         />
       </Suspense>
 
