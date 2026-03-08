@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus, X, Users, Target, FileText, MessageSquare, ChevronDown, Upload, Image as ImageIcon, File, Loader2, RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
+import { Plus, X, Users, Target, FileText, MessageSquare, ChevronDown, Upload, Image as ImageIcon, File, Loader2, RectangleHorizontal, RectangleVertical, Square, Clipboard } from 'lucide-react';
 import { TARGET_AUDIENCES, PURPOSE_TYPES, LAYOUT_OPTIONS } from '@/utils/colourPalettes';
 import type { ImageStudioSettings } from '@/types/imageStudio';
 import { cn } from '@/lib/utils';
