@@ -1375,19 +1375,21 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           const MODEL_MIGRATIONS: Record<string, string> = {
             'gemini-3-pro-preview': 'google/gemini-3.1-pro-preview',
             'google/gemini-3-pro-preview': 'google/gemini-3.1-pro-preview',
-            'gemini-2.0-flash': 'google/gemini-2.5-flash',
-            'google/gemini-2.0-flash': 'google/gemini-2.5-flash',
-            'gemini-2.0-flash-lite': 'google/gemini-2.5-flash',
-            'google/gemini-2.0-flash-lite': 'google/gemini-2.5-flash',
-            'gemini-1.5-flash': 'google/gemini-2.5-flash',
-            'google/gemini-1.5-flash': 'google/gemini-2.5-flash',
+            'gemini-2.0-flash': 'google/gemini-3-flash-preview',
+            'google/gemini-2.0-flash': 'google/gemini-3-flash-preview',
+            'gemini-2.0-flash-lite': 'google/gemini-3-flash-preview',
+            'google/gemini-2.0-flash-lite': 'google/gemini-3-flash-preview',
+            'gemini-1.5-flash': 'google/gemini-3-flash-preview',
+            'google/gemini-1.5-flash': 'google/gemini-3-flash-preview',
             'gemini-1.5-pro': 'google/gemini-3.1-pro-preview',
             'google/gemini-1.5-pro': 'google/gemini-3.1-pro-preview',
-            'google/gemini-3.1-flash-lite-preview': 'google/gemini-2.5-flash',
-            'gemini-3.1-flash-lite-preview': 'google/gemini-2.5-flash',
+            'google/gemini-3.1-flash-lite-preview': 'google/gemini-3-flash-preview',
+            'gemini-3.1-flash-lite-preview': 'google/gemini-3-flash-preview',
+            'google/gemini-2.5-flash': 'google/gemini-3-flash-preview',
+            'gemini-2.5-flash': 'google/gemini-3-flash-preview',
           };
           
-          const loadedModel = preferences.selectedModel ?? 'google/gemini-2.5-flash';
+          const loadedModel = preferences.selectedModel ?? 'google/gemini-3-flash-preview';
           const migratedModel = MODEL_MIGRATIONS[loadedModel] || loadedModel;
           if (migratedModel !== loadedModel) {
             console.log(`🔄 Migrated model preference: ${loadedModel} → ${migratedModel}`);

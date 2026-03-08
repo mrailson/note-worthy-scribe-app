@@ -17,7 +17,7 @@ import { PolicyReference } from "@/hooks/usePolicyReferenceLibrary";
 const MAX_ACTIVE_JOBS_SONNET = 3;
 const MAX_ACTIVE_JOBS_BUDGET = 10;
 
-const BUDGET_MODELS: string[] = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+const BUDGET_MODELS: string[] = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-3-flash-preview', 'gemini-2.0-flash'];
 
 const DEFAULT_LENGTH = 'full';
 
