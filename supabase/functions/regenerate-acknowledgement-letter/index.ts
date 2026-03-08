@@ -27,11 +27,11 @@ serve(async (req) => {
 
     // Define style-specific formatting instructions
     const styleInstructions: Record<string, string> = {
-      'professional-bullet': `FORMAT AS PROFESSIONAL BULLET POINT STYLE:
-- Use a blue left border on the subject line (Re: Acknowledgement...)
-- Present key concerns and investigation points as clear bullet points with • symbols
-- Keep paragraphs concise between bullet sections
-- Use bold for section headers`,
+      'professional-flowing': `FORMAT AS PROFESSIONAL FLOWING STYLE:
+- Use continuous, well-structured paragraphs throughout
+- Professional formal business letter tone
+- Smooth transitions between paragraphs
+- No bullet points, no numbered lists, no headers within the body`,
       
       'formal-paragraph': `FORMAT AS FORMAL PARAGRAPH STYLE:
 - Use traditional paragraph-based format throughout
@@ -46,22 +46,16 @@ serve(async (req) => {
 - Easy to reference and track`,
       
       'executive-brief': `FORMAT AS EXECUTIVE BRIEF STYLE:
-- Concise paragraph style with bold section headers
-- Use **bold text** for key terms and important points
+- Concise paragraph style
 - Short, direct paragraphs
-- Highlight critical information clearly`,
+- Highlight critical information clearly
+- No bullet points or lists`,
       
       'detailed-narrative': `FORMAT AS DETAILED NARRATIVE STYLE:
 - Fuller, more detailed paragraphs
 - Flowing narrative with smooth transitions
 - Comprehensive explanations
-- Professional storytelling approach`,
-      
-      'highlighted-points': `FORMAT AS HIGHLIGHTED KEY POINTS STYLE:
-- Use text emphasis with **bold** for key concerns
-- Highlight important dates and timelines
-- Visual separation between sections
-- Use indentation for sub-points`
+- Professional storytelling approach`
     };
 
     const stylePrompt = style && styleInstructions[style] 
