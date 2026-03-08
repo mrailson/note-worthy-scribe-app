@@ -4,7 +4,7 @@
  * without excessive italics or indentation issues.
  */
 
-import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, AlignmentType, convertInchesToTwip } from "docx";
+import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, AlignmentType, convertInchesToTwip, Table, TableRow, TableCell, WidthType, BorderStyle, VerticalAlign, ShadingType } from "docx";
 import { saveAs } from "file-saver";
 
 // Professional colour scheme
@@ -131,14 +131,95 @@ function createTextRuns(text: string, baseSize: number = FONTS.size.body): TextR
 }
 
 /**
- * Generate a clean, professional Word document from AI response content
+ * Parse markdown table lines into a proper Word Table
  */
+function buildWordTable(tableLines: string[]): Table | null {
+  // Parse cells from a pipe-delimited line
+  const parseCells = (line: string): string[] => {
+    const raw = line.split('|').map(c => c.trim());
+    return raw.slice(1, -1); // remove empty first/last from pipe borders
+  };
+
+  // First line = headers
+  const headers = parseCells(tableLines[0]);
+  if (headers.length === 0) return null;
+
+  // Find separator row (contains :--- or --- patterns)
+  let dataStartIndex = 1;
+  if (tableLines.length > 1 && /^[\s|:\-]+$/.test(tableLines[1])) {
+    dataStartIndex = 2;
+  }
+
+  // Data rows
+  const dataRows = tableLines.slice(dataStartIndex).map(parseCells);
+
+  const colCount = headers.length;
+  const colWidth = Math.floor(9000 / colCount); // distribute width evenly
+
+  const thinBorder = { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" };
+  const borders = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
+
+  // Header row
+  const headerRow = new TableRow({
+    tableHeader: true,
+    children: headers.map(h =>
+      new TableCell({
+        width: { size: colWidth, type: WidthType.DXA },
+        borders,
+        shading: { type: ShadingType.SOLID, color: COLORS.headingBlue, fill: COLORS.headingBlue },
+        verticalAlign: VerticalAlign.CENTER,
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanText(h),
+                bold: true,
+                font: FONTS.default,
+                size: FONTS.size.body,
+                color: "FFFFFF",
+              }),
+            ],
+            spacing: { before: 60, after: 60 },
+          }),
+        ],
+      })
+    ),
+  });
+
+  // Data rows
+  const rows = dataRows.map((cells, rowIndex) => {
+    const bgColor = rowIndex % 2 === 0 ? "FFFFFF" : "F8FAFC";
+    return new TableRow({
+      children: Array.from({ length: colCount }, (_, ci) =>
+        new TableCell({
+          width: { size: colWidth, type: WidthType.DXA },
+          borders,
+          shading: { type: ShadingType.SOLID, color: bgColor, fill: bgColor },
+          verticalAlign: VerticalAlign.CENTER,
+          children: [
+            new Paragraph({
+              children: createTextRuns(cleanText(cells[ci] || '')),
+              spacing: { before: 40, after: 40 },
+            }),
+          ],
+        })
+      ),
+    });
+  });
+
+  return new Table({
+    width: { size: 9000, type: WidthType.DXA },
+    rows: [headerRow, ...rows],
+  });
+}
+
+
 export async function generateCleanAIResponseDocument(
   content: string,
   title: string = "AI Assistant Response",
   options?: { footerNote?: string; logoUrl?: string; logoPosition?: 'left' | 'center' | 'right' }
 ): Promise<void> {
-  const children: Paragraph[] = [];
+  const children: (Paragraph | Table)[] = [];
 
   // Insert practice logo if provided
   if (options?.logoUrl) {
@@ -219,14 +300,40 @@ export async function generateCleanAIResponseDocument(
   // Split into lines and process
   const lines = cleanedContent.split('\n');
   let lastType: string = '';
+  let i = 0;
   
-  for (const line of lines) {
-    const trimmedLine = line.trim();
+  while (i < lines.length) {
+    const trimmedLine = lines[i].trim();
     
     // Skip horizontal rules / separators (match preview behaviour)
     if (/^[-*_]{3,}$/.test(trimmedLine)) {
+      i++;
       continue;
     }
+    
+    // Detect markdown table (line starts with |)
+    if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
+      // Collect all consecutive table lines
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+        tableLines.push(lines[i].trim());
+        i++;
+      }
+      
+      if (tableLines.length >= 2) {
+        const wordTable = buildWordTable(tableLines);
+        if (wordTable) {
+          children.push(wordTable);
+          lastType = 'table';
+          continue;
+        }
+      }
+      // If table parsing failed, fall through and re-process
+      i -= tableLines.length;
+    }
+    
+    const line = lines[i];
+    i++;
     
     if (!trimmedLine) {
       // Empty line - add small spacing paragraph
