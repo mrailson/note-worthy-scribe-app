@@ -79,6 +79,13 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
     }
   }, [initialEditImage, initialMode, open]);
 
+  // When initialDescription is provided, pre-fill the description
+  useEffect(() => {
+    if (initialDescription && open) {
+      updateSettings({ description: initialDescription });
+    }
+  }, [initialDescription, open]);
+
   // Clear pending edit image when modal closes
   useEffect(() => {
     if (!open) {
