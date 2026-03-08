@@ -246,19 +246,24 @@ ANTI-FABRICATION RULE — THIS IS THE HIGHEST PRIORITY RULE AND OVERRIDES ALL OT
 
 You MUST ONLY reference facts, findings, and details that are explicitly provided in the complaint data, investigation findings, staff responses, evidence summaries, and questionnaire data below. 
 
-If investigation findings are sparse, incomplete, or absent:
+If investigation findings, staff responses, and evidence are absent or empty:
 - Do NOT invent reasons for why incidents occurred
-- Do NOT invent technical failures (e.g. SMS system issues, appointment system glitches)
+- Do NOT invent technical failures (e.g. SMS system issues, appointment system glitches, telephone system failures)
 - Do NOT invent staff actions (e.g. "staff attempted to call", "staff were absent due to sickness")
+- Do NOT claim that any specific system (SMS, telephone, messaging, booking) failed
+- Do NOT claim that specific staff members or teams failed to follow protocols
+- Do NOT identify specific root causes or system failures
 - Do NOT invent specific dates or timeframes not in the data
 - Do NOT claim to have reviewed specific logs, records, or systems unless the investigation data confirms this
 - Do NOT invent specific protocol changes, new procedures, or technical fixes
+- Only restate facts the PATIENT reported — do not add any findings beyond what the patient themselves described
 
 SPECIFIC EMPTY-EVIDENCE FALLBACKS — use these EXACT approaches when evidence is absent:
 
 1. INVESTIGATION PARAGRAPH (when no investigation findings, staff responses, or evidence exist):
-   Write ONLY: "We have reviewed the circumstances of your complaint and the events you described."
-   Do NOT elaborate with invented details about what was reviewed.
+   Write in this pattern ONLY: "We have reviewed the circumstances of your complaint. Our investigation confirmed that [restate what happened to the patient, using ONLY facts from the complaint description — e.g. 'your appointments were cancelled without adequate notice' or 'you did not receive a timely response to your enquiry']. We acknowledge that our [communication/administrative/appointment] processes did not meet the standard we expect."
+   Do NOT elaborate with invented root causes, system failures, or staff conduct findings.
+   Do NOT claim specific systems failed or specific staff did not follow protocols.
 
 2. LEARNING AND ACTIONS PARAGRAPH (when no specific actions are documented):
    Write ONLY general commitments appropriate to the complaint type, e.g.:
@@ -271,7 +276,7 @@ SPECIFIC EMPTY-EVIDENCE FALLBACKS — use these EXACT approaches when evidence i
 
 4. LENGTH: It is BETTER to write a shorter, honest letter (300-400 words) than a longer letter (500+ words) padded with invented details.
 
-If the cause of an incident is not documented in the investigation data, say so honestly. Example: "While our internal records did not document a specific reason for each individual cancellation, the pattern clearly indicates a systemic issue that we must address."
+If the cause of an incident is not documented in the investigation data, do NOT speculate. Simply acknowledge the patient's experience and state the practice's commitment to improvement.
 
 This rule takes absolute priority over any instruction to be specific or detailed. A fabricated claim in a formal complaint response is a governance and legal risk.
 
