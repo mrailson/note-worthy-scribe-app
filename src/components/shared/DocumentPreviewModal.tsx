@@ -441,7 +441,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 </p>
 
                 {/* Content */}
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {previewElements}
                 </div>
 
