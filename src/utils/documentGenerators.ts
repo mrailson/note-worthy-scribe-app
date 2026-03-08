@@ -1378,7 +1378,11 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
   }
 };
 
-export const generatePDF = async (content: string, title: string = 'AI Generated Document') => {
+export const generatePDF = async (content: string, title: string = 'AI Generated Document', options?: {
+  logoUrl?: string;
+  logoPosition?: 'left' | 'center' | 'right';
+  footerNote?: string;
+}) => {
   try {
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.getWidth();
