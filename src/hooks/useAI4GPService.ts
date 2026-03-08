@@ -520,7 +520,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     return prompt;
   }, []);
 
-  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'google/gemini-3.1-flash-lite-preview', messageOverride?: string) => {
+  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'google/gemini-2.5-flash', messageOverride?: string) => {
     console.log('🚀 handleSend called with:', { 
       hasInput: !!input.trim(), 
       inputLength: input.length,
