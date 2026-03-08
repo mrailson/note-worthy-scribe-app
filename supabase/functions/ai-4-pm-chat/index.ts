@@ -2054,18 +2054,20 @@ serve(async (req) => {
     } else if (selectedModel === 'grok-beta') {
       response = await callGrok(processedMessages, finalSystemPrompt, files);
     } else if (selectedModel === 'gemini-ultra' || selectedModel === 'gemini-1.5-pro') {
-      response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-pro', files);
+      // Legacy Gemini — route through gateway with updated model
+      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3.1-pro-preview', files);
     } else if (selectedModel === 'gemini-1.5-flash') {
-      response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-flash', files);
+      // Legacy Gemini Flash — route through gateway with updated model
+      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3.1-flash-lite-preview', files);
     } else if (selectedModel === 'deepseek-chat') {
       response = await callDeepseek(processedMessages, finalSystemPrompt, files);
-    } else if (selectedModel === 'google/gemini-3-flash-preview' || selectedModel === 'google/gemini-3-pro-preview' || selectedModel === 'google/gemini-2.5-flash' || selectedModel === 'openai/gpt-5' || selectedModel === 'openai/gpt-5-mini') {
-      // Use Lovable AI Gateway for these models
+    } else if (selectedModel.startsWith('google/') || selectedModel.startsWith('openai/')) {
+      // Use Lovable AI Gateway for all google/ and openai/ prefixed models
       response = await callLovableAIGateway(processedMessages, finalSystemPrompt, selectedModel, files);
     } else {
       // Fallback to Lovable AI Gateway with default model
       console.log(`Unsupported model ${selectedModel}, falling back to Lovable AI Gateway`);
-      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3-flash-preview', files);
+      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3.1-flash-lite-preview', files);
     }
   
   console.log('Model call completed successfully');
