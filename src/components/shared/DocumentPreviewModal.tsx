@@ -277,6 +277,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     return () => document.removeEventListener('keydown', handleKey, true);
   }, [infographicFullscreen]);
 
+  const handleDownloadWord = async () => {
     setIsDownloadingWord(true);
     try {
       const { generateCleanAIResponseDocument } = await import('@/utils/cleanWordExport');
