@@ -253,24 +253,19 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
             <MessageSquare className="h-4 w-4" />
             What do you want to create?
           </Label>
-          <div className="flex gap-1.5 flex-wrap">
-            {quickPicks.map((pick) => {
-              const isDisabled = false;
-              return (
+           <div className="flex gap-1.5 flex-wrap">
+            {quickPicks.map((pick) => (
                 <Button
                   key={pick.label}
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => handleQuickPick(pick.prompt)}
-                  disabled={isDisabled}
-                  className="h-7 text-xs px-2"
-                  title={isDisabled ? 'Upload a file first' : pick.prompt}
+                  onClick={() => handleQuickPick(pick.prompt, pick.defaults)}
+                  className="h-7 text-xs px-2.5 rounded-full border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-colors"
                 >
                   {pick.label}
                 </Button>
-              );
-            })}
+              ))}
           </div>
         </div>
         <div className="flex gap-2">
