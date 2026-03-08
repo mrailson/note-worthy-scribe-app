@@ -245,6 +245,42 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
             </TabsList>
 
             <div className="flex-1 overflow-y-auto min-h-0 p-4">
+              {/* First-time onboarding guide */}
+              {showOnboarding && activeTab === 'context' && (
+                <div className="mb-4 p-4 rounded-lg border border-primary/20 bg-primary/5 relative">
+                  <button
+                    onClick={dismissOnboarding}
+                    className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+                    aria-label="Dismiss guide"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <div className="flex items-start gap-3">
+                    <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-foreground">
+                        Welcome to Image Studio!
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Create professional posters, patient notices, and staff communications in 4 simple steps:
+                      </p>
+                      <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                        <li><strong>Context</strong> — Describe what you want and who it's for</li>
+                        <li><strong>Style</strong> — Choose colours, layout, and visual tone</li>
+                        <li><strong>Branding</strong> — Add your practice logo and colours</li>
+                        <li><strong>Generate</strong> — Review and create your image</li>
+                      </ol>
+                      <p className="text-xs text-muted-foreground italic">
+                        Try it: Click "Staff Poster" or "Patient Notice" above for a quick-start template.
+                      </p>
+                      <Button variant="outline" size="sm" onClick={dismissOnboarding} className="mt-1 h-7 text-xs">
+                        Got it
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <TabsContent value="context" className="mt-0 data-[state=inactive]:hidden">
                 <ContextTab settings={settings} onUpdate={updateSettings} onFilesChange={setHasUploadedFiles} />
               </TabsContent>
