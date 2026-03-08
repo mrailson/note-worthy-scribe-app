@@ -63,7 +63,7 @@ Focus on actionable healthcare outcomes and practice operational impact. Keep co
   },
   {
     type: 'executive',
-    model: 'google/gemini-3.1-flash-lite-preview',
+    model: 'google/gemini-2.5-flash',
     systemPrompt: `You are an executive briefing specialist creating strategic one-pagers for GP practice senior partners and leadership who did NOT attend this meeting.
 
 Your goal: Enable a busy partner to understand strategic impact and required actions in under 2 minutes.
