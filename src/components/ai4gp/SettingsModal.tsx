@@ -516,6 +516,107 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </TabsContent>
 
+            {/* Profile Context Tab */}
+            <TabsContent value="context" className="mt-0 space-y-8">
+              {/* Master Toggle */}
+              <div className="space-y-5">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  Profile Context
+                </h3>
+
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div className="space-y-1">
+                    <Label htmlFor="profile-context-master" className="text-sm font-medium cursor-pointer">
+                      Include my profile details in AI responses
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, your practice and personal details are shared with the AI to personalise responses
+                    </p>
+                  </div>
+                  <Switch
+                    id="profile-context-master"
+                    checked={profileContextEnabled}
+                    onCheckedChange={onProfileContextEnabledChange}
+                  />
+                </div>
+              </div>
+
+              {profileContextEnabled && (
+                <>
+                  {/* Your Details */}
+                  <div className="space-y-4 pt-6 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your Details</h4>
+                    
+                    {[
+                      { id: 'ctx-user-name', label: 'Name', value: practiceContext?.userFullName, checked: profileContextShowUserName, onChange: onProfileContextShowUserNameChange },
+                      { id: 'ctx-user-email', label: 'Email', value: practiceContext?.userEmail, checked: profileContextShowUserEmail, onChange: onProfileContextShowUserEmailChange },
+                      { id: 'ctx-signatures', label: 'Signatures', value: practiceContext?.emailSignature ? 'Available' : undefined, checked: profileContextShowSignatures, onChange: onProfileContextShowSignaturesChange },
+                    ].map(item => (
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+                        <div className="space-y-0.5">
+                          <Label htmlFor={item.id} className="text-sm font-medium cursor-pointer">{item.label}</Label>
+                          {item.value && <p className="text-xs text-muted-foreground">{item.value}</p>}
+                          {!item.value && <p className="text-xs text-muted-foreground italic">Not set</p>}
+                        </div>
+                        <Switch id={item.id} checked={item.checked} onCheckedChange={item.onChange} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Practice Details */}
+                  <div className="space-y-4 pt-6 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Practice Details</h4>
+                    
+                    {[
+                      { id: 'ctx-practice-name', label: 'Practice Name', value: practiceContext?.practiceName, checked: profileContextShowPracticeName, onChange: onProfileContextShowPracticeNameChange },
+                      { id: 'ctx-practice-address', label: 'Address', value: practiceContext?.practiceAddress, checked: profileContextShowPracticeAddress, onChange: onProfileContextShowPracticeAddressChange },
+                      { id: 'ctx-practice-phone', label: 'Phone', value: practiceContext?.practicePhone, checked: profileContextShowPracticePhone, onChange: onProfileContextShowPracticePhoneChange },
+                      { id: 'ctx-practice-email', label: 'Email', value: practiceContext?.practiceEmail, checked: profileContextShowPracticeEmail, onChange: onProfileContextShowPracticeEmailChange },
+                      { id: 'ctx-practice-website', label: 'Website', value: practiceContext?.practiceWebsite, checked: profileContextShowPracticeWebsite, onChange: onProfileContextShowPracticeWebsiteChange },
+                      { id: 'ctx-practice-manager', label: 'Practice Manager', value: practiceContext?.practiceManagerName, checked: profileContextShowPracticeManager, onChange: onProfileContextShowPracticeManagerChange },
+                    ].map(item => (
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+                        <div className="space-y-0.5">
+                          <Label htmlFor={item.id} className="text-sm font-medium cursor-pointer">{item.label}</Label>
+                          {item.value && <p className="text-xs text-muted-foreground">{item.value}</p>}
+                          {!item.value && <p className="text-xs text-muted-foreground italic">Not set</p>}
+                        </div>
+                        <Switch id={item.id} checked={item.checked} onCheckedChange={item.onChange} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Network */}
+                  <div className="space-y-4 pt-6 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Network</h4>
+                    
+                    {[
+                      { id: 'ctx-pcn', label: 'PCN', value: practiceContext?.pcnName, checked: profileContextShowPCN, onChange: onProfileContextShowPCNChange },
+                      { id: 'ctx-neighbourhood', label: 'Neighbourhood', value: practiceContext?.neighbourhoodName, checked: profileContextShowNeighbourhood, onChange: onProfileContextShowNeighbourhoodChange },
+                    ].map(item => (
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+                        <div className="space-y-0.5">
+                          <Label htmlFor={item.id} className="text-sm font-medium cursor-pointer">{item.label}</Label>
+                          {item.value && <p className="text-xs text-muted-foreground">{item.value}</p>}
+                          {!item.value && <p className="text-xs text-muted-foreground italic">Not set</p>}
+                        </div>
+                        <Switch id={item.id} checked={item.checked} onCheckedChange={item.onChange} />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Live Preview */}
+              <div className="p-4 bg-muted/40 rounded-xl border border-border/50">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Context sent to AI</div>
+                <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed max-h-40 overflow-y-auto">
+                  {contextPreviewText}
+                </pre>
+              </div>
+            </TabsContent>
+
             {/* Local Policy Tab */}
             <TabsContent value="local" className="mt-0 space-y-8">
               <div className="space-y-5">
