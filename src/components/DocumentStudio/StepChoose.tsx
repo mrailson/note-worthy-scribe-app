@@ -81,18 +81,38 @@ export const StepChoose: React.FC<StepChooseProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search document types or describe what you need..."
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            if (e.target.value.trim()) setActiveCategory('all');
-          }}
-          className="pl-10"
-        />
+      {/* Free-form input at top */}
+      <div>
+        <p className="text-xs text-muted-foreground mb-2">Describe what you need in your own words...</p>
+        <div className="flex gap-2">
+          <Input
+            placeholder="e.g. A letter to the ICB requesting additional funding for..."
+            value={freeFormText}
+            onChange={(e) => setFreeFormText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && freeFormText.trim()) {
+                onFreeFormSelect(freeFormText.trim());
+              }
+            }}
+            className="flex-1"
+          />
+          <button
+            onClick={() => freeFormText.trim() && onFreeFormSelect(freeFormText.trim())}
+            disabled={!freeFormText.trim()}
+            className={cn(
+              'px-4 py-2 rounded-[10px] text-sm font-semibold transition-all',
+              freeFormText.trim()
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'bg-muted text-muted-foreground cursor-not-allowed'
+            )}
+          >
+            Go
+          </button>
+        </div>
+      </div>
+
+      <div className="border-t pt-3">
+        <p className="text-xs text-muted-foreground mb-2">Or choose a document type...</p>
       </div>
 
       {/* Category pills */}
