@@ -23,6 +23,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
   onCopy
 }) => {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [showDocPreview, setShowDocPreview] = useState(false);
   const isMobile = useIsMobile();
   const { sendEmailAutomatically, isSending } = useAutoEmail();
   
@@ -31,15 +32,9 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
     return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
   };
 
-  // Handle Word document export with clean formatting
-  const handleWordExport = async () => {
-    try {
-      await generateCleanAIResponseDocument(response, "AI Assistant Response");
-      showToast.success("Word document downloaded successfully", { section: 'ai4gp' });
-    } catch (error) {
-      console.error('Error exporting to Word:', error);
-      showToast.error("Failed to export Word document", { section: 'ai4gp' });
-    }
+  // Handle Word/PDF document export via preview modal
+  const handleWordExport = () => {
+    setShowDocPreview(true);
   };
 
   // Handle print
