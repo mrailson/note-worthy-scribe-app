@@ -291,6 +291,15 @@ export const useAI4GPService = () => {
                 continue;
               }
               
+              // Check for fallback meta message
+              if (data._meta?.fallbackUsed) {
+                const fallbackLabel = data._meta.fallbackModelLabel || data._meta.fallbackModel || 'alternative model';
+                toast.info(`⚡ Switched to ${fallbackLabel} — primary model was unavailable`, {
+                  duration: 5000,
+                });
+                continue;
+              }
+              
               // Skip other meta messages
               if (data._meta) continue;
               
