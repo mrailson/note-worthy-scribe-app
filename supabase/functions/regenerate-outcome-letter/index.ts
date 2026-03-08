@@ -75,7 +75,7 @@ CRITICAL REQUIREMENTS TO PREVENT FABRICATION:
 MANDATORY CONTENT RULES — the revised letter MUST include ALL of the following as flowing paragraphs:
 1. Opening thanking the patient for their patience, with empathy referencing their specific situation
 2. Complaint summary restating the specific concerns with dates, numbers, and specifics
-3. Investigation narrative describing what was reviewed and how — be specific about records, logs, or staff accounts examined
+3. Investigation narrative describing what was reviewed, drawing ONLY from facts in the current letter and complaint data. If investigation data is minimal, keep this general. Do NOT invent specific records, logs, conversations, or technical findings not already present.
 4. Outcome decision stated clearly in one sentence with plain-English explanation
 5. Learning and actions: at least two specific, concrete improvements — NEVER use vague phrases like "we are still identifying improvements", "we are looking into this", "we will consider changes", or "we aim to review our processes"
 6. Individual resolution addressing the patient's specific ongoing needs (MANDATORY — never omit)
