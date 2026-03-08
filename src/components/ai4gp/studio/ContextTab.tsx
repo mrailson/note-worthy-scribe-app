@@ -209,21 +209,39 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
   // Quick pick prompts for Practice Managers
   const quickPicks = [
     { 
-      label: 'Summarise Attachments', 
-      prompt: 'Create an infographic that summarises the key information from the uploaded attachments'
+      label: '📎 Summarise Attachments', 
+      prompt: 'Create an infographic that summarises the key information from the uploaded attachments',
+      defaults: {}
     },
     { 
-      label: 'Staff Poster', 
-      prompt: 'Create a professional poster for the staff room with key information and clear messaging' 
+      label: '👥 Staff Poster', 
+      prompt: 'Create a professional poster for the staff room with key information and clear messaging',
+      defaults: { targetAudience: 'staff' as const, purpose: 'poster' as const }
     },
     { 
-      label: 'Patient Notice', 
-      prompt: 'Create a patient-friendly waiting room notice with clear, accessible messaging' 
+      label: '🏥 Patient Notice', 
+      prompt: 'Create a patient-friendly waiting room notice with clear, accessible messaging',
+      defaults: { targetAudience: 'patients' as const, purpose: 'waiting-room' as const }
+    },
+    { 
+      label: '💉 Flu Vaccination Poster', 
+      prompt: 'Create an eye-catching flu vaccination reminder poster for the waiting room, encouraging patients to book their flu jab',
+      defaults: { targetAudience: 'patients' as const, purpose: 'poster' as const }
+    },
+    { 
+      label: '🕐 Surgery Hours', 
+      prompt: 'Create a clear, professional notice showing our surgery opening hours and how to contact us',
+      defaults: { targetAudience: 'patients' as const, purpose: 'waiting-room' as const }
+    },
+    { 
+      label: '📢 New Service', 
+      prompt: 'Create an announcement poster for a new service we are launching at the practice',
+      defaults: { targetAudience: 'patients' as const, purpose: 'poster' as const }
     },
   ];
 
-  const handleQuickPick = (prompt: string) => {
-    onUpdate({ description: prompt });
+  const handleQuickPick = (prompt: string, defaults?: Record<string, any>) => {
+    onUpdate({ description: prompt, ...defaults });
   };
 
   return (
