@@ -23,6 +23,10 @@ serve(async (req) => {
       return await handleGenerateDocument(body, LOVABLE_API_KEY);
     }
 
+    if (action === 'refine_document') {
+      return await handleRefineDocument(body, LOVABLE_API_KEY);
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -222,6 +226,51 @@ TONE:
   }
 
   return new Response(JSON.stringify({ content: result.content, title }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function handleRefineDocument(body: any, apiKey: string) {
+  const { currentContent, documentTitle, instruction } = body;
+
+  if (!currentContent || !instruction) {
+    return new Response(JSON.stringify({ error: "Missing content or instruction" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const systemPrompt = `You are a professional document editor for a UK GP practice. The user will provide a document and an edit instruction. Apply the instruction precisely and return the FULL revised document in the same format (markdown).
+
+RULES:
+- British English throughout
+- Preserve the document structure and formatting
+- Apply ONLY the requested changes — do not add unrequested content
+- Return the complete document, not just the changed parts
+- Do not wrap the output in code fences`;
+
+  const userMessage = `Document title: ${documentTitle || 'Untitled'}
+
+Current document:
+${currentContent}
+
+Edit instruction: ${instruction}
+
+Return the full revised document.`;
+
+  const result = await callAI([
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userMessage },
+  ], apiKey, 120000);
+
+  if (result.error) {
+    return new Response(JSON.stringify({ error: result.error }), {
+      status: result.status || 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  return new Response(JSON.stringify({ content: result.content }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }

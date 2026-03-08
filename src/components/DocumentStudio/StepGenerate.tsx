@@ -252,6 +252,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
           title={state.generatedTitle || state.selectedType?.display_name || 'Document'}
           isOpen={showPreview}
           onClose={() => setShowPreview(false)}
+          onContentUpdated={(newContent) => onUpdateState({ generatedContent: newContent })}
         />
       </div>
     );

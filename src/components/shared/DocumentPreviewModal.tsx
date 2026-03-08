@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Download, FileText, X, Loader2, ImageIcon, Monitor, ArrowLeft } from 'lucide-react';
+import { DocumentAIEditPanel } from '@/components/shared/DocumentAIEditPanel';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useContentInfographic } from '@/hooks/useContentInfographic';
@@ -21,6 +22,7 @@ interface DocumentPreviewModalProps {
   imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   infographicPracticeName?: string;
   infographicSpellingCorrections?: { incorrect: string; correct: string }[];
+  onContentUpdated?: (newContent: string) => void;
 }
 
 // Extract a sensible title from content
@@ -216,14 +218,18 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
   infographicPracticeName,
   infographicSpellingCorrections,
+  onContentUpdated,
 }) => {
   const { prefs, updatePref } = useDocumentPreviewPrefs();
   const { practiceContext } = usePracticeContext();
   const isMobile = useIsMobile();
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [showAIEdit, setShowAIEdit] = useState(false);
+  const [editableContent, setEditableContent] = useState<string | null>(null);
 
-  // Infographic state
+  const activeContent = editableContent ?? content;
+  const documentTitle = externalTitle || extractTitle(activeContent);
   const [infographicView, setInfographicView] = useState<'document' | 'infographic'>('document');
   const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
   const [infographicProgress, setInfographicProgress] = useState(0);
@@ -231,7 +237,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const [infographicFullscreen, setInfographicFullscreen] = useState(false);
   const { generateInfographic, isGenerating: isInfographicGenerating, currentPhase, error: infographicError } = useContentInfographic();
 
-  const documentTitle = externalTitle || extractTitle(content);
+  // documentTitle already declared above with activeContent
   const logoUrl = practiceContext?.logoUrl;
   const practiceName = practiceContext?.practiceName;
   const practiceAddress = practiceContext?.practiceAddress;
@@ -253,7 +259,12 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     right: 'justify-end',
   }[prefs.logoPosition] || 'justify-start';
 
-  const previewElements = useMemo(() => renderPreviewContent(content), [content]);
+  const previewElements = useMemo(() => renderPreviewContent(activeContent), [activeContent]);
+
+  const handleContentUpdated = useCallback((newContent: string) => {
+    setEditableContent(newContent);
+    onContentUpdated?.(newContent);
+  }, [onContentUpdated]);
 
   // Reset infographic state when modal closes
   const handleClose = useCallback(() => {
@@ -261,6 +272,8 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     setInfographicUrl(null);
     setInfographicProgress(0);
     setInfographicFullscreen(false);
+    setShowAIEdit(false);
+    setEditableContent(null);
     onClose();
   }, [onClose]);
 
@@ -282,7 +295,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     try {
       const { generateCleanAIResponseDocument } = await import('@/utils/cleanWordExport');
       const docxLogoPosition = prefs.logoPosition === 'centre' ? 'center' : prefs.logoPosition;
-      await generateCleanAIResponseDocument(content, documentTitle, {
+      await generateCleanAIResponseDocument(activeContent, documentTitle, {
         logoUrl: prefs.showLogo ? logoUrl : undefined,
         logoPosition: docxLogoPosition as 'left' | 'center' | 'right',
         footerNote: prefs.showFooter && practiceName
@@ -303,7 +316,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     try {
       const { generatePDF } = await import('@/utils/documentGenerators');
       const pdfLogoPosition = prefs.logoPosition === 'centre' ? 'center' : prefs.logoPosition;
-      await generatePDF(content, documentTitle, {
+      await generatePDF(activeContent, documentTitle, {
         logoUrl: prefs.showLogo ? logoUrl : undefined,
         logoPosition: pdfLogoPosition as 'left' | 'center' | 'right',
         footerNote: prefs.showFooter && practiceName
@@ -338,7 +351,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     }, 3000);
 
     try {
-      const result = await generateInfographic(content, documentTitle, {
+      const result = await generateInfographic(activeContent, documentTitle, {
         orientation,
         imageModel: imageGenerationModel,
         practiceName: infographicPracticeName || practiceName || undefined,
@@ -532,6 +545,17 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* AI Edit Panel */}
+        {infographicView === 'document' && (
+          <DocumentAIEditPanel
+            content={activeContent}
+            title={documentTitle}
+            onContentUpdated={handleContentUpdated}
+            isOpen={showAIEdit}
+            onToggle={() => setShowAIEdit(v => !v)}
+          />
+        )}
 
         {/* Bottom actions */}
         <div className="px-4 sm:px-6 py-3 border-t bg-muted/30 flex flex-wrap items-center gap-2">
