@@ -31,7 +31,7 @@ export const useAI4GPService = () => {
   const [sessionMemory, setSessionMemory] = useState(true);
   const [verificationLevel, setVerificationLevel] = useState('standard');
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('google/gemini-3-flash-preview');
+  const [selectedModel, setSelectedModel] = useState('google/gemini-3.1-flash-lite-preview');
   const [useOpenAI, setUseOpenAI] = useState(true);
   const [showRenderTimes, setShowRenderTimes] = useState(false);
   const [showAIService, setShowAIService] = useState(false);
@@ -181,9 +181,9 @@ export const useAI4GPService = () => {
   ): Promise<{ response: string; webSearchPerformed: boolean }> => {
     try {
       // Map model selections to gateway-compatible identifiers
-      const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'google/gemini-3-flash-preview' :
+      const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'google/gemini-3.1-flash-lite-preview' :
                          selectedModel === 'gpt-5-mini-2025-08-07' ? 'openai/gpt-5-mini' :
-                         selectedModel === 'grok' ? 'google/gemini-3-flash-preview' :
+                         selectedModel === 'grok' ? 'google/gemini-3.1-flash-lite-preview' :
                          selectedModel === 'chatgpt5' ? 'openai/gpt-5-mini' :
                          selectedModel;
 
@@ -511,7 +511,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     return prompt;
   }, []);
 
-  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'claude-4-sonnet', messageOverride?: string) => {
+  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'google/gemini-3.1-flash-lite-preview', messageOverride?: string) => {
     console.log('🚀 handleSend called with:', { 
       hasInput: !!input.trim(), 
       inputLength: input.length,
@@ -531,9 +531,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     
     console.log('🔄 Proceeding with send - creating user message...');
     
-    // Use the provided model instead of useOpenAI setting for model selection
-    const modelToUse = selectedModel;
-    console.log('🤖 Model selection:', { selectedModel, modelToUse });
+    // Use the provided model, but auto-upgrade for clinical queries
+    const isClinicalUpgrade = isClinicalRef.current || verificationLevel === 'clinical';
+    const modelToUse = isClinicalUpgrade ? 'google/gemini-3.1-pro-preview' : selectedModel;
+    console.log('🤖 Model selection:', { selectedModel, modelToUse, clinicalUpgrade: isClinicalUpgrade });
     
     // Enhance the message content when files are attached
     let messageContent = messageToUse;
@@ -887,7 +888,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       };
 
       // Check if model supports streaming
-      const streamableModels = ['google/gemini-3-flash-preview', 'google/gemini-3-pro-preview', 'google/gemini-2.5-flash', 'openai/gpt-5', 'openai/gpt-5-mini'];
+      const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview', 'google/gemini-2.5-flash', 'openai/gpt-5', 'openai/gpt-5-mini'];
       const canStream = streamableModels.includes(modelToUse);
       
       if (canStream) {
@@ -1352,7 +1353,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setSessionMemory(preferences.sessionMemory ?? true);
           setVerificationLevel(preferences.verificationLevel ?? 'standard');
           setShowResponseMetrics(preferences.showResponseMetrics ?? false);
-          setSelectedModel(preferences.selectedModel ?? 'gpt-5-2025-08-07');
+          setSelectedModel(preferences.selectedModel ?? 'google/gemini-3.1-flash-lite-preview');
           setUseOpenAI(preferences.useOpenAI ?? true);
           setShowRenderTimes(preferences.showRenderTimes ?? false);
           setShowAIService(preferences.showAIService ?? false);
@@ -1505,7 +1506,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }, [setMessagesWithLimit]);
 
   // Handle quick action responses
-  const handleQuickResponse = useCallback(async (quickResponse: string, practiceContext: any, selectedModel: string = 'gpt-5') => {
+  const handleQuickResponse = useCallback(async (quickResponse: string, practiceContext: any, selectedModel: string = 'google/gemini-3.1-flash-lite-preview') => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',

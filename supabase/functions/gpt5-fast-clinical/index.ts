@@ -195,7 +195,7 @@ Be comprehensive but concise. Preserve all important details, dates, figures, an
     },
     body: JSON.stringify({
       // Fast + cheap summarisation model
-      model: "google/gemini-2.5-flash-lite",
+      model: "google/gemini-3.1-flash-lite-preview",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: chunk }
@@ -440,19 +440,19 @@ serve(async (req) => {
   const finalMaxTokens = max_tokens || detectedMaxTokens;
 
   const resolveGatewayModel = (m?: string): string => {
-    // SPEED-OPTIMISED: Use Gemini 3 Flash as default (~1-2s TTFT vs 25s for GPT-5)
+    // SPEED-OPTIMISED: Use Gemini 3.1 Flash-Lite as default
     const input = (m || '').trim();
-    if (!input) return 'google/gemini-3-flash-preview';
+    if (!input) return 'google/gemini-3.1-flash-lite-preview';
 
-    // FAST MODE: Speed/grok/fast all route to Gemini 3 Flash
+    // FAST MODE: Speed/grok/fast all route to Gemini 3.1 Flash-Lite
     if (input === 'speed' || input === 'fast' || input === 'grok') {
-      return 'google/gemini-3-flash-preview';
+      return 'google/gemini-3.1-flash-lite-preview';
     }
 
-    // GPT-5 full is too slow (25s TTFT) - remap to Gemini 3 Flash
+    // GPT-5 full is too slow - remap to Gemini 3.1 Flash-Lite
     if (input === 'gpt-5' || input === 'gpt-5-2025-08-07') {
-      console.log(`↩️ Remapping slow model '${input}' to 'google/gemini-3-flash-preview'`);
-      return 'google/gemini-3-flash-preview';
+      console.log(`↩️ Remapping slow model '${input}' to 'google/gemini-3.1-flash-lite-preview'`);
+      return 'google/gemini-3.1-flash-lite-preview';
     }
 
     // Balanced option: GPT-5 mini (~3-5s)
@@ -466,7 +466,7 @@ serve(async (req) => {
     if (input.startsWith('openai/') || input.startsWith('google/')) return input;
 
     // Safe fast default
-    return 'google/gemini-3-flash-preview';
+    return 'google/gemini-3.1-flash-lite-preview';
   };
 
   const tryModel = async (m: string, stream: boolean) => {

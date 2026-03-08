@@ -38,13 +38,12 @@ interface ClinicalTestResult {
 
 // AI Models Configuration  
 const AI_MODELS = [
-  { id: 'gpt-5-2025-08-07', name: 'GPT-5', service: 'openai' },
-  { id: 'gpt-4o', name: 'GPT-4o', service: 'openai' },
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', service: 'openai' },
+  { id: 'google/gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', service: 'google' },
+  { id: 'google/gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash-Lite', service: 'google' },
+  { id: 'google/gemini-3-flash-preview', name: 'Gemini 3 Flash', service: 'google' },
+  { id: 'openai/gpt-5', name: 'GPT-5', service: 'openai' },
+  { id: 'openai/gpt-5-mini', name: 'GPT-5 Mini', service: 'openai' },
   { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', service: 'anthropic' },
-  { id: 'grok-beta', name: 'Grok Beta', service: 'grok' },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', service: 'google' },
-  { id: 'deepseek-chat', name: 'DeepSeek', service: 'deepseek' },
 ];
 
 const CLINICAL_TEST_QUERY = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology. Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Metformin.";
@@ -311,14 +310,12 @@ const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
       
       // Use the working ai-api-test approach for all models consistently
       const testPromises = [
-        // All models via direct API (this approach works for all)
-        testClinicalModelDirect('gpt-5-2025-08-07'),
-        testClinicalModelDirect('gpt-4o'),
-        testClinicalModelDirect('gpt-4o-mini'),
+        testClinicalModelDirect('google/gemini-3.1-pro-preview'),
+        testClinicalModelDirect('google/gemini-3.1-flash-lite-preview'),
+        testClinicalModelDirect('google/gemini-3-flash-preview'),
+        testClinicalModelDirect('openai/gpt-5'),
+        testClinicalModelDirect('openai/gpt-5-mini'),
         testClinicalModelDirect('claude-4-sonnet'),
-        testClinicalModelDirect('grok-beta'),
-        testClinicalModelDirect('gemini-1.5-pro'),
-        testClinicalModelDirect('deepseek-chat')
       ];
 
       const results = await Promise.all(testPromises);

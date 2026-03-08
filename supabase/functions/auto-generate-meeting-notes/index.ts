@@ -354,7 +354,7 @@ serve(async (req) => {
                 meeting_id: meetingId,
                 summary: consolidatedResult.content,
                 summary_type: 'consolidated',
-                model_used: 'gemini-2.5-flash',
+                model_used: 'gemini-3.1-flash-lite',
                 updated_at: new Date().toISOString()
               }, { onConflict: 'meeting_id' });
             
@@ -1099,7 +1099,7 @@ ${contextInfo}
 Transcript:
 ${cleanedTranscript}`;
 
-    console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
+    console.log('🔧 Using Lovable AI with google/gemini-3.1-flash-lite-preview');
     console.log('📊 System prompt length:', systemPrompt.length, 'chars');
     console.log('📊 User prompt length:', userPrompt.length, 'chars');
     
@@ -1117,7 +1117,7 @@ ${cleanedTranscript}`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-3.1-flash-lite-preview',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }

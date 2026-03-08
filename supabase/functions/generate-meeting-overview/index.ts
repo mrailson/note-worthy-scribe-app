@@ -151,7 +151,7 @@ Format your response exactly like this:
 
 Remember: Use • bullet character, put each bullet on its own line, blank line between paragraph and bullets.`;
 
-    console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
+    console.log('🔧 Using Lovable AI with google/gemini-3.1-flash-lite-preview');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -160,7 +160,7 @@ Remember: Use • bullet character, put each bullet on its own line, blank line 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3.1-flash-lite-preview',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
