@@ -274,11 +274,4 @@ export const practiceManagerQuickActions: QuickAction[] = [
     prompt: pmSafetyPreamble + '\n\nCreate professional practice communications for patients, staff, or external stakeholders.',
     requiresFile: false
   },
-  {
-    label: 'Image Studio',
-    icon: Sparkles,
-    prompt: '',
-    requiresFile: false,
-    action: 'open-image-studio'
-  },
 ];
