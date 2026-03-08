@@ -1,0 +1,1 @@
+UPDATE practice_details SET email = REPLACE(email, 'oaklanedmedical', 'oaklanemedical') WHERE email LIKE '%oaklanedmedical%';
