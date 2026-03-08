@@ -302,12 +302,14 @@ export const MessagesList: React.FC<MessagesListProps> = ({
           variant="secondary"
           className={cn(
             "absolute bottom-4 left-1/2 -translate-x-1/2 z-10",
+            "absolute bottom-4 left-1/2 -translate-x-1/2 z-10",
             "shadow-lg border border-border/50 rounded-full",
             "animate-in fade-in slide-in-from-bottom-2 duration-200",
-            "h-8 w-8"
+            "h-9 w-9"
           )}
+          title="Scroll to bottom"
         >
-          <ArrowDown className="h-4 w-4" />
+          <ChevronDown className="h-4 w-4" />
         </Button>
       )}
     </div>
