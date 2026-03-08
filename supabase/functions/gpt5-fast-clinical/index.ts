@@ -440,19 +440,19 @@ serve(async (req) => {
   const finalMaxTokens = max_tokens || detectedMaxTokens;
 
   const resolveGatewayModel = (m?: string): string => {
-    // SPEED-OPTIMISED: Use Gemini 3.1 Flash-Lite as default
+    // SPEED-OPTIMISED: Use Gemini 2.5 Flash as default
     const input = (m || '').trim();
-    if (!input) return 'google/gemini-3.1-flash-lite-preview';
+    if (!input) return 'google/gemini-2.5-flash';
 
-    // FAST MODE: Speed/grok/fast all route to Gemini 3.1 Flash-Lite
+    // FAST MODE: Speed/grok/fast all route to Gemini 2.5 Flash
     if (input === 'speed' || input === 'fast' || input === 'grok') {
-      return 'google/gemini-3.1-flash-lite-preview';
+      return 'google/gemini-2.5-flash';
     }
 
-    // GPT-5 full is too slow - remap to Gemini 3.1 Flash-Lite
+    // GPT-5 full is too slow - remap to Gemini 2.5 Flash
     if (input === 'gpt-5' || input === 'gpt-5-2025-08-07') {
-      console.log(`↩️ Remapping slow model '${input}' to 'google/gemini-3.1-flash-lite-preview'`);
-      return 'google/gemini-3.1-flash-lite-preview';
+      console.log(`↩️ Remapping slow model '${input}' to 'google/gemini-2.5-flash'`);
+      return 'google/gemini-2.5-flash';
     }
 
     // Balanced option: GPT-5 mini (~3-5s)
@@ -466,7 +466,7 @@ serve(async (req) => {
     if (input.startsWith('openai/') || input.startsWith('google/')) return input;
 
     // Safe fast default
-    return 'google/gemini-3.1-flash-lite-preview';
+    return 'google/gemini-2.5-flash';
   };
 
   const tryModel = async (m: string, stream: boolean) => {
