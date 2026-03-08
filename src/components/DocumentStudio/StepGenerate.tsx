@@ -28,6 +28,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const [showPreview, setShowPreview] = useState(false);
+  const [showAIEdit, setShowAIEdit] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const processUploadedFiles = async (): Promise<string[]> => {
