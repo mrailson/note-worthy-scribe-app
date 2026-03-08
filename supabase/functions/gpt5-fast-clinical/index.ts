@@ -554,7 +554,7 @@ serve(async (req) => {
 
     // If primary failed or returned error, try fallback chain
     if (!resp || !resp.ok) {
-      const fallbacks = FALLBACK_CHAIN[resolvedModel] || ['google/gemini-2.5-flash', 'google/gemini-3-flash-preview'];
+      const fallbacks = FALLBACK_CHAIN[resolvedModel] || ['google/gemini-3-flash-preview', 'openai/gpt-5-mini'];
       
       for (const fallbackModel of fallbacks) {
         try {

@@ -112,7 +112,7 @@ const LENGTH_OPTIONS: { value: PolicyLength; label: string; description: string;
 ];
 
 export const PolicyGenerationModelSettings = () => {
-  const [model, setModel] = useState<PolicyGenerationModel>('gemini-2.5-flash');
+  const [model, setModel] = useState<PolicyGenerationModel>('gemini-3-flash-preview');
   const [length, setLength] = useState<PolicyLength>('full');
   const [autoQualityLoop, setAutoQualityLoop] = useState(false);
   const [open, setOpen] = useState(false);
