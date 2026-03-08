@@ -170,6 +170,13 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-open the preview modal as soon as content is ready
+  useEffect(() => {
+    if (state.generatedContent && !state.isGenerating) {
+      setShowPreview(true);
+    }
+  }, [state.generatedContent, state.isGenerating]);
+
   // Loading state
   if (state.isGenerating) {
     return (
