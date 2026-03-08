@@ -202,15 +202,15 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
 
         {/* Preview area - shows first ~500 chars */}
         <div
-          className="border rounded-xl p-4 max-h-[45vh] overflow-y-auto cursor-pointer hover:border-primary/50 transition-colors"
+          className="bg-white dark:bg-card border rounded-xl p-6 max-h-[45vh] overflow-y-auto cursor-pointer hover:border-primary/50 transition-colors shadow-sm"
           onClick={() => setShowPreview(true)}
         >
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            {state.generatedContent.slice(0, 2000).split('\n').map((line, i) => (
-              <p key={i} className="text-sm text-foreground mb-1">{line || '\u00A0'}</p>
-            ))}
-            {state.generatedContent.length > 2000 && (
-              <p className="text-xs text-primary font-medium mt-2">Click to view full document...</p>
+          <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-primary prose-headings:font-bold prose-h1:text-lg prose-h2:text-base prose-h3:text-sm prose-h4:text-sm prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-3 prose-strong:text-foreground prose-li:text-foreground prose-ul:my-2 prose-ol:my-2">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {state.generatedContent.slice(0, 3000)}
+            </ReactMarkdown>
+            {state.generatedContent.length > 3000 && (
+              <p className="text-xs text-primary font-medium mt-3 border-t pt-2">Click to view full document...</p>
             )}
           </div>
         </div>
