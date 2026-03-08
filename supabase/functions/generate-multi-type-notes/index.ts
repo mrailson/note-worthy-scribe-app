@@ -163,7 +163,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Create dynamic limerick config based on meeting size
     const limerickConfig = {
       type: 'limerick' as const,
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3.1-flash-lite-preview',
       systemPrompt: `You are a creative meeting poet who transforms GP practice meetings into delightful limericks using British English spellings and conventions.
 
 CRITICAL RULES:

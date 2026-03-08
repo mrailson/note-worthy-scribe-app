@@ -1563,7 +1563,7 @@ Now generate sections 9-11 to complete this policy, followed by the ===METADATA=
           const isCompact = policyLength === 'compact';
           const autoQualityLoop = jobMetadata.auto_quality_loop === true;
           
-          const budgetModels = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp', 'gemini-2.5-flash', 'gemini-2.5-pro'];
+          const budgetModels = ['claude-haiku-4-5', 'gpt-4o-mini', 'gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-flash-lite-preview'];
           const isBudget = budgetModels.includes(generationModel);
           const skipEnhance = isCompact || isBudget;
           let nextStep = runGapCheck ? 'gap_check' : (skipEnhance ? 'finalise' : 'enhance');
