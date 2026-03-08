@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { DOCUMENT_TYPES, CATEGORY_COLOURS, CATEGORY_LABELS, type DocumentType, type DocumentCategory } from './documentTypes';
