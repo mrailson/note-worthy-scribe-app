@@ -8,6 +8,8 @@ import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { DocumentPreviewModal } from '@/components/shared/DocumentPreviewModal';
 import { toast } from 'sonner';
 import { FileProcessorManager } from '@/utils/fileProcessors/FileProcessorManager';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { DocumentStudioState } from './DocumentStudioModal';
 
 interface StepGenerateProps {
