@@ -166,7 +166,7 @@ export function useImageStudio() {
     isGenerating: false,
     generationProgress: 0,
     currentResult: null,
-    generationHistory: loadHistoryFromStorage(), // Load persisted history on init
+    generationHistory: [], // Start fresh — cleared to prevent crashes from stale data
     error: null,
   }));
   

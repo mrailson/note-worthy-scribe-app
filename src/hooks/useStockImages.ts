@@ -89,7 +89,7 @@ export function useStockImages(options?: { enabled?: boolean }) {
     checkAdmin();
   }, []);
 
-  // Fetch all stock images
+  // Fetch all stock images — only when enabled
   const { data: images = [], isLoading } = useQuery({
     queryKey: ['stock-images'],
     queryFn: async () => {
@@ -100,6 +100,7 @@ export function useStockImages(options?: { enabled?: boolean }) {
       if (error) throw error;
       return (data || []) as unknown as StockImage[];
     },
+    enabled,
   });
 
   // Filter images by search and category
