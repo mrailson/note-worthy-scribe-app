@@ -121,7 +121,7 @@ interface UploadedFile {
 
 interface RequestBody {
   messages: Message[];
-  model?: 'claude' | 'gpt' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5-2025-08-07' | 'gpt-5' | 'gpt-5-mini-2025-08-07' | 'gpt-5-nano-2025-08-07' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash' | 'deepseek-chat';
+  model?: string;
   systemPrompt: string;
   files?: UploadedFile[];
   verificationLevel?: string;
