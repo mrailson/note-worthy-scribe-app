@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, X, Users, Target, FileText, MessageSquare, ChevronDown, Upload, Image as ImageIcon, File, Loader2 } from 'lucide-react';
-import { TARGET_AUDIENCES, PURPOSE_TYPES } from '@/utils/colourPalettes';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Plus, X, Users, Target, FileText, MessageSquare, ChevronDown, Upload, Image as ImageIcon, File, Loader2, RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
+import { TARGET_AUDIENCES, PURPOSE_TYPES, LAYOUT_OPTIONS } from '@/utils/colourPalettes';
 import type { ImageStudioSettings } from '@/types/imageStudio';
 import { cn } from '@/lib/utils';
 import { useDropzone } from 'react-dropzone';
@@ -29,13 +30,56 @@ interface UploadedFile {
   preview?: string;
 }
 
+// Use-case oriented pills instead of template-based ones
+const USE_CASE_PILLS = [
+  {
+    id: 'summarise-doc',
+    label: '📄 Summarise a Document',
+    description: 'Upload a file and turn it into a visual',
+    prompt: 'Create an infographic that summarises the key information from the uploaded document',
+    defaults: { purpose: 'infographic' as const },
+    focusUpload: true,
+  },
+  {
+    id: 'create-poster',
+    label: '🖼️ Create a Poster',
+    description: 'Design a poster or notice from scratch',
+    prompt: '',
+    defaults: { purpose: 'poster' as const, layoutPreference: 'portrait' as const },
+    focusUpload: false,
+  },
+  {
+    id: 'design-notice',
+    label: '📋 Patient Notice',
+    description: 'Waiting room or reception display',
+    prompt: '',
+    defaults: { targetAudience: 'patients' as const, purpose: 'waiting-room' as const },
+    focusUpload: false,
+  },
+  {
+    id: 'social-media',
+    label: '📱 Social Media',
+    description: 'Post or story graphic',
+    prompt: '',
+    defaults: { purpose: 'social-media' as const, layoutPreference: 'square' as const },
+    focusUpload: false,
+  },
+];
+
+const ORIENTATION_OPTIONS = [
+  { id: 'landscape' as const, label: 'Landscape', icon: RectangleHorizontal, ratio: '16:9' },
+  { id: 'portrait' as const, label: 'Portrait', icon: RectangleVertical, ratio: '3:4' },
+  { id: 'square' as const, label: 'Square', icon: Square, ratio: '1:1' },
+];
+
 export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFilesChange }) => {
   const [newMessage, setNewMessage] = useState('');
   const [audienceOpen, setAudienceOpen] = useState(false);
   const [purposeOpen, setPurposeOpen] = useState(false);
-  const [additionalOpen, setAdditionalOpen] = useState(false);
+  const [keyMessagesOpen, setKeyMessagesOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [activeUseCase, setActiveUseCase] = useState<string | null>(null);
 
   // Notify parent when files change
   React.useEffect(() => {
@@ -62,13 +106,11 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
     const id = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const isImage = file.type.startsWith('image/');
     
-    // For images, create a preview AND extract text via OCR
     if (isImage) {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = async () => {
           const preview = reader.result as string;
-          // Also attempt OCR text extraction
           let content: string | undefined;
           try {
             const processed = await FileProcessorManager.processFile(file);
@@ -76,38 +118,20 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
               content = processed.content;
             }
           } catch (e) {
-            console.warn('Image OCR extraction failed, continuing with preview only:', e);
+            console.warn('Image OCR extraction failed:', e);
           }
-          resolve({
-            id,
-            name: file.name,
-            type: file.type,
-            preview,
-            content,
-          });
+          resolve({ id, name: file.name, type: file.type, preview, content });
         };
         reader.readAsDataURL(file);
       });
     }
     
-    // For documents (Word, PDF, Excel, PowerPoint, etc.), use FileProcessorManager
     try {
       const processedFile = await FileProcessorManager.processFile(file);
-      return {
-        id,
-        name: file.name,
-        type: file.type,
-        content: processedFile.content,
-      };
+      return { id, name: file.name, type: file.type, content: processedFile.content };
     } catch (error) {
       console.error('Error processing document:', error);
-      // Fall back to just storing the filename if processing fails
-      return {
-        id,
-        name: file.name,
-        type: file.type,
-        content: `[Document: ${file.name} - Could not extract content]`,
-      };
+      return { id, name: file.name, type: file.type, content: `[Document: ${file.name} - Could not extract content]` };
     }
   };
 
@@ -119,21 +143,15 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
       const processedFiles = await Promise.all(acceptedFiles.map(processFile));
       setUploadedFiles(prev => [...prev, ...processedFiles]);
       
-      // For documents with extracted content, add the actual content to supporting content
-      // For images, just add a reference
       const newContentParts: string[] = [];
       for (const f of processedFiles) {
         if (f.content && !f.content.startsWith('[Document:')) {
-          // Successfully extracted content - add it
           newContentParts.push(`--- Content from ${f.name} ---\n${f.content}\n--- End of ${f.name} ---`);
         } else if (f.preview && f.content) {
-          // Image with OCR-extracted text
           newContentParts.push(`--- Content extracted from image: ${f.name} ---\n${f.content}\n--- End of ${f.name} ---`);
         } else if (f.preview) {
-          // Image file without extractable text
           newContentParts.push(`[Image attached: ${f.name}]`);
         } else {
-          // Fallback for failed extraction
           newContentParts.push(`[Attached: ${f.name}]`);
         }
       }
@@ -144,9 +162,17 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
         : newContentParts.join('\n\n');
       onUpdate({ supportingContent: newContent });
       
+      // Auto-set description if empty and files uploaded (likely summarise use case)
+      if (!settings.description.trim() && processedFiles.some(f => f.content && !f.content.startsWith('[Document:'))) {
+        onUpdate({ 
+          description: 'Create an infographic that summarises the key information from the uploaded document',
+          summariseSupportingContent: true,
+        });
+      }
+      
       const successCount = processedFiles.filter(f => f.content && !f.content.startsWith('[Document:')).length;
       if (successCount > 0) {
-        toast.success(`${successCount} document(s) processed and content extracted`);
+        toast.success(`${successCount} document(s) processed — content extracted and ready`);
       } else {
         toast.success(`${processedFiles.length} file(s) uploaded`);
       }
@@ -156,35 +182,28 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
     } finally {
       setIsProcessing(false);
     }
-  }, [settings.supportingContent, onUpdate]);
+  }, [settings.supportingContent, settings.description, onUpdate]);
 
   const removeFile = (fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
     if (file) {
       setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
       
-      // Remove the content block from supporting content
       let newContent = settings.supportingContent || '';
-      
-      // Try to remove the full content block first
       const contentBlockPattern = new RegExp(
         `--- Content from ${file.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} ---[\\s\\S]*?--- End of ${file.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} ---\\n*`,
         'g'
       );
       newContent = newContent.replace(contentBlockPattern, '');
-      
-      // Also try to remove simple references
       newContent = newContent.replace(`[Image attached: ${file.name}]`, '');
       newContent = newContent.replace(`[Attached: ${file.name}]`, '');
-      
-      // Clean up extra whitespace
       newContent = newContent.replace(/\n{3,}/g, '\n\n').trim();
       
       onUpdate({ supportingContent: newContent });
     }
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open: openFilePicker } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tiff', '.svg'],
@@ -198,7 +217,9 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
       'text/csv': ['.csv'],
     },
     maxFiles: 5,
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 10 * 1024 * 1024,
+    noClick: false,
+    noKeyboard: false,
   });
 
   const getFileIcon = (type: string) => {
@@ -206,75 +227,137 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
     return File;
   };
 
-  // Quick pick prompts for Practice Managers
-  const quickPicks = [
-    { 
-      label: '📎 Summarise Attachments', 
-      prompt: 'Create an infographic that summarises the key information from the uploaded attachments',
-      defaults: {}
-    },
-    { 
-      label: '👥 Staff Poster', 
-      prompt: 'Create a professional poster for the staff room with key information and clear messaging',
-      defaults: { targetAudience: 'staff' as const, purpose: 'poster' as const }
-    },
-    { 
-      label: '🏥 Patient Notice', 
-      prompt: 'Create a patient-friendly waiting room notice with clear, accessible messaging',
-      defaults: { targetAudience: 'patients' as const, purpose: 'waiting-room' as const }
-    },
-    { 
-      label: '💉 Flu Vaccination Poster', 
-      prompt: 'Create an eye-catching flu vaccination reminder poster for the waiting room, encouraging patients to book their flu jab',
-      defaults: { targetAudience: 'patients' as const, purpose: 'poster' as const }
-    },
-    { 
-      label: '🕐 Surgery Hours', 
-      prompt: 'Create a clear, professional notice showing our surgery opening hours and how to contact us',
-      defaults: { targetAudience: 'patients' as const, purpose: 'waiting-room' as const }
-    },
-    { 
-      label: '📢 New Service', 
-      prompt: 'Create an announcement poster for a new service we are launching at the practice',
-      defaults: { targetAudience: 'patients' as const, purpose: 'poster' as const }
-    },
-  ];
-
-  const handleQuickPick = (prompt: string, defaults?: Record<string, any>) => {
-    onUpdate({ description: prompt, ...defaults });
+  const handleUseCasePick = (useCase: typeof USE_CASE_PILLS[number]) => {
+    setActiveUseCase(useCase.id);
+    if (useCase.prompt) {
+      onUpdate({ description: useCase.prompt, ...useCase.defaults });
+    } else {
+      onUpdate({ ...useCase.defaults });
+    }
+    if (useCase.focusUpload) {
+      // Trigger file picker for summarise flows
+      setTimeout(() => openFilePicker(), 100);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Description with mic */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <Label htmlFor="description" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            What do you want to create?
-          </Label>
-           <div className="flex gap-1.5 flex-wrap">
-            {quickPicks.map((pick) => (
-                <Button
-                  key={pick.label}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickPick(pick.prompt, pick.defaults)}
-                  className="h-7 text-xs px-2.5 rounded-full border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-colors"
-                >
-                  {pick.label}
-                </Button>
-              ))}
+    <div className="space-y-4">
+      {/* 1. PROMINENT DRAG & DROP ZONE — Top of page */}
+      <div
+        {...getRootProps()}
+        className={cn(
+          "border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all",
+          isDragActive 
+            ? "border-primary bg-primary/10 scale-[1.01]" 
+            : "border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10",
+          isProcessing && "opacity-50 pointer-events-none"
+        )}
+      >
+        <input {...getInputProps()} />
+        {isProcessing ? (
+          <div className="space-y-1">
+            <Loader2 className="h-8 w-8 mx-auto text-primary animate-spin" />
+            <p className="text-sm font-medium text-primary">Extracting content from documents...</p>
+            <p className="text-xs text-muted-foreground">This may take a moment for large files</p>
           </div>
+        ) : (
+          <div className="space-y-1">
+            <Upload className="h-8 w-8 mx-auto text-primary" />
+            <p className="text-sm font-semibold text-foreground">
+              {isDragActive ? "Drop files here..." : "Upload a document or image"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Drop files here or click to browse — PDF, Word, Excel, PowerPoint, images
+            </p>
+            <p className="text-xs text-primary/70 font-medium mt-1">
+              💡 Upload a document and we'll turn it into a professional infographic
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Uploaded files display */}
+      {uploadedFiles.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {uploadedFiles.map((file) => {
+            const FileIcon = getFileIcon(file.type);
+            const hasExtractedContent = file.content && !file.content.startsWith('[Document:') && !file.content.startsWith('[Attached:');
+            return (
+              <div
+                key={file.id}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-2 py-1 text-sm",
+                  hasExtractedContent ? "bg-primary/10 border border-primary/20" : "bg-muted"
+                )}
+                title={hasExtractedContent ? "Content extracted successfully" : "File attached"}
+              >
+                {file.preview ? (
+                  <img src={file.preview} alt={file.name} className="h-6 w-6 object-cover rounded" />
+                ) : (
+                  <FileIcon className={cn("h-4 w-4", hasExtractedContent ? "text-primary" : "text-muted-foreground")} />
+                )}
+                <span className="truncate max-w-[120px]">{file.name}</span>
+                {hasExtractedContent && (
+                  <Badge variant="secondary" className="text-[10px] px-1 py-0">✓</Badge>
+                )}
+                <button type="button" onClick={() => removeFile(file.id)} className="rounded-full p-0.5 hover:bg-background">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            );
+          })}
         </div>
+      )}
+
+      {/* Summarise checkbox — show when files uploaded */}
+      {(settings.supportingContent?.trim() || uploadedFiles.length > 0) && (
+        <label className="flex items-center gap-2 cursor-pointer px-1">
+          <input
+            type="checkbox"
+            checked={settings.summariseSupportingContent || false}
+            onChange={(e) => onUpdate({ summariseSupportingContent: e.target.checked })}
+            className="h-4 w-4 rounded border-muted-foreground/30"
+          />
+          <span className="text-sm">Summarise uploaded content into the visual</span>
+        </label>
+      )}
+
+      {/* 2. USE-CASE PILLS */}
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground uppercase tracking-wide">What would you like to do?</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {USE_CASE_PILLS.map((uc) => (
+            <button
+              key={uc.id}
+              type="button"
+              onClick={() => handleUseCasePick(uc)}
+              className={cn(
+                "flex flex-col items-start gap-0.5 p-3 rounded-lg border text-left transition-all",
+                activeUseCase === uc.id
+                  ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                  : "border-border hover:border-primary/50 hover:bg-muted/50"
+              )}
+            >
+              <span className="text-sm font-medium">{uc.label}</span>
+              <span className="text-xs text-muted-foreground">{uc.description}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. DESCRIPTION */}
+      <div className="space-y-2">
+        <Label htmlFor="description" className="flex items-center gap-2">
+          <MessageSquare className="h-4 w-4" />
+          Describe what you want
+        </Label>
         <div className="flex gap-2">
           <Textarea
             id="description"
-            placeholder="Describe the image you want... e.g., 'A flu vaccination reminder poster for our waiting room with friendly imagery and clear call-to-action'"
+            placeholder="e.g. 'A flu vaccination reminder poster for our waiting room' or describe what to show from your uploaded document..."
             value={settings.description}
             onChange={(e) => onUpdate({ description: e.target.value })}
-            className="min-h-[100px] resize-none flex-1"
+            className="min-h-[80px] resize-none flex-1"
           />
           <CompactMicButton
             currentValue={settings.description}
@@ -282,13 +365,40 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
             className="self-start"
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Be specific about content, style, and any text you want included.
-        </p>
       </div>
 
-      {/* Key Messages & Supporting Info - Collapsible */}
-      <Collapsible open={additionalOpen} onOpenChange={setAdditionalOpen}>
+      {/* 4. ORIENTATION TOGGLE — visible upfront */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2 text-sm">
+          Orientation
+        </Label>
+        <div className="flex gap-2">
+          {ORIENTATION_OPTIONS.map((opt) => {
+            const Icon = opt.icon;
+            const isSelected = settings.layoutPreference === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onUpdate({ layoutPreference: opt.id })}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all flex-1 justify-center",
+                  isSelected
+                    ? "border-primary bg-primary/10 text-primary font-medium"
+                    : "border-border hover:border-primary/40 text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{opt.label}</span>
+                <span className="text-xs opacity-60">({opt.ratio})</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 5. KEY MESSAGES — Collapsible */}
+      <Collapsible open={keyMessagesOpen} onOpenChange={setKeyMessagesOpen}>
         <CollapsibleTrigger asChild>
           <button
             type="button"
@@ -296,175 +406,63 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
           >
             <div className="flex items-center gap-2">
               <Target className="h-4 w-4" />
-              <span className="font-medium">Key Messages & Supporting Documents (Upload here)</span>
-              {(settings.keyMessages.length > 0 || uploadedFiles.length > 0) && (
-                <Badge variant="secondary" className="ml-2">
-                  {settings.keyMessages.length > 0 && `${settings.keyMessages.length} message${settings.keyMessages.length > 1 ? 's' : ''}`}
-                  {settings.keyMessages.length > 0 && uploadedFiles.length > 0 && ', '}
-                  {uploadedFiles.length > 0 && `${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''}`}
+              <span className="font-medium text-sm">Key Messages</span>
+              {settings.keyMessages.length > 0 && (
+                <Badge variant="secondary" className="ml-1">
+                  {settings.keyMessages.length}
                 </Badge>
               )}
             </div>
-            <ChevronDown className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform",
-              additionalOpen && "rotate-180"
-            )} />
+            <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", keyMessagesOpen && "rotate-180")} />
           </button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="pt-3 space-y-4">
-          {/* Key Messages with mic */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-sm">
-              Key Messages (optional)
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add a must-include message..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyMessage())}
-                disabled={settings.keyMessages.length >= 5}
-                className="flex-1"
-              />
-              <CompactMicButton
-                currentValue={newMessage}
-                onTranscriptUpdate={setNewMessage}
-                disabled={settings.keyMessages.length >= 5}
-              />
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="icon"
-                onClick={addKeyMessage}
-                disabled={!newMessage.trim() || settings.keyMessages.length >= 5}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            {settings.keyMessages.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-2">
-                {settings.keyMessages.map((msg, idx) => (
-                  <Badge key={idx} variant="secondary" className="gap-1 pr-1">
-                    {msg}
-                    <button
-                      type="button"
-                      onClick={() => removeKeyMessage(idx)}
-                      className="ml-1 rounded-full p-0.5 hover:bg-muted"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Up to 5 key messages that must appear in the image.
-            </p>
+        <CollapsibleContent className="pt-3 space-y-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add a must-include message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyMessage())}
+              disabled={settings.keyMessages.length >= 5}
+              className="flex-1"
+            />
+            <CompactMicButton currentValue={newMessage} onTranscriptUpdate={setNewMessage} disabled={settings.keyMessages.length >= 5} />
+            <Button type="button" variant="outline" size="icon" onClick={addKeyMessage} disabled={!newMessage.trim() || settings.keyMessages.length >= 5}>
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
+          {settings.keyMessages.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {settings.keyMessages.map((msg, idx) => (
+                <Badge key={idx} variant="secondary" className="gap-1 pr-1">
+                  {msg}
+                  <button type="button" onClick={() => removeKeyMessage(idx)} className="ml-1 rounded-full p-0.5 hover:bg-muted">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">Up to 5 key messages that must appear in the image.</p>
 
-          {/* Supporting Content with file upload */}
+          {/* Supporting content textarea */}
           <div className="space-y-2">
             <Label htmlFor="supportingContent" className="flex items-center gap-2 text-sm">
               <FileText className="h-4 w-4" />
-              Supporting Information (optional)
+              Additional Notes (optional)
             </Label>
             <Textarea
               id="supportingContent"
               placeholder="Paste any additional content, facts, statistics, or text you want incorporated..."
               value={settings.supportingContent}
               onChange={(e) => onUpdate({ supportingContent: e.target.value })}
-              className="min-h-[80px] resize-none"
+              className="min-h-[60px] resize-none"
             />
-            
-            {/* File Upload Dropzone */}
-            <div
-              {...getRootProps()}
-              className={cn(
-                "border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors",
-                isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50",
-                isProcessing && "opacity-50 pointer-events-none"
-              )}
-            >
-              <input {...getInputProps()} />
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-6 w-6 mx-auto text-primary mb-1 animate-spin" />
-                  <p className="text-sm text-primary font-medium">
-                    Extracting content from documents...
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">This may take a moment for large files</p>
-                </>
-              ) : (
-                <>
-                  <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-                  <p className="text-sm text-muted-foreground">
-                    {isDragActive ? "Drop files here..." : "Drag & drop files, or click to select"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">PDF, Word, PowerPoint, Excel, Images (max 10MB)</p>
-                </>
-              )}
-            </div>
-
-            {/* Uploaded Files Preview */}
-            {uploadedFiles.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-2">
-                {uploadedFiles.map((file) => {
-                  const FileIcon = getFileIcon(file.type);
-                  const hasExtractedContent = file.content && !file.content.startsWith('[Document:') && !file.content.startsWith('[Attached:');
-                  return (
-                    <div
-                      key={file.id}
-                      className={cn(
-                        "flex items-center gap-2 rounded-md px-2 py-1 text-sm",
-                        hasExtractedContent ? "bg-primary/10 border border-primary/20" : "bg-muted"
-                      )}
-                      title={hasExtractedContent ? "Content extracted successfully" : file.preview ? "Image attached" : "File attached"}
-                    >
-                      {file.preview ? (
-                        <img src={file.preview} alt={file.name} className="h-6 w-6 object-cover rounded" />
-                      ) : (
-                        <FileIcon className={cn("h-4 w-4", hasExtractedContent ? "text-primary" : "text-muted-foreground")} />
-                      )}
-                      <span className="truncate max-w-[120px]">{file.name}</span>
-                      {hasExtractedContent && (
-                        <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                          ✓
-                        </Badge>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removeFile(file.id)}
-                        className="rounded-full p-0.5 hover:bg-background"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Summarise Supporting Info Checkbox - only show when there's content */}
-            {(settings.supportingContent?.trim() || uploadedFiles.length > 0) && (
-              <label className="flex items-center gap-2 pt-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.summariseSupportingContent || false}
-                  onChange={(e) => onUpdate({ summariseSupportingContent: e.target.checked })}
-                  className="h-4 w-4 rounded border-muted-foreground/30"
-                />
-                <span className="text-sm">Summarise supporting info for the image</span>
-              </label>
-            )}
-            
-            <p className="text-xs text-muted-foreground">
-              Include dates, statistics, contact details, or any specific text to appear.
-            </p>
           </div>
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Target Audience - Collapsible */}
+      {/* Target Audience — Collapsible */}
       <Collapsible open={audienceOpen} onOpenChange={setAudienceOpen}>
         <CollapsibleTrigger asChild>
           <button
@@ -473,17 +471,10 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
           >
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              <span className="font-medium">Target Audience</span>
-              {selectedAudience && (
-                <Badge variant="secondary" className="ml-2">
-                  {selectedAudience.label}
-                </Badge>
-              )}
+              <span className="font-medium text-sm">Target Audience</span>
+              {selectedAudience && <Badge variant="secondary" className="ml-1">{selectedAudience.label}</Badge>}
             </div>
-            <ChevronDown className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform",
-              audienceOpen && "rotate-180"
-            )} />
+            <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", audienceOpen && "rotate-180")} />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-3">
@@ -507,7 +498,7 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Purpose / Format - Collapsible */}
+      {/* Purpose / Format — Collapsible */}
       <Collapsible open={purposeOpen} onOpenChange={setPurposeOpen}>
         <CollapsibleTrigger asChild>
           <button
@@ -516,17 +507,10 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
           >
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              <span className="font-medium">Purpose / Format</span>
-              {selectedPurpose && (
-                <Badge variant="secondary" className="ml-2">
-                  {selectedPurpose.label}
-                </Badge>
-              )}
+              <span className="font-medium text-sm">Purpose / Format</span>
+              {selectedPurpose && <Badge variant="secondary" className="ml-1">{selectedPurpose.label}</Badge>}
             </div>
-            <ChevronDown className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform",
-              purposeOpen && "rotate-180"
-            )} />
+            <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", purposeOpen && "rotate-180")} />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-3">
