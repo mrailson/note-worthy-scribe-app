@@ -416,6 +416,25 @@ ${pastedText.trim()}
         disabled={isLoading}
       />
       
+      {/* Image Studio intent detection banner */}
+      {onOpenImageStudio && input.trim().length > 5 && hasImageIntent(input) && (
+        <div className="flex items-center gap-2 p-2 rounded-lg border border-primary/20 bg-primary/5">
+          <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+          <span className="text-xs text-muted-foreground flex-1">It looks like you want to create a visual</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-xs px-2 rounded-full border-primary/30"
+            onClick={() => {
+              onOpenImageStudio(input);
+              setInput('');
+            }}
+          >
+            Open Image Studio
+          </Button>
+        </div>
+      )}
+
       <div className="flex gap-3">
         <div className="flex-1 relative">
           <Textarea
