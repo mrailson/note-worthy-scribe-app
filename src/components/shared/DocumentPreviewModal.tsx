@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -228,6 +228,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
   const [infographicProgress, setInfographicProgress] = useState(0);
   const [infographicTipIdx, setInfographicTipIdx] = useState(0);
+  const [infographicFullscreen, setInfographicFullscreen] = useState(false);
   const { generateInfographic, isGenerating: isInfographicGenerating, currentPhase, error: infographicError } = useContentInfographic();
 
   const documentTitle = externalTitle || extractTitle(content);
@@ -259,8 +260,22 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     setInfographicView('document');
     setInfographicUrl(null);
     setInfographicProgress(0);
+    setInfographicFullscreen(false);
     onClose();
   }, [onClose]);
+
+  // Escape key closes fullscreen lightbox
+  useEffect(() => {
+    if (!infographicFullscreen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setInfographicFullscreen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKey, true);
+    return () => document.removeEventListener('keydown', handleKey, true);
+  }, [infographicFullscreen]);
 
   const handleDownloadWord = async () => {
     setIsDownloadingWord(true);
@@ -499,8 +514,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                   <img
                     src={infographicUrl}
                     alt="Generated infographic"
-                    className="max-w-full rounded-lg shadow-md border"
+                    className="max-w-full rounded-lg shadow-md border cursor-pointer hover:opacity-90 transition-opacity"
                     style={{ maxHeight: '60vh' }}
+                    onClick={() => setInfographicFullscreen(true)}
+                    title="Click to view fullscreen"
                   />
                   <Button onClick={handleDownloadInfographic} className="gap-2">
                     <Download className="h-4 w-4" />
@@ -573,6 +590,46 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           )}
         </div>
       </DialogContent>
+
+      {/* Fullscreen infographic lightbox */}
+      {infographicFullscreen && infographicUrl && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center cursor-pointer"
+          onClick={() => setInfographicFullscreen(false)}
+        >
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadInfographic();
+              }}
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              onClick={() => setInfographicFullscreen(false)}
+            >
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
+          <img
+            src={infographicUrl}
+            alt="Infographic fullscreen"
+            className="max-w-[95vw] max-h-[95vh] object-contain select-none"
+            draggable={false}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm">
+            Click backdrop or <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-xs">Esc</kbd> to close
+          </div>
+        </div>
+      )}
     </Dialog>
   );
 };
