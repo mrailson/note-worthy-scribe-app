@@ -61,7 +61,7 @@ const USE_CASE_PILLS = [
     label: '📱 Social Media',
     description: 'Post or story graphic',
     prompt: '',
-    defaults: { purpose: 'social-media' as const, layoutPreference: 'square' as const },
+    defaults: { purpose: 'social' as const, layoutPreference: 'square' as const },
     focusUpload: false,
   },
 ];
