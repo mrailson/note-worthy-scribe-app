@@ -576,7 +576,7 @@ ${internalNotes}
 ` : ''}
 ${evidenceContext}${transcriptContext}${criticalFriendContext}`;
 
-    const userPrompt = `Generate an outcome letter for this complaint using ONLY the information provided below. Ensure the letter covers all required content areas (opening acknowledgement, investigation summary, outcome, learning and improvements, individual resolution if appropriate, escalation rights, closing) but present them as a single flowing letter without any section headings or titles. Do not use bullet points anywhere in the letter.
+    let userPrompt = `Generate an outcome letter for this complaint using ONLY the information provided below. Ensure the letter covers all required content areas (opening acknowledgement, investigation summary, outcome, learning and improvements, individual resolution if appropriate, escalation rights, closing) but present them as a single flowing letter without any section headings or titles. Do not use bullet points anywhere in the letter.
 
 ========== COMPLAINT INFORMATION ==========
 Reference: ${complaint.reference_number}
