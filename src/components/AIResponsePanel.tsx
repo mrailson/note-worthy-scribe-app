@@ -111,7 +111,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
               className="flex-none"
             >
               <Download className="h-4 w-4 mr-2" />
-              Word Download
+              Export Document
             </Button>
             
             <Button

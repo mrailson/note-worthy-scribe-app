@@ -1342,19 +1342,15 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             <Download className="h-3 w-3" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                          <DropdownMenuItem onClick={handleExportWord}>
-                            <FileText className="h-4 w-4 mr-2" />
-                            Download as Word Document
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleExportPDF}>
-                            <FileDown className="h-4 w-4 mr-2" />
-                            Download as PDF
+                        <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem onClick={() => setShowDocumentPreview(true)}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Export Document
                           </DropdownMenuItem>
                           <DropdownMenuSub>
                             <DropdownMenuSubTrigger>
                               <Presentation className="h-4 w-4 mr-2" />
-                              Download as PowerPoint Presentation
+                              Create Presentation
                             </DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
                               <DropdownMenuLabel className="text-xs text-muted-foreground">
@@ -1366,23 +1362,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                                   {count} slides
                                 </DropdownMenuItem>
                               ))}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                              <ImageIcon className="h-4 w-4 mr-2" />
-                              Create as Infographic
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent>
-                              <DropdownMenuItem onClick={() => { setInfographicOrientation('landscape'); setShowInfographicModal(true); }}>
-                                <Monitor className="h-4 w-4 mr-2" />
-                                Landscape (16:9)
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setInfographicOrientation('portrait'); setShowInfographicModal(true); }}>
-                                <FileText className="h-4 w-4 mr-2" />
-                                Portrait (A4)
-                              </DropdownMenuItem>
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
                         </DropdownMenuContent>
