@@ -1349,11 +1349,33 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           const preferences = data[0].setting_value as any;
           console.log('Loaded AI4GP preferences:', preferences);
           
+          // Migrate deprecated model selections to current models
+          const MODEL_MIGRATIONS: Record<string, string> = {
+            'gemini-3-pro-preview': 'google/gemini-3.1-pro-preview',
+            'google/gemini-3-pro-preview': 'google/gemini-3.1-pro-preview',
+            'gemini-2.0-flash': 'google/gemini-3.1-flash-lite-preview',
+            'google/gemini-2.0-flash': 'google/gemini-3.1-flash-lite-preview',
+            'gemini-2.0-flash-lite': 'google/gemini-3.1-flash-lite-preview',
+            'google/gemini-2.0-flash-lite': 'google/gemini-3.1-flash-lite-preview',
+            'gemini-1.5-flash': 'google/gemini-3.1-flash-lite-preview',
+            'google/gemini-1.5-flash': 'google/gemini-3.1-flash-lite-preview',
+            'gemini-1.5-pro': 'google/gemini-3.1-pro-preview',
+            'google/gemini-1.5-pro': 'google/gemini-3.1-pro-preview',
+            'google/gemini-2.5-flash': 'google/gemini-3.1-flash-lite-preview',
+            'gemini-2.5-flash': 'google/gemini-3.1-flash-lite-preview',
+          };
+          
+          const loadedModel = preferences.selectedModel ?? 'google/gemini-3.1-flash-lite-preview';
+          const migratedModel = MODEL_MIGRATIONS[loadedModel] || loadedModel;
+          if (migratedModel !== loadedModel) {
+            console.log(`🔄 Migrated model preference: ${loadedModel} → ${migratedModel}`);
+          }
+          
           // Set defaults first, then override with saved values
           setSessionMemory(preferences.sessionMemory ?? true);
           setVerificationLevel(preferences.verificationLevel ?? 'standard');
           setShowResponseMetrics(preferences.showResponseMetrics ?? false);
-          setSelectedModel(preferences.selectedModel ?? 'google/gemini-3.1-flash-lite-preview');
+          setSelectedModel(migratedModel);
           setUseOpenAI(preferences.useOpenAI ?? true);
           setShowRenderTimes(preferences.showRenderTimes ?? false);
           setShowAIService(preferences.showAIService ?? false);
