@@ -476,10 +476,17 @@ export async function generateCleanAIResponseDocument(
     }],
   });
   
-  // Generate and download
+  // Generate and download using direct blob URL (bypasses iframe/ad-blocker issues)
   const blob = await Packer.toBlob(doc);
   const filename = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.docx`;
-  saveAs(blob, filename);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /**
