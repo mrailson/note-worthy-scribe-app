@@ -174,7 +174,7 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
       )}
     >
       <div className={cn(
-        "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
+        "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0",
         "bg-gradient-to-br",
         gradient
       )}>
