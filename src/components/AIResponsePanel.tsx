@@ -7,7 +7,7 @@ import { Copy, Sparkles, Maximize2, X, Download, Printer, Mail } from 'lucide-re
 import { showToast } from "@/utils/toastWrapper";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
-import { generateCleanAIResponseDocument } from '@/utils/cleanWordExport';
+import { DocumentPreviewModal } from '@/components/shared/DocumentPreviewModal';
 
 interface AIResponsePanelProps {
   response: string;
