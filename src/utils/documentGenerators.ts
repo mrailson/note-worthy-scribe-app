@@ -1414,7 +1414,7 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
       return text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/`/g, '').trim();
     };
 
-    // Render a line with bold/italic inline formatting
+    // Render a single pre-wrapped line with bold/italic inline formatting
     const renderFormattedLine = (text: string, fontSize: number, x: number, color: [number, number, number] = PDF_COLORS.black, baseBold = false) => {
       pdf.setFontSize(fontSize);
       const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
@@ -1434,48 +1434,52 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
         const style = bold && italic ? 'bolditalic' : bold ? 'bold' : italic ? 'italic' : 'normal';
         pdf.setFont('helvetica', style);
         pdf.setTextColor(...color);
-        const w = pdf.getTextWidth(display);
-        if (cx + w > pageWidth - margin && cx > x) {
-          y += fontSize * 0.5;
-          checkPage(fontSize * 0.5);
-          cx = x;
+        // Word-wrap within each part
+        const words = display.split(' ');
+        for (let wi = 0; wi < words.length; wi++) {
+          const word = (wi > 0 ? ' ' : '') + words[wi];
+          const ww = pdf.getTextWidth(word);
+          if (cx + ww > pageWidth - margin && cx > x) {
+            y += fontSize * 0.5;
+            checkPage(fontSize * 0.5);
+            cx = x;
+            // Re-draw without leading space
+            const trimWord = word.trimStart();
+            pdf.text(trimWord, cx, y);
+            cx += pdf.getTextWidth(trimWord);
+          } else {
+            pdf.text(word, cx, y);
+            cx += ww;
+          }
         }
-        pdf.text(display, cx, y);
-        cx += w;
       }
       pdf.setFont('helvetica', 'normal');
     };
 
-    const addWrappedText = (text: string, fontSize: number, x: number, color: [number, number, number] = PDF_COLORS.black, baseBold = false) => {
-      const clean = text.replace(/`/g, '');
-      pdf.setFontSize(fontSize);
-      pdf.setFont('helvetica', baseBold ? 'bold' : 'normal');
-      const effectiveWidth = maxLineWidth - (x - margin);
-      const wrapped = pdf.splitTextToSize(cleanMd(clean), effectiveWidth);
-      for (let i = 0; i < wrapped.length; i++) {
-        checkPage(fontSize * 0.5);
-        renderFormattedLine(text.length === cleanMd(text).length ? wrapped[i] : (i === 0 ? text : ''), fontSize, x, color, baseBold);
-        if (i === 0 && text !== cleanMd(text)) {
-          // Only first line keeps formatting, rest are plain
-        }
-        y += fontSize * 0.5;
-      }
+    // Add wrapped text using clean text for measurement, formatted for rendering
+    const addFormattedParagraph = (text: string, fontSize: number, x: number, color: [number, number, number] = PDF_COLORS.black, baseBold = false) => {
+      checkPage(fontSize * 0.5);
+      renderFormattedLine(text, fontSize, x, color, baseBold);
+      y += fontSize * 0.5;
     };
 
     // ---- LOGO ----
     if (options?.logoUrl) {
       try {
-        const imgResponse = await fetch(options.logoUrl);
+        const imgResponse = await fetch(options.logoUrl, { mode: 'cors' });
         if (imgResponse.ok) {
           const blob = await imgResponse.blob();
-          const reader = new FileReader();
-          const dataUrl = await new Promise<string>((resolve) => {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          const imgFormat = options.logoUrl.toLowerCase().includes('.png') ? 'PNG' : 'JPEG';
-          const logoWidth = 35;
-          const logoHeight = 18;
+          // Detect format from blob type or URL
+          const isPng = blob.type === 'image/png' || options.logoUrl.toLowerCase().includes('.png');
+          const imgFormat = isPng ? 'PNG' : 'JPEG';
+          const logoWidth = 40;
+          const logoHeight = 20;
           let logoX = margin;
           if (options.logoPosition === 'center') {
             logoX = (pageWidth - logoWidth) / 2;
@@ -1483,7 +1487,7 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
             logoX = pageWidth - margin - logoWidth;
           }
           pdf.addImage(dataUrl, imgFormat, logoX, y, logoWidth, logoHeight);
-          y += logoHeight + 4;
+          y += logoHeight + 5;
         }
       } catch (logoErr) {
         console.warn('Failed to add logo to PDF:', logoErr);
@@ -1667,36 +1671,14 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
         pdf.text(bulletSymbol, bulletX, y);
 
         const textX = bulletX + pdf.getTextWidth(bulletSymbol + ' ');
-        const textWidth = pageWidth - margin - textX;
-        const wrapped = pdf.splitTextToSize(cleanMd(bulletText), textWidth);
-        for (let w = 0; w < wrapped.length; w++) {
-          checkPage(5.5);
-          renderFormattedLine(w === 0 ? bulletText : wrapped[w], 10, textX);
-          if (w === 0) {
-            // First line uses formatted render, but only output plain for subsequent
-          }
-          y += 5.5;
-        }
+        addFormattedParagraph(bulletText, 10, textX);
         i++;
         continue;
       }
 
       // ---- REGULAR PARAGRAPH ----
       checkPage(6);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(...PDF_COLORS.black);
-      const paraWidth = maxLineWidth;
-      const wrapped = pdf.splitTextToSize(cleanMd(trimmed), paraWidth);
-      for (let w = 0; w < wrapped.length; w++) {
-        checkPage(5.5);
-        if (w === 0) {
-          renderFormattedLine(trimmed, 10, margin);
-        } else {
-          pdf.text(wrapped[w], margin, y);
-        }
-        y += 5.5;
-      }
+      addFormattedParagraph(trimmed, 10, margin);
       y += 2;
       i++;
     }
