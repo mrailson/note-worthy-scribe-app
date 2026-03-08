@@ -127,7 +127,7 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
         <button
           onClick={onClick}
           className={cn(
-            "group flex items-center gap-2 p-3 min-h-[48px]",
+            "group flex items-center gap-2 p-2 min-h-[40px]",
             "bg-card border border-border rounded-lg",
             "hover:border-primary/50 hover:bg-accent/50",
             "transition-shadow duration-150",
@@ -136,13 +136,13 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
           )}
         >
           <div className={cn(
-            "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
+            "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0",
             "bg-gradient-to-br",
             gradient
           )}>
             <Icon className="w-4 h-4 text-white" />
           </div>
-          <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
+          <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
             {shortTitle}
           </span>
         </button>
@@ -165,7 +165,7 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
       key={id}
       onClick={onClick}
       className={cn(
-        "group flex items-center gap-2 p-3 min-h-[48px]",
+        "group flex items-center gap-2 p-2 min-h-[40px]",
         "bg-card border border-border rounded-lg",
         "hover:border-primary/50 hover:bg-accent/50",
         "transition-shadow duration-150",
@@ -174,13 +174,13 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
       )}
     >
       <div className={cn(
-        "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
+        "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0",
         "bg-gradient-to-br",
         gradient
       )}>
         <Icon className="w-4 h-4 text-white" />
       </div>
-      <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
+      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
         {shortTitle}
       </span>
     </button>
@@ -199,8 +199,8 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
   }
 
   return (
-    <div className="p-3 sm:p-4">
-      <div className="space-y-3">
+    <div className="p-2 sm:p-3">
+      <div className="space-y-2">
         {activeView.type === 'main' ? (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-2xl mx-auto">
