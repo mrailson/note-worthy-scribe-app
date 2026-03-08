@@ -89,7 +89,7 @@ export interface MainCategory {
 }
 
 export const mainCategories: MainCategory[] = [
-  // Row 1
+  // Row 1 — Respond first, then Documents
   {
     id: 'documents',
     shortTitle: 'Documents',
