@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Clock, Save, Loader2, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Settings, Volume2, Image } from 'lucide-react';
+import { Brain, Clock, Save, Loader2, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Settings, Volume2, Image, Bot } from 'lucide-react';
 import { toast } from 'sonner';
 import { VoicePreviewDemo } from './VoicePreviewDemo';
 
@@ -316,6 +316,51 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
 
+              {/* Response Info */}
+              <div className="space-y-5 pt-6 border-t">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Bot className="h-4 w-4 text-primary" />
+                  Response Info
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="space-y-1">
+                      <Label htmlFor="ai-service-display" className="text-sm font-medium cursor-pointer">
+                        Show AI Model Used
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Display which LLM model generated each response
+                      </p>
+                    </div>
+                    <Switch
+                      id="ai-service-display"
+                      checked={showAIService}
+                      onCheckedChange={onShowAIServiceChange}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="space-y-1">
+                      <Label htmlFor="response-metrics-display" className="text-sm font-medium cursor-pointer">
+                        Show Performance Metrics
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Display response time and performance data
+                      </p>
+                    </div>
+                    <Switch
+                      id="response-metrics-display"
+                      checked={showResponseMetrics}
+                      onCheckedChange={(checked) => {
+                        onShowResponseMetricsChange(checked);
+                        onShowRenderTimesChange(checked);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Display Preview */}
               <div className="p-4 bg-muted/40 rounded-xl border border-border/50">
                 <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Preview</div>
@@ -340,42 +385,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   Session Settings
                 </h3>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="space-y-1">
-                      <Label htmlFor="response-metrics" className="text-sm font-medium cursor-pointer">
-                        Show Performance Metrics
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Display response time, token usage, and performance metrics
-                      </p>
-                    </div>
-                    <Switch
-                      id="response-metrics"
-                      checked={showResponseMetrics}
-                      onCheckedChange={(checked) => {
-                        onShowResponseMetricsChange(checked);
-                        onShowRenderTimesChange(checked);
-                      }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="space-y-1">
-                      <Label htmlFor="ai-service" className="text-sm font-medium cursor-pointer">
-                        Show AI Service
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Display which AI model was used
-                      </p>
-                    </div>
-                    <Switch
-                      id="ai-service"
-                      checked={showAIService}
-                      onCheckedChange={onShowAIServiceChange}
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Interface Features */}
