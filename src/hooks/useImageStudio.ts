@@ -166,7 +166,7 @@ export function useImageStudio() {
     isGenerating: false,
     generationProgress: 0,
     currentResult: null,
-    generationHistory: loadHistoryFromStorage(), // Load persisted history on init
+    generationHistory: [], // Start fresh — cleared to prevent crashes from stale data
     error: null,
   }));
   
@@ -174,6 +174,14 @@ export function useImageStudio() {
   // Track all blob URLs created so we can revoke them on unmount
   const blobUrlsRef = useRef<string[]>([]);
   const isMountedRef = useRef(true);
+
+  // Clear any stale history from localStorage on first mount to prevent crashes
+  useEffect(() => {
+    try {
+      localStorage.removeItem(HISTORY_STORAGE_KEY);
+      console.log('🧹 Cleared image studio history from localStorage');
+    } catch { /* ignore */ }
+  }, []);
 
   // Cleanup all blob URLs on unmount
   useEffect(() => {

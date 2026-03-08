@@ -71,11 +71,12 @@ export interface StockImage {
   created_at: string;
 }
 
-export function useStockImages() {
+export function useStockImages(options?: { enabled?: boolean }) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const enabled = options?.enabled ?? true;
 
   // Check admin status
   useEffect(() => {
@@ -88,7 +89,7 @@ export function useStockImages() {
     checkAdmin();
   }, []);
 
-  // Fetch all stock images
+  // Fetch all stock images — only when enabled
   const { data: images = [], isLoading } = useQuery({
     queryKey: ['stock-images'],
     queryFn: async () => {
@@ -99,6 +100,7 @@ export function useStockImages() {
       if (error) throw error;
       return (data || []) as unknown as StockImage[];
     },
+    enabled,
   });
 
   // Filter images by search and category

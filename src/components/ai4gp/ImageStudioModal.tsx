@@ -56,7 +56,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
   
   const { fetchImages } = useImageGallery();
-  const { allImages: stockImages, isAdmin, replaceStockImage, isReplacing } = useStockImages();
+  const { allImages: stockImages, isAdmin, replaceStockImage, isReplacing } = useStockImages({ enabled: false });
 
   // When initialEditImage is provided, switch to edit mode
   useEffect(() => {
