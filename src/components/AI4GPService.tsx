@@ -688,6 +688,19 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                           isLoading={meetingsLoading}
                         />
                       )}
+                      
+                      {/* Image Studio link - hidden on mobile */}
+                      {!isMobile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-1 px-2 sm:px-3"
+                          onClick={() => setShowImageStudio(true)}
+                        >
+                          <Palette className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                          <span className="hidden sm:inline text-xs">Image Studio</span>
+                        </Button>
+                      )}
                     </CardTitle>
                   </div>
                   
