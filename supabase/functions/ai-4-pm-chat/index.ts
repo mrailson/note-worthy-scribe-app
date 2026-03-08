@@ -2011,7 +2011,7 @@ serve(async (req) => {
     const finalSystemPrompt = enhancedSystemPrompt + sourceContext;
 
     // Check if streaming is supported for the selected model
-    const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview', 'google/gemini-2.5-flash', 'openai/gpt-5', 'openai/gpt-5-mini'];
+    const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-2.5-flash', 'google/gemini-3-flash-preview', 'google/gemini-2.5-flash-lite', 'openai/gpt-5', 'openai/gpt-5-mini'];
     const canStream = streamRequested && streamableModels.includes(selectedModel);
 
     // Handle streaming response for supported models with fallback chain
@@ -2020,14 +2020,14 @@ serve(async (req) => {
       
       // Fallback chain for streaming models
       const STREAM_FALLBACK: Record<string, string[]> = {
-        'google/gemini-3.1-pro-preview': ['google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview'],
-        'google/gemini-3.1-flash-lite-preview': ['google/gemini-3-flash-preview'],
-        'google/gemini-3-flash-preview': ['google/gemini-3.1-flash-lite-preview'],
+        'google/gemini-3.1-pro-preview': ['google/gemini-2.5-flash', 'google/gemini-3-flash-preview'],
+        'google/gemini-2.5-flash': ['google/gemini-3-flash-preview'],
+        'google/gemini-3-flash-preview': ['google/gemini-2.5-flash'],
       };
       
       const MODEL_LABELS: Record<string, string> = {
         'google/gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
-        'google/gemini-3.1-flash-lite-preview': 'Gemini 3.1 Flash-Lite',
+        'google/gemini-2.5-flash': 'Gemini 2.5 Flash',
         'google/gemini-3-flash-preview': 'Gemini 3 Flash',
       };
 
@@ -2120,7 +2120,7 @@ serve(async (req) => {
       response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3.1-pro-preview', files);
     } else if (selectedModel === 'gemini-1.5-flash') {
       // Legacy Gemini Flash — route through gateway with updated model
-      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3.1-flash-lite-preview', files);
+      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-2.5-flash', files);
     } else if (selectedModel === 'deepseek-chat') {
       response = await callDeepseek(processedMessages, finalSystemPrompt, files);
     } else if (selectedModel.startsWith('google/') || selectedModel.startsWith('openai/')) {
@@ -2129,7 +2129,7 @@ serve(async (req) => {
     } else {
       // Fallback to Lovable AI Gateway with default model
       console.log(`Unsupported model ${selectedModel}, falling back to Lovable AI Gateway`);
-      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3.1-flash-lite-preview', files);
+      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-2.5-flash', files);
     }
   
   console.log('Model call completed successfully');

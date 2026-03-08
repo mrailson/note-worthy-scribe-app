@@ -165,7 +165,7 @@ Answer questions based solely on the meeting content provided above.`;
         'Authorization': `Bearer ${lovableApiKey}`,
       },
       body: JSON.stringify({
-        model: 'google/gemini-3.1-flash-lite-preview',
+        model: 'google/gemini-2.5-flash',
         messages,
         temperature: 0.7,
         max_tokens: 2000,

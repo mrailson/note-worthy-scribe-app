@@ -29,7 +29,7 @@ Additional Behavioural Rules:
 
 // Handle large transcripts with Gemini's 2M token context
 function handleLargeTranscript(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
-  console.log('🔧 Using Lovable AI with google/gemini-3.1-flash-lite-preview');
+  console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
   
   // Gemini can handle ~2M tokens (~500K characters) - much larger than GPT-5-nano
   if (transcript.length > 500000) {
@@ -233,7 +233,7 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-3.1-flash-lite-preview',
+      model: 'google/gemini-2.5-flash',
       messages: [
         { 
           role: 'system', 
@@ -357,7 +357,7 @@ ${transcript}`;
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-3.1-flash-lite-preview',
+      model: 'google/gemini-2.5-flash',
       messages: [
         { 
           role: 'system', 
@@ -435,7 +435,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-3.1-flash-lite-preview',
+          model: 'google/gemini-2.5-flash',
           messages: [
             { 
               role: 'system', 

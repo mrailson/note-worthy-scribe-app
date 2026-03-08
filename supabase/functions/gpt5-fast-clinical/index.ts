@@ -195,7 +195,7 @@ Be comprehensive but concise. Preserve all important details, dates, figures, an
     },
     body: JSON.stringify({
       // Fast + cheap summarisation model
-      model: "google/gemini-3.1-flash-lite-preview",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: chunk }
@@ -440,19 +440,19 @@ serve(async (req) => {
   const finalMaxTokens = max_tokens || detectedMaxTokens;
 
   const resolveGatewayModel = (m?: string): string => {
-    // SPEED-OPTIMISED: Use Gemini 3.1 Flash-Lite as default
+    // SPEED-OPTIMISED: Use Gemini 2.5 Flash as default
     const input = (m || '').trim();
-    if (!input) return 'google/gemini-3.1-flash-lite-preview';
+    if (!input) return 'google/gemini-2.5-flash';
 
-    // FAST MODE: Speed/grok/fast all route to Gemini 3.1 Flash-Lite
+    // FAST MODE: Speed/grok/fast all route to Gemini 2.5 Flash
     if (input === 'speed' || input === 'fast' || input === 'grok') {
-      return 'google/gemini-3.1-flash-lite-preview';
+      return 'google/gemini-2.5-flash';
     }
 
-    // GPT-5 full is too slow - remap to Gemini 3.1 Flash-Lite
+    // GPT-5 full is too slow - remap to Gemini 2.5 Flash
     if (input === 'gpt-5' || input === 'gpt-5-2025-08-07') {
-      console.log(`↩️ Remapping slow model '${input}' to 'google/gemini-3.1-flash-lite-preview'`);
-      return 'google/gemini-3.1-flash-lite-preview';
+      console.log(`↩️ Remapping slow model '${input}' to 'google/gemini-2.5-flash'`);
+      return 'google/gemini-2.5-flash';
     }
 
     // Balanced option: GPT-5 mini (~3-5s)
@@ -466,7 +466,7 @@ serve(async (req) => {
     if (input.startsWith('openai/') || input.startsWith('google/')) return input;
 
     // Safe fast default
-    return 'google/gemini-3.1-flash-lite-preview';
+    return 'google/gemini-2.5-flash';
   };
 
   const tryModel = async (m: string, stream: boolean) => {
@@ -520,14 +520,14 @@ serve(async (req) => {
 
   // Fallback chain: primary model → retry once → fallback models
   const FALLBACK_CHAIN: Record<string, string[]> = {
-    'google/gemini-3.1-pro-preview': ['google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview'],
-    'google/gemini-3.1-flash-lite-preview': ['google/gemini-3-flash-preview', 'openai/gpt-5-mini'],
-    'google/gemini-3-flash-preview': ['google/gemini-3.1-flash-lite-preview', 'openai/gpt-5-mini'],
+    'google/gemini-3.1-pro-preview': ['google/gemini-2.5-flash', 'google/gemini-3-flash-preview'],
+    'google/gemini-2.5-flash': ['google/gemini-3-flash-preview', 'openai/gpt-5-mini'],
+    'google/gemini-3-flash-preview': ['google/gemini-2.5-flash', 'openai/gpt-5-mini'],
   };
 
   const MODEL_LABELS: Record<string, string> = {
     'google/gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
-    'google/gemini-3.1-flash-lite-preview': 'Gemini 3.1 Flash-Lite',
+    'google/gemini-2.5-flash': 'Gemini 2.5 Flash',
     'google/gemini-3-flash-preview': 'Gemini 3 Flash',
     'openai/gpt-5-mini': 'GPT-5 Mini',
     'openai/gpt-5': 'GPT-5',
@@ -555,7 +555,7 @@ serve(async (req) => {
 
     // If primary failed or returned error, try fallback chain
     if (!resp || !resp.ok) {
-      const fallbacks = FALLBACK_CHAIN[resolvedModel] || ['google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview'];
+      const fallbacks = FALLBACK_CHAIN[resolvedModel] || ['google/gemini-2.5-flash', 'google/gemini-3-flash-preview'];
       
       for (const fallbackModel of fallbacks) {
         try {

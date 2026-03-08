@@ -31,7 +31,7 @@ export const useAI4GPService = () => {
   const [sessionMemory, setSessionMemory] = useState(true);
   const [verificationLevel, setVerificationLevel] = useState('standard');
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('google/gemini-3.1-flash-lite-preview');
+  const [selectedModel, setSelectedModel] = useState('google/gemini-2.5-flash');
   const [useOpenAI, setUseOpenAI] = useState(true);
   const [showRenderTimes, setShowRenderTimes] = useState(false);
   const [showAIService, setShowAIService] = useState(false);
@@ -181,9 +181,9 @@ export const useAI4GPService = () => {
   ): Promise<{ response: string; webSearchPerformed: boolean }> => {
     try {
       // Map model selections to gateway-compatible identifiers
-      const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'google/gemini-3.1-flash-lite-preview' :
+      const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'google/gemini-2.5-flash' :
                          selectedModel === 'gpt-5-mini-2025-08-07' ? 'openai/gpt-5-mini' :
-                         selectedModel === 'grok' ? 'google/gemini-3.1-flash-lite-preview' :
+                         selectedModel === 'grok' ? 'google/gemini-2.5-flash' :
                          selectedModel === 'chatgpt5' ? 'openai/gpt-5-mini' :
                          selectedModel;
 
@@ -520,7 +520,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     return prompt;
   }, []);
 
-  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'google/gemini-3.1-flash-lite-preview', messageOverride?: string) => {
+  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'google/gemini-2.5-flash', messageOverride?: string) => {
     console.log('🚀 handleSend called with:', { 
       hasInput: !!input.trim(), 
       inputLength: input.length,
@@ -897,7 +897,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       };
 
       // Check if model supports streaming
-      const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-3.1-flash-lite-preview', 'google/gemini-3-flash-preview', 'google/gemini-2.5-flash', 'openai/gpt-5', 'openai/gpt-5-mini'];
+      const streamableModels = ['google/gemini-3.1-pro-preview', 'google/gemini-2.5-flash', 'google/gemini-3-flash-preview', 'google/gemini-2.5-flash-lite', 'openai/gpt-5', 'openai/gpt-5-mini'];
       const canStream = streamableModels.includes(modelToUse);
       
       if (canStream) {
@@ -1375,19 +1375,19 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           const MODEL_MIGRATIONS: Record<string, string> = {
             'gemini-3-pro-preview': 'google/gemini-3.1-pro-preview',
             'google/gemini-3-pro-preview': 'google/gemini-3.1-pro-preview',
-            'gemini-2.0-flash': 'google/gemini-3.1-flash-lite-preview',
-            'google/gemini-2.0-flash': 'google/gemini-3.1-flash-lite-preview',
-            'gemini-2.0-flash-lite': 'google/gemini-3.1-flash-lite-preview',
-            'google/gemini-2.0-flash-lite': 'google/gemini-3.1-flash-lite-preview',
-            'gemini-1.5-flash': 'google/gemini-3.1-flash-lite-preview',
-            'google/gemini-1.5-flash': 'google/gemini-3.1-flash-lite-preview',
+            'gemini-2.0-flash': 'google/gemini-2.5-flash',
+            'google/gemini-2.0-flash': 'google/gemini-2.5-flash',
+            'gemini-2.0-flash-lite': 'google/gemini-2.5-flash',
+            'google/gemini-2.0-flash-lite': 'google/gemini-2.5-flash',
+            'gemini-1.5-flash': 'google/gemini-2.5-flash',
+            'google/gemini-1.5-flash': 'google/gemini-2.5-flash',
             'gemini-1.5-pro': 'google/gemini-3.1-pro-preview',
             'google/gemini-1.5-pro': 'google/gemini-3.1-pro-preview',
-            'google/gemini-2.5-flash': 'google/gemini-3.1-flash-lite-preview',
-            'gemini-2.5-flash': 'google/gemini-3.1-flash-lite-preview',
+            'google/gemini-3.1-flash-lite-preview': 'google/gemini-2.5-flash',
+            'gemini-3.1-flash-lite-preview': 'google/gemini-2.5-flash',
           };
           
-          const loadedModel = preferences.selectedModel ?? 'google/gemini-3.1-flash-lite-preview';
+          const loadedModel = preferences.selectedModel ?? 'google/gemini-2.5-flash';
           const migratedModel = MODEL_MIGRATIONS[loadedModel] || loadedModel;
           if (migratedModel !== loadedModel) {
             console.log(`🔄 Migrated model preference: ${loadedModel} → ${migratedModel}`);
@@ -1550,7 +1550,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }, [setMessagesWithLimit]);
 
   // Handle quick action responses
-  const handleQuickResponse = useCallback(async (quickResponse: string, practiceContext: any, selectedModel: string = 'google/gemini-3.1-flash-lite-preview') => {
+  const handleQuickResponse = useCallback(async (quickResponse: string, practiceContext: any, selectedModel: string = 'google/gemini-2.5-flash') => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',

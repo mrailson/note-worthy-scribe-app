@@ -16,7 +16,7 @@ interface NoteTypeConfig {
 const noteConfigs: NoteTypeConfig[] = [
   {
     type: 'brief',
-    model: 'google/gemini-3.1-flash-lite-preview',
+    model: 'google/gemini-2.5-flash',
     systemPrompt: `Create a BRIEF GP/PCN Executive Summary with excellent formatting using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise'). Focus on key healthcare decisions, practice impacts, and immediate action items. Target busy GP Partners and Practice Managers who need quick operational insights.
 
 Format:
@@ -63,7 +63,7 @@ Focus on actionable healthcare outcomes and practice operational impact. Keep co
   },
   {
     type: 'executive',
-    model: 'google/gemini-3.1-flash-lite-preview',
+    model: 'google/gemini-2.5-flash',
     systemPrompt: `You are an executive briefing specialist creating strategic one-pagers for GP practice senior partners and leadership who did NOT attend this meeting.
 
 Your goal: Enable a busy partner to understand strategic impact and required actions in under 2 minutes.
@@ -163,7 +163,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Create dynamic limerick config based on meeting size
     const limerickConfig = {
       type: 'limerick' as const,
-      model: 'google/gemini-3.1-flash-lite-preview',
+      model: 'google/gemini-2.5-flash',
       systemPrompt: `You are a creative meeting poet who transforms GP practice meetings into delightful limericks using British English spellings and conventions.
 
 CRITICAL RULES:
