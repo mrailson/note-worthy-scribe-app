@@ -19,6 +19,7 @@ interface PMHomeScreenProps {
   setInput: (text: string) => void;
   focusInput?: () => void;
   onOpenImageStudio?: () => void;
+  onOpenDocumentStudio?: () => void;
 }
 
 type ActiveView = 
