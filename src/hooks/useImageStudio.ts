@@ -219,8 +219,11 @@ export function useImageStudio() {
     setState(prev => ({ ...prev, activeTab: tab }));
   }, []);
 
-  // Add reference image
+  // Add reference image and track blob URL for cleanup
   const addReferenceImage = useCallback((image: ReferenceImage) => {
+    if (image.content?.startsWith('blob:')) {
+      blobUrlsRef.current.push(image.content);
+    }
     setState(prev => ({
       ...prev,
       settings: {
