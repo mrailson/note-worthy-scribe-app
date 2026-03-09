@@ -143,7 +143,7 @@ export default function DocumentApproval() {
   }, [documents, filter, sort]);
 
   // Module access gate (after all hooks)
-  if (!hasModuleAccess('document_signoff_access')) {
+  if (!isSystemAdmin && !hasModuleAccess('document_signoff_access')) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-8 max-w-md text-center space-y-4">
