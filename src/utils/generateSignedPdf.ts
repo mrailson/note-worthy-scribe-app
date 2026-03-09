@@ -271,7 +271,7 @@ function drawSignatureBox(
     py -= 11;
   }
 
-  page.drawText('✓ Electronically signed', { x: px, y: py, size: 7.5, font: helveticaBold, color: rgb(0.13, 0.55, 0.27) });
+  page.drawText('[Approved] Electronically signed', { x: px, y: py, size: 7.5, font: helveticaBold, color: rgb(0.13, 0.55, 0.27) });
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
