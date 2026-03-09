@@ -1424,6 +1424,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
   // Load user settings on component mount
   useEffect(() => {
+    let cancelled = false;
+    
     const loadUserSettings = async () => {
       if (!user?.id) return;
 
@@ -1435,6 +1437,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           .eq('user_id', user.id)
           .eq('setting_key', 'ai4gp_preferences');
 
+        if (cancelled) { console.log('cleanup: Settings load cancelled — component unmounted'); return; }
+        
         if (error) {
           console.error('Error loading user settings:', error);
           return;
@@ -1515,13 +1519,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     if (user?.id) {
       settingsLoadTimeoutRef.current = setTimeout(() => {
         loadUserSettings().then(() => {
-          hasLoadedSettings.current = true;
-          console.log('cleanup: Settings load complete, save guard released');
+          if (!cancelled) {
+            hasLoadedSettings.current = true;
+            console.log('cleanup: Settings load complete, save guard released');
+          }
         });
       }, 100);
     }
     
     return () => {
+      cancelled = true;
       if (settingsLoadTimeoutRef.current) {
         clearTimeout(settingsLoadTimeoutRef.current);
         console.log('cleanup: Cleared settings load timeout');
