@@ -622,7 +622,7 @@ function NeedsAttentionPanel({ needsAttention, onSelectDoc, onChaseAllOverdue, i
                     onClick={() => onSelectDoc(doc)}
                   >
                     <p className="text-xs font-medium text-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-amber-500" />
+                      <Clock className="h-3 w-3 text-[hsl(var(--warning))]" />
                       {sig.name}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
