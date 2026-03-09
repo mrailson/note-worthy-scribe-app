@@ -411,6 +411,8 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 
+                <Route path="/approve/:token" element={<PublicApproval />} />
+                
                 {/* Public Document Pages */}
                 <Route path="/privacy-notice" element={<PrivacyNotice />} />
                 <Route path="/accessibility-statement" element={<AccessibilityStatement />} />
