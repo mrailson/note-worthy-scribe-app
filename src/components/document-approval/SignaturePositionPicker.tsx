@@ -83,7 +83,7 @@ export function SignaturePositionPicker({ fileUrl, value, onChange }: Props) {
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         const ctx = canvas.getContext('2d')!;
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
         if (!cancelled) setPageRendered(true);
       } catch (err) {
         console.error('Failed to render page:', err);
