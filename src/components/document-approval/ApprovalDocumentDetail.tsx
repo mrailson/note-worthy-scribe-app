@@ -99,10 +99,9 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
         const blankDoc = await PDFDocument.create();
         pdfBytes = (await blankDoc.save()).buffer as ArrayBuffer;
       } else {
-        // Fetch original PDF
-        const response = await fetch(doc.file_url);
-        if (!response.ok) throw new Error('Failed to fetch original document');
-        pdfBytes = await response.arrayBuffer();
+        // Fetch original PDF via Supabase SDK to bypass browser blocking
+        const blob = await downloadFromStorage(doc.file_url);
+        pdfBytes = await blob.arrayBuffer();
       }
 
       // Generate certificate ID
