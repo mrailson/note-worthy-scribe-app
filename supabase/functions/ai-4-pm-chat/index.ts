@@ -129,12 +129,25 @@ interface RequestBody {
 }
 
 // Helper function to extract text content from files
+// PDFs sent as base64 data URLs are passed through unchanged for multimodal processing
 async function extractFileContent(file: UploadedFile): Promise<string> {
   try {
     const fileName = file.name.toLowerCase();
     const fileType = file.type;
     
     console.log(`[extractFileContent] Processing: ${fileName}, type: ${fileType}, content starts: ${file.content?.substring(0, 50)}...`);
+    
+    // Handle PDF files - if content is already base64, pass through for multimodal processing
+    // Gemini handles PDFs natively as multimodal input
+    if (fileName.endsWith('.pdf') || fileType.includes('pdf')) {
+      if (file.content.startsWith('data:application/pdf')) {
+        console.log(`[extractFileContent] PDF is base64 data URL - passing through for Gemini multimodal processing`);
+        return file.content; // Pass through unchanged - will be sent as multimodal
+      }
+      // Legacy: content is already extracted text, pass through
+      console.log(`[extractFileContent] PDF has text content (legacy) - passing through`);
+      return file.content;
+    }
     
     // Handle Word documents
     if (fileName.endsWith('.docx') || fileType.includes('wordprocessingml')) {
@@ -149,11 +162,6 @@ async function extractFileContent(file: UploadedFile): Promise<string> {
     // Handle text files
     if (fileName.endsWith('.txt') || fileType.includes('text/plain')) {
       return extractTextContent(file);
-    }
-    
-    // Handle PDFs (basic extraction)
-    if (fileName.endsWith('.pdf') || fileType.includes('pdf')) {
-      return extractPdfContent(file);
     }
     
     // Handle PowerPoint files (basic extraction)
