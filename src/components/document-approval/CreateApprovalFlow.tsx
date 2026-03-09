@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -51,7 +51,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [sending, setSending] = useState(false);
   const [convertedToPdf, setConvertedToPdf] = useState(false);
   const [showDocPreview, setShowDocPreview] = useState(false);
-  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [previewPages, setPreviewPages] = useState<string[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // ─── Step 1: File & metadata ──────────────────────────────────────
   const [file, setFile] = useState<File | null>(null);
@@ -707,16 +708,32 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                   onClick={async () => {
                     const opening = !showDocPreview;
                     setShowDocPreview(opening);
-                    if (opening && !previewBlobUrl) {
+                    if (opening && previewPages.length === 0 && !previewLoading) {
+                      setPreviewLoading(true);
                       try {
+                        const pdfjsLib = await import('pdfjs-dist');
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
                         const res = await fetch(fileUrl);
-                        const blob = await res.blob();
-                        // Ensure blob has correct PDF MIME type for rendering
-                        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-                        setPreviewBlobUrl(URL.createObjectURL(pdfBlob));
+                        const arrayBuffer = await res.arrayBuffer();
+                        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                        const pages: string[] = [];
+                        const maxPages = Math.min(pdf.numPages, 5);
+                        for (let i = 1; i <= maxPages; i++) {
+                          const page = await pdf.getPage(i);
+                          const viewport = page.getViewport({ scale: 1.5 });
+                          const canvas = document.createElement('canvas');
+                          canvas.width = viewport.width;
+                          canvas.height = viewport.height;
+                          const ctx = canvas.getContext('2d')!;
+                          await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+                          pages.push(canvas.toDataURL('image/png'));
+                        }
+                        setPreviewPages(pages);
                       } catch (err) {
                         console.error('Failed to load preview:', err);
                         toast.error('Could not load document preview');
+                      } finally {
+                        setPreviewLoading(false);
                       }
                     }
                   }}
@@ -731,14 +748,20 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                     : <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   }
                 </button>
-                {showDocPreview && previewBlobUrl && (
-                  <div className="bg-muted/20 p-2">
-                    <iframe
-                      src={previewBlobUrl}
-                      title="Document preview"
-                      className="w-full rounded border bg-white"
-                      style={{ height: '600px' }}
-                    />
+                {showDocPreview && (
+                  <div className="bg-muted/20 p-2 space-y-2 max-h-[600px] overflow-y-auto">
+                    {previewLoading && (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <span className="ml-2 text-sm text-muted-foreground">Rendering preview…</span>
+                      </div>
+                    )}
+                    {previewPages.map((src, i) => (
+                      <img key={i} src={src} alt={`Page ${i + 1}`} className="w-full rounded border bg-white shadow-sm" />
+                    ))}
+                    {previewPages.length > 0 && (
+                      <p className="text-xs text-muted-foreground text-centre">Showing first {previewPages.length} page(s)</p>
+                    )}
                   </div>
                 )}
               </div>
