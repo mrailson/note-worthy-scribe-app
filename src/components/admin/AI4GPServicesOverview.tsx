@@ -94,6 +94,11 @@ export const AI4GPServicesOverview = () => {
               <PolicyUsageReport />
             </TabsContent>
 
+            <TabsContent value="doc-studio" className="mt-6">
+              <DocumentStudioUsageReport />
+            </TabsContent>
+            </TabsContent>
+
             <TabsContent value="meetings" className="mt-6">
               <MeetingUsageReport />
             </TabsContent>
