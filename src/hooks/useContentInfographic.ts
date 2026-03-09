@@ -221,21 +221,11 @@ ${documentContent}`;
         blob = await imageResponse.blob();
       }
       
-      // Trigger download
+      // Create a viewable URL (no auto-download)
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const fileName = title && title !== 'Infographic'
-        ? `${title.replace(/[^a-zA-Z0-9]/g, '_')}_infographic.png`
-        : `infographic_${new Date().toISOString().split('T')[0]}.png`;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
       
       setCurrentPhase('complete');
-      toast.success('Infographic downloaded successfully!');
+      toast.success('Infographic ready!');
       
       return { success: true, imageUrl };
       
