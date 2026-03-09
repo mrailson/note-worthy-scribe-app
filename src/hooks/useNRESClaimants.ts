@@ -223,10 +223,28 @@ export function useNRESClaimants() {
   };
 
   const activeClaimants = claimants.filter(c => c.is_active);
+  
+  // For non-admin users, filter claimants to only those matching their practice
+  const practiceFilteredClaimants = useMemo(() => {
+    if (isAdmin || !userPracticeName) return activeClaimants;
+    
+    // Match user's gp_practices.name against claimant member_practice
+    // Use case-insensitive partial matching to handle naming variations
+    const userPracticeNorm = userPracticeName.toLowerCase().replace(/^the\s+/i, '');
+    
+    return activeClaimants.filter(c => {
+      if (!c.member_practice) return false;
+      const memberNorm = c.member_practice.toLowerCase().replace(/^the\s+/i, '');
+      return memberNorm.includes(userPracticeNorm) || userPracticeNorm.includes(memberNorm);
+    });
+  }, [activeClaimants, isAdmin, userPracticeName]);
 
   return {
     claimants,
     activeClaimants,
+    practiceFilteredClaimants,
+    isAdmin,
+    userPracticeName,
     loading,
     saving,
     practiceId,
