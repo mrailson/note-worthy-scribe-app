@@ -10,6 +10,17 @@ import { toast } from 'sonner';
 import { generateSignedPdf, SignatoryInfo, SignaturePlacement } from '@/utils/generateSignedPdf';
 import { supabase } from '@/integrations/supabase/client';
 
+const downloadFromStorage = async (fileUrl: string): Promise<Blob> => {
+  const storagePath = fileUrl.split('/approval-documents/')[1];
+  if (storagePath) {
+    const { data, error } = await supabase.storage.from('approval-documents').download(storagePath);
+    if (error || !data) throw error || new Error('Download failed');
+    return data;
+  }
+  const res = await fetch(fileUrl);
+  return res.blob();
+};
+
 interface Props {
   document: ApprovalDocument;
   onBack: () => void;
@@ -88,10 +99,9 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
         const blankDoc = await PDFDocument.create();
         pdfBytes = (await blankDoc.save()).buffer as ArrayBuffer;
       } else {
-        // Fetch original PDF
-        const response = await fetch(doc.file_url);
-        if (!response.ok) throw new Error('Failed to fetch original document');
-        pdfBytes = await response.arrayBuffer();
+        // Fetch original PDF via Supabase SDK to bypass browser blocking
+        const blob = await downloadFromStorage(doc.file_url);
+        pdfBytes = await blob.arrayBuffer();
       }
 
       // Generate certificate ID
@@ -235,8 +245,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                       </Button>
                       <Button variant="outline" size="sm" className="gap-2" onClick={async () => {
                         try {
-                          const res = await fetch(doc.file_url);
-                          const blob = await res.blob();
+                          const blob = await downloadFromStorage(doc.file_url);
                           const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
                           const a = document.createElement('a'); a.href = url; a.download = doc.original_filename || 'document.pdf';
                           document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -253,8 +262,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                   )}
                   <Button variant="outline" size="sm" className="gap-2" onClick={async () => {
                     try {
-                      const res = await fetch(doc.file_url);
-                      const blob = await res.blob();
+                      const blob = await downloadFromStorage(doc.file_url);
                       const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
                       const a = document.createElement('a'); a.href = url; a.download = `audit-certificate-${doc.id}.pdf`;
                       document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
