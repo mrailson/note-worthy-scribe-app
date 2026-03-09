@@ -163,7 +163,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             <div className="hidden sm:flex gap-2">
               {user && (
                 <Button 
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/?from=home')}
                   variant="secondary"
                   size="sm"
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
