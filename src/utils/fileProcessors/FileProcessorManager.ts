@@ -134,13 +134,18 @@ export class FileProcessorManager {
           throw new Error(`Unsupported file type: ${fileType}`);
       }
       
+      // Word docs converted to PDF should be treated as PDF for downstream processing
+      const effectiveType = (fileType === 'word' && content.startsWith('data:application/pdf'))
+        ? 'pdf'
+        : fileType;
+
       return {
         name: file.name,
-        type: file.type,
+        type: effectiveType === 'pdf' ? 'application/pdf' : file.type,
         content,
         size: file.size,
         isLoading: false,
-        processedType: fileType as ProcessedFile['processedType']
+        processedType: effectiveType as ProcessedFile['processedType']
       };
       
     } catch (error) {
