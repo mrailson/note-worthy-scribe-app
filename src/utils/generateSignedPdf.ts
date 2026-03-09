@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, StandardFonts, PDFPage } from 'pdf-lib';
+import dancingScriptUrl from '@/assets/fonts/DancingScript.ttf';
 import { format } from 'date-fns';
 
 export interface SignatoryInfo {
