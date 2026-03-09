@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Clock, Loader2, ArrowUp, ArrowDown, ArrowUpDown, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfMonth, subMonths, isAfter, isEqual } from 'date-fns';
 import type { NRESHoursEntry } from '@/types/nresHoursTypes';
 import { ACTIVITY_TYPES, CLAIMANT_TYPES, getClaimantRate } from '@/types/nresHoursTypes';
 import { NRESClaimant } from '@/hooks/useNRESClaimants';
@@ -35,6 +35,7 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [datePeriod, setDatePeriod] = useState<'all' | 'this-month' | 'last-month'>('all');
   
   // Edit state
   const [editingEntry, setEditingEntry] = useState<NRESHoursEntry | null>(null);
@@ -68,12 +69,28 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
     return claimantRate ?? hourlyRate;
   };
 
+  const dateFilteredEntries = useMemo(() => {
+    if (datePeriod === 'all') return entries;
+    const now = new Date();
+    const thisMonthStart = startOfMonth(now);
+    const lastMonthStart = startOfMonth(subMonths(now, 1));
+
+    return entries.filter(e => {
+      const d = parseISO(e.work_date);
+      if (datePeriod === 'this-month') {
+        return isAfter(d, thisMonthStart) || isEqual(d, thisMonthStart);
+      }
+      // last-month
+      return (isAfter(d, lastMonthStart) || isEqual(d, lastMonthStart)) && !isAfter(d, thisMonthStart) && !isEqual(d, thisMonthStart);
+    });
+  }, [entries, datePeriod]);
+
   const sortedEntries = useMemo(() => {
     if (!sortField || !sortDirection) {
-      return entries;
+      return dateFilteredEntries;
     }
 
-    return [...entries].sort((a, b) => {
+    return [...dateFilteredEntries].sort((a, b) => {
       let comparison = 0;
 
       switch (sortField) {
@@ -99,7 +116,16 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [entries, sortField, sortDirection, hourlyRate]);
+  }, [dateFilteredEntries, sortField, sortDirection, hourlyRate]);
+
+  const totals = useMemo(() => {
+    const totalHours = dateFilteredEntries.reduce((sum, e) => sum + Number(e.duration_hours), 0);
+    const totalAmount = dateFilteredEntries.reduce((sum, e) => {
+      const rate = getEntryRate(e);
+      return sum + (rate ? Number(e.duration_hours) * rate : 0);
+    }, 0);
+    return { totalHours, totalAmount, count: dateFilteredEntries.length };
+  }, [dateFilteredEntries, hourlyRate]);
 
 
   const openEditDialog = (entry: NRESHoursEntry) => {
@@ -214,12 +240,25 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   Hours Entries
-                  <Badge variant="secondary" className="ml-2">{entries.length}</Badge>
+                  <Badge variant="secondary" className="ml-2">{totals.count}</Badge>
                 </CardTitle>
               </div>
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
+            <div className="px-6 pb-3 flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">Period:</Label>
+              <Select value={datePeriod} onValueChange={(v) => setDatePeriod(v as any)}>
+                <SelectTrigger className="h-8 w-[160px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="this-month">This Month</SelectItem>
+                  <SelectItem value="last-month">Last Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <Table>
@@ -324,6 +363,23 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
                       );
                     })}
                   </TableBody>
+                  <TableFooter>
+                    <TableRow className="bg-muted/50 font-semibold">
+                      <TableCell colSpan={3} className="text-right text-sm">
+                        Totals ({totals.count} entries)
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {totals.totalHours.toFixed(2)} hrs
+                        </Badge>
+                      </TableCell>
+                      <TableCell colSpan={2}></TableCell>
+                      <TableCell className="text-right font-bold text-sm">
+                        £{totals.totalAmount.toFixed(2)}
+                      </TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  </TableFooter>
                 </Table>
               </div>
             </CardContent>
