@@ -259,12 +259,8 @@ export const useImageGallery = (): UseImageGallery => {
   // Get favourites from images
   const favourites = images.filter(img => img.is_favourite);
 
-  // Initial fetch
-  useEffect(() => {
-    if (user?.id) {
-      fetchImages();
-    }
-  }, [user?.id, fetchImages]);
+  // Do NOT fetch on mount — callers should explicitly call fetchImages() when the gallery is opened
+  // This prevents loading all image metadata when the hook is instantiated but the gallery is hidden
 
   return {
     images,
