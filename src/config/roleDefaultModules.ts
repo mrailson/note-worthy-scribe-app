@@ -237,7 +237,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: false,
     lg_capture_access: false,
     bp_service_access: true,
-    survey_manager_access: false
+    survey_manager_access: false,
+    document_signoff_access: false
   },
 
   // Admin Staff - administrative focus
