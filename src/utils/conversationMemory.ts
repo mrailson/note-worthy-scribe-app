@@ -346,19 +346,19 @@ export function optimiseConversationHistory(
   // Format recent messages, including file content only for files not already mentioned
   const includedFiles = new Set<string>();
   const formattedRecentMessages = recentMessages.map(msg => {
-    // Check if this message has image files that need multimodal formatting
-    const hasImages = msg.role === 'user' && msg.files?.some(isImageFile);
+    // Check if this message has multimodal files (images or PDFs)
+    const hasMultimodal = msg.role === 'user' && msg.files?.some(isMultimodalFile);
     
-    if (hasImages && msg.files) {
+    if (hasMultimodal && msg.files) {
       // Build multimodal content array
       const contentParts: MultimodalContent[] = [];
       
       // Add the text content first
       let textContent = msg.content;
       
-      // Add reference to previously uploaded non-image files
+      // Add reference to previously uploaded non-multimodal files
       const referencedFiles = msg.files
-        .filter(file => !isImageFile(file) && includedFiles.has(file.name))
+        .filter(file => !isMultimodalFile(file) && includedFiles.has(file.name))
         .map(file => file.name);
       
       if (referencedFiles.length > 0) {
@@ -369,13 +369,16 @@ export function optimiseConversationHistory(
         contentParts.push({ type: 'text', text: textContent });
       }
       
-      // Add each file (images as image_url, others as text)
+      // Add each file (images/PDFs as multimodal, others as text)
       for (const file of msg.files) {
         if (isImageFile(file)) {
           contentParts.push(formatImageForAPI(file));
           includedFiles.add(file.name);
+        } else if (isPdfFile(file)) {
+          contentParts.push(formatPdfForAPI(file));
+          includedFiles.add(file.name);
         } else if (!includedFiles.has(file.name)) {
-          // Non-image files as text (only if not already included)
+          // Non-multimodal files as text (only if not already included)
           includedFiles.add(file.name);
           contentParts.push({
             type: 'text',
@@ -387,13 +390,13 @@ export function optimiseConversationHistory(
       return { role: msg.role, content: contentParts };
     }
     
-    // No images - use string content
+    // No multimodal files - use string content
     let content = msg.content;
     
-    // Only include non-image file content if we haven't included it before
+    // Only include non-multimodal file content if we haven't included it before
     if (msg.role === 'user' && msg.files && msg.files.length > 0) {
       const newFileContents = msg.files
-        .filter(file => !isImageFile(file) && !includedFiles.has(file.name))
+        .filter(file => !isMultimodalFile(file) && !includedFiles.has(file.name))
         .map(file => {
           includedFiles.add(file.name);
           return `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`;
@@ -401,12 +404,12 @@ export function optimiseConversationHistory(
         .join('');
       
       // For files already included, just reference them
-      const referencedNonImageFiles = msg.files
-        .filter(file => !isImageFile(file) && includedFiles.has(file.name) && !newFileContents.includes(file.name))
+      const referencedNonMultimodalFiles = msg.files
+        .filter(file => !isMultimodalFile(file) && includedFiles.has(file.name) && !newFileContents.includes(file.name))
         .map(file => file.name);
       
-      if (referencedNonImageFiles.length > 0) {
-        content += `\n\n[Referencing previously uploaded files: ${referencedNonImageFiles.join(', ')}]`;
+      if (referencedNonMultimodalFiles.length > 0) {
+        content += `\n\n[Referencing previously uploaded files: ${referencedNonMultimodalFiles.join(', ')}]`;
       }
       
       content += newFileContents;
