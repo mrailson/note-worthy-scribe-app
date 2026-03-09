@@ -45,13 +45,14 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     contacts, contactGroups, saveContact,
   } = useDocumentApproval();
 
-  const [step, setStep] = useState<'upload' | 'signatories' | 'review'>('upload');
+  const [step, setStep] = useState<'upload' | 'stamp_position' | 'signatories' | 'review'>('upload');
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
 
   // ─── Step 1: File & metadata ──────────────────────────────────────
   const [file, setFile] = useState<File | null>(null);
   const [fileHash, setFileHash] = useState<string | null>(null);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [hashing, setHashing] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -60,6 +61,10 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [message, setMessage] = useState('');
   const [documentId, setDocumentId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Signature placement
+  const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('append');
+  const [stampPosition, setStampPosition] = useState<StampPosition>({ page: 1, x: 10, y: 55, width: 80, height: 40 });
 
   // ─── Step 2: Signatories ──────────────────────────────────────────
   const [signatories, setSignatories] = useState<SignatoryRow[]>([
