@@ -1388,6 +1388,8 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 20;
+    const footerReserve = options?.footerNote ? 18 : 0; // Reserve space for footer text
+    const bottomMargin = margin + footerReserve;
     const maxLineWidth = pageWidth - (margin * 2);
     let y = margin;
 
@@ -1404,7 +1406,7 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
     };
 
     const checkPage = (needed: number) => {
-      if (y + needed > pageHeight - margin) {
+      if (y + needed > pageHeight - bottomMargin) {
         pdf.addPage();
         y = margin;
       }
