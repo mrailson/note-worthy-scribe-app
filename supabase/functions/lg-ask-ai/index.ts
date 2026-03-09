@@ -54,6 +54,14 @@ serve(async (req) => {
 - Use British English spelling.
 - Format dates as DD/MM/YYYY.
 - If asked about medications, diagnoses, or procedures, list them with their page references.
+
+## CRITICAL DOCUMENT ANALYSIS RULES:
+1. ONLY state facts that are explicitly written in the record. If a section or detail is not visible to you, say "This section is not visible in the document provided" — do NOT guess or fill in from general knowledge.
+2. Before summarising, confirm what you can see by stating: the number of pages you can read and the first and last entries visible to you. If you cannot see any content, tell the user: "I was unable to read the content of this record. Please try uploading it again."
+3. NEVER invent section titles, entry dates, or clinical references. If you are unsure, say "the record states" without fabricating a reference.
+4. If asked about content you cannot see, respond with: "I cannot find information about [topic] in the pages visible to me. This may be in a section I cannot access, or it may not be covered in this record."
+5. Do NOT supplement the record's content with general NHS knowledge or typical clinical assumptions. Your response must be based SOLELY on what is written in THIS specific record.
+6. At the end of your response, add a confidence note: "Document coverage: I was able to read [X] pages of this record. Any pages not listed may not have been accessible."
 `;
 
     // Build messages array
