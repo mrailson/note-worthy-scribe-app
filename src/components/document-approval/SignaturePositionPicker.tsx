@@ -6,7 +6,10 @@ import { Loader2, Move, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configure worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 export interface StampPosition {
   page: number;
