@@ -71,6 +71,20 @@ export function NRESHoursTracker() {
     loading: loadingClaimants
   } = useNRESClaimants();
 
+  // For non-admin users, filter entries to only show those belonging to
+  // claimants from their practice (or personal entries they created)
+  const practiceClaimantNames = useMemo(() => 
+    new Set(practiceFilteredClaimants.map(c => c.name)),
+    [practiceFilteredClaimants]
+  );
+
+  const filteredEntries = useMemo(() => {
+    if (isAdmin) return entries;
+    return entries.filter(e => 
+      !e.claimant_name || practiceClaimantNames.has(e.claimant_name) || e.user_id === user?.id
+    );
+  }, [entries, isAdmin, practiceClaimantNames, user?.id]);
+
   if (loadingSettings) {
     return (
       <div className="flex items-center justify-center py-12">
