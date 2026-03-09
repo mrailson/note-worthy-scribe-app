@@ -113,6 +113,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lg_capture_access: false,
         bp_service_access: false,
         survey_manager_access: false,
+        document_signoff_access: false,
       });
       
       // Convert the aggregated access flags to module names array
