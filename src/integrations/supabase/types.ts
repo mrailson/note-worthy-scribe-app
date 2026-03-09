@@ -204,6 +204,233 @@ export type Database = {
           },
         ]
       }
+      approval_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_name: string | null
+          created_at: string | null
+          document_id: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          signatory_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_name?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          signatory_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_name?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          signatory_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_audit_log_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "approval_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_audit_log_signatory_id_fkey"
+            columns: ["signatory_id"]
+            isOneToOne: false
+            referencedRelation: "approval_signatories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_contacts: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          is_favourite: boolean | null
+          name: string
+          organisation: string | null
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          is_favourite?: boolean | null
+          name: string
+          organisation?: string | null
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_favourite?: boolean | null
+          name?: string
+          organisation?: string | null
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      approval_documents: {
+        Row: {
+          category: string | null
+          completed_at: string | null
+          created_at: string | null
+          deadline: string | null
+          description: string | null
+          file_hash: string
+          file_size_bytes: number | null
+          file_url: string
+          id: string
+          message: string | null
+          original_filename: string
+          practice_id: string | null
+          revoked_at: string | null
+          sender_email: string | null
+          sender_id: string
+          sender_name: string | null
+          status: string | null
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          file_hash: string
+          file_size_bytes?: number | null
+          file_url: string
+          id?: string
+          message?: string | null
+          original_filename: string
+          practice_id?: string | null
+          revoked_at?: string | null
+          sender_email?: string | null
+          sender_id: string
+          sender_name?: string | null
+          status?: string | null
+          title: string
+        }
+        Update: {
+          category?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          file_hash?: string
+          file_size_bytes?: number | null
+          file_url?: string
+          id?: string
+          message?: string | null
+          original_filename?: string
+          practice_id?: string | null
+          revoked_at?: string | null
+          sender_email?: string | null
+          sender_id?: string
+          sender_name?: string | null
+          status?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      approval_signatories: {
+        Row: {
+          approval_token: string | null
+          created_at: string | null
+          decline_comment: string | null
+          document_id: string
+          email: string
+          id: string
+          last_reminder_at: string | null
+          name: string
+          organisation: string | null
+          reminder_count: number | null
+          role: string | null
+          signed_at: string | null
+          signed_ip: string | null
+          signed_name: string | null
+          signed_organisation: string | null
+          signed_role: string | null
+          signed_user_agent: string | null
+          sort_order: number | null
+          status: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          approval_token?: string | null
+          created_at?: string | null
+          decline_comment?: string | null
+          document_id: string
+          email: string
+          id?: string
+          last_reminder_at?: string | null
+          name: string
+          organisation?: string | null
+          reminder_count?: number | null
+          role?: string | null
+          signed_at?: string | null
+          signed_ip?: string | null
+          signed_name?: string | null
+          signed_organisation?: string | null
+          signed_role?: string | null
+          signed_user_agent?: string | null
+          sort_order?: number | null
+          status?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          approval_token?: string | null
+          created_at?: string | null
+          decline_comment?: string | null
+          document_id?: string
+          email?: string
+          id?: string
+          last_reminder_at?: string | null
+          name?: string
+          organisation?: string | null
+          reminder_count?: number | null
+          role?: string | null
+          signed_at?: string | null
+          signed_ip?: string | null
+          signed_name?: string | null
+          signed_organisation?: string | null
+          signed_role?: string | null
+          signed_user_agent?: string | null
+          sort_order?: number | null
+          status?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_signatories_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "approval_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assembly_transcripts: {
         Row: {
           chunk_index: number
