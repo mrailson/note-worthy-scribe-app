@@ -22,6 +22,7 @@ export const MyDocuments: React.FC = () => {
   const [documents, setDocuments] = useState<SavedDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [previewDoc, setPreviewDoc] = useState<SavedDocument | null>(null);
+  const { generateWithGamma } = useGammaPowerPoint();
 
   const fetchDocuments = async () => {
     setIsLoading(true);
