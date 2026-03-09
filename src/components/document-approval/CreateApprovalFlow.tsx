@@ -374,6 +374,12 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 className="mt-1.5" rows={3} />
             </div>
 
+            {/* Deadline */}
+            <div>
+              <Label className="text-sm font-medium">Deadline</Label>
+              <Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="mt-1.5" />
+            </div>
+
             {/* Signature Placement */}
             <div>
               <Label className="text-sm font-medium">Signature placement</Label>
