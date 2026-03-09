@@ -114,8 +114,11 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (!fileErr && fileData) {
           const arrayBuf = await fileData.arrayBuffer();
+          const originalName = doc.original_filename || "document.pdf";
+          // Ensure filename always ends in .pdf (docx files are converted before upload)
+          const pdfFilename = originalName.replace(/\.docx?$/i, '.pdf');
           pdfAttachment = {
-            filename: doc.original_filename || "document.pdf",
+            filename: pdfFilename,
             content: new Uint8Array(arrayBuf),
           };
         }
