@@ -20,12 +20,17 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SignaturePositionPicker, StampPosition } from './SignaturePositionPicker';
 
+const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof', 'Rev'];
+const ORG_TYPE_OPTIONS = ['', 'Practice', 'PCN', 'Federation', 'ICB', 'Other'];
+
 interface SignatoryRow {
-  id: string; // local key for drag
+  id: string;
+  signatory_title: string;
   name: string;
   email: string;
   role: string;
   organisation: string;
+  organisation_type: string;
 }
 
 interface CreateApprovalFlowProps {
