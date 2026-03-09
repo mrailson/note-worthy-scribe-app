@@ -68,7 +68,8 @@ export function NRESHoursTracker() {
   const {
     activeClaimants,
     practiceFilteredClaimants,
-    loading: loadingClaimants
+    loading: loadingClaimants,
+    practiceId: userPracticeId
   } = useNRESClaimants();
 
   // For non-admin users, filter entries to only show those belonging to
@@ -81,9 +82,16 @@ export function NRESHoursTracker() {
   const filteredEntries = useMemo(() => {
     if (isAdmin) return entries;
     return entries.filter(e => 
-      !e.claimant_name || practiceClaimantNames.has(e.claimant_name) || e.user_id === user?.id
+      // No claimant assigned (personal entry)
+      !e.claimant_name ||
+      // Claimant name matches a claimant from the user's practice
+      practiceClaimantNames.has(e.claimant_name) ||
+      // Entry was created by this user
+      e.user_id === user?.id ||
+      // Entry's practice_id matches the user's practice
+      (userPracticeId && e.practice_id === userPracticeId)
     );
-  }, [entries, isAdmin, practiceClaimantNames, user?.id]);
+  }, [entries, isAdmin, practiceClaimantNames, user?.id, userPracticeId]);
 
   if (loadingSettings) {
     return (
