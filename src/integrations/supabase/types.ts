@@ -372,6 +372,8 @@ export type Database = {
           sender_email: string | null
           sender_id: string
           sender_name: string | null
+          signature_placement: Json | null
+          signed_file_url: string | null
           status: string | null
           title: string
         }
@@ -392,6 +394,8 @@ export type Database = {
           sender_email?: string | null
           sender_id: string
           sender_name?: string | null
+          signature_placement?: Json | null
+          signed_file_url?: string | null
           status?: string | null
           title: string
         }
@@ -412,6 +416,8 @@ export type Database = {
           sender_email?: string | null
           sender_id?: string
           sender_name?: string | null
+          signature_placement?: Json | null
+          signed_file_url?: string | null
           status?: string | null
           title?: string
         }
