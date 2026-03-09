@@ -3458,6 +3458,45 @@ export type Database = {
         }
         Relationships: []
       }
+      document_studio_usage: {
+        Row: {
+          action: string
+          created_at: string | null
+          document_type: string
+          document_type_name: string | null
+          free_form_request: string | null
+          id: string
+          request_summary: string | null
+          title: string | null
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          action?: string
+          created_at?: string | null
+          document_type?: string
+          document_type_name?: string | null
+          free_form_request?: string | null
+          id?: string
+          request_summary?: string | null
+          title?: string | null
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          document_type?: string
+          document_type_name?: string | null
+          free_form_request?: string | null
+          id?: string
+          request_summary?: string | null
+          title?: string | null
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       drug_synonyms: {
         Row: {
           created_at: string
@@ -11670,6 +11709,37 @@ export type Database = {
           default_email: string
           default_phone: string
           staff_name: string
+        }[]
+      }
+      get_document_studio_recent_usage: {
+        Args: { limit_count?: number }
+        Returns: {
+          action: string
+          created_at: string
+          document_type: string
+          document_type_name: string
+          free_form_request: string
+          id: string
+          request_summary: string
+          title: string
+          user_email: string
+          user_name: string
+          word_count: number
+        }[]
+      }
+      get_document_studio_stats_by_user: {
+        Args: never
+        Returns: {
+          all_time_count: number
+          email: string
+          full_name: string
+          last_generated_at: string
+          this_month_count: number
+          this_week_count: number
+          today_count: number
+          top_document_type: string
+          total_words: number
+          user_id: string
         }[]
       }
       get_empty_meetings_for_cleanup: {

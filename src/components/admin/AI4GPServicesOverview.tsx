@@ -9,8 +9,9 @@ import { PolicyUsageReport } from './PolicyUsageReport';
 import { MeetingUsageReport } from './MeetingUsageReport';
 import { GPScribeStats } from './GPScribeStats';
 import { TranslationUsageReport } from './TranslationUsageReport';
+import { DocumentStudioUsageReport } from './DocumentStudioUsageReport';
 import { DevelopmentCosts } from './DevelopmentCosts';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, PenTool } from 'lucide-react';
 
 export const AI4GPServicesOverview = () => {
   const [activeTab, setActiveTab] = useState('genie');
@@ -29,7 +30,7 @@ export const AI4GPServicesOverview = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9">
               <TabsTrigger value="genie" className="flex items-center gap-2">
                 <Bot className="h-4 w-4" />
                 <span className="hidden sm:inline">Overview</span>
@@ -49,6 +50,11 @@ export const AI4GPServicesOverview = () => {
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Notewell Policies</span>
                 <span className="sm:hidden">Policies</span>
+              </TabsTrigger>
+              <TabsTrigger value="doc-studio" className="flex items-center gap-2">
+                <PenTool className="h-4 w-4" />
+                <span className="hidden sm:inline">Doc Studio</span>
+                <span className="sm:hidden">Docs</span>
               </TabsTrigger>
               <TabsTrigger value="meetings" className="flex items-center gap-2">
                 <Activity className="h-4 w-4" />
@@ -86,6 +92,10 @@ export const AI4GPServicesOverview = () => {
 
             <TabsContent value="policies" className="mt-6">
               <PolicyUsageReport />
+            </TabsContent>
+
+            <TabsContent value="doc-studio" className="mt-6">
+              <DocumentStudioUsageReport />
             </TabsContent>
 
             <TabsContent value="meetings" className="mt-6">
