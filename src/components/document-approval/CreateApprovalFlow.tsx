@@ -6,16 +6,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   ArrowLeft, Upload, Plus, Trash2, Loader2, Send, UserPlus, Users,
-  GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash,
+  GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Stamp, FileSignature,
 } from 'lucide-react';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
 import { hashFile } from '@/utils/fileHash';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { SignaturePositionPicker, StampPosition } from './SignaturePositionPicker';
 
 interface SignatoryRow {
   id: string; // local key for drag
