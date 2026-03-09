@@ -1488,10 +1488,20 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     // Add a small delay to ensure user is fully authenticated
     if (user?.id) {
-      setTimeout(() => {
-        loadUserSettings();
+      settingsLoadTimeoutRef.current = setTimeout(() => {
+        loadUserSettings().then(() => {
+          hasLoadedSettings.current = true;
+          console.log('cleanup: Settings load complete, save guard released');
+        });
       }, 100);
     }
+    
+    return () => {
+      if (settingsLoadTimeoutRef.current) {
+        clearTimeout(settingsLoadTimeoutRef.current);
+        console.log('cleanup: Cleared settings load timeout');
+      }
+    };
   }, [user?.id]);
 
   // Save user settings when they change
