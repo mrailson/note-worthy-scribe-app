@@ -324,9 +324,11 @@ const PublicApproval = () => {
           >
             <Download className="h-4 w-4" />
             Download Document ({document.original_filename})
-            {document.file_size_bytes && (
+            {document.file_size_bytes != null && document.file_size_bytes > 0 && (
               <span className="text-xs text-muted-foreground">
-                — {(document.file_size_bytes / 1024 / 1024).toFixed(1)} MB
+                — {document.file_size_bytes < 1024 * 1024
+                    ? `${(document.file_size_bytes / 1024).toFixed(0)} KB`
+                    : `${(document.file_size_bytes / 1024 / 1024).toFixed(1)} MB`}
               </span>
             )}
           </Button>
