@@ -132,6 +132,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (aggregatedAccess.lg_capture_access) modules.push('lg_capture_access');
       if (aggregatedAccess.bp_service_access) modules.push('bp_service_access');
       if (aggregatedAccess.survey_manager_access) modules.push('survey_manager_access');
+      if (aggregatedAccess.document_signoff_access) modules.push('document_signoff_access');
       
       console.log(`Found ${data.length} role record(s) for user, aggregated modules:`, modules);
       setUserModules(modules);
