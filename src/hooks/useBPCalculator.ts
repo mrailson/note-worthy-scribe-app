@@ -136,47 +136,9 @@ export const useBPCalculator = () => {
       
       // For PDFs - try text extraction first (much faster than vision API)
       if (isPDF) {
-        console.log('📄 Attempting PDF text extraction before vision API...');
-        try {
-          const { PDFProcessor } = await import('@/utils/fileProcessors/PDFProcessor');
-          const textContent = await PDFProcessor.extractText(file);
-          
-          // If we got meaningful text (more than just page markers), use text mode
-          if (textContent && textContent.replace(/---\s*Page\s*\d+\s*---/g, '').trim().length > 100) {
-            console.log('✅ PDF text extracted successfully, using fast text mode');
-            
-            setProcessingStatus('analysing');
-            const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
-              body: { text: textContent, mode: 'text', isSitStandMode }
-            });
-            
-            if (error) throw error;
-            
-            setProcessingStatus('validating');
-            if (data.readings && data.readings.length > 0) {
-              const newReadings: BPReading[] = data.readings.map((r: any, index: number) => ({
-                id: `reading-${Date.now()}-${index}`,
-                systolic: r.systolic,
-                diastolic: r.diastolic,
-                pulse: r.pulse,
-                date: r.date,
-                time: r.time,
-                sourceText: r.sourceText,
-                included: !r.excluded,
-                excludeReason: r.excludeReason,
-                position: r.position || (isSitStandMode ? undefined : 'standard'),
-                standingMinutes: r.standingMinutes || r.standing_minutes
-              }));
-              
-              setReadings(prev => [...prev, ...newReadings]);
-            }
-            return;
-          } else {
-            console.log('⚠️ PDF has minimal extractable text, falling back to vision API for scanned/handwritten content');
-          }
-        } catch (pdfError) {
-          console.warn('⚠️ PDF text extraction failed, falling back to vision API:', pdfError);
-        }
+        console.log('📄 PDF detected - using vision API for BP reading extraction...');
+        // PDFs are now processed via vision API directly (Gemini handles PDFs natively)
+        // Skip text extraction attempt and go straight to vision
       }
       
       // For images and scanned PDFs - send to vision API
