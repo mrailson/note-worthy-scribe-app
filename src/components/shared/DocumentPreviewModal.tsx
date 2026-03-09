@@ -736,8 +736,8 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           />
         )}
 
-        {/* Bottom actions */}
-        <div className="px-4 sm:px-6 py-3 border-t bg-muted/30 flex flex-wrap items-center gap-2">
+        {/* Bottom actions - Export Studio bar */}
+        <div className="px-4 sm:px-6 py-3 border-t bg-muted/30 flex flex-wrap items-center gap-2 min-h-[56px]">
           {infographicView === 'document' ? (
             <>
               {/* Word */}
