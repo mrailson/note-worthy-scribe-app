@@ -88,7 +88,7 @@ export function useUserProfile() {
     }
   };
 
-  const updateProfile = async (updates: Partial<Pick<UserProfile, 'email' | 'full_name' | 'display_name' | 'show_ai_service' | 'northamptonshire_icb_active' | 'title' | 'role' | 'letter_signature' | 'email_signature'>>) => {
+  const updateProfile = async (updates: Partial<Pick<UserProfile, 'email' | 'full_name' | 'display_name' | 'show_ai_service' | 'northamptonshire_icb_active' | 'title' | 'role' | 'letter_signature' | 'email_signature' | 'default_home_page'>>) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {

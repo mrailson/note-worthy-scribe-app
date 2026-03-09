@@ -554,7 +554,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        <Button 
                          variant="ghost" 
                          className="justify-start"
-                          onClick={() => navigate('/')}
+                          onClick={() => navigate('/?from=home')}
                        >
                          <Home className="h-4 w-4 mr-2" />
                          Home
