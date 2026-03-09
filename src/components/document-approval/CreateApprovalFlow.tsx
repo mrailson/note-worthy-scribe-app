@@ -81,7 +81,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
   // ─── Step 2: Signatories ──────────────────────────────────────────
   const [signatories, setSignatories] = useState<SignatoryRow[]>([
-    { id: localId(), name: '', email: '', role: '', organisation: '' },
+    { id: localId(), signatory_title: '', name: '', email: '', role: '', organisation: '', organisation_type: '' },
   ]);
   const [saveNewContacts, setSaveNewContacts] = useState(true);
   const [showContactsModal, setShowContactsModal] = useState(false);
