@@ -1090,7 +1090,7 @@ Content guidelines:
     }
 
     // --- AI proofreading pass on prompt text ---
-    imagePrompt = await proofreadPromptText(imagePrompt, LOVABLE_API_KEY);
+    imagePrompt = await proofreadPromptText(imagePrompt, lovableApiKey);
 
     console.log('🖼️ Generating image with model:', selectedImageModel);
 
