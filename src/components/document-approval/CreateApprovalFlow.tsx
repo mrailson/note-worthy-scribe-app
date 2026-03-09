@@ -253,7 +253,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     if (!documentId) return;
     setSending(true);
     try {
-      await sendForApproval(documentId);
+      await sendForApproval(documentId, customEmailBody || undefined);
       toast.success('Document sent for approval! You can track progress in the dashboard.');
       onBack();
     } catch (err) {
