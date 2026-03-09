@@ -151,7 +151,7 @@ const Index = () => {
     }
   }, [editMeetingId, user]);
 
-  // Default home page redirect based on user preference
+  // Default home page redirect based on user preference (Index is single source of truth)
   const [homePageChecked, setHomePageChecked] = useState(false);
   const homePageRedirectDone = useRef(false);
 
@@ -161,13 +161,13 @@ const Index = () => {
       return;
     }
 
+    let cancelled = false;
     const state = location.state as any;
     const isContinuingMeeting = state?.continueMeeting;
     const isFromHome = searchParams.get('from') === 'home';
 
-    // If user clicked Home button or is continuing a meeting, skip redirect
+    // If user clicked Home button or is continuing/editing a meeting, skip redirect
     if (isFromHome || isContinuingMeeting || editMeetingId) {
-      // Clean up the ?from=home param
       if (isFromHome) {
         const newParams = new URLSearchParams(searchParams);
         newParams.delete('from');
@@ -179,41 +179,59 @@ const Index = () => {
       return;
     }
 
-    // Check profile for default home page preference (mobile vs desktop)
     const checkHomePage = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('default_home_page_desktop, default_home_page_mobile')
-          .eq('user_id', user.id)
-          .single();
+      const startTime = Date.now();
 
-        const preference = isMobile
-          ? (data as any)?.default_home_page_mobile
-          : (data as any)?.default_home_page_desktop;
+      while (!cancelled && Date.now() - startTime < 2000) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('default_home_page_desktop, default_home_page_mobile')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-        if (!error && preference && preference !== '/') {
-          homePageRedirectDone.current = true;
-          navigate(preference, { replace: true });
-          return;
+          const preference = isMobile
+            ? (data as any)?.default_home_page_mobile
+            : (data as any)?.default_home_page_desktop;
+
+          console.log('Index redirect check - profile:', data, 'preference:', preference, 'from:', searchParams.get('from'));
+
+          // Profile loaded: decide once and stop waiting
+          if (data) {
+            if (preference && preference !== '/') {
+              homePageRedirectDone.current = true;
+              navigate(preference, { replace: true });
+              return;
+            }
+            break;
+          }
+
+          // Any non-empty error falls back safely to normal home
+          if (error) {
+            console.error('Error checking home page preference:', error);
+            break;
+          }
+        } catch (err) {
+          console.error('Error checking home page preference:', err);
+          break;
         }
-      } catch (err) {
-        console.error('Error checking home page preference:', err);
+
+        // Brief retry while waiting for profile creation/availability
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
-      setHomePageChecked(true);
-      homePageRedirectDone.current = true;
+
+      if (!cancelled) {
+        setHomePageChecked(true);
+        homePageRedirectDone.current = true;
+      }
     };
 
-    // Add a small timeout to avoid flash, but don't block too long
-    const timer = setTimeout(() => {
-      setHomePageChecked(true);
-      homePageRedirectDone.current = true;
-    }, 500);
+    checkHomePage();
 
-    checkHomePage().then(() => clearTimeout(timer));
-
-    return () => clearTimeout(timer);
-  }, [user, loading, editMeetingId, location.state, searchParams, navigate]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user, loading, editMeetingId, location.state, searchParams, navigate, isMobile]);
   const loadMeetingForEditing = async (meetingId: string) => {
     try {
       const {

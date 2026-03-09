@@ -11,32 +11,6 @@ import { useSecurityValidation } from '@/hooks/useSecurityValidation';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
-const isMobileDevice = () => {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth <= 768;
-};
-
-const navigateToHomePage = async (navigate: ReturnType<typeof useNavigate>, userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('default_home_page_desktop, default_home_page_mobile')
-      .eq('user_id', userId)
-      .single();
-
-    const preference = isMobileDevice()
-      ? (data as any)?.default_home_page_mobile
-      : (data as any)?.default_home_page_desktop;
-
-    if (!error && preference && preference !== '/') {
-      navigate(preference, { replace: true });
-      return;
-    }
-  } catch (err) {
-    console.error('Error checking home page preference:', err);
-  }
-  navigate('/');
-};
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -91,13 +65,7 @@ export default function Auth() {
               description: "You have successfully logged in.",
               section: 'security',
             });
-            // Get session to find user ID for home page preference
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData?.session?.user?.id) {
-              await navigateToHomePage(navigate, sessionData.session.user.id);
-            } else {
-              navigate('/');
-            }
+            navigate('/');
             return;
           }
         } catch (err) {
@@ -107,7 +75,7 @@ export default function Auth() {
       
       // If already logged in (and not processing magic link), redirect
       if (user) {
-        navigateToHomePage(navigate, user.id);
+        navigate('/');
       }
     };
     
@@ -134,7 +102,7 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      const { data: signInData, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: loginForm.email,
         password: loginForm.password,
       });
@@ -191,11 +159,7 @@ export default function Auth() {
           description: "You have successfully logged in.",
           section: 'security',
         });
-        if (signInData?.user?.id) {
-          await navigateToHomePage(navigate, signInData.user.id);
-        } else {
-          navigate('/');
-        }
+        navigate('/');
       }
     } catch (error) {
       showShadcnToast({
