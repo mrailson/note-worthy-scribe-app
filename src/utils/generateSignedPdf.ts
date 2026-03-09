@@ -210,7 +210,7 @@ function drawStampSignatures(
         x, y: y - fontSize - 2, size: fontSize - 1, font: helvetica, color: rgb(0.3, 0.3, 0.3),
       });
     }
-    page.drawText(`${date}  ✓ Electronically signed`, {
+    page.drawText(`${date}  [Approved] Electronically signed`, {
       x, y: y - (fontSize * 2) - 4, size: fontSize - 1.5, font: helvetica, color: rgb(0.4, 0.4, 0.4),
     });
   }
