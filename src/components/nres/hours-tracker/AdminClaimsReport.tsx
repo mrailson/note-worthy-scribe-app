@@ -16,6 +16,7 @@ import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { getClaimantRate, type ClaimantType } from '@/types/nresHoursTypes';
 
 interface UserClaim {
   user_id: string;
