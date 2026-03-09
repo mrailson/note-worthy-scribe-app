@@ -594,37 +594,84 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               </div>
             </Card>
 
-            {/* Email preview */}
+            {/* Email preview / editor */}
             <Card className="p-6 space-y-3">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Mail className="h-4 w-4 text-primary" /> Email Preview
-              </h3>
-              <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2 border border-border">
-                <p className="text-xs text-muted-foreground">Subject:</p>
-                <p className="font-medium text-foreground">
-                  Document Approval Required: {title}
-                </p>
-                <hr className="border-border" />
-                <p className="text-muted-foreground">Dear <span className="italic">[Signatory Name]</span>,</p>
-                <p className="text-muted-foreground">
-                  You have been asked to review and approve the following document:
-                </p>
-                <div className="pl-4 border-l-2 border-primary/30 space-y-1">
-                  <p className="text-foreground font-medium">{title}</p>
-                  <p className="text-xs text-muted-foreground">Category: {categoryLabels[category] || category}</p>
-                  {deadline && <p className="text-xs text-muted-foreground">Deadline: {format(new Date(deadline), 'dd MMMM yyyy')}</p>}
-                </div>
-                {description && (
-                  <p className="text-muted-foreground italic">"{description}"</p>
-                )}
-                <p className="text-muted-foreground">
-                  Please click the link below to review the document and record your approval:
-                </p>
-                <p className="text-primary underline text-xs">[Unique approval link]</p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  This is an automated message from Notewell Document Approval Service.
-                </p>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-primary" /> Email Preview
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (!editingEmail) {
+                      // Initialise custom body with default text
+                      const deadlineText = deadline ? `\nDeadline: ${format(new Date(deadline), 'dd MMMM yyyy')}` : '';
+                      const descText = description ? `\n\n"${description}"` : '';
+                      setCustomEmailBody(
+                        `Dear [Signatory Name],\n\nYou have been asked to review and approve the following document:\n\n${title}\nCategory: ${categoryLabels[category] || category}${deadlineText}${descText}\n\nPlease click the link below to review the document and record your approval:`
+                      );
+                    }
+                    setEditingEmail(!editingEmail);
+                  }}
+                  className="text-xs gap-1"
+                >
+                  {editingEmail ? 'Preview' : 'Edit'}
+                </Button>
               </div>
+
+              {editingEmail ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Subject:</p>
+                  <p className="font-medium text-foreground text-sm">
+                    Document Approval Required: {title}
+                  </p>
+                  <hr className="border-border" />
+                  <Textarea
+                    value={customEmailBody}
+                    onChange={e => setCustomEmailBody(e.target.value)}
+                    rows={10}
+                    className="text-sm font-mono"
+                  />
+                  <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/50 rounded text-xs text-muted-foreground border border-border">
+                    <Shield className="h-3.5 w-3.5 flex-shrink-0" />
+                    The unique approval link and footer are added automatically and cannot be removed.
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2 border border-border">
+                  <p className="text-xs text-muted-foreground">Subject:</p>
+                  <p className="font-medium text-foreground">
+                    Document Approval Required: {title}
+                  </p>
+                  <hr className="border-border" />
+                  {customEmailBody ? (
+                    <div className="whitespace-pre-wrap text-muted-foreground">{customEmailBody}</div>
+                  ) : (
+                    <>
+                      <p className="text-muted-foreground">Dear <span className="italic">[Signatory Name]</span>,</p>
+                      <p className="text-muted-foreground">
+                        You have been asked to review and approve the following document:
+                      </p>
+                      <div className="pl-4 border-l-2 border-primary/30 space-y-1">
+                        <p className="text-foreground font-medium">{title}</p>
+                        <p className="text-xs text-muted-foreground">Category: {categoryLabels[category] || category}</p>
+                        {deadline && <p className="text-xs text-muted-foreground">Deadline: {format(new Date(deadline), 'dd MMMM yyyy')}</p>}
+                      </div>
+                      {description && (
+                        <p className="text-muted-foreground italic">"{description}"</p>
+                      )}
+                      <p className="text-muted-foreground">
+                        Please click the link below to review the document and record your approval:
+                      </p>
+                    </>
+                  )}
+                  <p className="text-primary underline text-xs">[Unique approval link]</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This is an automated message from Notewell Document Approval Service.
+                  </p>
+                </div>
+              )}
             </Card>
 
             <div className="flex gap-3">
