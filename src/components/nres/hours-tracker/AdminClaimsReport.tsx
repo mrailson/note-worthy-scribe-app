@@ -312,7 +312,8 @@ export function AdminClaimsReport() {
 
     filteredEntries.forEach(entry => {
       const details = getEntryDetails(entry);
-      const hourlyRate = userSettings[entry.user_id] || 50;
+      const claimantRate = getClaimantRate(entry.claimant_type as ClaimantType);
+      const hourlyRate = claimantRate ?? userSettings[entry.user_id] ?? 50;
       const amount = Number(entry.duration_hours) * hourlyRate;
 
       if (claimMap.has(details.groupKey)) {
