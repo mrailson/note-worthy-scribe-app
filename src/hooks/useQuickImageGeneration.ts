@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import type { GeneratedImage } from '@/types/ai4gp';
 import { toast } from 'sonner';
+import { sanitizeGeneratedContent } from '@/utils/sanitizeGeneratedContent';
 
 export type LayoutOption = 'portrait' | 'landscape' | 'square';
 export type PurposeOption = 'poster' | 'social' | 'leaflet' | 'waiting-room' | 'general';
