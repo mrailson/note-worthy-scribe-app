@@ -72,8 +72,10 @@ export function NRESHoursTracker() {
     practiceId: userPracticeId
   } = useNRESClaimants();
 
-  // For non-admin users, filter entries to only show those belonging to
-  // claimants from their practice (or personal entries they created)
+  // For non-admin users, show only:
+  // - entries assigned to claimants in their practice
+  // - entries they personally created
+  // - entries explicitly tagged to their practice_id
   const practiceClaimantNames = useMemo(() => 
     new Set(practiceFilteredClaimants.map(c => c.name)),
     [practiceFilteredClaimants]
@@ -81,16 +83,14 @@ export function NRESHoursTracker() {
 
   const filteredEntries = useMemo(() => {
     if (isAdmin) return entries;
-    return entries.filter(e => 
-      // No claimant assigned (personal entry)
-      !e.claimant_name ||
-      // Claimant name matches a claimant from the user's practice
-      practiceClaimantNames.has(e.claimant_name) ||
-      // Entry was created by this user
-      e.user_id === user?.id ||
-      // Entry's practice_id matches the user's practice
-      (userPracticeId && e.practice_id === userPracticeId)
-    );
+
+    return entries.filter(e => {
+      const isOwnEntry = e.user_id === user?.id;
+      const isPracticeClaimantEntry = !!e.claimant_name && practiceClaimantNames.has(e.claimant_name);
+      const isSamePracticeEntry = !!userPracticeId && e.practice_id === userPracticeId;
+
+      return isOwnEntry || isPracticeClaimantEntry || isSamePracticeEntry;
+    });
   }, [entries, isAdmin, practiceClaimantNames, user?.id, userPracticeId]);
 
   if (loadingSettings) {
