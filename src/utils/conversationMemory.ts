@@ -255,10 +255,10 @@ export function optimiseConversationHistory(
     const { fileContext, fileNames } = extractFileContext(messages);
     
     const formattedMessages = messages.map(msg => {
-      // Check if this message has image files that need multimodal formatting
-      const hasImages = msg.role === 'user' && msg.files?.some(isImageFile);
+      // Check if this message has multimodal files (images or PDFs) that need special formatting
+      const hasMultimodal = msg.role === 'user' && msg.files?.some(isMultimodalFile);
       
-      if (hasImages && msg.files) {
+      if (hasMultimodal && msg.files) {
         // Build multimodal content array
         const contentParts: MultimodalContent[] = [];
         
@@ -267,12 +267,14 @@ export function optimiseConversationHistory(
           contentParts.push({ type: 'text', text: msg.content });
         }
         
-        // Add each file (images as image_url, others as text)
+        // Add each file (images/PDFs as image_url, others as text)
         for (const file of msg.files) {
           if (isImageFile(file)) {
             contentParts.push(formatImageForAPI(file));
+          } else if (isPdfFile(file)) {
+            contentParts.push(formatPdfForAPI(file));
           } else {
-            // Non-image files as text
+            // Non-binary files as text
             contentParts.push({
               type: 'text',
               text: `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
@@ -283,13 +285,13 @@ export function optimiseConversationHistory(
         return { role: msg.role, content: contentParts };
       }
       
-      // No images - use string content
+      // No multimodal files - use string content
       let content = msg.content;
       
-      // Include non-image file content for user messages
+      // Include non-multimodal file content for user messages
       if (msg.role === 'user' && msg.files && msg.files.length > 0) {
         const fileContents = msg.files
-          .filter(file => !isImageFile(file))
+          .filter(file => !isMultimodalFile(file))
           .map(file => `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`)
           .join('');
         content += fileContents;
