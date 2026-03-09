@@ -254,7 +254,7 @@ export function useDocumentApproval() {
     return data as ApprovalSignatory[];
   }, []);
 
-  const sendForApproval = useCallback(async (documentId: string) => {
+  const sendForApproval = useCallback(async (documentId: string, customEmailBody?: string) => {
     const { error } = await supabase
       .from('approval_documents')
       .update({ status: 'pending' })
@@ -274,6 +274,14 @@ export function useDocumentApproval() {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+      const body: Record<string, unknown> = {
+        type: 'request',
+        document_id: documentId,
+      };
+      if (customEmailBody) {
+        body.custom_body = customEmailBody;
+      }
+
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/send-approval-email`,
         {
@@ -282,10 +290,7 @@ export function useDocumentApproval() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${anonKey}`,
           },
-          body: JSON.stringify({
-            type: 'request',
-            document_id: documentId,
-          }),
+          body: JSON.stringify(body),
         }
       );
 

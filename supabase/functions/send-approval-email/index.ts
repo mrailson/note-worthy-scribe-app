@@ -14,6 +14,7 @@ interface EmailRequest {
   type: "request" | "reminder" | "confirmation" | "completed" | "declined";
   document_id: string;
   signatory_id?: string;
+  custom_body?: string;
 }
 
 const formatDate = (dateStr: string): string => {
@@ -75,7 +76,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const resend = new Resend(resendApiKey);
 
-    const { type, document_id, signatory_id }: EmailRequest = await req.json();
+    const { type, document_id, signatory_id, custom_body }: EmailRequest = await req.json();
 
     if (!type || !document_id) {
       return new Response(JSON.stringify({ error: "type and document_id are required" }), {
@@ -132,32 +133,50 @@ const handler = async (req: Request): Promise<Response> => {
         : (allSignatories || []).filter((s) => s.status === "pending");
 
       for (const sig of targets) {
-        const deadlineInfo = doc.deadline
-          ? `<p style="margin: 4px 0; font-size: 14px;">⏰ <strong>Deadline:</strong> ${formatDate(doc.deadline)}</p>`
-          : "";
+        let html: string;
 
-        const messageBlock = doc.message
-          ? `<div style="background: #f1f5f9; border-left: 4px solid #0EA5E9; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
-              <p style="margin: 0; font-size: 14px; color: #475569;">"${doc.message}"</p>
-            </div>`
-          : "";
+        if (custom_body) {
+          // User-customised email body — replace [Signatory Name] placeholder, convert newlines to <br>
+          const personalised = custom_body
+            .replace(/\[Signatory Name\]/gi, sig.name)
+            .replace(/\n/g, "<br>");
 
-        const html = emailWrapper(`
-          <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Required</h2>
-          <p style="margin: 0 0 8px 0;">Dear ${sig.name},</p>
-          <p style="margin: 0 0 16px 0;">${doc.sender_name || "A colleague"} has sent you a document for approval.</p>
-          ${messageBlock}
-          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-            ${infoRow("📄 Document", doc.title)}
-            ${doc.category ? infoRow("📁 Category", doc.category) : ""}
-            ${infoRow("👤 From", doc.sender_name || doc.sender_email || "Unknown")}
-            ${infoRow("📅 Sent", formatDate(doc.created_at!))}
-          </table>
-          ${deadlineInfo}
-          <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is attached to this email for your review.</p>
-          ${primaryButton(`${APP_URL}/approve/${sig.approval_token}`, "✅ Review &amp; Approve")}
-          <p style="text-align: center; font-size: 13px; color: #94a3b8;">Or copy this link: ${APP_URL}/approve/${sig.approval_token}</p>
-        `);
+          html = emailWrapper(`
+            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Required</h2>
+            <div style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6;">${personalised}</div>
+            <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is attached to this email for your review.</p>
+            ${primaryButton(`${APP_URL}/approve/${sig.approval_token}`, "✅ Review &amp; Approve")}
+            <p style="text-align: center; font-size: 13px; color: #94a3b8;">Or copy this link: ${APP_URL}/approve/${sig.approval_token}</p>
+          `);
+        } else {
+          // Default email template
+          const deadlineInfo = doc.deadline
+            ? `<p style="margin: 4px 0; font-size: 14px;">⏰ <strong>Deadline:</strong> ${formatDate(doc.deadline)}</p>`
+            : "";
+
+          const messageBlock = doc.message
+            ? `<div style="background: #f1f5f9; border-left: 4px solid #0EA5E9; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
+                <p style="margin: 0; font-size: 14px; color: #475569;">"${doc.message}"</p>
+              </div>`
+            : "";
+
+          html = emailWrapper(`
+            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Required</h2>
+            <p style="margin: 0 0 8px 0;">Dear ${sig.name},</p>
+            <p style="margin: 0 0 16px 0;">${doc.sender_name || "A colleague"} has sent you a document for approval.</p>
+            ${messageBlock}
+            <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+              ${infoRow("📄 Document", doc.title)}
+              ${doc.category ? infoRow("📁 Category", doc.category) : ""}
+              ${infoRow("👤 From", doc.sender_name || doc.sender_email || "Unknown")}
+              ${infoRow("📅 Sent", formatDate(doc.created_at!))}
+            </table>
+            ${deadlineInfo}
+            <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is attached to this email for your review.</p>
+            ${primaryButton(`${APP_URL}/approve/${sig.approval_token}`, "✅ Review &amp; Approve")}
+            <p style="text-align: center; font-size: 13px; color: #94a3b8;">Or copy this link: ${APP_URL}/approve/${sig.approval_token}</p>
+          `);
+        }
 
         const emailPayload: any = {
           from: "Notewell AI <noreply@bluepcn.co.uk>",
