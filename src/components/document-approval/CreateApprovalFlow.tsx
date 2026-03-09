@@ -697,6 +697,36 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 Send for Approval
               </Button>
             </div>
+
+            {/* ─── Collapsible Document Preview ─── */}
+            {fileUrl && (
+              <div className="border rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowDocPreview(prev => !prev)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-muted/50 hover:bg-muted transition-colors text-sm font-medium"
+                >
+                  <span className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    Preview Document
+                  </span>
+                  {showDocPreview
+                    ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  }
+                </button>
+                {showDocPreview && (
+                  <div className="bg-muted/20 p-2">
+                    <iframe
+                      src={fileUrl}
+                      title="Document preview"
+                      className="w-full rounded border bg-white"
+                      style={{ height: '600px' }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
