@@ -487,7 +487,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   };
 
   const handleGenerateInfographic = useCallback(async (orientation: 'landscape' | 'portrait') => {
-    setInfographicView('infographic');
+    // Stay on document view — don't switch away
     setInfographicUrl(null);
     setInfographicProgress(0);
     setInfographicTipIdx(0);
@@ -518,6 +518,8 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
       if (result?.success && result.imageUrl) {
         setInfographicUrl(result.imageUrl);
+        // Auto-open fullscreen lightbox when ready
+        setInfographicFullscreen(true);
       }
     } catch {
       clearInterval(progressInterval);
