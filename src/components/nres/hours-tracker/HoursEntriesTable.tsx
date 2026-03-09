@@ -35,6 +35,7 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [datePeriod, setDatePeriod] = useState<'all' | 'this-month' | 'last-month'>('all');
   
   // Edit state
   const [editingEntry, setEditingEntry] = useState<NRESHoursEntry | null>(null);
