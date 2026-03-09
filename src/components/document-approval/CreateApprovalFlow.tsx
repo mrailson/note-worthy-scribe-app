@@ -198,10 +198,12 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
       .filter(c => !existingEmails.has(c.email.toLowerCase()))
       .map(c => ({
         id: localId(),
+        signatory_title: c.title || '',
         name: c.name,
         email: c.email,
         role: c.role || '',
         organisation: c.organisation || '',
+        organisation_type: c.organisation_type || '',
       }));
 
     setSignatories(prev => [...prev.filter(s => s.email || s.name), ...newRows]);
