@@ -11407,6 +11407,7 @@ export type Database = {
           cqc_compliance_access: boolean | null
           created_at: string | null
           cso_governance_access: boolean | null
+          document_signoff_access: boolean | null
           enhanced_access: boolean | null
           fridge_monitoring_access: boolean
           gp_scribe_access: boolean | null
@@ -11434,6 +11435,7 @@ export type Database = {
           cqc_compliance_access?: boolean | null
           created_at?: string | null
           cso_governance_access?: boolean | null
+          document_signoff_access?: boolean | null
           enhanced_access?: boolean | null
           fridge_monitoring_access?: boolean
           gp_scribe_access?: boolean | null
@@ -11461,6 +11463,7 @@ export type Database = {
           cqc_compliance_access?: boolean | null
           created_at?: string | null
           cso_governance_access?: boolean | null
+          document_signoff_access?: boolean | null
           enhanced_access?: boolean | null
           fridge_monitoring_access?: boolean
           gp_scribe_access?: boolean | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.user_roles ADD COLUMN IF NOT EXISTS document_signoff_access boolean DEFAULT false;
