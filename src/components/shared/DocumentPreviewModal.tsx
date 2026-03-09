@@ -384,7 +384,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
   const activeContent = editableContent ?? content;
   const documentTitle = externalTitle || extractTitle(activeContent);
-  const [infographicView, setInfographicView] = useState<'document' | 'infographic'>('document');
+  // infographicView state removed — document always visible, infographic opens as lightbox
   const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
   const [infographicProgress, setInfographicProgress] = useState(0);
   const [infographicTipIdx, setInfographicTipIdx] = useState(0);
