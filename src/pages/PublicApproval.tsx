@@ -219,9 +219,9 @@ const PublicApproval = () => {
       <PageShell>
         <Card className="p-8 text-center space-y-4">
           {signatory.status === 'approved' ? (
-            <CheckCircle2 className="h-12 w-12 text-[hsl(142,71%,45%)] mx-auto" />
+            <CheckCircle2 className="h-12 w-12 text-[hsl(var(--approval-approved))] mx-auto" />
           ) : (
-            <XCircle className="h-12 w-12 text-[hsl(0,84%,60%)] mx-auto" />
+            <XCircle className="h-12 w-12 text-destructive mx-auto" />
           )}
           <h2 className="text-lg font-semibold text-foreground">
             {signatory.status === 'approved'
