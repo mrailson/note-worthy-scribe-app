@@ -117,6 +117,11 @@ export const MyDocuments: React.FC = () => {
           title={previewDoc.title}
           isOpen={!!previewDoc}
           onClose={() => setPreviewDoc(null)}
+          onExportPowerPoint={(content, title, slideCount) => {
+            generateWithGamma(content, title, true, slideCount || 4).catch((err) => {
+              console.error('PowerPoint generation failed:', err);
+            });
+          }}
         />
       )}
     </div>
