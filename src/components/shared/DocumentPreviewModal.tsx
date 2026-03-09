@@ -238,59 +238,69 @@ const InfographicFullscreen: React.FC<{
   }, []);
 
   return (
-    <div
-      className="fixed inset-0 bg-black/95 flex items-center justify-center cursor-pointer"
-      style={{ zIndex: 2147483647 }}
-      onClick={onClose}
-      role="dialog"
-      aria-label="Infographic fullscreen view"
-    >
-      {/* Controls */}
+    <>
+      {/* Block all Radix Dialog layers underneath */}
+      <style>{`
+        [data-radix-dialog-overlay],
+        [data-radix-dialog-content] {
+          pointer-events: none !important;
+          visibility: hidden !important;
+        }
+      `}</style>
       <div
-        className="absolute top-4 right-4 flex items-center gap-2"
-        style={{ zIndex: 2147483647 }}
+        className="fixed inset-0 bg-black/95 flex items-center justify-center cursor-pointer"
+        style={{ zIndex: 2147483647, pointerEvents: 'auto' }}
+        onClick={onClose}
+        role="dialog"
+        aria-label="Infographic fullscreen view"
       >
-        <button
-          type="button"
-          className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDownload();
-          }}
-          aria-label="Download infographic"
+        {/* Controls */}
+        <div
+          className="absolute top-4 right-4 flex items-center gap-2"
+          style={{ zIndex: 2147483647 }}
         >
-          <Download className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+          <button
+            type="button"
+            className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload();
+            }}
+            aria-label="Download infographic"
+          >
+            <Download className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            aria-label="Close fullscreen"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Image – clicking it also closes (natural flow) */}
+        <img
+          src={infographicUrl}
+          alt="Infographic fullscreen"
+          className="max-w-[95vw] max-h-[95vh] object-contain select-none cursor-pointer"
+          draggable={false}
           onClick={(e) => {
             e.stopPropagation();
             onClose();
           }}
-          aria-label="Close fullscreen"
-        >
-          <X className="h-6 w-6" />
-        </button>
-      </div>
+        />
 
-      {/* Image – clicking it also closes (natural flow) */}
-      <img
-        src={infographicUrl}
-        alt="Infographic fullscreen"
-        className="max-w-[95vw] max-h-[95vh] object-contain select-none cursor-pointer"
-        draggable={false}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-      />
-
-      {/* Hint */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm pointer-events-none">
-        Click image or backdrop to close • <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-xs">Esc</kbd> to close
+        {/* Hint */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm pointer-events-none">
+          Click image or backdrop to close • <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-xs">Esc</kbd> to close
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
