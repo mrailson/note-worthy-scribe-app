@@ -1983,11 +1983,22 @@ serve(async (req) => {
               console.log(`Extracting content from: ${file.name} (${file.type})`);
               let extractedContent = await extractFileContent(file);
               
-              // Implement intelligent content management for large files
-              const maxFileContentLength = 50000; // Per file limit to avoid token issues
-              if (extractedContent.length > maxFileContentLength) {
-                console.log(`File ${file.name} content too large (${extractedContent.length} chars), truncating to ${maxFileContentLength} chars`);
-                extractedContent = extractedContent.substring(0, maxFileContentLength) + '\n\n[CONTENT TRUNCATED DUE TO SIZE - Only first portion shown]';
+              // Skip truncation for PDF base64 data (sent as multimodal) and Word docs (full text fits in 200k context)
+              const isPdf = extractedContent.startsWith('data:application/pdf');
+              const isWord = file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc');
+              
+              if (!isPdf && !isWord) {
+                // Implement intelligent content management for large non-PDF/Word files
+                const maxFileContentLength = 50000; // Per file limit to avoid token issues
+                if (extractedContent.length > maxFileContentLength) {
+                  console.log(`File ${file.name} content too large (${extractedContent.length} chars), truncating to ${maxFileContentLength} chars`);
+                  extractedContent = extractedContent.substring(0, maxFileContentLength) + '\n\n[CONTENT TRUNCATED DUE TO SIZE - Only first portion shown]';
+                }
+              } else if (isPdf) {
+                const estimatedPages = Math.max(1, Math.round((file.size || 0) / (100 * 1024)));
+                console.log(`📄 PDF ${file.name}: ~${estimatedPages} pages, sending as native multimodal (no truncation)`);
+              } else if (isWord) {
+                console.log(`📝 Word doc ${file.name}: ${extractedContent.length} chars, sending full text (no truncation)`);
               }
               
               return {
