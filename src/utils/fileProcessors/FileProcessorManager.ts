@@ -141,10 +141,11 @@ export class FileProcessorManager {
           throw new Error(`Unsupported file type: ${fileType}`);
       }
       
-      // Word docs converted to PDF should be treated as PDF for downstream processing
-      const effectiveType = (fileType === 'word' && content.startsWith('data:application/pdf'))
-        ? 'pdf'
-        : fileType;
+      // Word docs: determine effective type based on which fallback attempt succeeded
+      let effectiveType: string = fileType;
+      if (fileType === 'word') {
+        effectiveType = content.startsWith('data:application/pdf') ? 'pdf' : 'text';
+      }
 
       return {
         name: file.name,
