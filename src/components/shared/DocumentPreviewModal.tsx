@@ -653,7 +653,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
       {/* Fullscreen infographic lightbox - rendered via portal to escape Dialog stacking context */}
       {infographicFullscreen && infographicUrl && createPortal(
         <div
-          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center cursor-pointer"
+          className="fixed inset-0 z-[2147483647] bg-black/95 flex items-center justify-center cursor-pointer"
           onClick={() => setInfographicFullscreen(false)}
         >
           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
