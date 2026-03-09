@@ -540,7 +540,7 @@ ${pastedText.trim()}
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a,.xls,.xlsx,.csv,application/msword"
+            accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a,.xls,.xlsx,.csv,.ppt,.pptx,application/msword"
             onChange={handleFileSelect}
             className="hidden"
           />
