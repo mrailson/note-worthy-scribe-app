@@ -420,7 +420,7 @@ export function useImageStudio() {
           prompt: sanitisedDescription,
           supportingContent: sanitisedSupporting || undefined,
           summariseSupportingContent: settings.summariseSupportingContent || undefined,
-          keyMessages: settings.keyMessages.length > 0 ? settings.keyMessages : undefined,
+          keyMessages: sanitisedKeyMessages.length > 0 ? sanitisedKeyMessages : undefined,
           targetAudience: settings.targetAudience,
           purpose: settings.purpose,
           stylePreset: settings.stylePreset,
