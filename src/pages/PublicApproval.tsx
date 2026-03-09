@@ -180,7 +180,7 @@ const PublicApproval = () => {
     return (
       <PageShell>
         <Card className="p-8 text-center space-y-4">
-          <AlertTriangle className="h-12 w-12 text-[hsl(0,84%,60%)] mx-auto" />
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
           <h2 className="text-lg font-semibold text-foreground">Unable to Load</h2>
           <p className="text-sm text-muted-foreground">{error || 'Invalid or expired approval link.'}</p>
           <p className="text-xs text-muted-foreground">
