@@ -52,6 +52,8 @@ export interface ApprovalContact {
   email: string;
   role: string | null;
   organisation: string | null;
+  title: string | null;
+  organisation_type: string | null;
   is_favourite: boolean;
 }
 
