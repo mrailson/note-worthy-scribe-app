@@ -157,7 +157,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: true,
     lg_capture_access: true,
     bp_service_access: true,
-    survey_manager_access: true
+    survey_manager_access: true,
+    document_signoff_access: true
   },
 
   // PCN Manager - oversight across practices
