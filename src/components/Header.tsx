@@ -137,7 +137,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           {/* Mobile-friendly title - show for both logged in and logged out */}
           <div
             className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/?from=home')}
           >
             <span className="text-sm sm:text-xl font-bold text-white flex items-center">
               Notewell AI
