@@ -229,9 +229,9 @@ export function useAIChatHistory(consultationId: string | null) {
     return createSession(initialMessages);
   }, [createSession]);
 
-  const handleLoadSession = useCallback((session: AIChatSession) => {
+  const handleLoadSession = useCallback(async (session: AIChatSession) => {
     setIsNewChatMode(false);
-    loadSession(session);
+    await loadSession(session);
   }, [loadSession]);
 
   // Cleanup on unmount
