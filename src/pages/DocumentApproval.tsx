@@ -1,14 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download } from 'lucide-react';
+import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download, Send } from 'lucide-react';
 import { useDocumentApproval, ApprovalDocumentWithSignatories, ApprovalSignatory } from '@/hooks/useDocumentApproval';
 import { CreateApprovalFlow } from '@/components/document-approval/CreateApprovalFlow';
 import { ApprovalDocumentDetail } from '@/components/document-approval/ApprovalDocumentDetail';
 import { useNavigate } from 'react-router-dom';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 const categoryLabels: Record<string, string> = {
   dpia: 'DPIA', dsa: 'DSA', mou: 'MOU', policy: 'Policy',
