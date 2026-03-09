@@ -85,6 +85,10 @@ export const useAI4GPService = () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       if (verificationTimeoutRef.current) clearTimeout(verificationTimeoutRef.current);
       if (simulatedStreamTimeoutRef.current) clearTimeout(simulatedStreamTimeoutRef.current);
+      // Clear all fire-and-forget timeouts
+      pendingTimeoutRefs.current.forEach(id => clearTimeout(id));
+      console.log(`cleanup: Cleared ${pendingTimeoutRefs.current.size} pending fire-and-forget timeouts`);
+      pendingTimeoutRefs.current.clear();
     };
   }, []);
   
