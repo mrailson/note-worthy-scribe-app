@@ -103,7 +103,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
       });
 
       // Upload to storage
-      const signedBlob = new Blob([signedPdfBytes], { type: 'application/pdf' });
+      const signedBlob = new Blob([signedPdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const storagePath = `signed/${doc.id}-signed-${Date.now()}.pdf`;
 
       const { error: uploadError } = await supabase.storage
