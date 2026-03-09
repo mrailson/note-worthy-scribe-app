@@ -145,7 +145,7 @@ const handler = async (req: Request): Promise<Response> => {
             .replace(/\n/g, "<br>");
 
           html = emailWrapper(`
-            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Required</h2>
+            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Requested</h2>
             <div style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6;">${personalised}</div>
             <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is attached to this email for your review.</p>
             ${primaryButton(`${APP_URL}/approve/${sig.approval_token}`, "✅ Review &amp; Approve")}
@@ -164,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
             : "";
 
           html = emailWrapper(`
-            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Required</h2>
+            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Requested</h2>
             <p style="margin: 0 0 8px 0;">Dear ${sig.name},</p>
             <p style="margin: 0 0 16px 0;">${doc.sender_name || "A colleague"} has sent you a document for approval.</p>
             ${messageBlock}
@@ -184,7 +184,7 @@ const handler = async (req: Request): Promise<Response> => {
         const emailPayload: any = {
           from: "Notewell AI <noreply@bluepcn.co.uk>",
           to: [sig.email],
-          subject: `Document Approval Required: ${doc.title}`,
+          subject: `Document Approval Requested: ${doc.title}`,
           html,
         };
 
