@@ -257,7 +257,8 @@ const SystemAdmin = () => {
       cso_governance_access: false,
       lg_capture_access: false,
       bp_service_access: false,
-      survey_manager_access: false
+      survey_manager_access: false,
+      document_signoff_access: false
     }
   });
   
