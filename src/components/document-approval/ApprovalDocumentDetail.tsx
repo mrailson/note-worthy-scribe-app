@@ -23,12 +23,13 @@ const signatoryStatusConfig: Record<string, { label: string; color: string; icon
 };
 
 export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
-  const { fetchSignatories, fetchAuditLog, revokeDocument } = useDocumentApproval();
+  const { fetchSignatories, fetchAuditLog, revokeDocument, deleteDocument } = useDocumentApproval();
   const [signatories, setSignatories] = useState<ApprovalSignatory[]>([]);
   const [auditLog, setAuditLog] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Access the raw doc data including new columns
   const signedFileUrl = (doc as any).signed_file_url as string | null;
