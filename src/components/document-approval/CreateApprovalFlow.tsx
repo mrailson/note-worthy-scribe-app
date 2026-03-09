@@ -374,16 +374,63 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 className="mt-1.5" rows={3} />
             </div>
 
-            {/* Deadline */}
+            {/* Signature Placement */}
             <div>
-              <Label className="text-sm font-medium">Deadline</Label>
-              <Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="mt-1.5" />
+              <Label className="text-sm font-medium">Signature placement</Label>
+              <RadioGroup value={signatureMethod} onValueChange={(v) => setSignatureMethod(v as 'append' | 'stamp')} className="mt-2 space-y-2">
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/50 transition-colors">
+                  <RadioGroupItem value="append" id="sig-append" className="mt-0.5" />
+                  <div>
+                    <label htmlFor="sig-append" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
+                      <FileSignature className="h-4 w-4 text-primary" /> Append signature page
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Adds a professional signature page as the final page of the document</p>
+                  </div>
+                </div>
+                <div className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                  !file?.name.toLowerCase().endsWith('.pdf') ? 'border-border opacity-50' : 'border-border hover:border-primary/50'
+                }`}>
+                  <RadioGroupItem value="stamp" id="sig-stamp" className="mt-0.5" disabled={!file?.name.toLowerCase().endsWith('.pdf')} />
+                  <div>
+                    <label htmlFor="sig-stamp" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
+                      <Stamp className="h-4 w-4 text-primary" /> Stamp signature block
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Places signatures onto a specific page in the document
+                      {!file?.name.toLowerCase().endsWith('.pdf') && ' (PDF only)'}
+                    </p>
+                  </div>
+                </div>
+              </RadioGroup>
             </div>
 
             <Button onClick={handleUploadAndContinue} disabled={uploading || !file || !title.trim()} className="w-full gap-2">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {uploading ? 'Uploading & Hashing…' : 'Upload & Continue'}
             </Button>
+          </Card>
+        )}
+
+        {/* ═══ STEP 1b: Stamp Position ═══ */}
+        {step === 'stamp_position' && fileUrl && (
+          <Card className="p-6 space-y-5">
+            <div>
+              <h2 className="font-semibold text-foreground mb-1">Position Signature Block</h2>
+              <p className="text-xs text-muted-foreground">Select the page and drag the overlay to define where signatures will appear</p>
+            </div>
+            <SignaturePositionPicker
+              fileUrl={fileUrl}
+              value={stampPosition}
+              onChange={setStampPosition}
+            />
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep('upload')} className="gap-2">
+                <ArrowLeft className="h-4 w-4" /> Back
+              </Button>
+              <Button onClick={handleStampPositionContinue} className="flex-1 gap-2">
+                Continue to Signatories
+              </Button>
+            </div>
           </Card>
         )}
 
