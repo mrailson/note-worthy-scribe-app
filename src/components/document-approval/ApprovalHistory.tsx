@@ -392,7 +392,7 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
                       {doc.completed_at ? format(new Date(doc.completed_at), 'dd MMM yyyy') : '—'}
                     </TableCell>
                     <TableCell>
-                      <span className={`text-sm font-medium ${allApproved ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      <span className={`text-sm font-medium ${allApproved ? 'text-[hsl(var(--approval-approved))]' : 'text-muted-foreground'}`}>
                         {approved}/{total}
                         {allApproved && ' ✅'}
                         {!allApproved && total > 0 && ' ❌'}
