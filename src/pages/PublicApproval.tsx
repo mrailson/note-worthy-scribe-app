@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import notewellLogo from '@/assets/notewell-logo.png';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -323,9 +324,11 @@ const PublicApproval = () => {
           >
             <Download className="h-4 w-4" />
             Download Document ({document.original_filename})
-            {document.file_size_bytes && (
+            {document.file_size_bytes != null && document.file_size_bytes > 0 && (
               <span className="text-xs text-muted-foreground">
-                — {(document.file_size_bytes / 1024 / 1024).toFixed(1)} MB
+                — {document.file_size_bytes < 1024 * 1024
+                    ? `${(document.file_size_bytes / 1024).toFixed(0)} KB`
+                    : `${(document.file_size_bytes / 1024 / 1024).toFixed(1)} MB`}
               </span>
             )}
           </Button>
@@ -439,7 +442,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
       <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10 space-y-5">
         {/* Logo */}
         <div className="flex justify-center">
-          <img src="/oak-lane-logo.png" alt="Notewell" className="h-10 sm:h-12" />
+          <img src={notewellLogo} alt="Notewell" className="h-10 sm:h-12" />
         </div>
         {children}
         <p className="text-center text-xs text-muted-foreground">
