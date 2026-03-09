@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { generateSignedPdf, SignatoryInfo, SignaturePlacement } from '@/utils/generateSignedPdf';
 import { supabase } from '@/integrations/supabase/client';
+import { SignatureCertificate, type CertificateSignatory, type AuditEntry } from './SignatureCertificate';
 
 const downloadFromStorage = async (fileUrl: string): Promise<Blob> => {
   const storagePath = fileUrl.split('/approval-documents/')[1];
