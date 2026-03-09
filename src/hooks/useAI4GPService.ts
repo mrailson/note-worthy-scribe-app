@@ -65,6 +65,9 @@ export const useAI4GPService = () => {
   // Guard to prevent initial settings load from triggering a save-back cascade
   const hasLoadedSettings = useRef(false);
   
+  // Set of pending fire-and-forget timeouts (auto-save, clinical verification)
+  const pendingTimeoutRefs = useRef<Set<NodeJS.Timeout>>(new Set());
+  
   // Refs for frequently-changing values to prevent stale closures in callbacks
   const selectedModelRef = useRef(selectedModel);
   const isClinicalRef = useRef(isClinical);
