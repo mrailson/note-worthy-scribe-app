@@ -342,7 +342,7 @@ export function useDocumentApproval() {
 
   const addSignatories = useCallback(async (
     documentId: string,
-    signatories: { name: string; email: string; role?: string; organisation?: string }[]
+    signatories: { name: string; email: string; role?: string; organisation?: string; signatory_title?: string; organisation_type?: string }[]
   ) => {
     const rows = signatories.map((s, i) => ({
       document_id: documentId,
@@ -350,6 +350,8 @@ export function useDocumentApproval() {
       email: s.email,
       role: s.role || null,
       organisation: s.organisation || null,
+      signatory_title: s.signatory_title || null,
+      organisation_type: s.organisation_type || null,
       sort_order: i,
     }));
 
