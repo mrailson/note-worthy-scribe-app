@@ -9,8 +9,9 @@ import { PolicyUsageReport } from './PolicyUsageReport';
 import { MeetingUsageReport } from './MeetingUsageReport';
 import { GPScribeStats } from './GPScribeStats';
 import { TranslationUsageReport } from './TranslationUsageReport';
+import { DocumentStudioUsageReport } from './DocumentStudioUsageReport';
 import { DevelopmentCosts } from './DevelopmentCosts';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, PenTool } from 'lucide-react';
 
 export const AI4GPServicesOverview = () => {
   const [activeTab, setActiveTab] = useState('genie');

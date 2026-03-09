@@ -105,6 +105,33 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
         generatedTitle: docTitle,
         isGenerating: false,
       });
+
+      // Log usage for admin reporting
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const wordCount = (data.content || '').split(/\s+/).filter(Boolean).length;
+          const requestSummary = [
+            state.selectedType?.display_name || 'Custom',
+            state.freeFormRequest ? `— "${state.freeFormRequest.slice(0, 120)}"` : '',
+          ].filter(Boolean).join(' ');
+
+          await supabase
+            .from('document_studio_usage' as any)
+            .insert({
+              user_id: user.id,
+              document_type: state.selectedType?.type_key || 'custom',
+              document_type_name: state.selectedType?.display_name || 'Custom Document',
+              title: docTitle,
+              free_form_request: state.freeFormRequest || null,
+              word_count: wordCount,
+              action: 'generate',
+              request_summary: requestSummary,
+            });
+        }
+      } catch (logErr) {
+        console.warn('Failed to log Document Studio usage:', logErr);
+      }
       
       toast.success('Document generated successfully');
     } catch (err: any) {
