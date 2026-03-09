@@ -175,13 +175,7 @@ export function useImageStudio() {
   const blobUrlsRef = useRef<string[]>([]);
   const isMountedRef = useRef(true);
 
-  // Clear any stale history from localStorage on first mount to prevent crashes
-  useEffect(() => {
-    try {
-      localStorage.removeItem(HISTORY_STORAGE_KEY);
-      console.log('🧹 Cleared image studio history from localStorage');
-    } catch { /* ignore */ }
-  }, []);
+  // No longer clearing history on mount — we load it from localStorage instead
 
   // Cleanup all blob URLs on unmount
   useEffect(() => {
