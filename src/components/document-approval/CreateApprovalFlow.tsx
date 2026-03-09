@@ -343,7 +343,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                     {/* DOCX notice */}
                     {file.name.toLowerCase().endsWith('.docx') && (
                       <p className="text-xs text-primary flex items-center justify-center gap-1 mt-1">
-                        <Shield className="h-3 w-3" /> Word document — will be auto-converted to PDF for email attachment
+                        <Shield className="h-3 w-3" /> Word document — will be automatically converted to PDF before sending
                       </p>
                     )}
                   </div>
