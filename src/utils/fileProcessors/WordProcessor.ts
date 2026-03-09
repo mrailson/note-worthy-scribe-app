@@ -52,20 +52,33 @@ export class WordProcessor {
       try {
         console.log('📄 Attempt 1: Converting HTML → PDF via html2pdf…');
         const container = document.createElement('div');
-        container.style.position = 'absolute';
-        container.style.left = '-9999px';
-        container.style.top = '-9999px';
+        container.style.position = 'fixed';
+        container.style.left = '0';
+        container.style.top = '0';
         container.style.width = '210mm';
+        container.style.minHeight = '297mm';
+        container.style.background = 'white';
+        container.style.color = 'black';
+        container.style.fontSize = '12pt';
+        container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+        container.style.lineHeight = '1.5';
+        container.style.padding = '20mm';
+        container.style.zIndex = '-9999';
+        container.style.pointerEvents = 'none';
+        container.style.overflow = 'auto';
         container.innerHTML = mammothHtml;
         document.body.appendChild(container);
+
+        // Allow browser to fully paint before html2canvas captures
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         try {
           const pdfBlob: Blob = await html2pdf()
             .set({
               margin: [10, 10, 10, 10],
               filename: file.name.replace(/\.docx?$/i, '.pdf'),
-              image: { type: 'jpeg', quality: 0.95 },
-              html2canvas: { scale: 2, useCORS: true },
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
               jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             })
             .from(container)

@@ -190,8 +190,9 @@ export function useDocumentApproval() {
         }
 
         const container = document.createElement('div');
+        // Must be on-screen for html2canvas to capture — hide visually behind everything
         container.style.position = 'fixed';
-        container.style.left = '-9999px';
+        container.style.left = '0';
         container.style.top = '0';
         container.style.width = '210mm';
         container.style.minHeight = '297mm';
@@ -202,13 +203,13 @@ export function useDocumentApproval() {
         container.style.lineHeight = '1.5';
         container.style.padding = '20mm';
         container.style.zIndex = '-9999';
-        container.style.visibility = 'visible';
-        container.style.opacity = '1';
+        container.style.pointerEvents = 'none';
+        container.style.overflow = 'auto';
         container.innerHTML = result.value;
         document.body.appendChild(container);
 
-        // Allow the browser to paint the content before capturing
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        // Allow the browser to fully paint the content before capturing
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         console.log('📄 DOCX HTML content length:', result.value.length, 'Container offsetHeight:', container.offsetHeight);
 
