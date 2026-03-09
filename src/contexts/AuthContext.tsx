@@ -77,6 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lg_capture_access: boolean;
         bp_service_access: boolean;
         survey_manager_access?: boolean;
+        document_signoff_access?: boolean;
       }>;
       
       // Aggregate access flags across ALL role records using OR logic
