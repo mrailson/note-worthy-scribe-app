@@ -224,20 +224,22 @@ export function useNRESClaimants() {
 
   const activeClaimants = claimants.filter(c => c.is_active);
   
-  // For non-admin users, filter claimants to only those matching their practice
+  // For non-admin users, prefer deterministic practice_id matching,
+  // with member_practice name matching as a fallback for legacy PCN claimant rows.
   const practiceFilteredClaimants = useMemo(() => {
-    if (isAdmin || !userPracticeName) return activeClaimants;
-    
-    // Match user's gp_practices.name against claimant member_practice
-    // Use case-insensitive partial matching to handle naming variations
-    const userPracticeNorm = userPracticeName.toLowerCase().replace(/^the\s+/i, '');
-    
+    if (isAdmin) return activeClaimants;
+
     return activeClaimants.filter(c => {
-      if (!c.member_practice) return false;
-      const memberNorm = c.member_practice.toLowerCase().replace(/^the\s+/i, '');
+      // Primary: direct practice_id match (most reliable)
+      if (practiceId && c.practice_id === practiceId) return true;
+
+      // Fallback: member_practice name match for legacy/shared claimant rows
+      if (!userPracticeName || !c.member_practice) return false;
+      const userPracticeNorm = userPracticeName.toLowerCase().replace(/^the\s+/i, '').trim();
+      const memberNorm = c.member_practice.toLowerCase().replace(/^the\s+/i, '').trim();
       return memberNorm.includes(userPracticeNorm) || userPracticeNorm.includes(memberNorm);
     });
-  }, [activeClaimants, isAdmin, userPracticeName]);
+  }, [activeClaimants, isAdmin, practiceId, userPracticeName]);
 
   return {
     claimants,
