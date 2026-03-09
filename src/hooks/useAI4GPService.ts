@@ -1042,10 +1042,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 ));
 
                 // Auto-save the search
-                setTimeout(async () => {
+                const _t4 = setTimeout(async () => {
+                  pendingTimeoutRefs.current.delete(_t4);
                   const finalMessages = [...newMessages, finalAssistantMessage];
                   await saveSearchAutomatically(finalMessages);
                 }, 100);
+                pendingTimeoutRefs.current.add(_t4);
                 
                 break;
               }
