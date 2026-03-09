@@ -564,7 +564,7 @@ function NeedsAttentionPanel({ needsAttention, onSelectDoc, onChaseAllOverdue, i
   return (
     <Card className="p-4 sticky top-6">
       <h2 className="font-semibold text-foreground flex items-center gap-2 mb-4">
-        <AlertTriangle className="h-4 w-4 text-amber-500" />
+        <AlertTriangle className="h-4 w-4 text-[hsl(var(--warning))]" />
         Needs Attention
       </h2>
 
