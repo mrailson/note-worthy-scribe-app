@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
-import { Download, FileText, X, Loader2, ImageIcon, Monitor, ArrowLeft, Settings2, Presentation } from 'lucide-react';
+import { Download, FileText, X, Loader2, ImageIcon, Monitor, ArrowLeft, Settings2, Presentation, BarChart3 } from 'lucide-react';
 import { DocumentAIEditPanel } from '@/components/shared/DocumentAIEditPanel';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -302,6 +302,64 @@ const InfographicFullscreen: React.FC<{
         </div>
       </div>
     </>
+  );
+};
+// Inline infographic selector with slide-reveal orientation options
+const InfographicSelector: React.FC<{
+  isGenerating: boolean;
+  onGenerate: (orientation: 'landscape' | 'portrait') => void;
+}> = ({ isGenerating, onGenerate }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="flex items-center gap-0">
+      <Button
+        variant={expanded ? 'secondary' : 'outline'}
+        className="gap-2 rounded-full px-5 relative z-10"
+        disabled={isGenerating}
+        onClick={() => setExpanded(prev => !prev)}
+      >
+        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <BarChart3 className="h-4 w-4" />}
+        <span className="flex flex-col items-start leading-tight">
+          <span>Infographic</span>
+          <span className="text-[10px] text-muted-foreground font-normal -mt-0.5">Generate visual summary</span>
+        </span>
+      </Button>
+
+      <div
+        className={cn(
+          'flex items-center gap-1 overflow-hidden transition-all duration-250 ease-out',
+          expanded ? 'max-w-[220px] opacity-100 ml-1' : 'max-w-0 opacity-0 ml-0'
+        )}
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 rounded-full text-xs whitespace-nowrap"
+          disabled={isGenerating}
+          onClick={() => {
+            onGenerate('landscape');
+            setExpanded(false);
+          }}
+        >
+          <Monitor className="h-3.5 w-3.5" />
+          Landscape
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 rounded-full text-xs whitespace-nowrap"
+          disabled={isGenerating}
+          onClick={() => {
+            onGenerate('portrait');
+            setExpanded(false);
+          }}
+        >
+          <ImageIcon className="h-3.5 w-3.5" />
+          Portrait
+        </Button>
+      </div>
+    </div>
   );
 };
 
@@ -682,21 +740,17 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         <div className="px-4 sm:px-6 py-3 border-t bg-muted/30 flex flex-wrap items-center gap-2">
           {infographicView === 'document' ? (
             <>
-              <Button onClick={handleDownloadWord} disabled={isDownloadingWord} className="gap-2">
+              {/* Word */}
+              <Button onClick={handleDownloadWord} disabled={isDownloadingWord} className="gap-2 rounded-full px-5">
                 {isDownloadingWord ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                 Word
               </Button>
-              {prefs.showPdfDownload && (
-                <Button variant="outline" onClick={handleDownloadPdf} disabled={isDownloadingPdf} className="gap-2">
-                  {isDownloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  PDF
-                </Button>
-              )}
 
+              {/* Presentation */}
               {onExportPowerPoint && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="gap-2">
+                    <Button variant="outline" className="gap-2 rounded-full px-5">
                       <Presentation className="h-4 w-4" />
                       Presentation
                     </Button>
@@ -710,9 +764,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                           variant="ghost"
                           size="sm"
                           className="text-sm justify-center"
-                          onClick={() => {
-                            onExportPowerPoint(activeContent, documentTitle, count);
-                          }}
+                          onClick={() => onExportPowerPoint(activeContent, documentTitle, count)}
                         >
                           {count}
                         </Button>
@@ -722,30 +774,12 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 </Popover>
               )}
 
+              {/* Infographic with inline orientation reveal */}
               {prefs.showInfographic && (
-                <>
-                  <div className="h-6 w-px bg-border mx-1" />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleGenerateInfographic('landscape')}
-                    disabled={isInfographicGenerating}
-                    className="gap-2 text-xs"
-                  >
-                    <Monitor className="h-4 w-4" />
-                    Landscape
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleGenerateInfographic('portrait')}
-                    disabled={isInfographicGenerating}
-                    className="gap-2 text-xs"
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                    Portrait
-                  </Button>
-                </>
+                <InfographicSelector
+                  isGenerating={isInfographicGenerating}
+                  onGenerate={handleGenerateInfographic}
+                />
               )}
 
               <Button variant="ghost" onClick={handleClose} className="ml-auto">
