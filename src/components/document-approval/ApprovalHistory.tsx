@@ -374,7 +374,7 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
                     </TableCell>
                     <TableCell>
                       {doc.status === 'completed' ? (
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs gap-1">
+                        <Badge className="bg-[hsl(var(--approval-completed-bg))] text-[hsl(var(--approval-approved))] border border-[hsl(var(--approval-completed-border))] text-xs gap-1">
                           <CheckCircle2 className="h-3 w-3" /> Completed
                         </Badge>
                       ) : doc.status === 'revoked' ? (
@@ -392,7 +392,7 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
                       {doc.completed_at ? format(new Date(doc.completed_at), 'dd MMM yyyy') : '—'}
                     </TableCell>
                     <TableCell>
-                      <span className={`text-sm font-medium ${allApproved ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      <span className={`text-sm font-medium ${allApproved ? 'text-[hsl(var(--approval-approved))]' : 'text-muted-foreground'}`}>
                         {approved}/{total}
                         {allApproved && ' ✅'}
                         {!allApproved && total > 0 && ' ❌'}

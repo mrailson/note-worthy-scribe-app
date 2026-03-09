@@ -261,7 +261,7 @@ export default function DocumentApproval() {
                   onClick={() => setFilter('awaiting')}
                 >
                   <div className="flex items-center justify-center gap-2 mb-1">
-                    <Clock className="h-5 w-5 text-amber-500" />
+                    <Clock className="h-5 w-5 text-[hsl(var(--warning))]" />
                     <p className="text-2xl font-bold text-foreground">{counts.awaiting}</p>
                   </div>
                   <p className="text-xs text-muted-foreground">Awaiting</p>
@@ -271,7 +271,7 @@ export default function DocumentApproval() {
                   onClick={() => setFilter('completed')}
                 >
                   <div className="flex items-center justify-center gap-2 mb-1">
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <CheckCircle2 className="h-5 w-5 text-[hsl(var(--approval-approved))]" />
                     <p className="text-2xl font-bold text-foreground">{counts.completed}</p>
                   </div>
                   <p className="text-xs text-muted-foreground">Completed</p>
@@ -297,22 +297,47 @@ export default function DocumentApproval() {
                 {/* Document List */}
                 <div className="flex-1 min-w-0 space-y-3">
                   {loading ? (
-                    <div className="flex justify-center py-12">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <div className="space-y-3">
+                      {[1, 2, 3].map(i => (
+                        <Card key={i} className="p-5">
+                          <div className="animate-pulse space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="h-4 w-4 bg-muted rounded" />
+                              <div className="h-5 bg-muted rounded w-1/3" />
+                              <div className="h-5 bg-muted rounded w-16" />
+                            </div>
+                            <div className="h-3 bg-muted rounded w-2/3" />
+                            <div className="h-2 bg-muted rounded-full w-full" />
+                            <div className="flex gap-3">
+                              {[1, 2, 3, 4].map(j => (
+                                <div key={j} className="h-3 bg-muted rounded w-20" />
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <div className="h-8 bg-muted rounded w-24" />
+                              <div className="h-8 bg-muted rounded w-28" />
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
                   ) : filteredDocs.length === 0 ? (
                     <Card className="p-12 text-center">
-                      <FileCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <div className="mx-auto mb-6 w-24 h-24 rounded-full bg-primary/5 flex items-center justify-center">
+                        <FileCheck className="h-12 w-12 text-primary/40" />
+                      </div>
                       <h3 className="text-lg font-semibold text-foreground mb-2">
-                        {filter === 'all' ? 'No approval documents yet' : 'No documents match this filter'}
+                        {filter === 'all' ? 'No approval requests yet' : 'No documents match this filter'}
                       </h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Upload a document and send it to people for electronic approval.
+                      <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+                        {filter === 'all'
+                          ? 'Upload a document and send it for electronic approval. Track who has signed at a glance.'
+                          : 'Try adjusting your filters to find what you\'re looking for.'}
                       </p>
                       {filter === 'all' && (
-                        <Button onClick={() => setShowCreate(true)} className="gap-2">
-                          <Plus className="h-4 w-4" />
-                          Create First Approval
+                        <Button onClick={() => setShowCreate(true)} size="lg" className="gap-2">
+                          <Plus className="h-5 w-5" />
+                          Create Your First Approval Request
                         </Button>
                       )}
                     </Card>
@@ -387,7 +412,7 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
 
   return (
     <Card className={`p-5 cursor-pointer hover:border-primary/50 transition-colors ${
-      overdue ? 'border-destructive/40' : ''
+      overdue ? 'border-destructive/40' : isCompleted ? 'border-[hsl(var(--approval-completed-border))]' : ''
     }`} onClick={onSelect}>
       {/* Title Row */}
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -396,7 +421,7 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
             <FileText className="h-4 w-4 text-primary flex-shrink-0" />
             <h3 className="font-semibold text-foreground">{doc.title}</h3>
             {isCompleted && (
-              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs gap-1">
+              <Badge className="bg-[hsl(var(--approval-completed-bg))] text-[hsl(var(--approval-approved))] border border-[hsl(var(--approval-completed-border))] text-xs gap-1">
                 <CheckCircle2 className="h-3 w-3" /> Completed
               </Badge>
             )}
@@ -406,7 +431,7 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
               </Badge>
             )}
             {doc.status === 'pending' && !overdue && (
-              <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs gap-1">
+              <Badge className="bg-[hsl(var(--warning)/0.1)] text-[hsl(var(--warning))] border border-[hsl(var(--warning)/0.3)] text-xs gap-1">
                 <Clock className="h-3 w-3" /> Awaiting
               </Badge>
             )}
@@ -431,26 +456,28 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Segmented Progress Bar */}
       {totalCount > 0 && (
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium text-foreground">{approvedCount}/{totalCount} approved</span>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden flex">
+          <div className="flex gap-1">
             {sigs.map((sig) => (
               <div
                 key={sig.id}
-                className={`h-full transition-all ${
-                  sig.status === 'approved'
-                    ? 'bg-green-500'
+                className="h-2 rounded-full transition-all"
+                style={{
+                  flex: 1,
+                  backgroundColor: sig.status === 'approved'
+                    ? 'hsl(var(--approval-approved))'
                     : sig.status === 'declined'
-                      ? 'bg-destructive'
+                      ? 'hsl(var(--destructive))'
                       : sig.viewed_at
-                        ? 'bg-amber-400'
-                        : 'bg-muted-foreground/20'
-                }`}
-                style={{ width: `${100 / totalCount}%` }}
+                        ? 'hsl(var(--approval-viewed))'
+                        : 'hsl(var(--approval-not-viewed) / 0.25)',
+                }}
+                title={`${sig.name}: ${sig.status === 'approved' ? 'Approved' : sig.status === 'declined' ? 'Declined' : sig.viewed_at ? 'Viewed' : 'Not viewed'}`}
               />
             ))}
           </div>
@@ -466,18 +493,18 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
             return (
               <span key={sig.id} className={`text-xs flex items-center gap-1 ${
                 ctx.severity === 'red' ? 'text-destructive font-medium'
-                  : ctx.severity === 'amber' ? 'text-amber-600 dark:text-amber-400'
+                  : ctx.severity === 'amber' ? 'text-[hsl(var(--warning))]'
                   : isPending && overdue ? 'text-destructive font-medium'
                   : 'text-muted-foreground'
               }`}>
                 {sig.status === 'approved' ? (
-                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                  <CheckCircle2 className="h-3 w-3 text-[hsl(var(--approval-approved))]" />
                 ) : sig.status === 'declined' ? (
                   <XCircle className="h-3 w-3 text-destructive" />
                 ) : sig.viewed_at ? (
-                  <Eye className="h-3 w-3 text-amber-500" />
+                  <Eye className="h-3 w-3 text-[hsl(var(--approval-viewed))]" />
                 ) : (
-                  <Clock className="h-3 w-3" />
+                  <Clock className="h-3 w-3 text-[hsl(var(--approval-not-viewed))]" />
                 )}
                 {sig.name}
                 {ctx.text && <span className="opacity-70">({ctx.text})</span>}
@@ -537,13 +564,13 @@ function NeedsAttentionPanel({ needsAttention, onSelectDoc, onChaseAllOverdue, i
   return (
     <Card className="p-4 sticky top-6">
       <h2 className="font-semibold text-foreground flex items-center gap-2 mb-4">
-        <AlertTriangle className="h-4 w-4 text-amber-500" />
+        <AlertTriangle className="h-4 w-4 text-[hsl(var(--warning))]" />
         Needs Attention
       </h2>
 
       {!hasAnything ? (
         <p className="text-sm text-muted-foreground text-center py-4">
-          <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+          <CheckCircle2 className="h-8 w-8 text-[hsl(var(--approval-approved))] mx-auto mb-2" />
           All clear — no outstanding items
         </p>
       ) : (
@@ -581,7 +608,7 @@ function NeedsAttentionPanel({ needsAttention, onSelectDoc, onChaseAllOverdue, i
 
           {/* No Response */}
           <div>
-            <h3 className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">
+            <h3 className="text-xs font-semibold text-[hsl(var(--warning))] uppercase tracking-wide mb-2">
               No Response ({noResponseSignatories.length})
             </h3>
             {noResponseSignatories.length === 0 ? (
@@ -595,7 +622,7 @@ function NeedsAttentionPanel({ needsAttention, onSelectDoc, onChaseAllOverdue, i
                     onClick={() => onSelectDoc(doc)}
                   >
                     <p className="text-xs font-medium text-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-amber-500" />
+                      <Clock className="h-3 w-3 text-[hsl(var(--warning))]" />
                       {sig.name}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">

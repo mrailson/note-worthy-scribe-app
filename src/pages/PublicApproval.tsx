@@ -144,12 +144,34 @@ const PublicApproval = () => {
 
   const formValid = fullName.trim() && role.trim() && organisation.trim() && confirmRead && confirmLegal;
 
-  // ─── Loading ─────────────────────────────────────────────────
+  // ─── Loading (skeleton) ───────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[hsl(240,10%,96%)] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[hsl(213,100%,50%)]" />
-      </div>
+      <PageShell>
+        <Card className="p-5 sm:p-8 space-y-5">
+          <div className="animate-pulse space-y-4">
+            <div className="h-7 bg-muted rounded w-2/3 mx-auto" />
+            <div className="h-16 bg-muted/60 rounded-lg" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-4 bg-muted rounded" />
+              <div className="h-4 bg-muted rounded" />
+            </div>
+            <div className="h-10 bg-muted rounded" />
+          </div>
+        </Card>
+        <Card className="p-5 sm:p-8 space-y-5">
+          <div className="animate-pulse space-y-4">
+            <div className="h-5 bg-muted rounded w-1/3" />
+            <div className="h-10 bg-muted rounded" />
+            <div className="h-10 bg-muted rounded" />
+            <div className="h-10 bg-muted rounded" />
+            <div className="flex gap-3">
+              <div className="h-11 bg-muted rounded flex-1" />
+              <div className="h-11 bg-muted rounded w-28" />
+            </div>
+          </div>
+        </Card>
+      </PageShell>
     );
   }
 
@@ -158,7 +180,7 @@ const PublicApproval = () => {
     return (
       <PageShell>
         <Card className="p-8 text-center space-y-4">
-          <AlertTriangle className="h-12 w-12 text-[hsl(0,84%,60%)] mx-auto" />
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
           <h2 className="text-lg font-semibold text-foreground">Unable to Load</h2>
           <p className="text-sm text-muted-foreground">{error || 'Invalid or expired approval link.'}</p>
           <p className="text-xs text-muted-foreground">
@@ -177,7 +199,7 @@ const PublicApproval = () => {
     return (
       <PageShell>
         <Card className="p-8 text-center space-y-4">
-          <AlertTriangle className="h-12 w-12 text-[hsl(25,95%,53%)] mx-auto" />
+          <AlertTriangle className="h-12 w-12 text-[hsl(var(--warning))] mx-auto" />
           <h2 className="text-lg font-semibold text-foreground">Request No Longer Active</h2>
           <p className="text-sm text-muted-foreground">
             This approval request has been {document.status}. No further action is required.
@@ -197,9 +219,9 @@ const PublicApproval = () => {
       <PageShell>
         <Card className="p-8 text-center space-y-4">
           {signatory.status === 'approved' ? (
-            <CheckCircle2 className="h-12 w-12 text-[hsl(142,71%,45%)] mx-auto" />
+            <CheckCircle2 className="h-12 w-12 text-[hsl(var(--approval-approved))] mx-auto" />
           ) : (
-            <XCircle className="h-12 w-12 text-[hsl(0,84%,60%)] mx-auto" />
+            <XCircle className="h-12 w-12 text-destructive mx-auto" />
           )}
           <h2 className="text-lg font-semibold text-foreground">
             {signatory.status === 'approved'
@@ -227,9 +249,9 @@ const PublicApproval = () => {
       <PageShell>
         <Card className="p-8 text-center space-y-4">
           {submitted === 'approved' ? (
-            <CheckCircle2 className="h-12 w-12 text-[hsl(142,71%,45%)] mx-auto" />
+            <CheckCircle2 className="h-12 w-12 text-[hsl(var(--approval-approved))] mx-auto" />
           ) : (
-            <XCircle className="h-12 w-12 text-[hsl(25,95%,53%)] mx-auto" />
+            <XCircle className="h-12 w-12 text-[hsl(var(--warning))] mx-auto" />
           )}
           <h2 className="text-lg font-semibold text-foreground">
             {submitted === 'approved' ? 'Thank you. Your approval has been recorded.' : 'Your response has been recorded.'}
@@ -413,7 +435,7 @@ const PublicApproval = () => {
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[hsl(240,10%,96%)]">
+    <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10 space-y-5">
         {/* Logo */}
         <div className="flex justify-center">
