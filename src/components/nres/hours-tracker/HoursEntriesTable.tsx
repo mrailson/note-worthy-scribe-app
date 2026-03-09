@@ -69,12 +69,28 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
     return claimantRate ?? hourlyRate;
   };
 
+  const dateFilteredEntries = useMemo(() => {
+    if (datePeriod === 'all') return entries;
+    const now = new Date();
+    const thisMonthStart = startOfMonth(now);
+    const lastMonthStart = startOfMonth(subMonths(now, 1));
+
+    return entries.filter(e => {
+      const d = parseISO(e.work_date);
+      if (datePeriod === 'this-month') {
+        return isAfter(d, thisMonthStart) || isEqual(d, thisMonthStart);
+      }
+      // last-month
+      return (isAfter(d, lastMonthStart) || isEqual(d, lastMonthStart)) && !isAfter(d, thisMonthStart) && !isEqual(d, thisMonthStart);
+    });
+  }, [entries, datePeriod]);
+
   const sortedEntries = useMemo(() => {
     if (!sortField || !sortDirection) {
-      return entries;
+      return dateFilteredEntries;
     }
 
-    return [...entries].sort((a, b) => {
+    return [...dateFilteredEntries].sort((a, b) => {
       let comparison = 0;
 
       switch (sortField) {
@@ -100,7 +116,16 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [entries, sortField, sortDirection, hourlyRate]);
+  }, [dateFilteredEntries, sortField, sortDirection, hourlyRate]);
+
+  const totals = useMemo(() => {
+    const totalHours = dateFilteredEntries.reduce((sum, e) => sum + Number(e.duration_hours), 0);
+    const totalAmount = dateFilteredEntries.reduce((sum, e) => {
+      const rate = getEntryRate(e);
+      return sum + (rate ? Number(e.duration_hours) * rate : 0);
+    }, 0);
+    return { totalHours, totalAmount, count: dateFilteredEntries.length };
+  }, [dateFilteredEntries, hourlyRate]);
 
 
   const openEditDialog = (entry: NRESHoursEntry) => {
