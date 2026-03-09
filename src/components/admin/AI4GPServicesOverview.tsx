@@ -30,7 +30,7 @@ export const AI4GPServicesOverview = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9">
               <TabsTrigger value="genie" className="flex items-center gap-2">
                 <Bot className="h-4 w-4" />
                 <span className="hidden sm:inline">Overview</span>
@@ -50,6 +50,11 @@ export const AI4GPServicesOverview = () => {
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Notewell Policies</span>
                 <span className="sm:hidden">Policies</span>
+              </TabsTrigger>
+              <TabsTrigger value="doc-studio" className="flex items-center gap-2">
+                <PenTool className="h-4 w-4" />
+                <span className="hidden sm:inline">Doc Studio</span>
+                <span className="sm:hidden">Docs</span>
               </TabsTrigger>
               <TabsTrigger value="meetings" className="flex items-center gap-2">
                 <Activity className="h-4 w-4" />
