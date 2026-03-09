@@ -328,7 +328,7 @@ const InfographicSelector: React.FC<{
 
       <div
         className={cn(
-          'flex items-center gap-1 overflow-hidden transition-all duration-250 ease-out',
+          'flex items-center gap-1 overflow-hidden transition-all duration-[250ms] ease-out',
           expanded ? 'max-w-[220px] opacity-100 ml-1' : 'max-w-0 opacity-0 ml-0'
         )}
       >
