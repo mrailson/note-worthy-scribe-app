@@ -164,7 +164,7 @@ export function NRESHoursTracker() {
             onSaveRate={saveHourlyRate}
           />
           <TrackerReportModal
-            entries={entries}
+            entries={filteredEntries}
             expenses={expenses}
             hourlyRate={hourlyRate}
           />
