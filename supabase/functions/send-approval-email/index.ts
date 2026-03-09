@@ -184,7 +184,7 @@ const handler = async (req: Request): Promise<Response> => {
         const emailPayload: any = {
           from: "Notewell AI <noreply@bluepcn.co.uk>",
           to: [sig.email],
-          subject: `Document Approval Required: ${doc.title}`,
+          subject: `Document Approval Requested: ${doc.title}`,
           html,
         };
 

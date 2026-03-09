@@ -657,7 +657,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2 border border-border">
                   <p className="text-xs text-muted-foreground">Subject:</p>
                   <p className="font-medium text-foreground">
-                    Document Approval Required: {title}
+                    Document Approval Requested: {title}
                   </p>
                   <hr className="border-border" />
                   {customEmailBody ? (
