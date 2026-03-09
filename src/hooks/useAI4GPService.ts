@@ -921,10 +921,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             ));
 
             // Auto-save the search
-            setTimeout(async () => {
+            const _t3 = setTimeout(async () => {
+              pendingTimeoutRefs.current.delete(_t3);
               const finalMessages = [...newMessages, finalMessage];
               await saveSearchAutomatically(finalMessages);
             }, 100);
+            pendingTimeoutRefs.current.add(_t3);
 
           } catch (fallbackError) {
             console.error('Fallback to ChatGPT 4o also failed:', fallbackError);
