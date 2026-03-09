@@ -82,11 +82,11 @@ export const useEnhancedFileProcessing = () => {
       const pdfTotalSize = pdfFiles.reduce((sum, f) => sum + f.size, 0);
       const pdfPageEstimate = pdfTotalSize > 0 ? Math.max(1, Math.round(pdfTotalSize / (100 * 1024))) : 0;
       
-      // Detect large Word docs
+      // Detect Word docs (all .docx now go through PDF conversion pipeline)
       const wordFiles = Array.from(files).filter(f => 
         f.name.toLowerCase().endsWith('.docx') || f.name.toLowerCase().endsWith('.doc')
       );
-      const hasLargeWordDoc = wordFiles.some(f => f.size > 500 * 1024); // > 500KB
+      const hasLargeWordDoc = wordFiles.length > 0;
       
       setProcessingStats({
         totalFiles: files.length,
