@@ -409,16 +409,16 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                   </div>
                 </div>
                 <div className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                  !file?.name.toLowerCase().endsWith('.pdf') ? 'border-border opacity-50' : 'border-border hover:border-primary/50'
+                  !(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx')) ? 'border-border opacity-50' : 'border-border hover:border-primary/50'
                 }`}>
-                  <RadioGroupItem value="stamp" id="sig-stamp" className="mt-0.5" disabled={!file?.name.toLowerCase().endsWith('.pdf')} />
+                  <RadioGroupItem value="stamp" id="sig-stamp" className="mt-0.5" disabled={!(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx'))} />
                   <div>
                     <label htmlFor="sig-stamp" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
                       <Stamp className="h-4 w-4 text-primary" /> Stamp signature block
                     </label>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Places signatures onto a specific page in the document
-                      {!file?.name.toLowerCase().endsWith('.pdf') && ' (PDF only)'}
+                      {!(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx')) && ' (PDF or DOCX only)'}
                     </p>
                   </div>
                 </div>
@@ -427,7 +427,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
             <Button onClick={handleUploadAndContinue} disabled={uploading || !file || !title.trim()} className="w-full gap-2">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {uploading ? 'Uploading & Hashing…' : 'Upload & Continue'}
+              {uploading ? (uploadStatus || 'Processing…') : 'Upload & Continue'}
             </Button>
           </Card>
         )}
