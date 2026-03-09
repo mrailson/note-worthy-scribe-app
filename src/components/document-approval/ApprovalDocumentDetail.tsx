@@ -147,8 +147,15 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
       });
 
       toast.success('Signed document generated successfully');
-      // Trigger a soft reload by downloading immediately
-      window.open(publicUrl, '_blank');
+      // Download via blob URL to avoid browser/ad-blocker restrictions
+      const downloadUrl = URL.createObjectURL(signedBlob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${doc.title.replace(/[^a-zA-Z0-9-_ ]/g, '')}-signed.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     } catch (err) {
       console.error('Failed to generate signed PDF:', err);
       toast.error('Failed to generate signed document');
