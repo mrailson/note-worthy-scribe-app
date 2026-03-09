@@ -80,16 +80,28 @@ export function useNRESClaimants() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('nres_claimants')
-        .select('*')
-        .eq('practice_id', pId)
-        .order('name');
+      // Fetch claimants and user's practice name in parallel
+      const [claimantsResult, practiceResult] = await Promise.all([
+        supabase
+          .from('nres_claimants')
+          .select('*')
+          .eq('practice_id', pId)
+          .order('name'),
+        supabase
+          .from('gp_practices')
+          .select('name')
+          .eq('id', pId)
+          .maybeSingle()
+      ]);
 
-      if (error) throw error;
+      if (claimantsResult.error) throw claimantsResult.error;
+      
+      if (practiceResult.data?.name) {
+        setUserPracticeName(practiceResult.data.name);
+      }
       
       // Cast the role and member_practice fields properly
-      const castClaimants = (data || []).map(c => ({
+      const castClaimants = (claimantsResult.data || []).map(c => ({
         ...c,
         role: c.role as 'gp' | 'pm',
         member_practice: c.member_practice as MemberPractice | null
