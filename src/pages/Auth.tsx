@@ -182,7 +182,11 @@ export default function Auth() {
           description: "You have successfully logged in.",
           section: 'security',
         });
-        navigate('/');
+        if (signInData?.user?.id) {
+          await navigateToHomePage(navigate, signInData.user.id);
+        } else {
+          navigate('/');
+        }
       }
     } catch (error) {
       showShadcnToast({
