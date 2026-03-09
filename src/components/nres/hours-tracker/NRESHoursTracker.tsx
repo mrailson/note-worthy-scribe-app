@@ -196,7 +196,7 @@ export function NRESHoursTracker() {
             onSubmit={addEntry}
           />
           <HoursEntriesTable
-            entries={entries}
+            entries={filteredEntries}
             hourlyRate={hourlyRate}
             loading={loadingEntries}
             claimants={practiceFilteredClaimants}
