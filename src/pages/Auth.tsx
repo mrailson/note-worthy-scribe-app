@@ -75,14 +75,20 @@ export default function Auth() {
               section: 'security',
             });
           } else {
-            // Clear the hash from URL and redirect
+             // Clear the hash from URL and redirect
             window.history.replaceState(null, '', window.location.pathname);
             showShadcnToast({
               title: "Welcome!",
               description: "You have successfully logged in.",
               section: 'security',
             });
-            navigate('/');
+            // Get session to find user ID for home page preference
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData?.session?.user?.id) {
+              await navigateToHomePage(navigate, sessionData.session.user.id);
+            } else {
+              navigate('/');
+            }
             return;
           }
         } catch (err) {
