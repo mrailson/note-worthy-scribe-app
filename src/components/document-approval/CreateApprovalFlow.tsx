@@ -877,7 +877,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {
                           e.stopPropagation();
                           setEditingContact(c);
-                          setEditForm({ name: c.name, email: c.email, role: c.role || '', organisation: c.organisation || '' });
+                          setEditForm({ name: c.name, email: c.email, role: c.role || '', organisation: c.organisation || '', title: c.title || '', organisation_type: c.organisation_type || '' });
                         }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
