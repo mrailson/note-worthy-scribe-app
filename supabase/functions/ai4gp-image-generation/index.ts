@@ -176,6 +176,21 @@ MANDATORY SPELLING AND GRAMMAR - COPY THESE EXACTLY:
 - Ensure consistent capitalisation within headings and bullet points
 `;
 
+// Text rendering quality rules — injected into all image generation prompts
+const TEXT_RENDERING_RULES = `
+⚠️ CRITICAL TEXT RENDERING RULES:
+- NEVER hyphenate or break words mid-syllable (e.g. "Mana-gement" is WRONG — always "Management")
+- Headings must render as complete, unbroken words on a single line where possible
+- If a heading is too long for one line, break ONLY at natural word boundaries (between words), never inside a word
+- Use text-wrap: balance for headings so words distribute evenly across lines
+- Column containers and card boxes must be wide enough that heading text fits without forced mid-word breaks
+- Set a minimum column width of at least 200px equivalent to prevent cramped text
+- DO NOT display hex colour codes (e.g. #78BE20, #FFFFFF) as visible text anywhere in the image
+- DO NOT display CSS property names (font-size, margin, padding, rgba) as visible text
+- DO NOT display formatting directives (accent on, style:, format:, bold this) as visible text
+- Only render actual content — no styling metadata, colour values, or prompt instructions should appear as text
+`;
+
 // Build practice branding section for prompts based on user's selected branding level
 function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceContext'], requestType: string, requestBrandingLevel?: string, requestIncludeLogo?: boolean, requestCustomBranding?: ImageGenerationRequest['practiceContext']['customBranding'], editedDetails?: string[], customPracticeName?: string): string {
   // Allow a custom practice name to be used even if the practice context is not available.
