@@ -48,6 +48,42 @@ function isImageFile(file: UploadedFile): boolean {
 }
 
 /**
+ * Check if a file is a PDF (sent as base64 for native Gemini multimodal processing)
+ */
+function isPdfFile(file: UploadedFile): boolean {
+  return file.type === 'application/pdf' || 
+    /\.pdf$/i.test(file.name);
+}
+
+/**
+ * Check if a file should be sent as multimodal binary content (images and PDFs)
+ */
+function isMultimodalFile(file: UploadedFile): boolean {
+  return isImageFile(file) || isPdfFile(file);
+}
+
+/**
+ * Format a PDF for multimodal API (Gemini handles PDFs natively as inline documents)
+ */
+function formatPdfForAPI(file: UploadedFile): ImageContent {
+  const content = file.content;
+  
+  // Already a proper data URL
+  if (content.startsWith('data:application/pdf')) {
+    return {
+      type: 'image_url',
+      image_url: { url: content }
+    };
+  }
+  
+  // Raw base64 without data: prefix
+  return {
+    type: 'image_url',
+    image_url: { url: `data:application/pdf;base64,${content}` }
+  };
+}
+
+/**
  * Format image content for multimodal API
  * Handles base64, data URLs, and remote URLs
  */
