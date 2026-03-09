@@ -68,6 +68,7 @@ export default function DocumentApproval() {
   const [selectedDoc, setSelectedDoc] = useState<ApprovalDocumentWithSignatories | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
   const [sort, setSort] = useState<SortType>('recent');
+  const [activeTab, setActiveTab] = useState<TabType>('active');
 
   // Compute counts
   const counts = useMemo(() => {
