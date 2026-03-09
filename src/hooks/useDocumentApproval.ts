@@ -167,17 +167,79 @@ export function useDocumentApproval() {
       deadline?: string;
       message?: string;
       signaturePlacement?: Record<string, any>;
-    }
+    },
+    onStatusChange?: (status: string) => void,
   ) => {
     if (!user) throw new Error('Not authenticated');
 
-    const fileHash = await hashFile(file);
-    const ext = file.name.split('.').pop();
-    const storagePath = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+    let uploadFile: File | Blob = file;
+    let uploadExt = file.name.split('.').pop()?.toLowerCase() || '';
+    const isDocx = uploadExt === 'docx' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    // ── Convert .docx → PDF before upload ──
+    if (isDocx) {
+      onStatusChange?.('Converting Word document to PDF…');
+      try {
+        const mammoth = (await import('mammoth')).default;
+        const html2pdf = (await import('html2pdf.js')).default;
+
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        if (!result.value || result.value.trim().length === 0) {
+          throw new Error('Mammoth returned empty HTML');
+        }
+
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '-9999px';
+        container.style.width = '210mm';
+        container.innerHTML = result.value;
+        document.body.appendChild(container);
+
+        try {
+          const pdfBlob: Blob = await html2pdf()
+            .set({
+              margin: [10, 10, 10, 10],
+              filename: file.name.replace(/\.docx?$/i, '.pdf'),
+              image: { type: 'jpeg', quality: 0.95 },
+              html2canvas: { scale: 2, useCORS: true },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            })
+            .from(container)
+            .outputPdf('blob');
+
+          uploadFile = pdfBlob;
+          uploadExt = 'pdf';
+          console.log('✅ DOCX→PDF conversion successful, PDF size:', (pdfBlob.size / 1024 / 1024).toFixed(2), 'MB');
+        } finally {
+          document.body.removeChild(container);
+        }
+      } catch (conversionError) {
+        console.error('DOCX→PDF conversion failed:', conversionError);
+        throw new Error(
+          "This Word document couldn't be converted to PDF automatically. " +
+          "Please save it as PDF from Word or Google Docs and re-upload."
+        );
+      }
+    }
+
+    onStatusChange?.('Calculating document hash…');
+    // Hash the actual file being uploaded (converted PDF for docx, original for others)
+    const hashBuffer = uploadFile instanceof File
+      ? await uploadFile.arrayBuffer()
+      : await uploadFile.arrayBuffer();
+    const hashArray = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', hashBuffer)));
+    const fileHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    onStatusChange?.('Uploading document…');
+    const storagePath = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${uploadExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from('approval-documents')
-      .upload(storagePath, file);
+      .upload(storagePath, uploadFile, {
+        contentType: isDocx ? 'application/pdf' : file.type,
+      });
 
     if (uploadError) throw uploadError;
 
@@ -195,7 +257,7 @@ export function useDocumentApproval() {
       file_url: publicUrl,
       file_hash: fileHash,
       original_filename: file.name,
-      file_size_bytes: file.size,
+      file_size_bytes: uploadFile instanceof File ? uploadFile.size : (uploadFile as Blob).size,
       deadline: metadata.deadline || null,
       status: 'draft',
       message: metadata.message || null,
