@@ -1345,25 +1345,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                         <DropdownMenuContent align="end" className="w-52">
                           <DropdownMenuItem onClick={() => setShowDocumentPreview(true)}>
                             <Download className="h-4 w-4 mr-2" />
-                            Export Document
+                            Export Studio
                           </DropdownMenuItem>
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                              <Presentation className="h-4 w-4 mr-2" />
-                              Create Presentation
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent>
-                              <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                Number of Slides
-                              </DropdownMenuLabel>
-                              {[4, 5, 6, 7, 8, 9, 10].map((count) => (
-                                <DropdownMenuItem key={count} onClick={() => handleExportPowerPoint(count)}>
-                                  <Hash className="h-4 w-4 mr-2" />
-                                  {count} slides
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
