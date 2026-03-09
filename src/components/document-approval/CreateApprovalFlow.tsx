@@ -51,6 +51,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [sending, setSending] = useState(false);
   const [convertedToPdf, setConvertedToPdf] = useState(false);
   const [showDocPreview, setShowDocPreview] = useState(false);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
 
   // ─── Step 1: File & metadata ──────────────────────────────────────
   const [file, setFile] = useState<File | null>(null);
@@ -703,7 +704,20 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               <div className="border rounded-lg overflow-hidden">
                 <button
                   type="button"
-                  onClick={() => setShowDocPreview(prev => !prev)}
+                  onClick={async () => {
+                    const opening = !showDocPreview;
+                    setShowDocPreview(opening);
+                    if (opening && !previewBlobUrl) {
+                      try {
+                        const res = await fetch(fileUrl);
+                        const blob = await res.blob();
+                        setPreviewBlobUrl(URL.createObjectURL(blob));
+                      } catch (err) {
+                        console.error('Failed to load preview:', err);
+                        toast.error('Could not load document preview');
+                      }
+                    }
+                  }}
                   className="w-full flex items-center justify-between px-4 py-3 bg-muted/50 hover:bg-muted transition-colors text-sm font-medium"
                 >
                   <span className="flex items-center gap-2">
@@ -715,10 +729,10 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                     : <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   }
                 </button>
-                {showDocPreview && (
+                {showDocPreview && previewBlobUrl && (
                   <div className="bg-muted/20 p-2">
                     <iframe
-                      src={fileUrl}
+                      src={previewBlobUrl}
                       title="Document preview"
                       className="w-full rounded border bg-white"
                       style={{ height: '600px' }}
