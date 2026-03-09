@@ -714,8 +714,6 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
         {/* Bottom actions - Export Studio bar */}
         <div className="px-4 sm:px-6 py-3 border-t bg-muted/30 flex flex-wrap items-center gap-2 min-h-[56px]">
-          {infographicView === 'document' ? (
-            <>
               {/* Word */}
               <Button onClick={handleDownloadWord} disabled={isDownloadingWord} className="gap-2 rounded-full px-5">
                 {isDownloadingWord ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
@@ -764,29 +762,17 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 />
               )}
 
+              {/* View infographic button — shown when one has been generated */}
+              {infographicUrl && !isInfographicGenerating && (
+                <Button variant="outline" size="sm" className="gap-2 rounded-full" onClick={() => setInfographicFullscreen(true)}>
+                  <ImageIcon className="h-4 w-4" />
+                  View Infographic
+                </Button>
+              )}
+
               <Button variant="ghost" onClick={handleClose} className="ml-auto">
                 Cancel
               </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" onClick={() => setInfographicView('document')} className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Document
-              </Button>
-              {infographicUrl && (
-                <Button onClick={handleDownloadInfographic} className="gap-2 ml-auto">
-                  <Download className="h-4 w-4" />
-                  Download
-                </Button>
-              )}
-              {!infographicUrl && !isInfographicGenerating && (
-                <Button variant="ghost" onClick={handleClose} className="ml-auto">
-                  Cancel
-                </Button>
-              )}
-            </>
-          )}
         </div>
       </DialogContent>
     </Dialog>
