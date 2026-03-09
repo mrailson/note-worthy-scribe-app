@@ -1253,7 +1253,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 };
 
                 if (isClinical && userMessage.isClinical) {
-                  setTimeout(async () => {
+                  const _tv3 = setTimeout(async () => {
+                    pendingTimeoutRefs.current.delete(_tv3);
                     const verificationData = await performClinicalVerification(
                       assistantMessageId,
                       userMessage.content,
@@ -1267,6 +1268,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       ));
                     }
                   }, 500);
+                  pendingTimeoutRefs.current.add(_tv3);
                 }
                 
                 setMessagesWithLimit(prev => prev.map(msg => 
@@ -1275,10 +1277,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     : msg
                 ));
 
-                setTimeout(async () => {
+                const _t6 = setTimeout(async () => {
+                  pendingTimeoutRefs.current.delete(_t6);
                   const finalMessages = [...newMessages, finalAssistantMessage];
                   await saveSearchAutomatically(finalMessages);
                 }, 100);
+                pendingTimeoutRefs.current.add(_t6);
               }
             }
           };
