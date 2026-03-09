@@ -269,6 +269,34 @@ export function useDocumentApproval() {
       actor_email: user?.email,
     });
 
+    // Send initial request emails to all signatories
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/send-approval-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${anonKey}`,
+          },
+          body: JSON.stringify({
+            type: 'request',
+            document_id: documentId,
+          }),
+        }
+      );
+
+      const result = await res.json();
+      if (!res.ok) {
+        console.error('Failed to send approval request emails:', result);
+      }
+    } catch (emailError) {
+      console.error('Error sending approval request emails:', emailError);
+    }
+
     await fetchDocuments();
     toast.success('Document sent for approval');
   }, [user, fetchDocuments]);
