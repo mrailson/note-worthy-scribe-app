@@ -733,10 +733,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           ));
           
           // Auto-save the search
-          setTimeout(async () => {
+          const _t1 = setTimeout(async () => {
+            pendingTimeoutRefs.current.delete(_t1);
             const finalMessages = [...newMessages, audioMessage];
             await saveSearchAutomatically(finalMessages);
           }, 100);
+          pendingTimeoutRefs.current.add(_t1);
           
           setIsLoading(false);
           toast.success('Voice file generated successfully!');
