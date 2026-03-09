@@ -262,7 +262,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
       if (saveNewContacts) {
         for (const s of validSignatories) {
-          await saveContact({ name: s.name, email: s.email, role: s.role || undefined, organisation: s.organisation || undefined });
+          await saveContact({ name: s.name, email: s.email, role: s.role || undefined, organisation: s.organisation || undefined, title: s.signatory_title || undefined, organisation_type: s.organisation_type || undefined });
         }
       }
 
