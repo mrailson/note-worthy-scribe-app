@@ -180,7 +180,7 @@ export function NRESHoursTracker() {
             entries={entries}
             hourlyRate={hourlyRate}
             loading={loadingEntries}
-            claimants={activeClaimants}
+            claimants={practiceFilteredClaimants}
             onUpdate={updateEntry}
           />
         </div>
