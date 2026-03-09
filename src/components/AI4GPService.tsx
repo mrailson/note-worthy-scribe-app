@@ -50,24 +50,6 @@ const SearchHistorySidebar = lazy(() => import('@/components/ai4gp/SearchHistory
 const AI4GPSidebar = lazy(() => import('@/components/ai4gp/AI4GPSidebar').then(m => ({ default: m.AI4GPSidebar })));
 const MeetingsDropdown = lazy(() => import('@/components/ai4gp/MeetingsDropdown').then(m => ({ default: m.MeetingsDropdown })));
 
-// Lazy-load heavy modal/panel components to improve initial load time
-const NewsPanel = lazy(() => import('@/components/NewsPanel'));
-const BPCalculatorPanel = lazy(() => import('@/components/ai4gp/BPCalculatorPanel').then(m => ({ default: m.BPCalculatorPanel })));
-const ImageCreate = lazy(() => import('@/pages/ImageCreate'));
-const PracticeImageMaker = lazy(() => import('@/pages/PracticeImageMaker'));
-const QuickImageModal = lazy(() => import('@/components/QuickImageModal').then(m => ({ default: m.QuickImageModal })));
-const AIModelVerificationChart = lazy(() => import('@/components/AIModelVerificationChart').then(m => ({ default: m.AIModelVerificationChart })));
-const DocumentTranslateModal = lazy(() => import('@/components/ai4gp/DocumentTranslateModal').then(m => ({ default: m.DocumentTranslateModal })));
-const AI4GPUserGuide = lazy(() => import('@/components/ai4gp/AI4GPUserGuide').then(m => ({ default: m.AI4GPUserGuide })));
-const TranslationToolInterface = lazy(() => import('@/components/TranslationToolInterface').then(m => ({ default: m.TranslationToolInterface })));
-const MeetingPreviewDrawer = lazy(() => import('@/components/ai4gp/MeetingPreviewDrawer').then(m => ({ default: m.MeetingPreviewDrawer })));
-const ImageStudioModal = lazy(() => import('@/components/ai4gp/ImageStudioModal').then(m => ({ default: m.ImageStudioModal })));
-const PresentationStudioModal = lazy(() => import('@/components/ai4gp/PresentationStudioModal').then(m => ({ default: m.PresentationStudioModal })));
-const DocumentStudioModal = lazy(() => import('@/components/DocumentStudio/DocumentStudioModal').then(m => ({ default: m.default })));
-const AdminDictatePanel = lazy(() => import('@/components/ai4gp/AdminDictatePanel').then(m => ({ default: m.AdminDictatePanel })));
-const TranslationServicePanel = lazy(() => import('@/components/ai4gp/TranslationServicePanel').then(m => ({ default: m.TranslationServicePanel })));
-const EmbeddedPMGenie = lazy(() => import('@/components/ai4gp/EmbeddedPMGenie').then(m => ({ default: m.EmbeddedPMGenie })));
-const PromptsModal = lazy(() => import('@/components/ai4gp/PromptsModal').then(m => ({ default: m.PromptsModal })));
 
 // Loading fallback for lazy components
 const LazyLoader = () => (
