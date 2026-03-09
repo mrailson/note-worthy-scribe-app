@@ -329,7 +329,9 @@ export type Database = {
           is_favourite: boolean | null
           name: string
           organisation: string | null
+          organisation_type: string | null
           role: string | null
+          title: string | null
           user_id: string
         }
         Insert: {
@@ -339,7 +341,9 @@ export type Database = {
           is_favourite?: boolean | null
           name: string
           organisation?: string | null
+          organisation_type?: string | null
           role?: string | null
+          title?: string | null
           user_id: string
         }
         Update: {
@@ -349,7 +353,9 @@ export type Database = {
           is_favourite?: boolean | null
           name?: string
           organisation?: string | null
+          organisation_type?: string | null
           role?: string | null
+          title?: string | null
           user_id?: string
         }
         Relationships: []
@@ -434,8 +440,10 @@ export type Database = {
           last_reminder_at: string | null
           name: string
           organisation: string | null
+          organisation_type: string | null
           reminder_count: number | null
           role: string | null
+          signatory_title: string | null
           signed_at: string | null
           signed_ip: string | null
           signed_name: string | null
@@ -456,8 +464,10 @@ export type Database = {
           last_reminder_at?: string | null
           name: string
           organisation?: string | null
+          organisation_type?: string | null
           reminder_count?: number | null
           role?: string | null
+          signatory_title?: string | null
           signed_at?: string | null
           signed_ip?: string | null
           signed_name?: string | null
@@ -478,8 +488,10 @@ export type Database = {
           last_reminder_at?: string | null
           name?: string
           organisation?: string | null
+          organisation_type?: string | null
           reminder_count?: number | null
           role?: string | null
+          signatory_title?: string | null
           signed_at?: string | null
           signed_ip?: string | null
           signed_name?: string | null

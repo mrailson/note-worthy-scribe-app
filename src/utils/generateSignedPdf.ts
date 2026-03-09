@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, StandardFonts, PDFPage } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import dancingScriptUrl from '@/assets/fonts/DancingScript.ttf';
 import { format } from 'date-fns';
 
@@ -35,6 +36,7 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
   const { originalPdfBytes, title, certificateId, fileHash, signatories, placement } = options;
 
   const pdfDoc = await PDFDocument.load(originalPdfBytes);
+  pdfDoc.registerFontkit(fontkit);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 

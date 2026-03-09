@@ -20,12 +20,17 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SignaturePositionPicker, StampPosition } from './SignaturePositionPicker';
 
+const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof', 'Rev'];
+const ORG_TYPE_OPTIONS = ['', 'Practice', 'PCN', 'Federation', 'ICB', 'Other'];
+
 interface SignatoryRow {
-  id: string; // local key for drag
+  id: string;
+  signatory_title: string;
   name: string;
   email: string;
   role: string;
   organisation: string;
+  organisation_type: string;
 }
 
 interface CreateApprovalFlowProps {
@@ -76,14 +81,14 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
   // ─── Step 2: Signatories ──────────────────────────────────────────
   const [signatories, setSignatories] = useState<SignatoryRow[]>([
-    { id: localId(), name: '', email: '', role: '', organisation: '' },
+    { id: localId(), signatory_title: '', name: '', email: '', role: '', organisation: '', organisation_type: '' },
   ]);
   const [saveNewContacts, setSaveNewContacts] = useState(true);
   const [showContactsModal, setShowContactsModal] = useState(false);
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [editingContact, setEditingContact] = useState<ApprovalContact | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', role: '', organisation: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', role: '', organisation: '', title: '', organisation_type: '' });
 
   // ─── File handling ────────────────────────────────────────────────
 
@@ -175,7 +180,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   // ─── Signatory management ────────────────────────────────────────
 
   const addRow = () => {
-    setSignatories(prev => [...prev, { id: localId(), name: '', email: '', role: '', organisation: '' }]);
+    setSignatories(prev => [...prev, { id: localId(), signatory_title: '', name: '', email: '', role: '', organisation: '', organisation_type: '' }]);
   };
 
   const removeRow = (id: string) => {
@@ -193,10 +198,12 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
       .filter(c => !existingEmails.has(c.email.toLowerCase()))
       .map(c => ({
         id: localId(),
+        signatory_title: c.title || '',
         name: c.name,
         email: c.email,
         role: c.role || '',
         organisation: c.organisation || '',
+        organisation_type: c.organisation_type || '',
       }));
 
     setSignatories(prev => [...prev.filter(s => s.email || s.name), ...newRows]);
@@ -213,10 +220,12 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
       .filter(c => !existingEmails.has(c.email.toLowerCase()))
       .map(c => ({
         id: localId(),
+        signatory_title: c.title || '',
         name: c.name,
         email: c.email,
         role: c.role || '',
         organisation: c.organisation || '',
+        organisation_type: c.organisation_type || '',
       }));
 
     setSignatories(prev => [...prev.filter(s => s.email || s.name), ...newRows]);
@@ -253,7 +262,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
       if (saveNewContacts) {
         for (const s of validSignatories) {
-          await saveContact({ name: s.name, email: s.email, role: s.role || undefined, organisation: s.organisation || undefined });
+          await saveContact({ name: s.name, email: s.email, role: s.role || undefined, organisation: s.organisation || undefined, title: s.signatory_title || undefined, organisation_type: s.organisation_type || undefined });
         }
       }
 
@@ -497,12 +506,14 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
             </div>
 
             {/* Table header */}
-            <div className="hidden md:grid grid-cols-[24px_1fr_1fr_1fr_1fr_32px] gap-2 px-3 text-xs font-medium text-muted-foreground">
+            <div className="hidden md:grid grid-cols-[24px_80px_1fr_1fr_1fr_1fr_120px_32px] gap-2 px-3 text-xs font-medium text-muted-foreground">
               <span />
+              <span>Title</span>
               <span>Name *</span>
               <span>Email *</span>
               <span>Role</span>
               <span>Organisation</span>
+              <span>Org Type</span>
               <span />
             </div>
 
@@ -515,15 +526,35 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                   onDragStart={() => handleDragStart(idx)}
                   onDragOver={e => handleDragOver(e, idx)}
                   onDragEnd={handleDragEnd}
-                  className={`grid grid-cols-1 md:grid-cols-[24px_1fr_1fr_1fr_1fr_32px] gap-2 p-3 bg-muted/50 rounded-lg items-center transition-opacity ${
+                  className={`grid grid-cols-1 md:grid-cols-[24px_80px_1fr_1fr_1fr_1fr_120px_32px] gap-2 p-3 bg-muted/50 rounded-lg items-center transition-opacity ${
                     dragIdx === idx ? 'opacity-50' : ''
                   }`}
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab hidden md:block" />
+                  <Select value={s.signatory_title} onValueChange={v => updateRow(s.id, 'signatory_title', v)}>
+                    <SelectTrigger className="text-sm h-9">
+                      <SelectValue placeholder="Title" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TITLE_OPTIONS.map(t => (
+                        <SelectItem key={t || '__none'} value={t || ' '}>{t || '—'}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Input value={s.name} onChange={e => updateRow(s.id, 'name', e.target.value)} placeholder="Full name" className="text-sm" />
                   <Input type="email" value={s.email} onChange={e => updateRow(s.id, 'email', e.target.value)} placeholder="Email address" className="text-sm" />
                   <Input value={s.role} onChange={e => updateRow(s.id, 'role', e.target.value)} placeholder="Role" className="text-sm" />
                   <Input value={s.organisation} onChange={e => updateRow(s.id, 'organisation', e.target.value)} placeholder="Organisation" className="text-sm" />
+                  <Select value={s.organisation_type} onValueChange={v => updateRow(s.id, 'organisation_type', v)}>
+                    <SelectTrigger className="text-sm h-9">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ORG_TYPE_OPTIONS.map(t => (
+                        <SelectItem key={t || '__none'} value={t || ' '}>{t || '—'}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeRow(s.id)} disabled={signatories.length <= 1}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -846,7 +877,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {
                           e.stopPropagation();
                           setEditingContact(c);
-                          setEditForm({ name: c.name, email: c.email, role: c.role || '', organisation: c.organisation || '' });
+                          setEditForm({ name: c.name, email: c.email, role: c.role || '', organisation: c.organisation || '', title: c.title || '', organisation_type: c.organisation_type || '' });
                         }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>

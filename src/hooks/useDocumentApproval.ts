@@ -30,6 +30,8 @@ export interface ApprovalSignatory {
   email: string;
   role: string | null;
   organisation: string | null;
+  signatory_title: string | null;
+  organisation_type: string | null;
   approval_token: string;
   status: string;
   signed_at: string | null;
@@ -50,6 +52,8 @@ export interface ApprovalContact {
   email: string;
   role: string | null;
   organisation: string | null;
+  title: string | null;
+  organisation_type: string | null;
   is_favourite: boolean;
 }
 
@@ -338,7 +342,7 @@ export function useDocumentApproval() {
 
   const addSignatories = useCallback(async (
     documentId: string,
-    signatories: { name: string; email: string; role?: string; organisation?: string }[]
+    signatories: { name: string; email: string; role?: string; organisation?: string; signatory_title?: string; organisation_type?: string }[]
   ) => {
     const rows = signatories.map((s, i) => ({
       document_id: documentId,
@@ -346,6 +350,8 @@ export function useDocumentApproval() {
       email: s.email,
       role: s.role || null,
       organisation: s.organisation || null,
+      signatory_title: s.signatory_title || null,
+      organisation_type: s.organisation_type || null,
       sort_order: i,
     }));
 
@@ -518,7 +524,7 @@ export function useDocumentApproval() {
     return data || [];
   }, []);
 
-  const saveContact = useCallback(async (contact: { name: string; email: string; role?: string; organisation?: string }) => {
+  const saveContact = useCallback(async (contact: { name: string; email: string; role?: string; organisation?: string; title?: string; organisation_type?: string }) => {
     if (!user) return;
     await supabase.from('approval_contacts').upsert({
       user_id: user.id,
@@ -526,6 +532,8 @@ export function useDocumentApproval() {
       email: contact.email,
       role: contact.role || null,
       organisation: contact.organisation || null,
+      title: contact.title || null,
+      organisation_type: contact.organisation_type || null,
     }, { onConflict: 'user_id,email' });
     await fetchContacts();
   }, [user, fetchContacts]);
@@ -562,12 +570,14 @@ export function useDocumentApproval() {
     toast.success('Contact deleted');
   }, [fetchContacts]);
 
-  const updateContact = useCallback(async (contactId: string, updates: { name: string; email: string; role?: string; organisation?: string }) => {
+  const updateContact = useCallback(async (contactId: string, updates: { name: string; email: string; role?: string; organisation?: string; title?: string; organisation_type?: string }) => {
     await supabase.from('approval_contacts').update({
       name: updates.name,
       email: updates.email,
       role: updates.role || null,
       organisation: updates.organisation || null,
+      title: updates.title || null,
+      organisation_type: updates.organisation_type || null,
     }).eq('id', contactId);
     await fetchContacts();
     toast.success('Contact updated');
