@@ -716,8 +716,18 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                       try {
                         const pdfjsLib = await import('pdfjs-dist');
                         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-                        const res = await fetch(fileUrl);
-                        const arrayBuffer = await res.arrayBuffer();
+                        
+                        // Use Supabase SDK to download file (bypasses browser extension blocking)
+                        const storagePath = fileUrl!.split('/approval-documents/')[1];
+                        let arrayBuffer: ArrayBuffer;
+                        if (storagePath) {
+                          const { data, error } = await supabase.storage.from('approval-documents').download(storagePath);
+                          if (error || !data) throw error || new Error('Download failed');
+                          arrayBuffer = await data.arrayBuffer();
+                        } else {
+                          const res = await fetch(fileUrl!);
+                          arrayBuffer = await res.arrayBuffer();
+                        }
                         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                         const pages: string[] = [];
                         const maxPages = Math.min(pdf.numPages, 5);
