@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
-import { Download, FileText, X, Loader2, ImageIcon, Monitor, ArrowLeft, Settings2, Presentation, BarChart3 } from 'lucide-react';
+import { Download, FileText, X, Loader2, ImageIcon, Monitor, Settings2, Presentation, BarChart3 } from 'lucide-react';
 import { DocumentAIEditPanel } from '@/components/shared/DocumentAIEditPanel';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -384,7 +384,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
   const activeContent = editableContent ?? content;
   const documentTitle = externalTitle || extractTitle(activeContent);
-  const [infographicView, setInfographicView] = useState<'document' | 'infographic'>('document');
+  // infographicView state removed — document always visible, infographic opens as lightbox
   const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
   const [infographicProgress, setInfographicProgress] = useState(0);
   const [infographicTipIdx, setInfographicTipIdx] = useState(0);
@@ -422,7 +422,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
   // Reset infographic state when modal closes
   const handleClose = useCallback(() => {
-    setInfographicView('document');
+    // infographicView reset removed
     setInfographicUrl(null);
     setInfographicProgress(0);
     setInfographicFullscreen(false);
@@ -487,7 +487,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   };
 
   const handleGenerateInfographic = useCallback(async (orientation: 'landscape' | 'portrait') => {
-    setInfographicView('infographic');
+    // Stay on document view — don't switch away
     setInfographicUrl(null);
     setInfographicProgress(0);
     setInfographicTipIdx(0);
@@ -518,6 +518,8 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
       if (result?.success && result.imageUrl) {
         setInfographicUrl(result.imageUrl);
+        // Auto-open fullscreen lightbox when ready
+        setInfographicFullscreen(true);
       }
     } catch {
       clearInterval(progressInterval);
@@ -557,7 +559,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         </div>
 
         {/* Settings gear — only for document view */}
-        {infographicView === 'document' && (
+        {(
           <div className="px-4 sm:px-6 py-2 border-b bg-muted/20 flex items-center">
             <Popover>
               <PopoverTrigger asChild>
@@ -612,19 +614,43 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           </div>
         )}
 
-        {/* Infographic back bar */}
-        {infographicView === 'infographic' && !isInfographicGenerating && (
-          <div className="px-4 sm:px-6 py-2 border-b bg-muted/20">
-            <Button variant="ghost" size="sm" onClick={() => setInfographicView('document')} className="gap-2 text-xs">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to Document
-            </Button>
+        {/* Infographic generating indicator — shown as a banner above the document */}
+        {isInfographicGenerating && (
+          <div className="px-4 sm:px-6 py-3 border-b bg-primary/5">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 shrink-0">
+                <ImageIcon className="h-4 w-4 text-primary animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Creating Infographic...</p>
+                <Progress value={infographicProgress} className="h-1.5 mt-1" />
+                <p className="text-xs text-muted-foreground mt-1 animate-pulse">
+                  {INFOGRAPHIC_TIPS[infographicTipIdx]}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Live preview / infographic area — plain div for reliable scrolling */}
+        {/* Infographic error banner */}
+        {infographicError && !isInfographicGenerating && (
+          <div className="px-4 sm:px-6 py-3 border-b bg-destructive/5">
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-destructive flex-1">{infographicError}</p>
+              <div className="flex gap-2 shrink-0">
+                <Button size="sm" variant="outline" onClick={() => handleGenerateInfographic('landscape')}>
+                  Retry Landscape
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleGenerateInfographic('portrait')}>
+                  Retry Portrait
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Live preview area — always shows document */}
         <div className="flex-1 min-h-0 overflow-y-auto bg-accent/10">
-          {infographicView === 'document' ? (
             <div className="p-4 sm:p-6">
               <div
                 className="bg-white dark:bg-card rounded-lg shadow-sm border mx-auto"
@@ -673,60 +699,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 )}
               </div>
             </div>
-          ) : (
-            /* Infographic view */
-            <div className="p-4 sm:p-6 flex flex-col items-center justify-center min-h-[300px]">
-              {isInfographicGenerating ? (
-                <div className="w-full max-w-md text-center space-y-4">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-2">
-                    <ImageIcon className="h-8 w-8 text-primary animate-pulse" />
-                  </div>
-                  <h3 className="font-semibold text-base">Creating Infographic</h3>
-                  <Progress value={infographicProgress} className="h-2" />
-                  <p className="text-sm text-muted-foreground animate-pulse">
-                    {INFOGRAPHIC_TIPS[infographicTipIdx]}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    This may take up to 2 minutes
-                  </p>
-                </div>
-              ) : infographicError ? (
-                <div className="text-center space-y-3">
-                  <p className="text-sm text-destructive">{infographicError}</p>
-                  <div className="flex gap-2 justify-center">
-                    <Button variant="outline" size="sm" onClick={() => setInfographicView('document')}>
-                      Back to Document
-                    </Button>
-                    <Button size="sm" onClick={() => handleGenerateInfographic('landscape')}>
-                      Retry Landscape
-                    </Button>
-                    <Button size="sm" onClick={() => handleGenerateInfographic('portrait')}>
-                      Retry Portrait
-                    </Button>
-                  </div>
-                </div>
-              ) : infographicUrl ? (
-                <div className="w-full flex flex-col items-center gap-4">
-                  <img
-                    src={infographicUrl}
-                    alt="Generated infographic"
-                    className="max-w-full rounded-lg shadow-md border cursor-pointer hover:opacity-90 transition-opacity"
-                    style={{ maxHeight: '60vh' }}
-                    onClick={() => setInfographicFullscreen(true)}
-                    title="Click to view fullscreen"
-                  />
-                  <Button onClick={handleDownloadInfographic} className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Download Infographic
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          )}
         </div>
 
         {/* AI Edit Panel */}
-        {infographicView === 'document' && (
+        {(
           <DocumentAIEditPanel
             content={activeContent}
             title={documentTitle}
@@ -738,8 +714,6 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
         {/* Bottom actions - Export Studio bar */}
         <div className="px-4 sm:px-6 py-3 border-t bg-muted/30 flex flex-wrap items-center gap-2 min-h-[56px]">
-          {infographicView === 'document' ? (
-            <>
               {/* Word */}
               <Button onClick={handleDownloadWord} disabled={isDownloadingWord} className="gap-2 rounded-full px-5">
                 {isDownloadingWord ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
@@ -788,29 +762,17 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 />
               )}
 
+              {/* View infographic button — shown when one has been generated */}
+              {infographicUrl && !isInfographicGenerating && (
+                <Button variant="outline" size="sm" className="gap-2 rounded-full" onClick={() => setInfographicFullscreen(true)}>
+                  <ImageIcon className="h-4 w-4" />
+                  View Infographic
+                </Button>
+              )}
+
               <Button variant="ghost" onClick={handleClose} className="ml-auto">
                 Cancel
               </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" onClick={() => setInfographicView('document')} className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Document
-              </Button>
-              {infographicUrl && (
-                <Button onClick={handleDownloadInfographic} className="gap-2 ml-auto">
-                  <Download className="h-4 w-4" />
-                  Download
-                </Button>
-              )}
-              {!infographicUrl && !isInfographicGenerating && (
-                <Button variant="ghost" onClick={handleClose} className="ml-auto">
-                  Cancel
-                </Button>
-              )}
-            </>
-          )}
         </div>
       </DialogContent>
     </Dialog>
