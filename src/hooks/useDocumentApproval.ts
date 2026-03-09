@@ -570,12 +570,14 @@ export function useDocumentApproval() {
     toast.success('Contact deleted');
   }, [fetchContacts]);
 
-  const updateContact = useCallback(async (contactId: string, updates: { name: string; email: string; role?: string; organisation?: string }) => {
+  const updateContact = useCallback(async (contactId: string, updates: { name: string; email: string; role?: string; organisation?: string; title?: string; organisation_type?: string }) => {
     await supabase.from('approval_contacts').update({
       name: updates.name,
       email: updates.email,
       role: updates.role || null,
       organisation: updates.organisation || null,
+      title: updates.title || null,
+      organisation_type: updates.organisation_type || null,
     }).eq('id', contactId);
     await fetchContacts();
     toast.success('Contact updated');
