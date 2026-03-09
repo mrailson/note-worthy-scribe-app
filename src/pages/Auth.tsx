@@ -11,16 +11,25 @@ import { useSecurityValidation } from '@/hooks/useSecurityValidation';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth <= 768;
+};
+
 const navigateToHomePage = async (navigate: ReturnType<typeof useNavigate>, userId: string) => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('default_home_page')
+      .select('default_home_page_desktop, default_home_page_mobile')
       .eq('user_id', userId)
       .single();
 
-    if (!error && data?.default_home_page && data.default_home_page !== '/') {
-      navigate(data.default_home_page, { replace: true });
+    const preference = isMobileDevice()
+      ? (data as any)?.default_home_page_mobile
+      : (data as any)?.default_home_page_desktop;
+
+    if (!error && preference && preference !== '/') {
+      navigate(preference, { replace: true });
       return;
     }
   } catch (err) {

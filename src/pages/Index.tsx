@@ -179,18 +179,22 @@ const Index = () => {
       return;
     }
 
-    // Check profile for default_home_page preference
+    // Check profile for default home page preference (mobile vs desktop)
     const checkHomePage = async () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('default_home_page')
+          .select('default_home_page_desktop, default_home_page_mobile')
           .eq('user_id', user.id)
           .single();
 
-        if (!error && data?.default_home_page && data.default_home_page !== '/') {
+        const preference = isMobile
+          ? (data as any)?.default_home_page_mobile
+          : (data as any)?.default_home_page_desktop;
+
+        if (!error && preference && preference !== '/') {
           homePageRedirectDone.current = true;
-          navigate(data.default_home_page, { replace: true });
+          navigate(preference, { replace: true });
           return;
         }
       } catch (err) {
