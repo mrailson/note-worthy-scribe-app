@@ -746,7 +746,10 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                       setPreviewLoading(true);
                       try {
                         const pdfjsLib = await import('pdfjs-dist');
-                        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+                          'pdfjs-dist/build/pdf.worker.min.mjs',
+                          import.meta.url
+                        ).toString();
                         
                         // Extract storage path from public URL and download via SDK
                         let arrayBuffer: ArrayBuffer;
