@@ -126,6 +126,13 @@ export const useContentInfographic = () => {
       // 2. Remove consecutive duplicate words
       cleanedContent = cleanedContent.replace(/\b(\w+)([,;.]?\s+)\1\b/gi, '$1$2');
 
+      // 2b. Sanitise content — strip hex codes, CSS, directives, etc.
+      const { html: sanitisedContent, warnings } = sanitizeGeneratedContent(cleanedContent);
+      cleanedContent = sanitisedContent;
+      if (warnings.length > 0) {
+        console.log('🧹 Infographic: sanitised source content:', warnings);
+      }
+
       const documentContent = formatContentForInfographic(cleanedContent, title);
 
       // 3. Build user spelling corrections block for the prompt
