@@ -51,6 +51,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [sending, setSending] = useState(false);
   const [convertedToPdf, setConvertedToPdf] = useState(false);
   const [showDocPreview, setShowDocPreview] = useState(false);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
 
   // ─── Step 1: File & metadata ──────────────────────────────────────
   const [file, setFile] = useState<File | null>(null);
