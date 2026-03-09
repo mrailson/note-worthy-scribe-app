@@ -181,7 +181,7 @@ export function useDocumentApproval() {
       onStatusChange?.('Converting Word document to PDF…');
       try {
         const mammoth = (await import('mammoth')).default;
-        const html2pdf = (await import('html2pdf.js')).default;
+        const { jsPDF } = await import('jspdf');
 
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer });
@@ -189,48 +189,74 @@ export function useDocumentApproval() {
           throw new Error('Mammoth returned empty HTML');
         }
 
-        const container = document.createElement('div');
-        // Must be on-screen for html2canvas to capture — hide visually behind everything
-        container.style.position = 'fixed';
-        container.style.left = '0';
-        container.style.top = '0';
-        container.style.width = '210mm';
-        container.style.minHeight = '297mm';
-        container.style.background = 'white';
-        container.style.color = 'black';
-        container.style.fontSize = '12pt';
-        container.style.fontFamily = 'Arial, Helvetica, sans-serif';
-        container.style.lineHeight = '1.5';
-        container.style.padding = '20mm';
-        container.style.zIndex = '-9999';
-        container.style.pointerEvents = 'none';
-        container.style.overflow = 'auto';
-        container.innerHTML = result.value;
-        document.body.appendChild(container);
+        console.log('📄 DOCX HTML content length:', result.value.length);
 
-        // Allow the browser to fully paint the content before capturing
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Parse HTML to plain text lines for reliable PDF generation
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = result.value;
 
-        console.log('📄 DOCX HTML content length:', result.value.length, 'Container offsetHeight:', container.offsetHeight);
+        const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 20;
+        const usableWidth = pageWidth - margin * 2;
+        let y = margin;
 
-        try {
-          const pdfBlob: Blob = await html2pdf()
-            .set({
-              margin: [10, 10, 10, 10],
-              filename: file.name.replace(/\.docx?$/i, '.pdf'),
-              image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
-              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            })
-            .from(container)
-            .outputPdf('blob');
+        const addText = (text: string, fontSize: number, bold: boolean = false) => {
+          doc.setFontSize(fontSize);
+          doc.setFont('helvetica', bold ? 'bold' : 'normal');
+          const lines = doc.splitTextToSize(text, usableWidth);
+          const lineHeight = fontSize * 0.5;
+          for (const line of lines) {
+            if (y + lineHeight > pageHeight - margin) {
+              doc.addPage();
+              y = margin;
+            }
+            doc.text(line, margin, y);
+            y += lineHeight;
+          }
+        };
 
-          uploadFile = pdfBlob;
-          uploadExt = 'pdf';
-          console.log('✅ DOCX→PDF conversion successful, PDF size:', (pdfBlob.size / 1024 / 1024).toFixed(2), 'MB');
-        } finally {
-          document.body.removeChild(container);
-        }
+        const processNode = (node: Node) => {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = (node.textContent || '').trim();
+            if (text) addText(text, 11);
+            return;
+          }
+          if (node.nodeType !== Node.ELEMENT_NODE) return;
+          const el = node as HTMLElement;
+          const tag = el.tagName.toLowerCase();
+
+          if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag)) {
+            y += 3;
+            const sizes: Record<string, number> = { h1: 18, h2: 16, h3: 14, h4: 13, h5: 12, h6: 11 };
+            addText(el.textContent || '', sizes[tag] || 14, true);
+            y += 2;
+          } else if (tag === 'p') {
+            const text = (el.textContent || '').trim();
+            if (text) { addText(text, 11); y += 2; }
+          } else if (tag === 'li') {
+            addText('• ' + (el.textContent || '').trim(), 11);
+            y += 1;
+          } else if (tag === 'br') {
+            y += 3;
+          } else if (['ul', 'ol', 'div', 'section', 'article', 'main', 'body', 'table', 'thead', 'tbody', 'tr'].includes(tag)) {
+            el.childNodes.forEach(processNode);
+          } else if (tag === 'td' || tag === 'th') {
+            const text = (el.textContent || '').trim();
+            if (text) addText(text, tag === 'th' ? 11 : 10, tag === 'th');
+          } else {
+            // For other elements, just process children
+            el.childNodes.forEach(processNode);
+          }
+        };
+
+        tempDiv.childNodes.forEach(processNode);
+
+        const pdfBlob = doc.output('blob');
+        uploadFile = pdfBlob;
+        uploadExt = 'pdf';
+        console.log('✅ DOCX→PDF conversion successful, PDF size:', (pdfBlob.size / 1024 / 1024).toFixed(2), 'MB');
       } catch (conversionError) {
         console.error('DOCX→PDF conversion failed:', conversionError);
         throw new Error(

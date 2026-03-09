@@ -711,7 +711,9 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                       try {
                         const res = await fetch(fileUrl);
                         const blob = await res.blob();
-                        setPreviewBlobUrl(URL.createObjectURL(blob));
+                        // Ensure blob has correct PDF MIME type for rendering
+                        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                        setPreviewBlobUrl(URL.createObjectURL(pdfBlob));
                       } catch (err) {
                         console.error('Failed to load preview:', err);
                         toast.error('Could not load document preview');
