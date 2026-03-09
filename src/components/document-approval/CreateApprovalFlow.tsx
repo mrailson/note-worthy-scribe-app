@@ -639,7 +639,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Subject:</p>
                   <p className="font-medium text-foreground text-sm">
-                    Document Approval Required: {title}
+                    Document Approval Requested: {title}
                   </p>
                   <hr className="border-border" />
                   <Textarea
