@@ -73,10 +73,24 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
   const handleGenerateSignedPdf = async () => {
     setGenerating(true);
     try {
-      // Fetch original PDF
-      const response = await fetch(doc.file_url);
-      if (!response.ok) throw new Error('Failed to fetch original document');
-      const pdfBytes = await response.arrayBuffer();
+      // Check if original file is a PDF
+      const fileName = doc.original_filename?.toLowerCase() || '';
+      const isPdf = fileName.endsWith('.pdf') || doc.file_url?.toLowerCase().includes('.pdf');
+
+      let pdfBytes: ArrayBuffer;
+
+      if (!isPdf) {
+        // For non-PDF files (DOCX, etc.), create a standalone signature page
+        // since we cannot embed signatures into non-PDF formats
+        const { PDFDocument } = await import('pdf-lib');
+        const blankDoc = await PDFDocument.create();
+        pdfBytes = (await blankDoc.save()).buffer as ArrayBuffer;
+      } else {
+        // Fetch original PDF
+        const response = await fetch(doc.file_url);
+        if (!response.ok) throw new Error('Failed to fetch original document');
+        pdfBytes = await response.arrayBuffer();
+      }
 
       // Generate certificate ID
       const certId = `NW-CERT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`;
@@ -91,7 +105,9 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
         signed_organisation: s.signed_organisation,
       }));
 
-      const placement: SignaturePlacement = signaturePlacement || { method: 'append' };
+      const placement: SignaturePlacement = !isPdf 
+        ? { method: 'append' }  // Force append for non-PDF files
+        : (signaturePlacement || { method: 'append' });
 
       const signedPdfBytes = await generateSignedPdf({
         originalPdfBytes: pdfBytes,

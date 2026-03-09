@@ -210,7 +210,7 @@ function drawStampSignatures(
         x, y: y - fontSize - 2, size: fontSize - 1, font: helvetica, color: rgb(0.3, 0.3, 0.3),
       });
     }
-    page.drawText(`${date}  ✓ Electronically signed`, {
+    page.drawText(`${date}  [Approved] Electronically signed`, {
       x, y: y - (fontSize * 2) - 4, size: fontSize - 1.5, font: helvetica, color: rgb(0.4, 0.4, 0.4),
     });
   }
@@ -271,7 +271,7 @@ function drawSignatureBox(
     py -= 11;
   }
 
-  page.drawText('✓ Electronically signed', { x: px, y: py, size: 7.5, font: helveticaBold, color: rgb(0.13, 0.55, 0.27) });
+  page.drawText('[Approved] Electronically signed', { x: px, y: py, size: 7.5, font: helveticaBold, color: rgb(0.13, 0.55, 0.27) });
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
