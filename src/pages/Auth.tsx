@@ -24,6 +24,8 @@ const navigateToHomePage = async (navigate: ReturnType<typeof useNavigate>, user
       .eq('user_id', userId)
       .single();
 
+    console.log('Auth redirect - profile:', data, 'isMobile:', window.innerWidth <= 768);
+
     const preference = isMobileDevice()
       ? (data as any)?.default_home_page_mobile
       : (data as any)?.default_home_page_desktop;

@@ -192,6 +192,8 @@ const Index = () => {
           ? (data as any)?.default_home_page_mobile
           : (data as any)?.default_home_page_desktop;
 
+        console.log('Index redirect check - profile:', data, 'preference:', preference, 'from:', searchParams.get('from'));
+
         if (!error && preference && preference !== '/') {
           homePageRedirectDone.current = true;
           navigate(preference, { replace: true });
