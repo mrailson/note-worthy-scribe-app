@@ -555,6 +555,24 @@ export function useDocumentApproval() {
     toast.success(`Group "${name}" saved`);
   }, [user, fetchContactGroups]);
 
+  const deleteContact = useCallback(async (contactId: string) => {
+    await supabase.from('approval_contact_group_members').delete().eq('contact_id', contactId);
+    await supabase.from('approval_contacts').delete().eq('id', contactId);
+    await fetchContacts();
+    toast.success('Contact deleted');
+  }, [fetchContacts]);
+
+  const updateContact = useCallback(async (contactId: string, updates: { name: string; email: string; role?: string; organisation?: string }) => {
+    await supabase.from('approval_contacts').update({
+      name: updates.name,
+      email: updates.email,
+      role: updates.role || null,
+      organisation: updates.organisation || null,
+    }).eq('id', contactId);
+    await fetchContacts();
+    toast.success('Contact updated');
+  }, [fetchContacts]);
+
   const deleteContactGroup = useCallback(async (groupId: string) => {
     await supabase.from('approval_contact_groups').delete().eq('id', groupId);
     await fetchContactGroups();
@@ -612,6 +630,8 @@ export function useDocumentApproval() {
     fetchSignatories,
     fetchAuditLog,
     saveContact,
+    deleteContact,
+    updateContact,
     saveContactGroup,
     deleteContactGroup,
     refetch: fetchDocuments,
