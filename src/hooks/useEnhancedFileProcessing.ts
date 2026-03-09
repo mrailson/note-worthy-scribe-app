@@ -9,13 +9,15 @@ export interface FileProcessingStats {
   totalSize: number;
   hasNumericalData: boolean;
   estimatedComplexity: 'low' | 'medium' | 'high';
+  pdfPageEstimate?: number;    // Estimated PDF page count for status display
+  hasLargeWordDoc?: boolean;   // Whether a large Word doc is being processed
 }
 
 // File upload limits
 export const FILE_LIMITS = {
   MAX_FILES: 20,
-  MAX_FILE_SIZE_MB: 15,
-  MAX_FILE_SIZE_BYTES: 15 * 1024 * 1024,
+  MAX_FILE_SIZE_MB: 20, // Increased to 20MB for PDFs
+  MAX_FILE_SIZE_BYTES: 20 * 1024 * 1024,
 };
 
 export const useEnhancedFileProcessing = () => {
@@ -32,6 +34,15 @@ export const useEnhancedFileProcessing = () => {
   const validateFileContent = useCallback((content: string, fileName: string) => {
     // Check for potential data integrity issues
     const issues: string[] = [];
+    
+    // Skip validation for base64 PDF content (it's binary, not text)
+    if (content.startsWith('data:application/pdf')) {
+      return {
+        hasNumericalData: false,
+        issues: [],
+        wordCount: 0
+      };
+    }
     
     // Check for truncation indicators
     if (content.endsWith('...') || content.includes('[truncated]')) {
@@ -66,12 +77,25 @@ export const useEnhancedFileProcessing = () => {
       
       const totalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0);
       
+      // Detect PDF files for status indicator
+      const pdfFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
+      const pdfTotalSize = pdfFiles.reduce((sum, f) => sum + f.size, 0);
+      const pdfPageEstimate = pdfTotalSize > 0 ? Math.max(1, Math.round(pdfTotalSize / (100 * 1024))) : 0;
+      
+      // Detect large Word docs
+      const wordFiles = Array.from(files).filter(f => 
+        f.name.toLowerCase().endsWith('.docx') || f.name.toLowerCase().endsWith('.doc')
+      );
+      const hasLargeWordDoc = wordFiles.some(f => f.size > 500 * 1024); // > 500KB
+      
       setProcessingStats({
         totalFiles: files.length,
         processedFiles: 0,
         totalSize,
         hasNumericalData: false,
-        estimatedComplexity: files.length > 3 ? 'high' : files.length > 1 ? 'medium' : 'low'
+        estimatedComplexity: files.length > 3 ? 'high' : files.length > 1 ? 'medium' : 'low',
+        pdfPageEstimate,
+        hasLargeWordDoc
       });
 
       const filePromises = Array.from(files).map(async (file) => {
