@@ -435,7 +435,7 @@ const PublicApproval = () => {
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[hsl(240,10%,96%)]">
+    <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10 space-y-5">
         {/* Logo */}
         <div className="flex justify-center">
