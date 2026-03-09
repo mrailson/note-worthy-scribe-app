@@ -1853,7 +1853,7 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
     body: JSON.stringify({
       model: model,
       messages: formattedMessages,
-      max_tokens: 4096,
+      max_tokens: 8192,
       stream: true
     }),
     signal: controller.signal
