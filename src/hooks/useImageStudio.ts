@@ -18,6 +18,7 @@ import {
 import type { GeneratedImage } from '@/types/ai4gp';
 import { optimiseImageForUpload, getBase64SizeKB } from '@/utils/imageOptimiser';
 import { userNameCorrections } from '@/utils/UserNameCorrections';
+import { sanitizeGeneratedContent } from '@/utils/sanitizeGeneratedContent';
 
 // --- Memory management helpers ---
 
