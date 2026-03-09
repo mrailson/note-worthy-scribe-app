@@ -682,21 +682,17 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         <div className="px-4 sm:px-6 py-3 border-t bg-muted/30 flex flex-wrap items-center gap-2">
           {infographicView === 'document' ? (
             <>
-              <Button onClick={handleDownloadWord} disabled={isDownloadingWord} className="gap-2">
+              {/* Word */}
+              <Button onClick={handleDownloadWord} disabled={isDownloadingWord} className="gap-2 rounded-full px-5">
                 {isDownloadingWord ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                 Word
               </Button>
-              {prefs.showPdfDownload && (
-                <Button variant="outline" onClick={handleDownloadPdf} disabled={isDownloadingPdf} className="gap-2">
-                  {isDownloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  PDF
-                </Button>
-              )}
 
+              {/* Presentation */}
               {onExportPowerPoint && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="gap-2">
+                    <Button variant="outline" className="gap-2 rounded-full px-5">
                       <Presentation className="h-4 w-4" />
                       Presentation
                     </Button>
@@ -710,9 +706,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                           variant="ghost"
                           size="sm"
                           className="text-sm justify-center"
-                          onClick={() => {
-                            onExportPowerPoint(activeContent, documentTitle, count);
-                          }}
+                          onClick={() => onExportPowerPoint(activeContent, documentTitle, count)}
                         >
                           {count}
                         </Button>
@@ -722,30 +716,12 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 </Popover>
               )}
 
+              {/* Infographic with inline orientation reveal */}
               {prefs.showInfographic && (
-                <>
-                  <div className="h-6 w-px bg-border mx-1" />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleGenerateInfographic('landscape')}
-                    disabled={isInfographicGenerating}
-                    className="gap-2 text-xs"
-                  >
-                    <Monitor className="h-4 w-4" />
-                    Landscape
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleGenerateInfographic('portrait')}
-                    disabled={isInfographicGenerating}
-                    className="gap-2 text-xs"
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                    Portrait
-                  </Button>
-                </>
+                <InfographicSelector
+                  isGenerating={isInfographicGenerating}
+                  onGenerate={handleGenerateInfographic}
+                />
               )}
 
               <Button variant="ghost" onClick={handleClose} className="ml-auto">
