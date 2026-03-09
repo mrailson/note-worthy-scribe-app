@@ -212,6 +212,88 @@ function renderPreviewContent(content: string): React.ReactNode[] {
   return elements;
 }
 
+/** Fullscreen infographic overlay – fixes click/Esc issues by being a self-contained component with its own event listeners */
+const InfographicFullscreen: React.FC<{
+  infographicUrl: string;
+  onClose: () => void;
+  onDownload: () => void;
+}> = ({ infographicUrl, onClose, onDownload }) => {
+  // Own Esc handler so Dialog doesn't swallow it
+  useEffect(() => {
+    const handle = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handle, true); // capture phase
+    return () => document.removeEventListener('keydown', handle, true);
+  }, [onClose]);
+
+  // Prevent body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/95 flex items-center justify-center cursor-pointer"
+      style={{ zIndex: 2147483647 }}
+      onClick={onClose}
+      role="dialog"
+      aria-label="Infographic fullscreen view"
+    >
+      {/* Controls */}
+      <div
+        className="absolute top-4 right-4 flex items-center gap-2"
+        style={{ zIndex: 2147483647 }}
+      >
+        <button
+          type="button"
+          className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDownload();
+          }}
+          aria-label="Download infographic"
+        >
+          <Download className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          aria-label="Close fullscreen"
+        >
+          <X className="h-6 w-6" />
+        </button>
+      </div>
+
+      {/* Image – clicking it also closes (natural flow) */}
+      <img
+        src={infographicUrl}
+        alt="Infographic fullscreen"
+        className="max-w-[95vw] max-h-[95vh] object-contain select-none cursor-pointer"
+        draggable={false}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+      />
+
+      {/* Hint */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm pointer-events-none">
+        Click image or backdrop to close • <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-xs">Esc</kbd> to close
+      </div>
+    </div>
+  );
+};
+
 export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   content,
   title: externalTitle,
