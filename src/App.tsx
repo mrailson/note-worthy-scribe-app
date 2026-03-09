@@ -403,6 +403,13 @@ const App = () => {
                 <Route path="/survey/:token" element={<PublicSurvey />} />
                 <Route path="/s/:token" element={<PublicSurvey />} />
                 
+                {/* Document Approval Service */}
+                <Route path="/document-approval" element={
+                  <ProtectedRoute>
+                    <DocumentApproval />
+                  </ProtectedRoute>
+                } />
+                
                 {/* Public Document Pages */}
                 <Route path="/privacy-notice" element={<PrivacyNotice />} />
                 <Route path="/accessibility-statement" element={<AccessibilityStatement />} />

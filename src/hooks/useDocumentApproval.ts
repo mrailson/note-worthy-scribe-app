@@ -34,6 +34,8 @@ export interface ApprovalSignatory {
   status: string;
   signed_at: string | null;
   signed_name: string | null;
+  signed_role: string | null;
+  signed_organisation: string | null;
   decline_comment: string | null;
   reminder_count: number;
   last_reminder_at: string | null;
