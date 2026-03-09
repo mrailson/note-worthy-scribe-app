@@ -608,7 +608,7 @@ function NeedsAttentionPanel({ needsAttention, onSelectDoc, onChaseAllOverdue, i
 
           {/* No Response */}
           <div>
-            <h3 className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">
+            <h3 className="text-xs font-semibold text-[hsl(var(--warning))] uppercase tracking-wide mb-2">
               No Response ({noResponseSignatories.length})
             </h3>
             {noResponseSignatories.length === 0 ? (
