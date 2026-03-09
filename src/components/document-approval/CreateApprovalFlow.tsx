@@ -785,27 +785,67 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               <div className="space-y-2">
                 {contacts.map(c => {
                   const checked = selectedContactIds.has(c.id);
+                  const isEditing = editingContact?.id === c.id;
+
+                  if (isEditing) {
+                    return (
+                      <div key={c.id} className="p-3 rounded-lg border-2 border-primary/30 bg-muted/30 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input placeholder="Name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                          <Input placeholder="Email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+                          <Input placeholder="Role" value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))} />
+                          <Input placeholder="Organisation" value={editForm.organisation} onChange={e => setEditForm(f => ({ ...f, organisation: e.target.value }))} />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => setEditingContact(null)}>Cancel</Button>
+                          <Button size="sm" onClick={async () => {
+                            if (!editForm.name.trim() || !editForm.email.trim()) { toast.error('Name and email are required'); return; }
+                            await updateContact(c.id, editForm);
+                            setEditingContact(null);
+                          }}>Save</Button>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       key={c.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
-                      onClick={() => {
+                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+                    >
+                      <div className="cursor-pointer flex items-center gap-3 flex-1 min-w-0" onClick={() => {
                         setSelectedContactIds(prev => {
                           const next = new Set(prev);
                           checked ? next.delete(c.id) : next.add(c.id);
                           return next;
                         });
-                      }}
-                    >
-                      <Checkbox checked={checked} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{c.name}</p>
-                        <p className="text-xs text-muted-foreground">{c.email}</p>
-                        {(c.role || c.organisation) && (
-                          <p className="text-xs text-muted-foreground">
-                            {c.role}{c.role && c.organisation ? ' · ' : ''}{c.organisation}
-                          </p>
-                        )}
+                      }}>
+                        <Checkbox checked={checked} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">{c.name}</p>
+                          <p className="text-xs text-muted-foreground">{c.email}</p>
+                          {(c.role || c.organisation) && (
+                            <p className="text-xs text-muted-foreground">
+                              {c.role}{c.role && c.organisation ? ' · ' : ''}{c.organisation}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingContact(c);
+                          setEditForm({ name: c.name, email: c.email, role: c.role || '', organisation: c.organisation || '' });
+                        }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={async (e) => {
+                          e.stopPropagation();
+                          await deleteContact(c.id);
+                          setSelectedContactIds(prev => { const next = new Set(prev); next.delete(c.id); return next; });
+                        }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
                   );
