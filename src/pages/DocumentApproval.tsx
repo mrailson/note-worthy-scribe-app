@@ -340,13 +340,19 @@ export default function DocumentApproval() {
 
 // ─── Document Card ──────────────────────────────────────────────────────
 
-function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories; onSelect: () => void }) {
+function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
+  doc: ApprovalDocumentWithSignatories;
+  onSelect: () => void;
+  onChasePending: () => void;
+  isChasing: boolean;
+}) {
   const sigs = doc.signatories;
   const approvedCount = sigs.filter(s => s.status === 'approved').length;
   const totalCount = sigs.length;
   const overdue = isOverdue(doc);
   const overdueDays = daysOverdue(doc);
   const isCompleted = doc.status === 'completed';
+  const pendingCount = sigs.filter(s => s.status === 'pending' || (s.status !== 'approved' && s.status !== 'declined')).length;
 
   return (
     <Card className={`p-5 cursor-pointer hover:border-primary/50 transition-colors ${
@@ -401,7 +407,7 @@ function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories;
             <span className="text-xs font-medium text-foreground">{approvedCount}/{totalCount} approved</span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden flex">
-            {sigs.map((sig, i) => (
+            {sigs.map((sig) => (
               <div
                 key={sig.id}
                 className={`h-full transition-all ${
@@ -424,11 +430,14 @@ function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories;
       {sigs.length > 0 && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
           {sigs.map(sig => {
-            const context = getSignatoryContext(sig, doc);
+            const ctx = getSignatoryContext(sig, doc);
             const isPending = sig.status === 'pending';
             return (
               <span key={sig.id} className={`text-xs flex items-center gap-1 ${
-                isPending && overdue ? 'text-destructive font-medium' : 'text-muted-foreground'
+                ctx.severity === 'red' ? 'text-destructive font-medium'
+                  : ctx.severity === 'amber' ? 'text-amber-600 dark:text-amber-400'
+                  : isPending && overdue ? 'text-destructive font-medium'
+                  : 'text-muted-foreground'
               }`}>
                 {sig.status === 'approved' ? (
                   <CheckCircle2 className="h-3 w-3 text-green-600" />
@@ -440,7 +449,7 @@ function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories;
                   <Clock className="h-3 w-3" />
                 )}
                 {sig.name}
-                {context && <span className="text-muted-foreground/70">({context})</span>}
+                {ctx.text && <span className="opacity-70">({ctx.text})</span>}
               </span>
             );
           })}
@@ -452,9 +461,20 @@ function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories;
         <Button variant="outline" size="sm" className="text-xs gap-1" onClick={onSelect}>
           <Eye className="h-3 w-3" /> View Details
         </Button>
-        {doc.status === 'pending' && sigs.some(s => s.status === 'pending') && (
-          <Button variant={overdue ? 'destructive' : 'outline'} size="sm" className="text-xs gap-1">
-            <Mail className="h-3 w-3" /> Chase Pending
+        {doc.status === 'pending' && pendingCount > 0 && (
+          <Button
+            variant={overdue ? 'destructive' : 'outline'}
+            size="sm"
+            className="text-xs gap-1"
+            disabled={isChasing}
+            onClick={onChasePending}
+          >
+            {isChasing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Mail className="h-3 w-3" />
+            )}
+            Chase Pending ({pendingCount})
           </Button>
         )}
         {isCompleted && (
@@ -466,7 +486,6 @@ function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories;
     </Card>
   );
 }
-
 // ─── Needs Attention Sidebar ────────────────────────────────────────────
 
 interface NeedsAttentionProps {
