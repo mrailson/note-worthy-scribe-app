@@ -755,7 +755,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="gap-2 rounded-full px-5">
                       <Presentation className="h-4 w-4" />
-                      Presentation
+                      <span className="flex flex-col items-start leading-tight">
+                        <span>Presentation</span>
+                        <span className="text-[10px] text-muted-foreground font-normal -mt-0.5">Create as PowerPoint</span>
+                      </span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-36 p-2" align="start">
