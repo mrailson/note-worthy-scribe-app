@@ -275,18 +275,22 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           <div>
             <h1 className="text-xl font-bold text-foreground">New Approval Request</h1>
             <p className="text-sm text-muted-foreground">
-              {step === 'upload' ? 'Step 1 of 3: Upload document' : step === 'signatories' ? 'Step 2 of 3: Add signatories' : 'Step 3 of 3: Review & send'}
+              {step === 'upload' ? 'Step 1: Upload document' : step === 'stamp_position' ? 'Step 1b: Position signatures' : step === 'signatories' ? 'Step 2: Add signatories' : 'Step 3: Review & send'}
             </p>
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="flex gap-2">
-          {['upload', 'signatories', 'review'].map((s, i) => (
-            <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${
-              ['upload', 'signatories', 'review'].indexOf(step) >= i ? 'bg-primary' : 'bg-muted'
-            }`} />
-          ))}
+          {['upload', 'signatories', 'review'].map((s, i) => {
+            const stepOrder = ['upload', 'stamp_position', 'signatories', 'review'];
+            const currentIdx = stepOrder.indexOf(step);
+            return (
+              <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${
+                currentIdx >= i ? 'bg-primary' : 'bg-muted'
+              }`} />
+            );
+          })}
         </div>
 
         {/* ═══ STEP 1: Upload ═══ */}
