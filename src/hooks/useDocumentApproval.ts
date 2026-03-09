@@ -166,6 +166,7 @@ export function useDocumentApproval() {
       category: string;
       deadline?: string;
       message?: string;
+      signaturePlacement?: Record<string, any>;
     }
   ) => {
     if (!user) throw new Error('Not authenticated');
@@ -184,23 +185,29 @@ export function useDocumentApproval() {
       .from('approval-documents')
       .getPublicUrl(storagePath);
 
+    const insertData: Record<string, any> = {
+      sender_id: user.id,
+      sender_name: user.user_metadata?.full_name || user.email,
+      sender_email: user.email,
+      title: metadata.title,
+      description: metadata.description || null,
+      category: metadata.category,
+      file_url: publicUrl,
+      file_hash: fileHash,
+      original_filename: file.name,
+      file_size_bytes: file.size,
+      deadline: metadata.deadline || null,
+      status: 'draft',
+      message: metadata.message || null,
+    };
+
+    if (metadata.signaturePlacement) {
+      insertData.signature_placement = metadata.signaturePlacement;
+    }
+
     const { data, error } = await supabase
       .from('approval_documents')
-      .insert({
-        sender_id: user.id,
-        sender_name: user.user_metadata?.full_name || user.email,
-        sender_email: user.email,
-        title: metadata.title,
-        description: metadata.description || null,
-        category: metadata.category,
-        file_url: publicUrl,
-        file_hash: fileHash,
-        original_filename: file.name,
-        file_size_bytes: file.size,
-        deadline: metadata.deadline || null,
-        status: 'draft',
-        message: metadata.message || null,
-      })
+      .insert(insertData as any)
       .select()
       .single();
 
@@ -216,6 +223,14 @@ export function useDocumentApproval() {
     await fetchDocuments();
     return data as ApprovalDocument;
   }, [user, fetchDocuments]);
+
+  const updateSignaturePlacement = useCallback(async (documentId: string, placement: Record<string, any>) => {
+    const { error } = await supabase
+      .from('approval_documents')
+      .update({ signature_placement: placement } as any)
+      .eq('id', documentId);
+    if (error) throw error;
+  }, []);
 
   const addSignatories = useCallback(async (
     documentId: string,
