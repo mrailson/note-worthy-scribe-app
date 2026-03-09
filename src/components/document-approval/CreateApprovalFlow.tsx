@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   ArrowLeft, Upload, Plus, Trash2, Loader2, Send, UserPlus, Users,
-  GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Stamp, FileSignature,
+  GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Stamp, FileSignature, Eye, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
 import { hashFile } from '@/utils/fileHash';
@@ -50,6 +50,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [convertedToPdf, setConvertedToPdf] = useState(false);
+  const [showDocPreview, setShowDocPreview] = useState(false);
 
   // ─── Step 1: File & metadata ──────────────────────────────────────
   const [file, setFile] = useState<File | null>(null);
@@ -696,6 +697,36 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 Send for Approval
               </Button>
             </div>
+
+            {/* ─── Collapsible Document Preview ─── */}
+            {fileUrl && (
+              <div className="border rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowDocPreview(prev => !prev)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-muted/50 hover:bg-muted transition-colors text-sm font-medium"
+                >
+                  <span className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    Preview Document
+                  </span>
+                  {showDocPreview
+                    ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  }
+                </button>
+                {showDocPreview && (
+                  <div className="bg-muted/20 p-2">
+                    <iframe
+                      src={fileUrl}
+                      title="Document preview"
+                      className="w-full rounded border bg-white"
+                      style={{ height: '600px' }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
