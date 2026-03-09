@@ -62,6 +62,7 @@ export function NRESHoursTracker() {
 
   const {
     activeClaimants,
+    practiceFilteredClaimants,
     loading: loadingClaimants
   } = useNRESClaimants();
 
