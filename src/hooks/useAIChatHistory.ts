@@ -186,10 +186,10 @@ export function useAIChatHistory(consultationId: string | null) {
     await saveMessages(updatedMessages);
   }, [currentSession, saveMessages]);
 
-  // Load a specific session
-  const loadSession = useCallback((session: AIChatSession) => {
-    setCurrentSession(session);
-  }, []);
+  // Load a specific session (fetch full messages from DB)
+  const loadSession = useCallback(async (session: AIChatSession) => {
+    await loadFullSession(session.id);
+  }, [loadFullSession]);
 
   // Delete a session
   const deleteSession = useCallback(async (sessionId: string) => {
