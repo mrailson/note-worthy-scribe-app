@@ -1146,7 +1146,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         } else {
           // Non-streaming JSON response (fallback)
           const data = await response.json();
-          const responseContent = data?.response || data?.content || 'No response received';
+          let responseContent = data?.response || data?.content || 'No response received';
+          
+          // Validate document response
+          const nonStreamValidation = validateDocumentResponse(responseContent, hadFilesAttached || false);
+          if (!nonStreamValidation.isValid && nonStreamValidation.errorMessage) {
+            responseContent = `⚠️ ${nonStreamValidation.errorMessage}`;
+            toast.error('Document reading failed — see suggestions below');
+          } else if (nonStreamValidation.possibleHallucination && nonStreamValidation.warningPrefix) {
+            responseContent = nonStreamValidation.warningPrefix + responseContent;
+          }
           
           // Capture API response time
           const apiResponseTime = Date.now() - startTime;
