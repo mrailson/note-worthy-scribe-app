@@ -14,6 +14,7 @@ interface EmailRequest {
   type: "request" | "reminder" | "confirmation" | "completed" | "declined";
   document_id: string;
   signatory_id?: string;
+  custom_body?: string;
 }
 
 const formatDate = (dateStr: string): string => {
