@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -35,11 +35,7 @@ import {
   Search,
   Download,
   Trash2,
-  MoreVertical,
-  Tag,
-  ExternalLink,
   Sparkles,
-  FileImage,
   BarChart3,
   Loader2,
   X,
@@ -49,6 +45,7 @@ import {
   PenLine,
   LayoutGrid,
   GalleryHorizontal,
+  Tag,
 } from 'lucide-react';
 import { useImageGallery, UserGeneratedImage } from '@/hooks/useImageGallery';
 import { useImageDefaults, TEMPLATE_TYPES } from '@/hooks/useImageDefaults';
@@ -77,16 +74,26 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
   selectionMode = false,
   onEditImage,
 }) => {
+  // Render count diagnostic
+  const renderCount = useRef(0);
+  renderCount.current++;
+  if (renderCount.current > 100) {
+    console.error('INFINITE RENDER DETECTED in ImageGalleryModal — check useEffect dependencies');
+  }
+
   const {
     images,
     favourites,
     categories,
     isLoading,
+    hasMore,
     fetchImages,
+    loadMore,
     toggleFavourite,
     deleteImage,
     updateCategory,
     updateTitle,
+    reset,
   } = useImageGallery();
 
   const { setDefault, defaults } = useImageDefaults();
@@ -103,25 +110,49 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'slideshow'>('grid');
 
-  // Fetch images when modal opens
-  React.useEffect(() => {
-    if (open) {
-      fetchImages();
+  // Single fetch on open — with cleanup to prevent stale updates
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+
+    const load = async () => {
+      await fetchImages();
+      if (cancelled) return; // discard if modal was closed during fetch
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]); // intentionally omit fetchImages — stable via useCallback(user.id)
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!open) {
+      setSelectedImage(null);
+      setSearchQuery('');
+      setSelectedSource(null);
+      setSelectedCategory(null);
+      setActiveTab('all');
+      setLightboxIndex(null);
+      setDeleteConfirmImage(null);
+      setEditingTitle(null);
+      reset();
     }
-  }, [open, fetchImages]);
+  }, [open, reset]);
 
   // Filter images based on current view
-  const getFilteredImages = () => {
+  const getFilteredImages = useCallback(() => {
     let filtered = activeTab === 'favourites' ? favourites : images;
 
     if (selectedSource) {
       filtered = filtered.filter(img => img.source === selectedSource);
     }
-
     if (selectedCategory) {
       filtered = filtered.filter(img => img.category === selectedCategory);
     }
-
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(img =>
@@ -129,15 +160,13 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
         img.prompt?.toLowerCase().includes(query)
       );
     }
-
     return filtered;
-  };
+  }, [images, favourites, activeTab, selectedSource, selectedCategory, searchQuery]);
 
   const filteredImages = getFilteredImages();
 
   const handleDownload = (image: UserGeneratedImage) => {
     if (!image?.image_url) return;
-    
     try {
       const a = document.createElement('a');
       a.href = image.image_url;
@@ -152,16 +181,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
     }
   };
 
-  const escapeHtml = (value: string) =>
-    value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-
-  const handleOpenFullSize = (image: UserGeneratedImage) => {
-    // Open lightbox instead of new window
+  const handleOpenLightbox = (image: UserGeneratedImage) => {
     const index = filteredImages.findIndex(img => img.id === image.id);
     if (index !== -1) {
       setLightboxIndex(index);
@@ -170,11 +190,8 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
 
   const handleLightboxNavigate = (index: number) => {
     setLightboxIndex(index);
-    // Also update selected image to keep sidebar in sync
     const newImage = filteredImages[index];
-    if (newImage) {
-      setSelectedImage(newImage);
-    }
+    if (newImage) setSelectedImage(newImage);
   };
 
   const handleSaveTitle = async (imageId: string) => {
@@ -211,19 +228,8 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
       .map(([type]) => type);
   };
 
-  useEffect(() => {
-    if (open) {
-      fetchImages();
-    }
-  }, [open, fetchImages]);
-
-  // Close modal when lightbox opens to avoid z-index conflicts
-  const handleOpenLightbox = (image: UserGeneratedImage) => {
-    const index = filteredImages.findIndex(img => img.id === image.id);
-    if (index !== -1) {
-      setLightboxIndex(index);
-    }
-  };
+  // Don't render content when closed — full unmount for memory cleanup
+  if (!open) return null;
 
   return (
     <>
@@ -355,6 +361,13 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                           onToggleFavourite={toggleFavourite}
                           isDefaultFor={isDefaultFor}
                         />
+                        {hasMore && !isLoading && filteredImages.length > 0 && (
+                          <div className="flex justify-center py-4">
+                            <Button variant="outline" size="sm" onClick={loadMore}>
+                              Load more images
+                            </Button>
+                          </div>
+                        )}
                       </TabsContent>
 
                       <TabsContent value="favourites" className="mt-0 p-3">
@@ -405,7 +418,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                 <ScrollArea className="flex-1">
                   <div className="p-3 space-y-4">
                     {/* Preview */}
-                    <div 
+                    <div
                       className="rounded-lg overflow-hidden border bg-background cursor-pointer"
                       onDoubleClick={() => handleOpenLightbox(selectedImage)}
                     >
@@ -413,6 +426,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                         src={selectedImage.image_url}
                         alt={selectedImage.alt_text || 'Generated image'}
                         className="w-full h-auto"
+                        loading="lazy"
                       />
                     </div>
 
@@ -468,8 +482,8 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">Source</label>
                         <div className="flex items-center gap-1 mt-0.5">
-                          {SOURCE_LABELS[selectedImage.source || 'quick-pick']?.icon}
-                          <span>{SOURCE_LABELS[selectedImage.source || 'quick-pick']?.label}</span>
+                          {SOURCE_LABELS[selectedImage.source || 'image-studio']?.icon}
+                          <span>{SOURCE_LABELS[selectedImage.source || 'image-studio']?.label}</span>
                         </div>
                       </div>
                       <div>
@@ -644,12 +658,8 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
               onClick={async () => {
                 if (deleteConfirmImage) {
                   const success = await deleteImage(deleteConfirmImage.id);
-                  if (success) {
-                    if (selectedImage?.id === deleteConfirmImage.id) {
-                      setSelectedImage(null);
-                    }
-                    // Refetch to ensure gallery is updated
-                    await fetchImages();
+                  if (success && selectedImage?.id === deleteConfirmImage.id) {
+                    setSelectedImage(null);
                   }
                   setDeleteConfirmImage(null);
                 }
@@ -661,8 +671,8 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Fullscreen Lightbox - rendered outside Dialog to avoid z-index issues */}
-      {lightboxIndex !== null && open && (
+      {/* Fullscreen Lightbox */}
+      {lightboxIndex !== null && (
         <ImageLightbox
           images={filteredImages}
           currentIndex={lightboxIndex}
@@ -670,7 +680,6 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
           onNavigate={handleLightboxNavigate}
         />
       )}
-
     </>
   );
 };
@@ -697,7 +706,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   isDefaultFor,
   emptyMessage = "No images found.",
 }) => {
-  if (isLoading) {
+  if (isLoading && images.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
