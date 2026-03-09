@@ -133,10 +133,20 @@ export function estimateMessageTokens(message: Message): number {
   
   if (message.files) {
     for (const file of message.files) {
-      // File content adds significant tokens
-      tokens += estimateTokens(file.content);
-      // File metadata adds a small amount
-      tokens += estimateTokens(file.name) + 10;
+      // PDFs sent as base64 are processed by Gemini as images - estimate ~250 tokens per page
+      if (isPdfFile(file)) {
+        const estimatedPages = Math.max(1, Math.round(file.size / (100 * 1024)));
+        tokens += estimatedPages * 250;
+        tokens += estimateTokens(file.name) + 10;
+      } else if (isImageFile(file)) {
+        // Images are ~250-500 tokens each in vision models
+        tokens += 500;
+        tokens += estimateTokens(file.name) + 10;
+      } else {
+        // Text-based file content adds tokens directly
+        tokens += estimateTokens(file.content);
+        tokens += estimateTokens(file.name) + 10;
+      }
     }
   }
   
