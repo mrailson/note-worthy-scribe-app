@@ -37,7 +37,17 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
   const pdfDoc = await PDFDocument.load(originalPdfBytes);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const cursiveFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+
+  // Load Dancing Script custom handwriting font
+  let cursiveFont;
+  try {
+    const fontResponse = await fetch(dancingScriptUrl);
+    const fontBytes = await fontResponse.arrayBuffer();
+    cursiveFont = await pdfDoc.embedFont(fontBytes);
+  } catch (e) {
+    console.warn('Failed to load Dancing Script font, falling back to Times Italic', e);
+    cursiveFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+  }
 
   if (placement.method === 'stamp' && placement.page != null) {
     drawStampSignatures(pdfDoc, options, helvetica, helveticaBold, cursiveFont);
