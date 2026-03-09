@@ -17,6 +17,7 @@ export interface ModuleAccess {
   lg_capture_access: boolean;
   bp_service_access: boolean;
   survey_manager_access: boolean;
+  document_signoff_access: boolean;
 }
 
 export type UserRole = 'practice_user' | 'practice_manager' | 'pcn_manager' | 'system_admin' | 'gp' | 'nurse' | 'admin_staff' | 'icb_user';
