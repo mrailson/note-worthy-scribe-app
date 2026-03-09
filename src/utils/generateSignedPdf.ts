@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 
 export interface SignatoryInfo {
   name: string;
+  email: string;
   role: string | null;
   organisation: string | null;
   signed_at: string | null;
@@ -35,14 +36,50 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
   const pdfDoc = await PDFDocument.load(originalPdfBytes);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const cursiveFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
 
   if (placement.method === 'stamp' && placement.page != null) {
-    drawStampSignatures(pdfDoc, options, helvetica, helveticaBold);
+    drawStampSignatures(pdfDoc, options, helvetica, helveticaBold, cursiveFont);
   } else {
-    drawAppendSignatures(pdfDoc, options, helvetica, helveticaBold);
+    drawAppendSignatures(pdfDoc, options, helvetica, helveticaBold, cursiveFont);
   }
 
   return pdfDoc.save();
+}
+
+// ─── Draw handwritten-style signature ─────────────────────────────────────
+
+function drawHandwrittenSignature(
+  page: PDFPage,
+  name: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  cursiveFont: any,
+) {
+  // Draw the name in a large italic serif font to simulate handwriting
+  const sigSize = Math.min(16, maxWidth / (name.length * 0.45));
+  const actualSize = Math.max(10, sigSize);
+  
+  // Signature colour — dark blue ink
+  const inkColor = rgb(0.05, 0.1, 0.45);
+  
+  page.drawText(name, {
+    x,
+    y,
+    size: actualSize,
+    font: cursiveFont,
+    color: inkColor,
+  });
+
+  // Draw a subtle underline
+  const textWidth = cursiveFont.widthOfTextAtSize(name, actualSize);
+  page.drawLine({
+    start: { x, y: y - 2 },
+    end: { x: x + Math.min(textWidth, maxWidth), y: y - 2 },
+    thickness: 0.5,
+    color: rgb(0.6, 0.6, 0.7),
+  });
 }
 
 // ─── Append Method ──────────────────────────────────────────────────────
@@ -52,9 +89,10 @@ function drawAppendSignatures(
   options: GenerateSignedPdfOptions,
   helvetica: any,
   helveticaBold: any,
+  cursiveFont: any,
 ) {
   const { title, certificateId, fileHash, signatories } = options;
-  const SIGS_PER_PAGE = 8;
+  const SIGS_PER_PAGE = 6; // Reduced to accommodate larger signature boxes
   const chunks = chunkArray(signatories, SIGS_PER_PAGE);
 
   for (let ci = 0; ci < chunks.length; ci++) {
@@ -81,7 +119,7 @@ function drawAppendSignatures(
       const meta = [
         `Document: ${title}`,
         `Reference: ${certificateId}`,
-        `Original file hash (SHA-256): ${fileHash.substring(0, 32)}…`,
+        `Original file hash (SHA-256): ${fileHash.substring(0, 32)}...`,
       ];
       for (const line of meta) {
         page.drawText(line, { x: 50, y, size: 9, font: helvetica, color: rgb(0.25, 0.25, 0.25) });
@@ -109,7 +147,7 @@ function drawAppendSignatures(
     // Draw 2-column grid of signature boxes
     const chunk = chunks[ci];
     const colWidth = (w - 100) / 2;
-    const boxHeight = 90;
+    const boxHeight = 110; // Taller to fit signature + email
     const gap = 12;
 
     for (let i = 0; i < chunk.length; i += 2) {
@@ -119,7 +157,7 @@ function drawAppendSignatures(
       for (let col = 0; col < 2 && (i + col) < chunk.length; col++) {
         const sig = chunk[i + col];
         const boxX = 50 + col * (colWidth + 10);
-        drawSignatureBox(page, sig, boxX, boxY, colWidth, boxHeight, helvetica, helveticaBold);
+        drawSignatureBox(page, sig, boxX, boxY, colWidth, boxHeight, helvetica, helveticaBold, cursiveFont);
       }
     }
 
@@ -146,6 +184,7 @@ function drawStampSignatures(
   options: GenerateSignedPdfOptions,
   helvetica: any,
   helveticaBold: any,
+  cursiveFont: any,
 ) {
   const { signatories, placement } = options;
   const pages = pdfDoc.getPages();
@@ -178,8 +217,8 @@ function drawStampSignatures(
   const useTwoCols = areaW > 300 && signatories.length > 1;
   const cols = useTwoCols ? 2 : 1;
   const colWidth = (areaW - 20) / cols;
-  const entryHeight = Math.min(55, (areaH - 30) / Math.ceil(signatories.length / cols));
-  const fontSize = Math.min(8.5, Math.max(6.5, entryHeight / 7));
+  const entryHeight = Math.min(70, (areaH - 30) / Math.ceil(signatories.length / cols));
+  const fontSize = Math.min(8.5, Math.max(6.5, entryHeight / 8));
 
   let curY = areaY + areaH - 14;
 
@@ -204,14 +243,25 @@ function drawStampSignatures(
     const org = sig.signed_organisation || sig.organisation || '';
     const date = sig.signed_at ? format(new Date(sig.signed_at), 'dd MMM yyyy') : '';
 
-    page.drawText(name, { x, y, size: fontSize, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
+    // Handwritten signature
+    const sigFontSize = Math.min(12, Math.max(8, fontSize + 3));
+    drawHandwrittenSignature(page, name, x, y, colWidth - 16, cursiveFont);
+
+    // Name and email below signature
+    const detailY = y - sigFontSize - 6;
+    page.drawText(name, { x, y: detailY, size: fontSize, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
+    
+    page.drawText(sig.email, { 
+      x, y: detailY - fontSize - 1, size: fontSize - 1, font: helvetica, color: rgb(0.3, 0.3, 0.6) 
+    });
+
     if (role || org) {
       page.drawText([role, org].filter(Boolean).join(' · '), {
-        x, y: y - fontSize - 2, size: fontSize - 1, font: helvetica, color: rgb(0.3, 0.3, 0.3),
+        x, y: detailY - (fontSize * 2) - 2, size: fontSize - 1, font: helvetica, color: rgb(0.3, 0.3, 0.3),
       });
     }
     page.drawText(`${date}  [Approved] Electronically signed`, {
-      x, y: y - (fontSize * 2) - 4, size: fontSize - 1.5, font: helvetica, color: rgb(0.4, 0.4, 0.4),
+      x, y: detailY - (fontSize * 3) - 4, size: fontSize - 1.5, font: helvetica, color: rgb(0.4, 0.4, 0.4),
     });
   }
 
@@ -234,6 +284,7 @@ function drawSignatureBox(
   height: number,
   helvetica: any,
   helveticaBold: any,
+  cursiveFont: any,
 ) {
   // Box with light grey border
   page.drawRectangle({
@@ -244,14 +295,23 @@ function drawSignatureBox(
   });
 
   const px = x + 10;
-  let py = y - 16;
+  let py = y - 14;
 
-  page.drawText('Signed by:', { x: px, y: py, size: 7.5, font: helvetica, color: rgb(0.45, 0.45, 0.45) });
-  py -= 14;
-
+  // Handwritten signature at top of box
   const name = sig.signed_name || sig.name;
+  drawHandwrittenSignature(page, name, px, py, width - 20, cursiveFont);
+  py -= 22;
+
+  // Signed by label + name
+  page.drawText('Signed by:', { x: px, y: py, size: 7.5, font: helvetica, color: rgb(0.45, 0.45, 0.45) });
+  py -= 12;
+
   page.drawText(name, { x: px, y: py, size: 10, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
-  py -= 13;
+  py -= 12;
+
+  // Email
+  page.drawText(sig.email, { x: px, y: py, size: 8, font: helvetica, color: rgb(0.2, 0.2, 0.55) });
+  py -= 11;
 
   const role = sig.signed_role || sig.role || '';
   if (role) {

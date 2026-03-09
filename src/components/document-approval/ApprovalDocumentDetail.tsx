@@ -109,6 +109,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
 
       const sigInfos: SignatoryInfo[] = signatories.map(s => ({
         name: s.name,
+        email: s.email,
         role: s.role,
         organisation: s.organisation,
         signed_at: s.signed_at,
