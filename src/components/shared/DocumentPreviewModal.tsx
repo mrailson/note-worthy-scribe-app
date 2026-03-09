@@ -387,7 +387,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !infographicFullscreen) handleClose(); }}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0">
+      <DialogContent className={cn(
+        "max-w-4xl max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0",
+        infographicFullscreen && "opacity-0 pointer-events-none"
+      )}>
         {/* Top bar */}
         <div className="px-4 sm:px-6 py-3 border-b bg-muted/30">
           <div className="flex items-center gap-3">
@@ -650,7 +653,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
       {/* Fullscreen infographic lightbox - rendered via portal to escape Dialog stacking context */}
       {infographicFullscreen && infographicUrl && createPortal(
         <div
-          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center cursor-pointer"
+          className="fixed inset-0 z-[2147483647] bg-black/95 flex items-center justify-center cursor-pointer"
           onClick={() => setInfographicFullscreen(false)}
         >
           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
