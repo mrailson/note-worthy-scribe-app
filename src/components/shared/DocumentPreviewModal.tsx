@@ -422,7 +422,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
   // Reset infographic state when modal closes
   const handleClose = useCallback(() => {
-    setInfographicView('document');
+    // infographicView reset removed
     setInfographicUrl(null);
     setInfographicProgress(0);
     setInfographicFullscreen(false);
