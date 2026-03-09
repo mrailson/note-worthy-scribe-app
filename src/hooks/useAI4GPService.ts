@@ -1623,9 +1623,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
   // Use Display Settings Effect to apply CSS classes
   useEffect(() => {
+    const body = document.body;
+    const root = document.documentElement;
+    
+    const appliedClasses: string[] = [];
+    
     const applyDisplaySettings = () => {
-      const body = document.body;
-      
       // Remove existing display setting classes
       body.classList.remove(
         'ai4gp-text-smallest', 'ai4gp-text-smaller', 'ai4gp-text-compact', 'ai4gp-text-small', 'ai4gp-text-default', 'ai4gp-text-medium', 'ai4gp-text-large', 'ai4gp-text-larger', 'ai4gp-text-largest',
@@ -1633,22 +1636,28 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         'ai4gp-narrow', 'ai4gp-standard', 'ai4gp-wide', 'ai4gp-full',
         'ai4gp-high-contrast', 'ai4gp-reading-font'
       );
+      appliedClasses.length = 0;
       
       // Apply new classes
-      body.classList.add(`ai4gp-text-${textSize}`);
-      body.classList.add(`ai4gp-${interfaceDensity}`);
-      body.classList.add(`ai4gp-${containerWidth}`);
+      const textClass = `ai4gp-text-${textSize}`;
+      const densityClass = `ai4gp-${interfaceDensity}`;
+      const widthClass = `ai4gp-${containerWidth}`;
+      body.classList.add(textClass);
+      body.classList.add(densityClass);
+      body.classList.add(widthClass);
+      appliedClasses.push(textClass, densityClass, widthClass);
       
       if (highContrast) {
         body.classList.add('ai4gp-high-contrast');
+        appliedClasses.push('ai4gp-high-contrast');
       }
       
       if (readingFont) {
         body.classList.add('ai4gp-reading-font');
+        appliedClasses.push('ai4gp-reading-font');
       }
 
       // Update CSS custom properties for real-time changes
-      const root = document.documentElement;
       const textScales = { smallest: 0.75, smaller: 0.8, compact: 0.875, small: 0.9375, default: 1.0, medium: 1.125, large: 1.25, larger: 1.375, largest: 1.5 };
       const spacingScales = { compact: 0.75, comfortable: 1, spacious: 1.25 };
       const containerWidths = { narrow: '672px', standard: '896px', wide: '1152px', full: '100%' };
@@ -1665,6 +1674,15 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     };
 
     applyDisplaySettings();
+    
+    return () => {
+      appliedClasses.forEach(cls => body.classList.remove(cls));
+      root.style.removeProperty('--ai4gp-text-scale');
+      root.style.removeProperty('--ai4gp-spacing-scale');
+      root.style.removeProperty('--ai4gp-container-width');
+      root.style.removeProperty('--ai4gp-reading-font');
+      console.log('cleanup: Removed display CSS classes and custom properties');
+    };
   }, [textSize, interfaceDensity, containerWidth, highContrast, readingFont]);
 
   const handleNewSearch = useCallback(() => {

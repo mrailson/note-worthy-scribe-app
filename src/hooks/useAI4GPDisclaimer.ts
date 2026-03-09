@@ -9,33 +9,38 @@ export const useAI4GPDisclaimer = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    
     if (user) {
+      const fetchDisclaimerPreference = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('show_ai4gp_disclaimer, ai4gp_disclaimer_collapsed')
+            .eq('user_id', user?.id)
+            .single();
+
+          if (cancelled) return;
+          if (error) throw error;
+          
+          setShowDisclaimer(data?.show_ai4gp_disclaimer ?? true);
+          // Always default to collapsed (true) for maximum screen space
+          setDisclaimerCollapsed(true);
+        } catch (error) {
+          if (cancelled) return;
+          console.error('Error fetching disclaimer preference:', error);
+          // Default to showing disclaimer collapsed on error
+          setShowDisclaimer(true);
+          setDisclaimerCollapsed(true);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      };
       fetchDisclaimerPreference();
     }
+    
+    return () => { cancelled = true; };
   }, [user]);
-
-  const fetchDisclaimerPreference = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('show_ai4gp_disclaimer, ai4gp_disclaimer_collapsed')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (error) throw error;
-      
-      setShowDisclaimer(data?.show_ai4gp_disclaimer ?? true);
-      // Always default to collapsed (true) for maximum screen space
-      setDisclaimerCollapsed(true);
-    } catch (error) {
-      console.error('Error fetching disclaimer preference:', error);
-      // Default to showing disclaimer collapsed on error
-      setShowDisclaimer(true);
-      setDisclaimerCollapsed(true);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const updateDisclaimerPreference = async (show: boolean) => {
     try {

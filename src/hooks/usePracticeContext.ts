@@ -216,9 +216,16 @@ export const usePracticeContext = () => {
   };
 
   useEffect(() => {
+    let cancelled = false;
+    
     if (user) {
-      loadPracticeContext();
+      const load = async () => {
+        await loadPracticeContext();
+      };
+      load();
     }
+    
+    return () => { cancelled = true; };
   }, [user]);
 
   return {

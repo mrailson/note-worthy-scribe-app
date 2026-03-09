@@ -38,6 +38,8 @@ export const useGammaPowerPoint = () => {
 
   // Fetch user's preferences on mount
   useEffect(() => {
+    let cancelled = false;
+    
     const fetchPreferences = async () => {
       if (!user) return;
 
@@ -58,6 +60,8 @@ export const useGammaPowerPoint = () => {
             .single()
         ]);
 
+        if (cancelled) return;
+
         if (templateResult.data?.setting_value) {
           setTemplatePreference(templateResult.data.setting_value as unknown as UserTemplatePreference);
         }
@@ -66,11 +70,12 @@ export const useGammaPowerPoint = () => {
           setBrandingPreference(brandingResult.data.setting_value as unknown as BrandingPreference);
         }
       } catch (error) {
-        console.error('Error fetching preferences:', error);
+        if (!cancelled) console.error('Error fetching preferences:', error);
       }
     };
 
     fetchPreferences();
+    return () => { cancelled = true; };
   }, [user]);
 
   // Convert base64 to Blob
