@@ -743,7 +743,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
               {/* Word */}
               <Button onClick={handleDownloadWord} disabled={isDownloadingWord} className="gap-2 rounded-full px-5">
                 {isDownloadingWord ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                Word
+                <span className="flex flex-col items-start leading-tight">
+                  <span>Word</span>
+                  <span className="text-[10px] text-muted-foreground font-normal -mt-0.5">Download as document</span>
+                </span>
               </Button>
 
               {/* Presentation */}
