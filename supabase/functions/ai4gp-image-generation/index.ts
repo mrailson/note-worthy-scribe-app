@@ -416,7 +416,7 @@ serve(async (req) => {
       userSpellingBlock = `\n\nUSER-DEFINED MANDATORY SPELLING CORRECTIONS:\n${spellingCorrections.map(c => `- Always spell "${c.correct}" (NOT "${c.incorrect}")`).join('\n')}\n`;
     }
     // Combined spelling reference used in all prompt paths
-    const COMBINED_SPELLING = SPELLING_REFERENCE + userSpellingBlock;
+    const COMBINED_SPELLING = SPELLING_REFERENCE + TEXT_RENDERING_RULES + userSpellingBlock;
 
     // Extract editedDetails from practiceContext (user-edited branding text from dialog)
     const editedDetails = practiceContext?.editedDetails as string[] | undefined;
