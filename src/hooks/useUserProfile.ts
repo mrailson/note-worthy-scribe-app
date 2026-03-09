@@ -21,6 +21,7 @@ export interface UserProfile {
   role?: string | null;
   letter_signature?: string | null; // Personal signature for letters
   email_signature?: string | null;  // Personal signature for emails
+  default_home_page?: string | null; // User's preferred landing page
 }
 
 export function useUserProfile() {
