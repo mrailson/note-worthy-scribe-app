@@ -35,6 +35,8 @@ export function useNRESHoursTracker() {
     return null;
   }, [user?.id, practiceId]);
 
+  const isAdmin = !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
+
   const fetchEntries = useCallback(async (forceRefresh = false) => {
     if (!user?.id) return;
     if (!forceRefresh && hasFetchedRef.current) return;
@@ -42,13 +44,22 @@ export function useNRESHoursTracker() {
     try {
       setLoading(true);
 
-      // RLS handles visibility (own entries + practice + PCN entries)
-      // No client-side practice_id filter needed
-      const { data, error } = await supabase
+      // Non-admin users only see entries from their own practice
+      // Admin users see all entries (RLS handles PCN-wide visibility)
+      let query = supabase
         .from('nres_hours_entries')
         .select('*')
         .order('work_date', { ascending: false })
         .order('start_time', { ascending: false });
+
+      if (!isAdmin) {
+        const pId = await resolvePracticeId();
+        if (pId) {
+          query = query.eq('practice_id', pId);
+        }
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setEntries((data || []).map(castEntry));
@@ -59,7 +70,7 @@ export function useNRESHoursTracker() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, isAdmin, resolvePracticeId]);
 
   useEffect(() => {
     if (user?.id) {
