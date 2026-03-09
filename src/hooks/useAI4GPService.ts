@@ -1035,9 +1035,20 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 const endTime = Date.now();
                 const responseTime = endTime - startTime;
                 
+                // Validate document response for failures/hallucinations
+                let finalContent = accumulatedContent.trim();
+                const docValidation = validateDocumentResponse(finalContent, hadFilesAttached || false);
+                
+                if (!docValidation.isValid && docValidation.errorMessage) {
+                  finalContent = `⚠️ ${docValidation.errorMessage}`;
+                  toast.error('Document reading failed — see suggestions below');
+                } else if (docValidation.possibleHallucination && docValidation.warningPrefix) {
+                  finalContent = docValidation.warningPrefix + finalContent;
+                }
+                
                 const finalAssistantMessage = {
                   ...assistantMessage,
-                  content: accumulatedContent.trim(),
+                  content: finalContent,
                   isStreaming: false,
                   responseTime,
                   timeToFirstWords,
