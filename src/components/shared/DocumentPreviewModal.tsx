@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
-import { Download, FileText, X, Loader2, ImageIcon, Monitor, ArrowLeft, Settings2 } from 'lucide-react';
+import { Download, FileText, X, Loader2, ImageIcon, Monitor, ArrowLeft, Settings2, Presentation } from 'lucide-react';
 import { DocumentAIEditPanel } from '@/components/shared/DocumentAIEditPanel';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -25,6 +25,7 @@ interface DocumentPreviewModalProps {
   infographicPracticeName?: string;
   infographicSpellingCorrections?: { incorrect: string; correct: string }[];
   onContentUpdated?: (newContent: string) => void;
+  onExportPowerPoint?: (content: string, title?: string, slideCount?: number) => void;
 }
 
 // Extract a sensible title from content
@@ -313,6 +314,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   infographicPracticeName,
   infographicSpellingCorrections,
   onContentUpdated,
+  onExportPowerPoint,
 }) => {
   const { prefs, updatePref } = useDocumentPreviewPrefs();
   const { practiceContext } = usePracticeContext();
@@ -689,6 +691,35 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                   {isDownloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                   PDF
                 </Button>
+              )}
+
+              {onExportPowerPoint && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Presentation className="h-4 w-4" />
+                      Presentation
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-36 p-2" align="start">
+                    <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Slide count</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {[5, 6, 7, 8, 9, 10, 11, 12].map(count => (
+                        <Button
+                          key={count}
+                          variant="ghost"
+                          size="sm"
+                          className="text-sm justify-center"
+                          onClick={() => {
+                            onExportPowerPoint(activeContent, documentTitle, count);
+                          }}
+                        >
+                          {count}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               )}
 
               {prefs.showInfographic && (
