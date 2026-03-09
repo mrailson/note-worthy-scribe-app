@@ -524,7 +524,7 @@ export function useDocumentApproval() {
     return data || [];
   }, []);
 
-  const saveContact = useCallback(async (contact: { name: string; email: string; role?: string; organisation?: string }) => {
+  const saveContact = useCallback(async (contact: { name: string; email: string; role?: string; organisation?: string; title?: string; organisation_type?: string }) => {
     if (!user) return;
     await supabase.from('approval_contacts').upsert({
       user_id: user.id,
@@ -532,6 +532,8 @@ export function useDocumentApproval() {
       email: contact.email,
       role: contact.role || null,
       organisation: contact.organisation || null,
+      title: contact.title || null,
+      organisation_type: contact.organisation_type || null,
     }, { onConflict: 'user_id,email' });
     await fetchContacts();
   }, [user, fetchContacts]);
