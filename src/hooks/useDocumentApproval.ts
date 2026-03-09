@@ -30,6 +30,8 @@ export interface ApprovalSignatory {
   email: string;
   role: string | null;
   organisation: string | null;
+  signatory_title: string | null;
+  organisation_type: string | null;
   approval_token: string;
   status: string;
   signed_at: string | null;
