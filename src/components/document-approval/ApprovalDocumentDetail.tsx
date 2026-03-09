@@ -245,8 +245,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                       </Button>
                       <Button variant="outline" size="sm" className="gap-2" onClick={async () => {
                         try {
-                          const res = await fetch(doc.file_url);
-                          const blob = await res.blob();
+                          const blob = await downloadFromStorage(doc.file_url);
                           const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
                           const a = document.createElement('a'); a.href = url; a.download = doc.original_filename || 'document.pdf';
                           document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
