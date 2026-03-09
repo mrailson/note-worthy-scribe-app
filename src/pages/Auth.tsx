@@ -75,7 +75,7 @@ export default function Auth() {
       
       // If already logged in (and not processing magic link), redirect
       if (user) {
-        navigateToHomePage(navigate, user.id);
+        navigate('/');
       }
     };
     
