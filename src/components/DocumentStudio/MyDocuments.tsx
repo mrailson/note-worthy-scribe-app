@@ -4,6 +4,7 @@ import { FileText, Calendar, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DocumentPreviewModal } from '@/components/shared/DocumentPreviewModal';
+import { useGammaPowerPoint } from '@/hooks/useGammaPowerPoint';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -21,6 +22,7 @@ export const MyDocuments: React.FC = () => {
   const [documents, setDocuments] = useState<SavedDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [previewDoc, setPreviewDoc] = useState<SavedDocument | null>(null);
+  const { generateWithGamma } = useGammaPowerPoint();
 
   const fetchDocuments = async () => {
     setIsLoading(true);
@@ -115,6 +117,11 @@ export const MyDocuments: React.FC = () => {
           title={previewDoc.title}
           isOpen={!!previewDoc}
           onClose={() => setPreviewDoc(null)}
+          onExportPowerPoint={(content, title, slideCount) => {
+            generateWithGamma(content, title, true, slideCount || 4).catch((err) => {
+              console.error('PowerPoint generation failed:', err);
+            });
+          }}
         />
       )}
     </div>

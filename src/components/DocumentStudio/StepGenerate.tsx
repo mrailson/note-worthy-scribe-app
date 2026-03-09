@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useGammaPowerPoint } from '@/hooks/useGammaPowerPoint';
 import { Sparkles, Loader2, RefreshCw, PenLine, Save, Download, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +28,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
   onReset,
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
+  const { generateWithGamma } = useGammaPowerPoint();
   const [showPreview, setShowPreview] = useState(false);
   const [showAIEdit, setShowAIEdit] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -297,6 +299,11 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
           isOpen={showPreview}
           onClose={() => setShowPreview(false)}
           onContentUpdated={(newContent) => onUpdateState({ generatedContent: newContent })}
+          onExportPowerPoint={(content, title, slideCount) => {
+            generateWithGamma(content, title, true, slideCount || 4).catch((err) => {
+              console.error('PowerPoint generation failed:', err);
+            });
+          }}
         />
       </div>
     );
