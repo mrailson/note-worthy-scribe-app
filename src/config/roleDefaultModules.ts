@@ -112,6 +112,10 @@ export const moduleInfo: Record<keyof ModuleAccess, { label: string; description
   survey_manager_access: {
     label: 'Survey Manager',
     description: 'Create and manage practice surveys'
+  },
+  document_signoff_access: {
+    label: 'Document Sign-Off',
+    description: 'Send documents for electronic approval and track signatures'
   }
 };
 
