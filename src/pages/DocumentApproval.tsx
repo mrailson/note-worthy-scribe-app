@@ -495,9 +495,11 @@ interface NeedsAttentionProps {
     declinedSignatories: { sig: ApprovalSignatory; doc: ApprovalDocumentWithSignatories }[];
   };
   onSelectDoc: (doc: ApprovalDocumentWithSignatories) => void;
+  onChaseAllOverdue: () => void;
+  isChasing: boolean;
 }
 
-function NeedsAttentionPanel({ needsAttention, onSelectDoc }: NeedsAttentionProps) {
+function NeedsAttentionPanel({ needsAttention, onSelectDoc, onChaseAllOverdue, isChasing }: NeedsAttentionProps) {
   const { overdueDocuments, noResponseSignatories, declinedSignatories } = needsAttention;
   const hasAnything = overdueDocuments.length > 0 || noResponseSignatories.length > 0 || declinedSignatories.length > 0;
 
@@ -603,10 +605,21 @@ function NeedsAttentionPanel({ needsAttention, onSelectDoc }: NeedsAttentionProp
             )}
           </div>
 
-          {/* Chase All */}
+          {/* Chase All Overdue */}
           {(overdueDocuments.length > 0 || noResponseSignatories.length > 0) && (
-            <Button variant="outline" size="sm" className="w-full text-xs gap-1 mt-2">
-              <Mail className="h-3 w-3" /> Chase All Overdue
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs gap-1 mt-2"
+              disabled={isChasing}
+              onClick={onChaseAllOverdue}
+            >
+              {isChasing ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Mail className="h-3 w-3" />
+              )}
+              Chase All Overdue
             </Button>
           )}
         </div>
