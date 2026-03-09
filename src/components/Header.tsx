@@ -137,7 +137,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           {/* Mobile-friendly title - show for both logged in and logged out */}
           <div
             className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/?from=home')}
           >
             <span className="text-sm sm:text-xl font-bold text-white flex items-center">
               Notewell AI
@@ -163,7 +163,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             <div className="hidden sm:flex gap-2">
               {user && (
                 <Button 
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/?from=home')}
                   variant="secondary"
                   size="sm"
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
@@ -554,7 +554,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        <Button 
                          variant="ghost" 
                          className="justify-start"
-                          onClick={() => navigate('/')}
+                          onClick={() => navigate('/?from=home')}
                        >
                          <Home className="h-4 w-4 mr-2" />
                          Home

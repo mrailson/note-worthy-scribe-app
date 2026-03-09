@@ -11,6 +11,24 @@ import { useSecurityValidation } from '@/hooks/useSecurityValidation';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
+const navigateToHomePage = async (navigate: ReturnType<typeof useNavigate>, userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('default_home_page')
+      .eq('user_id', userId)
+      .single();
+
+    if (!error && data?.default_home_page && data.default_home_page !== '/') {
+      navigate(data.default_home_page, { replace: true });
+      return;
+    }
+  } catch (err) {
+    console.error('Error checking home page preference:', err);
+  }
+  navigate('/');
+};
+
 export default function Auth() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -57,14 +75,20 @@ export default function Auth() {
               section: 'security',
             });
           } else {
-            // Clear the hash from URL and redirect
+             // Clear the hash from URL and redirect
             window.history.replaceState(null, '', window.location.pathname);
             showShadcnToast({
               title: "Welcome!",
               description: "You have successfully logged in.",
               section: 'security',
             });
-            navigate('/');
+            // Get session to find user ID for home page preference
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData?.session?.user?.id) {
+              await navigateToHomePage(navigate, sessionData.session.user.id);
+            } else {
+              navigate('/');
+            }
             return;
           }
         } catch (err) {
@@ -74,7 +98,7 @@ export default function Auth() {
       
       // If already logged in (and not processing magic link), redirect
       if (user) {
-        navigate('/');
+        navigateToHomePage(navigate, user.id);
       }
     };
     
@@ -101,7 +125,7 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
         email: loginForm.email,
         password: loginForm.password,
       });
@@ -158,7 +182,11 @@ export default function Auth() {
           description: "You have successfully logged in.",
           section: 'security',
         });
-        navigate('/');
+        if (signInData?.user?.id) {
+          await navigateToHomePage(navigate, signInData.user.id);
+        } else {
+          navigate('/');
+        }
       }
     } catch (error) {
       showShadcnToast({

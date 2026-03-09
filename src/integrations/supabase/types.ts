@@ -8960,6 +8960,7 @@ export type Database = {
           ai4gp_chat_retention_days: number | null
           ai4gp_disclaimer_collapsed: boolean | null
           created_at: string
+          default_home_page: string | null
           department: string | null
           email: string
           email_signature: string | null
@@ -8985,6 +8986,7 @@ export type Database = {
           ai4gp_chat_retention_days?: number | null
           ai4gp_disclaimer_collapsed?: boolean | null
           created_at?: string
+          default_home_page?: string | null
           department?: string | null
           email: string
           email_signature?: string | null
@@ -9010,6 +9012,7 @@ export type Database = {
           ai4gp_chat_retention_days?: number | null
           ai4gp_disclaimer_collapsed?: boolean | null
           created_at?: string
+          default_home_page?: string | null
           department?: string | null
           email?: string
           email_signature?: string | null
