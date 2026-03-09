@@ -16,6 +16,7 @@ import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { getClaimantRate, type ClaimantType } from '@/types/nresHoursTypes';
 
 interface UserClaim {
   user_id: string;
@@ -266,7 +267,8 @@ export function AdminClaimsReport() {
     const detailed: DetailedEntry[] = filteredEntries.map(entry => {
       const details = getEntryDetails(entry);
       const enteredByProfile = entry.entered_by ? userProfiles[entry.entered_by] : null;
-      const hourlyRate = userSettings[entry.user_id] || 50;
+      const claimantRate = getClaimantRate(entry.claimant_type as ClaimantType);
+      const hourlyRate = claimantRate ?? userSettings[entry.user_id] ?? 50;
       const amount = Number(entry.duration_hours) * hourlyRate;
       
       return {
@@ -310,7 +312,8 @@ export function AdminClaimsReport() {
 
     filteredEntries.forEach(entry => {
       const details = getEntryDetails(entry);
-      const hourlyRate = userSettings[entry.user_id] || 50;
+      const claimantRate = getClaimantRate(entry.claimant_type as ClaimantType);
+      const hourlyRate = claimantRate ?? userSettings[entry.user_id] ?? 50;
       const amount = Number(entry.duration_hours) * hourlyRate;
 
       if (claimMap.has(details.groupKey)) {
