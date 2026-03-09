@@ -348,7 +348,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a,.xls,.xlsx,.csv"
+              accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a,.xls,.xlsx,.csv,.ppt,.pptx"
               onChange={handleFileSelect}
               className="hidden"
             />
