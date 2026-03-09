@@ -705,6 +705,8 @@ DESIGN GUIDELINES:
 - No explicit, offensive, or inappropriate imagery
 - For posters and leaflets: use HEADINGS and SHORT BULLET POINTS only, avoid long paragraphs
 - Use large font sizes for better readability - avoid small body copy
+- Ensure columns and card containers have sufficient width so headings never break mid-word
+- All heading text must wrap at word boundaries only — never hyphenate or split words
 
 ${COMBINED_SPELLING}`;
 
