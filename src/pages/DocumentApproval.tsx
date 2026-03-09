@@ -19,6 +19,7 @@ const categoryLabels: Record<string, string> = {
 
 type FilterType = 'all' | 'awaiting' | 'completed' | 'expired';
 type SortType = 'recent' | 'deadline' | 'overdue';
+type TabType = 'active' | 'history';
 
 function isOverdue(doc: ApprovalDocumentWithSignatories): boolean {
   if (doc.status !== 'pending' || !doc.deadline) return false;
