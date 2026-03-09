@@ -478,6 +478,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   }, [infographicUrl, documentTitle]);
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !infographicFullscreen) handleClose(); }}>
       <DialogContent className={cn(
         "max-w-4xl max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0",
@@ -741,16 +742,17 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           )}
         </div>
       </DialogContent>
-
-      {/* Fullscreen infographic lightbox - rendered via portal to escape Dialog stacking context */}
-      {infographicFullscreen && infographicUrl && createPortal(
-        <InfographicFullscreen
-          infographicUrl={infographicUrl}
-          onClose={() => setInfographicFullscreen(false)}
-          onDownload={handleDownloadInfographic}
-        />,
-        document.body
-      )}
     </Dialog>
+
+    {/* Fullscreen infographic lightbox - OUTSIDE Dialog to avoid Radix event interception */}
+    {infographicFullscreen && infographicUrl && createPortal(
+      <InfographicFullscreen
+        infographicUrl={infographicUrl}
+        onClose={() => setInfographicFullscreen(false)}
+        onDownload={handleDownloadInfographic}
+      />,
+      document.body
+    )}
+    </>
   );
 };
