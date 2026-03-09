@@ -233,7 +233,15 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                       <Button size="sm" className="gap-2" onClick={() => window.open(signedFileUrl, '_blank')}>
                         <Download className="h-3.5 w-3.5" /> Download Signed PDF
                       </Button>
-                      <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open(doc.file_url, '_blank')}>
+                      <Button variant="outline" size="sm" className="gap-2" onClick={async () => {
+                        try {
+                          const res = await fetch(doc.file_url);
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+                          const a = document.createElement('a'); a.href = url; a.download = doc.original_filename || 'document.pdf';
+                          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                        } catch { toast.error('Failed to download document'); }
+                      }}>
                         <Download className="h-3.5 w-3.5" /> Download PDF (unsigned)
                       </Button>
                     </>
@@ -243,7 +251,15 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                       {generating ? 'Generating…' : 'Generate Signed PDF'}
                     </Button>
                   )}
-                  <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open(doc.file_url, '_blank')}>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={async () => {
+                    try {
+                      const res = await fetch(doc.file_url);
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+                      const a = document.createElement('a'); a.href = url; a.download = `audit-certificate-${doc.id}.pdf`;
+                      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                    } catch { toast.error('Failed to download audit certificate'); }
+                  }}>
                     <Award className="h-3.5 w-3.5" /> Download Audit Certificate
                   </Button>
                 </div>
