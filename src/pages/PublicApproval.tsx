@@ -440,7 +440,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
       <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10 space-y-5">
         {/* Logo */}
         <div className="flex justify-center">
-          <img src="/oak-lane-logo.png" alt="Notewell" className="h-10 sm:h-12" />
+          <img src={notewellLogo} alt="Notewell" className="h-10 sm:h-12" />
         </div>
         {children}
         <p className="text-center text-xs text-muted-foreground">
