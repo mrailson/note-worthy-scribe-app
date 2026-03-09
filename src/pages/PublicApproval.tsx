@@ -332,8 +332,8 @@ const PublicApproval = () => {
             className="w-full gap-2"
             onClick={() => window.open(document.file_url, '_blank')}
           >
-            <Download className="h-4 w-4" />
-            Download Document ({document.original_filename})
+            <Eye className="h-4 w-4" />
+            View Document ({document.original_filename})
             {document.file_size_bytes != null && document.file_size_bytes > 0 && (
               <span className="text-xs text-muted-foreground">
                 — {document.file_size_bytes < 1024 * 1024
