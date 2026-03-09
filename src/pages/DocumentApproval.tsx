@@ -363,6 +363,7 @@ export default function DocumentApproval() {
               </div>
             </>
           )}
+        </div>
       </div>
     </>
   );
