@@ -164,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
             : "";
 
           html = emailWrapper(`
-            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Required</h2>
+            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Requested</h2>
             <p style="margin: 0 0 8px 0;">Dear ${sig.name},</p>
             <p style="margin: 0 0 16px 0;">${doc.sender_name || "A colleague"} has sent you a document for approval.</p>
             ${messageBlock}
