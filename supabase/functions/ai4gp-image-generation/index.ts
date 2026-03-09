@@ -89,7 +89,89 @@ interface ImageGenerationRequest {
   spellingCorrections?: { incorrect: string; correct: string }[];
 }
 
-// Extract URL or text content from QR code request
+// --- AI proofreading helper ---
+// Extracts visible text from the prompt, sends it to a fast AI call for
+// spelling/grammar/duplication fixes, then applies corrections back.
+// Silently skips on any failure so it never blocks image generation.
+async function proofreadPromptText(prompt: string, apiKey: string): Promise<string> {
+  try {
+    // Extract just the "human-readable" text portions (strip formatting directives, style blocks, etc.)
+    // We send the full prompt but instruct the model to focus on visible content text only.
+    const visibleText = prompt
+      .replace(/```[\s\S]*?```/g, '')           // remove code blocks
+      .replace(/https?:\/\/[^\s]+/g, '')         // remove URLs
+      .replace(/#[0-9A-Fa-f]{3,8}\b/g, '')      // remove hex codes
+      .replace(/\n{2,}/g, '\n')
+      .trim();
+
+    if (visibleText.length < 20) return prompt; // too short to bother
+
+    const maxTokens = Math.max(200, Math.ceil(visibleText.length * 1.1 / 4));
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        max_tokens: maxTokens,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a proofreader. You will receive text extracted from a generated infographic. Check for and fix:
+- Duplicated phrases or sentences (e.g. 'requests to be emailed to Gosia at Park requests to be emailed to Gosia')
+- Garbled or nonsense words
+- Obvious grammatical errors
+- American spellings that should be British English (e.g. 'emphasized' → 'emphasised', 'organization' → 'organisation')
+
+Return ONLY a JSON object: { "corrections": [{ "original": "exact text to find", "replacement": "corrected text" }] }
+If no corrections are needed, return: { "corrections": [] }
+Do not change meaning, tone, or content. Only fix errors.`
+          },
+          { role: 'user', content: visibleText },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn('⚠️ Proofreading call failed with status', response.status, '— skipping');
+      return prompt;
+    }
+
+    const data = await response.json();
+    let rawContent = data.choices?.[0]?.message?.content || '';
+
+    // Strip markdown code fences if present
+    rawContent = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+    const parsed = JSON.parse(rawContent);
+    const corrections = parsed?.corrections;
+
+    if (!Array.isArray(corrections) || corrections.length === 0) {
+      console.log('✅ Proofreading: no corrections needed');
+      return prompt;
+    }
+
+    let correctedPrompt = prompt;
+    for (const c of corrections) {
+      if (c.original && c.replacement && typeof c.original === 'string' && typeof c.replacement === 'string') {
+        correctedPrompt = correctedPrompt.split(c.original).join(c.replacement);
+        console.log(`📝 Proofread correction: "${c.original}" → "${c.replacement}"`);
+      }
+    }
+
+    console.log(`✅ Proofreading: applied ${corrections.length} correction(s)`);
+    return correctedPrompt;
+
+  } catch (err) {
+    console.warn('⚠️ Proofreading step skipped due to error:', err instanceof Error ? err.message : err);
+    return prompt;
+  }
+}
+
+
 function extractQRContent(prompt: string): string {
   // Try to find a URL in the prompt
   const urlMatch = prompt.match(/https?:\/\/[^\s]+/i);
@@ -1006,6 +1088,9 @@ Content guidelines:
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery`;
     }
+
+    // --- AI proofreading pass on prompt text ---
+    imagePrompt = await proofreadPromptText(imagePrompt, lovableApiKey);
 
     console.log('🖼️ Generating image with model:', selectedImageModel);
 
