@@ -226,9 +226,13 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
       return;
     }
     setReferenceFile(file);
-    const reader = new FileReader();
-    reader.onload = () => setReferencePreview(reader.result as string);
-    reader.readAsDataURL(file);
+    // Revoke previous reference preview blob URL
+    if (referencePreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(referencePreview);
+    }
+    const blobUrl = URL.createObjectURL(file);
+    trackBlob(blobUrl);
+    setReferencePreview(blobUrl);
   };
 
   const clearRefFile = () => {

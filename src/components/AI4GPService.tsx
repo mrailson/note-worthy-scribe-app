@@ -17,15 +17,8 @@ import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
 import { FloatingMobileInput, FloatingMobileInputRef } from '@/components/ai4gp/FloatingMobileInput';
 
 import MessageRenderer from '@/components/MessageRenderer';
-import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
-import { PMHomeScreen } from '@/components/ai4gp/PMHomeScreen';
-import { GPHomeScreen } from '@/components/ai4gp/GPHomeScreen';
-import { SettingsModal } from '@/components/ai4gp/SettingsModal';
-import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { MicroBanner, ShortCard, CollapsibleShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
-import { AI4GPSidebar } from '@/components/ai4gp/AI4GPSidebar';
 import { RoleToggle } from '@/components/ai4gp/RoleToggle';
-import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 import { UnifiedSettingsDropdown } from '@/components/ai4gp/UnifiedSettingsDropdown';
 import { MobileRoleToggle, useMobileRolePreference } from '@/components/ai4gp/MobileRoleToggle';
 import { MobileRoleQuickPicks } from '@/components/ai4gp/MobileRoleQuickPicks';
@@ -49,6 +42,14 @@ const AdminDictatePanel = lazy(() => import('@/components/ai4gp/AdminDictatePane
 const TranslationServicePanel = lazy(() => import('@/components/ai4gp/TranslationServicePanel').then(m => ({ default: m.TranslationServicePanel })));
 const EmbeddedPMGenie = lazy(() => import('@/components/ai4gp/EmbeddedPMGenie').then(m => ({ default: m.EmbeddedPMGenie })));
 const PromptsModal = lazy(() => import('@/components/ai4gp/PromptsModal').then(m => ({ default: m.PromptsModal })));
+const QuickActionsPanel = lazy(() => import('@/components/ai4gp/QuickActionsPanel').then(m => ({ default: m.QuickActionsPanel })));
+const PMHomeScreen = lazy(() => import('@/components/ai4gp/PMHomeScreen').then(m => ({ default: m.PMHomeScreen })));
+const GPHomeScreen = lazy(() => import('@/components/ai4gp/GPHomeScreen').then(m => ({ default: m.GPHomeScreen })));
+const SettingsModal = lazy(() => import('@/components/ai4gp/SettingsModal').then(m => ({ default: m.SettingsModal })));
+const SearchHistorySidebar = lazy(() => import('@/components/ai4gp/SearchHistorySidebar').then(m => ({ default: m.SearchHistorySidebar })));
+const AI4GPSidebar = lazy(() => import('@/components/ai4gp/AI4GPSidebar').then(m => ({ default: m.AI4GPSidebar })));
+const MeetingsDropdown = lazy(() => import('@/components/ai4gp/MeetingsDropdown').then(m => ({ default: m.MeetingsDropdown })));
+
 
 // Loading fallback for lazy components
 const LazyLoader = () => (

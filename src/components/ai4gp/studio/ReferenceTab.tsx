@@ -29,18 +29,14 @@ export const ReferenceTab: React.FC<ReferenceTabProps> = ({
 }) => {
   const onDrop = useCallback((acceptedFiles: File[]) => {
     acceptedFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        onAddReference({
-          id: `ref-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          name: file.name,
-          content: base64,
-          type: file.type,
-          mode: settings.referenceMode,
-        });
-      };
-      reader.readAsDataURL(file);
+      const blobUrl = URL.createObjectURL(file);
+      onAddReference({
+        id: `ref-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: file.name,
+        content: blobUrl,
+        type: file.type,
+        mode: settings.referenceMode,
+      });
     });
   }, [onAddReference, settings.referenceMode]);
 

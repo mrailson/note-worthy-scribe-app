@@ -103,22 +103,14 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
     setIsUploadingLogo(true);
 
     try {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        onUpdate({ 
-          customLogoData: dataUrl,
-          logoSource: 'custom',
-          includeLogo: true
-        });
-        setIsUploadingLogo(false);
-        toast.success('Logo uploaded successfully');
-      };
-      reader.onerror = () => {
-        toast.error('Failed to read logo file');
-        setIsUploadingLogo(false);
-      };
-      reader.readAsDataURL(file);
+      const blobUrl = URL.createObjectURL(file);
+      onUpdate({ 
+        customLogoData: blobUrl,
+        logoSource: 'custom',
+        includeLogo: true
+      });
+      setIsUploadingLogo(false);
+      toast.success('Logo uploaded successfully');
     } catch (err) {
       console.error('Logo upload error:', err);
       toast.error('Failed to upload logo');

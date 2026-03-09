@@ -103,6 +103,13 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'slideshow'>('grid');
 
+  // Fetch images when modal opens
+  React.useEffect(() => {
+    if (open) {
+      fetchImages();
+    }
+  }, [open, fetchImages]);
+
   // Filter images based on current view
   const getFilteredImages = () => {
     let filtered = activeTab === 'favourites' ? favourites : images;

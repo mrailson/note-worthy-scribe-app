@@ -107,23 +107,17 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
     const isImage = file.type.startsWith('image/');
     
     if (isImage) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = async () => {
-          const preview = reader.result as string;
-          let content: string | undefined;
-          try {
-            const processed = await FileProcessorManager.processFile(file);
-            if (processed.content && !processed.content.includes('No text found')) {
-              content = processed.content;
-            }
-          } catch (e) {
-            console.warn('Image OCR extraction failed:', e);
-          }
-          resolve({ id, name: file.name, type: file.type, preview, content });
-        };
-        reader.readAsDataURL(file);
-      });
+      const preview = URL.createObjectURL(file);
+      let content: string | undefined;
+      try {
+        const processed = await FileProcessorManager.processFile(file);
+        if (processed.content && !processed.content.includes('No text found')) {
+          content = processed.content;
+        }
+      } catch (e) {
+        console.warn('Image OCR extraction failed:', e);
+      }
+      return { id, name: file.name, type: file.type, preview, content };
     }
     
     try {
@@ -187,6 +181,10 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
   const removeFile = (fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
     if (file) {
+      // Revoke blob URL to free memory
+      if (file.preview?.startsWith('blob:')) {
+        URL.revokeObjectURL(file.preview);
+      }
       setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
       
       let newContent = settings.supportingContent || '';

@@ -307,7 +307,7 @@ export const useTranslationHistory = () => {
     loadSessions();
 
     // Subscribe to changes in translation_sessions table
-    const subscription = supabase
+    const channel = supabase
       .channel('translation_sessions')
       .on(
         'postgres_changes',
@@ -325,7 +325,7 @@ export const useTranslationHistory = () => {
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [loadSessions]);
 

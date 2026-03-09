@@ -219,8 +219,11 @@ export function useImageStudio() {
     setState(prev => ({ ...prev, activeTab: tab }));
   }, []);
 
-  // Add reference image
+  // Add reference image and track blob URL for cleanup
   const addReferenceImage = useCallback((image: ReferenceImage) => {
+    if (image.content?.startsWith('blob:')) {
+      blobUrlsRef.current.push(image.content);
+    }
     setState(prev => ({
       ...prev,
       settings: {
@@ -230,15 +233,21 @@ export function useImageStudio() {
     }));
   }, []);
 
-  // Remove reference image
+  // Remove reference image and revoke blob URL
   const removeReferenceImage = useCallback((imageId: string) => {
-    setState(prev => ({
-      ...prev,
-      settings: {
-        ...prev.settings,
-        referenceImages: prev.settings.referenceImages.filter(img => img.id !== imageId),
-      },
-    }));
+    setState(prev => {
+      const removed = prev.settings.referenceImages.find(img => img.id === imageId);
+      if (removed?.content?.startsWith('blob:')) {
+        URL.revokeObjectURL(removed.content);
+      }
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          referenceImages: prev.settings.referenceImages.filter(img => img.id !== imageId),
+        },
+      };
+    });
   }, []);
 
   // Load previous result for editing
