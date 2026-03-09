@@ -180,6 +180,7 @@ export default function DocumentApproval() {
         <title>Document Approvals | Notewell</title>
         <meta name="description" content="Send documents for electronic approval and track who has signed." />
       </Helmet>
+      <Header />
       <div className="min-h-screen bg-background">
         <div className="max-w-[1400px] mx-auto px-4 py-6 space-y-6">
           {/* Header */}
