@@ -53,7 +53,7 @@ export function SignaturePositionPicker({ fileUrl, value, onChange }: Props) {
           canvas.width = viewport.width;
           canvas.height = viewport.height;
           const ctx = canvas.getContext('2d')!;
-          await page.render({ canvasContext: ctx, viewport }).promise;
+          await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
           thumbs.push(canvas.toDataURL('image/jpeg', 0.6));
         }
         if (!cancelled) setThumbnails(thumbs);
