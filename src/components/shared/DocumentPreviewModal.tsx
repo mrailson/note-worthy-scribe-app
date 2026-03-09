@@ -363,7 +363,7 @@ const InfographicSelector: React.FC<{
   );
 };
 
-
+export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   content,
   title: externalTitle,
   isOpen,
