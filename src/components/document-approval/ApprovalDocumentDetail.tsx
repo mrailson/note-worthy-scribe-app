@@ -192,7 +192,13 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
               )}
             </p>
           </div>
-          <Button variant="outline" size="sm" className="gap-1" onClick={() => window.open(doc.file_url, '_blank')}>
+          <Button variant="outline" size="sm" className="gap-1" onClick={async () => {
+            try {
+              const blob = await downloadFromStorage(doc.file_url);
+              const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+              window.open(url, '_blank');
+            } catch { toast.error('Failed to open PDF'); }
+          }}>
             <ExternalLink className="h-3 w-3" /> View PDF
           </Button>
         </div>
