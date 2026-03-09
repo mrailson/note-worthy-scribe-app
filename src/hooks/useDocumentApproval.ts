@@ -630,6 +630,8 @@ export function useDocumentApproval() {
     fetchSignatories,
     fetchAuditLog,
     saveContact,
+    deleteContact,
+    updateContact,
     saveContactGroup,
     deleteContactGroup,
     refetch: fetchDocuments,
