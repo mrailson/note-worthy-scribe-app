@@ -255,6 +255,28 @@ serve(async (req) => {
         metadata: { decline_comment, signed_role, signed_organisation },
       });
 
+      // Send decline notification to sender
+      try {
+        await fetch(
+          `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-approval-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            },
+            body: JSON.stringify({
+              type: 'declined',
+              document_id: document.id,
+              signatory_id: signatory.id,
+            }),
+          }
+        );
+        console.log('Decline notification triggered for document:', document.id);
+      } catch (emailErr) {
+        console.error('Failed to send decline email (non-blocking):', emailErr);
+      }
+
       return new Response(JSON.stringify({
         success: true,
         message: 'Document declined',
