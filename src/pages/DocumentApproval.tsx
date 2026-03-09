@@ -1,14 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download } from 'lucide-react';
+import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download, Send } from 'lucide-react';
 import { useDocumentApproval, ApprovalDocumentWithSignatories, ApprovalSignatory } from '@/hooks/useDocumentApproval';
 import { CreateApprovalFlow } from '@/components/document-approval/CreateApprovalFlow';
 import { ApprovalDocumentDetail } from '@/components/document-approval/ApprovalDocumentDetail';
 import { useNavigate } from 'react-router-dom';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 const categoryLabels: Record<string, string> = {
   dpia: 'DPIA', dsa: 'DSA', mou: 'MOU', policy: 'Policy',
@@ -28,19 +29,39 @@ function daysOverdue(doc: ApprovalDocumentWithSignatories): number {
   return Math.max(0, differenceInDays(new Date(), new Date(doc.deadline)));
 }
 
-function getSignatoryContext(sig: ApprovalSignatory, doc: ApprovalDocumentWithSignatories): string {
-  if (sig.status === 'approved') return '';
-  if (sig.status === 'declined') return 'declined';
-  if (sig.reminder_count > 0) return `reminded ×${sig.reminder_count}`;
-  if (sig.viewed_at) return `viewed ${format(new Date(sig.viewed_at), 'dd MMM')}`;
-  const sent = doc.created_at;
-  const daysSince = differenceInDays(new Date(), new Date(sent));
-  return daysSince > 0 ? `no response (${daysSince}d)` : 'no response';
+function getSignatoryContext(sig: ApprovalSignatory, doc: ApprovalDocumentWithSignatories): { text: string; severity: 'normal' | 'amber' | 'red' } {
+  if (sig.status === 'approved') return { text: '', severity: 'normal' };
+  if (sig.status === 'declined') return { text: 'declined', severity: 'red' };
+
+  const daysSinceSent = differenceInDays(new Date(), new Date(sig.created_at));
+
+  if (sig.reminder_count > 0) {
+    const lastReminder = sig.last_reminder_at
+      ? formatDistanceToNow(new Date(sig.last_reminder_at), { addSuffix: true })
+      : '';
+    return {
+      text: `reminded ×${sig.reminder_count}${lastReminder ? ` — last ${lastReminder}` : ''}`,
+      severity: 'red',
+    };
+  }
+  if (sig.viewed_at) {
+    const daysSinceView = differenceInDays(new Date(), new Date(sig.viewed_at));
+    return {
+      text: `viewed ${format(new Date(sig.viewed_at), 'dd MMM')} — not yet signed`,
+      severity: daysSinceView >= 2 ? 'amber' : 'normal',
+    };
+  }
+  if (daysSinceSent === 0) return { text: 'sent today', severity: 'normal' };
+  return {
+    text: `sent ${daysSinceSent}d ago — no response`,
+    severity: daysSinceSent >= 3 ? 'amber' : 'normal',
+  };
 }
 
 export default function DocumentApproval() {
   const navigate = useNavigate();
-  const { documents, loading } = useDocumentApproval();
+  const { documents, loading, chaseSignatory, chaseAllPending, chaseAllOverdue } = useDocumentApproval();
+  const [chasingDocId, setChasingDocId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<ApprovalDocumentWithSignatories | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -267,7 +288,26 @@ export default function DocumentApproval() {
                   )}
                 </Card>
               ) : (
-                filteredDocs.map(doc => <DocumentCard key={doc.id} doc={doc} onSelect={() => setSelectedDoc(doc)} />)
+                filteredDocs.map(doc => (
+                  <DocumentCard
+                    key={doc.id}
+                    doc={doc}
+                    onSelect={() => setSelectedDoc(doc)}
+                    onChasePending={async () => {
+                      setChasingDocId(doc.id);
+                      try {
+                        const result = await chaseAllPending(doc.id);
+                        const sentCount = result?.results?.filter((r: any) => r.status === 'sent').length || 0;
+                        toast.success(`Reminders sent to ${sentCount} ${sentCount === 1 ? 'person' : 'people'}`);
+                      } catch (err) {
+                        toast.error('Failed to send reminders');
+                      } finally {
+                        setChasingDocId(null);
+                      }
+                    }}
+                    isChasing={chasingDocId === doc.id}
+                  />
+                ))
               )}
             </div>
 
@@ -276,6 +316,19 @@ export default function DocumentApproval() {
               <NeedsAttentionPanel
                 needsAttention={needsAttention}
                 onSelectDoc={(doc) => setSelectedDoc(doc)}
+                onChaseAllOverdue={async () => {
+                  const overdueIds = needsAttention.overdueDocuments.map(d => d.id);
+                  setChasingDocId('all-overdue');
+                  try {
+                    await chaseAllOverdue(overdueIds);
+                    toast.success(`Reminders sent for ${overdueIds.length} overdue ${overdueIds.length === 1 ? 'document' : 'documents'}`);
+                  } catch {
+                    toast.error('Failed to send some reminders');
+                  } finally {
+                    setChasingDocId(null);
+                  }
+                }}
+                isChasing={chasingDocId === 'all-overdue'}
               />
             </div>
           </div>
@@ -287,13 +340,19 @@ export default function DocumentApproval() {
 
 // ─── Document Card ──────────────────────────────────────────────────────
 
-function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories; onSelect: () => void }) {
+function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
+  doc: ApprovalDocumentWithSignatories;
+  onSelect: () => void;
+  onChasePending: () => void;
+  isChasing: boolean;
+}) {
   const sigs = doc.signatories;
   const approvedCount = sigs.filter(s => s.status === 'approved').length;
   const totalCount = sigs.length;
   const overdue = isOverdue(doc);
   const overdueDays = daysOverdue(doc);
   const isCompleted = doc.status === 'completed';
+  const pendingCount = sigs.filter(s => s.status === 'pending' || (s.status !== 'approved' && s.status !== 'declined')).length;
 
   return (
     <Card className={`p-5 cursor-pointer hover:border-primary/50 transition-colors ${
@@ -348,7 +407,7 @@ function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories;
             <span className="text-xs font-medium text-foreground">{approvedCount}/{totalCount} approved</span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden flex">
-            {sigs.map((sig, i) => (
+            {sigs.map((sig) => (
               <div
                 key={sig.id}
                 className={`h-full transition-all ${
@@ -371,11 +430,14 @@ function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories;
       {sigs.length > 0 && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
           {sigs.map(sig => {
-            const context = getSignatoryContext(sig, doc);
+            const ctx = getSignatoryContext(sig, doc);
             const isPending = sig.status === 'pending';
             return (
               <span key={sig.id} className={`text-xs flex items-center gap-1 ${
-                isPending && overdue ? 'text-destructive font-medium' : 'text-muted-foreground'
+                ctx.severity === 'red' ? 'text-destructive font-medium'
+                  : ctx.severity === 'amber' ? 'text-amber-600 dark:text-amber-400'
+                  : isPending && overdue ? 'text-destructive font-medium'
+                  : 'text-muted-foreground'
               }`}>
                 {sig.status === 'approved' ? (
                   <CheckCircle2 className="h-3 w-3 text-green-600" />
@@ -387,7 +449,7 @@ function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories;
                   <Clock className="h-3 w-3" />
                 )}
                 {sig.name}
-                {context && <span className="text-muted-foreground/70">({context})</span>}
+                {ctx.text && <span className="opacity-70">({ctx.text})</span>}
               </span>
             );
           })}
@@ -399,9 +461,20 @@ function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories;
         <Button variant="outline" size="sm" className="text-xs gap-1" onClick={onSelect}>
           <Eye className="h-3 w-3" /> View Details
         </Button>
-        {doc.status === 'pending' && sigs.some(s => s.status === 'pending') && (
-          <Button variant={overdue ? 'destructive' : 'outline'} size="sm" className="text-xs gap-1">
-            <Mail className="h-3 w-3" /> Chase Pending
+        {doc.status === 'pending' && pendingCount > 0 && (
+          <Button
+            variant={overdue ? 'destructive' : 'outline'}
+            size="sm"
+            className="text-xs gap-1"
+            disabled={isChasing}
+            onClick={onChasePending}
+          >
+            {isChasing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Mail className="h-3 w-3" />
+            )}
+            Chase Pending ({pendingCount})
           </Button>
         )}
         {isCompleted && (
@@ -413,7 +486,6 @@ function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories;
     </Card>
   );
 }
-
 // ─── Needs Attention Sidebar ────────────────────────────────────────────
 
 interface NeedsAttentionProps {
@@ -423,9 +495,11 @@ interface NeedsAttentionProps {
     declinedSignatories: { sig: ApprovalSignatory; doc: ApprovalDocumentWithSignatories }[];
   };
   onSelectDoc: (doc: ApprovalDocumentWithSignatories) => void;
+  onChaseAllOverdue: () => void;
+  isChasing: boolean;
 }
 
-function NeedsAttentionPanel({ needsAttention, onSelectDoc }: NeedsAttentionProps) {
+function NeedsAttentionPanel({ needsAttention, onSelectDoc, onChaseAllOverdue, isChasing }: NeedsAttentionProps) {
   const { overdueDocuments, noResponseSignatories, declinedSignatories } = needsAttention;
   const hasAnything = overdueDocuments.length > 0 || noResponseSignatories.length > 0 || declinedSignatories.length > 0;
 
@@ -531,10 +605,21 @@ function NeedsAttentionPanel({ needsAttention, onSelectDoc }: NeedsAttentionProp
             )}
           </div>
 
-          {/* Chase All */}
+          {/* Chase All Overdue */}
           {(overdueDocuments.length > 0 || noResponseSignatories.length > 0) && (
-            <Button variant="outline" size="sm" className="w-full text-xs gap-1 mt-2">
-              <Mail className="h-3 w-3" /> Chase All Overdue
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs gap-1 mt-2"
+              disabled={isChasing}
+              onClick={onChaseAllOverdue}
+            >
+              {isChasing ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Mail className="h-3 w-3" />
+              )}
+              Chase All Overdue
             </Button>
           )}
         </div>

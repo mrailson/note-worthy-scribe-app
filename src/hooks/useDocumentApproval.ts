@@ -277,6 +277,73 @@ export function useDocumentApproval() {
     toast.success('Document approval revoked');
   }, [user, fetchDocuments]);
 
+  const chaseSignatory = useCallback(async (documentId: string, signatoryId: string) => {
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    const res = await fetch(
+      `https://${projectId}.supabase.co/functions/v1/send-approval-email`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({
+          type: 'reminder',
+          document_id: documentId,
+          signatory_id: signatoryId,
+        }),
+      }
+    );
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to send reminder');
+
+    await fetchDocuments();
+    return result;
+  }, [fetchDocuments]);
+
+  const chaseAllPending = useCallback(async (documentId: string) => {
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    const res = await fetch(
+      `https://${projectId}.supabase.co/functions/v1/send-approval-email`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({
+          type: 'reminder',
+          document_id: documentId,
+        }),
+      }
+    );
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to send reminders');
+
+    await fetchDocuments();
+    return result;
+  }, [fetchDocuments]);
+
+  const chaseAllOverdue = useCallback(async (overdueDocumentIds: string[]) => {
+    const results = [];
+    for (const docId of overdueDocumentIds) {
+      try {
+        const result = await chaseAllPending(docId);
+        results.push({ docId, ...result });
+      } catch (err) {
+        console.error(`Failed to chase doc ${docId}:`, err);
+        results.push({ docId, success: false });
+      }
+    }
+    return results;
+  }, [chaseAllPending]);
+
   const fetchSignatories = useCallback(async (documentId: string) => {
     const { data, error } = await supabase
       .from('approval_signatories')
@@ -350,6 +417,9 @@ export function useDocumentApproval() {
     addSignatories,
     sendForApproval,
     revokeDocument,
+    chaseSignatory,
+    chaseAllPending,
+    chaseAllOverdue,
     fetchSignatories,
     fetchAuditLog,
     saveContact,
