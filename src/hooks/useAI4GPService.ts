@@ -60,6 +60,10 @@ export const useAI4GPService = () => {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const verificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const simulatedStreamTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Track simulated streaming timeouts
+  const settingsLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Track settings load delay
+  
+  // Guard to prevent initial settings load from triggering a save-back cascade
+  const hasLoadedSettings = useRef(false);
   
   // Refs for frequently-changing values to prevent stale closures in callbacks
   const selectedModelRef = useRef(selectedModel);
@@ -1484,10 +1488,20 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     // Add a small delay to ensure user is fully authenticated
     if (user?.id) {
-      setTimeout(() => {
-        loadUserSettings();
+      settingsLoadTimeoutRef.current = setTimeout(() => {
+        loadUserSettings().then(() => {
+          hasLoadedSettings.current = true;
+          console.log('cleanup: Settings load complete, save guard released');
+        });
       }, 100);
     }
+    
+    return () => {
+      if (settingsLoadTimeoutRef.current) {
+        clearTimeout(settingsLoadTimeoutRef.current);
+        console.log('cleanup: Cleared settings load timeout');
+      }
+    };
   }, [user?.id]);
 
   // Save user settings when they change
@@ -1559,12 +1573,19 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
   // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
+    if (!hasLoadedSettings.current) {
+      console.log('cleanup: Skipping initial settings save — load not yet complete');
+      return;
+    }
     if (user?.id) {
       const timeoutId = setTimeout(() => {
         saveUserSettings();
       }, 500); // Debounce saves by 500ms
 
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+        console.log('cleanup: Cleared debounced settings save timeout');
+      };
     }
   }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, saveUserSettings, profileContextEnabled, profileContextShowUserName, profileContextShowUserEmail, profileContextShowPracticeName, profileContextShowPracticeAddress, profileContextShowPracticePhone, profileContextShowPracticeEmail, profileContextShowPracticeWebsite, profileContextShowPracticeManager, profileContextShowPCN, profileContextShowNeighbourhood, profileContextShowSignatures]);
 
