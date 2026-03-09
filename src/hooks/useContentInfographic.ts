@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { userNameCorrections } from '@/utils/UserNameCorrections';
+import { sanitizeGeneratedContent } from '@/utils/sanitizeGeneratedContent';
 
 type GenerationPhase = 'preparing' | 'generating' | 'downloading' | 'complete';
 
@@ -124,6 +125,13 @@ export const useContentInfographic = () => {
 
       // 2. Remove consecutive duplicate words
       cleanedContent = cleanedContent.replace(/\b(\w+)([,;.]?\s+)\1\b/gi, '$1$2');
+
+      // 2b. Sanitise content — strip hex codes, CSS, directives, etc.
+      const { html: sanitisedContent, warnings } = sanitizeGeneratedContent(cleanedContent);
+      cleanedContent = sanitisedContent;
+      if (warnings.length > 0) {
+        console.log('🧹 Infographic: sanitised source content:', warnings);
+      }
 
       const documentContent = formatContentForInfographic(cleanedContent, title);
 

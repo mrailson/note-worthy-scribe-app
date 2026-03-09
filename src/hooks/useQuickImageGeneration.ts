@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import type { GeneratedImage } from '@/types/ai4gp';
 import { toast } from 'sonner';
+import { sanitizeGeneratedContent } from '@/utils/sanitizeGeneratedContent';
 
 export type LayoutOption = 'portrait' | 'landscape' | 'square';
 export type PurposeOption = 'poster' | 'social' | 'leaflet' | 'waiting-room' | 'general';
@@ -111,12 +112,19 @@ export function useQuickImageGeneration() {
     }, 500);
 
     try {
+      // Sanitise description before sending
+      const { html: sanitisedDescription, warnings } = sanitizeGeneratedContent(settings.description);
+      if (warnings.length > 0) {
+        console.log('🧹 Quick image: sanitised content:', warnings);
+      }
+      const sanitisedKeyMessages = settings.keyMessages.map(msg => sanitizeGeneratedContent(msg).html);
+
       // Build the request payload
       const requestPayload = {
-        prompt: settings.description,
+        prompt: sanitisedDescription,
         layoutPreference: settings.layout,
         purpose: purposeToTypeId[settings.purpose],
-        keyMessages: settings.keyMessages.length > 0 ? settings.keyMessages : undefined,
+        keyMessages: sanitisedKeyMessages.length > 0 ? sanitisedKeyMessages : undefined,
         
         // Style defaults - NHS Professional
         stylePreset: 'nhs-professional',
