@@ -412,7 +412,7 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
 
   return (
     <Card className={`p-5 cursor-pointer hover:border-primary/50 transition-colors ${
-      overdue ? 'border-destructive/40' : ''
+      overdue ? 'border-destructive/40' : isCompleted ? 'border-[hsl(var(--approval-completed-border))]' : ''
     }`} onClick={onSelect}>
       {/* Title Row */}
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -421,7 +421,7 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
             <FileText className="h-4 w-4 text-primary flex-shrink-0" />
             <h3 className="font-semibold text-foreground">{doc.title}</h3>
             {isCompleted && (
-              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs gap-1">
+              <Badge className="bg-[hsl(var(--approval-completed-bg))] text-[hsl(var(--approval-approved))] border border-[hsl(var(--approval-completed-border))] text-xs gap-1">
                 <CheckCircle2 className="h-3 w-3" /> Completed
               </Badge>
             )}
@@ -431,7 +431,7 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
               </Badge>
             )}
             {doc.status === 'pending' && !overdue && (
-              <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs gap-1">
+              <Badge className="bg-[hsl(var(--warning)/0.1)] text-[hsl(var(--warning))] border border-[hsl(var(--warning)/0.3)] text-xs gap-1">
                 <Clock className="h-3 w-3" /> Awaiting
               </Badge>
             )}
@@ -456,26 +456,28 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Segmented Progress Bar */}
       {totalCount > 0 && (
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium text-foreground">{approvedCount}/{totalCount} approved</span>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden flex">
+          <div className="flex gap-1">
             {sigs.map((sig) => (
               <div
                 key={sig.id}
-                className={`h-full transition-all ${
-                  sig.status === 'approved'
-                    ? 'bg-green-500'
+                className="h-2 rounded-full transition-all"
+                style={{
+                  flex: 1,
+                  backgroundColor: sig.status === 'approved'
+                    ? 'hsl(var(--approval-approved))'
                     : sig.status === 'declined'
-                      ? 'bg-destructive'
+                      ? 'hsl(var(--destructive))'
                       : sig.viewed_at
-                        ? 'bg-amber-400'
-                        : 'bg-muted-foreground/20'
-                }`}
-                style={{ width: `${100 / totalCount}%` }}
+                        ? 'hsl(var(--approval-viewed))'
+                        : 'hsl(var(--approval-not-viewed) / 0.25)',
+                }}
+                title={`${sig.name}: ${sig.status === 'approved' ? 'Approved' : sig.status === 'declined' ? 'Declined' : sig.viewed_at ? 'Viewed' : 'Not viewed'}`}
               />
             ))}
           </div>
@@ -491,18 +493,18 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
             return (
               <span key={sig.id} className={`text-xs flex items-center gap-1 ${
                 ctx.severity === 'red' ? 'text-destructive font-medium'
-                  : ctx.severity === 'amber' ? 'text-amber-600 dark:text-amber-400'
+                  : ctx.severity === 'amber' ? 'text-[hsl(var(--warning))]'
                   : isPending && overdue ? 'text-destructive font-medium'
                   : 'text-muted-foreground'
               }`}>
                 {sig.status === 'approved' ? (
-                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                  <CheckCircle2 className="h-3 w-3 text-[hsl(var(--approval-approved))]" />
                 ) : sig.status === 'declined' ? (
                   <XCircle className="h-3 w-3 text-destructive" />
                 ) : sig.viewed_at ? (
-                  <Eye className="h-3 w-3 text-amber-500" />
+                  <Eye className="h-3 w-3 text-[hsl(var(--approval-viewed))]" />
                 ) : (
-                  <Clock className="h-3 w-3" />
+                  <Clock className="h-3 w-3 text-[hsl(var(--approval-not-viewed))]" />
                 )}
                 {sig.name}
                 {ctx.text && <span className="opacity-70">({ctx.text})</span>}
