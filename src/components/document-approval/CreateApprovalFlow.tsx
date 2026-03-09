@@ -506,12 +506,14 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
             </div>
 
             {/* Table header */}
-            <div className="hidden md:grid grid-cols-[24px_1fr_1fr_1fr_1fr_32px] gap-2 px-3 text-xs font-medium text-muted-foreground">
+            <div className="hidden md:grid grid-cols-[24px_80px_1fr_1fr_1fr_1fr_120px_32px] gap-2 px-3 text-xs font-medium text-muted-foreground">
               <span />
+              <span>Title</span>
               <span>Name *</span>
               <span>Email *</span>
               <span>Role</span>
               <span>Organisation</span>
+              <span>Org Type</span>
               <span />
             </div>
 
@@ -524,15 +526,35 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                   onDragStart={() => handleDragStart(idx)}
                   onDragOver={e => handleDragOver(e, idx)}
                   onDragEnd={handleDragEnd}
-                  className={`grid grid-cols-1 md:grid-cols-[24px_1fr_1fr_1fr_1fr_32px] gap-2 p-3 bg-muted/50 rounded-lg items-center transition-opacity ${
+                  className={`grid grid-cols-1 md:grid-cols-[24px_80px_1fr_1fr_1fr_1fr_120px_32px] gap-2 p-3 bg-muted/50 rounded-lg items-center transition-opacity ${
                     dragIdx === idx ? 'opacity-50' : ''
                   }`}
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab hidden md:block" />
+                  <Select value={s.signatory_title} onValueChange={v => updateRow(s.id, 'signatory_title', v)}>
+                    <SelectTrigger className="text-sm h-9">
+                      <SelectValue placeholder="Title" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TITLE_OPTIONS.map(t => (
+                        <SelectItem key={t || '__none'} value={t || ' '}>{t || '—'}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Input value={s.name} onChange={e => updateRow(s.id, 'name', e.target.value)} placeholder="Full name" className="text-sm" />
                   <Input type="email" value={s.email} onChange={e => updateRow(s.id, 'email', e.target.value)} placeholder="Email address" className="text-sm" />
                   <Input value={s.role} onChange={e => updateRow(s.id, 'role', e.target.value)} placeholder="Role" className="text-sm" />
                   <Input value={s.organisation} onChange={e => updateRow(s.id, 'organisation', e.target.value)} placeholder="Organisation" className="text-sm" />
+                  <Select value={s.organisation_type} onValueChange={v => updateRow(s.id, 'organisation_type', v)}>
+                    <SelectTrigger className="text-sm h-9">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ORG_TYPE_OPTIONS.map(t => (
+                        <SelectItem key={t || '__none'} value={t || ' '}>{t || '—'}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeRow(s.id)} disabled={signatories.length <= 1}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
