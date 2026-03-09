@@ -1621,6 +1621,14 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
             image_url: { url: file.content }
           });
           console.log(`Added base64 image as multimodal content: ${file.name}`);
+        } else if (file.content.startsWith('data:application/pdf')) {
+          // PDF file as base64 - send as multimodal for native Gemini processing
+          contentParts.push({
+            type: 'image_url',
+            image_url: { url: file.content }
+          });
+          const estimatedPages = Math.max(1, Math.round((file.size || 0) / (100 * 1024)));
+          console.log(`Added PDF as multimodal content for Gemini: ${file.name} (~${estimatedPages} pages)`);
         } else if (isImageFile(file) && isImageUrl(file.content)) {
           // Direct URL image that wasn't marked
           console.log(`Processing direct URL image: ${file.name}`);
@@ -1634,7 +1642,7 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
             textContent += `\n\n[Failed to load image: ${file.name}]`;
           }
         } else {
-          // Non-image file - append as text
+          // Non-image/non-PDF file - append as text
           textContent += `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`;
         }
       }
