@@ -47,7 +47,9 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
   const [step, setStep] = useState<'upload' | 'stamp_position' | 'signatories' | 'review'>('upload');
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [convertedToPdf, setConvertedToPdf] = useState(false);
 
   // ─── Step 1: File & metadata ──────────────────────────────────────
   const [file, setFile] = useState<File | null>(null);
@@ -114,6 +116,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
       return;
     }
     setUploading(true);
+    setUploadStatus(null);
+    const isDocx = file.name.toLowerCase().endsWith('.docx');
     try {
       const placement = signatureMethod === 'stamp'
         ? { method: 'stamp' as const, ...stampPosition }
@@ -124,11 +128,19 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
         deadline: deadline || undefined,
         message: message || undefined,
         signaturePlacement: placement,
-      });
+      }, (status) => setUploadStatus(status));
+
       setDocumentId(doc.id);
       setFileUrl(doc.file_url);
 
-      if (signatureMethod === 'stamp' && file.name.toLowerCase().endsWith('.pdf')) {
+      if (isDocx) {
+        setConvertedToPdf(true);
+        toast.success('Converted from Word to PDF successfully');
+      }
+
+      // After conversion, the stored file is always PDF, so stamp is available
+      const storedIsPdf = isDocx || file.name.toLowerCase().endsWith('.pdf');
+      if (signatureMethod === 'stamp' && storedIsPdf) {
         setStep('stamp_position');
       } else {
         setStep('signatories');
@@ -136,9 +148,10 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
       toast.success('Document uploaded successfully');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to upload document');
+      toast.error(err instanceof Error ? err.message : 'Failed to upload document');
     } finally {
       setUploading(false);
+      setUploadStatus(null);
     }
   };
 
@@ -330,7 +343,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                     {/* DOCX notice */}
                     {file.name.toLowerCase().endsWith('.docx') && (
                       <p className="text-xs text-primary flex items-center justify-center gap-1 mt-1">
-                        <Shield className="h-3 w-3" /> Word document — will be auto-converted to PDF for email attachment
+                        <Shield className="h-3 w-3" /> Word document — will be automatically converted to PDF before sending
                       </p>
                     )}
                   </div>
@@ -396,16 +409,16 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                   </div>
                 </div>
                 <div className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                  !file?.name.toLowerCase().endsWith('.pdf') ? 'border-border opacity-50' : 'border-border hover:border-primary/50'
+                  !(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx')) ? 'border-border opacity-50' : 'border-border hover:border-primary/50'
                 }`}>
-                  <RadioGroupItem value="stamp" id="sig-stamp" className="mt-0.5" disabled={!file?.name.toLowerCase().endsWith('.pdf')} />
+                  <RadioGroupItem value="stamp" id="sig-stamp" className="mt-0.5" disabled={!(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx'))} />
                   <div>
                     <label htmlFor="sig-stamp" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
                       <Stamp className="h-4 w-4 text-primary" /> Stamp signature block
                     </label>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Places signatures onto a specific page in the document
-                      {!file?.name.toLowerCase().endsWith('.pdf') && ' (PDF only)'}
+                      {!(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx')) && ' (PDF or DOCX only)'}
                     </p>
                   </div>
                 </div>
@@ -414,7 +427,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
             <Button onClick={handleUploadAndContinue} disabled={uploading || !file || !title.trim()} className="w-full gap-2">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {uploading ? 'Uploading & Hashing…' : 'Upload & Continue'}
+              {uploading ? (uploadStatus || 'Processing…') : 'Upload & Continue'}
             </Button>
           </Card>
         )}

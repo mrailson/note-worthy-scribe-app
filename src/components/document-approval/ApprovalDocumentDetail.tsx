@@ -166,10 +166,15 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
           </Button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-foreground truncate">{doc.title}</h1>
-            <p className="text-sm text-muted-foreground">{doc.original_filename}</p>
+            <p className="text-sm text-muted-foreground">
+              {doc.original_filename}
+              {/\.docx?$/i.test(doc.original_filename || '') && (
+                <span className="text-primary ml-1">(converted to PDF)</span>
+              )}
+            </p>
           </div>
           <Button variant="outline" size="sm" className="gap-1" onClick={() => window.open(doc.file_url, '_blank')}>
-            <ExternalLink className="h-3 w-3" /> View Document
+            <ExternalLink className="h-3 w-3" /> View PDF
           </Button>
         </div>
 
@@ -220,7 +225,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                         <Download className="h-3.5 w-3.5" /> Download Signed PDF
                       </Button>
                       <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open(doc.file_url, '_blank')}>
-                        <Download className="h-3.5 w-3.5" /> Download Original (unsigned)
+                        <Download className="h-3.5 w-3.5" /> Download PDF (unsigned)
                       </Button>
                     </>
                   ) : (
