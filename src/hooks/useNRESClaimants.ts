@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 
 export const MEMBER_PRACTICES = [
   'Brackley Medical Centre',
@@ -32,8 +33,13 @@ export function useNRESClaimants() {
   const { user } = useAuth();
   const [claimants, setClaimants] = useState<NRESClaimant[]>([]);
   const [practiceId, setPracticeId] = useState<string | null>(null);
+  const [userPracticeName, setUserPracticeName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  const isAdmin = useMemo(() => {
+    return !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
+  }, [user?.email]);
   
   // Track if initial fetch has been done to prevent duplicate fetches
   const hasFetchedRef = useRef(false);
@@ -74,16 +80,28 @@ export function useNRESClaimants() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('nres_claimants')
-        .select('*')
-        .eq('practice_id', pId)
-        .order('name');
+      // Fetch claimants and user's practice name in parallel
+      const [claimantsResult, practiceResult] = await Promise.all([
+        supabase
+          .from('nres_claimants')
+          .select('*')
+          .eq('practice_id', pId)
+          .order('name'),
+        supabase
+          .from('gp_practices')
+          .select('name')
+          .eq('id', pId)
+          .maybeSingle()
+      ]);
 
-      if (error) throw error;
+      if (claimantsResult.error) throw claimantsResult.error;
+      
+      if (practiceResult.data?.name) {
+        setUserPracticeName(practiceResult.data.name);
+      }
       
       // Cast the role and member_practice fields properly
-      const castClaimants = (data || []).map(c => ({
+      const castClaimants = (claimantsResult.data || []).map(c => ({
         ...c,
         role: c.role as 'gp' | 'pm',
         member_practice: c.member_practice as MemberPractice | null
@@ -205,10 +223,28 @@ export function useNRESClaimants() {
   };
 
   const activeClaimants = claimants.filter(c => c.is_active);
+  
+  // For non-admin users, filter claimants to only those matching their practice
+  const practiceFilteredClaimants = useMemo(() => {
+    if (isAdmin || !userPracticeName) return activeClaimants;
+    
+    // Match user's gp_practices.name against claimant member_practice
+    // Use case-insensitive partial matching to handle naming variations
+    const userPracticeNorm = userPracticeName.toLowerCase().replace(/^the\s+/i, '');
+    
+    return activeClaimants.filter(c => {
+      if (!c.member_practice) return false;
+      const memberNorm = c.member_practice.toLowerCase().replace(/^the\s+/i, '');
+      return memberNorm.includes(userPracticeNorm) || userPracticeNorm.includes(memberNorm);
+    });
+  }, [activeClaimants, isAdmin, userPracticeName]);
 
   return {
     claimants,
     activeClaimants,
+    practiceFilteredClaimants,
+    isAdmin,
+    userPracticeName,
     loading,
     saving,
     practiceId,

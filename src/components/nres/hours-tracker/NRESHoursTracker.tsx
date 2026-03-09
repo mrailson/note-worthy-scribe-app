@@ -62,6 +62,7 @@ export function NRESHoursTracker() {
 
   const {
     activeClaimants,
+    practiceFilteredClaimants,
     loading: loadingClaimants
   } = useNRESClaimants();
 
@@ -158,7 +159,7 @@ export function NRESHoursTracker() {
             {claimantsOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
             <Users className="w-5 h-5 text-blue-600" />
             <h3 className="text-lg font-semibold">Manage Claimants</h3>
-            <span className="text-sm text-muted-foreground">({activeClaimants.length} active)</span>
+             <span className="text-sm text-muted-foreground">({practiceFilteredClaimants.length} active)</span>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-4">
             <ClaimantsManager />
@@ -172,14 +173,14 @@ export function NRESHoursTracker() {
           <h3 className="text-lg font-semibold">Time Tracking</h3>
           <HoursEntryForm 
             saving={savingEntry}
-            claimants={activeClaimants}
+            claimants={practiceFilteredClaimants}
             onSubmit={addEntry}
           />
           <HoursEntriesTable
             entries={entries}
             hourlyRate={hourlyRate}
             loading={loadingEntries}
-            claimants={activeClaimants}
+            claimants={practiceFilteredClaimants}
             onUpdate={updateEntry}
           />
         </div>
