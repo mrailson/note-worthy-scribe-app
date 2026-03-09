@@ -58,7 +58,7 @@ export function useNRESHoursTracker() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, isAdmin, resolvePracticeId]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id) {
