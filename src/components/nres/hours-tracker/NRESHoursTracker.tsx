@@ -173,7 +173,7 @@ export function NRESHoursTracker() {
           <h3 className="text-lg font-semibold">Time Tracking</h3>
           <HoursEntryForm 
             saving={savingEntry}
-            claimants={activeClaimants}
+            claimants={practiceFilteredClaimants}
             onSubmit={addEntry}
           />
           <HoursEntriesTable
