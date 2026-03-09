@@ -117,6 +117,7 @@ interface UploadedFile {
   type: string;
   content: string;
   size: number;
+  processedType?: string; // 'pdf' | 'word' | 'image' | 'text' | etc.
 }
 
 interface RequestBody {
