@@ -363,6 +363,23 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
                       );
                     })}
                   </TableBody>
+                  <TableFooter>
+                    <TableRow className="bg-muted/50 font-semibold">
+                      <TableCell colSpan={3} className="text-right text-sm">
+                        Totals ({totals.count} entries)
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {totals.totalHours.toFixed(2)} hrs
+                        </Badge>
+                      </TableCell>
+                      <TableCell colSpan={2}></TableCell>
+                      <TableCell className="text-right font-bold text-sm">
+                        £{totals.totalAmount.toFixed(2)}
+                      </TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  </TableFooter>
                 </Table>
               </div>
             </CardContent>
