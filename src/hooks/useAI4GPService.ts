@@ -1573,12 +1573,19 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
   // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
+    if (!hasLoadedSettings.current) {
+      console.log('cleanup: Skipping initial settings save — load not yet complete');
+      return;
+    }
     if (user?.id) {
       const timeoutId = setTimeout(() => {
         saveUserSettings();
       }, 500); // Debounce saves by 500ms
 
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+        console.log('cleanup: Cleared debounced settings save timeout');
+      };
     }
   }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, saveUserSettings, profileContextEnabled, profileContextShowUserName, profileContextShowUserEmail, profileContextShowPracticeName, profileContextShowPracticeAddress, profileContextShowPracticePhone, profileContextShowPracticeEmail, profileContextShowPracticeWebsite, profileContextShowPracticeManager, profileContextShowPCN, profileContextShowNeighbourhood, profileContextShowSignatures]);
 
