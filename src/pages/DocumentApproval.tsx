@@ -570,7 +570,7 @@ function NeedsAttentionPanel({ needsAttention, onSelectDoc, onChaseAllOverdue, i
 
       {!hasAnything ? (
         <p className="text-sm text-muted-foreground text-center py-4">
-          <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+          <CheckCircle2 className="h-8 w-8 text-[hsl(var(--approval-approved))] mx-auto mb-2" />
           All clear — no outstanding items
         </p>
       ) : (
