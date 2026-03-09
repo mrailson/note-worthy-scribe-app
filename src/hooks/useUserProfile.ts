@@ -19,9 +19,10 @@ export interface UserProfile {
   northamptonshire_icb_active?: boolean;
   title?: string | null;
   role?: string | null;
-  letter_signature?: string | null; // Personal signature for letters
-  email_signature?: string | null;  // Personal signature for emails
-  default_home_page?: string | null; // User's preferred landing page
+  letter_signature?: string | null;
+  email_signature?: string | null;
+  default_home_page_desktop?: string | null;
+  default_home_page_mobile?: string | null;
 }
 
 export function useUserProfile() {
