@@ -1252,7 +1252,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           throw new Error(data?.error || 'The AI service encountered an error. Please try again.');
         }
 
-        const responseContent = data?.response || data?.content || 'No response received';
+        let responseContent = data?.response || data?.content || 'No response received';
+        
+        // Validate document response
+        const invokeValidation = validateDocumentResponse(responseContent, hadFilesAttached || false);
+        if (!invokeValidation.isValid && invokeValidation.errorMessage) {
+          responseContent = `⚠️ ${invokeValidation.errorMessage}`;
+          toast.error('Document reading failed — see suggestions below');
+        } else if (invokeValidation.possibleHallucination && invokeValidation.warningPrefix) {
+          responseContent = invokeValidation.warningPrefix + responseContent;
+        }
         
         const apiResponseTime = Date.now() - startTime;
         
