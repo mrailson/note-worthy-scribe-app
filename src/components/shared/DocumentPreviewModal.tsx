@@ -314,6 +314,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   infographicPracticeName,
   infographicSpellingCorrections,
   onContentUpdated,
+  onExportPowerPoint,
 }) => {
   const { prefs, updatePref } = useDocumentPreviewPrefs();
   const { practiceContext } = usePracticeContext();
