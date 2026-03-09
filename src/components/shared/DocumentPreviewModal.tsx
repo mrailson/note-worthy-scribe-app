@@ -702,7 +702,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         </div>
 
         {/* AI Edit Panel */}
-        {infographicView === 'document' && (
+        {(
           <DocumentAIEditPanel
             content={activeContent}
             title={documentTitle}
