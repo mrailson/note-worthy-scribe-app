@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { generateSignedPdf, SignatoryInfo, SignaturePlacement } from '@/utils/generateSignedPdf';
 import { supabase } from '@/integrations/supabase/client';
+import { SignatureCertificate, type CertificateSignatory, type AuditEntry } from './SignatureCertificate';
 
 const downloadFromStorage = async (fileUrl: string): Promise<Blob> => {
   const storagePath = fileUrl.split('/approval-documents/')[1];
@@ -382,27 +383,51 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
           )}
         </div>
 
-        {/* Audit Log */}
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Audit Trail</h2>
-          <Card className="divide-y divide-border">
-            {auditLog.map((entry: any) => (
-              <div key={entry.id} className="p-3 text-sm flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                <div className="flex-1">
-                  <span className="font-medium text-foreground capitalize">{entry.action.replace(/_/g, ' ')}</span>
-                  {entry.actor_name && <span className="text-muted-foreground"> by {entry.actor_name}</span>}
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {format(new Date(entry.created_at), 'dd MMM yyyy, HH:mm')}
-                </span>
-              </div>
-            ))}
-            {auditLog.length === 0 && !loading && (
-              <div className="p-4 text-center text-sm text-muted-foreground">No audit entries yet</div>
-            )}
-          </Card>
-        </div>
+        {/* Certificate & Audit Trail */}
+        {signatories.length > 0 && !loading && (
+          <SignatureCertificate
+            document={{
+              id: doc.id,
+              title: doc.title,
+              original_filename: doc.original_filename,
+              file_hash: doc.file_hash,
+              status: doc.status,
+              created_at: doc.created_at,
+              completed_at: doc.completed_at,
+              category: doc.category,
+            }}
+            signatories={signatories.map(s => ({
+              id: s.id,
+              name: s.name,
+              email: s.email,
+              role: s.role,
+              organisation: s.organisation,
+              organisation_type: s.organisation_type,
+              signatory_title: s.signatory_title,
+              signed_name: s.signed_name,
+              signed_role: s.signed_role,
+              signed_organisation: s.signed_organisation,
+              signed_at: s.signed_at,
+              signed_ip: (s as any).signed_ip || null,
+              signed_user_agent: (s as any).signed_user_agent || null,
+              signature_font: (s as any).signature_font || 'Dancing Script',
+              status: s.status,
+              viewed_at: s.viewed_at,
+            }))}
+            auditLog={auditLog.map((e: any) => ({
+              id: e.id,
+              action: e.action,
+              actor_name: e.actor_name,
+              actor_email: e.actor_email,
+              created_at: e.created_at,
+              ip_address: e.ip_address,
+              user_agent: e.user_agent,
+              metadata: e.metadata,
+              signatory_id: e.signatory_id,
+            }))}
+            certificateId={`NW-CERT-${new Date(doc.created_at).getFullYear()}-${doc.id.substring(0, 5).toUpperCase()}`}
+          />
+        )}
 
         {/* Actions */}
         {doc.status === 'pending' && (

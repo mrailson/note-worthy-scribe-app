@@ -444,6 +444,7 @@ export type Database = {
           reminder_count: number | null
           role: string | null
           signatory_title: string | null
+          signature_font: string | null
           signed_at: string | null
           signed_ip: string | null
           signed_name: string | null
@@ -468,6 +469,7 @@ export type Database = {
           reminder_count?: number | null
           role?: string | null
           signatory_title?: string | null
+          signature_font?: string | null
           signed_at?: string | null
           signed_ip?: string | null
           signed_name?: string | null
@@ -492,6 +494,7 @@ export type Database = {
           reminder_count?: number | null
           role?: string | null
           signatory_title?: string | null
+          signature_font?: string | null
           signed_at?: string | null
           signed_ip?: string | null
           signed_name?: string | null
