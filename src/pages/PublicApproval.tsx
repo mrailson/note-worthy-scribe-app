@@ -249,9 +249,9 @@ const PublicApproval = () => {
       <PageShell>
         <Card className="p-8 text-center space-y-4">
           {submitted === 'approved' ? (
-            <CheckCircle2 className="h-12 w-12 text-[hsl(142,71%,45%)] mx-auto" />
+            <CheckCircle2 className="h-12 w-12 text-[hsl(var(--approval-approved))] mx-auto" />
           ) : (
-            <XCircle className="h-12 w-12 text-[hsl(25,95%,53%)] mx-auto" />
+            <XCircle className="h-12 w-12 text-[hsl(var(--warning))] mx-auto" />
           )}
           <h2 className="text-lg font-semibold text-foreground">
             {submitted === 'approved' ? 'Thank you. Your approval has been recorded.' : 'Your response has been recorded.'}
