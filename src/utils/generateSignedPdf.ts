@@ -36,6 +36,7 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
   const { originalPdfBytes, title, certificateId, fileHash, signatories, placement } = options;
 
   const pdfDoc = await PDFDocument.load(originalPdfBytes);
+  pdfDoc.registerFontkit(fontkit);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
