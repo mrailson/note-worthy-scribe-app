@@ -199,10 +199,15 @@ export default function DocumentApproval() {
                 </p>
               </div>
             </div>
-            <Button onClick={() => setShowCreate(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Approval Request
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => { refetch(); toast.success('Refreshed'); }} title="Refresh">
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button onClick={() => setShowCreate(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Approval Request
+              </Button>
+            </div>
           </div>
 
           {/* Tab Switcher */}
