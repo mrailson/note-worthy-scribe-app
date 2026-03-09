@@ -94,13 +94,20 @@ export class FileProcessorManager {
           const ext = file.name.split('.').pop()?.toLowerCase();
           if (ext === 'doc') {
             throw new Error(
-              'Please save this document as .docx or PDF format and re-upload. ' +
-              'The older .doc format is not supported.'
+              "This Word document couldn't be processed. Please try:\n" +
+              '1. Open in Word and Save As PDF, then upload the PDF\n' +
+              '2. Open in Google Docs and download as PDF\n' +
+              '3. If this is a .doc file, re-save as .docx first'
             );
           }
-          // Convert .docx to PDF base64 for native Gemini multimodal processing
-          console.log('📝 Converting Word document to PDF for Gemini analysis...');
-          content = await WordProcessor.convertToPdfBase64(file);
+          // Process .docx with 3-attempt fallback chain
+          console.log('📝 Processing Word document with fallback chain...');
+          const wordResult = await WordProcessor.processWithFallbacks(file);
+          console.log(`📝 Word processing used attempt ${wordResult.attempt} (${wordResult.outputMode} mode)` +
+            (wordResult.characterCount ? `, ${wordResult.characterCount.toLocaleString()} characters` : ''));
+          content = wordResult.content;
+          // Store output mode for downstream type resolution
+          (file as any).__wordOutputMode = wordResult.outputMode;
           break;
         }
           
@@ -134,10 +141,11 @@ export class FileProcessorManager {
           throw new Error(`Unsupported file type: ${fileType}`);
       }
       
-      // Word docs converted to PDF should be treated as PDF for downstream processing
-      const effectiveType = (fileType === 'word' && content.startsWith('data:application/pdf'))
-        ? 'pdf'
-        : fileType;
+      // Word docs: determine effective type based on which fallback attempt succeeded
+      let effectiveType: string = fileType;
+      if (fileType === 'word') {
+        effectiveType = content.startsWith('data:application/pdf') ? 'pdf' : 'text';
+      }
 
       return {
         name: file.name,
