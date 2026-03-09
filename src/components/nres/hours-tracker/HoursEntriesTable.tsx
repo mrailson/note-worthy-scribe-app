@@ -240,12 +240,25 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   Hours Entries
-                  <Badge variant="secondary" className="ml-2">{entries.length}</Badge>
+                  <Badge variant="secondary" className="ml-2">{totals.count}</Badge>
                 </CardTitle>
               </div>
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
+            <div className="px-6 pb-3 flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">Period:</Label>
+              <Select value={datePeriod} onValueChange={(v) => setDatePeriod(v as any)}>
+                <SelectTrigger className="h-8 w-[160px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="this-month">This Month</SelectItem>
+                  <SelectItem value="last-month">Last Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <Table>
