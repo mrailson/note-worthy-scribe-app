@@ -1017,7 +1017,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
                 // Perform clinical verification if this was a clinical query
                 if (isClinical && userMessage.isClinical) {
-                  setTimeout(async () => {
+                  const _tv1 = setTimeout(async () => {
+                    pendingTimeoutRefs.current.delete(_tv1);
                     const verificationData = await performClinicalVerification(
                       assistantMessageId,
                       userMessage.content,
@@ -1031,6 +1032,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       ));
                     }
                   }, 500);
+                  pendingTimeoutRefs.current.add(_tv1);
                 }
                 
                 setMessagesWithLimit(prev => prev.map(msg => 
