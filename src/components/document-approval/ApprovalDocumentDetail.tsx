@@ -84,7 +84,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
         // since we cannot embed signatures into non-PDF formats
         const { PDFDocument } = await import('pdf-lib');
         const blankDoc = await PDFDocument.create();
-        pdfBytes = await blankDoc.save();
+        pdfBytes = (await blankDoc.save()).buffer as ArrayBuffer;
       } else {
         // Fetch original PDF
         const response = await fetch(doc.file_url);
