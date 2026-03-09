@@ -42,7 +42,7 @@ function localId() { return `sig-${++_localId}-${Date.now()}`; }
 export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const {
     uploadDocument, addSignatories, sendForApproval,
-    contacts, contactGroups, saveContact,
+    contacts, contactGroups, saveContact, updateSignaturePlacement,
   } = useDocumentApproval();
 
   const [step, setStep] = useState<'upload' | 'stamp_position' | 'signatories' | 'review'>('upload');
