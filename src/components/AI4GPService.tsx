@@ -711,7 +711,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                           onClick={() => setShowDocumentStudio(true)}
                         >
                           <FileText className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                          <span className="hidden sm:inline text-xs">Doc Studio</span>
+                          <span className="hidden sm:inline text-xs">Document Studio</span>
                         </Button>
                       )}
                     </CardTitle>
