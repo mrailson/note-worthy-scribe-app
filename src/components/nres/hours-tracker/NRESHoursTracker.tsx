@@ -28,6 +28,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info } from 'lucide-react';
 
 export function NRESHoursTracker() {
+  const { user } = useAuth();
+  const isAdmin = !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
+  
   const [expensesOpen, setExpensesOpen] = useState(false);
   const [claimantsOpen, setClaimantsOpen] = useState(false);
   
