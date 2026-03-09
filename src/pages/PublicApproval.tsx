@@ -144,12 +144,34 @@ const PublicApproval = () => {
 
   const formValid = fullName.trim() && role.trim() && organisation.trim() && confirmRead && confirmLegal;
 
-  // ─── Loading ─────────────────────────────────────────────────
+  // ─── Loading (skeleton) ───────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[hsl(240,10%,96%)] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[hsl(213,100%,50%)]" />
-      </div>
+      <PageShell>
+        <Card className="p-5 sm:p-8 space-y-5">
+          <div className="animate-pulse space-y-4">
+            <div className="h-7 bg-muted rounded w-2/3 mx-auto" />
+            <div className="h-16 bg-muted/60 rounded-lg" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-4 bg-muted rounded" />
+              <div className="h-4 bg-muted rounded" />
+            </div>
+            <div className="h-10 bg-muted rounded" />
+          </div>
+        </Card>
+        <Card className="p-5 sm:p-8 space-y-5">
+          <div className="animate-pulse space-y-4">
+            <div className="h-5 bg-muted rounded w-1/3" />
+            <div className="h-10 bg-muted rounded" />
+            <div className="h-10 bg-muted rounded" />
+            <div className="h-10 bg-muted rounded" />
+            <div className="flex gap-3">
+              <div className="h-11 bg-muted rounded flex-1" />
+              <div className="h-11 bg-muted rounded w-28" />
+            </div>
+          </div>
+        </Card>
+      </PageShell>
     );
   }
 
