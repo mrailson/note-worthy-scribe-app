@@ -142,6 +142,22 @@ export default function DocumentApproval() {
     return list;
   }, [documents, filter, sort]);
 
+  // Module access gate (after all hooks)
+  if (!hasModuleAccess('document_signoff_access')) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 max-w-md text-center space-y-4">
+          <ShieldAlert className="h-12 w-12 text-muted-foreground mx-auto" />
+          <h2 className="text-lg font-semibold text-foreground">Access Restricted</h2>
+          <p className="text-sm text-muted-foreground">
+            You don't have access to the Document Sign-Off module. Please contact your practice manager to request access.
+          </p>
+          <Button onClick={() => navigate('/')} variant="outline">Return to Home</Button>
+        </Card>
+      </div>
+    );
+  }
+
   if (showCreate) {
     return <CreateApprovalFlow onBack={() => setShowCreate(false)} />;
   }
