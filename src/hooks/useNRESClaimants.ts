@@ -33,8 +33,13 @@ export function useNRESClaimants() {
   const { user } = useAuth();
   const [claimants, setClaimants] = useState<NRESClaimant[]>([]);
   const [practiceId, setPracticeId] = useState<string | null>(null);
+  const [userPracticeName, setUserPracticeName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  const isAdmin = useMemo(() => {
+    return !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
+  }, [user?.email]);
   
   // Track if initial fetch has been done to prevent duplicate fetches
   const hasFetchedRef = useRef(false);
