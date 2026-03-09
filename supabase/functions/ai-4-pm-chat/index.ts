@@ -117,6 +117,7 @@ interface UploadedFile {
   type: string;
   content: string;
   size: number;
+  processedType?: string; // 'pdf' | 'word' | 'image' | 'text' | etc.
 }
 
 interface RequestBody {
@@ -128,12 +129,25 @@ interface RequestBody {
 }
 
 // Helper function to extract text content from files
+// PDFs sent as base64 data URLs are passed through unchanged for multimodal processing
 async function extractFileContent(file: UploadedFile): Promise<string> {
   try {
     const fileName = file.name.toLowerCase();
     const fileType = file.type;
     
     console.log(`[extractFileContent] Processing: ${fileName}, type: ${fileType}, content starts: ${file.content?.substring(0, 50)}...`);
+    
+    // Handle PDF files - if content is already base64, pass through for multimodal processing
+    // Gemini handles PDFs natively as multimodal input
+    if (fileName.endsWith('.pdf') || fileType.includes('pdf')) {
+      if (file.content.startsWith('data:application/pdf')) {
+        console.log(`[extractFileContent] PDF is base64 data URL - passing through for Gemini multimodal processing`);
+        return file.content; // Pass through unchanged - will be sent as multimodal
+      }
+      // Legacy: content is already extracted text, pass through
+      console.log(`[extractFileContent] PDF has text content (legacy) - passing through`);
+      return file.content;
+    }
     
     // Handle Word documents
     if (fileName.endsWith('.docx') || fileType.includes('wordprocessingml')) {
@@ -148,11 +162,6 @@ async function extractFileContent(file: UploadedFile): Promise<string> {
     // Handle text files
     if (fileName.endsWith('.txt') || fileType.includes('text/plain')) {
       return extractTextContent(file);
-    }
-    
-    // Handle PDFs (basic extraction)
-    if (fileName.endsWith('.pdf') || fileType.includes('pdf')) {
-      return extractPdfContent(file);
     }
     
     // Handle PowerPoint files (basic extraction)
@@ -748,6 +757,18 @@ function isImageFile(file: UploadedFile): boolean {
   const isImageExtension = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'].some(ext => fileName.endsWith(ext));
   const isImageType = file.type?.startsWith('image/') || false;
   return isImageExtension || isImageType;
+}
+
+// Helper: check if file is a PDF with base64 content (for native Gemini multimodal processing)
+function isPdfFile(file: UploadedFile): boolean {
+  const fileName = file.name.toLowerCase();
+  return (fileName.endsWith('.pdf') || file.type?.includes('pdf')) && 
+    file.content?.startsWith('data:application/pdf');
+}
+
+// Helper: check if file should be sent as multimodal content (images or PDFs)
+function isMultimodalFile(file: UploadedFile): boolean {
+  return isImageFile(file) || isPdfFile(file);
 }
 
 // Helper: check if content is an image URL
@@ -1600,6 +1621,14 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
             image_url: { url: file.content }
           });
           console.log(`Added base64 image as multimodal content: ${file.name}`);
+        } else if (file.content.startsWith('data:application/pdf')) {
+          // PDF file as base64 - send as multimodal for native Gemini processing
+          contentParts.push({
+            type: 'image_url',
+            image_url: { url: file.content }
+          });
+          const estimatedPages = Math.max(1, Math.round((file.size || 0) / (100 * 1024)));
+          console.log(`Added PDF as multimodal content for Gemini: ${file.name} (~${estimatedPages} pages)`);
         } else if (isImageFile(file) && isImageUrl(file.content)) {
           // Direct URL image that wasn't marked
           console.log(`Processing direct URL image: ${file.name}`);
@@ -1613,7 +1642,7 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
             textContent += `\n\n[Failed to load image: ${file.name}]`;
           }
         } else {
-          // Non-image file - append as text
+          // Non-image/non-PDF file - append as text
           textContent += `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`;
         }
       }
@@ -1645,7 +1674,7 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
     body: JSON.stringify({
       model: model,
       messages: formattedMessages,
-      max_tokens: 4096
+      max_tokens: 8192
     }),
   });
 
@@ -1760,6 +1789,15 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
             type: 'image_url',
             image_url: { url: file.content }
           });
+        } else if (file.content.startsWith('data:application/pdf')) {
+          // PDF file as base64 - send as multimodal for native Gemini processing
+          console.log(`[stream] Sending PDF as multimodal content for Gemini: ${file.name}`);
+          contentParts.push({
+            type: 'image_url',
+            image_url: { url: file.content }
+          });
+          const estimatedPages = Math.max(1, Math.round((file.size || 0) / (100 * 1024)));
+          console.log(`[stream] PDF ~${estimatedPages} pages, sent as native Gemini multimodal input`);
         } else if (isImageFile(file) && isImageUrl(file.content)) {
           // Direct URL image - not processed by extractImageContent
           console.log(`[stream] Processing direct URL image: ${file.name}, url: ${file.content.substring(0, 80)}...`);
@@ -1775,7 +1813,7 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
             textContent += `\n\n[Failed to load image: ${file.name}]`;
           }
         } else {
-          // Non-image file - append as text
+          // Non-image/non-PDF file - append as text
           console.log(`[stream] Appending non-image file as text: ${file.name}`);
           textContent += `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`;
         }
@@ -1832,7 +1870,7 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
     body: JSON.stringify({
       model: model,
       messages: formattedMessages,
-      max_tokens: 4096,
+      max_tokens: 8192,
       stream: true
     }),
     signal: controller.signal
@@ -1945,11 +1983,22 @@ serve(async (req) => {
               console.log(`Extracting content from: ${file.name} (${file.type})`);
               let extractedContent = await extractFileContent(file);
               
-              // Implement intelligent content management for large files
-              const maxFileContentLength = 50000; // Per file limit to avoid token issues
-              if (extractedContent.length > maxFileContentLength) {
-                console.log(`File ${file.name} content too large (${extractedContent.length} chars), truncating to ${maxFileContentLength} chars`);
-                extractedContent = extractedContent.substring(0, maxFileContentLength) + '\n\n[CONTENT TRUNCATED DUE TO SIZE - Only first portion shown]';
+              // Skip truncation for PDF base64 data (sent as multimodal) and Word docs (full text fits in 200k context)
+              const isPdf = extractedContent.startsWith('data:application/pdf');
+              const isWord = file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc');
+              
+              if (!isPdf && !isWord) {
+                // Implement intelligent content management for large non-PDF/Word files
+                const maxFileContentLength = 50000; // Per file limit to avoid token issues
+                if (extractedContent.length > maxFileContentLength) {
+                  console.log(`File ${file.name} content too large (${extractedContent.length} chars), truncating to ${maxFileContentLength} chars`);
+                  extractedContent = extractedContent.substring(0, maxFileContentLength) + '\n\n[CONTENT TRUNCATED DUE TO SIZE - Only first portion shown]';
+                }
+              } else if (isPdf) {
+                const estimatedPages = Math.max(1, Math.round((file.size || 0) / (100 * 1024)));
+                console.log(`📄 PDF ${file.name}: ~${estimatedPages} pages, sending as native multimodal (no truncation)`);
+              } else if (isWord) {
+                console.log(`📝 Word doc ${file.name}: ${extractedContent.length} chars, sending full text (no truncation)`);
               }
               
               return {

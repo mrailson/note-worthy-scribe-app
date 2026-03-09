@@ -80,9 +80,10 @@ export class FileProcessorManager {
       throw new Error(`Unsupported file type: ${file.name}`);
     }
     
-    // File size validation (15MB limit)
-    if (file.size > 15 * 1024 * 1024) {
-      throw new Error(`File too large: ${file.name} (max 15MB)`);
+    // File size validation (20MB limit for PDFs, 15MB for others)
+    const maxSize = fileType === 'pdf' ? 20 * 1024 * 1024 : 15 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new Error(`File too large: ${file.name} (max ${fileType === 'pdf' ? '20' : '15'}MB)`);
     }
     
     let content: string;
@@ -98,7 +99,9 @@ export class FileProcessorManager {
           break;
           
         case 'pdf':
-          content = await PDFProcessor.extractText(file);
+          // PDFs are sent as base64 data URLs for native Gemini multimodal processing
+          // No text extraction needed - Gemini reads each page as an image natively
+          content = await PDFProcessor.toBase64DataUrl(file);
           break;
           
         case 'powerpoint':

@@ -48,6 +48,42 @@ function isImageFile(file: UploadedFile): boolean {
 }
 
 /**
+ * Check if a file is a PDF (sent as base64 for native Gemini multimodal processing)
+ */
+function isPdfFile(file: UploadedFile): boolean {
+  return file.type === 'application/pdf' || 
+    /\.pdf$/i.test(file.name);
+}
+
+/**
+ * Check if a file should be sent as multimodal binary content (images and PDFs)
+ */
+function isMultimodalFile(file: UploadedFile): boolean {
+  return isImageFile(file) || isPdfFile(file);
+}
+
+/**
+ * Format a PDF for multimodal API (Gemini handles PDFs natively as inline documents)
+ */
+function formatPdfForAPI(file: UploadedFile): ImageContent {
+  const content = file.content;
+  
+  // Already a proper data URL
+  if (content.startsWith('data:application/pdf')) {
+    return {
+      type: 'image_url',
+      image_url: { url: content }
+    };
+  }
+  
+  // Raw base64 without data: prefix
+  return {
+    type: 'image_url',
+    image_url: { url: `data:application/pdf;base64,${content}` }
+  };
+}
+
+/**
  * Format image content for multimodal API
  * Handles base64, data URLs, and remote URLs
  */
@@ -97,10 +133,20 @@ export function estimateMessageTokens(message: Message): number {
   
   if (message.files) {
     for (const file of message.files) {
-      // File content adds significant tokens
-      tokens += estimateTokens(file.content);
-      // File metadata adds a small amount
-      tokens += estimateTokens(file.name) + 10;
+      // PDFs sent as base64 are processed by Gemini as images - estimate ~250 tokens per page
+      if (isPdfFile(file)) {
+        const estimatedPages = Math.max(1, Math.round(file.size / (100 * 1024)));
+        tokens += estimatedPages * 250;
+        tokens += estimateTokens(file.name) + 10;
+      } else if (isImageFile(file)) {
+        // Images are ~250-500 tokens each in vision models
+        tokens += 500;
+        tokens += estimateTokens(file.name) + 10;
+      } else {
+        // Text-based file content adds tokens directly
+        tokens += estimateTokens(file.content);
+        tokens += estimateTokens(file.name) + 10;
+      }
     }
   }
   
@@ -209,10 +255,10 @@ export function optimiseConversationHistory(
     const { fileContext, fileNames } = extractFileContext(messages);
     
     const formattedMessages = messages.map(msg => {
-      // Check if this message has image files that need multimodal formatting
-      const hasImages = msg.role === 'user' && msg.files?.some(isImageFile);
+      // Check if this message has multimodal files (images or PDFs) that need special formatting
+      const hasMultimodal = msg.role === 'user' && msg.files?.some(isMultimodalFile);
       
-      if (hasImages && msg.files) {
+      if (hasMultimodal && msg.files) {
         // Build multimodal content array
         const contentParts: MultimodalContent[] = [];
         
@@ -221,12 +267,14 @@ export function optimiseConversationHistory(
           contentParts.push({ type: 'text', text: msg.content });
         }
         
-        // Add each file (images as image_url, others as text)
+        // Add each file (images/PDFs as image_url, others as text)
         for (const file of msg.files) {
           if (isImageFile(file)) {
             contentParts.push(formatImageForAPI(file));
+          } else if (isPdfFile(file)) {
+            contentParts.push(formatPdfForAPI(file));
           } else {
-            // Non-image files as text
+            // Non-binary files as text
             contentParts.push({
               type: 'text',
               text: `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
@@ -237,13 +285,13 @@ export function optimiseConversationHistory(
         return { role: msg.role, content: contentParts };
       }
       
-      // No images - use string content
+      // No multimodal files - use string content
       let content = msg.content;
       
-      // Include non-image file content for user messages
+      // Include non-multimodal file content for user messages
       if (msg.role === 'user' && msg.files && msg.files.length > 0) {
         const fileContents = msg.files
-          .filter(file => !isImageFile(file))
+          .filter(file => !isMultimodalFile(file))
           .map(file => `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`)
           .join('');
         content += fileContents;
@@ -298,19 +346,19 @@ export function optimiseConversationHistory(
   // Format recent messages, including file content only for files not already mentioned
   const includedFiles = new Set<string>();
   const formattedRecentMessages = recentMessages.map(msg => {
-    // Check if this message has image files that need multimodal formatting
-    const hasImages = msg.role === 'user' && msg.files?.some(isImageFile);
+    // Check if this message has multimodal files (images or PDFs)
+    const hasMultimodal = msg.role === 'user' && msg.files?.some(isMultimodalFile);
     
-    if (hasImages && msg.files) {
+    if (hasMultimodal && msg.files) {
       // Build multimodal content array
       const contentParts: MultimodalContent[] = [];
       
       // Add the text content first
       let textContent = msg.content;
       
-      // Add reference to previously uploaded non-image files
+      // Add reference to previously uploaded non-multimodal files
       const referencedFiles = msg.files
-        .filter(file => !isImageFile(file) && includedFiles.has(file.name))
+        .filter(file => !isMultimodalFile(file) && includedFiles.has(file.name))
         .map(file => file.name);
       
       if (referencedFiles.length > 0) {
@@ -321,13 +369,16 @@ export function optimiseConversationHistory(
         contentParts.push({ type: 'text', text: textContent });
       }
       
-      // Add each file (images as image_url, others as text)
+      // Add each file (images/PDFs as multimodal, others as text)
       for (const file of msg.files) {
         if (isImageFile(file)) {
           contentParts.push(formatImageForAPI(file));
           includedFiles.add(file.name);
+        } else if (isPdfFile(file)) {
+          contentParts.push(formatPdfForAPI(file));
+          includedFiles.add(file.name);
         } else if (!includedFiles.has(file.name)) {
-          // Non-image files as text (only if not already included)
+          // Non-multimodal files as text (only if not already included)
           includedFiles.add(file.name);
           contentParts.push({
             type: 'text',
@@ -339,13 +390,13 @@ export function optimiseConversationHistory(
       return { role: msg.role, content: contentParts };
     }
     
-    // No images - use string content
+    // No multimodal files - use string content
     let content = msg.content;
     
-    // Only include non-image file content if we haven't included it before
+    // Only include non-multimodal file content if we haven't included it before
     if (msg.role === 'user' && msg.files && msg.files.length > 0) {
       const newFileContents = msg.files
-        .filter(file => !isImageFile(file) && !includedFiles.has(file.name))
+        .filter(file => !isMultimodalFile(file) && !includedFiles.has(file.name))
         .map(file => {
           includedFiles.add(file.name);
           return `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`;
@@ -353,12 +404,12 @@ export function optimiseConversationHistory(
         .join('');
       
       // For files already included, just reference them
-      const referencedNonImageFiles = msg.files
-        .filter(file => !isImageFile(file) && includedFiles.has(file.name) && !newFileContents.includes(file.name))
+      const referencedNonMultimodalFiles = msg.files
+        .filter(file => !isMultimodalFile(file) && includedFiles.has(file.name) && !newFileContents.includes(file.name))
         .map(file => file.name);
       
-      if (referencedNonImageFiles.length > 0) {
-        content += `\n\n[Referencing previously uploaded files: ${referencedNonImageFiles.join(', ')}]`;
+      if (referencedNonMultimodalFiles.length > 0) {
+        content += `\n\n[Referencing previously uploaded files: ${referencedNonMultimodalFiles.join(', ')}]`;
       }
       
       content += newFileContents;

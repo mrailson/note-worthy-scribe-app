@@ -1,99 +1,58 @@
+/**
+ * PDF Processor - Dual mode:
+ * 1. toBase64DataUrl(): For Ask AI - sends PDFs as base64 for native Gemini multimodal processing
+ * 2. extractTextLegacy(): For other features (policy upload, etc.) that need text content
+ */
 import { supabase } from '@/integrations/supabase/client';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configure PDF.js worker - use the bundled worker (no external CDN)
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
 
 export class PDFProcessor {
-  private static readonly MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB limit
+  private static readonly MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB limit
   
+  /**
+   * Convert PDF to base64 data URL for direct Gemini multimodal input.
+   * Does NOT extract text - Gemini handles PDF pages natively.
+   */
+  static async toBase64DataUrl(file: File): Promise<string> {
+    if (file.size > this.MAX_FILE_SIZE) {
+      throw new Error(`PDF file too large: ${file.name}. Maximum size is 20MB.`);
+    }
+
+    console.log('📄 Converting PDF to base64 for Gemini:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+    
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        console.log('✅ PDF converted to base64 successfully, length:', dataUrl.length);
+        resolve(dataUrl);
+      };
+      reader.onerror = () => reject(new Error('Failed to read PDF file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * Estimate page count from PDF file size (rough heuristic).
+   */
+  static estimatePageCount(fileSize: number): number {
+    const avgPageSize = 100 * 1024;
+    return Math.max(1, Math.round(fileSize / avgPageSize));
+  }
+
+  /**
+   * Extract text from PDF using OCR edge function.
+   * Used by policy upload, BP calculator, and other features that need text content.
+   */
   static async extractText(file: File): Promise<string> {
-    try {
-      // Validate file size
-      if (file.size > this.MAX_FILE_SIZE) {
-        throw new Error(`PDF file too large: ${file.name}. Maximum size is 15MB.`);
-      }
+    if (file.size > this.MAX_FILE_SIZE) {
+      throw new Error(`PDF file too large: ${file.name}. Maximum size is 20MB.`);
+    }
 
-      console.log('📄 Starting PDF text extraction for:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-      
-      // Read the file as ArrayBuffer
+    console.log('📄 Extracting text from PDF:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+
+    try {
+      // Convert to base64 for the OCR service
       const arrayBuffer = await file.arrayBuffer();
-      // Create a copy for potential OCR use (since PDF.js may detach the original)
-      const arrayBufferCopy = arrayBuffer.slice(0);
-      
-      try {
-        console.log('🔍 Attempting PDF.js text extraction...');
-        const extractedText = await this.extractTextWithPdfJs(arrayBuffer);
-        
-        // If we got meaningful text (more than just whitespace), return it
-        if (extractedText && extractedText.trim().length > 50) {
-          console.log('✅ PDF text extracted successfully with PDF.js, length:', extractedText.length);
-          return extractedText;
-        }
-        
-        console.log('⚠️ PDF.js extracted minimal text (', extractedText.trim().length, 'chars). Likely a scanned PDF.');
-      } catch (pdfJsError) {
-        console.warn('⚠️ PDF.js extraction failed:', pdfJsError);
-        console.log('📸 Falling back to OCR method...');
-      }
-      
-      // If PDF.js didn't extract much text or failed, fall back to OCR using the copy
-      return await this.extractTextWithOCR(arrayBufferCopy, file.name);
-      
-    } catch (error) {
-      console.error('❌ PDF processing error:', error);
-      if (error instanceof Error && error.message.includes('too large')) {
-        throw error;
-      }
-      throw new Error(`Failed to process PDF file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  private static async extractTextWithPdfJs(arrayBuffer: ArrayBuffer): Promise<string> {
-    try {
-      console.log('📚 Loading PDF document...');
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      const pdf = await loadingTask.promise;
-      
-      console.log(`📖 PDF loaded successfully. Pages: ${pdf.numPages}`);
-      let fullText = '';
-      
-      // Extract text from each page
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        try {
-          const page = await pdf.getPage(pageNum);
-          const textContent = await page.getTextContent();
-          
-          const pageText = textContent.items
-            .map((item: any) => item.str)
-            .join(' ');
-          
-          if (pageText.trim()) {
-            fullText += `\n--- Page ${pageNum} ---\n${pageText}\n`;
-            console.log(`✓ Page ${pageNum}: ${pageText.length} characters extracted`);
-          } else {
-            console.log(`⚠️ Page ${pageNum}: No text found (possibly scanned)`);
-          }
-        } catch (pageError) {
-          console.error(`❌ Error extracting text from page ${pageNum}:`, pageError);
-        }
-      }
-      
-      return fullText.trim();
-    } catch (error) {
-      console.error('❌ PDF.js extraction error:', error);
-      throw error; // Re-throw to trigger OCR fallback
-    }
-  }
-
-  private static async extractTextWithOCR(arrayBuffer: ArrayBuffer, fileName: string): Promise<string> {
-    try {
-      console.log('📸 Converting PDF to base64 for OCR...');
-      
-      // Convert to base64 in chunks to avoid stack overflow on large files
       const bytes = new Uint8Array(arrayBuffer);
       const chunkSize = 8192;
       let binaryString = '';
@@ -105,32 +64,30 @@ export class PDFProcessor {
       
       const base64 = btoa(binaryString);
       const dataUrl = `data:application/pdf;base64,${base64}`;
-      
-      console.log('📤 Sending to OCR service...');
+
       const { data, error } = await supabase.functions.invoke('extract-document-text', {
         body: {
           fileType: 'pdf',
           dataUrl: dataUrl,
-          fileName: fileName
+          fileName: file.name
         }
       });
 
       if (error) {
-        console.error('❌ OCR extraction error:', error);
-        return `[PDF: ${fileName} - OCR extraction failed: ${error.message}]`;
+        console.error('❌ PDF text extraction error:', error);
+        return `[PDF: ${file.name} - Text extraction failed: ${error.message}]`;
       }
 
       const extractedText = data?.extractedText || '';
       if (extractedText) {
-        console.log('✅ PDF text extracted successfully via OCR, length:', extractedText.length);
+        console.log('✅ PDF text extracted successfully, length:', extractedText.length);
         return extractedText;
-      } else {
-        console.warn('⚠️ OCR returned no text');
-        return `[PDF: ${fileName} - No text found via OCR]`;
       }
+      
+      return `[PDF: ${file.name} - No text found]`;
     } catch (error) {
-      console.error('❌ OCR processing error:', error);
-      return `[PDF: ${fileName} - OCR processing failed: ${error instanceof Error ? error.message : 'Unknown error'}]`;
+      console.error('❌ PDF processing error:', error);
+      return `[PDF: ${file.name} - Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}]`;
     }
   }
 }
