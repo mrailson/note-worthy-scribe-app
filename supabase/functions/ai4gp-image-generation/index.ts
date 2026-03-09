@@ -1007,6 +1007,9 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     }
 
+    // --- AI proofreading pass on prompt text ---
+    imagePrompt = await proofreadPromptText(imagePrompt, LOVABLE_API_KEY);
+
     console.log('🖼️ Generating image with model:', selectedImageModel);
 
     let imageUrl: string;
