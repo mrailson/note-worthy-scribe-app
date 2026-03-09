@@ -304,8 +304,66 @@ const InfographicFullscreen: React.FC<{
     </>
   );
 };
+// Inline infographic selector with slide-reveal orientation options
+const InfographicSelector: React.FC<{
+  isGenerating: boolean;
+  onGenerate: (orientation: 'landscape' | 'portrait') => void;
+}> = ({ isGenerating, onGenerate }) => {
+  const [expanded, setExpanded] = useState(false);
 
-export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
+  return (
+    <div className="flex items-center gap-0">
+      <Button
+        variant={expanded ? 'secondary' : 'outline'}
+        className="gap-2 rounded-full px-5 relative z-10"
+        disabled={isGenerating}
+        onClick={() => setExpanded(prev => !prev)}
+      >
+        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <BarChart3 className="h-4 w-4" />}
+        <span className="flex flex-col items-start leading-tight">
+          <span>Infographic</span>
+          <span className="text-[10px] text-muted-foreground font-normal -mt-0.5">Generate visual summary</span>
+        </span>
+      </Button>
+
+      <div
+        className={cn(
+          'flex items-center gap-1 overflow-hidden transition-all duration-250 ease-out',
+          expanded ? 'max-w-[220px] opacity-100 ml-1' : 'max-w-0 opacity-0 ml-0'
+        )}
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 rounded-full text-xs whitespace-nowrap"
+          disabled={isGenerating}
+          onClick={() => {
+            onGenerate('landscape');
+            setExpanded(false);
+          }}
+        >
+          <Monitor className="h-3.5 w-3.5" />
+          Landscape
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 rounded-full text-xs whitespace-nowrap"
+          disabled={isGenerating}
+          onClick={() => {
+            onGenerate('portrait');
+            setExpanded(false);
+          }}
+        >
+          <ImageIcon className="h-3.5 w-3.5" />
+          Portrait
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+
   content,
   title: externalTitle,
   isOpen,
