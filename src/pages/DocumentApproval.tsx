@@ -297,22 +297,47 @@ export default function DocumentApproval() {
                 {/* Document List */}
                 <div className="flex-1 min-w-0 space-y-3">
                   {loading ? (
-                    <div className="flex justify-center py-12">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <div className="space-y-3">
+                      {[1, 2, 3].map(i => (
+                        <Card key={i} className="p-5">
+                          <div className="animate-pulse space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="h-4 w-4 bg-muted rounded" />
+                              <div className="h-5 bg-muted rounded w-1/3" />
+                              <div className="h-5 bg-muted rounded w-16" />
+                            </div>
+                            <div className="h-3 bg-muted rounded w-2/3" />
+                            <div className="h-2 bg-muted rounded-full w-full" />
+                            <div className="flex gap-3">
+                              {[1, 2, 3, 4].map(j => (
+                                <div key={j} className="h-3 bg-muted rounded w-20" />
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <div className="h-8 bg-muted rounded w-24" />
+                              <div className="h-8 bg-muted rounded w-28" />
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
                   ) : filteredDocs.length === 0 ? (
                     <Card className="p-12 text-center">
-                      <FileCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <div className="mx-auto mb-6 w-24 h-24 rounded-full bg-primary/5 flex items-center justify-center">
+                        <FileCheck className="h-12 w-12 text-primary/40" />
+                      </div>
                       <h3 className="text-lg font-semibold text-foreground mb-2">
-                        {filter === 'all' ? 'No approval documents yet' : 'No documents match this filter'}
+                        {filter === 'all' ? 'No approval requests yet' : 'No documents match this filter'}
                       </h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Upload a document and send it to people for electronic approval.
+                      <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+                        {filter === 'all'
+                          ? 'Upload a document and send it for electronic approval. Track who has signed at a glance.'
+                          : 'Try adjusting your filters to find what you\'re looking for.'}
                       </p>
                       {filter === 'all' && (
-                        <Button onClick={() => setShowCreate(true)} className="gap-2">
-                          <Plus className="h-4 w-4" />
-                          Create First Approval
+                        <Button onClick={() => setShowCreate(true)} size="lg" className="gap-2">
+                          <Plus className="h-5 w-5" />
+                          Create Your First Approval Request
                         </Button>
                       )}
                     </Card>
