@@ -153,6 +153,7 @@ export function NRESHoursTracker() {
           totalHours={filteredEntries.reduce((sum, e) => sum + Number(e.duration_hours), 0)}
           totalExpenses={totalExpenses}
           hourlyRate={hourlyRate}
+          entries={filteredEntries}
         />
 
         {/* Settings & Report */}

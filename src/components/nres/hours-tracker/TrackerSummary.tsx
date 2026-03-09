@@ -1,14 +1,24 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Clock, Receipt, PoundSterling, TrendingUp } from 'lucide-react';
+import { getClaimantRate } from '@/types/nresHoursTypes';
+import type { NRESHoursEntry } from '@/types/nresHoursTypes';
 
 interface TrackerSummaryProps {
   totalHours: number;
   totalExpenses: number;
   hourlyRate: number | null;
+  entries?: NRESHoursEntry[];
 }
 
-export function TrackerSummary({ totalHours, totalExpenses, hourlyRate }: TrackerSummaryProps) {
-  const timeClaimAmount = hourlyRate ? totalHours * hourlyRate : 0;
+export function TrackerSummary({ totalHours, totalExpenses, hourlyRate, entries }: TrackerSummaryProps) {
+  // Calculate time claim using per-entry claimant rates where available
+  const timeClaimAmount = entries
+    ? entries.reduce((sum, e) => {
+        const rate = getClaimantRate(e.claimant_type) ?? hourlyRate;
+        return sum + (rate ? Number(e.duration_hours) * rate : 0);
+      }, 0)
+    : (hourlyRate ? totalHours * hourlyRate : 0);
+
   const grandTotal = timeClaimAmount + totalExpenses;
 
   return (
@@ -30,7 +40,7 @@ export function TrackerSummary({ totalHours, totalExpenses, hourlyRate }: Tracke
             <span className="text-xs font-medium uppercase">Time Claim</span>
           </div>
           <p className="text-2xl font-bold text-foreground">
-            {hourlyRate ? `£${timeClaimAmount.toFixed(2)}` : 'Set rate'}
+            {hourlyRate || (entries && entries.length > 0) ? `£${timeClaimAmount.toFixed(2)}` : 'Set rate'}
           </p>
         </CardContent>
       </Card>
@@ -52,7 +62,7 @@ export function TrackerSummary({ totalHours, totalExpenses, hourlyRate }: Tracke
             <span className="text-xs font-medium uppercase">Grand Total</span>
           </div>
           <p className="text-2xl font-bold text-foreground">
-            {hourlyRate ? `£${grandTotal.toFixed(2)}` : '-'}
+            {hourlyRate || (entries && entries.length > 0) ? `£${grandTotal.toFixed(2)}` : '-'}
           </p>
         </CardContent>
       </Card>
