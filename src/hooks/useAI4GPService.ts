@@ -60,6 +60,10 @@ export const useAI4GPService = () => {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const verificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const simulatedStreamTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Track simulated streaming timeouts
+  const settingsLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Track settings load delay
+  
+  // Guard to prevent initial settings load from triggering a save-back cascade
+  const hasLoadedSettings = useRef(false);
   
   // Refs for frequently-changing values to prevent stale closures in callbacks
   const selectedModelRef = useRef(selectedModel);
