@@ -387,6 +387,7 @@ ${pastedText.trim()}
         <FileProcessingProgress 
           stats={getProcessingSummary()}
           isProcessing={isFileProcessing}
+          uploadedFiles={uploadedFiles}
         />
       )}
       <div 

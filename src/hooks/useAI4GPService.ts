@@ -8,6 +8,7 @@ import { prepareMessagesForAPI, getMemoryStats } from '@/utils/conversationMemor
 import { detectVoiceRequest } from '@/utils/voiceRequestDetection';
 import { VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
 import { optimiseMessagesForMemory } from '@/utils/streamingUtils';
+import { validateDocumentResponse } from '@/utils/documentResponseValidation';
 
 // Mobile detection for stricter memory limits
 const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -364,7 +365,28 @@ export const useAI4GPService = () => {
     const hasNumericalData = uploadedFiles.some(file => file.metadata?.hasNumericalData);
     const fileCount = uploadedFiles.length;
     
-    let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
+    // If files are uploaded, lead with document analysis rules BEFORE any other instructions
+    let prompt = '';
+    
+    if (uploadedFiles.length > 0) {
+      prompt += `CRITICAL: You are analysing an uploaded document. You must ONLY state facts explicitly written in the document. Never guess, infer, or supplement with general knowledge.
+
+Before providing any analysis:
+1. State the exact document title as written
+2. State how many pages you can see
+3. State the first and last section headings visible
+
+If you cannot read the document content, say: "I was unable to read this document. Please try re-uploading or converting to a different format."
+
+When referencing details, cite the exact section/clause number. Never fabricate section titles or reference numbers. If you cannot find something, say so explicitly rather than guessing.
+
+At the end of your response, include:
+"Document coverage: [X] pages read. Sections covered: [list sections]."
+
+`;
+    }
+    
+    prompt += `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
 
 You understand and can explain:
 - Clinical guidelines (NICE, SIGN, local protocols)
@@ -377,16 +399,14 @@ You understand and can explain:
 - Patient safety and risk management
 - Always stay professional, evidence-based, and clinically appropriate
 
-${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. These files contain content that you can directly analyze and reference. You have full access to the file contents, so you can answer questions about them, summarize them, or analyze them without asking the user to upload again.
+${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. These files contain content that you can directly analyse and reference. You have full access to the file contents, so you can answer questions about them, summarise them, or analyse them without asking the user to upload again.
 
-CRITICAL DOCUMENT ANALYSIS RULES — FOLLOW STRICTLY:
+ADDITIONAL DOCUMENT RULES:
 1. ONLY state facts that are explicitly written in the document. If a section or detail is not visible to you, say "This section is not visible in the document provided" — do NOT guess or fill in from general knowledge.
-2. Before summarising, confirm what you can see by stating: the document title (exactly as written), the number of pages you can read, and the first and last section headings visible to you. If you cannot see any of these, tell the user: "I was unable to read the content of this document. Please try uploading it again or converting it to a different format."
-3. When citing details, always reference the exact section number, clause number, or page where you found the information (e.g. "Section 3.7.7 states..." or "Page 45, Standing Order 4.7.1 specifies...").
-4. NEVER invent section titles, rule numbers, or clause references. If you are unsure of a section number, say "the document states" without fabricating a reference.
-5. If asked about content you cannot see in the document, respond with: "I cannot find information about [topic] in the pages visible to me. This may be in a section I cannot access, or it may not be covered in this document."
-6. Do NOT supplement the document's content with general NHS knowledge, standard governance frameworks, or typical wording. Your response must be based SOLELY on what is written in THIS specific document.
-7. At the end of your response, add a confidence note: "Document coverage: I was able to read [X] pages of this document. Sections covered: [list]. Any sections not listed may not have been accessible."` : ''}`;
+2. When citing details, always reference the exact section number, clause number, or page where you found the information (e.g. "Section 3.7.7 states..." or "Page 45, Standing Order 4.7.1 specifies...").
+3. NEVER invent section titles, rule numbers, or clause references. If you are unsure of a section number, say "the document states" without fabricating a reference.
+4. If asked about content you cannot see in the document, respond with: "I cannot find information about [topic] in the pages visible to me. This may be in a section I cannot access, or it may not be covered in this document."
+5. Do NOT supplement the document's content with general NHS knowledge, standard governance frameworks, or typical wording. Your response must be based SOLELY on what is written in THIS specific document.` : ''}`;
 
     // Add enhanced calculation instructions if numerical data detected
     if (hasNumericalData) {
@@ -1015,9 +1035,20 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 const endTime = Date.now();
                 const responseTime = endTime - startTime;
                 
+                // Validate document response for failures/hallucinations
+                let finalContent = accumulatedContent.trim();
+                const docValidation = validateDocumentResponse(finalContent, hadFilesAttached || false);
+                
+                if (!docValidation.isValid && docValidation.errorMessage) {
+                  finalContent = `⚠️ ${docValidation.errorMessage}`;
+                  toast.error('Document reading failed — see suggestions below');
+                } else if (docValidation.possibleHallucination && docValidation.warningPrefix) {
+                  finalContent = docValidation.warningPrefix + finalContent;
+                }
+                
                 const finalAssistantMessage = {
                   ...assistantMessage,
-                  content: accumulatedContent.trim(),
+                  content: finalContent,
                   isStreaming: false,
                   responseTime,
                   timeToFirstWords,
@@ -1115,7 +1146,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         } else {
           // Non-streaming JSON response (fallback)
           const data = await response.json();
-          const responseContent = data?.response || data?.content || 'No response received';
+          let responseContent = data?.response || data?.content || 'No response received';
+          
+          // Validate document response
+          const nonStreamValidation = validateDocumentResponse(responseContent, hadFilesAttached || false);
+          if (!nonStreamValidation.isValid && nonStreamValidation.errorMessage) {
+            responseContent = `⚠️ ${nonStreamValidation.errorMessage}`;
+            toast.error('Document reading failed — see suggestions below');
+          } else if (nonStreamValidation.possibleHallucination && nonStreamValidation.warningPrefix) {
+            responseContent = nonStreamValidation.warningPrefix + responseContent;
+          }
           
           // Capture API response time
           const apiResponseTime = Date.now() - startTime;
@@ -1212,7 +1252,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           throw new Error(data?.error || 'The AI service encountered an error. Please try again.');
         }
 
-        const responseContent = data?.response || data?.content || 'No response received';
+        let responseContent = data?.response || data?.content || 'No response received';
+        
+        // Validate document response
+        const invokeValidation = validateDocumentResponse(responseContent, hadFilesAttached || false);
+        if (!invokeValidation.isValid && invokeValidation.errorMessage) {
+          responseContent = `⚠️ ${invokeValidation.errorMessage}`;
+          toast.error('Document reading failed — see suggestions below');
+        } else if (invokeValidation.possibleHallucination && invokeValidation.warningPrefix) {
+          responseContent = invokeValidation.warningPrefix + responseContent;
+        }
         
         const apiResponseTime = Date.now() - startTime;
         
