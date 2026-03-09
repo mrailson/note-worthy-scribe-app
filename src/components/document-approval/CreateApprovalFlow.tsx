@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
 import { hashFile } from '@/utils/fileHash';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SignaturePositionPicker, StampPosition } from './SignaturePositionPicker';
