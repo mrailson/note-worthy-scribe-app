@@ -185,157 +185,184 @@ export default function DocumentApproval() {
             </Button>
           </div>
 
-          {/* Filter Pills */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {filterPills.map(pill => (
-              <Button
-                key={pill.key}
-                variant={filter === pill.key ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilter(pill.key)}
-                className="text-xs"
-              >
-                {pill.label}
-              </Button>
-            ))}
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Sort:</span>
-              {([
-                { key: 'recent' as SortType, label: 'Recent' },
-                { key: 'deadline' as SortType, label: 'Deadline' },
-                { key: 'overdue' as SortType, label: 'Overdue' },
-              ]).map(s => (
-                <Button
-                  key={s.key}
-                  variant={sort === s.key ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSort(s.key)}
-                  className="text-xs"
-                >
-                  {s.label}
-                </Button>
-              ))}
-            </div>
+          {/* Tab Switcher */}
+          <div className="flex items-center gap-1 border-b border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`rounded-none border-b-2 text-sm px-4 ${activeTab === 'active' ? 'border-primary text-primary font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              onClick={() => setActiveTab('active')}
+            >
+              <FileCheck className="h-4 w-4 mr-1.5" />
+              Active
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`rounded-none border-b-2 text-sm px-4 ${activeTab === 'history' ? 'border-primary text-primary font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              onClick={() => setActiveTab('history')}
+            >
+              <History className="h-4 w-4 mr-1.5" />
+              History
+            </Button>
           </div>
 
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card
-              className="p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => setFilter('all')}
-            >
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <FileText className="h-5 w-5 text-primary" />
-                <p className="text-2xl font-bold text-foreground">{counts.total}</p>
-              </div>
-              <p className="text-xs text-muted-foreground">Total Documents</p>
-            </Card>
-            <Card
-              className="p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => setFilter('awaiting')}
-            >
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Clock className="h-5 w-5 text-amber-500" />
-                <p className="text-2xl font-bold text-foreground">{counts.awaiting}</p>
-              </div>
-              <p className="text-xs text-muted-foreground">Awaiting</p>
-            </Card>
-            <Card
-              className="p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => setFilter('completed')}
-            >
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                <p className="text-2xl font-bold text-foreground">{counts.completed}</p>
-              </div>
-              <p className="text-xs text-muted-foreground">Completed</p>
-            </Card>
-            <Card
-              className={`p-4 text-center cursor-pointer transition-colors ${
-                counts.overdue > 0 
-                  ? 'border-destructive/50 bg-destructive/5 hover:border-destructive' 
-                  : 'hover:border-primary/50'
-              }`}
-              onClick={() => { setFilter('awaiting'); setSort('overdue'); }}
-            >
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <AlertTriangle className={`h-5 w-5 ${counts.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
-                <p className={`text-2xl font-bold ${counts.overdue > 0 ? 'text-destructive' : 'text-foreground'}`}>{counts.overdue}</p>
-              </div>
-              <p className={`text-xs ${counts.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>Overdue</p>
-            </Card>
-          </div>
-
-          {/* Main Content + Sidebar */}
-          <div className="flex gap-6">
-            {/* Document List */}
-            <div className="flex-1 min-w-0 space-y-3">
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : filteredDocs.length === 0 ? (
-                <Card className="p-12 text-center">
-                  <FileCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {filter === 'all' ? 'No approval documents yet' : 'No documents match this filter'}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Upload a document and send it to people for electronic approval.
-                  </p>
-                  {filter === 'all' && (
-                    <Button onClick={() => setShowCreate(true)} className="gap-2">
-                      <Plus className="h-4 w-4" />
-                      Create First Approval
+          {activeTab === 'history' ? (
+            <ApprovalHistory documents={documents} onSelectDoc={setSelectedDoc} />
+          ) : (
+            <>
+              {/* Filter Pills */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {filterPills.map(pill => (
+                  <Button
+                    key={pill.key}
+                    variant={filter === pill.key ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilter(pill.key)}
+                    className="text-xs"
+                  >
+                    {pill.label}
+                  </Button>
+                ))}
+                <div className="ml-auto flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Sort:</span>
+                  {([
+                    { key: 'recent' as SortType, label: 'Recent' },
+                    { key: 'deadline' as SortType, label: 'Deadline' },
+                    { key: 'overdue' as SortType, label: 'Overdue' },
+                  ]).map(s => (
+                    <Button
+                      key={s.key}
+                      variant={sort === s.key ? 'secondary' : 'ghost'}
+                      size="sm"
+                      onClick={() => setSort(s.key)}
+                      className="text-xs"
+                    >
+                      {s.label}
                     </Button>
-                  )}
+                  ))}
+                </div>
+              </div>
+
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Card
+                  className="p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => setFilter('all')}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <p className="text-2xl font-bold text-foreground">{counts.total}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Total Documents</p>
                 </Card>
-              ) : (
-                filteredDocs.map(doc => (
-                  <DocumentCard
-                    key={doc.id}
-                    doc={doc}
-                    onSelect={() => setSelectedDoc(doc)}
-                    onChasePending={async () => {
-                      setChasingDocId(doc.id);
+                <Card
+                  className="p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => setFilter('awaiting')}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Clock className="h-5 w-5 text-amber-500" />
+                    <p className="text-2xl font-bold text-foreground">{counts.awaiting}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Awaiting</p>
+                </Card>
+                <Card
+                  className="p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => setFilter('completed')}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <p className="text-2xl font-bold text-foreground">{counts.completed}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Completed</p>
+                </Card>
+                <Card
+                  className={`p-4 text-center cursor-pointer transition-colors ${
+                    counts.overdue > 0 
+                      ? 'border-destructive/50 bg-destructive/5 hover:border-destructive' 
+                      : 'hover:border-primary/50'
+                  }`}
+                  onClick={() => { setFilter('awaiting'); setSort('overdue'); }}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <AlertTriangle className={`h-5 w-5 ${counts.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
+                    <p className={`text-2xl font-bold ${counts.overdue > 0 ? 'text-destructive' : 'text-foreground'}`}>{counts.overdue}</p>
+                  </div>
+                  <p className={`text-xs ${counts.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>Overdue</p>
+                </Card>
+              </div>
+
+              {/* Main Content + Sidebar */}
+              <div className="flex gap-6">
+                {/* Document List */}
+                <div className="flex-1 min-w-0 space-y-3">
+                  {loading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : filteredDocs.length === 0 ? (
+                    <Card className="p-12 text-center">
+                      <FileCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
+                        {filter === 'all' ? 'No approval documents yet' : 'No documents match this filter'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Upload a document and send it to people for electronic approval.
+                      </p>
+                      {filter === 'all' && (
+                        <Button onClick={() => setShowCreate(true)} className="gap-2">
+                          <Plus className="h-4 w-4" />
+                          Create First Approval
+                        </Button>
+                      )}
+                    </Card>
+                  ) : (
+                    filteredDocs.map(doc => (
+                      <DocumentCard
+                        key={doc.id}
+                        doc={doc}
+                        onSelect={() => setSelectedDoc(doc)}
+                        onChasePending={async () => {
+                          setChasingDocId(doc.id);
+                          try {
+                            const result = await chaseAllPending(doc.id);
+                            const sentCount = result?.results?.filter((r: any) => r.status === 'sent').length || 0;
+                            toast.success(`Reminders sent to ${sentCount} ${sentCount === 1 ? 'person' : 'people'}`);
+                          } catch (err) {
+                            toast.error('Failed to send reminders');
+                          } finally {
+                            setChasingDocId(null);
+                          }
+                        }}
+                        isChasing={chasingDocId === doc.id}
+                      />
+                    ))
+                  )}
+                </div>
+
+                {/* Right Sidebar - Needs Attention */}
+                <div className="hidden lg:block w-80 flex-shrink-0">
+                  <NeedsAttentionPanel
+                    needsAttention={needsAttention}
+                    onSelectDoc={(doc) => setSelectedDoc(doc)}
+                    onChaseAllOverdue={async () => {
+                      const overdueIds = needsAttention.overdueDocuments.map(d => d.id);
+                      setChasingDocId('all-overdue');
                       try {
-                        const result = await chaseAllPending(doc.id);
-                        const sentCount = result?.results?.filter((r: any) => r.status === 'sent').length || 0;
-                        toast.success(`Reminders sent to ${sentCount} ${sentCount === 1 ? 'person' : 'people'}`);
-                      } catch (err) {
-                        toast.error('Failed to send reminders');
+                        await chaseAllOverdue(overdueIds);
+                        toast.success(`Reminders sent for ${overdueIds.length} overdue ${overdueIds.length === 1 ? 'document' : 'documents'}`);
+                      } catch {
+                        toast.error('Failed to send some reminders');
                       } finally {
                         setChasingDocId(null);
                       }
                     }}
-                    isChasing={chasingDocId === doc.id}
+                    isChasing={chasingDocId === 'all-overdue'}
                   />
-                ))
-              )}
-            </div>
-
-            {/* Right Sidebar - Needs Attention */}
-            <div className="hidden lg:block w-80 flex-shrink-0">
-              <NeedsAttentionPanel
-                needsAttention={needsAttention}
-                onSelectDoc={(doc) => setSelectedDoc(doc)}
-                onChaseAllOverdue={async () => {
-                  const overdueIds = needsAttention.overdueDocuments.map(d => d.id);
-                  setChasingDocId('all-overdue');
-                  try {
-                    await chaseAllOverdue(overdueIds);
-                    toast.success(`Reminders sent for ${overdueIds.length} overdue ${overdueIds.length === 1 ? 'document' : 'documents'}`);
-                  } catch {
-                    toast.error('Failed to send some reminders');
-                  } finally {
-                    setChasingDocId(null);
-                  }
-                }}
-                isChasing={chasingDocId === 'all-overdue'}
-              />
-            </div>
-          </div>
-        </div>
+                </div>
+              </div>
+            </>
+          )}
       </div>
     </>
   );
