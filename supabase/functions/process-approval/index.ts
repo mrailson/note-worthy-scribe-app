@@ -160,6 +160,51 @@ serve(async (req) => {
         });
       }
 
+      // Send confirmation email to the signatory
+      try {
+        const emailPayload: any = {
+          type: 'confirmation',
+          document_id: document.id,
+          signatory_id: signatory.id,
+        };
+        // Also notify sender if all completed
+        if (allApproved) {
+          emailPayload.type = 'completed';
+        }
+        await fetch(
+          `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-approval-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            },
+            body: JSON.stringify(emailPayload),
+          }
+        );
+        // Also send individual confirmation if completed (completed email goes to sender)
+        if (allApproved) {
+          await fetch(
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-approval-email`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+              },
+              body: JSON.stringify({
+                type: 'confirmation',
+                document_id: document.id,
+                signatory_id: signatory.id,
+              }),
+            }
+          );
+        }
+        console.log('Confirmation email triggered for signatory:', signatory.email);
+      } catch (emailErr) {
+        console.error('Failed to send confirmation email (non-blocking):', emailErr);
+      }
+
       return new Response(JSON.stringify({
         success: true,
         message: 'Document approved successfully',
@@ -210,6 +255,28 @@ serve(async (req) => {
         user_agent: userAgent,
         metadata: { decline_comment, signed_role, signed_organisation },
       });
+
+      // Send decline notification to sender
+      try {
+        await fetch(
+          `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-approval-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            },
+            body: JSON.stringify({
+              type: 'declined',
+              document_id: document.id,
+              signatory_id: signatory.id,
+            }),
+          }
+        );
+        console.log('Decline notification triggered for document:', document.id);
+      } catch (emailErr) {
+        console.error('Failed to send decline email (non-blocking):', emailErr);
+      }
 
       return new Response(JSON.stringify({
         success: true,
