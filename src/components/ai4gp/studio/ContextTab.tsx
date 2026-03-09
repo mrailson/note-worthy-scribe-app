@@ -181,6 +181,10 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
   const removeFile = (fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
     if (file) {
+      // Revoke blob URL to free memory
+      if (file.preview?.startsWith('blob:')) {
+        URL.revokeObjectURL(file.preview);
+      }
       setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
       
       let newContent = settings.supportingContent || '';
