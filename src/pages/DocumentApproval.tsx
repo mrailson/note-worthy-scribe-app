@@ -288,7 +288,26 @@ export default function DocumentApproval() {
                   )}
                 </Card>
               ) : (
-                filteredDocs.map(doc => <DocumentCard key={doc.id} doc={doc} onSelect={() => setSelectedDoc(doc)} />)
+                filteredDocs.map(doc => (
+                  <DocumentCard
+                    key={doc.id}
+                    doc={doc}
+                    onSelect={() => setSelectedDoc(doc)}
+                    onChasePending={async () => {
+                      setChasingDocId(doc.id);
+                      try {
+                        const result = await chaseAllPending(doc.id);
+                        const sentCount = result?.results?.filter((r: any) => r.status === 'sent').length || 0;
+                        toast.success(`Reminders sent to ${sentCount} ${sentCount === 1 ? 'person' : 'people'}`);
+                      } catch (err) {
+                        toast.error('Failed to send reminders');
+                      } finally {
+                        setChasingDocId(null);
+                      }
+                    }}
+                    isChasing={chasingDocId === doc.id}
+                  />
+                ))
               )}
             </div>
 
@@ -297,6 +316,19 @@ export default function DocumentApproval() {
               <NeedsAttentionPanel
                 needsAttention={needsAttention}
                 onSelectDoc={(doc) => setSelectedDoc(doc)}
+                onChaseAllOverdue={async () => {
+                  const overdueIds = needsAttention.overdueDocuments.map(d => d.id);
+                  setChasingDocId('all-overdue');
+                  try {
+                    await chaseAllOverdue(overdueIds);
+                    toast.success(`Reminders sent for ${overdueIds.length} overdue ${overdueIds.length === 1 ? 'document' : 'documents'}`);
+                  } catch {
+                    toast.error('Failed to send some reminders');
+                  } finally {
+                    setChasingDocId(null);
+                  }
+                }}
+                isChasing={chasingDocId === 'all-overdue'}
               />
             </div>
           </div>
