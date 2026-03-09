@@ -119,6 +119,7 @@ const PolicyServiceChecklist = lazy(() => import("./pages/PolicyServiceChecklist
 const PolicyServiceMyPolicies = lazy(() => import("./pages/PolicyServiceMyPolicies"));
 const PolicyServiceProfile = lazy(() => import("./pages/PolicyServiceProfile"));
 const DocumentApproval = lazy(() => import("./pages/DocumentApproval"));
+const PublicApproval = lazy(() => import("./pages/PublicApproval"));
 const PolicyServiceViewPolicy = lazy(() => import("./pages/PolicyServiceViewPolicy"));
 const AIChatCapture = lazy(() => import("./pages/AIChatCapture"));
 const ComplaintCapture = lazy(() => import("./pages/ComplaintCapture"));
