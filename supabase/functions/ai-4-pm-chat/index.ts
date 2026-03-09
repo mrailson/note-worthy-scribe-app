@@ -759,6 +759,18 @@ function isImageFile(file: UploadedFile): boolean {
   return isImageExtension || isImageType;
 }
 
+// Helper: check if file is a PDF with base64 content (for native Gemini multimodal processing)
+function isPdfFile(file: UploadedFile): boolean {
+  const fileName = file.name.toLowerCase();
+  return (fileName.endsWith('.pdf') || file.type?.includes('pdf')) && 
+    file.content?.startsWith('data:application/pdf');
+}
+
+// Helper: check if file should be sent as multimodal content (images or PDFs)
+function isMultimodalFile(file: UploadedFile): boolean {
+  return isImageFile(file) || isPdfFile(file);
+}
+
 // Helper: check if content is an image URL
 function isImageUrl(content: string): boolean {
   return content.startsWith('http://') || content.startsWith('https://');
