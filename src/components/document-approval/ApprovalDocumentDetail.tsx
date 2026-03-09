@@ -247,7 +247,14 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                 <div className="flex flex-wrap gap-2">
                   {signedFileUrl ? (
                     <>
-                      <Button size="sm" className="gap-2" onClick={() => window.open(signedFileUrl, '_blank')}>
+                      <Button size="sm" className="gap-2" onClick={async () => {
+                        try {
+                          const blob = await downloadFromStorage(signedFileUrl);
+                          const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+                          const a = document.createElement('a'); a.href = url; a.download = `signed-${doc.original_filename || 'document.pdf'}`;
+                          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                        } catch { toast.error('Failed to download signed PDF'); }
+                      }}>
                         <Download className="h-3.5 w-3.5" /> Download Signed PDF
                       </Button>
                       <Button variant="outline" size="sm" className="gap-2" onClick={async () => {
