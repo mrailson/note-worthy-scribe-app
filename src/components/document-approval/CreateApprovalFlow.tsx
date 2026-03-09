@@ -47,7 +47,9 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
   const [step, setStep] = useState<'upload' | 'stamp_position' | 'signatories' | 'review'>('upload');
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [convertedToPdf, setConvertedToPdf] = useState(false);
 
   // ─── Step 1: File & metadata ──────────────────────────────────────
   const [file, setFile] = useState<File | null>(null);
