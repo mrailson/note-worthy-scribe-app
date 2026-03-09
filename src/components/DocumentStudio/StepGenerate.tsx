@@ -299,6 +299,11 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
           isOpen={showPreview}
           onClose={() => setShowPreview(false)}
           onContentUpdated={(newContent) => onUpdateState({ generatedContent: newContent })}
+          onExportPowerPoint={(content, title, slideCount) => {
+            generateWithGamma(content, title, true, slideCount || 4).catch((err) => {
+              console.error('PowerPoint generation failed:', err);
+            });
+          }}
         />
       </div>
     );
