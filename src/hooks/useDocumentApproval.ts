@@ -53,7 +53,13 @@ export interface ApprovalContact {
   is_favourite: boolean;
 }
 
-/** Document with its signatories pre-loaded */
+export interface ApprovalContactGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  members: ApprovalContact[];
+}
+
 export interface ApprovalDocumentWithSignatories extends ApprovalDocument {
   signatories: ApprovalSignatory[];
 }
@@ -62,6 +68,7 @@ export function useDocumentApproval() {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<ApprovalDocumentWithSignatories[]>([]);
   const [contacts, setContacts] = useState<ApprovalContact[]>([]);
+  const [contactGroups, setContactGroups] = useState<ApprovalContactGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDocuments = useCallback(async () => {
@@ -114,10 +121,42 @@ export function useDocumentApproval() {
     setContacts((data as ApprovalContact[]) || []);
   }, [user]);
 
+  const fetchContactGroups = useCallback(async () => {
+    if (!user) return;
+    const { data: groups } = await supabase
+      .from('approval_contact_groups')
+      .select('*')
+      .order('name');
+
+    if (!groups || groups.length === 0) {
+      setContactGroups([]);
+      return;
+    }
+
+    const groupIds = groups.map((g: any) => g.id);
+    const { data: members } = await supabase
+      .from('approval_contact_group_members')
+      .select('*, approval_contacts(*)')
+      .in('group_id', groupIds);
+
+    const enriched: ApprovalContactGroup[] = groups.map((g: any) => ({
+      id: g.id,
+      name: g.name,
+      description: g.description,
+      members: (members || [])
+        .filter((m: any) => m.group_id === g.id)
+        .map((m: any) => m.approval_contacts as ApprovalContact)
+        .filter(Boolean),
+    }));
+
+    setContactGroups(enriched);
+  }, [user]);
+
   useEffect(() => {
     fetchDocuments();
     fetchContacts();
-  }, [fetchDocuments, fetchContacts]);
+    fetchContactGroups();
+  }, [fetchDocuments, fetchContacts, fetchContactGroups]);
 
   const uploadDocument = useCallback(async (
     file: File,
@@ -272,9 +311,40 @@ export function useDocumentApproval() {
     await fetchContacts();
   }, [user, fetchContacts]);
 
+  const saveContactGroup = useCallback(async (name: string, contactIds: string[]) => {
+    if (!user) return;
+
+    const { data: group, error } = await supabase
+      .from('approval_contact_groups')
+      .upsert({ user_id: user.id, name, updated_at: new Date().toISOString() }, { onConflict: 'user_id,name' })
+      .select()
+      .single();
+
+    if (error || !group) throw error;
+
+    // Remove existing members
+    await supabase.from('approval_contact_group_members').delete().eq('group_id', group.id);
+
+    // Add new members
+    if (contactIds.length > 0) {
+      await supabase.from('approval_contact_group_members').insert(
+        contactIds.map(cid => ({ group_id: group.id, contact_id: cid }))
+      );
+    }
+
+    await fetchContactGroups();
+    toast.success(`Group "${name}" saved`);
+  }, [user, fetchContactGroups]);
+
+  const deleteContactGroup = useCallback(async (groupId: string) => {
+    await supabase.from('approval_contact_groups').delete().eq('id', groupId);
+    await fetchContactGroups();
+  }, [fetchContactGroups]);
+
   return {
     documents,
     contacts,
+    contactGroups,
     loading,
     uploadDocument,
     addSignatories,
@@ -283,6 +353,9 @@ export function useDocumentApproval() {
     fetchSignatories,
     fetchAuditLog,
     saveContact,
+    saveContactGroup,
+    deleteContactGroup,
     refetch: fetchDocuments,
+    refetchContacts: fetchContacts,
   };
 }
