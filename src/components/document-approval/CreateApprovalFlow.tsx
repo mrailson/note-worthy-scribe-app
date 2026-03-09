@@ -59,6 +59,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [category, setCategory] = useState('other');
   const [deadline, setDeadline] = useState('');
   const [message, setMessage] = useState('');
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [customEmailBody, setCustomEmailBody] = useState('');
   const [documentId, setDocumentId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
