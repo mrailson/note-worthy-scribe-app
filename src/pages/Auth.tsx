@@ -65,13 +65,7 @@ export default function Auth() {
               description: "You have successfully logged in.",
               section: 'security',
             });
-            // Get session to find user ID for home page preference
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData?.session?.user?.id) {
-              await navigateToHomePage(navigate, sessionData.session.user.id);
-            } else {
-              navigate('/');
-            }
+            navigate('/');
             return;
           }
         } catch (err) {
