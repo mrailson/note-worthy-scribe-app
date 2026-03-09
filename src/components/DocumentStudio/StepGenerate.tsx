@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useGammaPowerPoint } from '@/hooks/useGammaPowerPoint';
 import { Sparkles, Loader2, RefreshCw, PenLine, Save, Download, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
