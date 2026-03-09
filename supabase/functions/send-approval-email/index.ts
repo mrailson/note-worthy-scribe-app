@@ -145,7 +145,7 @@ const handler = async (req: Request): Promise<Response> => {
             .replace(/\n/g, "<br>");
 
           html = emailWrapper(`
-            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Required</h2>
+            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Requested</h2>
             <div style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6;">${personalised}</div>
             <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is attached to this email for your review.</p>
             ${primaryButton(`${APP_URL}/approve/${sig.approval_token}`, "✅ Review &amp; Approve")}
