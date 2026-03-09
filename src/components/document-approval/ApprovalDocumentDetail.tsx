@@ -368,13 +368,52 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
 
         {/* Actions */}
         {doc.status === 'pending' && (
-          <Card className="p-4">
+          <Card className="p-4 flex gap-3">
             <Button variant="destructive" onClick={handleRevoke} disabled={revoking} className="gap-2">
               {revoking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
               Revoke Approval Request
             </Button>
           </Card>
         )}
+
+        {/* Delete Document */}
+        <Card className="p-4">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10" disabled={deleting}>
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Delete Document
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this document?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete "{doc.title}" and all associated signatories, audit records and stored files. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={async () => {
+                    setDeleting(true);
+                    try {
+                      await deleteDocument(doc.id);
+                      onBack();
+                    } catch (err) {
+                      console.error(err);
+                      toast.error('Failed to delete document');
+                      setDeleting(false);
+                    }
+                  }}
+                >
+                  Delete permanently
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </Card>
       </div>
     </div>
   );
