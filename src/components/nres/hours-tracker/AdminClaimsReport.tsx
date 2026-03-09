@@ -267,7 +267,8 @@ export function AdminClaimsReport() {
     const detailed: DetailedEntry[] = filteredEntries.map(entry => {
       const details = getEntryDetails(entry);
       const enteredByProfile = entry.entered_by ? userProfiles[entry.entered_by] : null;
-      const hourlyRate = userSettings[entry.user_id] || 50;
+      const claimantRate = getClaimantRate(entry.claimant_type as ClaimantType);
+      const hourlyRate = claimantRate ?? userSettings[entry.user_id] ?? 50;
       const amount = Number(entry.duration_hours) * hourlyRate;
       
       return {
