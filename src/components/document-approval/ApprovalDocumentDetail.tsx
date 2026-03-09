@@ -225,7 +225,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                         <Download className="h-3.5 w-3.5" /> Download Signed PDF
                       </Button>
                       <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open(doc.file_url, '_blank')}>
-                        <Download className="h-3.5 w-3.5" /> Download Original (unsigned)
+                        <Download className="h-3.5 w-3.5" /> Download PDF (unsigned)
                       </Button>
                     </>
                   ) : (
