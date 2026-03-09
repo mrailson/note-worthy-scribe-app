@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('user_roles')
-        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access, lg_capture_access, bp_service_access, survey_manager_access')
+        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access, lg_capture_access, bp_service_access, survey_manager_access, document_signoff_access')
         .eq('user_id', userId);
       
       if (error) {
@@ -77,6 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lg_capture_access: boolean;
         bp_service_access: boolean;
         survey_manager_access?: boolean;
+        document_signoff_access?: boolean;
       }>;
       
       // Aggregate access flags across ALL role records using OR logic
@@ -96,6 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lg_capture_access: acc.lg_capture_access || roleRecord.lg_capture_access,
         bp_service_access: acc.bp_service_access || roleRecord.bp_service_access,
         survey_manager_access: acc.survey_manager_access || (roleRecord.survey_manager_access ?? false),
+        document_signoff_access: acc.document_signoff_access || (roleRecord.document_signoff_access ?? false),
       }), {
         meeting_notes_access: false,
         gp_scribe_access: false,
@@ -111,6 +113,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lg_capture_access: false,
         bp_service_access: false,
         survey_manager_access: false,
+        document_signoff_access: false,
       });
       
       // Convert the aggregated access flags to module names array
@@ -129,6 +132,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (aggregatedAccess.lg_capture_access) modules.push('lg_capture_access');
       if (aggregatedAccess.bp_service_access) modules.push('bp_service_access');
       if (aggregatedAccess.survey_manager_access) modules.push('survey_manager_access');
+      if (aggregatedAccess.document_signoff_access) modules.push('document_signoff_access');
       
       console.log(`Found ${data.length} role record(s) for user, aggregated modules:`, modules);
       setUserModules(modules);
