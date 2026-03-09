@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { format, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { Header } from '@/components/Header';
 
 const categoryLabels: Record<string, string> = {
   dpia: 'DPIA', dsa: 'DSA', mou: 'MOU', policy: 'Policy',
@@ -179,6 +180,7 @@ export default function DocumentApproval() {
         <title>Document Approvals | Notewell</title>
         <meta name="description" content="Send documents for electronic approval and track who has signed." />
       </Helmet>
+      <Header />
       <div className="min-h-screen bg-background">
         <div className="max-w-[1400px] mx-auto px-4 py-6 space-y-6">
           {/* Header */}
