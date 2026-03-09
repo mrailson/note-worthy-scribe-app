@@ -386,7 +386,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   }, [infographicUrl, documentTitle]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !infographicFullscreen) handleClose(); }}>
       <DialogContent className="max-w-4xl max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0">
         {/* Top bar */}
         <div className="px-4 sm:px-6 py-3 border-b bg-muted/30">

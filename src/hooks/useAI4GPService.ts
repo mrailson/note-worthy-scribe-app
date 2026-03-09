@@ -535,7 +535,13 @@ INSTEAD, start emails DIRECTLY with the substance:
   - "Your message about [topic] has been reviewed..."
   - Start with a direct answer or action taken
 
-Always provide evidence-based, clinically appropriate advice that follows current NHS guidelines and best practices.`;
+Always provide evidence-based, clinically appropriate advice that follows current NHS guidelines and best practices.
+
+📅 DATE & PLACEHOLDER RULES:
+- Today's date is: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
+- NEVER use placeholder text like "[Insert Date]", "[Date]", "[Insert date here]", or any similar bracketed date placeholder.
+- When a date is needed, ALWAYS use today's actual date formatted in British English (e.g. "9 March 2026").
+- This applies to letters, documents, emails, and any other generated content.`;
 
     return prompt;
   }, []);
