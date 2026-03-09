@@ -65,6 +65,9 @@ export const useAI4GPService = () => {
   // Guard to prevent initial settings load from triggering a save-back cascade
   const hasLoadedSettings = useRef(false);
   
+  // Set of pending fire-and-forget timeouts (auto-save, clinical verification)
+  const pendingTimeoutRefs = useRef<Set<NodeJS.Timeout>>(new Set());
+  
   // Refs for frequently-changing values to prevent stale closures in callbacks
   const selectedModelRef = useRef(selectedModel);
   const isClinicalRef = useRef(isClinical);
@@ -82,6 +85,10 @@ export const useAI4GPService = () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       if (verificationTimeoutRef.current) clearTimeout(verificationTimeoutRef.current);
       if (simulatedStreamTimeoutRef.current) clearTimeout(simulatedStreamTimeoutRef.current);
+      // Clear all fire-and-forget timeouts
+      pendingTimeoutRefs.current.forEach(id => clearTimeout(id));
+      console.log(`cleanup: Cleared ${pendingTimeoutRefs.current.size} pending fire-and-forget timeouts`);
+      pendingTimeoutRefs.current.clear();
     };
   }, []);
   
@@ -726,10 +733,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           ));
           
           // Auto-save the search
-          setTimeout(async () => {
+          const _t1 = setTimeout(async () => {
+            pendingTimeoutRefs.current.delete(_t1);
             const finalMessages = [...newMessages, audioMessage];
             await saveSearchAutomatically(finalMessages);
           }, 100);
+          pendingTimeoutRefs.current.add(_t1);
           
           setIsLoading(false);
           toast.success('Voice file generated successfully!');
@@ -845,10 +854,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           ));
 
           // Auto-save the search
-          setTimeout(async () => {
+          const _t2 = setTimeout(async () => {
+            pendingTimeoutRefs.current.delete(_t2);
             const finalMessages = [...newMessages, finalAssistantMessage];
             await saveSearchAutomatically(finalMessages);
           }, 100);
+          pendingTimeoutRefs.current.add(_t2);
           
           setIsLoading(false);
           return;
@@ -910,10 +921,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             ));
 
             // Auto-save the search
-            setTimeout(async () => {
+            const _t3 = setTimeout(async () => {
+              pendingTimeoutRefs.current.delete(_t3);
               const finalMessages = [...newMessages, finalMessage];
               await saveSearchAutomatically(finalMessages);
             }, 100);
+            pendingTimeoutRefs.current.add(_t3);
 
           } catch (fallbackError) {
             console.error('Fallback to ChatGPT 4o also failed:', fallbackError);
@@ -1004,7 +1017,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
                 // Perform clinical verification if this was a clinical query
                 if (isClinical && userMessage.isClinical) {
-                  setTimeout(async () => {
+                  const _tv1 = setTimeout(async () => {
+                    pendingTimeoutRefs.current.delete(_tv1);
                     const verificationData = await performClinicalVerification(
                       assistantMessageId,
                       userMessage.content,
@@ -1018,6 +1032,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       ));
                     }
                   }, 500);
+                  pendingTimeoutRefs.current.add(_tv1);
                 }
                 
                 setMessagesWithLimit(prev => prev.map(msg => 
@@ -1027,10 +1042,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 ));
 
                 // Auto-save the search
-                setTimeout(async () => {
+                const _t4 = setTimeout(async () => {
+                  pendingTimeoutRefs.current.delete(_t4);
                   const finalMessages = [...newMessages, finalAssistantMessage];
                   await saveSearchAutomatically(finalMessages);
                 }, 100);
+                pendingTimeoutRefs.current.add(_t4);
                 
                 break;
               }
@@ -1134,7 +1151,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 };
 
                 if (isClinical && userMessage.isClinical) {
-                  setTimeout(async () => {
+                  const _tv2 = setTimeout(async () => {
+                    pendingTimeoutRefs.current.delete(_tv2);
                     const verificationData = await performClinicalVerification(
                       assistantMessageId,
                       userMessage.content,
@@ -1148,6 +1166,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       ));
                     }
                   }, 500);
+                  pendingTimeoutRefs.current.add(_tv2);
                 }
                 
                 setMessagesWithLimit(prev => prev.map(msg => 
@@ -1156,10 +1175,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     : msg
                 ));
 
-                setTimeout(async () => {
+                const _t5 = setTimeout(async () => {
+                  pendingTimeoutRefs.current.delete(_t5);
                   const finalMessages = [...newMessages, finalAssistantMessage];
                   await saveSearchAutomatically(finalMessages);
                 }, 100);
+                pendingTimeoutRefs.current.add(_t5);
               }
             }
           };
@@ -1232,7 +1253,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 };
 
                 if (isClinical && userMessage.isClinical) {
-                  setTimeout(async () => {
+                  const _tv3 = setTimeout(async () => {
+                    pendingTimeoutRefs.current.delete(_tv3);
                     const verificationData = await performClinicalVerification(
                       assistantMessageId,
                       userMessage.content,
@@ -1246,6 +1268,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       ));
                     }
                   }, 500);
+                  pendingTimeoutRefs.current.add(_tv3);
                 }
                 
                 setMessagesWithLimit(prev => prev.map(msg => 
@@ -1254,10 +1277,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     : msg
                 ));
 
-                setTimeout(async () => {
+                const _t6 = setTimeout(async () => {
+                  pendingTimeoutRefs.current.delete(_t6);
                   const finalMessages = [...newMessages, finalAssistantMessage];
                   await saveSearchAutomatically(finalMessages);
                 }, 100);
+                pendingTimeoutRefs.current.add(_t6);
               }
             }
           };
@@ -1399,6 +1424,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
   // Load user settings on component mount
   useEffect(() => {
+    let cancelled = false;
+    
     const loadUserSettings = async () => {
       if (!user?.id) return;
 
@@ -1410,6 +1437,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           .eq('user_id', user.id)
           .eq('setting_key', 'ai4gp_preferences');
 
+        if (cancelled) { console.log('cleanup: Settings load cancelled — component unmounted'); return; }
+        
         if (error) {
           console.error('Error loading user settings:', error);
           return;
@@ -1490,13 +1519,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     if (user?.id) {
       settingsLoadTimeoutRef.current = setTimeout(() => {
         loadUserSettings().then(() => {
-          hasLoadedSettings.current = true;
-          console.log('cleanup: Settings load complete, save guard released');
+          if (!cancelled) {
+            hasLoadedSettings.current = true;
+            console.log('cleanup: Settings load complete, save guard released');
+          }
         });
       }, 100);
     }
     
     return () => {
+      cancelled = true;
       if (settingsLoadTimeoutRef.current) {
         clearTimeout(settingsLoadTimeoutRef.current);
         console.log('cleanup: Cleared settings load timeout');
@@ -1591,9 +1623,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
   // Use Display Settings Effect to apply CSS classes
   useEffect(() => {
+    const body = document.body;
+    const root = document.documentElement;
+    
+    const appliedClasses: string[] = [];
+    
     const applyDisplaySettings = () => {
-      const body = document.body;
-      
       // Remove existing display setting classes
       body.classList.remove(
         'ai4gp-text-smallest', 'ai4gp-text-smaller', 'ai4gp-text-compact', 'ai4gp-text-small', 'ai4gp-text-default', 'ai4gp-text-medium', 'ai4gp-text-large', 'ai4gp-text-larger', 'ai4gp-text-largest',
@@ -1601,22 +1636,28 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         'ai4gp-narrow', 'ai4gp-standard', 'ai4gp-wide', 'ai4gp-full',
         'ai4gp-high-contrast', 'ai4gp-reading-font'
       );
+      appliedClasses.length = 0;
       
       // Apply new classes
-      body.classList.add(`ai4gp-text-${textSize}`);
-      body.classList.add(`ai4gp-${interfaceDensity}`);
-      body.classList.add(`ai4gp-${containerWidth}`);
+      const textClass = `ai4gp-text-${textSize}`;
+      const densityClass = `ai4gp-${interfaceDensity}`;
+      const widthClass = `ai4gp-${containerWidth}`;
+      body.classList.add(textClass);
+      body.classList.add(densityClass);
+      body.classList.add(widthClass);
+      appliedClasses.push(textClass, densityClass, widthClass);
       
       if (highContrast) {
         body.classList.add('ai4gp-high-contrast');
+        appliedClasses.push('ai4gp-high-contrast');
       }
       
       if (readingFont) {
         body.classList.add('ai4gp-reading-font');
+        appliedClasses.push('ai4gp-reading-font');
       }
 
       // Update CSS custom properties for real-time changes
-      const root = document.documentElement;
       const textScales = { smallest: 0.75, smaller: 0.8, compact: 0.875, small: 0.9375, default: 1.0, medium: 1.125, large: 1.25, larger: 1.375, largest: 1.5 };
       const spacingScales = { compact: 0.75, comfortable: 1, spacious: 1.25 };
       const containerWidths = { narrow: '672px', standard: '896px', wide: '1152px', full: '100%' };
@@ -1633,6 +1674,15 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     };
 
     applyDisplaySettings();
+    
+    return () => {
+      appliedClasses.forEach(cls => body.classList.remove(cls));
+      root.style.removeProperty('--ai4gp-text-scale');
+      root.style.removeProperty('--ai4gp-spacing-scale');
+      root.style.removeProperty('--ai4gp-container-width');
+      root.style.removeProperty('--ai4gp-reading-font');
+      console.log('cleanup: Removed display CSS classes and custom properties');
+    };
   }, [textSize, interfaceDensity, containerWidth, highContrast, readingFont]);
 
   const handleNewSearch = useCallback(() => {
@@ -1772,10 +1822,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           ));
 
           // Auto-save the search
-          setTimeout(async () => {
+          const _t7 = setTimeout(async () => {
+            pendingTimeoutRefs.current.delete(_t7);
             const finalMessages = [...newMessages, finalAssistantMessage];
             await saveSearchAutomatically(finalMessages);
           }, 100);
+          pendingTimeoutRefs.current.add(_t7);
           
           setIsLoading(false);
           return;
@@ -1858,7 +1910,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             ));
 
             // Auto-save the search
-            setTimeout(async () => {
+            const _t8 = setTimeout(async () => {
+              pendingTimeoutRefs.current.delete(_t8);
               const finalMessages = [...newMessages, {
                 ...assistantMessage,
                 content: responseContent,
@@ -1869,6 +1922,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               }];
               await saveSearchAutomatically(finalMessages);
             }, 100);
+            pendingTimeoutRefs.current.add(_t8);
           }
         }
       };

@@ -141,9 +141,40 @@ export const useSearchHistory = () => {
   };
 
   useEffect(() => {
+    let cancelled = false;
+    
     if (user) {
-      loadSearchHistoryList();
+      const load = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('ai_4_pm_searches')
+            .select('id, title, brief_overview, created_at, updated_at, is_protected, is_flagged, user_id')
+            .eq('user_id', user?.id)
+            .order('is_protected', { ascending: false })
+            .order('is_flagged', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+          if (cancelled) return;
+          if (error) throw error;
+          setSearchHistory((data || []).map(item => ({
+            id: item.id,
+            title: item.title,
+            brief_overview: item.brief_overview || undefined,
+            messages: [],
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            is_protected: item.is_protected || false,
+            is_flagged: item.is_flagged || false
+          })));
+        } catch (error) {
+          if (!cancelled) console.error('Error loading search history:', error);
+        }
+      };
+      load();
     }
+    
+    return () => { cancelled = true; };
   }, [user]);
 
   const toggleSearchFlag = async (searchId: string) => {

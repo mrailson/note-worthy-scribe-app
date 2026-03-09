@@ -53,7 +53,6 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const [isImageStudioOpen, setIsImageStudioOpen] = useState(false);
   
   // Force cache refresh - removed ConsultationCheckerModal completely
-  console.log('QuickActionsPanel rendered - cache refresh');
   
   // Add event listener for QR Code Generator
   useEffect(() => {

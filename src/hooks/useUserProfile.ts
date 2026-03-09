@@ -142,11 +142,17 @@ export function useUserProfile() {
   };
 
   useEffect(() => {
-    fetchProfile();
+    let cancelled = false;
+    
+    const loadProfile = async () => {
+      await fetchProfile();
+    };
+    loadProfile();
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (cancelled) return;
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           fetchProfile();
         } else if (event === 'SIGNED_OUT') {
@@ -156,7 +162,10 @@ export function useUserProfile() {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return {
