@@ -48,7 +48,7 @@ export const FileProcessingProgress: React.FC<FileProcessingProgressProps> = ({
     }
     
     if (stats.hasLargeWordDoc) {
-      return 'Extracting Word document text for analysis...';
+      return 'Converting Word document to PDF for analysis...';
     }
     
     return null;
