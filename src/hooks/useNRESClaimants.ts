@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 
 export const MEMBER_PRACTICES = [
   'Brackley Medical Centre',
