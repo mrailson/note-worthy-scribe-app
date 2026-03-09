@@ -217,7 +217,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: true,
     lg_capture_access: false,
     bp_service_access: true,
-    survey_manager_access: false
+    survey_manager_access: false,
+    document_signoff_access: false
   },
 
   // Nurse - clinical with limited admin
