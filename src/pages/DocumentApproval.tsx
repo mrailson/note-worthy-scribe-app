@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { format, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { Header } from '@/components/Header';
 
 const categoryLabels: Record<string, string> = {
   dpia: 'DPIA', dsa: 'DSA', mou: 'MOU', policy: 'Policy',
