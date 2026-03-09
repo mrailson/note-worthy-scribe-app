@@ -30,7 +30,7 @@ export function useAIChatHistory(consultationId: string | null) {
   const [isNewChatMode, setIsNewChatMode] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load all sessions for this consultation
+  // Load sessions for this consultation (metadata only, limited)
   const loadSessions = useCallback(async (autoLoad: boolean = true) => {
     if (!consultationId || !user) return;
     
@@ -38,23 +38,24 @@ export function useAIChatHistory(consultationId: string | null) {
     try {
       const { data, error } = await supabase
         .from('gp_consultation_ai_chats')
-        .select('*')
+        .select('id, consultation_id, user_id, title, created_at, updated_at')
         .eq('consultation_id', consultationId)
         .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
       
       const typedData = (data || []).map(session => ({
         ...session,
-        messages: (session.messages as unknown as AIChatMessage[]) || []
+        messages: [] as AIChatMessage[] // Don't load messages in list view
       }));
       
       setSessions(typedData);
       
-      // Auto-load the most recent session only if autoLoad is true and not in new chat mode
+      // Auto-load the most recent session's full messages only if autoLoad is true
       if (autoLoad && typedData.length > 0 && !currentSession && !isNewChatMode) {
-        setCurrentSession(typedData[0]);
+        await loadFullSession(typedData[0].id);
       }
     } catch (error) {
       console.error('Failed to load AI chat history:', error);
@@ -62,6 +63,32 @@ export function useAIChatHistory(consultationId: string | null) {
       setIsLoading(false);
     }
   }, [consultationId, user, currentSession, isNewChatMode]);
+
+  // Load a single session with full messages
+  const loadFullSession = useCallback(async (sessionId: string) => {
+    if (!user) return null;
+    try {
+      const { data, error } = await supabase
+        .from('gp_consultation_ai_chats')
+        .select('*')
+        .eq('id', sessionId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      
+      const typedSession: AIChatSession = {
+        ...data,
+        messages: (data.messages as unknown as AIChatMessage[]) || []
+      };
+      
+      setCurrentSession(typedSession);
+      return typedSession;
+    } catch (error) {
+      console.error('Failed to load full session:', error);
+      return null;
+    }
+  }, [user]);
 
   useEffect(() => {
     loadSessions();
