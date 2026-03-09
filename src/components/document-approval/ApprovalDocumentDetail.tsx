@@ -10,6 +10,17 @@ import { toast } from 'sonner';
 import { generateSignedPdf, SignatoryInfo, SignaturePlacement } from '@/utils/generateSignedPdf';
 import { supabase } from '@/integrations/supabase/client';
 
+const downloadFromStorage = async (fileUrl: string): Promise<Blob> => {
+  const storagePath = fileUrl.split('/approval-documents/')[1];
+  if (storagePath) {
+    const { data, error } = await supabase.storage.from('approval-documents').download(storagePath);
+    if (error || !data) throw error || new Error('Download failed');
+    return data;
+  }
+  const res = await fetch(fileUrl);
+  return res.blob();
+};
+
 interface Props {
   document: ApprovalDocument;
   onBack: () => void;
