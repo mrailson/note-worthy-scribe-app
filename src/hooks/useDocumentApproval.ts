@@ -429,6 +429,7 @@ export function useDocumentApproval() {
     contactGroups,
     loading,
     uploadDocument,
+    updateSignaturePlacement,
     addSignatories,
     sendForApproval,
     revokeDocument,
