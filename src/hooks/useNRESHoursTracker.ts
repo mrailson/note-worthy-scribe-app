@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import type { NRESHoursEntry } from '@/types/nresHoursTypes';
 
 // Helper to cast database response to proper type
