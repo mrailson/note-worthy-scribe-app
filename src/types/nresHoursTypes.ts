@@ -10,6 +10,7 @@ export interface NRESUserSettings {
 export interface NRESHoursEntry {
   id: string;
   user_id: string;
+  practice_id: string | null;
   work_date: string;
   start_time: string;
   end_time: string;
