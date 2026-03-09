@@ -199,7 +199,7 @@ const PublicApproval = () => {
     return (
       <PageShell>
         <Card className="p-8 text-center space-y-4">
-          <AlertTriangle className="h-12 w-12 text-[hsl(25,95%,53%)] mx-auto" />
+          <AlertTriangle className="h-12 w-12 text-[hsl(var(--warning))] mx-auto" />
           <h2 className="text-lg font-semibold text-foreground">Request No Longer Active</h2>
           <p className="text-sm text-muted-foreground">
             This approval request has been {document.status}. No further action is required.
