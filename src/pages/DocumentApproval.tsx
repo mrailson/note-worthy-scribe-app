@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download, Send, History } from 'lucide-react';
+import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download, Send, History, ShieldAlert } from 'lucide-react';
 import { useDocumentApproval, ApprovalDocumentWithSignatories, ApprovalSignatory } from '@/hooks/useDocumentApproval';
 import { CreateApprovalFlow } from '@/components/document-approval/CreateApprovalFlow';
 import { ApprovalDocumentDetail } from '@/components/document-approval/ApprovalDocumentDetail';
@@ -11,6 +11,7 @@ import { ApprovalHistory } from '@/components/document-approval/ApprovalHistory'
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const categoryLabels: Record<string, string> = {
   dpia: 'DPIA', dsa: 'DSA', mou: 'MOU', policy: 'Policy',
@@ -62,6 +63,7 @@ function getSignatoryContext(sig: ApprovalSignatory, doc: ApprovalDocumentWithSi
 
 export default function DocumentApproval() {
   const navigate = useNavigate();
+  const { hasModuleAccess } = useAuth();
   const { documents, loading, chaseSignatory, chaseAllPending, chaseAllOverdue } = useDocumentApproval();
   const [chasingDocId, setChasingDocId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -139,6 +141,22 @@ export default function DocumentApproval() {
 
     return list;
   }, [documents, filter, sort]);
+
+  // Module access gate (after all hooks)
+  if (!hasModuleAccess('document_signoff_access')) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 max-w-md text-center space-y-4">
+          <ShieldAlert className="h-12 w-12 text-muted-foreground mx-auto" />
+          <h2 className="text-lg font-semibold text-foreground">Access Restricted</h2>
+          <p className="text-sm text-muted-foreground">
+            You don't have access to the Document Sign-Off module. Please contact your practice manager to request access.
+          </p>
+          <Button onClick={() => navigate('/')} variant="outline">Return to Home</Button>
+        </Card>
+      </div>
+    );
+  }
 
   if (showCreate) {
     return <CreateApprovalFlow onBack={() => setShowCreate(false)} />;

@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard, ClipboardList, TrendingUp, ClipboardCheck, Video } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard, ClipboardList, TrendingUp, ClipboardCheck, Video, FileSignature } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useServiceVisibility } from "@/hooks/useServiceVisibility";
@@ -479,6 +479,16 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        >
                          <Shield className="h-4 w-4 mr-2" />
                          CSO Report
+                       </DropdownMenuItem>
+                     )}
+                     {/* Document Sign-Off - Only show if user has access */}
+                     {hasModuleAccess('document_signoff_access') && (
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/document-approval')}
+                         className="cursor-pointer py-3"
+                       >
+                         <FileSignature className="h-4 w-4 mr-2" />
+                         Document Sign-Off
                        </DropdownMenuItem>
                      )}
                      

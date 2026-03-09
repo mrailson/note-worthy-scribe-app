@@ -17,6 +17,7 @@ export interface ModuleAccess {
   lg_capture_access: boolean;
   bp_service_access: boolean;
   survey_manager_access: boolean;
+  document_signoff_access: boolean;
 }
 
 export type UserRole = 'practice_user' | 'practice_manager' | 'pcn_manager' | 'system_admin' | 'gp' | 'nurse' | 'admin_staff' | 'icb_user';
@@ -36,7 +37,7 @@ export const moduleCategories = {
   compliance: {
     label: 'Compliance & Governance',
     description: 'Regulatory and quality assurance tools',
-    modules: ['complaints_manager_access', 'cqc_compliance_access', 'cso_governance_access', 'survey_manager_access']
+    modules: ['complaints_manager_access', 'cqc_compliance_access', 'cso_governance_access', 'survey_manager_access', 'document_signoff_access']
   },
   practice: {
     label: 'Practice Management',
@@ -111,6 +112,10 @@ export const moduleInfo: Record<keyof ModuleAccess, { label: string; description
   survey_manager_access: {
     label: 'Survey Manager',
     description: 'Create and manage practice surveys'
+  },
+  document_signoff_access: {
+    label: 'Document Sign-Off',
+    description: 'Send documents for electronic approval and track signatures'
   }
 };
 
@@ -132,7 +137,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: false,
     lg_capture_access: false,
     bp_service_access: false,
-    survey_manager_access: false
+    survey_manager_access: false,
+    document_signoff_access: false
   },
 
   // Practice Manager - core management access (excludes Shared Drive, GP Scribe, CQC Compliance, Enhanced Access, Fridge Monitoring)
@@ -151,7 +157,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: true,
     lg_capture_access: true,
     bp_service_access: true,
-    survey_manager_access: true
+    survey_manager_access: true,
+    document_signoff_access: true
   },
 
   // PCN Manager - oversight across practices
@@ -170,7 +177,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: true,
     lg_capture_access: false,
     bp_service_access: false,
-    survey_manager_access: true
+    survey_manager_access: true,
+    document_signoff_access: true
   },
 
   // System Admin - full access to everything
@@ -189,7 +197,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: true,
     lg_capture_access: true,
     bp_service_access: true,
-    survey_manager_access: true
+    survey_manager_access: true,
+    document_signoff_access: true
   },
 
   // GP - clinical focus
@@ -208,7 +217,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: true,
     lg_capture_access: false,
     bp_service_access: true,
-    survey_manager_access: false
+    survey_manager_access: false,
+    document_signoff_access: false
   },
 
   // Nurse - clinical with limited admin
@@ -227,7 +237,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: false,
     lg_capture_access: false,
     bp_service_access: true,
-    survey_manager_access: false
+    survey_manager_access: false,
+    document_signoff_access: false
   },
 
   // Admin Staff - administrative focus
@@ -246,7 +257,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: false,
     lg_capture_access: true,
     bp_service_access: false,
-    survey_manager_access: false
+    survey_manager_access: false,
+    document_signoff_access: false
   },
 
   // ICB User - oversight and governance focus
@@ -265,7 +277,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: true,
     lg_capture_access: false,
     bp_service_access: false,
-    survey_manager_access: false
+    survey_manager_access: false,
+    document_signoff_access: false
   }
 };
 
