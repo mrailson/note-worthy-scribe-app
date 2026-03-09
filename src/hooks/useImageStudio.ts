@@ -403,10 +403,22 @@ export function useImageStudio() {
 
         setState(prev => ({ ...prev, generationProgress: 25 }));
 
+        // Sanitise source content before building request
+        const { html: sanitisedDescription, warnings: descWarnings } = sanitizeGeneratedContent(settings.description);
+        const { html: sanitisedSupporting, warnings: suppWarnings } = settings.supportingContent
+          ? sanitizeGeneratedContent(settings.supportingContent)
+          : { html: undefined, warnings: [] };
+        const sanitisedKeyMessages = settings.keyMessages.map(msg => sanitizeGeneratedContent(msg).html);
+
+        const allWarnings = [...descWarnings, ...suppWarnings];
+        if (allWarnings.length > 0) {
+          console.log('🧹 Image Studio: sanitised content before generation:', allWarnings);
+        }
+
         // Build the request
         const request: ImageStudioRequest = {
-          prompt: settings.description,
-          supportingContent: settings.supportingContent || undefined,
+          prompt: sanitisedDescription,
+          supportingContent: sanitisedSupporting || undefined,
           summariseSupportingContent: settings.summariseSupportingContent || undefined,
           keyMessages: settings.keyMessages.length > 0 ? settings.keyMessages : undefined,
           targetAudience: settings.targetAudience,
