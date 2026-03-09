@@ -83,8 +83,11 @@ interface AI4GPServiceProps {
 }
 
 const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
+  console.log('Ask AI mounted');
   
   const inputRef = useRef<InputAreaRef | FloatingMobileInputRef>(null);
+  const scrollTimeout1Ref = useRef<NodeJS.Timeout | null>(null);
+  const scrollTimeout2Ref = useRef<NodeJS.Timeout | null>(null);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
