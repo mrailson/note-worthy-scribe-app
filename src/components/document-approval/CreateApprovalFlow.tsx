@@ -81,6 +81,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [showContactsModal, setShowContactsModal] = useState(false);
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [editingContact, setEditingContact] = useState<ApprovalContact | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', role: '', organisation: '' });
 
   // ─── File handling ────────────────────────────────────────────────
 
