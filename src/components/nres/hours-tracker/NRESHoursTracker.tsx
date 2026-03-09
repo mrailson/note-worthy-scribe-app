@@ -150,7 +150,7 @@ export function NRESHoursTracker() {
 
         {/* Summary Cards */}
         <TrackerSummary
-          totalHours={totalHours}
+          totalHours={filteredEntries.reduce((sum, e) => sum + Number(e.duration_hours), 0)}
           totalExpenses={totalExpenses}
           hourlyRate={hourlyRate}
         />
