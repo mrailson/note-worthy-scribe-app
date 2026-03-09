@@ -6,16 +6,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   ArrowLeft, Upload, Plus, Trash2, Loader2, Send, UserPlus, Users,
-  GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash,
+  GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Stamp, FileSignature,
 } from 'lucide-react';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
 import { hashFile } from '@/utils/fileHash';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { SignaturePositionPicker, StampPosition } from './SignaturePositionPicker';
 
 interface SignatoryRow {
   id: string; // local key for drag
@@ -40,16 +42,17 @@ function localId() { return `sig-${++_localId}-${Date.now()}`; }
 export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const {
     uploadDocument, addSignatories, sendForApproval,
-    contacts, contactGroups, saveContact,
+    contacts, contactGroups, saveContact, updateSignaturePlacement,
   } = useDocumentApproval();
 
-  const [step, setStep] = useState<'upload' | 'signatories' | 'review'>('upload');
+  const [step, setStep] = useState<'upload' | 'stamp_position' | 'signatories' | 'review'>('upload');
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
 
   // ─── Step 1: File & metadata ──────────────────────────────────────
   const [file, setFile] = useState<File | null>(null);
   const [fileHash, setFileHash] = useState<string | null>(null);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [hashing, setHashing] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -58,6 +61,10 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [message, setMessage] = useState('');
   const [documentId, setDocumentId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Signature placement
+  const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('append');
+  const [stampPosition, setStampPosition] = useState<StampPosition>({ page: 1, x: 10, y: 55, width: 80, height: 40 });
 
   // ─── Step 2: Signatories ──────────────────────────────────────────
   const [signatories, setSignatories] = useState<SignatoryRow[]>([
@@ -106,19 +113,41 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     }
     setUploading(true);
     try {
+      const placement = signatureMethod === 'stamp'
+        ? { method: 'stamp' as const, ...stampPosition }
+        : { method: 'append' as const };
+
       const doc = await uploadDocument(file, {
         title, description, category,
         deadline: deadline || undefined,
         message: message || undefined,
+        signaturePlacement: placement,
       });
       setDocumentId(doc.id);
-      setStep('signatories');
+      setFileUrl(doc.file_url);
+
+      if (signatureMethod === 'stamp' && file.name.toLowerCase().endsWith('.pdf')) {
+        setStep('stamp_position');
+      } else {
+        setStep('signatories');
+      }
       toast.success('Document uploaded successfully');
     } catch (err) {
       console.error(err);
       toast.error('Failed to upload document');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleStampPositionContinue = async () => {
+    if (!documentId) return;
+    try {
+      await updateSignaturePlacement(documentId, { method: 'stamp', ...stampPosition });
+      setStep('signatories');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save signature position');
     }
   };
 
@@ -246,18 +275,22 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           <div>
             <h1 className="text-xl font-bold text-foreground">New Approval Request</h1>
             <p className="text-sm text-muted-foreground">
-              {step === 'upload' ? 'Step 1 of 3: Upload document' : step === 'signatories' ? 'Step 2 of 3: Add signatories' : 'Step 3 of 3: Review & send'}
+              {step === 'upload' ? 'Step 1: Upload document' : step === 'stamp_position' ? 'Step 1b: Position signatures' : step === 'signatories' ? 'Step 2: Add signatories' : 'Step 3: Review & send'}
             </p>
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="flex gap-2">
-          {['upload', 'signatories', 'review'].map((s, i) => (
-            <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${
-              ['upload', 'signatories', 'review'].indexOf(step) >= i ? 'bg-primary' : 'bg-muted'
-            }`} />
-          ))}
+          {['upload', 'signatories', 'review'].map((s, i) => {
+            const stepOrder = ['upload', 'stamp_position', 'signatories', 'review'];
+            const currentIdx = stepOrder.indexOf(step);
+            return (
+              <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${
+                currentIdx >= i ? 'bg-primary' : 'bg-muted'
+              }`} />
+            );
+          })}
         </div>
 
         {/* ═══ STEP 1: Upload ═══ */}
@@ -347,10 +380,63 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               <Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="mt-1.5" />
             </div>
 
+            {/* Signature Placement */}
+            <div>
+              <Label className="text-sm font-medium">Signature placement</Label>
+              <RadioGroup value={signatureMethod} onValueChange={(v) => setSignatureMethod(v as 'append' | 'stamp')} className="mt-2 space-y-2">
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/50 transition-colors">
+                  <RadioGroupItem value="append" id="sig-append" className="mt-0.5" />
+                  <div>
+                    <label htmlFor="sig-append" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
+                      <FileSignature className="h-4 w-4 text-primary" /> Append signature page
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Adds a professional signature page as the final page of the document</p>
+                  </div>
+                </div>
+                <div className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                  !file?.name.toLowerCase().endsWith('.pdf') ? 'border-border opacity-50' : 'border-border hover:border-primary/50'
+                }`}>
+                  <RadioGroupItem value="stamp" id="sig-stamp" className="mt-0.5" disabled={!file?.name.toLowerCase().endsWith('.pdf')} />
+                  <div>
+                    <label htmlFor="sig-stamp" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
+                      <Stamp className="h-4 w-4 text-primary" /> Stamp signature block
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Places signatures onto a specific page in the document
+                      {!file?.name.toLowerCase().endsWith('.pdf') && ' (PDF only)'}
+                    </p>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+
             <Button onClick={handleUploadAndContinue} disabled={uploading || !file || !title.trim()} className="w-full gap-2">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {uploading ? 'Uploading & Hashing…' : 'Upload & Continue'}
             </Button>
+          </Card>
+        )}
+
+        {/* ═══ STEP 1b: Stamp Position ═══ */}
+        {step === 'stamp_position' && fileUrl && (
+          <Card className="p-6 space-y-5">
+            <div>
+              <h2 className="font-semibold text-foreground mb-1">Position Signature Block</h2>
+              <p className="text-xs text-muted-foreground">Select the page and drag the overlay to define where signatures will appear</p>
+            </div>
+            <SignaturePositionPicker
+              fileUrl={fileUrl}
+              value={stampPosition}
+              onChange={setStampPosition}
+            />
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep('upload')} className="gap-2">
+                <ArrowLeft className="h-4 w-4" /> Back
+              </Button>
+              <Button onClick={handleStampPositionContinue} className="flex-1 gap-2">
+                Continue to Signatories
+              </Button>
+            </div>
           </Card>
         )}
 
