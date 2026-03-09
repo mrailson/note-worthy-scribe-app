@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
 import {
-  FileText, Download, Loader2, CheckCircle2, XCircle, AlertTriangle,
+  FileText, Eye, Loader2, CheckCircle2, XCircle, AlertTriangle,
   Calendar, User, Mail, Shield,
 } from 'lucide-react';
 import { format } from 'date-fns';
