@@ -692,6 +692,35 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 </Button>
               )}
 
+              {onExportPowerPoint && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Presentation className="h-4 w-4" />
+                      Presentation
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-36 p-2" align="start">
+                    <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Slide count</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {[5, 6, 7, 8, 9, 10, 11, 12].map(count => (
+                        <Button
+                          key={count}
+                          variant="ghost"
+                          size="sm"
+                          className="text-sm justify-center"
+                          onClick={() => {
+                            onExportPowerPoint(activeContent, documentTitle, count);
+                          }}
+                        >
+                          {count}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+
               {prefs.showInfographic && (
                 <>
                   <div className="h-6 w-px bg-border mx-1" />

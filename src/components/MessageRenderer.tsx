@@ -1625,6 +1625,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         imageGenerationModel={imageGenerationModel}
         infographicPracticeName={infographicPracticeName}
         infographicSpellingCorrections={infographicSpellingCorrections}
+        onExportPowerPoint={onExportPowerPoint}
       />
     </div>
   );
