@@ -75,7 +75,7 @@ function parseErrorCode(error: any): ErrorCode {
 }
 
 const HISTORY_STORAGE_KEY = 'image-studio-history';
-const MAX_HISTORY_ITEMS = 10;
+const MAX_HISTORY_ITEMS = 5;
 
 // Helper to load history from localStorage
 const loadHistoryFromStorage = (): GenerationHistoryItem[] => {
@@ -166,7 +166,7 @@ export function useImageStudio() {
     isGenerating: false,
     generationProgress: 0,
     currentResult: null,
-    generationHistory: [], // Start fresh — cleared to prevent crashes from stale data
+    generationHistory: loadHistoryFromStorage().slice(0, MAX_HISTORY_ITEMS).filter(item => item.result?.url),
     error: null,
   }));
   
@@ -175,13 +175,7 @@ export function useImageStudio() {
   const blobUrlsRef = useRef<string[]>([]);
   const isMountedRef = useRef(true);
 
-  // Clear any stale history from localStorage on first mount to prevent crashes
-  useEffect(() => {
-    try {
-      localStorage.removeItem(HISTORY_STORAGE_KEY);
-      console.log('🧹 Cleared image studio history from localStorage');
-    } catch { /* ignore */ }
-  }, []);
+  // No longer clearing history on mount — we load it from localStorage instead
 
   // Cleanup all blob URLs on unmount
   useEffect(() => {
