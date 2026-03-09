@@ -436,10 +436,6 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                     <Label htmlFor="doc-show-footer" className="text-sm cursor-pointer">Footer</Label>
                     <Switch id="doc-show-footer" checked={prefs.showFooter} onCheckedChange={(v) => updatePref('showFooter', v)} />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="doc-show-pages" className="text-sm cursor-pointer">Page Numbers</Label>
-                    <Switch id="doc-show-pages" checked={prefs.showPageNumbers} onCheckedChange={(v) => updatePref('showPageNumbers', v)} />
-                  </div>
                 </div>
 
                 <div className="border-t pt-3">
