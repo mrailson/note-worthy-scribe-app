@@ -60,7 +60,8 @@ function getSignatoryContext(sig: ApprovalSignatory, doc: ApprovalDocumentWithSi
 
 export default function DocumentApproval() {
   const navigate = useNavigate();
-  const { documents, loading } = useDocumentApproval();
+  const { documents, loading, chaseSignatory, chaseAllPending, chaseAllOverdue } = useDocumentApproval();
+  const [chasingDocId, setChasingDocId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<ApprovalDocumentWithSignatories | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
