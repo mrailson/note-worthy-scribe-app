@@ -739,26 +739,45 @@ export default function Settings() {
                     Default Home Page
                   </CardTitle>
                   <p className="text-muted-foreground">
-                    Choose which page loads when you first log in. The Home button will always take you to the Meeting Recorder.
+                    Choose which page loads first when you open Notewell on each device type. The Home button will always take you to the Meeting Recorder.
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <Label htmlFor="default-home-page">Landing Page</Label>
-                    <Select
-                      value={profile?.default_home_page || '/'}
-                      onValueChange={async (value) => {
-                        await updateProfile({ default_home_page: value === '/' ? null : value });
-                      }}
-                    >
-                      <SelectTrigger id="default-home-page" className="w-full sm:w-[300px]">
-                        <SelectValue placeholder="Select default page" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="/">Meeting Recorder (default)</SelectItem>
-                        <SelectItem value="/ai4gp">Ask AI</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="default-home-page-desktop">Desktop / Browser</Label>
+                      <Select
+                        value={profile?.default_home_page_desktop || '/'}
+                        onValueChange={async (value) => {
+                          await updateProfile({ default_home_page_desktop: value === '/' ? null : value });
+                        }}
+                      >
+                        <SelectTrigger id="default-home-page-desktop" className="w-full">
+                          <SelectValue placeholder="Select default page" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="/">Meeting Recorder (default)</SelectItem>
+                          <SelectItem value="/ai4gp">Ask AI</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="default-home-page-mobile">Mobile</Label>
+                      <Select
+                        value={profile?.default_home_page_mobile || '/'}
+                        onValueChange={async (value) => {
+                          await updateProfile({ default_home_page_mobile: value === '/' ? null : value });
+                        }}
+                      >
+                        <SelectTrigger id="default-home-page-mobile" className="w-full">
+                          <SelectValue placeholder="Select default page" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="/">Meeting Recorder (default)</SelectItem>
+                          <SelectItem value="/ai4gp">Ask AI</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
