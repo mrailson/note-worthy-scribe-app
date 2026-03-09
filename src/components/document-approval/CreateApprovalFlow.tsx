@@ -116,6 +116,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
       return;
     }
     setUploading(true);
+    setUploadStatus(null);
+    const isDocx = file.name.toLowerCase().endsWith('.docx');
     try {
       const placement = signatureMethod === 'stamp'
         ? { method: 'stamp' as const, ...stampPosition }
@@ -126,11 +128,19 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
         deadline: deadline || undefined,
         message: message || undefined,
         signaturePlacement: placement,
-      });
+      }, (status) => setUploadStatus(status));
+
       setDocumentId(doc.id);
       setFileUrl(doc.file_url);
 
-      if (signatureMethod === 'stamp' && file.name.toLowerCase().endsWith('.pdf')) {
+      if (isDocx) {
+        setConvertedToPdf(true);
+        toast.success('Converted from Word to PDF successfully');
+      }
+
+      // After conversion, the stored file is always PDF, so stamp is available
+      const storedIsPdf = isDocx || file.name.toLowerCase().endsWith('.pdf');
+      if (signatureMethod === 'stamp' && storedIsPdf) {
         setStep('stamp_position');
       } else {
         setStep('signatories');
@@ -138,9 +148,10 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
       toast.success('Document uploaded successfully');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to upload document');
+      toast.error(err instanceof Error ? err.message : 'Failed to upload document');
     } finally {
       setUploading(false);
+      setUploadStatus(null);
     }
   };
 
