@@ -137,7 +137,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     cso_governance_access: false,
     lg_capture_access: false,
     bp_service_access: false,
-    survey_manager_access: false
+    survey_manager_access: false,
+    document_signoff_access: false
   },
 
   // Practice Manager - core management access (excludes Shared Drive, GP Scribe, CQC Compliance, Enhanced Access, Fridge Monitoring)
