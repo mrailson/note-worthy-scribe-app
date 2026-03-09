@@ -11,6 +11,24 @@ import { useSecurityValidation } from '@/hooks/useSecurityValidation';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
+const navigateToHomePage = async (navigate: ReturnType<typeof useNavigate>, userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('default_home_page')
+      .eq('user_id', userId)
+      .single();
+
+    if (!error && data?.default_home_page && data.default_home_page !== '/') {
+      navigate(data.default_home_page, { replace: true });
+      return;
+    }
+  } catch (err) {
+    console.error('Error checking home page preference:', err);
+  }
+  navigate('/');
+};
+
 export default function Auth() {
   const navigate = useNavigate();
   const { user } = useAuth();

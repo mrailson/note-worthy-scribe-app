@@ -151,18 +151,65 @@ const Index = () => {
     }
   }, [editMeetingId, user]);
 
-  // Conditional homepage redirect: AI4GP users → AI4GP, others → Meeting Manager
-  // Skip redirect if user is continuing a meeting
+  // Default home page redirect based on user preference
+  const [homePageChecked, setHomePageChecked] = useState(false);
+  const homePageRedirectDone = useRef(false);
+
   useEffect(() => {
+    if (!user || loading || homePageRedirectDone.current) {
+      if (!loading && !user) setHomePageChecked(true);
+      return;
+    }
+
     const state = location.state as any;
     const isContinuingMeeting = state?.continueMeeting;
-    
-    if (user && !loading && !editMeetingId && !isContinuingMeeting && hasModuleAccess('ai4gp_access')) {
-      navigate('/ai4gp', {
-        replace: true
-      });
+    const isFromHome = searchParams.get('from') === 'home';
+
+    // If user clicked Home button or is continuing a meeting, skip redirect
+    if (isFromHome || isContinuingMeeting || editMeetingId) {
+      // Clean up the ?from=home param
+      if (isFromHome) {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('from');
+        const newSearch = newParams.toString();
+        window.history.replaceState({}, '', newSearch ? `/?${newSearch}` : '/');
+      }
+      setHomePageChecked(true);
+      homePageRedirectDone.current = true;
+      return;
     }
-  }, [user, loading, editMeetingId, location.state, hasModuleAccess, navigate]);
+
+    // Check profile for default_home_page preference
+    const checkHomePage = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('default_home_page')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!error && data?.default_home_page && data.default_home_page !== '/') {
+          homePageRedirectDone.current = true;
+          navigate(data.default_home_page, { replace: true });
+          return;
+        }
+      } catch (err) {
+        console.error('Error checking home page preference:', err);
+      }
+      setHomePageChecked(true);
+      homePageRedirectDone.current = true;
+    };
+
+    // Add a small timeout to avoid flash, but don't block too long
+    const timer = setTimeout(() => {
+      setHomePageChecked(true);
+      homePageRedirectDone.current = true;
+    }, 500);
+
+    checkHomePage().then(() => clearTimeout(timer));
+
+    return () => clearTimeout(timer);
+  }, [user, loading, editMeetingId, location.state, searchParams, navigate]);
   const loadMeetingForEditing = async (meetingId: string) => {
     try {
       const {

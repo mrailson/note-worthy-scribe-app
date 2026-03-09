@@ -731,6 +731,38 @@ export default function Settings() {
                 </CardContent>
               </Card>
 
+              {/* Default Home Page */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    Default Home Page
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Choose which page loads when you first log in. The Home button will always take you to the Meeting Recorder.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="default-home-page">Landing Page</Label>
+                    <Select
+                      value={profile?.default_home_page || '/'}
+                      onValueChange={async (value) => {
+                        await updateProfile({ default_home_page: value === '/' ? null : value });
+                      }}
+                    >
+                      <SelectTrigger id="default-home-page" className="w-full sm:w-[300px]">
+                        <SelectValue placeholder="Select default page" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="/">Meeting Recorder (default)</SelectItem>
+                        <SelectItem value="/ai4gp">Ask AI</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Service Menu Visibility */}
               <ServiceVisibilitySettings />
 
