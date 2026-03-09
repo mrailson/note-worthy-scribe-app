@@ -118,6 +118,7 @@ const PolicyServiceUpdate = lazy(() => import("./pages/PolicyServiceUpdate"));
 const PolicyServiceChecklist = lazy(() => import("./pages/PolicyServiceChecklist"));
 const PolicyServiceMyPolicies = lazy(() => import("./pages/PolicyServiceMyPolicies"));
 const PolicyServiceProfile = lazy(() => import("./pages/PolicyServiceProfile"));
+const DocumentApproval = lazy(() => import("./pages/DocumentApproval"));
 const PolicyServiceViewPolicy = lazy(() => import("./pages/PolicyServiceViewPolicy"));
 const AIChatCapture = lazy(() => import("./pages/AIChatCapture"));
 const ComplaintCapture = lazy(() => import("./pages/ComplaintCapture"));
@@ -401,6 +402,13 @@ const App = () => {
                 } />
                 <Route path="/survey/:token" element={<PublicSurvey />} />
                 <Route path="/s/:token" element={<PublicSurvey />} />
+                
+                {/* Document Approval Service */}
+                <Route path="/document-approval" element={
+                  <ProtectedRoute>
+                    <DocumentApproval />
+                  </ProtectedRoute>
+                } />
                 
                 {/* Public Document Pages */}
                 <Route path="/privacy-notice" element={<PrivacyNotice />} />
