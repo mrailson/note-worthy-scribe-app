@@ -20,7 +20,12 @@ const DIRECTIVE_PATTERNS = [
 const RAW_HTML_TAG_PATTERN = /<\/?(?:div|span|p|br|h[1-6]|ul|ol|li|img|a|table|tr|td|th|strong|em|b|i|section|article|header|footer|nav|main)\b[^>]*>/gi;
 
 // Hex colour codes: #ABC, #AABBCC, #AABBCCDD
+// This pattern is used for non-context-aware stripping (plain text input).
 const HEX_COLOUR_PATTERN = /#(?:[0-9A-Fa-f]{3,4}){1,2}\b/g;
+
+// Context-aware hex stripping for HTML: matches hex codes that are NOT inside
+// style="..." or fill="..." attributes. We use a two-pass approach in the
+// HTML-aware sanitiser below.
 
 // Simple heuristic for garbled words: consonant clusters that rarely
 // appear in English (≥4 consonants in a row with no vowel)
