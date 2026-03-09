@@ -159,7 +159,7 @@ export default function DocumentApproval() {
   }
 
   if (showCreate) {
-    return <CreateApprovalFlow onBack={() => setShowCreate(false)} />;
+    return <CreateApprovalFlow onBack={() => { setShowCreate(false); refetch(); }} />;
   }
 
   if (selectedDoc) {
