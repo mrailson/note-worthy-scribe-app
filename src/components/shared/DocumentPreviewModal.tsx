@@ -559,7 +559,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         </div>
 
         {/* Settings gear — only for document view */}
-        {infographicView === 'document' && (
+        {true && (
           <div className="px-4 sm:px-6 py-2 border-b bg-muted/20 flex items-center">
             <Popover>
               <PopoverTrigger asChild>
