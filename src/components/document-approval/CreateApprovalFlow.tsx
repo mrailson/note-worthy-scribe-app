@@ -180,7 +180,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   // ─── Signatory management ────────────────────────────────────────
 
   const addRow = () => {
-    setSignatories(prev => [...prev, { id: localId(), name: '', email: '', role: '', organisation: '' }]);
+    setSignatories(prev => [...prev, { id: localId(), signatory_title: '', name: '', email: '', role: '', organisation: '', organisation_type: '' }]);
   };
 
   const removeRow = (id: string) => {
