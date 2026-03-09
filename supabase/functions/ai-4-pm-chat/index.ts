@@ -1666,7 +1666,7 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
     body: JSON.stringify({
       model: model,
       messages: formattedMessages,
-      max_tokens: 4096
+      max_tokens: 8192
     }),
   });
 
