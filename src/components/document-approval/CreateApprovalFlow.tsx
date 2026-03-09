@@ -113,19 +113,41 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     }
     setUploading(true);
     try {
+      const placement = signatureMethod === 'stamp'
+        ? { method: 'stamp' as const, ...stampPosition }
+        : { method: 'append' as const };
+
       const doc = await uploadDocument(file, {
         title, description, category,
         deadline: deadline || undefined,
         message: message || undefined,
+        signaturePlacement: placement,
       });
       setDocumentId(doc.id);
-      setStep('signatories');
+      setFileUrl(doc.file_url);
+
+      if (signatureMethod === 'stamp' && file.name.toLowerCase().endsWith('.pdf')) {
+        setStep('stamp_position');
+      } else {
+        setStep('signatories');
+      }
       toast.success('Document uploaded successfully');
     } catch (err) {
       console.error(err);
       toast.error('Failed to upload document');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleStampPositionContinue = async () => {
+    if (!documentId) return;
+    try {
+      await updateSignaturePlacement(documentId, { method: 'stamp', ...stampPosition });
+      setStep('signatories');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save signature position');
     }
   };
 
