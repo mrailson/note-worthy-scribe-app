@@ -77,6 +77,7 @@
     "mammoth": "^1.10.0",
     "marked": "^16.2.0",
     "next-themes": "^0.3.0",
+    "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^5.4.296",
     "pptxgenjs": "^4.0.1",
