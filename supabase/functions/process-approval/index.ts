@@ -205,6 +205,7 @@ serve(async (req) => {
         console.error('Failed to send confirmation email (non-blocking):', emailErr);
       }
 
+      return new Response(JSON.stringify({
         success: true,
         message: 'Document approved successfully',
         all_completed: allApproved,
