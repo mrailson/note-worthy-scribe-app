@@ -748,14 +748,28 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                         const pdfjsLib = await import('pdfjs-dist');
                         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
                         
-                        // Use Supabase SDK to download file (bypasses browser extension blocking)
-                        const storagePath = fileUrl!.split('/approval-documents/')[1];
+                        // Extract storage path from public URL and download via SDK
                         let arrayBuffer: ArrayBuffer;
+                        const pathMatch = fileUrl!.match(/approval-documents\/(.+)$/);
+                        const storagePath = pathMatch?.[1];
+                        console.log('Preview: fileUrl=', fileUrl, 'storagePath=', storagePath);
                         if (storagePath) {
                           const { data, error } = await supabase.storage.from('approval-documents').download(storagePath);
-                          if (error || !data) throw error || new Error('Download failed');
-                          arrayBuffer = await data.arrayBuffer();
+                          if (error || !data) {
+                            console.error('SDK download failed, trying signed URL:', error);
+                            // Fallback: try signed URL
+                            const { data: signedData } = await supabase.storage.from('approval-documents').createSignedUrl(storagePath, 300);
+                            if (signedData?.signedUrl) {
+                              const res = await fetch(signedData.signedUrl);
+                              arrayBuffer = await res.arrayBuffer();
+                            } else {
+                              throw error || new Error('Download failed');
+                            }
+                          } else {
+                            arrayBuffer = await data.arrayBuffer();
+                          }
                         } else {
+                          // Fallback: direct fetch (may be blocked)
                           const res = await fetch(fileUrl!);
                           arrayBuffer = await res.arrayBuffer();
                         }
