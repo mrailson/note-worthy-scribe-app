@@ -238,7 +238,12 @@ const PublicApproval = () => {
               <p><strong>Comment:</strong> {signatory.decline_comment}</p>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">You can close this page.</p>
+          <button
+            onClick={() => window.close()}
+            className="text-xs text-primary hover:underline cursor-pointer"
+          >
+            Close this page
+          </button>
         </Card>
       </PageShell>
     );
@@ -267,7 +272,12 @@ const PublicApproval = () => {
           <p className="text-xs text-muted-foreground">
             A confirmation email has been sent to <span className="font-medium">{signatory.email}</span>.
           </p>
-          <p className="text-xs text-muted-foreground">You can close this page.</p>
+          <button
+            onClick={() => window.close()}
+            className="text-xs text-primary hover:underline cursor-pointer"
+          >
+            Close this page
+          </button>
         </Card>
       </PageShell>
     );
