@@ -20,7 +20,12 @@ const DIRECTIVE_PATTERNS = [
 const RAW_HTML_TAG_PATTERN = /<\/?(?:div|span|p|br|h[1-6]|ul|ol|li|img|a|table|tr|td|th|strong|em|b|i|section|article|header|footer|nav|main)\b[^>]*>/gi;
 
 // Hex colour codes: #ABC, #AABBCC, #AABBCCDD
+// This pattern is used for non-context-aware stripping (plain text input).
 const HEX_COLOUR_PATTERN = /#(?:[0-9A-Fa-f]{3,4}){1,2}\b/g;
+
+// Context-aware hex stripping for HTML: matches hex codes that are NOT inside
+// style="..." or fill="..." attributes. We use a two-pass approach in the
+// HTML-aware sanitiser below.
 
 // Simple heuristic for garbled words: consonant clusters that rarely
 // appear in English (≥4 consonants in a row with no vowel)
@@ -37,16 +42,76 @@ export interface SanitiseResult {
   warnings: string[];
 }
 
+/**
+ * Context-aware hex code stripping for HTML content.
+ * Removes hex codes from visible text but preserves them inside
+ * style="...", fill="...", stroke="...", stop-color="...", etc.
+ */
+function stripHexFromVisibleText(html: string): { result: string; count: number; samples: string[] } {
+  const samples: string[] = [];
+  let count = 0;
+
+  // Split content into "inside attribute" vs "outside attribute" segments.
+  // We tokenise by HTML attributes that legitimately contain colour values.
+  const ATTR_PATTERN = /(?:style|fill|stroke|stop-color|color|bgcolor)\s*=\s*"[^"]*"/gi;
+
+  // Build a map of protected ranges
+  const protectedRanges: [number, number][] = [];
+  let attrMatch: RegExpExecArray | null;
+  const attrRegex = new RegExp(ATTR_PATTERN.source, 'gi');
+  while ((attrMatch = attrRegex.exec(html)) !== null) {
+    protectedRanges.push([attrMatch.index, attrMatch.index + attrMatch[0].length]);
+  }
+
+  // Also protect CSS blocks: <style>...</style>
+  const styleBlockRegex = /<style[^>]*>[\s\S]*?<\/style>/gi;
+  let styleMatch: RegExpExecArray | null;
+  while ((styleMatch = styleBlockRegex.exec(html)) !== null) {
+    protectedRanges.push([styleMatch.index, styleMatch.index + styleMatch[0].length]);
+  }
+
+  const isProtected = (pos: number) => protectedRanges.some(([s, e]) => pos >= s && pos < e);
+
+  const hexRegex = /#(?:[0-9A-Fa-f]{3,4}){1,2}\b/g;
+  let hexMatch: RegExpExecArray | null;
+  const replacements: { start: number; end: number; text: string }[] = [];
+  while ((hexMatch = hexRegex.exec(html)) !== null) {
+    if (!isProtected(hexMatch.index)) {
+      replacements.push({ start: hexMatch.index, end: hexMatch.index + hexMatch[0].length, text: hexMatch[0] });
+      if (samples.length < 5) samples.push(hexMatch[0]);
+      count++;
+    }
+  }
+
+  // Apply replacements in reverse order to preserve indices
+  let result = html;
+  for (let i = replacements.length - 1; i >= 0; i--) {
+    const r = replacements[i];
+    result = result.slice(0, r.start) + result.slice(r.end);
+  }
+
+  return { result, count, samples };
+}
+
 export function sanitizeGeneratedContent(content: string): SanitiseResult {
   const warnings: string[] = [];
   let cleaned = content;
 
-  // 1. Strip hex colour codes
-  const hexMatches = cleaned.match(HEX_COLOUR_PATTERN);
-  if (hexMatches && hexMatches.length > 0) {
-    // Only strip hex codes that are NOT inside known safe contexts (e.g. already in a colour palette object)
-    cleaned = cleaned.replace(HEX_COLOUR_PATTERN, '');
-    warnings.push(`Stripped ${hexMatches.length} hex colour code(s) from content: ${hexMatches.slice(0, 5).join(', ')}`);
+  // 1. Strip hex colour codes from visible text only (preserve in style attributes)
+  const isHtml = /<[a-z][\s\S]*>/i.test(cleaned);
+  if (isHtml) {
+    const { result, count, samples } = stripHexFromVisibleText(cleaned);
+    if (count > 0) {
+      cleaned = result;
+      warnings.push(`Stripped ${count} hex colour code(s) from visible text: ${samples.join(', ')}`);
+    }
+  } else {
+    // Plain text: strip all hex codes
+    const hexMatches = cleaned.match(HEX_COLOUR_PATTERN);
+    if (hexMatches && hexMatches.length > 0) {
+      cleaned = cleaned.replace(HEX_COLOUR_PATTERN, '');
+      warnings.push(`Stripped ${hexMatches.length} hex colour code(s) from content: ${hexMatches.slice(0, 5).join(', ')}`);
+    }
   }
 
   // 2. Strip CSS property names / values

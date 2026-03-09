@@ -123,8 +123,11 @@ async function proofreadPromptText(prompt: string, apiKey: string): Promise<stri
             content: `You are a proofreader. You will receive text extracted from a generated infographic. Check for and fix:
 - Duplicated phrases or sentences (e.g. 'requests to be emailed to Gosia at Park requests to be emailed to Gosia')
 - Garbled or nonsense words
+- Transposed or swapped letters in words (e.g. FOUDNRY → FOUNDRY, ALEART → ALERT, MANGAEMENT → MANAGEMENT)
 - Obvious grammatical errors
 - American spellings that should be British English (e.g. 'emphasized' → 'emphasised', 'organization' → 'organisation')
+
+Pay special attention to headings and titles as errors there are most visible.
 
 Return ONLY a JSON object: { "corrections": [{ "original": "exact text to find", "replacement": "corrected text" }] }
 If no corrections are needed, return: { "corrections": [] }
