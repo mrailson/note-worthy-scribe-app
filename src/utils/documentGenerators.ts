@@ -1406,7 +1406,7 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
     };
 
     const checkPage = (needed: number) => {
-      if (y + needed > pageHeight - margin) {
+      if (y + needed > pageHeight - bottomMargin) {
         pdf.addPage();
         y = margin;
       }
