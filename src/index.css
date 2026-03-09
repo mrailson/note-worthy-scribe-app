@@ -56,6 +56,14 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
+    /* Approval status colours */
+    --approval-approved: 142 71% 45%;
+    --approval-viewed: 38 92% 50%;
+    --approval-overdue: 0 84% 60%;
+    --approval-not-viewed: 220 9% 46%;
+    --approval-completed-bg: 142 76% 96%;
+    --approval-completed-border: 142 76% 80%;
+
     --nhs-blue: 202.5 100% 40%;
     --nhs-blue-light: 202.5 100% 50%;
 

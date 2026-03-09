@@ -271,7 +271,7 @@ export default function DocumentApproval() {
                   onClick={() => setFilter('completed')}
                 >
                   <div className="flex items-center justify-center gap-2 mb-1">
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <CheckCircle2 className="h-5 w-5 text-[hsl(var(--approval-approved))]" />
                     <p className="text-2xl font-bold text-foreground">{counts.completed}</p>
                   </div>
                   <p className="text-xs text-muted-foreground">Completed</p>
