@@ -1,0 +1,1 @@
+ALTER TABLE public.approval_signatories ADD COLUMN IF NOT EXISTS signature_font text DEFAULT 'Dancing Script';
