@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -26,6 +28,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info } from 'lucide-react';
 
 export function NRESHoursTracker() {
+  const { user } = useAuth();
+  const isAdmin = !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
+  
   const [expensesOpen, setExpensesOpen] = useState(false);
   const [claimantsOpen, setClaimantsOpen] = useState(false);
   
@@ -65,6 +70,20 @@ export function NRESHoursTracker() {
     practiceFilteredClaimants,
     loading: loadingClaimants
   } = useNRESClaimants();
+
+  // For non-admin users, filter entries to only show those belonging to
+  // claimants from their practice (or personal entries they created)
+  const practiceClaimantNames = useMemo(() => 
+    new Set(practiceFilteredClaimants.map(c => c.name)),
+    [practiceFilteredClaimants]
+  );
+
+  const filteredEntries = useMemo(() => {
+    if (isAdmin) return entries;
+    return entries.filter(e => 
+      !e.claimant_name || practiceClaimantNames.has(e.claimant_name) || e.user_id === user?.id
+    );
+  }, [entries, isAdmin, practiceClaimantNames, user?.id]);
 
   if (loadingSettings) {
     return (
@@ -131,7 +150,7 @@ export function NRESHoursTracker() {
 
         {/* Summary Cards */}
         <TrackerSummary
-          totalHours={totalHours}
+          totalHours={filteredEntries.reduce((sum, e) => sum + Number(e.duration_hours), 0)}
           totalExpenses={totalExpenses}
           hourlyRate={hourlyRate}
         />
@@ -145,7 +164,7 @@ export function NRESHoursTracker() {
             onSaveRate={saveHourlyRate}
           />
           <TrackerReportModal
-            entries={entries}
+            entries={filteredEntries}
             expenses={expenses}
             hourlyRate={hourlyRate}
           />
@@ -177,7 +196,7 @@ export function NRESHoursTracker() {
             onSubmit={addEntry}
           />
           <HoursEntriesTable
-            entries={entries}
+            entries={filteredEntries}
             hourlyRate={hourlyRate}
             loading={loadingEntries}
             claimants={practiceFilteredClaimants}

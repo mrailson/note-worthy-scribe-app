@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import type { NRESExpense } from '@/types/nresHoursTypes';
 
 export function useNRESExpenses() {
@@ -28,8 +27,6 @@ export function useNRESExpenses() {
     return null;
   }, [user?.id, practiceId]);
 
-  const isAdmin = !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
-
   const fetchExpenses = useCallback(async (forceRefresh = false) => {
     if (!user?.id) return;
     if (!forceRefresh && hasFetchedRef.current) return;
@@ -37,19 +34,11 @@ export function useNRESExpenses() {
     try {
       setLoading(true);
 
-      let query = supabase
+      // RLS handles practice/PCN-level visibility
+      const { data, error } = await supabase
         .from('nres_expenses')
         .select('*')
         .order('expense_date', { ascending: false });
-
-      if (!isAdmin) {
-        const pId = await resolvePracticeId();
-        if (pId) {
-          query = query.eq('practice_id', pId);
-        }
-      }
-
-      const { data, error } = await query;
 
       if (error) throw error;
       setExpenses(data || []);
@@ -60,7 +49,7 @@ export function useNRESExpenses() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, isAdmin, resolvePracticeId]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id) {
