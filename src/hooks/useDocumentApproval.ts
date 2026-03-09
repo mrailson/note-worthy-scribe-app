@@ -534,6 +534,41 @@ export function useDocumentApproval() {
     await fetchContactGroups();
   }, [fetchContactGroups]);
 
+  const deleteDocument = useCallback(async (documentId: string) => {
+    if (!user) throw new Error('Not authenticated');
+
+    // If pending, revoke first so signatories can't approve a deleted doc
+    const doc = documents.find(d => d.id === documentId);
+    if (doc?.status === 'pending') {
+      await supabase
+        .from('approval_documents')
+        .update({ status: 'revoked', revoked_at: new Date().toISOString() })
+        .eq('id', documentId);
+    }
+
+    // Delete related records in order (signatories, audit log, then document)
+    await supabase.from('approval_signatories').delete().eq('document_id', documentId);
+    await supabase.from('approval_audit_log').delete().eq('document_id', documentId);
+
+    // Delete the file from storage if present
+    if (doc?.file_url) {
+      const path = doc.file_url.split('/approval-documents/')[1];
+      if (path) {
+        await supabase.storage.from('approval-documents').remove([path]);
+      }
+    }
+
+    const { error } = await supabase
+      .from('approval_documents')
+      .delete()
+      .eq('id', documentId);
+
+    if (error) throw error;
+
+    await fetchDocuments();
+    toast.success('Document deleted');
+  }, [user, documents, fetchDocuments]);
+
   return {
     documents,
     contacts,
@@ -544,6 +579,7 @@ export function useDocumentApproval() {
     addSignatories,
     sendForApproval,
     revokeDocument,
+    deleteDocument,
     chaseSignatory,
     chaseAllPending,
     chaseAllOverdue,
