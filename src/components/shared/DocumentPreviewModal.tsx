@@ -741,16 +741,17 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           )}
         </div>
       </DialogContent>
-
-      {/* Fullscreen infographic lightbox - rendered via portal to escape Dialog stacking context */}
-      {infographicFullscreen && infographicUrl && createPortal(
-        <InfographicFullscreen
-          infographicUrl={infographicUrl}
-          onClose={() => setInfographicFullscreen(false)}
-          onDownload={handleDownloadInfographic}
-        />,
-        document.body
-      )}
     </Dialog>
+
+    {/* Fullscreen infographic lightbox - OUTSIDE Dialog to avoid Radix event interception */}
+    {infographicFullscreen && infographicUrl && createPortal(
+      <InfographicFullscreen
+        infographicUrl={infographicUrl}
+        onClose={() => setInfographicFullscreen(false)}
+        onDownload={handleDownloadInfographic}
+      />,
+      document.body
+    )}
+    </>
   );
 };
