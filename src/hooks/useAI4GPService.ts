@@ -1885,7 +1885,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             ));
 
             // Auto-save the search
-            setTimeout(async () => {
+            const _t8 = setTimeout(async () => {
+              pendingTimeoutRefs.current.delete(_t8);
               const finalMessages = [...newMessages, {
                 ...assistantMessage,
                 content: responseContent,
@@ -1896,6 +1897,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               }];
               await saveSearchAutomatically(finalMessages);
             }, 100);
+            pendingTimeoutRefs.current.add(_t8);
           }
         }
       };
