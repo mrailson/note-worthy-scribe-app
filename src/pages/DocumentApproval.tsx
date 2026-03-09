@@ -29,14 +29,33 @@ function daysOverdue(doc: ApprovalDocumentWithSignatories): number {
   return Math.max(0, differenceInDays(new Date(), new Date(doc.deadline)));
 }
 
-function getSignatoryContext(sig: ApprovalSignatory, doc: ApprovalDocumentWithSignatories): string {
-  if (sig.status === 'approved') return '';
-  if (sig.status === 'declined') return 'declined';
-  if (sig.reminder_count > 0) return `reminded ×${sig.reminder_count}`;
-  if (sig.viewed_at) return `viewed ${format(new Date(sig.viewed_at), 'dd MMM')}`;
-  const sent = doc.created_at;
-  const daysSince = differenceInDays(new Date(), new Date(sent));
-  return daysSince > 0 ? `no response (${daysSince}d)` : 'no response';
+function getSignatoryContext(sig: ApprovalSignatory, doc: ApprovalDocumentWithSignatories): { text: string; severity: 'normal' | 'amber' | 'red' } {
+  if (sig.status === 'approved') return { text: '', severity: 'normal' };
+  if (sig.status === 'declined') return { text: 'declined', severity: 'red' };
+
+  const daysSinceSent = differenceInDays(new Date(), new Date(sig.created_at));
+
+  if (sig.reminder_count > 0) {
+    const lastReminder = sig.last_reminder_at
+      ? formatDistanceToNow(new Date(sig.last_reminder_at), { addSuffix: true })
+      : '';
+    return {
+      text: `reminded ×${sig.reminder_count}${lastReminder ? ` — last ${lastReminder}` : ''}`,
+      severity: 'red',
+    };
+  }
+  if (sig.viewed_at) {
+    const daysSinceView = differenceInDays(new Date(), new Date(sig.viewed_at));
+    return {
+      text: `viewed ${format(new Date(sig.viewed_at), 'dd MMM')} — not yet signed`,
+      severity: daysSinceView >= 2 ? 'amber' : 'normal',
+    };
+  }
+  if (daysSinceSent === 0) return { text: 'sent today', severity: 'normal' };
+  return {
+    text: `sent ${daysSinceSent}d ago — no response`,
+    severity: daysSinceSent >= 3 ? 'amber' : 'normal',
+  };
 }
 
 export default function DocumentApproval() {
