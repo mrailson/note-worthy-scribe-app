@@ -1,76 +1,165 @@
 import mammoth from 'mammoth';
 import html2pdf from 'html2pdf.js';
+import JSZip from 'jszip';
+
+export interface WordProcessingResult {
+  content: string;
+  /** 'pdf' if sent as base64 PDF, 'text' if sent as extracted text */
+  outputMode: 'pdf' | 'text';
+  /** Which attempt succeeded */
+  attempt: 1 | 2 | 3;
+  /** Character count of extracted content (text mode only) */
+  characterCount?: number;
+}
 
 export class WordProcessor {
   /**
-   * Convert .docx to PDF base64 data URL for native Gemini multimodal processing.
-   * Pipeline: .docx → HTML (mammoth) → PDF (html2pdf.js) → base64 data URL
+   * Process a .docx file with a 3-attempt fallback chain:
+   *   1. mammoth → HTML → html2pdf → PDF base64 (best quality, multimodal)
+   *   2. mammoth → HTML → plain text (good quality, loses layout)
+   *   3. JSZip → raw XML → w:t tag extraction (last resort)
+   *
+   * Returns the content string and metadata about which method was used.
    */
-  static async convertToPdfBase64(file: File): Promise<string> {
+  static async processWithFallbacks(file: File): Promise<WordProcessingResult> {
     const ext = file.name.split('.').pop()?.toLowerCase();
-    
-    // Reject legacy .doc format
+
     if (ext === 'doc') {
       throw new Error(
-        'Please save this document as .docx or PDF format and re-upload. ' +
-        'The older .doc format is not supported.'
+        "This Word document couldn't be processed. Please try:\n" +
+        '1. Open in Word and Save As PDF, then upload the PDF\n' +
+        '2. Open in Google Docs and download as PDF\n' +
+        '3. If this is a .doc file, re-save as .docx first'
       );
     }
 
+    const arrayBuffer = await file.arrayBuffer();
+    let mammothHtml: string | null = null;
+
+    // ── ATTEMPT 1 & 2: mammoth-based ──────────────────────────────
     try {
-      console.log('📝 Converting Word document to PDF:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-      
-      // Step 1: Convert .docx to HTML using mammoth
-      const arrayBuffer = await file.arrayBuffer();
+      console.log('📝 Attempt 1: Converting .docx → HTML via mammoth…', file.name);
       const result = await mammoth.convertToHtml({ arrayBuffer });
-      const html = result.value;
+      mammothHtml = result.value;
 
-      if (!html || html.trim().length === 0) {
-        throw new Error('No content extracted from Word document');
+      if (!mammothHtml || mammothHtml.trim().length === 0) {
+        throw new Error('Mammoth returned empty HTML');
       }
 
-      console.log('✅ Word → HTML conversion complete, HTML length:', html.length);
+      console.log('✅ Mammoth HTML extracted, length:', mammothHtml.length);
 
-      // Step 2: Convert HTML to PDF using html2pdf.js in a hidden container
-      const container = document.createElement('div');
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      container.style.top = '-9999px';
-      container.style.width = '210mm'; // A4 width
-      container.innerHTML = html;
-      document.body.appendChild(container);
-
+      // ── ATTEMPT 1: HTML → PDF → base64 ───────────────────────
       try {
-        const pdfBlob: Blob = await html2pdf()
-          .set({
-            margin: [10, 10, 10, 10],
-            filename: file.name.replace(/\.docx?$/i, '.pdf'),
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-          })
-          .from(container)
-          .outputPdf('blob');
+        console.log('📄 Attempt 1: Converting HTML → PDF via html2pdf…');
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '-9999px';
+        container.style.width = '210mm';
+        container.innerHTML = mammothHtml;
+        document.body.appendChild(container);
 
-        console.log('✅ HTML → PDF conversion complete, PDF size:', (pdfBlob.size / 1024 / 1024).toFixed(2), 'MB');
+        try {
+          const pdfBlob: Blob = await html2pdf()
+            .set({
+              margin: [10, 10, 10, 10],
+              filename: file.name.replace(/\.docx?$/i, '.pdf'),
+              image: { type: 'jpeg', quality: 0.95 },
+              html2canvas: { scale: 2, useCORS: true },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            })
+            .from(container)
+            .outputPdf('blob');
 
-        // Step 3: Convert PDF blob to base64 data URL
-        const base64DataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => reject(new Error('Failed to convert PDF to base64'));
-          reader.readAsDataURL(pdfBlob);
-        });
+          console.log('✅ PDF blob created, size:', (pdfBlob.size / 1024 / 1024).toFixed(2), 'MB');
 
-        console.log('✅ Word document fully converted to PDF base64, length:', base64DataUrl.length);
-        return base64DataUrl;
-      } finally {
-        document.body.removeChild(container);
+          const base64DataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error('Failed to convert PDF to base64'));
+            reader.readAsDataURL(pdfBlob);
+          });
+
+          console.log('✅ Attempt 1 SUCCESS — Word → PDF base64, length:', base64DataUrl.length);
+          return { content: base64DataUrl, outputMode: 'pdf', attempt: 1 };
+        } finally {
+          document.body.removeChild(container);
+        }
+      } catch (pdfError) {
+        console.warn('⚠️ Attempt 1 FAILED (PDF conversion):', pdfError);
+        // Fall through to Attempt 2
       }
-    } catch (error) {
-      console.error('Word to PDF conversion error:', error);
-      throw new Error(`Failed to convert Word document to PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+      // ── ATTEMPT 2: HTML → plain text ──────────────────────────
+      console.log('📝 Attempt 2: Stripping HTML to plain text…');
+      const plainText = mammothHtml
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (plainText.length > 100) {
+        const charCount = plainText.length;
+        console.log(`✅ Attempt 2 SUCCESS — Extracted ${charCount.toLocaleString()} characters from document`);
+
+        const textContent = `WORD DOCUMENT CONTENT FROM: ${file.name}\n\n${plainText}`;
+        return {
+          content: textContent,
+          outputMode: 'text',
+          attempt: 2,
+          characterCount: charCount,
+        };
+      }
+
+      console.warn('⚠️ Attempt 2 FAILED — text too short:', plainText.length, 'characters');
+    } catch (mammothError) {
+      console.warn('⚠️ Mammoth FAILED, trying XML extraction:', mammothError);
     }
+
+    // ── ATTEMPT 3: Raw XML extraction via JSZip ─────────────────
+    try {
+      console.log('📝 Attempt 3: Extracting text from raw XML via JSZip…');
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      const docXml = zip.file('word/document.xml');
+
+      if (!docXml) {
+        throw new Error('word/document.xml not found in archive');
+      }
+
+      const xml = await docXml.async('string');
+      const textParts: string[] = [];
+      const regex = /<w:t[^>]*>(.*?)<\/w:t>/g;
+      let match;
+      while ((match = regex.exec(xml)) !== null) {
+        textParts.push(match[1]);
+      }
+
+      const plainText = textParts.join(' ').trim();
+
+      if (plainText.length > 100) {
+        const charCount = plainText.length;
+        console.log(`✅ Attempt 3 SUCCESS — Extracted ${charCount.toLocaleString()} characters via XML`);
+
+        const textContent = `WORD DOCUMENT CONTENT FROM: ${file.name}\n\n${plainText}`;
+        return {
+          content: textContent,
+          outputMode: 'text',
+          attempt: 3,
+          characterCount: charCount,
+        };
+      }
+
+      console.warn('⚠️ Attempt 3 FAILED — text too short:', plainText.length, 'characters');
+    } catch (xmlError) {
+      console.warn('⚠️ Attempt 3 FAILED (XML extraction):', xmlError);
+    }
+
+    // ── ALL ATTEMPTS FAILED ─────────────────────────────────────
+    throw new Error(
+      "This Word document couldn't be processed. Please try:\n" +
+      '1. Open in Word and Save As PDF, then upload the PDF\n' +
+      '2. Open in Google Docs and download as PDF\n' +
+      '3. If this is a .doc file, re-save as .docx first'
+    );
   }
 
   /**
@@ -80,15 +169,11 @@ export class WordProcessor {
     try {
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.extractRawText({ arrayBuffer });
-      
+
       if (result.value && result.value.trim().length > 0) {
-        return `WORD DOCUMENT CONTENT FROM: ${file.name}
-
-${result.value.trim()}
-
-[Extracted using Mammoth.js Word processor]`;
+        return `WORD DOCUMENT CONTENT FROM: ${file.name}\n\n${result.value.trim()}\n\n[Extracted using Mammoth.js Word processor]`;
       }
-      
+
       throw new Error('No text content extracted from Word document');
     } catch (error) {
       console.error('Word processing error:', error);
