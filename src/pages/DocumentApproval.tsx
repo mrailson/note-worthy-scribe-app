@@ -261,7 +261,7 @@ export default function DocumentApproval() {
                   onClick={() => setFilter('awaiting')}
                 >
                   <div className="flex items-center justify-center gap-2 mb-1">
-                    <Clock className="h-5 w-5 text-amber-500" />
+                    <Clock className="h-5 w-5 text-[hsl(var(--warning))]" />
                     <p className="text-2xl font-bold text-foreground">{counts.awaiting}</p>
                   </div>
                   <p className="text-xs text-muted-foreground">Awaiting</p>
