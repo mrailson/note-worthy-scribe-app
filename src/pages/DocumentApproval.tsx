@@ -72,22 +72,6 @@ export default function DocumentApproval() {
   const [sort, setSort] = useState<SortType>('recent');
   const [activeTab, setActiveTab] = useState<TabType>('active');
 
-  // Module access gate
-  if (!hasModuleAccess('document_signoff_access')) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="p-8 max-w-md text-center space-y-4">
-          <ShieldAlert className="h-12 w-12 text-muted-foreground mx-auto" />
-          <h2 className="text-lg font-semibold text-foreground">Access Restricted</h2>
-          <p className="text-sm text-muted-foreground">
-            You don't have access to the Document Sign-Off module. Please contact your practice manager to request access.
-          </p>
-          <Button onClick={() => navigate('/')} variant="outline">Return to Home</Button>
-        </Card>
-      </div>
-    );
-  }
-
   // Compute counts
   const counts = useMemo(() => {
     const total = documents.length;
