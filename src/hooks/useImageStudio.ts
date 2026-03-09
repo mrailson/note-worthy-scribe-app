@@ -166,7 +166,7 @@ export function useImageStudio() {
     isGenerating: false,
     generationProgress: 0,
     currentResult: null,
-    generationHistory: [], // Start fresh — cleared to prevent crashes from stale data
+    generationHistory: loadHistoryFromStorage().slice(0, MAX_HISTORY_ITEMS).filter(item => item.result?.url),
     error: null,
   }));
   
