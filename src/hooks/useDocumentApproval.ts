@@ -53,9 +53,14 @@ export interface ApprovalContact {
   is_favourite: boolean;
 }
 
+/** Document with its signatories pre-loaded */
+export interface ApprovalDocumentWithSignatories extends ApprovalDocument {
+  signatories: ApprovalSignatory[];
+}
+
 export function useDocumentApproval() {
   const { user } = useAuth();
-  const [documents, setDocuments] = useState<ApprovalDocument[]>([]);
+  const [documents, setDocuments] = useState<ApprovalDocumentWithSignatories[]>([]);
   const [contacts, setContacts] = useState<ApprovalContact[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,14 +68,35 @@ export function useDocumentApproval() {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: docs, error } = await supabase
         .from('approval_documents')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
-      setDocuments((data as ApprovalDocument[]) || []);
+
+      const docIds = (docs || []).map((d: any) => d.id);
+      let allSigs: ApprovalSignatory[] = [];
+
+      if (docIds.length > 0) {
+        const { data: sigs, error: sigErr } = await supabase
+          .from('approval_signatories')
+          .select('*')
+          .in('document_id', docIds)
+          .order('sort_order');
+
+        if (!sigErr && sigs) {
+          allSigs = sigs as ApprovalSignatory[];
+        }
+      }
+
+      const enriched: ApprovalDocumentWithSignatories[] = (docs || []).map((d: any) => ({
+        ...d,
+        signatories: allSigs.filter(s => s.document_id === d.id),
+      }));
+
+      setDocuments(enriched);
     } catch (err) {
       console.error('Error fetching approval documents:', err);
     } finally {
@@ -141,7 +167,6 @@ export function useDocumentApproval() {
 
     if (error) throw error;
 
-    // Audit log
     await supabase.from('approval_audit_log').insert({
       document_id: data.id,
       action: 'created',
