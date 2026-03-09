@@ -8,6 +8,7 @@ import { prepareMessagesForAPI, getMemoryStats } from '@/utils/conversationMemor
 import { detectVoiceRequest } from '@/utils/voiceRequestDetection';
 import { VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
 import { optimiseMessagesForMemory } from '@/utils/streamingUtils';
+import { validateDocumentResponse } from '@/utils/documentResponseValidation';
 
 // Mobile detection for stricter memory limits
 const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
