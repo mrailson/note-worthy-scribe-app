@@ -1,56 +1,146 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2 } from 'lucide-react';
-import { useDocumentApproval, ApprovalDocument } from '@/hooks/useDocumentApproval';
+import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download } from 'lucide-react';
+import { useDocumentApproval, ApprovalDocumentWithSignatories, ApprovalSignatory } from '@/hooks/useDocumentApproval';
 import { CreateApprovalFlow } from '@/components/document-approval/CreateApprovalFlow';
 import { ApprovalDocumentDetail } from '@/components/document-approval/ApprovalDocumentDetail';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 
 const categoryLabels: Record<string, string> = {
-  dpia: 'DPIA',
-  dsa: 'DSA',
-  mou: 'MOU',
-  policy: 'Policy',
-  contract: 'Contract',
-  privacy_notice: 'Privacy Notice',
-  other: 'Other',
+  dpia: 'DPIA', dsa: 'DSA', mou: 'MOU', policy: 'Policy',
+  contract: 'Contract', privacy_notice: 'Privacy Notice', other: 'Other',
 };
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ReactNode }> = {
-  draft: { label: 'Draft', variant: 'secondary', icon: <Clock className="h-3 w-3" /> },
-  pending: { label: 'Pending', variant: 'default', icon: <Clock className="h-3 w-3" /> },
-  completed: { label: 'Completed', variant: 'outline', icon: <CheckCircle2 className="h-3 w-3" /> },
-  revoked: { label: 'Revoked', variant: 'destructive', icon: <Ban className="h-3 w-3" /> },
-  expired: { label: 'Expired', variant: 'secondary', icon: <XCircle className="h-3 w-3" /> },
-};
+type FilterType = 'all' | 'awaiting' | 'completed' | 'expired';
+type SortType = 'recent' | 'deadline' | 'overdue';
+
+function isOverdue(doc: ApprovalDocumentWithSignatories): boolean {
+  if (doc.status !== 'pending' || !doc.deadline) return false;
+  return new Date(doc.deadline) < new Date();
+}
+
+function daysOverdue(doc: ApprovalDocumentWithSignatories): number {
+  if (!doc.deadline) return 0;
+  return Math.max(0, differenceInDays(new Date(), new Date(doc.deadline)));
+}
+
+function getSignatoryContext(sig: ApprovalSignatory, doc: ApprovalDocumentWithSignatories): string {
+  if (sig.status === 'approved') return '';
+  if (sig.status === 'declined') return 'declined';
+  if (sig.reminder_count > 0) return `reminded ×${sig.reminder_count}`;
+  if (sig.viewed_at) return `viewed ${format(new Date(sig.viewed_at), 'dd MMM')}`;
+  const sent = doc.created_at;
+  const daysSince = differenceInDays(new Date(), new Date(sent));
+  return daysSince > 0 ? `no response (${daysSince}d)` : 'no response';
+}
 
 export default function DocumentApproval() {
   const navigate = useNavigate();
-  const { documents, loading, contacts } = useDocumentApproval();
+  const { documents, loading } = useDocumentApproval();
   const [showCreate, setShowCreate] = useState(false);
-  const [selectedDoc, setSelectedDoc] = useState<ApprovalDocument | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<ApprovalDocumentWithSignatories | null>(null);
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [sort, setSort] = useState<SortType>('recent');
+
+  // Compute counts
+  const counts = useMemo(() => {
+    const total = documents.length;
+    const awaiting = documents.filter(d => d.status === 'pending' || d.status === 'draft').length;
+    const completed = documents.filter(d => d.status === 'completed').length;
+    const overdue = documents.filter(d => isOverdue(d)).length;
+    return { total, awaiting, completed, overdue };
+  }, [documents]);
+
+  // Needs attention data
+  const needsAttention = useMemo(() => {
+    const overdueDocuments = documents.filter(d => isOverdue(d));
+    
+    // All pending signatories with no response across all docs
+    const noResponseSignatories: { sig: ApprovalSignatory; doc: ApprovalDocumentWithSignatories; daysSince: number }[] = [];
+    const declinedSignatories: { sig: ApprovalSignatory; doc: ApprovalDocumentWithSignatories }[] = [];
+
+    for (const doc of documents) {
+      if (doc.status !== 'pending') continue;
+      for (const sig of doc.signatories) {
+        if (sig.status === 'pending') {
+          const daysSince = differenceInDays(new Date(), new Date(sig.created_at));
+          noResponseSignatories.push({ sig, doc, daysSince });
+        }
+        if (sig.status === 'declined') {
+          declinedSignatories.push({ sig, doc });
+        }
+      }
+    }
+
+    noResponseSignatories.sort((a, b) => b.daysSince - a.daysSince);
+
+    return { overdueDocuments, noResponseSignatories, declinedSignatories };
+  }, [documents]);
+
+  // Filtered & sorted
+  const filteredDocs = useMemo(() => {
+    let list = [...documents];
+
+    switch (filter) {
+      case 'awaiting':
+        list = list.filter(d => d.status === 'pending' || d.status === 'draft');
+        break;
+      case 'completed':
+        list = list.filter(d => d.status === 'completed');
+        break;
+      case 'expired':
+        list = list.filter(d => d.status === 'expired' || d.status === 'revoked');
+        break;
+    }
+
+    switch (sort) {
+      case 'deadline':
+        list.sort((a, b) => {
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+        });
+        break;
+      case 'overdue':
+        list.sort((a, b) => daysOverdue(b) - daysOverdue(a));
+        break;
+      default:
+        // already sorted by created_at desc from API
+        break;
+    }
+
+    return list;
+  }, [documents, filter, sort]);
 
   if (showCreate) {
     return <CreateApprovalFlow onBack={() => setShowCreate(false)} />;
   }
 
   if (selectedDoc) {
-    return <ApprovalDocumentDetail document={selectedDoc} onBack={() => { setSelectedDoc(null); }} />;
+    return <ApprovalDocumentDetail document={selectedDoc} onBack={() => setSelectedDoc(null)} />;
   }
+
+  const filterPills: { key: FilterType; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'awaiting', label: 'Awaiting Signatures' },
+    { key: 'completed', label: 'Completed' },
+    { key: 'expired', label: 'Expired / Revoked' },
+  ];
 
   return (
     <>
       <Helmet>
-        <title>Document Approval | Notewell</title>
+        <title>Document Approvals | Notewell</title>
+        <meta name="description" content="Send documents for electronic approval and track who has signed." />
       </Helmet>
       <div className="min-h-screen bg-background">
-        <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        <div className="max-w-[1400px] mx-auto px-4 py-6 space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
                 <ArrowLeft className="h-5 w-5" />
@@ -58,7 +148,7 @@ export default function DocumentApproval() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                   <FileCheck className="h-6 w-6 text-primary" />
-                  Document Approval
+                  Document Approvals
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   Send documents for electronic approval and track signatures
@@ -67,78 +157,388 @@ export default function DocumentApproval() {
             </div>
             <Button onClick={() => setShowCreate(true)} className="gap-2">
               <Plus className="h-4 w-4" />
-              New Approval
+              New Approval Request
             </Button>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {(['draft', 'pending', 'completed', 'revoked'] as const).map(status => {
-              const count = documents.filter(d => d.status === status).length;
-              const cfg = statusConfig[status];
-              return (
-                <Card key={status} className="p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground">{count}</p>
-                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                    {cfg.icon} {cfg.label}
-                  </p>
-                </Card>
-              );
-            })}
+          {/* Filter Pills */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {filterPills.map(pill => (
+              <Button
+                key={pill.key}
+                variant={filter === pill.key ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter(pill.key)}
+                className="text-xs"
+              >
+                {pill.label}
+              </Button>
+            ))}
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Sort:</span>
+              {([
+                { key: 'recent' as SortType, label: 'Recent' },
+                { key: 'deadline' as SortType, label: 'Deadline' },
+                { key: 'overdue' as SortType, label: 'Overdue' },
+              ]).map(s => (
+                <Button
+                  key={s.key}
+                  variant={sort === s.key ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSort(s.key)}
+                  className="text-xs"
+                >
+                  {s.label}
+                </Button>
+              ))}
+            </div>
           </div>
 
-          {/* Document List */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : documents.length === 0 ? (
-            <Card className="p-12 text-center">
-              <FileCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No approval documents yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Upload a document and send it to people for electronic approval.
-              </p>
-              <Button onClick={() => setShowCreate(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Create First Approval
-              </Button>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Card
+              className="p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => setFilter('all')}
+            >
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <FileText className="h-5 w-5 text-primary" />
+                <p className="text-2xl font-bold text-foreground">{counts.total}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Total Documents</p>
             </Card>
-          ) : (
-            <div className="space-y-3">
-              {documents.map(doc => {
-                const cfg = statusConfig[doc.status] || statusConfig.draft;
-                return (
-                  <Card
-                    key={doc.id}
-                    className="p-4 cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => setSelectedDoc(doc)}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-foreground truncate">{doc.title}</h3>
-                          <Badge variant={cfg.variant} className="text-xs gap-1">
-                            {cfg.icon} {cfg.label}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {categoryLabels[doc.category] || doc.category}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">{doc.original_filename}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Created {format(new Date(doc.created_at), 'dd MMM yyyy, HH:mm')}
-                          {doc.deadline && ` · Deadline: ${format(new Date(doc.deadline), 'dd MMM yyyy')}`}
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
+            <Card
+              className="p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => setFilter('awaiting')}
+            >
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Clock className="h-5 w-5 text-amber-500" />
+                <p className="text-2xl font-bold text-foreground">{counts.awaiting}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Awaiting</p>
+            </Card>
+            <Card
+              className="p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => setFilter('completed')}
+            >
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <p className="text-2xl font-bold text-foreground">{counts.completed}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Completed</p>
+            </Card>
+            <Card
+              className={`p-4 text-center cursor-pointer transition-colors ${
+                counts.overdue > 0 
+                  ? 'border-destructive/50 bg-destructive/5 hover:border-destructive' 
+                  : 'hover:border-primary/50'
+              }`}
+              onClick={() => { setFilter('awaiting'); setSort('overdue'); }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <AlertTriangle className={`h-5 w-5 ${counts.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
+                <p className={`text-2xl font-bold ${counts.overdue > 0 ? 'text-destructive' : 'text-foreground'}`}>{counts.overdue}</p>
+              </div>
+              <p className={`text-xs ${counts.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>Overdue</p>
+            </Card>
+          </div>
+
+          {/* Main Content + Sidebar */}
+          <div className="flex gap-6">
+            {/* Document List */}
+            <div className="flex-1 min-w-0 space-y-3">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : filteredDocs.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <FileCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    {filter === 'all' ? 'No approval documents yet' : 'No documents match this filter'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Upload a document and send it to people for electronic approval.
+                  </p>
+                  {filter === 'all' && (
+                    <Button onClick={() => setShowCreate(true)} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Create First Approval
+                    </Button>
+                  )}
+                </Card>
+              ) : (
+                filteredDocs.map(doc => <DocumentCard key={doc.id} doc={doc} onSelect={() => setSelectedDoc(doc)} />)
+              )}
             </div>
-          )}
+
+            {/* Right Sidebar - Needs Attention */}
+            <div className="hidden lg:block w-80 flex-shrink-0">
+              <NeedsAttentionPanel
+                needsAttention={needsAttention}
+                onSelectDoc={(doc) => setSelectedDoc(doc)}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </>
+  );
+}
+
+// ─── Document Card ──────────────────────────────────────────────────────
+
+function DocumentCard({ doc, onSelect }: { doc: ApprovalDocumentWithSignatories; onSelect: () => void }) {
+  const sigs = doc.signatories;
+  const approvedCount = sigs.filter(s => s.status === 'approved').length;
+  const totalCount = sigs.length;
+  const overdue = isOverdue(doc);
+  const overdueDays = daysOverdue(doc);
+  const isCompleted = doc.status === 'completed';
+
+  return (
+    <Card className={`p-5 cursor-pointer hover:border-primary/50 transition-colors ${
+      overdue ? 'border-destructive/40' : ''
+    }`} onClick={onSelect}>
+      {/* Title Row */}
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+            <h3 className="font-semibold text-foreground">{doc.title}</h3>
+            {isCompleted && (
+              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs gap-1">
+                <CheckCircle2 className="h-3 w-3" /> Completed
+              </Badge>
+            )}
+            {overdue && (
+              <Badge variant="destructive" className="text-xs gap-1">
+                <AlertTriangle className="h-3 w-3" /> {overdueDays}d overdue
+              </Badge>
+            )}
+            {doc.status === 'pending' && !overdue && (
+              <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs gap-1">
+                <Clock className="h-3 w-3" /> Awaiting
+              </Badge>
+            )}
+            {doc.status === 'draft' && (
+              <Badge variant="secondary" className="text-xs">Draft</Badge>
+            )}
+            {(doc.status === 'revoked' || doc.status === 'expired') && (
+              <Badge variant="secondary" className="text-xs gap-1">
+                <Ban className="h-3 w-3" /> {doc.status === 'revoked' ? 'Revoked' : 'Expired'}
+              </Badge>
+            )}
+          </div>
+          {doc.description && (
+            <p className="text-sm text-muted-foreground truncate">{doc.description}</p>
+          )}
+          <p className="text-xs text-muted-foreground mt-1">
+            Category: {categoryLabels[doc.category] || doc.category}
+            {' │ '}Sent: {format(new Date(doc.created_at), 'dd MMM yyyy')}
+            {doc.deadline && <>{' │ '}Deadline: {format(new Date(doc.deadline), 'dd MMM yyyy')}</>}
+            {isCompleted && doc.completed_at && <>{' │ '}Completed: {format(new Date(doc.completed_at), 'dd MMM yyyy')}</>}
+          </p>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      {totalCount > 0 && (
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-foreground">{approvedCount}/{totalCount} approved</span>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden flex">
+            {sigs.map((sig, i) => (
+              <div
+                key={sig.id}
+                className={`h-full transition-all ${
+                  sig.status === 'approved'
+                    ? 'bg-green-500'
+                    : sig.status === 'declined'
+                      ? 'bg-destructive'
+                      : sig.viewed_at
+                        ? 'bg-amber-400'
+                        : 'bg-muted-foreground/20'
+                }`}
+                style={{ width: `${100 / totalCount}%` }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Signatories */}
+      {sigs.length > 0 && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
+          {sigs.map(sig => {
+            const context = getSignatoryContext(sig, doc);
+            const isPending = sig.status === 'pending';
+            return (
+              <span key={sig.id} className={`text-xs flex items-center gap-1 ${
+                isPending && overdue ? 'text-destructive font-medium' : 'text-muted-foreground'
+              }`}>
+                {sig.status === 'approved' ? (
+                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                ) : sig.status === 'declined' ? (
+                  <XCircle className="h-3 w-3 text-destructive" />
+                ) : sig.viewed_at ? (
+                  <Eye className="h-3 w-3 text-amber-500" />
+                ) : (
+                  <Clock className="h-3 w-3" />
+                )}
+                {sig.name}
+                {context && <span className="text-muted-foreground/70">({context})</span>}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+        <Button variant="outline" size="sm" className="text-xs gap-1" onClick={onSelect}>
+          <Eye className="h-3 w-3" /> View Details
+        </Button>
+        {doc.status === 'pending' && sigs.some(s => s.status === 'pending') && (
+          <Button variant={overdue ? 'destructive' : 'outline'} size="sm" className="text-xs gap-1">
+            <Mail className="h-3 w-3" /> Chase Pending
+          </Button>
+        )}
+        {isCompleted && (
+          <Button variant="outline" size="sm" className="text-xs gap-1">
+            <Download className="h-3 w-3" /> Audit Certificate
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// ─── Needs Attention Sidebar ────────────────────────────────────────────
+
+interface NeedsAttentionProps {
+  needsAttention: {
+    overdueDocuments: ApprovalDocumentWithSignatories[];
+    noResponseSignatories: { sig: ApprovalSignatory; doc: ApprovalDocumentWithSignatories; daysSince: number }[];
+    declinedSignatories: { sig: ApprovalSignatory; doc: ApprovalDocumentWithSignatories }[];
+  };
+  onSelectDoc: (doc: ApprovalDocumentWithSignatories) => void;
+}
+
+function NeedsAttentionPanel({ needsAttention, onSelectDoc }: NeedsAttentionProps) {
+  const { overdueDocuments, noResponseSignatories, declinedSignatories } = needsAttention;
+  const hasAnything = overdueDocuments.length > 0 || noResponseSignatories.length > 0 || declinedSignatories.length > 0;
+
+  return (
+    <Card className="p-4 sticky top-6">
+      <h2 className="font-semibold text-foreground flex items-center gap-2 mb-4">
+        <AlertTriangle className="h-4 w-4 text-amber-500" />
+        Needs Attention
+      </h2>
+
+      {!hasAnything ? (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+          All clear — no outstanding items
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {/* Overdue */}
+          <div>
+            <h3 className="text-xs font-semibold text-destructive uppercase tracking-wide mb-2">
+              Overdue ({overdueDocuments.length})
+            </h3>
+            {overdueDocuments.length === 0 ? (
+              <p className="text-xs text-muted-foreground">None</p>
+            ) : (
+              <div className="space-y-2">
+                {overdueDocuments.map(doc => {
+                  const pending = doc.signatories.filter(s => s.status === 'pending').length;
+                  return (
+                    <div
+                      key={doc.id}
+                      className="p-2 bg-destructive/5 border border-destructive/20 rounded-lg cursor-pointer hover:bg-destructive/10 transition-colors"
+                      onClick={() => onSelectDoc(doc)}
+                    >
+                      <p className="text-xs font-medium text-foreground truncate">
+                        <Ban className="h-3 w-3 inline text-destructive mr-1" />
+                        {doc.title}
+                      </p>
+                      <p className="text-xs text-destructive">
+                        {pending} unsigned, {daysOverdue(doc)}d overdue
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* No Response */}
+          <div>
+            <h3 className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">
+              No Response ({noResponseSignatories.length})
+            </h3>
+            {noResponseSignatories.length === 0 ? (
+              <p className="text-xs text-muted-foreground">None</p>
+            ) : (
+              <div className="space-y-1.5">
+                {noResponseSignatories.slice(0, 8).map(({ sig, doc, daysSince }) => (
+                  <div
+                    key={sig.id}
+                    className="p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors"
+                    onClick={() => onSelectDoc(doc)}
+                  >
+                    <p className="text-xs font-medium text-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-amber-500" />
+                      {sig.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {doc.title} ({daysSince}d)
+                    </p>
+                  </div>
+                ))}
+                {noResponseSignatories.length > 8 && (
+                  <p className="text-xs text-muted-foreground text-center">+{noResponseSignatories.length - 8} more</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Declined */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Recently Declined ({declinedSignatories.length})
+            </h3>
+            {declinedSignatories.length === 0 ? (
+              <p className="text-xs text-muted-foreground">None</p>
+            ) : (
+              <div className="space-y-1.5">
+                {declinedSignatories.map(({ sig, doc }) => (
+                  <div
+                    key={sig.id}
+                    className="p-2 bg-destructive/5 rounded cursor-pointer hover:bg-destructive/10 transition-colors"
+                    onClick={() => onSelectDoc(doc)}
+                  >
+                    <p className="text-xs font-medium text-foreground flex items-center gap-1">
+                      <XCircle className="h-3 w-3 text-destructive" />
+                      {sig.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{doc.title}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Chase All */}
+          {(overdueDocuments.length > 0 || noResponseSignatories.length > 0) && (
+            <Button variant="outline" size="sm" className="w-full text-xs gap-1 mt-2">
+              <Mail className="h-3 w-3" /> Chase All Overdue
+            </Button>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
