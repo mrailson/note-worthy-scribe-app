@@ -170,10 +170,7 @@ export default function DocumentApproval() {
 
   if (selectedDoc) {
     return (
-      <>
-        <Header />
-        <ApprovalDocumentDetail document={selectedDoc} onBack={() => selectDoc(null)} />
-      </>
+      <ApprovalDocumentDetail document={selectedDoc} onBack={() => selectDoc(null)} />
     );
   }
 
