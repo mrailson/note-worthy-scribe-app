@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import notewellLogo from '@/assets/notewell-logo.png';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,11 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
 import {
   FileText, Eye, Loader2, CheckCircle2, XCircle, AlertTriangle,
-  Calendar, User, Mail, Shield,
+  Calendar, User, Mail, Shield, ZoomIn, ZoomOut, ArrowDown, ChevronDown,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import * as pdfjsLib from 'pdfjs-dist';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.mjs',
+  import.meta.url
+).toString();
 
 interface SignatoryData {
   id: string;
@@ -50,6 +57,209 @@ const categoryLabels: Record<string, string> = {
   contract: 'Contract', privacy_notice: 'Privacy Notice', other: 'Other',
 };
 
+/* ─── Inline PDF Viewer ─────────────────────────────────────── */
+function InlinePDFViewer({ fileUrl }: { fileUrl: string }) {
+  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [zoom, setZoom] = useState(100);
+  const [pdfLoading, setPdfLoading] = useState(true);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const canvasRefs = useRef<Map<number, HTMLCanvasElement | null>>(new Map());
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const pageRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+
+  // Load PDF
+  useEffect(() => {
+    let cancelled = false;
+    const loadPdf = async () => {
+      setPdfLoading(true);
+      setPdfError(null);
+      try {
+        const resp = await fetch(fileUrl);
+        if (!resp.ok) throw new Error('Failed to fetch document');
+        const arrayBuffer = await resp.arrayBuffer();
+        const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        if (cancelled) return;
+        setPdfDoc(doc);
+        setTotalPages(doc.numPages);
+      } catch (err: any) {
+        if (!cancelled) setPdfError(err.message || 'Failed to load PDF');
+      } finally {
+        if (!cancelled) setPdfLoading(false);
+      }
+    };
+    loadPdf();
+    return () => { cancelled = true; };
+  }, [fileUrl]);
+
+  // Render pages
+  useEffect(() => {
+    if (!pdfDoc) return;
+    const scale = zoom / 100;
+    const renderAll = async () => {
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const viewport = page.getViewport({ scale: scale * 1.5 });
+        const canvas = canvasRefs.current.get(i);
+        if (!canvas) continue;
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.style.width = `${viewport.width / 1.5}px`;
+        canvas.style.height = `${viewport.height / 1.5}px`;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) continue;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+      }
+    };
+    renderAll();
+  }, [pdfDoc, zoom]);
+
+  // IntersectionObserver for current page
+  useEffect(() => {
+    if (!totalPages || !scrollRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const pg = Number(entry.target.getAttribute('data-page'));
+            if (pg) setCurrentPage(pg);
+          }
+        }
+      },
+      { root: scrollRef.current, threshold: 0.5 }
+    );
+    pageRefs.current.forEach((el) => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, [totalPages, pdfDoc]);
+
+  const scrollToPage = (pg: number) => {
+    const el = pageRefs.current.get(pg);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  if (pdfLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh] bg-muted/30 rounded-lg border border-border">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading document…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (pdfError) {
+    return (
+      <div className="flex items-center justify-center h-[40vh] bg-muted/30 rounded-lg border border-border">
+        <div className="text-center space-y-2">
+          <AlertTriangle className="h-8 w-8 text-destructive mx-auto" />
+          <p className="text-sm text-muted-foreground">{pdfError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-0">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-2 p-2 sm:p-3 bg-muted/60 border border-border rounded-t-lg flex-wrap">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <FileText className="h-4 w-4" />
+          <span className="font-medium">Page {currentPage} of {totalPages}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setZoom(z => Math.max(50, z - 10))}
+            disabled={zoom <= 50}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <div className="hidden sm:flex items-center w-24">
+            <Slider
+              value={[zoom]}
+              onValueChange={([v]) => setZoom(v)}
+              min={50}
+              max={200}
+              step={10}
+            />
+          </div>
+          <span className="text-xs font-mono text-muted-foreground w-10 text-center">{zoom}%</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setZoom(z => Math.min(200, z + 10))}
+            disabled={zoom >= 200}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Button
+          variant="default"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => {
+            const el = document.getElementById('approval-form');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
+        >
+          <ArrowDown className="h-3.5 w-3.5" />
+          Go to Signature
+        </Button>
+      </div>
+
+      {/* Page navigation pills */}
+      {totalPages > 1 && (
+        <div className="flex items-center gap-1 px-3 py-1.5 bg-muted/40 border-x border-border overflow-x-auto">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
+            <button
+              key={pg}
+              onClick={() => scrollToPage(pg)}
+              className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
+                pg === currentPage
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {pg}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Scrollable PDF area */}
+      <div
+        ref={scrollRef}
+        className="h-[65vh] overflow-y-auto bg-muted/30 border-x border-b border-border rounded-b-lg"
+      >
+        <div className="flex flex-col items-center gap-6 py-6 px-4">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+            <div
+              key={pageNum}
+              data-page={pageNum}
+              ref={el => { pageRefs.current.set(pageNum, el); }}
+              className="bg-white shadow-lg rounded border border-border/50"
+              style={{ maxWidth: '100%' }}
+            >
+              <canvas
+                ref={el => { canvasRefs.current.set(pageNum, el); }}
+                className="block max-w-full h-auto"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Component ────────────────────────────────────────── */
 const PublicApproval = () => {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
@@ -157,19 +367,7 @@ const PublicApproval = () => {
               <div className="h-4 bg-muted rounded" />
               <div className="h-4 bg-muted rounded" />
             </div>
-            <div className="h-10 bg-muted rounded" />
-          </div>
-        </Card>
-        <Card className="p-5 sm:p-8 space-y-5">
-          <div className="animate-pulse space-y-4">
-            <div className="h-5 bg-muted rounded w-1/3" />
-            <div className="h-10 bg-muted rounded" />
-            <div className="h-10 bg-muted rounded" />
-            <div className="h-10 bg-muted rounded" />
-            <div className="flex gap-3">
-              <div className="h-11 bg-muted rounded flex-1" />
-              <div className="h-11 bg-muted rounded w-28" />
-            </div>
+            <div className="h-[40vh] bg-muted/40 rounded-lg" />
           </div>
         </Card>
       </PageShell>
@@ -283,70 +481,36 @@ const PublicApproval = () => {
     );
   }
 
-  // ─── Main approval form ─────────────────────────────────────
+  // ─── Main approval form with inline PDF viewer ──────────────
   return (
-    <PageShell>
-      {/* Document info */}
-      <Card className="p-5 sm:p-8 space-y-5">
-        <div className="text-center space-y-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Document Approval Request</h1>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-start gap-3 p-4 bg-muted/60 rounded-lg">
-            <FileText className="h-8 w-8 text-primary flex-shrink-0 mt-0.5" />
-            <div className="min-w-0">
-              <p className="font-semibold text-foreground text-base sm:text-lg">{document.title}</p>
-              <p className="text-xs text-muted-foreground">
-                Category: {categoryLabels[document.category] || document.category}
-              </p>
-            </div>
+    <PageShell wide>
+      {/* Compact header bar */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3 min-w-0">
+          <FileText className="h-6 w-6 text-primary flex-shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">{document.title}</h1>
+            <p className="text-xs text-muted-foreground">
+              {categoryLabels[document.category] || document.category} · From {document.sender_name || 'Unknown'} · {format(new Date(document.created_at), 'dd MMM yyyy')}
+              {document.deadline && ` · Due ${format(new Date(document.deadline), 'dd MMM yyyy')}`}
+            </p>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <User className="h-4 w-4 flex-shrink-0" />
-              <span>From: <span className="text-foreground font-medium">{document.sender_name || 'Unknown'}</span></span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Calendar className="h-4 w-4 flex-shrink-0" />
-              <span>Sent: <span className="text-foreground">{format(new Date(document.created_at), 'dd MMMM yyyy')}</span></span>
-            </div>
-            {document.deadline && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar className="h-4 w-4 flex-shrink-0" />
-                <span>Deadline: <span className="text-foreground font-medium">{format(new Date(document.deadline), 'dd MMMM yyyy')}</span></span>
-              </div>
-            )}
-          </div>
-
-          {document.message && (
-            <div className="p-3 bg-muted/40 rounded-lg border border-border">
-              <p className="text-xs text-muted-foreground mb-1">Message:</p>
-              <p className="text-sm text-foreground italic">"{document.message}"</p>
-            </div>
-          )}
-
-          <Button
-            variant="outline"
-            className="w-full gap-2"
-            onClick={() => window.open(document.file_url, '_blank')}
-          >
-            <Eye className="h-4 w-4" />
-            View Document ({document.original_filename})
-            {document.file_size_bytes != null && document.file_size_bytes > 0 && (
-              <span className="text-xs text-muted-foreground">
-                — {document.file_size_bytes < 1024 * 1024
-                    ? `${(document.file_size_bytes / 1024).toFixed(0)} KB`
-                    : `${(document.file_size_bytes / 1024 / 1024).toFixed(1)} MB`}
-              </span>
-            )}
-          </Button>
         </div>
-      </Card>
+      </div>
+
+      {/* Message if any */}
+      {document.message && (
+        <div className="p-3 bg-muted/40 rounded-lg border border-border">
+          <p className="text-xs text-muted-foreground mb-0.5">Message from sender:</p>
+          <p className="text-sm text-foreground italic">"{document.message}"</p>
+        </div>
+      )}
+
+      {/* Inline PDF Viewer */}
+      <InlinePDFViewer fileUrl={document.file_url} />
 
       {/* Approval form */}
-      <Card className="p-5 sm:p-8 space-y-5">
+      <Card className="p-5 sm:p-8 space-y-5" id="approval-form">
         <div className="space-y-1">
           <h2 className="font-semibold text-foreground">Confirm Your Details</h2>
           <p className="text-sm text-muted-foreground">
@@ -446,10 +610,10 @@ const PublicApproval = () => {
   );
 };
 
-function PageShell({ children }: { children: React.ReactNode }) {
+function PageShell({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10 space-y-5">
+      <div className={`${wide ? 'max-w-5xl' : 'max-w-2xl'} mx-auto px-4 py-6 sm:py-10 space-y-5`}>
         {/* Logo */}
         <div className="flex justify-center">
           <img src={notewellLogo} alt="Notewell" className="h-10 sm:h-12" />
