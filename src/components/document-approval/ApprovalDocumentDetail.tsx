@@ -1,15 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, CheckCircle2, Clock, XCircle, Ban, ExternalLink, Loader2, Download, FileSignature, Award, Trash2, Send } from 'lucide-react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import {
+  FileText, CheckCircle2, Clock, XCircle, Ban, Loader2, Download, 
+  Shield, Send, Copy, Lock, Plus, User, Mail, Building2, Calendar,
+  Eye, PenLine, Bell, FileSignature, Award, Trash2, ArrowLeft,
+} from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useDocumentApproval, ApprovalDocument, ApprovalSignatory } from '@/hooks/useDocumentApproval';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { generateSignedPdf, SignatoryInfo, SignaturePlacement, AuditLogEntry } from '@/utils/generateSignedPdf';
 import { supabase } from '@/integrations/supabase/client';
-import { SignatureCertificate, type CertificateSignatory, type AuditEntry } from './SignatureCertificate';
+import QRCode from 'qrcode';
+import { useEffect as useEffectAlias, useRef } from 'react';
+
+// ─── Constants ─────────────────────────────────────────────────────
+const BRAND_GREEN = '#1B6B4A';
+const DARK_GREEN = '#145237';
+const GOLD = '#D4A843';
+const LIGHT_GREEN_BG = '#E8F5EE';
+const LIGHT_GOLD_BG = '#FEF9EC';
+const PAGE_BG = '#FAFAF8';
+const CARD_BORDER = '#E8E6E1';
+const MUTED_TEXT = '#6B6960';
+const LIGHT_TEXT = '#9C9889';
+
+const GOOGLE_FONTS_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500&family=Dancing+Script:wght@600&family=Caveat:wght@600&family=Great+Vibes&family=Sacramento&family=Satisfy&display=swap`;
+
+const categoryLabels: Record<string, string> = {
+  dpia: 'DPIA', dsa: 'DSA', mou: 'MOU', policy: 'Policy',
+  contract: 'Contract', privacy_notice: 'Privacy Notice',
+  governance: 'Governance', other: 'Governance',
+};
 
 const downloadFromStorage = async (fileUrl: string): Promise<Blob> => {
   const storagePath = fileUrl.split('/approval-documents/')[1];
@@ -22,29 +49,40 @@ const downloadFromStorage = async (fileUrl: string): Promise<Blob> => {
   return res.blob();
 };
 
+// ─── Types ─────────────────────────────────────────────────────
+type TabId = 'overview' | 'signatories' | 'certificate' | 'audit';
+
 interface Props {
   document: ApprovalDocument;
   onBack: () => void;
 }
 
-const signatoryStatusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pending: { label: 'Pending', color: 'bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]', icon: <Clock className="h-3 w-3" /> },
-  approved: { label: 'Approved', color: 'bg-[hsl(var(--approval-completed-bg))] text-[hsl(var(--approval-approved))]', icon: <CheckCircle2 className="h-3 w-3" /> },
-  declined: { label: 'Declined', color: 'bg-destructive/10 text-destructive', icon: <XCircle className="h-3 w-3" /> },
-  expired: { label: 'Expired', color: 'bg-muted text-muted-foreground', icon: <Ban className="h-3 w-3" /> },
-};
+// ─── QR Code ───────────────────────────────────────────────────
+function QRCodeCanvas({ url, size = 80 }: { url: string; size?: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (canvasRef.current) {
+      QRCode.toCanvas(canvasRef.current, url, {
+        width: size, margin: 1,
+        color: { dark: DARK_GREEN, light: '#ffffff' },
+      });
+    }
+  }, [url, size]);
+  return <canvas ref={canvasRef} />;
+}
 
+// ─── Main Component ────────────────────────────────────────────
 export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
   const { fetchSignatories, fetchAuditLog, revokeDocument, deleteDocument } = useDocumentApproval();
   const [signatories, setSignatories] = useState<ApprovalSignatory[]>([]);
   const [auditLog, setAuditLog] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [revoking, setRevoking] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [sending, setSending] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
 
-  // Access the raw doc data including new columns
   const signedFileUrl = (doc as any).signed_file_url as string | null;
   const signaturePlacement = (doc as any).signature_placement as SignaturePlacement | null;
 
@@ -57,13 +95,8 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
           fetchSignatories(doc.id),
           fetchAuditLog(doc.id),
         ]);
-        if (!cancelled) {
-          setSignatories(sigs);
-          setAuditLog(log);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+        if (!cancelled) { setSignatories(sigs); setAuditLog(log); }
+      } finally { if (!cancelled) setLoading(false); }
     }
     load();
     return () => { cancelled = true; };
@@ -74,465 +107,849 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
   const progress = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0;
   const allApproved = totalCount > 0 && approvedCount === totalCount;
   const isCompleted = doc.status === 'completed';
+  const certificateId = `NW-CERT-${new Date(doc.created_at).getFullYear()}-${doc.id.substring(0, 5).toUpperCase()}`;
+  const verificationUrl = `https://gpnotewell.co.uk/verify/${certificateId}`;
+  const categoryLabel = categoryLabels[doc.category] || doc.category || 'Governance';
 
-  const handleRevoke = async () => {
-    setRevoking(true);
-    try {
-      await revokeDocument(doc.id);
-      onBack();
-    } finally {
-      setRevoking(false);
-    }
-  };
-
+  // ─── Handlers ────────────────────────────────────────────────
   const handleGenerateSignedPdf = async () => {
     setGenerating(true);
     try {
-      // Check if original file is a PDF
       const fileName = doc.original_filename?.toLowerCase() || '';
       const isPdf = fileName.endsWith('.pdf') || doc.file_url?.toLowerCase().includes('.pdf');
-
       let pdfBytes: ArrayBuffer;
-
       if (!isPdf) {
-        // For non-PDF files (DOCX, etc.), create a standalone signature page
-        // since we cannot embed signatures into non-PDF formats
         const { PDFDocument } = await import('pdf-lib');
         const blankDoc = await PDFDocument.create();
         pdfBytes = (await blankDoc.save()).buffer as ArrayBuffer;
       } else {
-        // Fetch original PDF via Supabase SDK to bypass browser blocking
         const blob = await downloadFromStorage(doc.file_url);
         pdfBytes = await blob.arrayBuffer();
       }
-
-      // Generate certificate ID
-      const certId = `NW-CERT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`;
-
+      const certId = certificateId;
       const sigInfos: SignatoryInfo[] = signatories.map(s => ({
-        name: s.name,
-        email: s.email,
-        role: s.role,
-        organisation: s.organisation,
-        signed_at: s.signed_at,
-        signed_name: s.signed_name,
-        signed_role: s.signed_role,
+        name: s.name, email: s.email, role: s.role, organisation: s.organisation,
+        signed_at: s.signed_at, signed_name: s.signed_name, signed_role: s.signed_role,
         signed_organisation: s.signed_organisation,
         signed_ip: (s as any).signed_ip || null,
-        signatory_title: (s as any).signatory_title || null,
+        signatory_title: s.signatory_title || null,
       }));
-
       const auditLogEntries: AuditLogEntry[] = auditLog.map((e: any) => ({
-        action: e.action,
-        actor_name: e.actor_name,
-        actor_email: e.actor_email,
-        created_at: e.created_at,
-        ip_address: e.ip_address,
+        action: e.action, actor_name: e.actor_name, actor_email: e.actor_email,
+        created_at: e.created_at, ip_address: e.ip_address,
       }));
-
-      const placement: SignaturePlacement = !isPdf 
-        ? { method: 'append' }
-        : (signaturePlacement || { method: 'append' });
-
+      const placement: SignaturePlacement = !isPdf ? { method: 'append' } : (signaturePlacement || { method: 'append' });
       const signedPdfBytes = await generateSignedPdf({
-        originalPdfBytes: pdfBytes,
-        title: doc.title,
-        originalFilename: doc.original_filename,
-        certificateId: certId,
-        fileHash: doc.file_hash,
-        signatories: sigInfos,
-        placement,
-        auditLog: auditLogEntries,
-        completedAt: (doc as any).completed_at,
+        originalPdfBytes: pdfBytes, title: doc.title, originalFilename: doc.original_filename,
+        certificateId: certId, fileHash: doc.file_hash, signatories: sigInfos, placement,
+        auditLog: auditLogEntries, completedAt: (doc as any).completed_at,
       });
-
-      // Upload to storage
       const signedBlob = new Blob([signedPdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const storagePath = `signed/${doc.id}-signed-${Date.now()}.pdf`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('approval-documents')
-        .upload(storagePath, signedBlob);
-
+      const { error: uploadError } = await supabase.storage.from('approval-documents').upload(storagePath, signedBlob);
       if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('approval-documents')
-        .getPublicUrl(storagePath);
-
-      // Update document record
-      await supabase
-        .from('approval_documents')
-        .update({ signed_file_url: publicUrl } as any)
-        .eq('id', doc.id);
-
-      // Audit log
+      const { data: { publicUrl } } = supabase.storage.from('approval-documents').getPublicUrl(storagePath);
+      await supabase.from('approval_documents').update({ signed_file_url: publicUrl } as any).eq('id', doc.id);
       await supabase.from('approval_audit_log').insert({
-        document_id: doc.id,
-        action: 'signed_document_generated',
-        actor_name: 'System',
+        document_id: doc.id, action: 'signed_document_generated', actor_name: 'System',
         metadata: { certificate_id: certId, method: placement.method } as any,
       });
-
-      toast.success('Signed document generated successfully');
-      // Download via blob URL to avoid browser/ad-blocker restrictions
+      toast.success('Signed document generated');
       const downloadUrl = URL.createObjectURL(signedBlob);
       const a = document.createElement('a');
       a.href = downloadUrl;
       a.download = `${doc.title.replace(/[^a-zA-Z0-9-_ ]/g, '')}-signed.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     } catch (err) {
       console.error('Failed to generate signed PDF:', err);
       toast.error('Failed to generate signed document');
-    } finally {
-      setGenerating(false);
+    } finally { setGenerating(false); }
+  };
+
+  const handleDownloadSignedPdf = async () => {
+    if (!signedFileUrl) {
+      await handleGenerateSignedPdf();
+      return;
     }
+    try {
+      const blob = await downloadFromStorage(signedFileUrl);
+      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = `signed-${doc.original_filename || 'document.pdf'}`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { toast.error('Failed to download signed PDF'); }
   };
 
   const handleSendCompletedDocument = async () => {
     setSending(true);
     try {
-      // If no signed PDF exists yet, generate one first
       let currentSignedUrl = signedFileUrl;
       if (!currentSignedUrl) {
         await handleGenerateSignedPdf();
-        // Re-fetch the document to get the signed_file_url
-        const { data: updatedDoc } = await supabase
-          .from('approval_documents')
-          .select('signed_file_url')
-          .eq('id', doc.id)
-          .single();
+        const { data: updatedDoc } = await supabase.from('approval_documents').select('signed_file_url').eq('id', doc.id).single();
         currentSignedUrl = (updatedDoc as any)?.signed_file_url;
       }
-
-      if (!currentSignedUrl) {
-        toast.error('Could not generate signed PDF. Please try again.');
-        return;
-      }
-
+      if (!currentSignedUrl) { toast.error('Could not generate signed PDF'); return; }
       const { error } = await supabase.functions.invoke('send-approval-email', {
-        body: {
-          type: 'send_completed',
-          document_id: doc.id,
-          signed_file_url: currentSignedUrl,
-        },
+        body: { type: 'send_completed', document_id: doc.id, signed_file_url: currentSignedUrl },
       });
-
       if (error) throw error;
-      toast.success('Completed signed document sent to all parties');
+      toast.success('Completed document sent to all parties');
     } catch (err) {
-      console.error('Failed to send completed document:', err);
+      console.error('Failed to send:', err);
       toast.error('Failed to send completed document');
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(verificationUrl);
+    toast.success('Link copied to clipboard');
+  };
+
+  const handleRevoke = async () => {
+    setRevoking(true);
+    try { await revokeDocument(doc.id); onBack(); } finally { setRevoking(false); }
+  };
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'signatories', label: 'Signatories' },
+    { id: 'certificate', label: 'Certificate' },
+    { id: 'audit', label: 'Audit Trail' },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-foreground truncate">{doc.title}</h1>
-            <p className="text-sm text-muted-foreground">
-              {doc.original_filename}
-              {/\.docx?$/i.test(doc.original_filename || '') && (
-                <span className="text-primary ml-1">(converted to PDF)</span>
-              )}
-            </p>
-          </div>
-          <Button variant="outline" size="sm" className="gap-1" onClick={async () => {
-            try {
-              const blob = await downloadFromStorage(doc.file_url);
-              const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-              const url = URL.createObjectURL(pdfBlob);
-              // Use an anchor tag with download to avoid popup/ad-blocker issues
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = doc.original_filename || 'document.pdf';
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-            } catch { toast.error('Failed to open PDF'); }
-          }}>
-            <Download className="h-3 w-3" /> View PDF
-          </Button>
-        </div>
+    <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      <link href={GOOGLE_FONTS_URL} rel="stylesheet" />
 
-        {/* Progress */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-foreground">
-              {approvedCount} of {totalCount} approved
+      <div style={{ background: PAGE_BG, minHeight: '100vh', fontFamily: "'DM Sans', sans-serif" }}>
+        {/* ── Branded Top Bar ─────────────────────────────────── */}
+        <div style={{
+          background: DARK_GREEN, padding: '14px 24px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={onBack}
+              style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer', padding: 4, display: 'flex' }}
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: '#ffffff' }}>
+              Notewell
             </span>
-            <span className="text-sm text-muted-foreground">{progress}%</span>
+            <span style={{
+              fontSize: 10, fontWeight: 600, color: GOLD,
+              border: `1.5px solid ${GOLD}`, borderRadius: 4, padding: '2px 7px',
+              letterSpacing: '0.06em',
+            }}>
+              VERIFIED
+            </span>
           </div>
-          <div className="flex gap-1">
-            {signatories.map(sig => (
-              <div
-                key={sig.id}
-                className="h-2 rounded-full transition-all"
-                style={{
-                  flex: 1,
-                  backgroundColor: sig.status === 'approved'
-                    ? 'hsl(var(--approval-approved))'
-                    : sig.status === 'declined'
-                      ? 'hsl(var(--destructive))'
-                      : sig.viewed_at
-                        ? 'hsl(var(--approval-viewed))'
-                        : 'hsl(var(--approval-not-viewed) / 0.25)',
-                }}
-                title={`${sig.name}: ${sig.status}`}
-              />
-            ))}
-          </div>
-        </Card>
-
-        {/* Signed Document Section */}
-        {isCompleted && allApproved && (
-          <Card className="p-5 border-[hsl(var(--approval-completed-border))] bg-[hsl(var(--approval-completed-bg))]">
-            <div className="flex items-start gap-3">
-              <FileSignature className="h-6 w-6 text-[hsl(var(--approval-approved))] flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground mb-1">Signed Document</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  All {totalCount} signator{totalCount !== 1 ? 'ies' : 'y'} approved this document.
-                  {signedFileUrl ? ' A signed version has been generated.' : ' Generate a signed version with embedded signature page.'}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {signedFileUrl ? (
-                    <>
-                      <Button size="sm" className="gap-2" onClick={async () => {
-                        try {
-                          const blob = await downloadFromStorage(signedFileUrl);
-                          const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-                          const a = document.createElement('a'); a.href = url; a.download = `signed-${doc.original_filename || 'document.pdf'}`;
-                          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-                        } catch { toast.error('Failed to download signed PDF'); }
-                      }}>
-                        <Download className="h-3.5 w-3.5" /> Download Signed PDF
-                      </Button>
-                    </>
-                  ) : (
-                    <Button size="sm" className="gap-2" onClick={handleGenerateSignedPdf} disabled={generating}>
-                      {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSignature className="h-3.5 w-3.5" />}
-                      {generating ? 'Generating…' : 'Generate Signed PDF'}
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" className="gap-2" onClick={async () => {
-                    try {
-                      const blob = await downloadFromStorage(doc.file_url);
-                      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-                      const a = document.createElement('a'); a.href = url; a.download = `audit-certificate-${doc.id}.pdf`;
-                      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-                    } catch { toast.error('Failed to download audit certificate'); }
-                  }}>
-                    <Award className="h-3.5 w-3.5" /> Download Audit Certificate
-                  </Button>
-                  <Button size="sm" className="gap-2 bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] text-white" onClick={handleSendCompletedDocument} disabled={sending || generating}>
-                    {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                    {sending ? 'Sending…' : 'Send Completed Document'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* Details */}
-        <Card className="p-4 space-y-2 text-sm">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <span className="text-muted-foreground">Category:</span>{' '}
-              <span className="font-medium text-foreground">{doc.category.toUpperCase()}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Status:</span>{' '}
-              <Badge variant="outline" className="text-xs">{doc.status}</Badge>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Created:</span>{' '}
-              <span className="text-foreground">{format(new Date(doc.created_at), 'dd MMM yyyy, HH:mm')}</span>
-            </div>
-            {doc.deadline && (
-              <div>
-                <span className="text-muted-foreground">Deadline:</span>{' '}
-                <span className="text-foreground">{format(new Date(doc.deadline), 'dd MMM yyyy')}</span>
-              </div>
-            )}
-            {signaturePlacement && (
-              <div>
-                <span className="text-muted-foreground">Signature method:</span>{' '}
-                <span className="text-foreground capitalize">{signaturePlacement.method === 'stamp' ? `Stamp (page ${signaturePlacement.page})` : 'Append page'}</span>
-              </div>
-            )}
-          </div>
-          {doc.description && <p className="text-muted-foreground pt-2 border-t border-border">{doc.description}</p>}
-          <p className="text-xs text-muted-foreground">SHA-256: <code className="font-mono text-xs">{doc.file_hash}</code></p>
-        </Card>
-
-        {/* Signatories */}
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Signatories</h2>
-          {loading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map(i => (
-                <Card key={i} className="p-4">
-                  <div className="animate-pulse space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 bg-muted rounded w-32" />
-                      <div className="h-5 bg-muted rounded w-16" />
-                    </div>
-                    <div className="h-3 bg-muted rounded w-48" />
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {signatories.map(sig => {
-                const cfg = signatoryStatusConfig[sig.status] || signatoryStatusConfig.pending;
-                return (
-                  <Card key={sig.id} className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{sig.name}</span>
-                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${cfg.color}`}>
-                            {cfg.icon} {cfg.label}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{sig.email}</p>
-                        {sig.role && <p className="text-xs text-muted-foreground">{sig.role}{sig.organisation ? ` · ${sig.organisation}` : ''}</p>}
-                      </div>
-                      <div className="text-right text-xs text-muted-foreground">
-                        {sig.signed_at && <p>Signed: {format(new Date(sig.signed_at), 'dd MMM yyyy, HH:mm')}</p>}
-                        {sig.viewed_at && !sig.signed_at && <p>Viewed: {format(new Date(sig.viewed_at), 'dd MMM yyyy, HH:mm')}</p>}
-                        {sig.status === 'pending' && sig.reminder_count > 0 && (
-                          <p>Reminders sent: {sig.reminder_count}</p>
-                        )}
-                      </div>
-                    </div>
-                    {sig.signed_name && (
-                      <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border">
-                        Signed as: <span className="font-medium">{sig.signed_name}</span>
-                        {sig.signed_role && ` · ${sig.signed_role}`}
-                      </p>
-                    )}
-                    {sig.decline_comment && (
-                      <p className="text-xs text-destructive mt-2 pt-2 border-t border-border">
-                        Decline reason: {sig.decline_comment}
-                      </p>
-                    )}
-                  </Card>
-                );
-              })}
+          {isCompleted && allApproved && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'rgba(22,163,74,0.15)', borderRadius: 20, padding: '5px 14px',
+            }}>
+              <CheckCircle2 size={14} color="#16a34a" />
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', letterSpacing: '0.03em' }}>
+                COMPLETE
+              </span>
             </div>
           )}
         </div>
 
-        {/* Certificate & Audit Trail */}
-        {signatories.length > 0 && !loading && (
-          <SignatureCertificate
-            document={{
-              id: doc.id,
-              title: doc.title,
-              original_filename: doc.original_filename,
-              file_hash: doc.file_hash,
-              status: doc.status,
-              created_at: doc.created_at,
-              completed_at: doc.completed_at,
-              category: doc.category,
-            }}
-            signatories={signatories.map(s => ({
-              id: s.id,
-              name: s.name,
-              email: s.email,
-              role: s.role,
-              organisation: s.organisation,
-              organisation_type: s.organisation_type,
-              signatory_title: s.signatory_title,
-              signed_name: s.signed_name,
-              signed_role: s.signed_role,
-              signed_organisation: s.signed_organisation,
-              signed_at: s.signed_at,
-              signed_ip: (s as any).signed_ip || null,
-              signed_user_agent: (s as any).signed_user_agent || null,
-              signature_font: (s as any).signature_font || 'Dancing Script',
-              status: s.status,
-              viewed_at: s.viewed_at,
-            }))}
-            auditLog={auditLog.map((e: any) => ({
-              id: e.id,
-              action: e.action,
-              actor_name: e.actor_name,
-              actor_email: e.actor_email,
-              created_at: e.created_at,
-              ip_address: e.ip_address,
-              user_agent: e.user_agent,
-              metadata: e.metadata,
-              signatory_id: e.signatory_id,
-            }))}
-            certificateId={`NW-CERT-${new Date(doc.created_at).getFullYear()}-${doc.id.substring(0, 5).toUpperCase()}`}
-          />
-        )}
+        {/* ── Content Container ───────────────────────────────── */}
+        <div style={{ maxWidth: 880, margin: '0 auto', padding: '24px 16px' }}>
+          {/* Document Header */}
+          <div style={{
+            background: '#ffffff', border: `1px solid ${CARD_BORDER}`, borderRadius: 12,
+            padding: '24px', marginBottom: 0,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 16 }}>
+              <FileText size={28} color={BRAND_GREEN} style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h1 style={{
+                  fontFamily: "'DM Serif Display', serif", fontSize: 24, color: '#1a1a1a',
+                  margin: 0, lineHeight: 1.3,
+                }}>
+                  {doc.title}
+                </h1>
+              </div>
+            </div>
 
-        {/* Actions */}
-        {doc.status === 'pending' && (
-          <Card className="p-4 flex gap-3">
-            <Button variant="destructive" onClick={handleRevoke} disabled={revoking} className="gap-2">
-              {revoking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-              Revoke Approval Request
-            </Button>
-          </Card>
-        )}
+            {/* Metadata row */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                background: LIGHT_GREEN_BG, color: BRAND_GREEN, fontSize: 12, fontWeight: 600,
+                borderRadius: 20, padding: '4px 12px',
+              }}>
+                <CheckCircle2 size={13} />
+                {doc.status === 'completed' ? 'Signed' : doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+              </span>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                background: '#F3F2EF', color: MUTED_TEXT, fontSize: 12, fontWeight: 500,
+                borderRadius: 20, padding: '4px 12px',
+              }}>
+                {categoryLabel}
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: MUTED_TEXT, fontSize: 12 }}>
+                <Calendar size={13} />
+                {format(new Date(doc.created_at), 'dd MMM yyyy')}
+              </span>
+              <span style={{
+                fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: LIGHT_TEXT,
+                background: '#F3F2EF', borderRadius: 6, padding: '3px 8px',
+              }}>
+                {certificateId}
+              </span>
+            </div>
 
-        {/* Delete Document */}
-        <Card className="p-4">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10" disabled={deleting}>
-                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Delete Document
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this document?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete "{doc.title}" and all associated signatories, audit records and stored files. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  onClick={async () => {
-                    setDeleting(true);
-                    try {
-                      await deleteDocument(doc.id);
-                      onBack();
-                    } catch (err) {
-                      console.error(err);
-                      toast.error('Failed to delete document');
-                      setDeleting(false);
-                    }
+            {/* Action buttons */}
+            <div style={{
+              borderTop: `1px solid ${CARD_BORDER}`, marginTop: 20, paddingTop: 16,
+              display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center',
+            }}>
+              {isCompleted && allApproved && (
+                <>
+                  <Button
+                    size="sm"
+                    className="gap-2"
+                    style={{ background: BRAND_GREEN, color: '#fff' }}
+                    onClick={handleDownloadSignedPdf}
+                    disabled={generating}
+                  >
+                    {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                    Download Signed PDF
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => setActiveTab('certificate')}>
+                    <Shield className="h-3.5 w-3.5" /> Audit Certificate
+                  </Button>
+                  <Button
+                    variant="outline" size="sm" className="gap-2"
+                    onClick={handleSendCompletedDocument} disabled={sending || generating}
+                  >
+                    {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    {sending ? 'Sending…' : 'Send Completed Document'}
+                  </Button>
+                </>
+              )}
+              {doc.status === 'pending' && (
+                <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/30" onClick={handleRevoke} disabled={revoking}>
+                  {revoking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ban className="h-3.5 w-3.5" />}
+                  Revoke
+                </Button>
+              )}
+              <div style={{ marginLeft: 'auto' }}>
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleCopyLink}>
+                  <Copy className="h-3.5 w-3.5" /> Copy Link
+                </Button>
+              </div>
+            </div>
+
+            {/* Tab bar */}
+            <div style={{
+              display: 'flex', borderTop: `1px solid ${CARD_BORDER}`, marginTop: 16,
+              marginLeft: -24, marginRight: -24, paddingLeft: 24, paddingRight: 24,
+            }}>
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    padding: '14px 20px', border: 'none', background: 'transparent',
+                    cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    color: activeTab === tab.id ? BRAND_GREEN : LIGHT_TEXT,
+                    borderBottom: activeTab === tab.id ? `2px solid ${BRAND_GREEN}` : '2px solid transparent',
+                    transition: 'all 0.2s',
+                    fontFamily: "'DM Sans', sans-serif",
                   }}
                 >
-                  Delete permanently
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </Card>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div style={{ marginTop: 20 }}>
+            {loading ? (
+              <Card border style={{ padding: 40, textAlign: 'center' }}>
+                <Loader2 className="h-6 w-6 animate-spin mx-auto" style={{ color: BRAND_GREEN }} />
+                <p style={{ color: MUTED_TEXT, fontSize: 13, marginTop: 12 }}>Loading…</p>
+              </Card>
+            ) : (
+              <>
+                {activeTab === 'overview' && (
+                  <OverviewTab
+                    doc={doc}
+                    signatories={signatories}
+                    approvedCount={approvedCount}
+                    totalCount={totalCount}
+                    progress={progress}
+                    signaturePlacement={signaturePlacement}
+                    certificateId={certificateId}
+                  />
+                )}
+                {activeTab === 'signatories' && (
+                  <SignatoriesTab signatories={signatories} />
+                )}
+                {activeTab === 'certificate' && (
+                  <CertificateTab
+                    doc={doc}
+                    signatories={signatories}
+                    certificateId={certificateId}
+                    allApproved={allApproved}
+                    approvedCount={approvedCount}
+                    verificationUrl={verificationUrl}
+                  />
+                )}
+                {activeTab === 'audit' && (
+                  <AuditTrailTab auditLog={auditLog} signatories={signatories} doc={doc} />
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Delete action at bottom */}
+          <div style={{ marginTop: 24 }}>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10" disabled={deleting} size="sm">
+                  {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  Delete Document
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this document?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete "{doc.title}" and all associated signatories, audit records and stored files. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      setDeleting(true);
+                      try { await deleteDocument(doc.id); onBack(); }
+                      catch (err) { console.error(err); toast.error('Failed to delete'); setDeleting(false); }
+                    }}
+                  >
+                    Delete permanently
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Shared UI ─────────────────────────────────────────────────
+function Card({ children, border, style }: { children: React.ReactNode; border?: boolean; style?: React.CSSProperties }) {
+  return (
+    <div style={{
+      background: '#ffffff', border: `1px solid ${CARD_BORDER}`, borderRadius: 12,
+      padding: 24, ...style,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontSize: 10, fontWeight: 700, color: LIGHT_TEXT,
+      textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 12,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function MetaGrid({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }} className="detail-meta-grid">
+      <style>{`@media (max-width: 640px) { .detail-meta-grid { grid-template-columns: 1fr !important; } }`}</style>
+      {children}
+    </div>
+  );
+}
+
+function MetaItem({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: LIGHT_TEXT, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>
+        {label}
+      </div>
+      <div style={{
+        fontSize: 13, fontWeight: 500, color: '#1a1a1a',
+        fontFamily: mono ? "'JetBrains Mono', monospace" : undefined,
+      }}>
+        {value}
       </div>
     </div>
   );
 }
+
+// ─── Overview Tab ──────────────────────────────────────────────
+function OverviewTab({
+  doc, signatories, approvedCount, totalCount, progress, signaturePlacement, certificateId,
+}: {
+  doc: ApprovalDocument;
+  signatories: ApprovalSignatory[];
+  approvedCount: number;
+  totalCount: number;
+  progress: number;
+  signaturePlacement: SignaturePlacement | null;
+  certificateId: string;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Approval Progress */}
+      <Card>
+        <SectionLabel>APPROVAL PROGRESS</SectionLabel>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>
+            {approvedCount} of {totalCount} approved
+          </span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: BRAND_GREEN }}>{progress}%</span>
+        </div>
+        <div style={{ height: 8, background: '#F3F2EF', borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', borderRadius: 8,
+            background: `linear-gradient(90deg, ${BRAND_GREEN}, ${GOLD})`,
+            width: `${progress}%`, transition: 'width 0.5s ease',
+          }} />
+        </div>
+      </Card>
+
+      {/* Document Preview */}
+      <Card>
+        <SectionLabel>DOCUMENT PREVIEW</SectionLabel>
+        <div style={{
+          border: `2px dashed ${CARD_BORDER}`, borderRadius: 8, background: '#FAFAF8',
+          padding: '40px 24px', textAlign: 'center', minHeight: 200,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
+        }}>
+          <FileText size={32} color={LIGHT_TEXT} />
+          <span style={{ fontSize: 13, color: MUTED_TEXT, fontWeight: 500 }}>{doc.original_filename}</span>
+          <Button
+            variant="outline" size="sm" className="gap-2"
+            onClick={async () => {
+              try {
+                const blob = await downloadFromStorage(doc.file_url);
+                const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+                window.open(url, '_blank');
+              } catch { toast.error('Failed to open PDF'); }
+            }}
+          >
+            <Eye className="h-3.5 w-3.5" /> Open PDF Viewer
+          </Button>
+        </div>
+      </Card>
+
+      {/* Document Notes */}
+      {(doc.message || doc.description) && (
+        <Card>
+          <SectionLabel>DOCUMENT NOTES</SectionLabel>
+          <div style={{
+            background: LIGHT_GOLD_BG, borderRadius: 8, padding: '14px 18px',
+            fontSize: 13, color: MUTED_TEXT, fontStyle: 'italic', lineHeight: 1.6,
+          }}>
+            {doc.message || doc.description}
+          </div>
+        </Card>
+      )}
+
+      {/* Document Details */}
+      <Card>
+        <SectionLabel>DOCUMENT DETAILS</SectionLabel>
+        <MetaGrid>
+          <MetaItem label="Filename" value={doc.original_filename} />
+          <MetaItem label="Signature Method" value={
+            signaturePlacement?.method === 'stamp'
+              ? `Stamp (page ${signaturePlacement.page})`
+              : 'Append page'
+          } />
+          <MetaItem label="Category" value={categoryLabels[doc.category] || doc.category || 'Governance'} />
+          <MetaItem label="Reference" value={certificateId} mono />
+        </MetaGrid>
+        <div style={{ marginTop: 16 }}>
+          <HashBox hash={doc.file_hash} />
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function HashBox({ hash }: { hash: string }) {
+  const handleCopy = () => {
+    navigator.clipboard.writeText(hash);
+    toast.success('Hash copied');
+  };
+  return (
+    <div style={{
+      background: '#F3F2EF', borderRadius: 8, padding: '10px 14px',
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <Lock size={14} color={LIGHT_TEXT} />
+      <span style={{
+        fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: MUTED_TEXT,
+        flex: 1, wordBreak: 'break-all', lineHeight: 1.5,
+      }}>
+        SHA-256: {hash}
+      </span>
+      <button
+        onClick={handleCopy}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: LIGHT_TEXT }}
+      >
+        <Copy size={14} />
+      </button>
+    </div>
+  );
+}
+
+// ─── Signatories Tab ───────────────────────────────────────────
+function SignatoriesTab({ signatories }: { signatories: ApprovalSignatory[] }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {signatories.map(sig => {
+        const isSigned = sig.status === 'approved';
+        const displayName = sig.signed_name || sig.name;
+        const displayRole = sig.signed_role || sig.role || '';
+        const displayOrg = sig.signed_organisation || sig.organisation || '';
+
+        return (
+          <Card key={sig.id}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+              <div>
+                <h3 style={{
+                  fontFamily: "'DM Serif Display', serif", fontSize: 20, color: '#1a1a1a',
+                  margin: 0, lineHeight: 1.3,
+                }}>
+                  {displayName}
+                </h3>
+                {(displayRole || displayOrg) && (
+                  <p style={{ fontSize: 13, color: MUTED_TEXT, margin: '4px 0 0' }}>
+                    {displayRole}{displayRole && displayOrg ? ' · ' : ''}{displayOrg}
+                  </p>
+                )}
+              </div>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                background: isSigned ? LIGHT_GREEN_BG : '#FEF3C7',
+                color: isSigned ? BRAND_GREEN : '#92400E',
+                fontSize: 11, fontWeight: 600, borderRadius: 20, padding: '4px 12px',
+              }}>
+                {isSigned ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                {isSigned ? 'Signed' : 'Pending'}
+              </span>
+            </div>
+
+            <MetaGrid>
+              <MetaItem label="Email" value={sig.email} mono />
+              <MetaItem label="Organisation" value={displayOrg || '—'} />
+              {sig.signed_at && (
+                <MetaItem label="Signed At" value={format(new Date(sig.signed_at), "dd MMM yyyy 'at' HH:mm")} mono />
+              )}
+              {(sig as any).signed_ip && (
+                <MetaItem label="IP Address" value={(sig as any).signed_ip} mono />
+              )}
+            </MetaGrid>
+
+            {sig.decline_comment && (
+              <div style={{ marginTop: 12, padding: '10px 14px', background: '#FEF2F2', borderRadius: 8, fontSize: 13, color: '#DC2626' }}>
+                <strong>Decline reason:</strong> {sig.decline_comment}
+              </div>
+            )}
+          </Card>
+        );
+      })}
+
+      {/* Add signatory placeholder */}
+      <div style={{
+        border: `2px dashed ${CARD_BORDER}`, borderRadius: 12, padding: '28px 24px',
+        textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+      }}>
+        <Plus size={24} color={LIGHT_TEXT} />
+        <span style={{ fontSize: 13, color: LIGHT_TEXT }}>
+          Add Signatory (for multi-signer workflows)
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Certificate Tab ───────────────────────────────────────────
+function CertificateTab({
+  doc, signatories, certificateId, allApproved, approvedCount, verificationUrl,
+}: {
+  doc: ApprovalDocument;
+  signatories: ApprovalSignatory[];
+  certificateId: string;
+  allApproved: boolean;
+  approvedCount: number;
+  verificationUrl: string;
+}) {
+  const categoryLabel = categoryLabels[doc.category] || doc.category || 'Governance';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Green gradient header */}
+      <div style={{
+        background: `linear-gradient(135deg, ${DARK_GREEN} 0%, ${BRAND_GREEN} 100%)`,
+        borderRadius: 12, padding: '24px 28px', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40%', background: `linear-gradient(90deg, transparent, rgba(212,168,67,0.08))`, pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, color: '#ffffff' }}>
+              Notewell
+            </span>
+            <div style={{
+              fontSize: 11, fontWeight: 600, color: GOLD, textTransform: 'uppercase',
+              letterSpacing: '1.5px', marginTop: 6,
+            }}>
+              ELECTRONIC SIGNATURE CERTIFICATE
+            </div>
+          </div>
+          {allApproved && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              background: 'rgba(22,163,74,0.15)', borderRadius: 20, padding: '5px 14px',
+              fontSize: 11, fontWeight: 600, color: '#16a34a',
+            }}>
+              <CheckCircle2 size={14} /> COMPLETE
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Document Details */}
+      <Card>
+        <SectionLabel>DOCUMENT DETAILS</SectionLabel>
+        <MetaGrid>
+          <MetaItem label="Document" value={doc.original_filename} />
+          <MetaItem label="Reference" value={certificateId} mono />
+        </MetaGrid>
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%', display: 'inline-block',
+            background: allApproved ? '#16a34a' : '#f59e0b',
+          }} />
+          <span style={{
+            fontSize: 13, fontWeight: 500,
+            background: allApproved ? LIGHT_GREEN_BG : '#FEF3C7',
+            color: allApproved ? BRAND_GREEN : '#92400E',
+            borderRadius: 20, padding: '3px 10px',
+          }}>
+            {allApproved ? 'All parties signed' : `Awaiting ${signatories.length - approvedCount} signature${signatories.length - approvedCount !== 1 ? 's' : ''}`}
+          </span>
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <HashBox hash={doc.file_hash} />
+        </div>
+      </Card>
+
+      {/* Signatories */}
+      <Card>
+        <SectionLabel>SIGNATORIES ({approvedCount} OF {signatories.length})</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {signatories.map(sig => {
+            const isSigned = sig.status === 'approved';
+            const displayName = sig.signed_name || sig.name;
+            const displayRole = sig.signed_role || sig.role || '';
+            const displayOrg = sig.signed_organisation || sig.organisation || '';
+            const displayTitle = sig.signatory_title || '';
+            const font = (sig as any).signature_font || 'Dancing Script';
+
+            return (
+              <div key={sig.id} style={{
+                background: isSigned ? '#F0FDF4' : '#ffffff',
+                border: `1px solid ${isSigned ? '#BBF7D0' : CARD_BORDER}`,
+                borderRadius: 8, padding: '18px 22px', position: 'relative',
+              }}>
+                <span style={{
+                  position: 'absolute', top: 14, right: 16,
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: 11, fontWeight: 600,
+                  color: isSigned ? BRAND_GREEN : '#92400e',
+                  background: isSigned ? LIGHT_GREEN_BG : '#FEF3C7',
+                  borderRadius: 20, padding: '3px 10px',
+                }}>
+                  {isSigned ? '✓ SIGNED' : '⏳ PENDING'}
+                </span>
+                <div style={{
+                  fontFamily: `'${font}', cursive`, fontSize: 28,
+                  color: DARK_GREEN, marginBottom: 12, lineHeight: 1.2,
+                }}>
+                  {displayName}
+                </div>
+                <MetaGrid>
+                  <MetaItem label="Name" value={`${displayTitle ? displayTitle + ' ' : ''}${displayName}`} />
+                  <MetaItem label="Role" value={displayRole || '—'} />
+                  <MetaItem label="Email" value={sig.email} mono />
+                  <MetaItem label="Organisation" value={displayOrg || '—'} />
+                </MetaGrid>
+                {isSigned && sig.signed_at && (
+                  <div style={{
+                    borderTop: '1px dashed #D1D5DB', paddingTop: 10, marginTop: 10,
+                    display: 'flex', flexWrap: 'wrap', gap: '4px 20px',
+                    fontSize: 12, color: MUTED_TEXT,
+                  }}>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
+                      {format(new Date(sig.signed_at), "dd MMM yyyy 'at' HH:mm:ss 'UTC'")}
+                    </span>
+                    {(sig as any).signed_ip && (
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: LIGHT_TEXT }}>
+                        IP: {(sig as any).signed_ip}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Verification */}
+      <Card>
+        <SectionLabel>VERIFICATION</SectionLabel>
+        <div style={{
+          background: '#F3F2EF', borderRadius: 8, padding: '20px 24px',
+          display: 'flex', gap: 24, alignItems: 'center',
+        }} className="cert-verification-box">
+          <style>{`@media (max-width: 640px) { .cert-verification-box { flex-direction: column !important; text-align: center !important; } }`}</style>
+          <div style={{ flexShrink: 0 }}>
+            <QRCodeCanvas url={verificationUrl} size={80} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 13, color: MUTED_TEXT, lineHeight: 1.6, margin: '0 0 10px' }}>
+              Scan the QR code or visit the URL below to independently verify the authenticity
+              and integrity of this signed document.
+            </p>
+            <div style={{
+              background: '#ffffff', border: `1px solid ${CARD_BORDER}`, borderRadius: 6,
+              padding: '8px 12px', fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 12, color: BRAND_GREEN, wordBreak: 'break-all',
+            }}>
+              {verificationUrl}
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <p style={{ fontSize: 11, color: LIGHT_TEXT, lineHeight: 1.7, margin: '0 0 8px' }}>
+            <strong style={{ color: MUTED_TEXT }}>Legal Basis:</strong> This electronic signature certificate
+            is issued in accordance with the Electronic Communications Act 2000 and UK eIDAS regulations.
+          </p>
+          <p style={{ fontSize: 11, color: LIGHT_TEXT, lineHeight: 1.7, margin: 0 }}>
+            <strong style={{ color: MUTED_TEXT }}>Integrity:</strong> The SHA-256 hash above was computed
+            at the time of signing. Any modification to the original document after signing will produce
+            a different hash value, indicating the document has been altered.
+          </p>
+        </div>
+      </Card>
+
+      {/* Footer */}
+      <p style={{ fontSize: 10, color: LIGHT_TEXT, textAlign: 'center', margin: '8px 0 0' }}>
+        Notewell · Powered by PCN Services Ltd · MHRA Class I Registered Medical Device
+      </p>
+    </div>
+  );
+}
+
+// ─── Audit Trail Tab ───────────────────────────────────────────
+function AuditTrailTab({
+  auditLog, signatories, doc,
+}: {
+  auditLog: any[];
+  signatories: ApprovalSignatory[];
+  doc: ApprovalDocument;
+}) {
+  const eventConfig: Record<string, { label: string; dotColor: string }> = {
+    created: { label: 'Document created', dotColor: LIGHT_TEXT },
+    sent: { label: 'Approval request sent', dotColor: GOLD },
+    viewed: { label: 'Document viewed', dotColor: '#94A3B8' },
+    approved: { label: 'Document approved & signed', dotColor: BRAND_GREEN },
+    declined: { label: 'Document declined', dotColor: '#DC2626' },
+    revoked: { label: 'Approval revoked', dotColor: '#DC2626' },
+    reminder_sent: { label: 'Reminder sent', dotColor: GOLD },
+    signed_document_generated: { label: 'Signed PDF generated', dotColor: BRAND_GREEN },
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Card>
+        <SectionLabel>CHRONOLOGICAL EVENT LOG</SectionLabel>
+        <div style={{ position: 'relative', paddingLeft: 36 }}>
+          {/* Vertical line */}
+          <div style={{
+            position: 'absolute', left: 11, top: 12, bottom: 12,
+            width: 2, background: CARD_BORDER,
+          }} />
+
+          {auditLog.map((event, i) => {
+            const cfg = eventConfig[event.action] || { label: event.action.replace(/_/g, ' '), dotColor: LIGHT_TEXT };
+            return (
+              <div key={event.id} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 14,
+                marginBottom: i < auditLog.length - 1 ? 20 : 0,
+                position: 'relative',
+              }}>
+                <div style={{
+                  position: 'absolute', left: -36, top: 4,
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: cfg.dotColor, border: '2px solid #ffffff',
+                  boxShadow: `0 0 0 2px ${CARD_BORDER}`,
+                  zIndex: 1,
+                }} />
+                <div style={{ flex: 1, paddingTop: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>
+                    {cfg.label}
+                  </div>
+                  <div style={{
+                    display: 'flex', flexWrap: 'wrap', gap: '4px 14px',
+                    marginTop: 4, fontSize: 12, color: LIGHT_TEXT,
+                  }}>
+                    {event.actor_name && <span>{event.actor_name}</span>}
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
+                      {format(new Date(event.created_at), "dd MMM yyyy 'at' HH:mm")}
+                    </span>
+                    {event.ip_address && (
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
+                        IP: {event.ip_address}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Download History */}
+      <Card>
+        <SectionLabel>DOWNLOAD HISTORY</SectionLabel>
+        <p style={{ fontSize: 13, color: LIGHT_TEXT, fontStyle: 'italic', margin: 0 }}>
+          No downloads recorded yet.
+        </p>
+      </Card>
+    </div>
+  );
+}
+
+export default ApprovalDocumentDetail;
