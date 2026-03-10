@@ -325,6 +325,10 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                   }}>
                     <Award className="h-3.5 w-3.5" /> Download Audit Certificate
                   </Button>
+                  <Button size="sm" className="gap-2 bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] text-white" onClick={handleSendCompletedDocument} disabled={sending || generating}>
+                    {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    {sending ? 'Sending…' : 'Send Completed Document'}
+                  </Button>
                 </div>
               </div>
             </div>
