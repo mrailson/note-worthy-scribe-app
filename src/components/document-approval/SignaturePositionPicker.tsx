@@ -81,22 +81,39 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const [suggestingPositions, setSuggestingPositions] = useState(false);
 
-  // Initialise default positions for signatories that don't have one
-  useEffect(() => {
-    const updated = { ...value };
-    let changed = false;
-    signatories.forEach((sig, idx) => {
-      if (!updated[sig.id]) {
-        updated[sig.id] = {
-          ...DEFAULT_STAMP,
-          x: 10 + (idx % 2) * 45,
-          y: 70 + Math.floor(idx / 2) * 15,
-        };
-        changed = true;
-      }
+  // Mouse helpers
+  const getMousePercent = useCallback((e: React.MouseEvent, pageEl: HTMLElement) => {
+    const bounds = pageEl.getBoundingClientRect();
+    return {
+      x: ((e.clientX - bounds.left) / bounds.width) * 100,
+      y: ((e.clientY - bounds.top) / bounds.height) * 100,
+    };
+  }, []);
+
+  // Click-to-place handler for PDF pages
+  const handlePageClick = useCallback((e: React.MouseEvent, pageNum: number) => {
+    if (dragging) return;
+    if (!activeSignatoryId) return;
+    if (value[activeSignatoryId]) return;
+
+    const pageEl = pageRefs.current.get(pageNum);
+    if (!pageEl) return;
+
+    const pos = getMousePercent(e, pageEl);
+    const newX = Math.max(0, Math.min(100 - DEFAULT_STAMP.width, pos.x - DEFAULT_STAMP.width / 2));
+    const newY = Math.max(0, Math.min(100 - DEFAULT_STAMP.height, pos.y - DEFAULT_STAMP.height / 2));
+
+    onChange({
+      ...value,
+      [activeSignatoryId]: {
+        page: pageNum,
+        x: Math.round(newX * 10) / 10,
+        y: Math.round(newY * 10) / 10,
+        width: DEFAULT_STAMP.width,
+        height: DEFAULT_STAMP.height,
+      },
     });
-    if (changed) onChange(updated);
-  }, [signatories]);
+  }, [activeSignatoryId, value, dragging, onChange, getMousePercent]);
 
   // Load PDF
   useEffect(() => {
@@ -197,13 +214,6 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
   };
 
   // Mouse handlers for dragging signature blocks
-  const getMousePercent = useCallback((e: React.MouseEvent, pageEl: HTMLElement) => {
-    const bounds = pageEl.getBoundingClientRect();
-    return {
-      x: ((e.clientX - bounds.left) / bounds.width) * 100,
-      y: ((e.clientY - bounds.top) / bounds.height) * 100,
-    };
-  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent, sigId: string, pageNum: number) => {
     const pageEl = pageRefs.current.get(pageNum);
@@ -356,24 +366,30 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                   style={{ backgroundColor: colour }}
                 />
                 <span className="font-medium text-foreground">{sig.name}</span>
-                {hasPosition && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                    p.{value[sig.id].page}
-                  </Badge>
-                )}
-                {isActive && <Check className="h-3.5 w-3.5 text-primary" />}
+                {hasPosition ? (
+                  <span className="flex items-center gap-1">
+                    <Check className="h-3.5 w-3.5" style={{ color: 'hsl(150, 60%, 40%)' }} />
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      p.{value[sig.id].page}
+                    </Badge>
+                  </span>
+                ) : isActive ? (
+                  <span className="text-[10px] text-muted-foreground italic">Click to place</span>
+                ) : null}
               </button>
             );
           })}
         </div>
 
-        {activeSignatoryId && value[activeSignatoryId] && (
-          <p className="text-xs text-muted-foreground">
-            <User className="h-3 w-3 inline mr-1" />
-            {signatories.find(s => s.id === activeSignatoryId)?.name}: page {value[activeSignatoryId].page},
-            position ({Math.round(value[activeSignatoryId].x)}%, {Math.round(value[activeSignatoryId].y)}%)
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground">
+          <User className="h-3 w-3 inline mr-1" />
+          {!activeSignatoryId
+            ? 'Select a signatory above, then click on the document to place their signature'
+            : value[activeSignatoryId]
+              ? `${signatories.find(s => s.id === activeSignatoryId)?.name}: page ${value[activeSignatoryId].page} — drag to reposition`
+              : `Click anywhere on the document to place ${signatories.find(s => s.id === activeSignatoryId)?.name}'s signature block`
+          }
+        </p>
       </Card>
 
       {/* Toolbar */}
@@ -464,9 +480,10 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                 ref={el => { if (el) pageRefs.current.set(pageNum, el); }}
                 data-page={pageNum}
                 className="relative bg-white rounded-sm shadow-lg border border-border/50"
-                style={{ maxWidth: '100%' }}
+                style={{ maxWidth: '100%', cursor: activeSignatoryId && !value[activeSignatoryId] ? 'crosshair' : undefined }}
                 onMouseMove={(e) => handleMouseMove(e, pageNum)}
                 onMouseUp={handleMouseUp}
+                onClick={(e) => handlePageClick(e, pageNum)}
               >
                 {/* Page number badge */}
                 <div className="absolute -top-3 left-3 z-10">
@@ -481,31 +498,31 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                   style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
                 />
 
-                {/* Signature block overlays for this page */}
-                {signatories.map((sig, idx) => {
+                {/* Signature block overlay — only show active signatory */}
+                {activeSignatoryId && (() => {
+                  const idx = signatories.findIndex(s => s.id === activeSignatoryId);
+                  if (idx === -1) return null;
+                  const sig = signatories[idx];
                   const stamp = value[sig.id];
                   if (!stamp || stamp.page !== pageNum) return null;
 
                   const colour = getSignatoryColour(idx);
                   const bgColour = getSignatoryBg(idx);
-                  const isActive = activeSignatoryId === sig.id;
 
                   return (
                     <div
                       key={sig.id}
-                      className={`absolute rounded cursor-move flex items-center justify-center transition-shadow ${
-                        isActive ? 'shadow-lg ring-2 ring-offset-1' : 'shadow-sm'
-                      }`}
+                      className="absolute rounded cursor-move flex items-center justify-center shadow-lg ring-2 ring-offset-1"
                       style={{
                         left: `${stamp.x}%`,
                         top: `${stamp.y}%`,
                         width: `${stamp.width}%`,
                         height: `${stamp.height}%`,
-                        border: `2px ${isActive ? 'solid' : 'dashed'} ${colour}`,
+                        border: `2px solid ${colour}`,
                         backgroundColor: bgColour,
-                        outline: isActive ? `2px solid ${colour}` : undefined,
-                        outlineOffset: isActive ? '2px' : undefined,
-                        zIndex: isActive ? 30 : 20,
+                        outline: `2px solid ${colour}`,
+                        outlineOffset: '2px',
+                        zIndex: 30,
                       }}
                       onMouseDown={(e) => handleMouseDown(e, sig.id, pageNum)}
                     >
@@ -518,7 +535,7 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                       </div>
                     </div>
                   );
-                })}
+                })()}
               </div>
             ))}
           </div>
