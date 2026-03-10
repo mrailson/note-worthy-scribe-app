@@ -839,16 +839,19 @@ const ComplaintDetails = () => {
     
     setSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data: updatedData, error } = await supabase
         .from('complaint_outcomes')
         .update({ 
           outcome_letter: editedOutcomeLetterContent
         })
-        .eq('complaint_id', complaint.id);
+        .eq('complaint_id', complaint.id)
+        .select()
+        .maybeSingle();
 
       if (error) throw error;
+      if (!updatedData) throw new Error('Failed to save outcome letter — you may not have permission. Please contact your administrator.');
 
-      setOutcomeLetter(editedOutcomeLetterContent);
+      setOutcomeLetter(updatedData.outcome_letter);
       setIsEditingOutcomeLetter(false);
       setHasUnsavedOutcomeChanges(false);
       showToast.success("Outcome letter updated successfully", { section: 'complaints' });
@@ -885,17 +888,20 @@ const ComplaintDetails = () => {
 
       if (data?.outcomeLetter) {
         // Update the outcome letter in the database
-        const { error: updateError } = await supabase
+        const { data: updatedData, error: updateError } = await supabase
           .from('complaint_outcomes')
           .update({ outcome_letter: data.outcomeLetter })
-          .eq('complaint_id', complaint.id);
+          .eq('complaint_id', complaint.id)
+          .select()
+          .maybeSingle();
 
         if (updateError) {
           console.error('Error updating outcome letter:', updateError);
           throw updateError;
         }
+        if (!updatedData) throw new Error('Failed to save regenerated letter — you may not have permission. Please contact your administrator.');
 
-        setOutcomeLetter(data.outcomeLetter);
+        setOutcomeLetter(updatedData.outcome_letter);
         showToast.success("Outcome letter regenerated successfully with practice logo included", { section: 'complaints' });
       } else {
         throw new Error('No outcome letter received from generator');
@@ -1449,19 +1455,21 @@ const ComplaintDetails = () => {
       if (error) throw error;
 
       if (data?.regeneratedLetter) {
-        setOutcomeLetter(data.regeneratedLetter);
-        
         // Update the database with the new letter
-        const { error: updateError } = await supabase
+        const { data: updatedData, error: updateError } = await supabase
           .from('complaint_outcomes')
           .update({ 
             outcome_letter: data.regeneratedLetter,
             updated_at: new Date().toISOString()
           })
-          .eq('complaint_id', complaint.id);
+          .eq('complaint_id', complaint.id)
+          .select()
+          .maybeSingle();
 
         if (updateError) throw updateError;
+        if (!updatedData) throw new Error('Failed to save AI-edited letter — you may not have permission. Please contact your administrator.');
 
+        setOutcomeLetter(updatedData.outcome_letter);
         showToast.success('Outcome letter regenerated with AI', { section: 'complaints' });
       }
     } catch (error) {
