@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useDocumentApproval, ApprovalDocument, ApprovalSignatory } from '@/hooks/useDocumentApproval';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { generateSignedPdf, SignatoryInfo, SignaturePlacement } from '@/utils/generateSignedPdf';
+import { generateSignedPdf, SignatoryInfo, SignaturePlacement, AuditLogEntry } from '@/utils/generateSignedPdf';
 import { supabase } from '@/integrations/supabase/client';
 import { SignatureCertificate, type CertificateSignatory, type AuditEntry } from './SignatureCertificate';
 
@@ -118,19 +118,32 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
         signed_name: s.signed_name,
         signed_role: s.signed_role,
         signed_organisation: s.signed_organisation,
+        signed_ip: (s as any).signed_ip || null,
+        signatory_title: (s as any).signatory_title || null,
+      }));
+
+      const auditLogEntries: AuditLogEntry[] = auditLog.map((e: any) => ({
+        action: e.action,
+        actor_name: e.actor_name,
+        actor_email: e.actor_email,
+        created_at: e.created_at,
+        ip_address: e.ip_address,
       }));
 
       const placement: SignaturePlacement = !isPdf 
-        ? { method: 'append' }  // Force append for non-PDF files
+        ? { method: 'append' }
         : (signaturePlacement || { method: 'append' });
 
       const signedPdfBytes = await generateSignedPdf({
         originalPdfBytes: pdfBytes,
         title: doc.title,
+        originalFilename: doc.original_filename,
         certificateId: certId,
         fileHash: doc.file_hash,
         signatories: sigInfos,
         placement,
+        auditLog: auditLogEntries,
+        completedAt: (doc as any).completed_at,
       });
 
       // Upload to storage
