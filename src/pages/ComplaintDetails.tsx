@@ -1455,19 +1455,21 @@ const ComplaintDetails = () => {
       if (error) throw error;
 
       if (data?.regeneratedLetter) {
-        setOutcomeLetter(data.regeneratedLetter);
-        
         // Update the database with the new letter
-        const { error: updateError } = await supabase
+        const { data: updatedData, error: updateError } = await supabase
           .from('complaint_outcomes')
           .update({ 
             outcome_letter: data.regeneratedLetter,
             updated_at: new Date().toISOString()
           })
-          .eq('complaint_id', complaint.id);
+          .eq('complaint_id', complaint.id)
+          .select()
+          .maybeSingle();
 
         if (updateError) throw updateError;
+        if (!updatedData) throw new Error('Failed to save AI-edited letter — you may not have permission. Please contact your administrator.');
 
+        setOutcomeLetter(updatedData.outcome_letter);
         showToast.success('Outcome letter regenerated with AI', { section: 'complaints' });
       }
     } catch (error) {
