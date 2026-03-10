@@ -393,6 +393,14 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
             <div className="space-y-2">
               {signatureSection.map((line, index) => {
                 const trimmedLine = line.trim().replace(/```plaintext|```/g, '').trim();
+
+                // Skip duplicate consecutive lines in signature (e.g. "Practice Manager" twice)
+                if (index > 0) {
+                  const prevLine = signatureSection[index - 1].trim().replace(/```plaintext|```/g, '').trim();
+                  if (trimmedLine === prevLine) {
+                    return null;
+                  }
+                }
                 
                 // Handle closing line
                 if (trimmedLine.toLowerCase().includes('yours sincerely') || 
