@@ -11,10 +11,11 @@ const corsHeaders = {
 const APP_URL = "https://gpnotewell.co.uk";
 
 interface EmailRequest {
-  type: "request" | "reminder" | "confirmation" | "completed" | "declined";
+  type: "request" | "reminder" | "confirmation" | "completed" | "declined" | "send_completed";
   document_id: string;
   signatory_id?: string;
   custom_body?: string;
+  signed_file_url?: string;
 }
 
 const formatDate = (dateStr: string): string => {
@@ -371,6 +372,105 @@ const handler = async (req: Request): Promise<Response> => {
           });
         }
       }
+    }
+
+    // ─── TYPE: SEND_COMPLETED ────────────────────────────────────────
+    if (type === "send_completed") {
+      const { signed_file_url }: EmailRequest = await req.clone().json().catch(() => ({}));
+
+      // Download the signed PDF from storage
+      let signedPdfAttachment: { filename: string; content: Uint8Array } | null = null;
+      const fileUrlToDownload = signed_file_url || doc.signed_file_url;
+
+      if (fileUrlToDownload) {
+        try {
+          const storagePath = fileUrlToDownload.replace(/^.*approval-documents\//, "");
+          const { data: fileData, error: fileErr } = await supabase.storage
+            .from("approval-documents")
+            .download(storagePath);
+
+          if (!fileErr && fileData) {
+            const arrayBuf = await fileData.arrayBuffer();
+            signedPdfAttachment = {
+              filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
+              content: new Uint8Array(arrayBuf),
+            };
+          }
+        } catch (e) {
+          console.warn("Could not download signed PDF attachment:", e);
+        }
+      }
+
+      const sigSummaryRows = (allSignatories || [])
+        .map((s: any) => `<tr>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">✅ ${s.signed_name || s.name}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${s.signed_role || s.role || "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${s.signed_organisation || s.organisation || "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
+        </tr>`)
+        .join("");
+
+      const html = emailWrapper(`
+        <div style="background: #f0fdf4; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
+          <p style="margin: 0; font-weight: 600; color: #166534; font-size: 18px;">📄 Completed Signed Document</p>
+        </div>
+        <p style="margin: 0 0 16px 0;">The fully signed version of <strong>${doc.title}</strong> is attached to this email.</p>
+        <p style="margin: 0 0 16px 0;">All ${(allSignatories || []).length} signator${(allSignatories || []).length !== 1 ? "ies" : "y"} have approved this document. The attached PDF includes the Electronic Signature Certificate with full audit trail.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+          <thead>
+            <tr style="background: #f1f5f9;">
+              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Name</th>
+              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Role</th>
+              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Organisation</th>
+              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Signed</th>
+            </tr>
+          </thead>
+          <tbody>${sigSummaryRows}</tbody>
+        </table>
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0; font-size: 14px; color: #166534;">🔒 This document was electronically signed in accordance with UK law (Electronic Communications Act 2000). The attached PDF contains a SHA-256 integrity hash and full audit trail.</p>
+        </div>
+        ${primaryButton(`${APP_URL}/document-approval`, "View in Notewell")}
+        <p style="text-align: center; font-size: 13px; color: #94a3b8;">Powered by Notewell AI &middot; Document Approval Service</p>
+      `);
+
+      // Send to sender
+      const allRecipients: string[] = [];
+      if (doc.sender_email) allRecipients.push(doc.sender_email);
+      // Also send to all signatories
+      for (const s of (allSignatories || [])) {
+        if (s.email && !allRecipients.includes(s.email)) {
+          allRecipients.push(s.email);
+        }
+      }
+
+      for (const recipientEmail of allRecipients) {
+        const emailPayload: any = {
+          from: "Notewell AI <noreply@bluepcn.co.uk>",
+          to: [recipientEmail],
+          subject: `Completed Signed Document: ${doc.title}`,
+          html,
+        };
+
+        if (signedPdfAttachment) {
+          emailPayload.attachments = [{
+            filename: signedPdfAttachment.filename,
+            content: signedPdfAttachment.content,
+          }];
+        }
+
+        const { error: sendErr } = await resend.emails.send(emailPayload);
+        results.push({ email: recipientEmail, status: sendErr ? "failed" : "sent", error: sendErr?.message });
+      }
+
+      // Audit log
+      await supabase.from("approval_audit_log").insert({
+        document_id,
+        action: "email_sent_completed_document",
+        actor_email: doc.sender_email,
+        actor_name: doc.sender_name,
+        metadata: { recipients: allRecipients, attachment_included: !!signedPdfAttachment },
+      });
     }
 
     // ─── TYPE: DECLINED ──────────────────────────────────────────────

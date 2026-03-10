@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, CheckCircle2, Clock, XCircle, Ban, ExternalLink, Loader2, Download, FileSignature, Award, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle2, Clock, XCircle, Ban, ExternalLink, Loader2, Download, FileSignature, Award, Trash2, Send } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useDocumentApproval, ApprovalDocument, ApprovalSignatory } from '@/hooks/useDocumentApproval';
 import { format } from 'date-fns';
@@ -42,6 +42,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
   const [revoking, setRevoking] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sending, setSending] = useState(false);
 
   // Access the raw doc data including new columns
   const signedFileUrl = (doc as any).signed_file_url as string | null;
@@ -178,6 +179,45 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
     }
   };
 
+  const handleSendCompletedDocument = async () => {
+    setSending(true);
+    try {
+      // If no signed PDF exists yet, generate one first
+      let currentSignedUrl = signedFileUrl;
+      if (!currentSignedUrl) {
+        await handleGenerateSignedPdf();
+        // Re-fetch the document to get the signed_file_url
+        const { data: updatedDoc } = await supabase
+          .from('approval_documents')
+          .select('signed_file_url')
+          .eq('id', doc.id)
+          .single();
+        currentSignedUrl = (updatedDoc as any)?.signed_file_url;
+      }
+
+      if (!currentSignedUrl) {
+        toast.error('Could not generate signed PDF. Please try again.');
+        return;
+      }
+
+      const { error } = await supabase.functions.invoke('send-approval-email', {
+        body: {
+          type: 'send_completed',
+          document_id: doc.id,
+          signed_file_url: currentSignedUrl,
+        },
+      });
+
+      if (error) throw error;
+      toast.success('Completed signed document sent to all parties');
+    } catch (err) {
+      console.error('Failed to send completed document:', err);
+      toast.error('Failed to send completed document');
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -284,6 +324,10 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                     } catch { toast.error('Failed to download audit certificate'); }
                   }}>
                     <Award className="h-3.5 w-3.5" /> Download Audit Certificate
+                  </Button>
+                  <Button size="sm" className="gap-2 bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] text-white" onClick={handleSendCompletedDocument} disabled={sending || generating}>
+                    {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    {sending ? 'Sending…' : 'Send Completed Document'}
                   </Button>
                 </div>
               </div>
