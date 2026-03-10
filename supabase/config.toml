@@ -494,3 +494,6 @@ verify_jwt = false
 
 [functions.send-approval-email]
 verify_jwt = false
+
+[functions.suggest-signature-positions]
+verify_jwt = false

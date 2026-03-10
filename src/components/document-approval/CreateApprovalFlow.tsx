@@ -18,7 +18,7 @@ import { hashFile } from '@/utils/fileHash';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { SignaturePositionPicker, StampPosition } from './SignaturePositionPicker';
+import { SignaturePositionPicker, StampPosition, PerSignatoryPositions } from './SignaturePositionPicker';
 
 const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof', 'Rev'];
 const ORG_TYPE_OPTIONS = ['', 'Practice', 'PCN', 'Federation', 'ICB', 'Other'];
@@ -77,7 +77,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
   // Signature placement
   const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('append');
-  const [stampPosition, setStampPosition] = useState<StampPosition>({ page: 1, x: 10, y: 55, width: 80, height: 40 });
+  const [stampPositions, setStampPositions] = useState<PerSignatoryPositions>({});
 
   // ─── Step 2: Signatories ──────────────────────────────────────────
   const [signatories, setSignatories] = useState<SignatoryRow[]>([
@@ -131,7 +131,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     const isDocx = file.name.toLowerCase().endsWith('.docx');
     try {
       const placement = signatureMethod === 'stamp'
-        ? { method: 'stamp' as const, ...stampPosition }
+        ? { method: 'stamp' as const, positions: stampPositions }
         : { method: 'append' as const };
 
       const doc = await uploadDocument(file, {
@@ -149,13 +149,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
         toast.success('Converted from Word to PDF successfully');
       }
 
-      // After conversion, the stored file is always PDF, so stamp is available
-      const storedIsPdf = isDocx || file.name.toLowerCase().endsWith('.pdf');
-      if (signatureMethod === 'stamp' && storedIsPdf) {
-        setStep('stamp_position');
-      } else {
-        setStep('signatories');
-      }
+      // After upload, always go to signatories first (stamp positioning comes after)
+      setStep('signatories');
       toast.success('Document uploaded successfully');
     } catch (err) {
       console.error(err);
@@ -169,11 +164,11 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const handleStampPositionContinue = async () => {
     if (!documentId) return;
     try {
-      await updateSignaturePlacement(documentId, { method: 'stamp', ...stampPosition });
-      setStep('signatories');
+      await updateSignaturePlacement(documentId, { method: 'stamp', positions: stampPositions });
+      setStep('review');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to save signature position');
+      toast.error('Failed to save signature positions');
     }
   };
 
@@ -266,7 +261,12 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
         }
       }
 
-      setStep('review');
+      // If stamp method, go to position picker; otherwise go to review
+      if (signatureMethod === 'stamp') {
+        setStep('stamp_position');
+      } else {
+        setStep('review');
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to save signatories');
@@ -305,16 +305,15 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           <div>
             <h1 className="text-xl font-bold text-foreground">New Approval Request</h1>
             <p className="text-sm text-muted-foreground">
-              {step === 'upload' ? 'Step 1: Upload document' : step === 'stamp_position' ? 'Step 1b: Position signatures' : step === 'signatories' ? 'Step 2: Add signatories' : 'Step 3: Review & send'}
+              {step === 'upload' ? 'Step 1: Upload document' : step === 'signatories' ? 'Step 2: Add signatories' : step === 'stamp_position' ? 'Step 3: Position signatures' : 'Step 4: Review & send'}
             </p>
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="flex gap-2">
-          {['upload', 'signatories', 'review'].map((s, i) => {
-            const stepOrder = ['upload', 'stamp_position', 'signatories', 'review'];
-            const currentIdx = stepOrder.indexOf(step);
+          {(signatureMethod === 'stamp' ? ['upload', 'signatories', 'stamp_position', 'review'] : ['upload', 'signatories', 'review']).map((s, i, arr) => {
+            const currentIdx = arr.indexOf(step);
             return (
               <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${
                 currentIdx >= i ? 'bg-primary' : 'bg-muted'
@@ -452,25 +451,26 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           <Card className="p-6 space-y-5">
             <div>
               <h2 className="font-semibold text-foreground mb-1">Position Signature Block</h2>
-              <p className="text-xs text-muted-foreground">Select the page and drag the overlay to define where signatures will appear</p>
+              <p className="text-xs text-muted-foreground">Drag each signatory's block to position it on the document</p>
             </div>
             <SignaturePositionPicker
               fileUrl={fileUrl}
-              value={stampPosition}
-              onChange={setStampPosition}
+              signatories={validSignatories.map(s => ({ id: s.id, name: s.name }))}
+              value={stampPositions}
+              onChange={setStampPositions}
             />
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep('upload')} className="gap-2">
+              <Button variant="outline" onClick={() => setStep('signatories')} className="gap-2">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
               <Button onClick={handleStampPositionContinue} className="flex-1 gap-2">
-                Continue to Signatories
+                Continue to Review
               </Button>
             </div>
           </Card>
         )}
 
-        {/* ═══ STEP 2: Signatories ═══ */}
+        {/* ═══ STEP 3: Signatories ═══ */}
         {step === 'signatories' && (
           <Card className="p-6 space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -725,7 +725,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
             </Card>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep('signatories')} className="gap-1">
+              <Button variant="outline" onClick={() => setStep(signatureMethod === 'stamp' ? 'stamp_position' : 'signatories')} className="gap-1">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
               <Button onClick={handleSend} disabled={sending} className="flex-1 gap-2">
