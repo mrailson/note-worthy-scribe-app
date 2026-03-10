@@ -374,20 +374,19 @@ export async function createLetterDocument(
     }
   }
 
-  // Date (right aligned)
-  if (dateSection) {
-    documentChildren.push(new Paragraph({
-      children: [
-        new TextRun({
-          text: dateSection,
-          size: 22,
-          font: "Calibri"
-        })
-      ],
-      alignment: AlignmentType.RIGHT,
-      spacing: { after: 300 }
-    }));
-  }
+  // Date (right aligned) - fallback to today's date if not found in content
+  const displayDate = dateSection || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  documentChildren.push(new Paragraph({
+    children: [
+      new TextRun({
+        text: displayDate,
+        size: 22,
+        font: "Calibri"
+      })
+    ],
+    alignment: AlignmentType.RIGHT,
+    spacing: { after: 300 }
+  }));
 
   // Private & Confidential (centered)
   documentChildren.push(new Paragraph({
