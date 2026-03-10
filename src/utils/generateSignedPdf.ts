@@ -163,7 +163,7 @@ async function drawCertificatePages(
 
   // COMPLETE badge (right side)
   if (allSigned) {
-    const completeText = '✓ COMPLETE';
+    const completeText = 'COMPLETE';
     const ctw = helveticaBold.widthOfTextAtSize(completeText, 10);
     page.drawRectangle({ x: W - RM - ctw - 20, y: y - 18, width: ctw + 20, height: 22, color: GREEN_BG, borderColor: GREEN, borderWidth: 1 });
     page.drawText(completeText, { x: W - RM - ctw - 10, y: y - 12, size: 10, font: helveticaBold, color: GREEN });
@@ -208,8 +208,7 @@ async function drawCertificatePages(
   // SHA-256 hash
   page.drawLine({ start: { x: LM + 14, y: dy }, end: { x: LM + CW - 14, y: dy }, thickness: 0.5, color: GREY_BORDER });
   dy -= 14;
-  page.drawText('🔒', { x: LM + 14, y: dy, size: 9, font: helvetica, color: GREY_TEXT });
-  page.drawText('SHA-256 DOCUMENT HASH', { x: LM + 28, y: dy, size: 8, font: helveticaBold, color: GREY_TEXT });
+  page.drawText('SHA-256 DOCUMENT HASH', { x: LM + 14, y: dy, size: 8, font: helveticaBold, color: GREY_TEXT });
   dy -= 14;
   // Hash in box
   page.drawRectangle({ x: LM + 14, y: dy - 6, width: CW - 28, height: 18, color: WHITE, borderColor: GREY_BORDER, borderWidth: 0.5 });
@@ -240,7 +239,7 @@ async function drawCertificatePages(
     page.drawRectangle({ x: LM, y: y - sigBoxH, width: CW, height: sigBoxH, color: bgColor, borderColor, borderWidth: 0.75 });
 
     // Status badge (top right)
-    const badgeText = isSigned ? '✓ SIGNED' : '⏳ PENDING';
+    const badgeText = isSigned ? 'SIGNED' : 'PENDING';
     const badgeColor = isSigned ? GREEN : rgb(0.573, 0.251, 0.055);
     const badgeBg = isSigned ? rgb(0.9, 0.97, 0.93) : rgb(0.99, 0.95, 0.88);
     const btw = helveticaBold.widthOfTextAtSize(badgeText, 8);
@@ -383,15 +382,15 @@ async function drawAuditTrailPage(
   y -= 20;
 
   const eventLabels: Record<string, string> = {
-    created: '📄 Document created',
-    sent: '📨 Sent for signing',
-    viewed: '👁 Document viewed',
-    approved: '✍️ Document signed',
-    declined: '❌ Document declined',
-    revoked: '🚫 Approval revoked',
-    reminder_sent: '🔔 Reminder sent',
-    signed_document_generated: '✅ Certificate of Completion issued',
-    email_sent_completed_document: '📧 Completed document emailed',
+    created: 'Document created',
+    sent: 'Sent for signing',
+    viewed: 'Document viewed',
+    approved: 'Document signed',
+    declined: 'Document declined',
+    revoked: 'Approval revoked',
+    reminder_sent: 'Reminder sent',
+    signed_document_generated: 'Certificate of Completion issued',
+    email_sent_completed_document: 'Completed document emailed',
   };
 
   for (const entry of auditLog) {
