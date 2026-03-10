@@ -455,15 +455,16 @@ const handler = async (req: Request): Promise<Response> => {
     if (type === "confirmation" && signatory_id) {
       const sig = (allSignatories || []).find((s) => s.id === signatory_id);
       if (sig) {
+        const sigDisplayName = withTitle(sig.signed_name || sig.name, sig.signatory_title);
         const html = emailWrapper(`
           <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Approval Confirmed</td></tr>
-            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Dear ${sig.signed_name || sig.name},</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Dear ${sigDisplayName},</td></tr>
             <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">Thank you. Your approval has been successfully recorded.</td></tr>
           </table>
           ${detailsCard(`
             ${detailRow("Document", doc.title)}
-            ${detailRow("Signed as", sig.signed_name || sig.name)}
+            ${detailRow("Signed as", sigDisplayName)}
             ${sig.signed_role ? detailRow("Role", sig.signed_role) : ""}
             ${sig.signed_organisation ? detailRow("Organisation", sig.signed_organisation) : ""}
             ${detailRow("Approved at", sig.signed_at ? formatDate(sig.signed_at) : "Just now", true)}
