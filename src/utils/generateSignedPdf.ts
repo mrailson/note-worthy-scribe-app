@@ -564,33 +564,33 @@ function drawStampSignatures(
       const date = sig.signed_at ? format(new Date(sig.signed_at), 'dd MMM yyyy') : '';
 
       // Draw handwritten signature name
-      const sigFontSize = Math.min(16, Math.max(10, areaW / (name.length * 0.55)));
+      const sigFontSize = Math.min(14, Math.max(9, areaW / (name.length * 0.55)));
       const inkColor = rgb(0.05, 0.1, 0.45);
-      const sigY = areaY + areaH - 6 - sigFontSize;
-      page.drawText(name, { x: areaX + 6, y: sigY, size: sigFontSize, font: cursiveFont, color: inkColor });
+      const sigY = areaY + areaH - 4 - sigFontSize;
+      page.drawText(name, { x: areaX + 4, y: sigY, size: sigFontSize, font: cursiveFont, color: inkColor });
 
       // Underline
       const textWidth = cursiveFont.widthOfTextAtSize(name, sigFontSize);
       page.drawLine({
-        start: { x: areaX + 6, y: sigY - 2 },
-        end: { x: areaX + 6 + Math.min(textWidth, areaW - 12), y: sigY - 2 },
+        start: { x: areaX + 4, y: sigY - 1.5 },
+        end: { x: areaX + 4 + Math.min(textWidth, areaW - 8), y: sigY - 1.5 },
         thickness: 0.5, color: rgb(0.6, 0.6, 0.7),
       });
 
       // Signed date below signature
-      const detailFontSize = Math.min(7.5, areaH / 10);
-      const dateY = sigY - sigFontSize - 2;
-      if (date && dateY > areaY + 4) {
+      const detailFontSize = Math.min(6.5, areaH / 6);
+      const dateY = sigY - detailFontSize - 3;
+      if (date && dateY > areaY + 2) {
         page.drawText(`Signed: ${date}`, {
-          x: areaX + 6, y: dateY, size: detailFontSize, font: helvetica, color: rgb(0.3, 0.3, 0.3),
+          x: areaX + 4, y: dateY, size: detailFontSize, font: helvetica, color: rgb(0.3, 0.3, 0.3),
         });
       }
 
       // Small "Electronically signed" footer
-      const footerY = areaY + 3;
-      if (footerY < dateY - 2) {
+      const footerY = areaY + 2;
+      if (footerY < dateY - 1) {
         page.drawText('Electronically signed via Notewell', {
-          x: areaX + 6, y: footerY, size: Math.min(5.5, detailFontSize - 1), font: helvetica, color: rgb(0.7, 0.7, 0.7),
+          x: areaX + 4, y: footerY, size: Math.min(4.5, detailFontSize - 1), font: helvetica, color: rgb(0.7, 0.7, 0.7),
         });
       }
     }
