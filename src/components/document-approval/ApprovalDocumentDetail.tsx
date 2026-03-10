@@ -566,6 +566,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                     allApproved={allApproved}
                     approvedCount={approvedCount}
                     verificationUrl={verificationUrl}
+                    auditLog={auditLog}
                   />
                 )}
                 {activeTab === 'audit' && (
