@@ -467,10 +467,14 @@ const handler = async (req: Request): Promise<Response> => {
         };
 
         if (signedPdfAttachment) {
+          console.log("send_completed: attaching PDF to email for", recipientEmail);
           emailPayload.attachments = [{
             filename: signedPdfAttachment.filename,
             content: signedPdfAttachment.content,
+            type: "application/pdf",
           }];
+        } else {
+          console.warn("send_completed: no attachment available for", recipientEmail);
         }
 
         const { error: sendErr } = await resend.emails.send(emailPayload);
