@@ -232,6 +232,35 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     toast.success(`Added ${newRows.length} from "${group.name}"`);
   };
 
+  const openDirectoryModal = () => {
+    if (!directoryLoaded) fetchDirectory();
+    setSelectedDirectoryUsers(new Set());
+    setExpandedPractices(new Set());
+    setShowDirectoryModal(true);
+  };
+
+  const addFromDirectory = () => {
+    const existingEmails = new Set(signatories.map(s => s.email.toLowerCase()));
+    const allUsers = practiceGroups.flatMap(g => g.users);
+    const selected = allUsers.filter(u => selectedDirectoryUsers.has(u.user_id));
+    const newRows: SignatoryRow[] = selected
+      .filter(u => !existingEmails.has(u.email.toLowerCase()))
+      .map(u => ({
+        id: localId(),
+        signatory_title: u.title || '',
+        name: u.full_name,
+        email: u.email,
+        role: u.practice_role || u.role || '',
+        organisation: u.practice_name,
+        organisation_type: u.organisation_type === 'Management' ? 'Other' : u.organisation_type || '',
+      }));
+
+    setSignatories(prev => [...prev.filter(s => s.email || s.name), ...newRows]);
+    setShowDirectoryModal(false);
+    setSelectedDirectoryUsers(new Set());
+    if (newRows.length > 0) toast.success(`Added ${newRows.length} Notewell user(s)`);
+  };
+
   // Drag reorder
   const handleDragStart = (idx: number) => setDragIdx(idx);
   const handleDragOver = (e: React.DragEvent, idx: number) => {
