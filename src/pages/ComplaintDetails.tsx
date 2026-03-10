@@ -888,17 +888,20 @@ const ComplaintDetails = () => {
 
       if (data?.outcomeLetter) {
         // Update the outcome letter in the database
-        const { error: updateError } = await supabase
+        const { data: updatedData, error: updateError } = await supabase
           .from('complaint_outcomes')
           .update({ outcome_letter: data.outcomeLetter })
-          .eq('complaint_id', complaint.id);
+          .eq('complaint_id', complaint.id)
+          .select()
+          .maybeSingle();
 
         if (updateError) {
           console.error('Error updating outcome letter:', updateError);
           throw updateError;
         }
+        if (!updatedData) throw new Error('Failed to save regenerated letter — you may not have permission. Please contact your administrator.');
 
-        setOutcomeLetter(data.outcomeLetter);
+        setOutcomeLetter(updatedData.outcome_letter);
         showToast.success("Outcome letter regenerated successfully with practice logo included", { section: 'complaints' });
       } else {
         throw new Error('No outcome letter received from generator');
