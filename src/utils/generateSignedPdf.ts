@@ -91,8 +91,8 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
     cursiveFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
   }
 
-  // For stamp method, draw stamps on existing page
-  if (placement.method === 'stamp' && placement.page != null) {
+  // For stamp method, draw individual signature blocks at their positions
+  if (placement.method === 'stamp') {
     drawStampSignatures(pdfDoc, options, helvetica, helveticaBold, cursiveFont);
   }
 
