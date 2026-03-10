@@ -229,7 +229,8 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
       <div style={{ background: PAGE_BG, minHeight: '100vh', fontFamily: "'DM Sans', sans-serif" }}>
         {/* ── Branded Top Bar ─────────────────────────────────── */}
         <div style={{
-          background: DARK_GREEN, padding: '14px 24px',
+          background: 'linear-gradient(135deg, hsl(213, 100%, 50%), hsl(213, 100%, 45%))',
+          padding: '14px 24px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
