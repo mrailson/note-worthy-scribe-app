@@ -860,6 +860,7 @@ function CertificateTab({
       }));
       const auditLogEntries: AuditLogEntry[] = auditLog.map(a => ({
         action: a.action, actor_name: a.actor_name || 'System',
+        actor_email: a.actor_email || null,
         created_at: a.created_at, ip_address: a.metadata?.ip_address || null,
       }));
       const pdfBytes = await generateCertificatePdf({
@@ -867,7 +868,7 @@ function CertificateTab({
         certificateId, fileHash: doc.file_hash, signatories: sigInfos,
         auditLog: auditLogEntries, completedAt: (doc as any).completed_at,
       });
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
