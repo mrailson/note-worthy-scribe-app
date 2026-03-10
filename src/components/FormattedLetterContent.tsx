@@ -21,6 +21,7 @@ interface SignatoryProfile {
   full_name: string | null;
   title: string | null;
   email: string | null;
+  job_title: string | null;
 }
 
 export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
@@ -104,17 +105,42 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
 
         // Signatory profile (e.g. the person who decided the outcome)
         if (signatoryUserId) {
-          const { data, error } = await supabase
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('full_name, title, email')
             .eq('user_id', signatoryUserId)
             .maybeSingle();
 
-          if (error) {
-            console.error('Error fetching signatory profile:', error);
+          if (profileError) {
+            console.error('Error fetching signatory profile:', profileError);
           }
 
-          setSignatoryProfile((data as SignatoryProfile | null) ?? null);
+          // Also fetch job_title from complaint_signatures
+          let jobTitle: string | null = null;
+          const { data: sigData } = await supabase
+            .from('complaint_signatures')
+            .select('job_title')
+            .eq('user_id', signatoryUserId)
+            .eq('is_default', true)
+            .maybeSingle();
+          
+          if (sigData?.job_title) {
+            jobTitle = sigData.job_title;
+          } else {
+            // Fallback: any signature for this user
+            const { data: anySigData } = await supabase
+              .from('complaint_signatures')
+              .select('job_title')
+              .eq('user_id', signatoryUserId)
+              .limit(1)
+              .maybeSingle();
+            jobTitle = anySigData?.job_title ?? null;
+          }
+
+          setSignatoryProfile(profileData ? {
+            ...(profileData as { full_name: string | null; title: string | null; email: string | null }),
+            job_title: jobTitle,
+          } : null);
         } else {
           setSignatoryProfile(null);
         }
@@ -400,6 +426,11 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
                       <p className="text-xl font-bold text-blue-800 mb-1">
                         {resolvedName}
                       </p>
+                      {signatoryProfile?.job_title && (
+                        <p className="text-gray-600 text-sm">
+                          {signatoryProfile.job_title}
+                        </p>
+                      )}
                     </div>
                   );
                 }
