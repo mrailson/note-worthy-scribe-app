@@ -2360,7 +2360,7 @@ const ComplaintDetails = () => {
                                   .from('communication-files')
                                   .createSignedUrl(doc.file_path, 3600);
                                 if (error || !data?.signedUrl) {
-                                  toast.error('Failed to generate file link');
+                                  showToast.error('Failed to generate file link', { section: 'complaints' });
                                   return;
                                 }
                                 window.open(data.signedUrl, '_blank');
