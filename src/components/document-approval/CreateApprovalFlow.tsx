@@ -164,11 +164,11 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const handleStampPositionContinue = async () => {
     if (!documentId) return;
     try {
-      await updateSignaturePlacement(documentId, { method: 'stamp', ...stampPosition });
-      setStep('signatories');
+      await updateSignaturePlacement(documentId, { method: 'stamp', positions: stampPositions });
+      setStep('review');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to save signature position');
+      toast.error('Failed to save signature positions');
     }
   };
 
