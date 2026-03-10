@@ -770,6 +770,7 @@ export const PracticeUserManagement = () => {
                             {user.survey_manager_access && <Badge variant="outline" className="text-xs">Survey</Badge>}
                             {user.policy_service_access && <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">Policies</Badge>}
                             {user.complaints_manager_access && <Badge variant="outline" className="text-xs">Complaints</Badge>}
+                            {user.document_signoff_access && <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">Sign-Off</Badge>}
                             {user.fridge_monitoring_access && <Badge variant="outline" className="text-xs">Fridge</Badge>}
                             {user.nres_access && <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">NRES</Badge>}
                           </div>
