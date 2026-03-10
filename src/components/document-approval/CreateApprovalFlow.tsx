@@ -494,7 +494,10 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
             </div>
             <SignaturePositionPicker
               fileUrl={fileUrl}
-              signatories={validSignatories.map(s => ({ id: s.id, name: s.name }))}
+              signatories={dbSignatories.length > 0
+                ? dbSignatories.map(s => ({ id: s.id, name: s.name }))
+                : validSignatories.map(s => ({ id: s.id, name: s.name }))
+              }
               value={stampPositions}
               onChange={setStampPositions}
             />
