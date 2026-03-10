@@ -573,7 +573,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const sigRows = (allSignatories || [])
         .map((s: any) => `<tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${s.signed_name || s.name}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${withTitle(s.signed_name || s.name, s.signatory_title)}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_role || s.role || "—"}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_organisation || s.organisation || "—"}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
