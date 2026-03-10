@@ -518,6 +518,9 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 <Button variant="outline" size="sm" onClick={() => setShowContactsModal(true)} className="gap-1 text-xs">
                   <UserPlus className="h-3 w-3" /> Add from Contacts
                 </Button>
+                <Button variant="outline" size="sm" onClick={openDirectoryModal} className="gap-1 text-xs">
+                  <Building2 className="h-3 w-3" /> Notewell Users
+                </Button>
                 {contactGroups.length > 0 && (
                   <Select onValueChange={addGroup}>
                     <SelectTrigger className="h-8 text-xs w-auto gap-1">
