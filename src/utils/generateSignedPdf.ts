@@ -85,7 +85,7 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
   try {
     const fontResponse = await fetch(dancingScriptUrl);
     const fontBytes = await fontResponse.arrayBuffer();
-    cursiveFont = await pdfDoc.embedFont(fontBytes);
+    cursiveFont = await pdfDoc.embedFont(fontBytes, { subset: false });
   } catch (e) {
     console.warn('Failed to load Dancing Script font, falling back to Times Italic', e);
     cursiveFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
