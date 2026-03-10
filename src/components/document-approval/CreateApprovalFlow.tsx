@@ -149,13 +149,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
         toast.success('Converted from Word to PDF successfully');
       }
 
-      // After conversion, the stored file is always PDF, so stamp is available
-      const storedIsPdf = isDocx || file.name.toLowerCase().endsWith('.pdf');
-      if (signatureMethod === 'stamp' && storedIsPdf) {
-        setStep('stamp_position');
-      } else {
-        setStep('signatories');
-      }
+      // After upload, always go to signatories first (stamp positioning comes after)
+      setStep('signatories');
       toast.success('Document uploaded successfully');
     } catch (err) {
       console.error(err);
