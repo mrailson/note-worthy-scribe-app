@@ -200,13 +200,20 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
     }
     
     // Detect addressee (patient name, address)
-    if (currentSection === 'addressee' && !bodyStarted) {
+    if ((currentSection === 'addressee' || currentSection === 'header') && !bodyStarted) {
       if (line.toLowerCase().includes('dear ') || line.includes('Re:')) {
+        // If we were still in 'header', move any collected headerLines to addressee
+        if (currentSection === 'header' && headerLines.length > 0) {
+          addresseeSection.push(...headerLines);
+          headerLines = [];
+        }
         bodyStarted = true;
         currentSection = 'body';
         bodyLines.push(line);
-      } else {
+      } else if (currentSection === 'addressee') {
         addresseeSection.push(line);
+      } else {
+        headerLines.push(line);
       }
       continue;
     }
