@@ -352,7 +352,7 @@ const PublicApproval = () => {
     }
   };
 
-  const formValid = fullName.trim() && role.trim() && organisation.trim() && confirmRead && confirmLegal;
+  const formValid = fullName.trim() && role.trim() && organisation.trim() && confirmApproval;
 
   // ─── Loading (skeleton) ───────────────────────────────────────
   if (loading) {
