@@ -545,35 +545,41 @@ const handler = async (req: Request): Promise<Response> => {
     // ─── TYPE: SEND_COMPLETED ────────────────────────────────────────
     if (type === "send_completed") {
 
-      // Download the signed PDF from storage
+      // Download the signed PDF from storage (skip if >5MB)
       let signedPdfAttachment: { filename: string; content: string } | null = null;
       const fileUrlToDownload = signed_file_url || doc.signed_file_url;
       console.log("send_completed: fileUrlToDownload =", fileUrlToDownload);
 
       if (fileUrlToDownload) {
-        try {
-          const storagePath = fileUrlToDownload.replace(/^.*approval-documents\//, "");
-          console.log("send_completed: downloading storagePath =", storagePath);
-          const { data: fileData, error: fileErr } = await supabase.storage
-            .from("approval-documents")
-            .download(storagePath);
+        // Check file size first
+        const signedFileSize = doc.file_size_bytes || 0;
+        if (signedFileSize > MAX_ATTACHMENT_BYTES) {
+          console.log(`send_completed: signed PDF too large (${signedFileSize} bytes), skipping attachment`);
+        } else {
+          try {
+            const storagePath = fileUrlToDownload.replace(/^.*approval-documents\//, "");
+            console.log("send_completed: downloading storagePath =", storagePath);
+            const { data: fileData, error: fileErr } = await supabase.storage
+              .from("approval-documents")
+              .download(storagePath);
 
-          if (fileErr) {
-            console.error("send_completed: storage download error:", fileErr);
-          }
+            if (fileErr) {
+              console.error("send_completed: storage download error:", fileErr);
+            }
 
-          if (!fileErr && fileData) {
-            const arrayBuf = await fileData.arrayBuffer();
-            const bytes = new Uint8Array(arrayBuf);
-            const base64Content = encodeBase64(bytes);
-            console.log("send_completed: attachment size =", bytes.length, "bytes, base64 length =", base64Content.length);
-            signedPdfAttachment = {
-              filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
-              content: base64Content,
-            };
+            if (!fileErr && fileData) {
+              const arrayBuf = await fileData.arrayBuffer();
+              const bytes = new Uint8Array(arrayBuf);
+              const base64Content = encodeBase64(bytes);
+              console.log("send_completed: attachment size =", bytes.length, "bytes, base64 length =", base64Content.length);
+              signedPdfAttachment = {
+                filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
+                content: base64Content,
+              };
+            }
+          } catch (e) {
+            console.error("send_completed: Could not download signed PDF attachment:", e);
           }
-        } catch (e) {
-          console.error("send_completed: Could not download signed PDF attachment:", e);
         }
       } else {
         console.warn("send_completed: No signed_file_url available");
