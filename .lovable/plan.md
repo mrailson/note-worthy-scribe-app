@@ -1,58 +1,42 @@
 
 
-## Problem Analysis
+## Send Completed Document with Certificate
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+### What
 
-### Root causes by issue:
+Add a "Send Completed Document" button (visible when all signatures are received) that:
+1. Generates the signed PDF with the Electronic Signature Certificate appended as the final page
+2. Emails it to the sender (and optionally all signatories) with the signed PDF attached
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+### Changes
 
-## Plan
+#### 1. `src/components/document-approval/ApprovalDocumentDetail.tsx`
+- Add a new "Send Completed Document" button in the completed/allApproved card (next to existing Generate/Download buttons)
+- The button handler will:
+  - Generate the signed PDF (reusing `handleGenerateSignedPdf` logic, or using the already-generated `signedFileUrl`)
+  - Call `send-approval-email` with a new type `send_completed` that attaches the signed PDF
+- Add `Send` icon import from lucide-react
+- Show loading state while sending
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+#### 2. `supabase/functions/send-approval-email/index.ts`
+- Add a new email type: `send_completed`
+- This type will:
+  - Download the signed PDF from storage (using `signed_file_url` from the document record)
+  - If no signed PDF exists yet, download the original and note that in the email
+  - Compose a professional email to the sender with the signed PDF attached, including signatory summary table
+  - Also send a copy to each signatory with the completed signed document
+  - Log to audit as `email_sent_completed_document`
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+#### 3. Flow
+1. User clicks "Send Completed Document"
+2. If no signed PDF exists yet, auto-generate it first (reuse existing logic), upload to storage
+3. Call edge function `send-approval-email` with `type: 'send_completed'`
+4. Edge function downloads the signed PDF from storage, emails it to sender + all signatories
+5. Toast confirmation shown
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
-
-### 2. Raise Part 2b base tokens
-
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
-
-### 3. Add anti-truncation instructions to all step prompts
-
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
-
-### 4. Update step labels and progress tracking
-
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
-
-### 5. Verify Version History enforcement
-
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
-
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+### Technical Details
+- The signed PDF already includes the certificate page via `generateSignedPdf` with `placement.method === 'append'`
+- The edge function will fetch the signed PDF blob from Supabase storage and attach it using Resend's attachment API
+- Email subject: "Completed Signed Document: {title}"
+- No database schema changes needed — `signed_file_url` already exists on `approval_documents`
 
