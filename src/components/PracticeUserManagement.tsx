@@ -1049,6 +1049,21 @@ export const PracticeUserManagement = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Switch
+                      id="document_signoff_access"
+                      checked={userFormData.module_access.document_signoff_access}
+                      onCheckedChange={(checked) => 
+                        setUserFormData(prev => ({
+                          ...prev,
+                          module_access: { ...prev.module_access, document_signoff_access: checked }
+                        }))
+                      }
+                    />
+                    <Label htmlFor="document_signoff_access" className="text-sm">
+                      Document Sign-Off
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
                       id="fridge_monitoring_access"
                       checked={userFormData.module_access.fridge_monitoring_access}
                       onCheckedChange={(checked) => 
