@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 import { generateSignedPdf, SignatoryInfo, SignaturePlacement, AuditLogEntry } from '@/utils/generateSignedPdf';
 import { supabase } from '@/integrations/supabase/client';
 import QRCode from 'qrcode';
-import { useEffect as useEffectAlias, useRef } from 'react';
+import { useEffect as useEffectAlias } from 'react';
 
 // ─── Constants ─────────────────────────────────────────────────────
 const BRAND_GREEN = '#1B6B4A';
