@@ -558,18 +558,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        </Button>
                     </DrawerClose>
 
-                    {user && (
-                      <DrawerClose asChild>
-                        <Button 
-                          variant="ghost" 
-                          className="justify-start bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400"
-                          onClick={() => navigate('/gp-contract')}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          GP Contract 26/27
-                        </Button>
-                      </DrawerClose>
-                    )}
 
                     {!user && (
                       <DrawerClose asChild>
