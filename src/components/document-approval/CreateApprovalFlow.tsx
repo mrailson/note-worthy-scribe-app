@@ -261,7 +261,12 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
         }
       }
 
-      setStep('review');
+      // If stamp method, go to position picker; otherwise go to review
+      if (signatureMethod === 'stamp') {
+        setStep('stamp_position');
+      } else {
+        setStep('review');
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to save signatories');
