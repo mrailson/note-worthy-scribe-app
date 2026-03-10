@@ -76,6 +76,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [customEmailBody, setCustomEmailBody] = useState('');
   const [documentId, setDocumentId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Stores the DB-returned signatories (with real IDs) after addSignatories
+  const [dbSignatories, setDbSignatories] = useState<{ id: string; name: string; email: string }[]>([]);
 
   // Signature placement
   const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('append');
