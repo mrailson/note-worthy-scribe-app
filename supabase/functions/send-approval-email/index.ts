@@ -77,7 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const resend = new Resend(resendApiKey);
 
-    const { type, document_id, signatory_id, custom_body }: EmailRequest = await req.json();
+    const { type, document_id, signatory_id, custom_body, signed_file_url }: EmailRequest = await req.json();
 
     if (!type || !document_id) {
       return new Response(JSON.stringify({ error: "type and document_id are required" }), {
@@ -376,7 +376,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     // ─── TYPE: SEND_COMPLETED ────────────────────────────────────────
     if (type === "send_completed") {
-      const { signed_file_url }: EmailRequest = await req.clone().json().catch(() => ({}));
 
       // Download the signed PDF from storage
       let signedPdfAttachment: { filename: string; content: Uint8Array } | null = null;
