@@ -567,11 +567,6 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
             Chase Pending ({pendingCount})
           </Button>
         )}
-        {isCompleted && (
-          <Button variant="outline" size="sm" className="text-xs gap-1">
-            <Download className="h-3 w-3" /> Audit Certificate
-          </Button>
-        )}
       </div>
     </Card>
   );
