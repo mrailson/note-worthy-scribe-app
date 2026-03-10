@@ -81,22 +81,32 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const [suggestingPositions, setSuggestingPositions] = useState(false);
 
-  // Initialise default positions for signatories that don't have one
-  useEffect(() => {
-    const updated = { ...value };
-    let changed = false;
-    signatories.forEach((sig, idx) => {
-      if (!updated[sig.id]) {
-        updated[sig.id] = {
-          ...DEFAULT_STAMP,
-          x: 10 + (idx % 2) * 45,
-          y: 70 + Math.floor(idx / 2) * 15,
-        };
-        changed = true;
-      }
+  // Click-to-place handler for PDF pages
+  const handlePageClick = useCallback((e: React.MouseEvent, pageNum: number) => {
+    // Don't place if we're finishing a drag
+    if (dragging) return;
+    if (!activeSignatoryId) return;
+    // Only place if signatory doesn't have a position yet
+    if (value[activeSignatoryId]) return;
+
+    const pageEl = pageRefs.current.get(pageNum);
+    if (!pageEl) return;
+
+    const pos = getMousePercent(e, pageEl);
+    const newX = Math.max(0, Math.min(100 - DEFAULT_STAMP.width, pos.x - DEFAULT_STAMP.width / 2));
+    const newY = Math.max(0, Math.min(100 - DEFAULT_STAMP.height, pos.y - DEFAULT_STAMP.height / 2));
+
+    onChange({
+      ...value,
+      [activeSignatoryId]: {
+        page: pageNum,
+        x: Math.round(newX * 10) / 10,
+        y: Math.round(newY * 10) / 10,
+        width: DEFAULT_STAMP.width,
+        height: DEFAULT_STAMP.height,
+      },
     });
-    if (changed) onChange(updated);
-  }, [signatories]);
+  }, [activeSignatoryId, value, dragging, onChange, getMousePercent]);
 
   // Load PDF
   useEffect(() => {
