@@ -6,6 +6,7 @@ import {
   Shield, Send, Copy, Lock, Plus, User, Mail, Building2, Calendar,
   Eye, PenLine, Bell, FileSignature, Award, Trash2, ArrowLeft,
 } from 'lucide-react';
+import { Header } from '@/components/Header';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -227,42 +228,8 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
       <link href={GOOGLE_FONTS_URL} rel="stylesheet" />
 
       <div style={{ background: PAGE_BG, minHeight: '100vh', fontFamily: "'DM Sans', sans-serif" }}>
-        {/* ── Branded Top Bar ─────────────────────────────────── */}
-        <div style={{
-          background: 'linear-gradient(135deg, hsl(213, 100%, 50%), hsl(213, 100%, 45%))',
-          padding: '14px 24px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button
-              onClick={onBack}
-              style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer', padding: 4, display: 'flex' }}
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: '#ffffff' }}>
-              Notewell
-            </span>
-            <span style={{
-              fontSize: 10, fontWeight: 600, color: GOLD,
-              border: `1.5px solid ${GOLD}`, borderRadius: 4, padding: '2px 7px',
-              letterSpacing: '0.06em',
-            }}>
-              VERIFIED
-            </span>
-          </div>
-          {isCompleted && allApproved && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: 'rgba(22,163,74,0.15)', borderRadius: 20, padding: '5px 14px',
-            }}>
-              <CheckCircle2 size={14} color="#16a34a" />
-              <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', letterSpacing: '0.03em' }}>
-                COMPLETE
-              </span>
-            </div>
-          )}
-        </div>
+        {/* ── Standard Notewell Header ─────────────────────────── */}
+        <Header />
 
         {/* ── Content Container ───────────────────────────────── */}
         <div style={{ maxWidth: 880, margin: '0 auto', padding: '24px 16px' }}>
