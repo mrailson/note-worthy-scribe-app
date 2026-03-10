@@ -509,7 +509,8 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
         'outcome', 
         complaintReferenceNumber || `COMP${complaintId.substring(0, 8)}`,
         letterDetails.signatoryName,
-        letterDetails.practiceDetails
+        letterDetails.practiceDetails,
+        letterDetails.signatoryJobTitle
       );
 
       console.log('Document structure created successfully');

@@ -8,6 +8,7 @@ export interface FormattedContent {
 
 export interface LetterDetails {
   signatoryName: string | null;
+  signatoryJobTitle: string | null;
   practiceDetails: {
     phone: string | null;
     email: string | null;
@@ -19,9 +20,10 @@ export interface LetterDetails {
 export async function fetchLetterDetails(signatoryUserId?: string | null): Promise<LetterDetails> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { signatoryName: null, practiceDetails: null };
+    if (!user) return { signatoryName: null, signatoryJobTitle: null, practiceDetails: null };
 
     let signatoryName: string | null = null;
+    let signatoryJobTitle: string | null = null;
     let practiceDetails: LetterDetails['practiceDetails'] = null;
 
     // Fetch signatory profile
@@ -32,6 +34,26 @@ export async function fetchLetterDetails(signatoryUserId?: string | null): Promi
         .eq('user_id', signatoryUserId)
         .maybeSingle();
       signatoryName = profile?.full_name || null;
+
+      // Fetch job title from complaint_signatures
+      const { data: sigData } = await supabase
+        .from('complaint_signatures')
+        .select('job_title')
+        .eq('user_id', signatoryUserId)
+        .eq('is_default', true)
+        .maybeSingle();
+      
+      if (sigData?.job_title) {
+        signatoryJobTitle = sigData.job_title;
+      } else {
+        const { data: anySigData } = await supabase
+          .from('complaint_signatures')
+          .select('job_title')
+          .eq('user_id', signatoryUserId)
+          .limit(1)
+          .maybeSingle();
+        signatoryJobTitle = anySigData?.job_title ?? null;
+      }
     }
 
     // Fetch practice details - try default first, then fallback
@@ -58,10 +80,10 @@ export async function fetchLetterDetails(signatoryUserId?: string | null): Promi
       }
     }
 
-    return { signatoryName, practiceDetails };
+    return { signatoryName, signatoryJobTitle, practiceDetails };
   } catch (error) {
     console.error('Error fetching letter details:', error);
-    return { signatoryName: null, practiceDetails: null };
+    return { signatoryName: null, signatoryJobTitle: null, practiceDetails: null };
   }
 }
 
@@ -111,7 +133,8 @@ export async function createLetterDocument(
   letterType: string, 
   referenceNumber: string,
   signatoryName?: string | null,
-  practiceDetails?: { phone?: string | null; email?: string | null; practice_name?: string | null } | null
+  practiceDetails?: { phone?: string | null; email?: string | null; practice_name?: string | null } | null,
+  signatoryJobTitle?: string | null
 ): Promise<Document> {
   // Extract logo URL from HTML comment if present
   const logoUrlMatch = letterContent.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
@@ -177,13 +200,20 @@ export async function createLetterDocument(
     }
     
     // Detect addressee (patient name, address)
-    if (currentSection === 'addressee' && !bodyStarted) {
+    if ((currentSection === 'addressee' || currentSection === 'header') && !bodyStarted) {
       if (line.toLowerCase().includes('dear ') || line.includes('Re:')) {
+        // If still in header, move collected lines to addressee
+        if (currentSection === 'header' && headerLines.length > 0) {
+          addresseeSection.push(...headerLines);
+          headerLines = [];
+        }
         bodyStarted = true;
         currentSection = 'body';
         bodyLines.push(line);
-      } else {
+      } else if (currentSection === 'addressee') {
         addresseeSection.push(line);
+      } else {
+        headerLines.push(line);
       }
       continue;
     }
@@ -438,8 +468,21 @@ export async function createLetterDocument(
               font: "Calibri"
             })
           ],
-          spacing: { after: 100 }
+          spacing: { after: signatoryJobTitle ? 40 : 100 }
         }));
+        // Add job title below name
+        if (signatoryJobTitle) {
+          documentChildren.push(new Paragraph({
+            children: [
+              new TextRun({
+                text: signatoryJobTitle,
+                size: 20,
+                font: "Calibri"
+              })
+            ],
+            spacing: { after: 100 }
+          }));
+        }
         return;
       }
       
