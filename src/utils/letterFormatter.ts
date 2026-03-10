@@ -23,6 +23,7 @@ export async function fetchLetterDetails(signatoryUserId?: string | null): Promi
     if (!user) return { signatoryName: null, signatoryJobTitle: null, practiceDetails: null };
 
     let signatoryName: string | null = null;
+    let signatoryJobTitle: string | null = null;
     let practiceDetails: LetterDetails['practiceDetails'] = null;
 
     // Fetch signatory profile
