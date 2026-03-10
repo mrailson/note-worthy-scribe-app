@@ -70,6 +70,11 @@ export default function DocumentApproval() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<ApprovalDocumentWithSignatories | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
+
+  const selectDoc = useCallback((doc: ApprovalDocumentWithSignatories | null) => {
+    setSelectedDoc(doc);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
   const [sort, setSort] = useState<SortType>('recent');
   const [activeTab, setActiveTab] = useState<TabType>('active');
 
@@ -164,7 +169,7 @@ export default function DocumentApproval() {
   }
 
   if (selectedDoc) {
-    return <ApprovalDocumentDetail document={selectedDoc} onBack={() => setSelectedDoc(null)} />;
+    return <ApprovalDocumentDetail document={selectedDoc} onBack={() => selectDoc(null)} />;
   }
 
   const filterPills: { key: FilterType; label: string }[] = [
@@ -233,7 +238,7 @@ export default function DocumentApproval() {
           </div>
 
           {activeTab === 'history' ? (
-            <ApprovalHistory documents={documents} onSelectDoc={setSelectedDoc} />
+            <ApprovalHistory documents={documents} onSelectDoc={selectDoc} />
           ) : (
             <>
               {/* Filter Pills */}
@@ -371,7 +376,7 @@ export default function DocumentApproval() {
                       <DocumentCard
                         key={doc.id}
                         doc={doc}
-                        onSelect={() => setSelectedDoc(doc)}
+                        onSelect={() => selectDoc(doc)}
                         onChasePending={async () => {
                           setChasingDocId(doc.id);
                           try {
@@ -394,7 +399,7 @@ export default function DocumentApproval() {
                 <div className="hidden lg:block w-80 flex-shrink-0">
                   <NeedsAttentionPanel
                     needsAttention={needsAttention}
-                    onSelectDoc={(doc) => setSelectedDoc(doc)}
+                    onSelectDoc={(doc) => selectDoc(doc)}
                     onChaseAllOverdue={async () => {
                       const overdueIds = needsAttention.overdueDocuments.map(d => d.id);
                       setChasingDocId('all-overdue');
