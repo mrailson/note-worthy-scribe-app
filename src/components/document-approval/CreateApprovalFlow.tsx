@@ -76,6 +76,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [customEmailBody, setCustomEmailBody] = useState('');
   const [documentId, setDocumentId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Stores the DB-returned signatories (with real IDs) after addSignatories
+  const [dbSignatories, setDbSignatories] = useState<{ id: string; name: string; email: string }[]>([]);
 
   // Signature placement
   const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('append');
@@ -287,8 +289,11 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
     setSending(true);
     try {
-      await addSignatories(documentId, validSignatories);
-
+      const inserted = await addSignatories(documentId, validSignatories);
+      // Store DB signatories with real IDs for stamp positioning
+      if (inserted) {
+        setDbSignatories(inserted.map(s => ({ id: s.id, name: s.name, email: s.email })));
+      }
       if (saveNewContacts) {
         for (const s of validSignatories) {
           await saveContact({ name: s.name, email: s.email, role: s.role || undefined, organisation: s.organisation || undefined, title: s.signatory_title || undefined, organisation_type: s.organisation_type || undefined });
@@ -489,7 +494,10 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
             </div>
             <SignaturePositionPicker
               fileUrl={fileUrl}
-              signatories={validSignatories.map(s => ({ id: s.id, name: s.name }))}
+              signatories={dbSignatories.length > 0
+                ? dbSignatories.map(s => ({ id: s.id, name: s.name }))
+                : validSignatories.map(s => ({ id: s.id, name: s.name }))
+              }
               value={stampPositions}
               onChange={setStampPositions}
             />
