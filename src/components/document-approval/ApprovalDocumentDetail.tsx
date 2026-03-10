@@ -1,11 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   FileText, CheckCircle2, Clock, XCircle, Ban, Loader2, Download, 
   Shield, Send, Copy, Lock, Plus, User, Mail, Building2, Calendar,
   Eye, PenLine, Bell, FileSignature, Award, Trash2, ArrowLeft,
+  ZoomIn, ZoomOut,
 } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 import { Header } from '@/components/Header';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
