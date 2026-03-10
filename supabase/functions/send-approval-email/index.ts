@@ -385,6 +385,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       for (const sig of targets) {
         const approveUrl = `${APP_URL}/approve/${sig.approval_token}`;
+        const sigDisplayName = withTitle(sig.name, sig.signatory_title);
         const now = new Date().toISOString();
         let deadlineNote = "";
         if (doc.deadline) {
@@ -398,12 +399,12 @@ const handler = async (req: Request): Promise<Response> => {
           ${alertBanner("#fef3c7", "#92400e", "&#9203; Reminder: Your approval is still required")}
           <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Approval Still Required</td></tr>
-            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sig.name},</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sigDisplayName},</td></tr>
             <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">This is a reminder that your approval is still needed for the following document:</td></tr>
           </table>
           ${detailsCard(`
             ${detailRow("Document", doc.title)}
-            ${detailRow("From", doc.sender_name || doc.sender_email || "Unknown")}
+            ${detailRow("From", senderDisplayName)}
             ${detailRow("Sent", formatDate(doc.created_at!), true)}
           `, "DOCUMENT DETAILS")}
           ${deadlineNote}
