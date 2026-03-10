@@ -186,7 +186,8 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
     .replace(/\[.*?Logo\/Letterhead.*?\]/gi, '') // Remove letterhead placeholder text
     .replace(/\*?Letterhead\/Logo Here\*?/gi, '') // Remove letterhead placeholder
     .replace(/\[Letterhead\]/gi, '') // Remove [Letterhead] placeholder
-    .replace(/```plaintext|```/g, ''); // Remove code block markers
+    .replace(/```plaintext|```/g, '') // Remove code block markers
+    .replace(/&nbsp;/g, ' '); // Convert HTML non-breaking spaces to regular spaces
   
   // Parse content into sections
   const lines = cleanContent.split('\n');
