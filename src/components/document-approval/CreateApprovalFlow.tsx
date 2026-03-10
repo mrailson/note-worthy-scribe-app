@@ -131,7 +131,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     const isDocx = file.name.toLowerCase().endsWith('.docx');
     try {
       const placement = signatureMethod === 'stamp'
-        ? { method: 'stamp' as const, ...stampPosition }
+        ? { method: 'stamp' as const, positions: stampPositions }
         : { method: 'append' as const };
 
       const doc = await uploadDocument(file, {
