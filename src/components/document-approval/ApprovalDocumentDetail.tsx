@@ -179,6 +179,45 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
     }
   };
 
+  const handleSendCompletedDocument = async () => {
+    setSending(true);
+    try {
+      // If no signed PDF exists yet, generate one first
+      let currentSignedUrl = signedFileUrl;
+      if (!currentSignedUrl) {
+        await handleGenerateSignedPdf();
+        // Re-fetch the document to get the signed_file_url
+        const { data: updatedDoc } = await supabase
+          .from('approval_documents')
+          .select('signed_file_url')
+          .eq('id', doc.id)
+          .single();
+        currentSignedUrl = (updatedDoc as any)?.signed_file_url;
+      }
+
+      if (!currentSignedUrl) {
+        toast.error('Could not generate signed PDF. Please try again.');
+        return;
+      }
+
+      const { error } = await supabase.functions.invoke('send-approval-email', {
+        body: {
+          type: 'send_completed',
+          document_id: doc.id,
+          signed_file_url: currentSignedUrl,
+        },
+      });
+
+      if (error) throw error;
+      toast.success('Completed signed document sent to all parties');
+    } catch (err) {
+      console.error('Failed to send completed document:', err);
+      toast.error('Failed to send completed document');
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
