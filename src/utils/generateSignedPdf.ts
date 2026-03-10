@@ -240,7 +240,7 @@ async function drawCertificatePages(
     page.drawRectangle({ x: LM, y: y - sigBoxH, width: CW, height: sigBoxH, color: bgColor, borderColor, borderWidth: 0.75 });
 
     // Status badge (top right)
-    const badgeText = isSigned ? '✓ SIGNED' : '⏳ PENDING';
+    const badgeText = isSigned ? 'SIGNED' : 'PENDING';
     const badgeColor = isSigned ? GREEN : rgb(0.573, 0.251, 0.055);
     const badgeBg = isSigned ? rgb(0.9, 0.97, 0.93) : rgb(0.99, 0.95, 0.88);
     const btw = helveticaBold.widthOfTextAtSize(badgeText, 8);
