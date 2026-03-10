@@ -238,7 +238,7 @@ export default function DocumentApproval() {
           </div>
 
           {activeTab === 'history' ? (
-            <ApprovalHistory documents={documents} onSelectDoc={setSelectedDoc} />
+            <ApprovalHistory documents={documents} onSelectDoc={selectDoc} />
           ) : (
             <>
               {/* Filter Pills */}
