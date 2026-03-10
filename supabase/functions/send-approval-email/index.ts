@@ -416,7 +416,7 @@ const handler = async (req: Request): Promise<Response> => {
             ${detailRow("Sent", formatDate(doc.created_at!), true)}
           `, "DOCUMENT DETAILS")}
           ${deadlineNote}
-          ${infoNote("The document is re-attached for your convenience.")}
+          ${pdfAttachment ? infoNote("The document is re-attached for your convenience.") : infoNote("Please click the button below to view and approve the document.")}
           ${primaryButton(approveUrl, "&#10003; Approve Document")}
           ${fallbackLink(approveUrl)}
         `);
