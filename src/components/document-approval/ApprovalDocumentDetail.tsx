@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useDocumentApproval, ApprovalDocument, ApprovalSignatory } from '@/hooks/useDocumentApproval';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { generateSignedPdf, SignatoryInfo, SignaturePlacement } from '@/utils/generateSignedPdf';
+import { generateSignedPdf, SignatoryInfo, SignaturePlacement, AuditLogEntry } from '@/utils/generateSignedPdf';
 import { supabase } from '@/integrations/supabase/client';
 import { SignatureCertificate, type CertificateSignatory, type AuditEntry } from './SignatureCertificate';
 
