@@ -493,7 +493,7 @@ function drawHandwrittenSignature(
   });
 }
 
-// ─── Stamp Method (unchanged) ────────────────────────────────────────
+// ─── Stamp Method — per-signatory positioned blocks ──────────────────
 function drawStampSignatures(
   pdfDoc: PDFDocument,
   options: GenerateSignedPdfOptions,
@@ -503,6 +503,76 @@ function drawStampSignatures(
 ) {
   const { signatories, placement } = options;
   const pages = pdfDoc.getPages();
+  const positions = placement.positions || {};
+
+  // If we have per-signatory positions, draw each at their own location
+  if (Object.keys(positions).length > 0) {
+    for (const sig of signatories) {
+      const pos = sig.id ? positions[sig.id] : null;
+      if (!pos) continue;
+
+      const pageIdx = (pos.page || 1) - 1;
+      if (pageIdx < 0 || pageIdx >= pages.length) continue;
+
+      const page = pages[pageIdx];
+      const pw = page.getWidth();
+      const ph = page.getHeight();
+
+      const pctX = (pos.x || 10) / 100;
+      const pctY = (pos.y || 55) / 100;
+      const pctW = (pos.width || 35) / 100;
+      const pctH = (pos.height || 12) / 100;
+
+      const areaX = pctX * pw;
+      const areaW = pctW * pw;
+      const areaH = pctH * ph;
+      const areaY = ph - (pctY * ph) - areaH;
+
+      // Light background for the signature block
+      page.drawRectangle({
+        x: areaX, y: areaY, width: areaW, height: areaH,
+        color: rgb(0.98, 0.98, 0.98), opacity: 0.9,
+        borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 0.5,
+      });
+
+      const name = sig.signed_name || sig.name;
+      const date = sig.signed_at ? format(new Date(sig.signed_at), 'dd MMM yyyy') : '';
+
+      // Draw handwritten signature name
+      const sigFontSize = Math.min(16, Math.max(10, areaW / (name.length * 0.55)));
+      const inkColor = rgb(0.05, 0.1, 0.45);
+      const sigY = areaY + areaH - 6 - sigFontSize;
+      page.drawText(name, { x: areaX + 6, y: sigY, size: sigFontSize, font: cursiveFont, color: inkColor });
+
+      // Underline
+      const textWidth = cursiveFont.widthOfTextAtSize(name, sigFontSize);
+      page.drawLine({
+        start: { x: areaX + 6, y: sigY - 2 },
+        end: { x: areaX + 6 + Math.min(textWidth, areaW - 12), y: sigY - 2 },
+        thickness: 0.5, color: rgb(0.6, 0.6, 0.7),
+      });
+
+      // Signed date below signature
+      const detailFontSize = Math.min(7.5, areaH / 10);
+      const dateY = sigY - sigFontSize - 2;
+      if (date && dateY > areaY + 4) {
+        page.drawText(`Signed: ${date}`, {
+          x: areaX + 6, y: dateY, size: detailFontSize, font: helvetica, color: rgb(0.3, 0.3, 0.3),
+        });
+      }
+
+      // Small "Electronically signed" footer
+      const footerY = areaY + 3;
+      if (footerY < dateY - 2) {
+        page.drawText('Electronically signed via Notewell', {
+          x: areaX + 6, y: footerY, size: Math.min(5.5, detailFontSize - 1), font: helvetica, color: rgb(0.7, 0.7, 0.7),
+        });
+      }
+    }
+    return;
+  }
+
+  // Fallback: legacy single-area stamp for all signatories
   const pageIdx = (placement.page || 1) - 1;
   if (pageIdx < 0 || pageIdx >= pages.length) return;
 
@@ -560,7 +630,7 @@ function drawStampSignatures(
     page.drawText(name, { x, y: detailY, size: fontSize, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
     page.drawText(sig.email, { x, y: detailY - fontSize - 1, size: fontSize - 1, font: helvetica, color: rgb(0.3, 0.3, 0.6) });
     if (role || org) {
-      page.drawText([role, org].filter(Boolean).join(' · '), {
+      page.drawText([role, org].filter(Boolean).join(' - '), {
         x, y: detailY - (fontSize * 2) - 2, size: fontSize - 1, font: helvetica, color: rgb(0.3, 0.3, 0.3),
       });
     }
