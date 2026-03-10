@@ -1,58 +1,31 @@
 
 
-## Problem Analysis
+## Investigation Report: Two Bugs in Complaint Management
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+### Bug 1: Editing outcome letter doesn't save
 
-### Root causes by issue:
+**Root Cause**: The `saveOutcomeLetterToDatabase` function in `InvestigationDecisionAndLearning.tsx` has a critical path issue. When `existingOutcome` is populated (line 362), it updates via `.eq('id', existingOutcome.id)`. However, `existingOutcome` is fetched once on component mount (line 58) and **never refreshed after the initial AI generation**. 
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+Looking at lines 307-339: when the letter is first generated, `saveOutcomeLetterToDatabase` is called with the new letter. If `existingOutcome` was null at that point, it takes the INSERT branch (line 408-425) which calls `setExistingOutcome(data)`. This part works.
 
-## Plan
+The actual problem is more subtle: the UPDATE RLS policy on `complaint_outcomes` (migration `20251109091223`) requires `is_system_admin`, `practice_manager` role, `complaints_manager` role, OR that the complaint belongs to the user's practice. If Nicola's user doesn't match any of these conditions, the UPDATE silently returns zero rows (Supabase doesn't throw on RLS-blocked updates), the function doesn't check for this, and the toast never fires because the error path isn't hit — the update just silently does nothing.
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+**Fix**: After the `.update()` call, check if any rows were actually affected. If not, surface an error. Additionally, add a `.select()` after update to confirm it succeeded.
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+### Bug 2: "Bucket not found" for communication-files
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+**Root Cause**: The `communication-files` bucket was created as **private** (`public: false`) in migration `20251108154108`. However, `ComplaintDetails.tsx` (lines 2344-2360) uses `getPublicUrl()` to generate download/view links for complaint documents. `getPublicUrl()` constructs a URL like `/storage/v1/object/public/communication-files/...` which returns 404 "Bucket not found" for private buckets.
 
-### 2. Raise Part 2b base tokens
+**Fix**: Replace `getPublicUrl()` calls with `createSignedUrl()` for the `communication-files` bucket in `ComplaintDetails.tsx` (and `FileUpload.tsx` line 50-52). Signed URLs work with private buckets and expire after a set time, which is more secure for complaint documents.
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
+### Proposed Changes
 
-### 3. Add anti-truncation instructions to all step prompts
+**1. `src/components/InvestigationDecisionAndLearning.tsx`** — Fix silent update failure:
+- In `saveOutcomeLetterToDatabase`, after the `.update()` call on `complaint_outcomes`, add `.select().single()` to confirm the row was updated. If no data returned, throw an error.
 
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
+**2. `src/pages/ComplaintDetails.tsx`** — Fix bucket not found:
+- Replace `getPublicUrl` on lines 2344-2347 and 2357-2360 with `createSignedUrl` (async, 1-hour expiry).
 
-### 4. Update step labels and progress tracking
-
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
-
-### 5. Verify Version History enforcement
-
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
-
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+**3. `src/components/FileUpload.tsx`** — Fix bucket not found:
+- Replace `getPublicUrl` on line 50-52 with `createSignedUrl`.
 
