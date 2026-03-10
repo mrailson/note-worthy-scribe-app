@@ -546,7 +546,7 @@ function drawStampSignatures(
       const pctX = (pos.x || 10) / 100;
       const pctY = (pos.y || 55) / 100;
       const pctW = (pos.width || 35) / 100;
-      const pctH = (pos.height || 12) / 100;
+      const pctH = (pos.height || 6) / 100;
 
       const areaX = pctX * pw;
       const areaW = pctW * pw;

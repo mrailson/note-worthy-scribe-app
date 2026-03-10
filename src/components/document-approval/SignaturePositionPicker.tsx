@@ -59,7 +59,7 @@ const SIGNATORY_BG_COLOURS = [
   'hsla(0, 70%, 50%, 0.12)',
 ];
 
-const DEFAULT_STAMP: StampPosition = { page: 1, x: 10, y: 70, width: 35, height: 12 };
+const DEFAULT_STAMP: StampPosition = { page: 1, x: 10, y: 70, width: 35, height: 6 };
 
 export function SignaturePositionPicker({ fileUrl, signatories, value, onChange }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
