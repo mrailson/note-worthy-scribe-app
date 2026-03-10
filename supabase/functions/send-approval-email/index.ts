@@ -30,6 +30,17 @@ const daysBetween = (a: string, b: string): number => {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / msPerDay);
 };
 
+/** Prepend "Dr" to a name if the title field is "Dr" (case-insensitive). */
+const withTitle = (name: string, title?: string | null): string => {
+  if (!title) return name;
+  if (title.trim().toUpperCase() === "DR") {
+    // Avoid doubling if name already starts with "Dr "
+    if (/^Dr\s/i.test(name)) return `Dr ${name.replace(/^Dr\s+/i, "")}`;
+    return `Dr ${name}`;
+  }
+  return name;
+};
+
 // ─── TABLE-BASED EMAIL HELPERS (all inline CSS, Outlook-safe) ────────
 
 const emailWrapper = (content: string): string => `<!DOCTYPE html>
@@ -241,6 +252,18 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("document_id", document_id)
       .order("sort_order", { ascending: true });
 
+    // Look up sender's title from profiles
+    let senderTitle: string | null = null;
+    if (doc.sender_id) {
+      const { data: senderProfile } = await supabase
+        .from("profiles")
+        .select("title")
+        .eq("user_id", doc.sender_id)
+        .single();
+      senderTitle = senderProfile?.title || null;
+    }
+    const senderDisplayName = withTitle(doc.sender_name || doc.sender_email || "Unknown", senderTitle);
+
     // Download the PDF attachment for request/reminder emails
     let pdfAttachment: { filename: string; content: Uint8Array } | null = null;
     if (type === "request" || type === "reminder") {
@@ -273,16 +296,16 @@ const handler = async (req: Request): Promise<Response> => {
 
       for (const sig of targets) {
         const approveUrl = `${APP_URL}/approve/${sig.approval_token}`;
-        const fromDisplay = doc.sender_name || doc.sender_email || "Unknown";
+        const sigDisplayName = withTitle(sig.name, sig.signatory_title);
         const fromEmail = doc.sender_email || "";
         const fromValue = fromEmail
-          ? `<a href="mailto:${fromEmail}" style="color: #005EB8; text-decoration: none; font-weight: 500;">${fromDisplay}</a>`
-          : fromDisplay;
+          ? `<a href="mailto:${fromEmail}" style="color: #005EB8; text-decoration: none; font-weight: 500;">${senderDisplayName}</a>`
+          : senderDisplayName;
         let html: string;
 
         if (custom_body) {
           const personalised = custom_body
-            .replace(/\[Signatory Name\]/gi, sig.name)
+            .replace(/\[Signatory Name\]/gi, sigDisplayName)
             .replace(/\n/g, "<br>");
 
           html = emailWrapper(`
@@ -308,8 +331,8 @@ const handler = async (req: Request): Promise<Response> => {
           html = emailWrapper(`
             <table cellpadding="0" cellspacing="0" border="0" width="100%">
               <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Document Approval Requested</td></tr>
-              <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sig.name},</td></tr>
-              <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">A document has been sent to you for approval. Please review the details below.</td></tr>
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sigDisplayName},</td></tr>
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">${senderDisplayName} has sent you a document for approval. Please review the details below.</td></tr>
             </table>
             ${messageBlock}
             ${detailsCard(`
@@ -362,6 +385,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       for (const sig of targets) {
         const approveUrl = `${APP_URL}/approve/${sig.approval_token}`;
+        const sigDisplayName = withTitle(sig.name, sig.signatory_title);
         const now = new Date().toISOString();
         let deadlineNote = "";
         if (doc.deadline) {
@@ -375,12 +399,12 @@ const handler = async (req: Request): Promise<Response> => {
           ${alertBanner("#fef3c7", "#92400e", "&#9203; Reminder: Your approval is still required")}
           <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Approval Still Required</td></tr>
-            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sig.name},</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sigDisplayName},</td></tr>
             <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">This is a reminder that your approval is still needed for the following document:</td></tr>
           </table>
           ${detailsCard(`
             ${detailRow("Document", doc.title)}
-            ${detailRow("From", doc.sender_name || doc.sender_email || "Unknown")}
+            ${detailRow("From", senderDisplayName)}
             ${detailRow("Sent", formatDate(doc.created_at!), true)}
           `, "DOCUMENT DETAILS")}
           ${deadlineNote}
@@ -431,15 +455,16 @@ const handler = async (req: Request): Promise<Response> => {
     if (type === "confirmation" && signatory_id) {
       const sig = (allSignatories || []).find((s) => s.id === signatory_id);
       if (sig) {
+        const sigDisplayName = withTitle(sig.signed_name || sig.name, sig.signatory_title);
         const html = emailWrapper(`
           <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Approval Confirmed</td></tr>
-            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Dear ${sig.signed_name || sig.name},</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Dear ${sigDisplayName},</td></tr>
             <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">Thank you. Your approval has been successfully recorded.</td></tr>
           </table>
           ${detailsCard(`
             ${detailRow("Document", doc.title)}
-            ${detailRow("Signed as", sig.signed_name || sig.name)}
+            ${detailRow("Signed as", sigDisplayName)}
             ${sig.signed_role ? detailRow("Role", sig.signed_role) : ""}
             ${sig.signed_organisation ? detailRow("Organisation", sig.signed_organisation) : ""}
             ${detailRow("Approved at", sig.signed_at ? formatDate(sig.signed_at) : "Just now", true)}
@@ -473,7 +498,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (type === "completed") {
       const sigRows = (allSignatories || [])
         .map((s) => `<tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${s.signed_name || s.name}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${withTitle(s.signed_name || s.name, s.signatory_title)}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_role || s.role || "—"}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
         </tr>`)
@@ -548,7 +573,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const sigRows = (allSignatories || [])
         .map((s: any) => `<tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${s.signed_name || s.name}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${withTitle(s.signed_name || s.name, s.signatory_title)}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_role || s.role || "—"}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_organisation || s.organisation || "—"}</td>
           <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
@@ -611,6 +636,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (type === "declined" && signatory_id) {
       const sig = (allSignatories || []).find((s) => s.id === signatory_id);
       if (sig && doc.sender_email) {
+        const sigDisplayName = withTitle(sig.name, sig.signatory_title);
         const declineComment = sig.decline_comment
           ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 16px 0;">
               <tr><td style="border-left: 4px solid #ef4444; background-color: #fef2f2; padding: 12px 16px;">
@@ -625,11 +651,11 @@ const handler = async (req: Request): Promise<Response> => {
         const html = emailWrapper(`
           ${alertBanner("#fef2f2", "#991b1b", "&#10060; Approval Declined")}
           <table cellpadding="0" cellspacing="0" border="0" width="100%">
-            <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">${sig.name} has declined</td></tr>
-            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;"><strong>${sig.name}</strong> has declined to approve <strong>${doc.title}</strong>.</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">${sigDisplayName} has declined</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;"><strong>${sigDisplayName}</strong> has declined to approve <strong>${doc.title}</strong>.</td></tr>
           </table>
           ${detailsCard(`
-            ${detailRow("Signatory", sig.name)}
+            ${detailRow("Signatory", sigDisplayName)}
             ${sig.role ? detailRow("Role", sig.role) : ""}
             ${detailRow("Organisation", sig.organisation || "—", true)}
           `, "SIGNATORY DETAILS")}
