@@ -30,6 +30,17 @@ const daysBetween = (a: string, b: string): number => {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / msPerDay);
 };
 
+/** Prepend "Dr" to a name if the title field is "Dr" (case-insensitive). */
+const withTitle = (name: string, title?: string | null): string => {
+  if (!title) return name;
+  if (title.trim().toUpperCase() === "DR") {
+    // Avoid doubling if name already starts with "Dr "
+    if (/^Dr\s/i.test(name)) return `Dr ${name.replace(/^Dr\s+/i, "")}`;
+    return `Dr ${name}`;
+  }
+  return name;
+};
+
 // ─── TABLE-BASED EMAIL HELPERS (all inline CSS, Outlook-safe) ────────
 
 const emailWrapper = (content: string): string => `<!DOCTYPE html>
