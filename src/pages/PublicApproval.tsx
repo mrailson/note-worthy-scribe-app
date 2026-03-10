@@ -306,7 +306,7 @@ const PublicApproval = () => {
   };
 
   const handleApprove = async () => {
-    if (!fullName.trim() || !role.trim() || !organisation.trim() || !confirmRead || !confirmLegal) return;
+    if (!fullName.trim() || !role.trim() || !organisation.trim() || !confirmApproval) return;
     setSubmitting(true);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('process-approval', {
