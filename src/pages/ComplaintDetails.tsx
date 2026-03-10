@@ -839,16 +839,19 @@ const ComplaintDetails = () => {
     
     setSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data: updatedData, error } = await supabase
         .from('complaint_outcomes')
         .update({ 
           outcome_letter: editedOutcomeLetterContent
         })
-        .eq('complaint_id', complaint.id);
+        .eq('complaint_id', complaint.id)
+        .select()
+        .maybeSingle();
 
       if (error) throw error;
+      if (!updatedData) throw new Error('Failed to save outcome letter — you may not have permission. Please contact your administrator.');
 
-      setOutcomeLetter(editedOutcomeLetterContent);
+      setOutcomeLetter(updatedData.outcome_letter);
       setIsEditingOutcomeLetter(false);
       setHasUnsavedOutcomeChanges(false);
       showToast.success("Outcome letter updated successfully", { section: 'complaints' });
