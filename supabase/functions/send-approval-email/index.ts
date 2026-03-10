@@ -429,8 +429,7 @@ const handler = async (req: Request): Promise<Response> => {
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 8px; margin: 16px 0;">
           <p style="margin: 0; font-size: 14px; color: #166534;">🔒 This document was electronically signed in accordance with UK law (Electronic Communications Act 2000). The attached PDF contains a SHA-256 integrity hash and full audit trail.</p>
         </div>
-        ${primaryButton(`${APP_URL}/document-approval`, "View in Notewell")}
-        <p style="text-align: center; font-size: 13px; color: #94a3b8;">Powered by Notewell AI &middot; Document Approval Service</p>
+        <p style="text-align: center; font-size: 13px; color: #94a3b8; margin-top: 20px;">Powered by Notewell AI &middot; Document Approval Service</p>
       `);
 
       // Send to sender
