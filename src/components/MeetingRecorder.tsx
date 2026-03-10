@@ -4192,6 +4192,16 @@ export const MeetingRecorder = ({
       return;
     }
 
+    // Block start while a previous stop operation is still finalising
+    if (stopInProgressRef.current) {
+      console.log('⚠️ Stop still in progress, cannot start new recording yet');
+      showToast.warning('Please wait — previous recording is still saving...', {
+        section: 'meeting_manager',
+        duration: 3000,
+      });
+      return;
+    }
+
     // Prevent double-starts from rapid clicks
     if (isStartingRecordingRef.current || isRecording) {
       console.log('⚠️ Recording already starting or active, ignoring duplicate start request');
@@ -4814,16 +4824,15 @@ export const MeetingRecorder = ({
         sessionStorage.removeItem('currentSessionId');
       }
       
-      // Reset the meeting immediately for short recordings (background)
+      // Reset the meeting synchronously for short recordings to prevent race conditions
+      // when user starts a new meeting immediately after stopping a short one
       setStopRecordingStep('Complete!');
-      setTimeout(async () => {
-        try {
-          await resetMeeting();
-        } finally {
-          setIsStoppingRecording(false);
-          stopInProgressRef.current = false;
-        }
-      }, 0);
+      try {
+        await resetMeeting();
+      } finally {
+        setIsStoppingRecording(false);
+        stopInProgressRef.current = false;
+      }
       
       // Show toast for short meeting (deduped)
       showToast.info('Meeting was too short to save (minimum 100 words required)', {
