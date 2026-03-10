@@ -271,8 +271,7 @@ const PublicApproval = () => {
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('');
   const [organisation, setOrganisation] = useState('');
-  const [confirmRead, setConfirmRead] = useState(false);
-  const [confirmLegal, setConfirmLegal] = useState(false);
+  const [confirmApproval, setConfirmApproval] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState<'approved' | 'declined' | null>(null);
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
