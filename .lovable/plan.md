@@ -1,58 +1,90 @@
 
 
-## Problem Analysis
+# Plan: Redesign Signature Placement Flow & PDF Viewer
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+## Problem Summary
+1. The PDF viewer in "Position Signature Block" is basic — needs to match the quality of Document Studio's preview (A4 page feel, smooth scrolling, zoom)
+2. Signature block positioning happens BEFORE signatories are added — it should come AFTER so each signer can have their block placed individually
+3. No per-signatory placement — currently one shared rectangle for all signatures
 
-### Root causes by issue:
+## Proposed Changes
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+### 1. Reorder the Flow Steps
+**File: `CreateApprovalFlow.tsx`**
 
-## Plan
+Change step order from:
+`upload → stamp_position → signatories → review`
+to:
+`upload → signatories → stamp_position → review`
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+- After uploading with "stamp" method selected, skip directly to signatories
+- After signatories are confirmed, THEN show stamp_position step
+- Pass signatory names into the picker so each can be placed individually
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+### 2. Rebuild `SignaturePositionPicker` as a Professional PDF Viewer
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+**File: `SignaturePositionPicker.tsx`** (rewrite)
 
-### 2. Raise Part 2b base tokens
+Inspired by the Document Studio preview style:
+- **A4-styled page rendering**: White pages with subtle shadow on a grey background, matching DocumentPreviewModal's aesthetic
+- **Smooth scrollable viewport**: All pages rendered vertically in a scrollable container (not one-page-at-a-time like current), with scroll-to-page navigation
+- **Toolbar**: Page indicator, zoom controls (+/- and slider), fit-to-width toggle
+- **Page thumbnails sidebar** (optional, for multi-page docs): Small clickable thumbnails on the left that scroll the main view
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
+### 3. Per-Signatory Signature Placement
 
-### 3. Add anti-truncation instructions to all step prompts
+**File: `SignaturePositionPicker.tsx`**
 
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
+- Accept `signatories: { id: string; name: string }[]` prop
+- Show a **signatory selector panel** (list of signer names with coloured indicators)
+- User clicks a signatory name → that signer becomes "active" → drag to place their signature block on the PDF
+- Each block is colour-coded and labelled with the signer's name
+- Blocks are individually draggable and repositionable
+- Output: `Record<string, StampPosition>` (keyed by signatory ID)
 
-### 4. Update step labels and progress tracking
+### 4. AI-Suggested Placement
 
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
+**File: `SignaturePositionPicker.tsx`** + edge function call
 
-### 5. Verify Version History enforcement
+- Add a "Suggest Positions" button that:
+  1. Sends the PDF text + signatory names to an edge function
+  2. The AI reads the document, finds where each person's name appears (e.g. signature lines, "Signed by:" sections)
+  3. Returns suggested page + coordinates for each signatory
+  4. Auto-places the blocks with a toast: "AI suggested positions — adjust if needed"
+- Uses existing Lovable AI gateway via a new edge function `suggest-signature-positions`
 
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
+### 5. Update Data Flow
 
-### Files to change
+**File: `CreateApprovalFlow.tsx`**
 
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
+- `stampPosition` changes from single `StampPosition` to `Record<string, StampPosition>` (per-signatory)
+- `updateSignaturePlacement` call updated to save per-signatory positions
+- Review step shows each signatory's placement summary
 
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+### Technical Details
+
+**Step order change** in `CreateApprovalFlow.tsx`:
+- `handleUploadAndContinue`: When stamp method, go to `signatories` (not `stamp_position`)
+- `handleContinueToReview`: Renamed/repurposed — after signatories saved, go to `stamp_position`
+- New `handleStampDone`: From stamp_position → review
+
+**New StampPosition type**:
+```typescript
+export interface PerSignatoryPositions {
+  [signatoryId: string]: StampPosition;
+}
+```
+
+**PDF viewer rendering**: Render all pages as canvases stacked vertically inside a ScrollArea, with IntersectionObserver to detect current visible page for the page indicator.
+
+**AI suggestion edge function** (`suggest-signature-positions`):
+- Input: extracted PDF text + signatory names
+- Prompt: "Given this document text and these signatory names, suggest page number and approximate position (as percentage) for each signature"
+- Output: `{ positions: { name: string, page: number, x: number, y: number }[] }`
+
+### Files to Create/Modify
+1. **Modify**: `src/components/document-approval/SignaturePositionPicker.tsx` — full rewrite with per-signatory placement, better PDF viewer
+2. **Modify**: `src/components/document-approval/CreateApprovalFlow.tsx` — reorder steps, update data types
+3. **Create**: `supabase/functions/suggest-signature-positions/index.ts` — AI placement suggestions
+4. **Modify**: `src/hooks/useDocumentApproval.ts` — update `updateSignaturePlacement` for per-signatory data
 
