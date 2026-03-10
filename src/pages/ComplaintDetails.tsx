@@ -2704,7 +2704,8 @@ const ComplaintDetails = () => {
                                   'outcome', 
                                   complaint.reference_number,
                                   letterDetails.signatoryName,
-                                  letterDetails.practiceDetails
+                                  letterDetails.practiceDetails,
+                                  letterDetails.signatoryJobTitle
                                 );
                                 const buffer = await Packer.toBlob(doc);
                                 
