@@ -18,7 +18,7 @@ import { hashFile } from '@/utils/fileHash';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { SignaturePositionPicker, StampPosition } from './SignaturePositionPicker';
+import { SignaturePositionPicker, StampPosition, PerSignatoryPositions } from './SignaturePositionPicker';
 
 const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof', 'Rev'];
 const ORG_TYPE_OPTIONS = ['', 'Practice', 'PCN', 'Federation', 'ICB', 'Other'];
