@@ -10,6 +10,7 @@ const corsHeaders = {
 };
 
 const APP_URL = "https://gpnotewell.co.uk";
+const FONT_STACK = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
 
 interface EmailRequest {
   type: "request" | "reminder" | "confirmation" | "completed" | "declined" | "send_completed";
@@ -29,66 +30,170 @@ const daysBetween = (a: string, b: string): number => {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / msPerDay);
 };
 
-// ─── REDESIGNED EMAIL HELPERS ────────────────────────────────────────
+// ─── TABLE-BASED EMAIL HELPERS (all inline CSS, Outlook-safe) ────────
 
-const emailWrapper = (content: string): string => `
-<!DOCTYPE html>
-<html>
+const emailWrapper = (content: string): string => `<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--[if gte mso 9]><xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1a1a2e;">
-  <!--[if mso]><table width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-    <!-- Header -->
-    <div style="background-color: #005EB8; padding: 20px 30px;">
-      <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
-        <td style="font-size: 20px; font-weight: 700; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">Notewell AI</td>
-      </tr></table>
-    </div>
-    <div style="height: 3px; background-color: #41B6E6;"></div>
-    <!-- Body -->
-    <div style="padding: 32px 30px;">
-      ${content}
-    </div>
-    <!-- Footer -->
-    <div style="padding: 16px 30px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
-      <p style="color: #94a3b8; font-size: 11px; margin: 0; line-height: 1.4;">Powered by Notewell AI</p>
-    </div>
-  </div>
-  <!--[if mso]></td></tr></table><![endif]-->
+<body style="margin: 0; padding: 0; background-color: #f0f4f8; font-family: ${FONT_STACK}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+  <!-- Outer wrapper table -->
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f0f4f8;">
+    <tr>
+      <td align="center" style="padding: 24px 0;">
+        <!-- Inner 600px container -->
+        <!--[if (gte mso 9)|(IE)]><table cellpadding="0" cellspacing="0" border="0" width="600" align="center"><tr><td><![endif]-->
+        <table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%; background-color: #ffffff; border-collapse: collapse;">
+          <!-- ═══ HEADER ═══ -->
+          <tr>
+            <td style="background-color: #005EB8; padding: 20px 30px;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="vertical-align: middle;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #ffffff; line-height: 1.2;">Notewell AI</td>
+                      </tr>
+                      <tr>
+                        <td style="font-family: ${FONT_STACK}; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1.5px; padding-top: 2px;">DOCUMENT APPROVAL SERVICE</td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td style="vertical-align: middle; text-align: right;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block;">
+                      <tr>
+                        <td style="background-color: rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 14px; font-family: ${FONT_STACK}; font-size: 12px; font-weight: 600; color: #ffffff;">&#128274; Secure</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- ═══ ACCENT STRIPE ═══ -->
+          <tr>
+            <td style="height: 4px; font-size: 0; line-height: 0;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+                <td width="50%" style="height: 4px; background-color: #005EB8; font-size: 0; line-height: 0;">&nbsp;</td>
+                <td width="50%" style="height: 4px; background-color: #41B6E6; font-size: 0; line-height: 0;">&nbsp;</td>
+              </tr></table>
+            </td>
+          </tr>
+          <!-- ═══ BODY ═══ -->
+          <tr>
+            <td style="padding: 32px 30px;">
+              ${content}
+            </td>
+          </tr>
+          <!-- ═══ DIVIDER ═══ -->
+          <tr>
+            <td style="padding: 0 30px;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td style="border-top: 1px solid #e2e8f0; height: 1px; font-size: 0; line-height: 0;">&nbsp;</td></tr></table>
+            </td>
+          </tr>
+          <!-- ═══ FOOTER ═══ -->
+          <tr>
+            <td style="padding: 20px 30px; background-color: #f8fafc; text-align: center;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="font-family: ${FONT_STACK}; font-size: 12px; font-weight: 600; color: #94a3b8; padding-bottom: 4px;">Powered by Notewell AI</td>
+                </tr>
+                <tr>
+                  <td align="center" style="font-family: ${FONT_STACK}; font-size: 11px; color: #cbd5e1; line-height: 1.5;">This is an automated message &middot; Document Approval Service</td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 6px;">
+                    <a href="https://gpnotewell.co.uk" style="font-family: ${FONT_STACK}; font-size: 11px; color: #005EB8; text-decoration: none;">gpnotewell.co.uk</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        <!--[if (gte mso 9)|(IE)]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 
 const primaryButton = (href: string, label: string): string =>
-  `<div style="margin: 28px 0 12px 0;">
-    <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td align="center">
-      <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${href}" style="height:52px;v-text-anchor:middle;width:100%;" arcsize="12%" fillcolor="#007f3b" stroke="f"><v:textbox inset="0,0,0,0"><center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">
-      ${label}</center></v:textbox></v:roundrect><![endif]-->
-      <!--[if !mso]><!-->
-      <a href="${href}" style="display: block; width: 100%; background-color: #007f3b; color: #ffffff; text-decoration: none; padding: 16px 0; border-radius: 6px; font-weight: 700; font-size: 16px; text-align: center; box-sizing: border-box;">${label}</a>
-      <!--<![endif]-->
-    </td></tr></table>
-  </div>`;
+  `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 24px 0 8px 0;">
+    <tr>
+      <td align="center">
+        <!--[if mso]>
+        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${href}" style="height:52px;v-text-anchor:middle;width:400px;" arcsize="12%" strokecolor="#007f3b" fillcolor="#007f3b">
+          <w:anchorlock/>
+          <center style="color:#ffffff;font-family:${FONT_STACK};font-size:16px;font-weight:bold;">${label}</center>
+        </v:roundrect>
+        <![endif]-->
+        <!--[if !mso]><!-->
+        <table cellpadding="0" cellspacing="0" border="0" style="max-width: 400px; width: 100%;">
+          <tr>
+            <td align="center" style="background-color: #007f3b; border-radius: 6px; padding: 16px 24px;">
+              <a href="${href}" style="display: block; font-family: ${FONT_STACK}; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; line-height: 1.2;">${label}</a>
+            </td>
+          </tr>
+        </table>
+        <!--<![endif]-->
+      </td>
+    </tr>
+  </table>`;
 
-const secondaryButton = (href: string, label: string): string =>
-  `<div style="text-align: center; margin: 0 0 24px 0;">
-    <a href="${href}" style="color: #005EB8; text-decoration: underline; font-size: 14px; font-weight: 500;">${label}</a>
-  </div>`;
+const fallbackLink = (href: string): string =>
+  `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 8px 0 20px 0;">
+    <tr>
+      <td align="center" style="font-family: ${FONT_STACK}; font-size: 12px; color: #94a3b8;">
+        Or copy this link: <a href="${href}" style="color: #005EB8; text-decoration: underline; word-break: break-all;">${href}</a>
+      </td>
+    </tr>
+  </table>`;
 
-const infoCard = (rows: string): string =>
-  `<div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; background-color: #f8fafc; margin: 20px 0;">
-    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse;">
-      ${rows}
-    </table>
-  </div>`;
+const detailsCard = (rows: string, headerLabel?: string): string =>
+  `<table cellpadding="0" cellspacing="0" border="1" bordercolor="#e2e8f0" width="100%" style="border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px 0;">
+    ${headerLabel ? `<tr>
+      <td colspan="2" style="background-color: #edf2f7; padding: 10px 16px; font-family: ${FONT_STACK}; font-size: 11px; font-weight: 700; color: #718096; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0;">${headerLabel}</td>
+    </tr>` : ""}
+    ${rows}
+  </table>`;
 
-const infoRow = (label: string, value: string): string =>
+const detailRow = (label: string, value: string, isLast = false): string =>
   `<tr>
-    <td style="padding: 5px 12px 5px 0; color: #64748b; font-size: 14px; white-space: nowrap; vertical-align: top; width: 120px;">${label}</td>
-    <td style="padding: 5px 0; font-size: 14px; font-weight: 600; color: #1a1a2e;">${value}</td>
+    <td width="110" style="padding: 10px 16px; font-family: ${FONT_STACK}; font-size: 11px; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.5px; vertical-align: top; background-color: #f8fafc;${isLast ? "" : " border-bottom: 1px solid #e2e8f0;"}">${label}</td>
+    <td style="padding: 10px 16px; font-family: ${FONT_STACK}; font-size: 14px; font-weight: 500; color: #2d3748; background-color: #f8fafc;${isLast ? "" : " border-bottom: 1px solid #e2e8f0;"}">${value}</td>
   </tr>`;
+
+const categoryBadge = (cat: string): string =>
+  `<table cellpadding="0" cellspacing="0" border="0" style="display: inline-block;"><tr><td style="background-color: #edf2f7; border-radius: 12px; padding: 3px 12px; font-family: ${FONT_STACK}; font-size: 12px; font-weight: 600; color: #4a5568;">${cat}</td></tr></table>`;
+
+const infoNote = (text: string): string =>
+  `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 16px 0;">
+    <tr><td align="center" style="font-family: ${FONT_STACK}; font-size: 13px; color: #a0aec0;">${text}</td></tr>
+  </table>`;
+
+const alertBanner = (bgColor: string, textColor: string, text: string): string =>
+  `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 20px;">
+    <tr><td style="background-color: ${bgColor}; padding: 12px 16px; border-radius: 8px; font-family: ${FONT_STACK}; font-size: 14px; font-weight: 600; color: ${textColor};">${text}</td></tr>
+  </table>`;
+
+const legalNotice = (bgColor: string, borderColor: string, textColor: string, text: string): string =>
+  `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+    <tr><td style="background-color: ${bgColor}; border: 1px solid ${borderColor}; padding: 12px 16px; border-radius: 8px; font-family: ${FONT_STACK}; font-size: 14px; color: ${textColor};">${text}</td></tr>
+  </table>`;
+
+const signatoryTable = (headCols: string[], rows: string): string => {
+  const ths = headCols.map(c => `<th style="padding: 10px 12px; text-align: left; font-family: ${FONT_STACK}; font-weight: 600; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">${c}</th>`).join("");
+  return `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+    <tr style="background-color: #005EB8;">${ths}</tr>
+    ${rows}
+  </table>`;
+};
+
+// ─── HANDLER ─────────────────────────────────────────────────────────
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -168,6 +273,11 @@ const handler = async (req: Request): Promise<Response> => {
 
       for (const sig of targets) {
         const approveUrl = `${APP_URL}/approve/${sig.approval_token}`;
+        const fromDisplay = doc.sender_name || doc.sender_email || "Unknown";
+        const fromEmail = doc.sender_email || "";
+        const fromValue = fromEmail
+          ? `<a href="mailto:${fromEmail}" style="color: #005EB8; text-decoration: none; font-weight: 500;">${fromDisplay}</a>`
+          : fromDisplay;
         let html: string;
 
         if (custom_body) {
@@ -176,38 +286,42 @@ const handler = async (req: Request): Promise<Response> => {
             .replace(/\n/g, "<br>");
 
           html = emailWrapper(`
-            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Requested</h2>
-            <div style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6;">${personalised}</div>
-            <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is attached to this email for your review.</p>
-            ${primaryButton(approveUrl, "Approve Document")}
-            ${secondaryButton(approveUrl, "View Document")}
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Document Approval Requested</td></tr>
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; line-height: 1.6; padding-bottom: 16px;">${personalised}</td></tr>
+            </table>
+            ${infoNote("The document is attached to this email for your review.")}
+            ${primaryButton(approveUrl, "&#10003; Approve Document")}
+            ${fallbackLink(approveUrl)}
           `);
         } else {
           const deadlineInfo = doc.deadline
-            ? `<p style="margin: 4px 0; font-size: 14px; color: #475569;">Deadline: <strong>${formatDate(doc.deadline)}</strong></p>`
+            ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 8px 0;"><tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">Deadline: <strong>${formatDate(doc.deadline)}</strong></td></tr></table>`
             : "";
 
           const messageBlock = doc.message
-            ? `<div style="background-color: #f1f5f9; border-left: 4px solid #005EB8; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
-                <p style="margin: 0; font-size: 14px; color: #475569;">"${doc.message}"</p>
-              </div>`
+            ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 16px 0;">
+                <tr><td style="border-left: 4px solid #005EB8; background-color: #f1f5f9; padding: 12px 16px; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; font-style: italic;">&ldquo;${doc.message}&rdquo;</td></tr>
+              </table>`
             : "";
 
           html = emailWrapper(`
-            <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Requested</h2>
-            <p style="margin: 0 0 8px 0;">Dear ${sig.name},</p>
-            <p style="margin: 0 0 16px 0;">${doc.sender_name || "A colleague"} has sent you a document for approval.</p>
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Document Approval Requested</td></tr>
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sig.name},</td></tr>
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">A document has been sent to you for approval. Please review the details below.</td></tr>
+            </table>
             ${messageBlock}
-            ${infoCard(`
-              ${infoRow("Document", doc.title)}
-              ${doc.category ? infoRow("Category", doc.category) : ""}
-              ${infoRow("From", doc.sender_name || doc.sender_email || "Unknown")}
-              ${infoRow("Sent", formatDate(doc.created_at!))}
-            `)}
+            ${detailsCard(`
+              ${detailRow("Document", doc.title)}
+              ${doc.category ? detailRow("Category", categoryBadge(doc.category)) : ""}
+              ${detailRow("From", fromValue)}
+              ${detailRow("Sent", formatDate(doc.created_at!), true)}
+            `, "DOCUMENT DETAILS")}
             ${deadlineInfo}
-            <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is attached to this email for your review.</p>
-            ${primaryButton(approveUrl, "Approve Document")}
-            ${secondaryButton(approveUrl, "View Document")}
+            ${infoNote("The document is attached to this email for your review.")}
+            ${primaryButton(approveUrl, "&#10003; Approve Document")}
+            ${fallbackLink(approveUrl)}
           `);
         }
 
@@ -253,26 +367,26 @@ const handler = async (req: Request): Promise<Response> => {
         if (doc.deadline) {
           const daysLeft = daysBetween(now, doc.deadline);
           deadlineNote = daysLeft > 0
-            ? `<div style="margin: 12px 0; padding: 10px 14px; background-color: #fef3c7; border-radius: 6px; font-size: 14px; color: #92400e;">${daysLeft} day${daysLeft !== 1 ? "s" : ""} remaining until the deadline (${formatDate(doc.deadline)})</div>`
-            : `<div style="margin: 12px 0; padding: 10px 14px; background-color: #fee2e2; border-radius: 6px; font-size: 14px; color: #991b1b;">This document is ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? "s" : ""} overdue (deadline was ${formatDate(doc.deadline)})</div>`;
+            ? alertBanner("#fef3c7", "#92400e", `${daysLeft} day${daysLeft !== 1 ? "s" : ""} remaining until the deadline (${formatDate(doc.deadline)})`)
+            : alertBanner("#fee2e2", "#991b1b", `This document is ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? "s" : ""} overdue (deadline was ${formatDate(doc.deadline)})`);
         }
 
         const html = emailWrapper(`
-          <div style="background-color: #fef3c7; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="margin: 0; font-weight: 600; color: #92400e; font-size: 14px;">Reminder: Your approval is still required</p>
-          </div>
-          <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Approval Still Required</h2>
-          <p style="margin: 0 0 8px 0;">Dear ${sig.name},</p>
-          <p style="margin: 0 0 16px 0;">This is a reminder that your approval is still needed for the following document:</p>
-          ${infoCard(`
-            ${infoRow("Document", doc.title)}
-            ${infoRow("From", doc.sender_name || doc.sender_email || "Unknown")}
-            ${infoRow("Originally sent", formatDate(doc.created_at!))}
-          `)}
+          ${alertBanner("#fef3c7", "#92400e", "&#9203; Reminder: Your approval is still required")}
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Approval Still Required</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sig.name},</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">This is a reminder that your approval is still needed for the following document:</td></tr>
+          </table>
+          ${detailsCard(`
+            ${detailRow("Document", doc.title)}
+            ${detailRow("From", doc.sender_name || doc.sender_email || "Unknown")}
+            ${detailRow("Sent", formatDate(doc.created_at!), true)}
+          `, "DOCUMENT DETAILS")}
           ${deadlineNote}
-          <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is re-attached for your convenience.</p>
-          ${primaryButton(approveUrl, "Approve Document")}
-          ${secondaryButton(approveUrl, "View Document")}
+          ${infoNote("The document is re-attached for your convenience.")}
+          ${primaryButton(approveUrl, "&#10003; Approve Document")}
+          ${fallbackLink(approveUrl)}
         `);
 
         const emailPayload: any = {
@@ -318,20 +432,22 @@ const handler = async (req: Request): Promise<Response> => {
       const sig = (allSignatories || []).find((s) => s.id === signatory_id);
       if (sig) {
         const html = emailWrapper(`
-          <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Approval Confirmed</h2>
-          <p style="margin: 0 0 8px 0;">Dear ${sig.signed_name || sig.name},</p>
-          <p style="margin: 0 0 16px 0;">Thank you. Your approval has been successfully recorded.</p>
-          ${infoCard(`
-            ${infoRow("Document", doc.title)}
-            ${infoRow("Signed as", sig.signed_name || sig.name)}
-            ${sig.signed_role ? infoRow("Role", sig.signed_role) : ""}
-            ${sig.signed_organisation ? infoRow("Organisation", sig.signed_organisation) : ""}
-            ${infoRow("Approved at", sig.signed_at ? formatDate(sig.signed_at) : "Just now")}
-          `)}
-          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 8px; margin: 16px 0;">
-            <p style="margin: 0; font-size: 14px; color: #166534;">Your electronic signature has been recorded in accordance with UK law (Electronic Communications Act 2000).</p>
-          </div>
-          <p style="margin: 16px 0 0 0; font-size: 14px; color: #64748b;">No further action is needed. You may close this email.</p>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Approval Confirmed</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Dear ${sig.signed_name || sig.name},</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">Thank you. Your approval has been successfully recorded.</td></tr>
+          </table>
+          ${detailsCard(`
+            ${detailRow("Document", doc.title)}
+            ${detailRow("Signed as", sig.signed_name || sig.name)}
+            ${sig.signed_role ? detailRow("Role", sig.signed_role) : ""}
+            ${sig.signed_organisation ? detailRow("Organisation", sig.signed_organisation) : ""}
+            ${detailRow("Approved at", sig.signed_at ? formatDate(sig.signed_at) : "Just now", true)}
+          `, "APPROVAL DETAILS")}
+          ${legalNotice("#f0fdf4", "#bbf7d0", "#166534", "Your electronic signature has been recorded in accordance with UK law (Electronic Communications Act 2000).")}
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #a0aec0; padding-top: 8px;">No further action is needed. You may close this email.</td></tr>
+          </table>
         `);
 
         const { error: sendErr } = await resend.emails.send({
@@ -355,29 +471,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     // ─── TYPE: COMPLETED ─────────────────────────────────────────────
     if (type === "completed") {
-      const sigSummaryRows = (allSignatories || [])
+      const sigRows = (allSignatories || [])
         .map((s) => `<tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #1a1a2e;">${s.signed_name || s.name}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${s.signed_role || s.role || "—"}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${s.signed_name || s.name}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_role || s.role || "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
         </tr>`)
         .join("");
 
       const html = emailWrapper(`
-        <div style="background-color: #f0fdf4; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-          <p style="margin: 0; font-weight: 700; color: #166534; font-size: 18px;">All Approvals Received</p>
-        </div>
-        <p style="margin: 0 0 16px 0; font-size: 15px;">All ${(allSignatories || []).length} signatories have approved <strong>${doc.title}</strong>.</p>
-        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse; margin: 16px 0; font-size: 14px;">
-          <thead>
-            <tr style="background-color: #005EB8;">
-              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Name</th>
-              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Role</th>
-              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Signed</th>
-            </tr>
-          </thead>
-          <tbody>${sigSummaryRows}</tbody>
+        ${alertBanner("#f0fdf4", "#166534", "&#127881; All Approvals Received")}
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">All ${(allSignatories || []).length} signatories have approved <strong style="color: #1a202c;">${doc.title}</strong>.</td></tr>
         </table>
+        ${signatoryTable(["Name", "Role", "Signed"], sigRows)}
         ${primaryButton(`${APP_URL}/document-approval`, "View in Notewell")}
       `);
 
@@ -439,35 +546,23 @@ const handler = async (req: Request): Promise<Response> => {
         console.warn("send_completed: No signed_file_url available");
       }
 
-      const sigSummaryRows = (allSignatories || [])
+      const sigRows = (allSignatories || [])
         .map((s: any) => `<tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #1a1a2e;">${s.signed_name || s.name}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${s.signed_role || s.role || "—"}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${s.signed_organisation || s.organisation || "—"}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${s.signed_name || s.name}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_role || s.role || "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_organisation || s.organisation || "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
         </tr>`)
         .join("");
 
       const html = emailWrapper(`
-        <div style="background-color: #f0fdf4; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-          <p style="margin: 0; font-weight: 700; color: #166534; font-size: 18px;">Completed Signed Document</p>
-        </div>
-        <p style="margin: 0 0 16px 0; font-size: 15px;">The fully signed version of <strong>${doc.title}</strong> is attached to this email.</p>
-        <p style="margin: 0 0 16px 0; font-size: 14px; color: #475569;">All ${(allSignatories || []).length} signator${(allSignatories || []).length !== 1 ? "ies" : "y"} have approved this document. The attached PDF includes the Electronic Signature Certificate with full audit trail.</p>
-        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse; margin: 16px 0; font-size: 14px;">
-          <thead>
-            <tr style="background-color: #005EB8;">
-              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Name</th>
-              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Role</th>
-              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Organisation</th>
-              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Signed</th>
-            </tr>
-          </thead>
-          <tbody>${sigSummaryRows}</tbody>
+        ${alertBanner("#f0fdf4", "#166534", "&#128196; Completed Signed Document")}
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 12px;">The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> is attached to this email.</td></tr>
+          <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; padding-bottom: 16px;">All ${(allSignatories || []).length} signator${(allSignatories || []).length !== 1 ? "ies" : "y"} have approved this document. The attached PDF includes the Electronic Signature Certificate with full audit trail.</td></tr>
         </table>
-        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 0; font-size: 14px; color: #166534;">This document was electronically signed in accordance with UK law (Electronic Communications Act 2000). The attached PDF contains a SHA-256 integrity hash and full audit trail.</p>
-        </div>
+        ${signatoryTable(["Name", "Role", "Organisation", "Signed"], sigRows)}
+        ${legalNotice("#f0fdf4", "#bbf7d0", "#166534", "This document was electronically signed in accordance with UK law (Electronic Communications Act 2000). The attached PDF contains a SHA-256 integrity hash and full audit trail.")}
       `);
 
       // Send to sender + all signatories
@@ -517,23 +612,27 @@ const handler = async (req: Request): Promise<Response> => {
       const sig = (allSignatories || []).find((s) => s.id === signatory_id);
       if (sig && doc.sender_email) {
         const declineComment = sig.decline_comment
-          ? `<div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
-              <p style="margin: 0 0 4px 0; font-weight: 600; color: #991b1b; font-size: 13px;">Reason given:</p>
-              <p style="margin: 0; font-size: 14px; color: #7f1d1d;">"${sig.decline_comment}"</p>
-            </div>`
-          : `<p style="color: #64748b; font-size: 14px;">No reason was provided.</p>`;
+          ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 16px 0;">
+              <tr><td style="border-left: 4px solid #ef4444; background-color: #fef2f2; padding: 12px 16px;">
+                <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr><td style="font-family: ${FONT_STACK}; font-size: 13px; font-weight: 600; color: #991b1b; padding-bottom: 4px;">Reason given:</td></tr>
+                  <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #7f1d1d;">&ldquo;${sig.decline_comment}&rdquo;</td></tr>
+                </table>
+              </td></tr>
+            </table>`
+          : `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 16px 0;"><tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #a0aec0;">No reason was provided.</td></tr></table>`;
 
         const html = emailWrapper(`
-          <div style="background-color: #fef2f2; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="margin: 0; font-weight: 600; color: #991b1b; font-size: 14px;">Approval Declined</p>
-          </div>
-          <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">${sig.name} has declined</h2>
-          <p style="margin: 0 0 16px 0; font-size: 15px;"><strong>${sig.name}</strong> has declined to approve <strong>${doc.title}</strong>.</p>
-          ${infoCard(`
-            ${infoRow("Signatory", sig.name)}
-            ${sig.role ? infoRow("Role", sig.role) : ""}
-            ${sig.organisation ? infoRow("Organisation", sig.organisation) : ""}
-          `)}
+          ${alertBanner("#fef2f2", "#991b1b", "&#10060; Approval Declined")}
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">${sig.name} has declined</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;"><strong>${sig.name}</strong> has declined to approve <strong>${doc.title}</strong>.</td></tr>
+          </table>
+          ${detailsCard(`
+            ${detailRow("Signatory", sig.name)}
+            ${sig.role ? detailRow("Role", sig.role) : ""}
+            ${detailRow("Organisation", sig.organisation || "—", true)}
+          `, "SIGNATORY DETAILS")}
           ${declineComment}
           ${primaryButton(`${APP_URL}/document-approval`, "View Details in Notewell")}
         `);
