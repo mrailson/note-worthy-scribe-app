@@ -498,31 +498,31 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                   style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
                 />
 
-                {/* Signature block overlays for this page */}
-                {signatories.map((sig, idx) => {
+                {/* Signature block overlay — only show active signatory */}
+                {activeSignatoryId && (() => {
+                  const idx = signatories.findIndex(s => s.id === activeSignatoryId);
+                  if (idx === -1) return null;
+                  const sig = signatories[idx];
                   const stamp = value[sig.id];
                   if (!stamp || stamp.page !== pageNum) return null;
 
                   const colour = getSignatoryColour(idx);
                   const bgColour = getSignatoryBg(idx);
-                  const isActive = activeSignatoryId === sig.id;
 
                   return (
                     <div
                       key={sig.id}
-                      className={`absolute rounded cursor-move flex items-center justify-center transition-shadow ${
-                        isActive ? 'shadow-lg ring-2 ring-offset-1' : 'shadow-sm'
-                      }`}
+                      className="absolute rounded cursor-move flex items-center justify-center shadow-lg ring-2 ring-offset-1"
                       style={{
                         left: `${stamp.x}%`,
                         top: `${stamp.y}%`,
                         width: `${stamp.width}%`,
                         height: `${stamp.height}%`,
-                        border: `2px ${isActive ? 'solid' : 'dashed'} ${colour}`,
+                        border: `2px solid ${colour}`,
                         backgroundColor: bgColour,
-                        outline: isActive ? `2px solid ${colour}` : undefined,
-                        outlineOffset: isActive ? '2px' : undefined,
-                        zIndex: isActive ? 30 : 20,
+                        outline: `2px solid ${colour}`,
+                        outlineOffset: '2px',
+                        zIndex: 30,
                       }}
                       onMouseDown={(e) => handleMouseDown(e, sig.id, pageNum)}
                     >
@@ -535,7 +535,7 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                       </div>
                     </div>
                   );
-                })}
+                })()}
               </div>
             ))}
           </div>
