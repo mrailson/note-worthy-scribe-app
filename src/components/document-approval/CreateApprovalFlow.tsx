@@ -10,10 +10,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
-  ArrowLeft, Upload, Plus, Trash2, Loader2, Send, UserPlus, Users,
+  ArrowLeft, Upload, Plus, Trash2, Loader2, Send, UserPlus, Users, Building2,
   GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Stamp, FileSignature, Eye, ChevronDown, ChevronUp, Pencil,
 } from 'lucide-react';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
+import { useNotewellDirectory, NotewellUser } from '@/hooks/useNotewellDirectory';
 import { hashFile } from '@/utils/fileHash';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -50,6 +51,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     uploadDocument, addSignatories, sendForApproval,
     contacts, contactGroups, saveContact, deleteContact, updateContact, updateSignaturePlacement,
   } = useDocumentApproval();
+  const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory();
 
   const [step, setStep] = useState<'upload' | 'stamp_position' | 'signatories' | 'review'>('upload');
   const [uploading, setUploading] = useState(false);
@@ -89,6 +91,9 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [editingContact, setEditingContact] = useState<ApprovalContact | null>(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', role: '', organisation: '', title: '', organisation_type: '' });
+  const [showDirectoryModal, setShowDirectoryModal] = useState(false);
+  const [selectedDirectoryUsers, setSelectedDirectoryUsers] = useState<Set<string>>(new Set());
+  const [expandedPractices, setExpandedPractices] = useState<Set<string>>(new Set());
 
   // ─── File handling ────────────────────────────────────────────────
 
@@ -225,6 +230,35 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
     setSignatories(prev => [...prev.filter(s => s.email || s.name), ...newRows]);
     toast.success(`Added ${newRows.length} from "${group.name}"`);
+  };
+
+  const openDirectoryModal = () => {
+    if (!directoryLoaded) fetchDirectory();
+    setSelectedDirectoryUsers(new Set());
+    setExpandedPractices(new Set());
+    setShowDirectoryModal(true);
+  };
+
+  const addFromDirectory = () => {
+    const existingEmails = new Set(signatories.map(s => s.email.toLowerCase()));
+    const allUsers = practiceGroups.flatMap(g => g.users);
+    const selected = allUsers.filter(u => selectedDirectoryUsers.has(u.user_id));
+    const newRows: SignatoryRow[] = selected
+      .filter(u => !existingEmails.has(u.email.toLowerCase()))
+      .map(u => ({
+        id: localId(),
+        signatory_title: u.title || '',
+        name: u.full_name,
+        email: u.email,
+        role: u.practice_role || u.role || '',
+        organisation: u.practice_name,
+        organisation_type: u.organisation_type === 'Management' ? 'Other' : u.organisation_type || '',
+      }));
+
+    setSignatories(prev => [...prev.filter(s => s.email || s.name), ...newRows]);
+    setShowDirectoryModal(false);
+    setSelectedDirectoryUsers(new Set());
+    if (newRows.length > 0) toast.success(`Added ${newRows.length} Notewell user(s)`);
   };
 
   // Drag reorder
@@ -483,6 +517,9 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               <div className="flex gap-2 flex-wrap">
                 <Button variant="outline" size="sm" onClick={() => setShowContactsModal(true)} className="gap-1 text-xs">
                   <UserPlus className="h-3 w-3" /> Add from Contacts
+                </Button>
+                <Button variant="outline" size="sm" onClick={openDirectoryModal} className="gap-1 text-xs">
+                  <Building2 className="h-3 w-3" /> Notewell Users
                 </Button>
                 {contactGroups.length > 0 && (
                   <Select onValueChange={addGroup}>
@@ -915,6 +952,108 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               <Button variant="outline" onClick={() => setShowContactsModal(false)}>Cancel</Button>
               <Button onClick={addContactsFromModal} disabled={selectedContactIds.size === 0} className="gap-1">
                 <UserPlus className="h-4 w-4" /> Add {selectedContactIds.size} Contact{selectedContactIds.size !== 1 ? 's' : ''}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ═══ Notewell Directory Modal ═══ */}
+        <Dialog open={showDirectoryModal} onOpenChange={setShowDirectoryModal}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                Notewell Users
+              </DialogTitle>
+            </DialogHeader>
+            {directoryLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading directory…</span>
+              </div>
+            ) : practiceGroups.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No Notewell users found.
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {practiceGroups.map(group => {
+                  const isExpanded = expandedPractices.has(group.practice_name);
+                  const selectedInGroup = group.users.filter(u => selectedDirectoryUsers.has(u.user_id)).length;
+                  const orgLabel = group.organisation_type === 'Practice' ? 'NRES Practice'
+                    : group.organisation_type === 'Management' ? 'PML'
+                    : group.organisation_type;
+
+                  return (
+                    <div key={group.practice_name} className="border rounded-lg overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedPractices(prev => {
+                          const next = new Set(prev);
+                          isExpanded ? next.delete(group.practice_name) : next.add(group.practice_name);
+                          return next;
+                        })}
+                        className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5 rotate-180" />}
+                          <span className="font-medium text-foreground">{group.practice_name}</span>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">{orgLabel}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {selectedInGroup > 0 && (
+                            <Badge variant="default" className="text-[10px] px-1.5 py-0">{selectedInGroup}</Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">{group.users.length} user{group.users.length !== 1 ? 's' : ''}</span>
+                        </div>
+                      </button>
+                      {isExpanded && (
+                        <div className="divide-y">
+                          {group.users.map(u => {
+                            const isSelected = selectedDirectoryUsers.has(u.user_id);
+                            const alreadyAdded = signatories.some(s => s.email.toLowerCase() === u.email.toLowerCase());
+                            return (
+                              <div
+                                key={u.user_id}
+                                onClick={() => {
+                                  if (alreadyAdded) return;
+                                  setSelectedDirectoryUsers(prev => {
+                                    const next = new Set(prev);
+                                    isSelected ? next.delete(u.user_id) : next.add(u.user_id);
+                                    return next;
+                                  });
+                                }}
+                                className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
+                                  alreadyAdded ? 'opacity-40 cursor-not-allowed' : 'hover:bg-muted/30'
+                                }`}
+                              >
+                                <Checkbox checked={isSelected} disabled={alreadyAdded} />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {u.title ? `${u.title} ` : ''}{u.full_name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                                  {u.practice_role && (
+                                    <p className="text-xs text-muted-foreground">{u.practice_role}</p>
+                                  )}
+                                </div>
+                                {alreadyAdded && (
+                                  <Badge variant="secondary" className="text-[10px]">Added</Badge>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setShowDirectoryModal(false)}>Cancel</Button>
+              <Button onClick={addFromDirectory} disabled={selectedDirectoryUsers.size === 0} className="gap-1">
+                <UserPlus className="h-4 w-4" /> Add {selectedDirectoryUsers.size} User{selectedDirectoryUsers.size !== 1 ? 's' : ''}
               </Button>
             </div>
           </DialogContent>
