@@ -835,7 +835,7 @@ function SignatoriesTab({ signatories }: { signatories: ApprovalSignatory[] }) {
 
 // ─── Certificate Tab ───────────────────────────────────────────
 function CertificateTab({
-  doc, signatories, certificateId, allApproved, approvedCount, verificationUrl,
+  doc, signatories, certificateId, allApproved, approvedCount, verificationUrl, auditLog,
 }: {
   doc: ApprovalDocument;
   signatories: ApprovalSignatory[];
@@ -843,11 +843,54 @@ function CertificateTab({
   allApproved: boolean;
   approvedCount: number;
   verificationUrl: string;
+  auditLog: any[];
 }) {
   const categoryLabel = categoryLabels[doc.category] || doc.category || 'Governance';
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadCertificate = async () => {
+    setDownloading(true);
+    try {
+      const sigInfos: SignatoryInfo[] = signatories.map(s => ({
+        id: s.id, name: s.name, email: s.email, role: s.role, organisation: s.organisation,
+        signed_at: s.signed_at, signed_name: s.signed_name, signed_role: s.signed_role,
+        signed_organisation: s.signed_organisation,
+        signed_ip: (s as any).signed_ip || null,
+        signatory_title: s.signatory_title || null,
+      }));
+      const auditLogEntries: AuditLogEntry[] = auditLog.map(a => ({
+        action: a.action, actor_name: a.actor_name || 'System',
+        created_at: a.created_at, ip_address: a.metadata?.ip_address || null,
+      }));
+      const pdfBytes = await generateCertificatePdf({
+        title: doc.title, originalFilename: doc.original_filename,
+        certificateId, fileHash: doc.file_hash, signatories: sigInfos,
+        auditLog: auditLogEntries, completedAt: (doc as any).completed_at,
+      });
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Certificate-${certificateId}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error('Failed to generate certificate PDF:', err);
+      toast.error('Failed to generate certificate PDF');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Download button */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button variant="outline" size="sm" className="gap-2" onClick={handleDownloadCertificate} disabled={downloading}>
+          {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+          Download Certificate as PDF
+        </Button>
+      </div>
       {/* Green gradient header */}
       <div style={{
         background: `linear-gradient(135deg, ${DARK_GREEN} 0%, ${BRAND_GREEN} 100%)`,
