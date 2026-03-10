@@ -511,29 +511,10 @@ function OverviewTab({
         </div>
       </Card>
 
-      {/* Document Preview */}
+      {/* Document Preview - Inline PDF Viewer */}
       <Card>
         <SectionLabel>DOCUMENT PREVIEW</SectionLabel>
-        <div style={{
-          border: `2px dashed ${CARD_BORDER}`, borderRadius: 8, background: '#FAFAF8',
-          padding: '40px 24px', textAlign: 'center', minHeight: 200,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
-        }}>
-          <FileText size={32} color={LIGHT_TEXT} />
-          <span style={{ fontSize: 13, color: MUTED_TEXT, fontWeight: 500 }}>{doc.original_filename}</span>
-          <Button
-            variant="outline" size="sm" className="gap-2"
-            onClick={async () => {
-              try {
-                const blob = await downloadFromStorage(doc.file_url);
-                const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-                window.open(url, '_blank');
-              } catch { toast.error('Failed to open PDF'); }
-            }}
-          >
-            <Eye className="h-3.5 w-3.5" /> Open PDF Viewer
-          </Button>
-        </div>
+        <InlinePdfPreview fileUrl={doc.file_url} />
       </Card>
 
       {/* Document Notes */}
