@@ -83,7 +83,7 @@ export async function fetchLetterDetails(signatoryUserId?: string | null): Promi
     return { signatoryName, signatoryJobTitle, practiceDetails };
   } catch (error) {
     console.error('Error fetching letter details:', error);
-    return { signatoryName: null, practiceDetails: null };
+    return { signatoryName: null, signatoryJobTitle: null, practiceDetails: null };
   }
 }
 
