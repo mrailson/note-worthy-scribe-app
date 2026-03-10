@@ -169,7 +169,12 @@ export default function DocumentApproval() {
   }
 
   if (selectedDoc) {
-    return <ApprovalDocumentDetail document={selectedDoc} onBack={() => selectDoc(null)} />;
+    return (
+      <>
+        <Header />
+        <ApprovalDocumentDetail document={selectedDoc} onBack={() => selectDoc(null)} />
+      </>
+    );
   }
 
   const filterPills: { key: FilterType; label: string }[] = [
