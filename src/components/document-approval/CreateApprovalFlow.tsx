@@ -91,6 +91,9 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [editingContact, setEditingContact] = useState<ApprovalContact | null>(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', role: '', organisation: '', title: '', organisation_type: '' });
+  const [showDirectoryModal, setShowDirectoryModal] = useState(false);
+  const [selectedDirectoryUsers, setSelectedDirectoryUsers] = useState<Set<string>>(new Set());
+  const [expandedPractices, setExpandedPractices] = useState<Set<string>>(new Set());
 
   // ─── File handling ────────────────────────────────────────────────
 
