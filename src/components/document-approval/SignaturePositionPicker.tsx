@@ -368,7 +368,7 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                 <span className="font-medium text-foreground">{sig.name}</span>
                 {hasPosition ? (
                   <span className="flex items-center gap-1">
-                    <Check className="h-3.5 w-3.5 text-green-600" />
+                    <Check className="h-3.5 w-3.5" style={{ color: 'hsl(150, 60%, 40%)' }} />
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                       p.{value[sig.id].page}
                     </Badge>
