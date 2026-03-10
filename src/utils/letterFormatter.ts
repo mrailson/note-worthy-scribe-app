@@ -133,7 +133,8 @@ export async function createLetterDocument(
   letterType: string, 
   referenceNumber: string,
   signatoryName?: string | null,
-  practiceDetails?: { phone?: string | null; email?: string | null; practice_name?: string | null } | null
+  practiceDetails?: { phone?: string | null; email?: string | null; practice_name?: string | null } | null,
+  signatoryJobTitle?: string | null
 ): Promise<Document> {
   // Extract logo URL from HTML comment if present
   const logoUrlMatch = letterContent.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
