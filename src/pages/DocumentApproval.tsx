@@ -399,7 +399,7 @@ export default function DocumentApproval() {
                 <div className="hidden lg:block w-80 flex-shrink-0">
                   <NeedsAttentionPanel
                     needsAttention={needsAttention}
-                    onSelectDoc={(doc) => setSelectedDoc(doc)}
+                    onSelectDoc={(doc) => selectDoc(doc)}
                     onChaseAllOverdue={async () => {
                       const overdueIds = needsAttention.overdueDocuments.map(d => d.id);
                       setChasingDocId('all-overdue');
