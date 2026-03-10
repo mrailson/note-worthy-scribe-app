@@ -80,7 +80,182 @@ function QRCodeCanvas({ url, size = 80 }: { url: string; size?: number }) {
   return <canvas ref={canvasRef} />;
 }
 
-// ─── Main Component ────────────────────────────────────────────
+// ─── Inline PDF Preview ────────────────────────────────────────
+function InlinePdfPreview({ fileUrl }: { fileUrl: string }) {
+  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [zoom, setZoom] = useState(100);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const canvasRefs = useRef<Map<number, HTMLCanvasElement | null>>(new Map());
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const pageRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const blob = await downloadFromStorage(fileUrl);
+        const arrayBuffer = await blob.arrayBuffer();
+        const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        if (cancelled) return;
+        setPdfDoc(doc);
+        setTotalPages(doc.numPages);
+      } catch (err: any) {
+        if (!cancelled) setError(err.message || 'Failed to load PDF');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [fileUrl]);
+
+  useEffect(() => {
+    if (!pdfDoc) return;
+    const scale = zoom / 100;
+    const renderAll = async () => {
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const viewport = page.getViewport({ scale: scale * 1.5 });
+        const canvas = canvasRefs.current.get(i);
+        if (!canvas) continue;
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.style.width = `${viewport.width / 1.5}px`;
+        canvas.style.height = `${viewport.height / 1.5}px`;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) continue;
+        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+      }
+    };
+    renderAll();
+  }, [pdfDoc, zoom]);
+
+  useEffect(() => {
+    if (!totalPages || !scrollRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const pg = Number(entry.target.getAttribute('data-page'));
+            if (pg) setCurrentPage(pg);
+          }
+        }
+      },
+      { root: scrollRef.current, threshold: 0.5 }
+    );
+    pageRefs.current.forEach((el) => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, [totalPages, pdfDoc]);
+
+  const scrollToPage = (pg: number) => {
+    const el = pageRefs.current.get(pg);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, background: PAGE_BG, borderRadius: 8 }}>
+        <div style={{ textAlign: 'center' }}>
+          <Loader2 className="h-7 w-7 animate-spin mx-auto" style={{ color: BRAND_GREEN }} />
+          <p style={{ fontSize: 13, color: MUTED_TEXT, marginTop: 8 }}>Loading document…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200, background: PAGE_BG, borderRadius: 8 }}>
+        <div style={{ textAlign: 'center' }}>
+          <FileText className="h-7 w-7 mx-auto" style={{ color: LIGHT_TEXT }} />
+          <p style={{ fontSize: 13, color: MUTED_TEXT, marginTop: 8 }}>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+        padding: '8px 12px', background: '#F0EFEC', borderRadius: '8px 8px 0 0', borderBottom: `1px solid ${CARD_BORDER}`,
+        flexWrap: 'wrap',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: MUTED_TEXT }}>
+          <FileText size={14} />
+          <span style={{ fontWeight: 500 }}>Page {currentPage} of {totalPages}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(z => Math.max(50, z - 10))} disabled={zoom <= 50}>
+            <ZoomOut size={14} />
+          </Button>
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: MUTED_TEXT, width: 36, textAlign: 'center' }}>{zoom}%</span>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(z => Math.min(200, z + 10))} disabled={zoom >= 200}>
+            <ZoomIn size={14} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Page pills */}
+      {totalPages > 1 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px',
+          background: '#F5F4F1', borderLeft: `1px solid ${CARD_BORDER}`, borderRight: `1px solid ${CARD_BORDER}`,
+          overflowX: 'auto',
+        }}>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
+            <button
+              key={pg}
+              onClick={() => scrollToPage(pg)}
+              style={{
+                padding: '2px 8px', fontSize: 11, borderRadius: 12, border: 'none', cursor: 'pointer',
+                background: pg === currentPage ? BRAND_GREEN : 'transparent',
+                color: pg === currentPage ? '#fff' : MUTED_TEXT,
+                fontWeight: pg === currentPage ? 600 : 400,
+                transition: 'all 0.15s',
+              }}
+            >
+              {pg}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Scrollable PDF area */}
+      <div
+        ref={scrollRef}
+        style={{
+          height: '55vh', overflowY: 'auto', background: '#E8E6E1',
+          borderRadius: '0 0 8px 8px', border: `1px solid ${CARD_BORDER}`, borderTop: 'none',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '20px 12px' }}>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+            <div
+              key={pageNum}
+              data-page={pageNum}
+              ref={el => { pageRefs.current.set(pageNum, el); }}
+              style={{ background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: 4, maxWidth: '100%' }}
+            >
+              <canvas
+                ref={el => { canvasRefs.current.set(pageNum, el); }}
+                style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
   const { fetchSignatories, fetchAuditLog, revokeDocument, deleteDocument } = useDocumentApproval();
   const [signatories, setSignatories] = useState<ApprovalSignatory[]>([]);
