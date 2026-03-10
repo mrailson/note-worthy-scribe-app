@@ -109,7 +109,7 @@ function InlinePDFViewer({ fileUrl }: { fileUrl: string }) {
         canvas.style.height = `${viewport.height / 1.5}px`;
         const ctx = canvas.getContext('2d');
         if (!ctx) continue;
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
       }
     };
     renderAll();
