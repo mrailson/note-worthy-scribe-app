@@ -145,19 +145,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             </span>
           </div>
 
-          {/* GP Contract button - between logo and nav */}
-          {user && (
-            <Button 
-              onClick={() => navigate('/gp-contract')}
-              variant="secondary"
-              size="sm"
-              className="hidden sm:inline-flex bg-white text-blue-700 hover:bg-blue-50 border border-white/80 shadow-sm text-xs sm:text-sm px-3 sm:px-4 font-semibold rounded-full"
-            >
-              <FileText className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1.5" />
-              <span className="hidden sm:inline">GP Contract 26/27</span>
-              <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">NEW</span>
-            </Button>
-          )}
           
             {/* Navigation */}
             <div className="hidden sm:flex gap-2">
@@ -571,18 +558,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        </Button>
                     </DrawerClose>
 
-                    {user && (
-                      <DrawerClose asChild>
-                        <Button 
-                          variant="ghost" 
-                          className="justify-start bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400"
-                          onClick={() => navigate('/gp-contract')}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          GP Contract 26/27
-                        </Button>
-                      </DrawerClose>
-                    )}
 
                     {!user && (
                       <DrawerClose asChild>
