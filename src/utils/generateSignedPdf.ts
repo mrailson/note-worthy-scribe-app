@@ -208,7 +208,7 @@ async function drawCertificatePages(
   // SHA-256 hash
   page.drawLine({ start: { x: LM + 14, y: dy }, end: { x: LM + CW - 14, y: dy }, thickness: 0.5, color: GREY_BORDER });
   dy -= 14;
-  page.drawText('🔒', { x: LM + 14, y: dy, size: 9, font: helvetica, color: GREY_TEXT });
+  page.drawText('SHA-256 DOCUMENT HASH', { x: LM + 14, y: dy, size: 8, font: helveticaBold, color: GREY_TEXT });
   page.drawText('SHA-256 DOCUMENT HASH', { x: LM + 28, y: dy, size: 8, font: helveticaBold, color: GREY_TEXT });
   dy -= 14;
   // Hash in box
