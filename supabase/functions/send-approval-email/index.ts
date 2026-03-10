@@ -29,6 +29,8 @@ const daysBetween = (a: string, b: string): number => {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / msPerDay);
 };
 
+// ─── REDESIGNED EMAIL HELPERS ────────────────────────────────────────
+
 const emailWrapper = (content: string): string => `
 <!DOCTYPE html>
 <html>
@@ -36,29 +38,57 @@ const emailWrapper = (content: string): string => `
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1a1a2e; max-width: 600px; margin: 0 auto; padding: 0; background-color: #ffffff;">
-  <div style="background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%); padding: 24px 30px; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 600;">Notewell AI</h1>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1a1a2e;">
+  <!--[if mso]><table width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+    <!-- Header -->
+    <div style="background-color: #005EB8; padding: 20px 30px;">
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+        <td style="font-size: 20px; font-weight: 700; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">Notewell AI</td>
+      </tr></table>
+    </div>
+    <div style="height: 3px; background-color: #41B6E6;"></div>
+    <!-- Body -->
+    <div style="padding: 32px 30px;">
+      ${content}
+    </div>
+    <!-- Footer -->
+    <div style="padding: 16px 30px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
+      <p style="color: #94a3b8; font-size: 11px; margin: 0; line-height: 1.4;">Powered by Notewell AI</p>
+    </div>
   </div>
-  <div style="padding: 30px; background: #ffffff;">
-    ${content}
-  </div>
-  <div style="padding: 20px 30px; background: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
-    <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-      Powered by Notewell AI &middot; This is an automated message<br>
-      Document Approval Service
-    </p>
-  </div>
+  <!--[if mso]></td></tr></table><![endif]-->
 </body>
 </html>`;
 
 const primaryButton = (href: string, label: string): string =>
-  `<div style="text-align: center; margin: 28px 0;">
-    <a href="${href}" style="display: inline-block; background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">${label}</a>
+  `<div style="margin: 28px 0 12px 0;">
+    <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td align="center">
+      <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${href}" style="height:52px;v-text-anchor:middle;width:100%;" arcsize="12%" fillcolor="#007f3b" stroke="f"><v:textbox inset="0,0,0,0"><center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">
+      ${label}</center></v:textbox></v:roundrect><![endif]-->
+      <!--[if !mso]><!-->
+      <a href="${href}" style="display: block; width: 100%; background-color: #007f3b; color: #ffffff; text-decoration: none; padding: 16px 0; border-radius: 6px; font-weight: 700; font-size: 16px; text-align: center; box-sizing: border-box;">${label}</a>
+      <!--<![endif]-->
+    </td></tr></table>
+  </div>`;
+
+const secondaryButton = (href: string, label: string): string =>
+  `<div style="text-align: center; margin: 0 0 24px 0;">
+    <a href="${href}" style="color: #005EB8; text-decoration: underline; font-size: 14px; font-weight: 500;">${label}</a>
+  </div>`;
+
+const infoCard = (rows: string): string =>
+  `<div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; background-color: #f8fafc; margin: 20px 0;">
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse;">
+      ${rows}
+    </table>
   </div>`;
 
 const infoRow = (label: string, value: string): string =>
-  `<tr><td style="padding: 6px 12px 6px 0; color: #64748b; font-size: 14px; white-space: nowrap;">${label}</td><td style="padding: 6px 0; font-size: 14px; font-weight: 500;">${value}</td></tr>`;
+  `<tr>
+    <td style="padding: 5px 12px 5px 0; color: #64748b; font-size: 14px; white-space: nowrap; vertical-align: top; width: 120px;">${label}</td>
+    <td style="padding: 5px 0; font-size: 14px; font-weight: 600; color: #1a1a2e;">${value}</td>
+  </tr>`;
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -117,7 +147,6 @@ const handler = async (req: Request): Promise<Response> => {
         if (!fileErr && fileData) {
           const arrayBuf = await fileData.arrayBuffer();
           const originalName = doc.original_filename || "document.pdf";
-          // Ensure filename always ends in .pdf (docx files are converted before upload)
           const pdfFilename = originalName.replace(/\.docx?$/i, '.pdf');
           pdfAttachment = {
             filename: pdfFilename,
@@ -138,10 +167,10 @@ const handler = async (req: Request): Promise<Response> => {
         : (allSignatories || []).filter((s) => s.status === "pending");
 
       for (const sig of targets) {
+        const approveUrl = `${APP_URL}/approve/${sig.approval_token}`;
         let html: string;
 
         if (custom_body) {
-          // User-customised email body — replace [Signatory Name] placeholder, convert newlines to <br>
           const personalised = custom_body
             .replace(/\[Signatory Name\]/gi, sig.name)
             .replace(/\n/g, "<br>");
@@ -150,17 +179,16 @@ const handler = async (req: Request): Promise<Response> => {
             <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Document Approval Requested</h2>
             <div style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6;">${personalised}</div>
             <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is attached to this email for your review.</p>
-            ${primaryButton(`${APP_URL}/approve/${sig.approval_token}`, "✅ Review &amp; Approve")}
-            <p style="text-align: center; font-size: 13px; color: #94a3b8;">Or copy this link: ${APP_URL}/approve/${sig.approval_token}</p>
+            ${primaryButton(approveUrl, "Approve Document")}
+            ${secondaryButton(approveUrl, "View Document")}
           `);
         } else {
-          // Default email template
           const deadlineInfo = doc.deadline
-            ? `<p style="margin: 4px 0; font-size: 14px;">⏰ <strong>Deadline:</strong> ${formatDate(doc.deadline)}</p>`
+            ? `<p style="margin: 4px 0; font-size: 14px; color: #475569;">Deadline: <strong>${formatDate(doc.deadline)}</strong></p>`
             : "";
 
           const messageBlock = doc.message
-            ? `<div style="background: #f1f5f9; border-left: 4px solid #0EA5E9; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
+            ? `<div style="background-color: #f1f5f9; border-left: 4px solid #005EB8; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
                 <p style="margin: 0; font-size: 14px; color: #475569;">"${doc.message}"</p>
               </div>`
             : "";
@@ -170,16 +198,16 @@ const handler = async (req: Request): Promise<Response> => {
             <p style="margin: 0 0 8px 0;">Dear ${sig.name},</p>
             <p style="margin: 0 0 16px 0;">${doc.sender_name || "A colleague"} has sent you a document for approval.</p>
             ${messageBlock}
-            <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-              ${infoRow("📄 Document", doc.title)}
-              ${doc.category ? infoRow("📁 Category", doc.category) : ""}
-              ${infoRow("👤 From", doc.sender_name || doc.sender_email || "Unknown")}
-              ${infoRow("📅 Sent", formatDate(doc.created_at!))}
-            </table>
+            ${infoCard(`
+              ${infoRow("Document", doc.title)}
+              ${doc.category ? infoRow("Category", doc.category) : ""}
+              ${infoRow("From", doc.sender_name || doc.sender_email || "Unknown")}
+              ${infoRow("Sent", formatDate(doc.created_at!))}
+            `)}
             ${deadlineInfo}
             <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is attached to this email for your review.</p>
-            ${primaryButton(`${APP_URL}/approve/${sig.approval_token}`, "✅ Review &amp; Approve")}
-            <p style="text-align: center; font-size: 13px; color: #94a3b8;">Or copy this link: ${APP_URL}/approve/${sig.approval_token}</p>
+            ${primaryButton(approveUrl, "Approve Document")}
+            ${secondaryButton(approveUrl, "View Document")}
           `);
         }
 
@@ -201,7 +229,6 @@ const handler = async (req: Request): Promise<Response> => {
         results.push({ email: sig.email, status: sendErr ? "failed" : "sent", error: sendErr?.message });
 
         if (!sendErr) {
-          // Log to audit
           await supabase.from("approval_audit_log").insert({
             document_id,
             signatory_id: sig.id,
@@ -220,30 +247,32 @@ const handler = async (req: Request): Promise<Response> => {
         : (allSignatories || []).filter((s) => s.status === "pending" || s.status === "viewed");
 
       for (const sig of targets) {
+        const approveUrl = `${APP_URL}/approve/${sig.approval_token}`;
         const now = new Date().toISOString();
         let deadlineNote = "";
         if (doc.deadline) {
           const daysLeft = daysBetween(now, doc.deadline);
           deadlineNote = daysLeft > 0
-            ? `<p style="margin: 8px 0; padding: 8px 12px; background: #fef3c7; border-radius: 6px; font-size: 14px;">⏰ ${daysLeft} day${daysLeft !== 1 ? "s" : ""} remaining until the deadline (${formatDate(doc.deadline)})</p>`
-            : `<p style="margin: 8px 0; padding: 8px 12px; background: #fee2e2; border-radius: 6px; font-size: 14px;">🚨 This document is ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? "s" : ""} overdue (deadline was ${formatDate(doc.deadline)})</p>`;
+            ? `<div style="margin: 12px 0; padding: 10px 14px; background-color: #fef3c7; border-radius: 6px; font-size: 14px; color: #92400e;">${daysLeft} day${daysLeft !== 1 ? "s" : ""} remaining until the deadline (${formatDate(doc.deadline)})</div>`
+            : `<div style="margin: 12px 0; padding: 10px 14px; background-color: #fee2e2; border-radius: 6px; font-size: 14px; color: #991b1b;">This document is ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? "s" : ""} overdue (deadline was ${formatDate(doc.deadline)})</div>`;
         }
 
         const html = emailWrapper(`
-          <div style="background: #fef3c7; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
-            <p style="margin: 0; font-weight: 600; color: #92400e;">⏳ Reminder: Your approval is still required</p>
+          <div style="background-color: #fef3c7; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0; font-weight: 600; color: #92400e; font-size: 14px;">Reminder: Your approval is still required</p>
           </div>
           <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Approval Still Required</h2>
           <p style="margin: 0 0 8px 0;">Dear ${sig.name},</p>
           <p style="margin: 0 0 16px 0;">This is a reminder that your approval is still needed for the following document:</p>
-          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-            ${infoRow("📄 Document", doc.title)}
-            ${infoRow("👤 From", doc.sender_name || doc.sender_email || "Unknown")}
-            ${infoRow("📅 Originally sent", formatDate(doc.created_at!))}
-          </table>
+          ${infoCard(`
+            ${infoRow("Document", doc.title)}
+            ${infoRow("From", doc.sender_name || doc.sender_email || "Unknown")}
+            ${infoRow("Originally sent", formatDate(doc.created_at!))}
+          `)}
           ${deadlineNote}
           <p style="margin: 16px 0 0 0; font-size: 14px; color: #475569;">The document is re-attached for your convenience.</p>
-          ${primaryButton(`${APP_URL}/approve/${sig.approval_token}`, "✅ Review &amp; Approve Now")}
+          ${primaryButton(approveUrl, "Approve Document")}
+          ${secondaryButton(approveUrl, "View Document")}
         `);
 
         const emailPayload: any = {
@@ -264,7 +293,6 @@ const handler = async (req: Request): Promise<Response> => {
         results.push({ email: sig.email, status: sendErr ? "failed" : "sent", error: sendErr?.message });
 
         if (!sendErr) {
-          // Update reminder count
           await supabase
             .from("approval_signatories")
             .update({
@@ -290,18 +318,18 @@ const handler = async (req: Request): Promise<Response> => {
       const sig = (allSignatories || []).find((s) => s.id === signatory_id);
       if (sig) {
         const html = emailWrapper(`
-          <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Approval Confirmed ✅</h2>
+          <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">Approval Confirmed</h2>
           <p style="margin: 0 0 8px 0;">Dear ${sig.signed_name || sig.name},</p>
           <p style="margin: 0 0 16px 0;">Thank you. Your approval has been successfully recorded.</p>
-          <table style="width: 100%; border-collapse: collapse; margin: 16px 0; background: #f0fdf4; padding: 16px; border-radius: 8px;">
-            ${infoRow("📄 Document", doc.title)}
-            ${infoRow("✍️ Signed as", sig.signed_name || sig.name)}
-            ${sig.signed_role ? infoRow("💼 Role", sig.signed_role) : ""}
-            ${sig.signed_organisation ? infoRow("🏢 Organisation", sig.signed_organisation) : ""}
-            ${infoRow("🕐 Approved at", sig.signed_at ? formatDate(sig.signed_at) : "Just now")}
-          </table>
-          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 8px; margin: 16px 0;">
-            <p style="margin: 0; font-size: 14px; color: #166534;">🔒 Your electronic signature has been recorded in accordance with UK law (Electronic Communications Act 2000).</p>
+          ${infoCard(`
+            ${infoRow("Document", doc.title)}
+            ${infoRow("Signed as", sig.signed_name || sig.name)}
+            ${sig.signed_role ? infoRow("Role", sig.signed_role) : ""}
+            ${sig.signed_organisation ? infoRow("Organisation", sig.signed_organisation) : ""}
+            ${infoRow("Approved at", sig.signed_at ? formatDate(sig.signed_at) : "Just now")}
+          `)}
+          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 8px; margin: 16px 0;">
+            <p style="margin: 0; font-size: 14px; color: #166534;">Your electronic signature has been recorded in accordance with UK law (Electronic Communications Act 2000).</p>
           </div>
           <p style="margin: 16px 0 0 0; font-size: 14px; color: #64748b;">No further action is needed. You may close this email.</p>
         `);
@@ -329,29 +357,28 @@ const handler = async (req: Request): Promise<Response> => {
     if (type === "completed") {
       const sigSummaryRows = (allSignatories || [])
         .map((s) => `<tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">✅ ${s.signed_name || s.name}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${s.signed_role || s.role || "—"}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #1a1a2e;">${s.signed_name || s.name}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${s.signed_role || s.role || "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
         </tr>`)
         .join("");
 
       const html = emailWrapper(`
-        <div style="background: #f0fdf4; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
-          <p style="margin: 0; font-weight: 600; color: #166534; font-size: 18px;">🎉 All Approvals Received</p>
+        <div style="background-color: #f0fdf4; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+          <p style="margin: 0; font-weight: 700; color: #166534; font-size: 18px;">All Approvals Received</p>
         </div>
-        <p style="margin: 0 0 16px 0;">All ${(allSignatories || []).length} signatories have approved <strong>${doc.title}</strong>.</p>
-        <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+        <p style="margin: 0 0 16px 0; font-size: 15px;">All ${(allSignatories || []).length} signatories have approved <strong>${doc.title}</strong>.</p>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse; margin: 16px 0; font-size: 14px;">
           <thead>
-            <tr style="background: #f1f5f9;">
-              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Name</th>
-              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Role</th>
-              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Signed</th>
+            <tr style="background-color: #005EB8;">
+              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Name</th>
+              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Role</th>
+              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Signed</th>
             </tr>
           </thead>
           <tbody>${sigSummaryRows}</tbody>
         </table>
         ${primaryButton(`${APP_URL}/document-approval`, "View in Notewell")}
-        <p style="text-align: center; font-size: 13px; color: #94a3b8;">You can access the full audit trail in Notewell.</p>
       `);
 
       const senderEmail = doc.sender_email;
@@ -414,40 +441,38 @@ const handler = async (req: Request): Promise<Response> => {
 
       const sigSummaryRows = (allSignatories || [])
         .map((s: any) => `<tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">✅ ${s.signed_name || s.name}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${s.signed_role || s.role || "—"}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${s.signed_organisation || s.organisation || "—"}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #1a1a2e;">${s.signed_name || s.name}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${s.signed_role || s.role || "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${s.signed_organisation || s.organisation || "—"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${s.signed_at ? formatDate(s.signed_at) : "—"}</td>
         </tr>`)
         .join("");
 
       const html = emailWrapper(`
-        <div style="background: #f0fdf4; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
-          <p style="margin: 0; font-weight: 600; color: #166534; font-size: 18px;">📄 Completed Signed Document</p>
+        <div style="background-color: #f0fdf4; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+          <p style="margin: 0; font-weight: 700; color: #166534; font-size: 18px;">Completed Signed Document</p>
         </div>
-        <p style="margin: 0 0 16px 0;">The fully signed version of <strong>${doc.title}</strong> is attached to this email.</p>
-        <p style="margin: 0 0 16px 0;">All ${(allSignatories || []).length} signator${(allSignatories || []).length !== 1 ? "ies" : "y"} have approved this document. The attached PDF includes the Electronic Signature Certificate with full audit trail.</p>
-        <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+        <p style="margin: 0 0 16px 0; font-size: 15px;">The fully signed version of <strong>${doc.title}</strong> is attached to this email.</p>
+        <p style="margin: 0 0 16px 0; font-size: 14px; color: #475569;">All ${(allSignatories || []).length} signator${(allSignatories || []).length !== 1 ? "ies" : "y"} have approved this document. The attached PDF includes the Electronic Signature Certificate with full audit trail.</p>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse; margin: 16px 0; font-size: 14px;">
           <thead>
-            <tr style="background: #f1f5f9;">
-              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Name</th>
-              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Role</th>
-              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Organisation</th>
-              <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Signed</th>
+            <tr style="background-color: #005EB8;">
+              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Name</th>
+              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Role</th>
+              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Organisation</th>
+              <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #ffffff; font-size: 13px;">Signed</th>
             </tr>
           </thead>
           <tbody>${sigSummaryRows}</tbody>
         </table>
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0; font-size: 14px; color: #166534;">🔒 This document was electronically signed in accordance with UK law (Electronic Communications Act 2000). The attached PDF contains a SHA-256 integrity hash and full audit trail.</p>
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 14px; color: #166534;">This document was electronically signed in accordance with UK law (Electronic Communications Act 2000). The attached PDF contains a SHA-256 integrity hash and full audit trail.</p>
         </div>
-        <p style="text-align: center; font-size: 13px; color: #94a3b8; margin-top: 20px;">Powered by Notewell AI &middot; Document Approval Service</p>
       `);
 
-      // Send to sender
+      // Send to sender + all signatories
       const allRecipients: string[] = [];
       if (doc.sender_email) allRecipients.push(doc.sender_email);
-      // Also send to all signatories
       for (const s of (allSignatories || [])) {
         if (s.email && !allRecipients.includes(s.email)) {
           allRecipients.push(s.email);
@@ -492,23 +517,23 @@ const handler = async (req: Request): Promise<Response> => {
       const sig = (allSignatories || []).find((s) => s.id === signatory_id);
       if (sig && doc.sender_email) {
         const declineComment = sig.decline_comment
-          ? `<div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
+          ? `<div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
               <p style="margin: 0 0 4px 0; font-weight: 600; color: #991b1b; font-size: 13px;">Reason given:</p>
               <p style="margin: 0; font-size: 14px; color: #7f1d1d;">"${sig.decline_comment}"</p>
             </div>`
           : `<p style="color: #64748b; font-size: 14px;">No reason was provided.</p>`;
 
         const html = emailWrapper(`
-          <div style="background: #fef2f2; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
-            <p style="margin: 0; font-weight: 600; color: #991b1b;">❌ Approval Declined</p>
+          <div style="background-color: #fef2f2; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0; font-weight: 600; color: #991b1b; font-size: 14px;">Approval Declined</p>
           </div>
           <h2 style="margin: 0 0 16px 0; font-size: 22px; color: #1a1a2e;">${sig.name} has declined</h2>
-          <p style="margin: 0 0 16px 0;"><strong>${sig.name}</strong> has declined to approve <strong>${doc.title}</strong>.</p>
-          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-            ${infoRow("👤 Signatory", sig.name)}
-            ${sig.role ? infoRow("💼 Role", sig.role) : ""}
-            ${sig.organisation ? infoRow("🏢 Organisation", sig.organisation) : ""}
-          </table>
+          <p style="margin: 0 0 16px 0; font-size: 15px;"><strong>${sig.name}</strong> has declined to approve <strong>${doc.title}</strong>.</p>
+          ${infoCard(`
+            ${infoRow("Signatory", sig.name)}
+            ${sig.role ? infoRow("Role", sig.role) : ""}
+            ${sig.organisation ? infoRow("Organisation", sig.organisation) : ""}
+          `)}
           ${declineComment}
           ${primaryButton(`${APP_URL}/document-approval`, "View Details in Notewell")}
         `);
