@@ -214,13 +214,6 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
   };
 
   // Mouse handlers for dragging signature blocks
-  const getMousePercent = useCallback((e: React.MouseEvent, pageEl: HTMLElement) => {
-    const bounds = pageEl.getBoundingClientRect();
-    return {
-      x: ((e.clientX - bounds.left) / bounds.width) * 100,
-      y: ((e.clientY - bounds.top) / bounds.height) * 100,
-    };
-  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent, sigId: string, pageNum: number) => {
     const pageEl = pageRefs.current.get(pageNum);
