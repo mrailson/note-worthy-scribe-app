@@ -200,6 +200,9 @@ export default function DocumentApproval() {
                 <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                   <FileCheck className="h-6 w-6 text-primary" />
                   Document Approvals
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { refetch(); toast.success('Refreshed'); }} title="Refresh">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   Send documents for electronic approval and track signatures
@@ -207,9 +210,6 @@ export default function DocumentApproval() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => { refetch(); toast.success('Refreshed'); }} title="Refresh">
-                <RefreshCw className="h-4 w-4" />
-              </Button>
               <Button onClick={() => setShowCreate(true)} className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Approval Request
