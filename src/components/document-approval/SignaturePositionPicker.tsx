@@ -351,9 +351,18 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
               <button
                 key={sig.id}
                 onClick={() => {
-                  setActiveSignatoryId(sig.id);
-                  const pos = value[sig.id];
-                  if (pos) scrollToPage(pos.page);
+                  if (isActive && hasPosition) {
+                    // Toggle off: remove placed block and deselect
+                    const newValue = { ...value };
+                    delete newValue[sig.id];
+                    onChange(newValue);
+                    setActiveSignatoryId(null);
+                  } else {
+                    // Select (or re-select) signatory
+                    setActiveSignatoryId(sig.id);
+                    const pos = value[sig.id];
+                    if (pos) scrollToPage(pos.page);
+                  }
                 }}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm transition-all ${
                   isActive
