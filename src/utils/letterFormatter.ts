@@ -20,7 +20,7 @@ export interface LetterDetails {
 export async function fetchLetterDetails(signatoryUserId?: string | null): Promise<LetterDetails> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { signatoryName: null, practiceDetails: null };
+    if (!user) return { signatoryName: null, signatoryJobTitle: null, practiceDetails: null };
 
     let signatoryName: string | null = null;
     let practiceDetails: LetterDetails['practiceDetails'] = null;
