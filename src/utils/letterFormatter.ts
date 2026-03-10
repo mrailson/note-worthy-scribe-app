@@ -138,7 +138,35 @@ export async function createLetterDocument(
 ): Promise<Document> {
   // Extract logo URL from HTML comment if present
   const logoUrlMatch = letterContent.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
-  const logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
+  let logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
+
+  // If no logo in content, fetch from practice_details (same as FormattedLetterContent)
+  if (!logoUrl) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: pd } = await supabase
+          .from('practice_details')
+          .select('practice_logo_url, logo_url')
+          .eq('user_id', user.id)
+          .eq('is_default', true)
+          .maybeSingle();
+        logoUrl = pd?.practice_logo_url || pd?.logo_url || null;
+        if (!logoUrl) {
+          const { data: pdFallback } = await supabase
+            .from('practice_details')
+            .select('practice_logo_url, logo_url')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          logoUrl = pdFallback?.practice_logo_url || pdFallback?.logo_url || null;
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching practice logo for Word export:', e);
+    }
+  }
   
   // Replace placeholders with actual practice details
   let processedContent = letterContent;
