@@ -6,6 +6,7 @@ import {
   Shield, Send, Copy, Lock, Plus, User, Mail, Building2, Calendar,
   Eye, PenLine, Bell, FileSignature, Award, Trash2, ArrowLeft,
 } from 'lucide-react';
+import { Header } from '@/components/Header';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
