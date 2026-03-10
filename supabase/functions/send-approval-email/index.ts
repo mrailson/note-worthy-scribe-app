@@ -11,10 +11,11 @@ const corsHeaders = {
 const APP_URL = "https://gpnotewell.co.uk";
 
 interface EmailRequest {
-  type: "request" | "reminder" | "confirmation" | "completed" | "declined";
+  type: "request" | "reminder" | "confirmation" | "completed" | "declined" | "send_completed";
   document_id: string;
   signatory_id?: string;
   custom_body?: string;
+  signed_file_url?: string;
 }
 
 const formatDate = (dateStr: string): string => {
