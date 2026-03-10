@@ -321,7 +321,7 @@ const handler = async (req: Request): Promise<Response> => {
               <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Document Approval Requested</td></tr>
               <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; line-height: 1.6; padding-bottom: 16px;">${personalised}</td></tr>
             </table>
-            ${infoNote("The document is attached to this email for your review.")}
+            ${pdfAttachment ? infoNote("The document is attached to this email for your review.") : infoNote("Please click the button below to view and approve the document.")}
             ${primaryButton(approveUrl, "&#10003; Approve Document")}
             ${fallbackLink(approveUrl)}
           `);
