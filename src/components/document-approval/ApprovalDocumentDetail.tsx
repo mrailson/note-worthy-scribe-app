@@ -352,18 +352,8 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
   };
 
   const handleDownloadSignedPdf = async () => {
-    if (!signedFileUrl) {
-      await handleGenerateSignedPdf();
-      return;
-    }
-    try {
-      const blob = await downloadFromStorage(signedFileUrl);
-      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-      const a = document.createElement('a');
-      a.href = url; a.download = `signed-${doc.original_filename || 'document.pdf'}`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch { toast.error('Failed to download signed PDF'); }
+    // Always regenerate the signed PDF to ensure latest rendering logic is used
+    await handleGenerateSignedPdf();
   };
 
   const handleSendCompletedDocument = async () => {
