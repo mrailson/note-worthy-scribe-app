@@ -732,7 +732,8 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
         'outcome', 
         referenceNumber,
         letterDetails.signatoryName,
-        letterDetails.practiceDetails
+        letterDetails.practiceDetails,
+        letterDetails.signatoryJobTitle
       );
       console.log('Document structure created successfully with logo support');
       

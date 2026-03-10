@@ -2987,7 +2987,8 @@ const ComplaintDetails = () => {
                                   'outcome',
                                   complaint?.reference_number || 'OUTCOME',
                                   letterDetails.signatoryName,
-                                  letterDetails.practiceDetails
+                                  letterDetails.practiceDetails,
+                                  letterDetails.signatoryJobTitle
                                 );
                                 const blob = await Packer.toBlob(doc);
                                 const url = URL.createObjectURL(blob);

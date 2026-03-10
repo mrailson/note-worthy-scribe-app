@@ -4219,7 +4219,8 @@ const ComplaintsSystem = () => {
                             letterType,
                             viewingLetterComplaint.reference_number,
                             letterDetails.signatoryName,
-                            letterDetails.practiceDetails
+                            letterDetails.practiceDetails,
+                            letterDetails.signatoryJobTitle
                           );
                           
                           const blob = await Packer.toBlob(doc);
