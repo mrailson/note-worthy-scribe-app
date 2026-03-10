@@ -566,7 +566,8 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
             )}
           </div>
 
-          {/* Delete action at bottom */}
+          {/* Delete action - only visible on audit tab */}
+          {activeTab === 'audit' && (
           <div style={{ marginTop: 24 }}>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -598,6 +599,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
               </AlertDialogContent>
             </AlertDialog>
           </div>
+          )}
         </div>
       </div>
     </>
