@@ -8,6 +8,7 @@ export interface FormattedContent {
 
 export interface LetterDetails {
   signatoryName: string | null;
+  signatoryJobTitle: string | null;
   practiceDetails: {
     phone: string | null;
     email: string | null;
