@@ -289,8 +289,11 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
     setSending(true);
     try {
-      await addSignatories(documentId, validSignatories);
-
+      const inserted = await addSignatories(documentId, validSignatories);
+      // Store DB signatories with real IDs for stamp positioning
+      if (inserted) {
+        setDbSignatories(inserted.map(s => ({ id: s.id, name: s.name, email: s.email })));
+      }
       if (saveNewContacts) {
         for (const s of validSignatories) {
           await saveContact({ name: s.name, email: s.email, role: s.role || undefined, organisation: s.organisation || undefined, title: s.signatory_title || undefined, organisation_type: s.organisation_type || undefined });
