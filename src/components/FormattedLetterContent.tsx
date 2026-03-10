@@ -401,6 +401,15 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
                     return null;
                   }
                 }
+
+                // Skip any line that matches the injected job_title (already rendered under the name)
+                if (signatoryProfile?.job_title) {
+                  const cleanLine = trimmedLine.replace(/\*/g, '').trim().toLowerCase();
+                  const cleanTitle = signatoryProfile.job_title.trim().toLowerCase();
+                  if (cleanLine === cleanTitle || cleanLine.includes(cleanTitle)) {
+                    return null;
+                  }
+                }
                 
                 // Handle closing line
                 if (trimmedLine.toLowerCase().includes('yours sincerely') || 
@@ -448,11 +457,8 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
                     </div>
                   );
                 }
-                
-                // Skip line if it duplicates the job title already shown under the name
-                if (signatoryProfile?.job_title && trimmedLine.replace(/\*/g, '').trim().toLowerCase() === signatoryProfile.job_title.trim().toLowerCase()) {
-                  return null;
-                }
+
+
 
                 // Handle title, qualifications, practice name, etc.
                 return (
