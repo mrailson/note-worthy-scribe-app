@@ -1,7 +1,6 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { encode as encodeBase64 } from "https://deno.land/std@0.190.0/encoding/base64.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -207,6 +206,7 @@ const signatoryTable = (headCols: string[], rows: string): string => {
 // ─── HANDLER ─────────────────────────────────────────────────────────
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("send-approval-email v3 - with size guard");
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -264,25 +264,34 @@ const handler = async (req: Request): Promise<Response> => {
     }
     const senderDisplayName = withTitle(doc.sender_name || doc.sender_email || "Unknown", senderTitle);
 
-    // Download the PDF attachment for request/reminder emails
+    // Download the PDF attachment for request/reminder emails (skip if >5MB to avoid memory limits)
+    const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5MB
     let pdfAttachment: { filename: string; content: Uint8Array } | null = null;
+    let pdfDownloadUrl: string | null = null;
     if (type === "request" || type === "reminder") {
-      try {
-        const { data: fileData, error: fileErr } = await supabase.storage
-          .from("approval-documents")
-          .download(doc.file_url.replace(/^.*approval-documents\//, ""));
+      const fileSizeBytes = doc.file_size_bytes || 0;
+      if (fileSizeBytes > MAX_ATTACHMENT_BYTES) {
+        // Too large to attach — provide a download link via the approval page instead
+        console.log(`PDF too large to attach (${fileSizeBytes} bytes), skipping inline attachment`);
+        pdfDownloadUrl = doc.file_url;
+      } else {
+        try {
+          const { data: fileData, error: fileErr } = await supabase.storage
+            .from("approval-documents")
+            .download(doc.file_url.replace(/^.*approval-documents\//, ""));
 
-        if (!fileErr && fileData) {
-          const arrayBuf = await fileData.arrayBuffer();
-          const originalName = doc.original_filename || "document.pdf";
-          const pdfFilename = originalName.replace(/\.docx?$/i, '.pdf');
-          pdfAttachment = {
-            filename: pdfFilename,
-            content: new Uint8Array(arrayBuf),
-          };
+          if (!fileErr && fileData) {
+            const arrayBuf = await fileData.arrayBuffer();
+            const originalName = doc.original_filename || "document.pdf";
+            const pdfFilename = originalName.replace(/\.docx?$/i, '.pdf');
+            pdfAttachment = {
+              filename: pdfFilename,
+              content: new Uint8Array(arrayBuf),
+            };
+          }
+        } catch (e) {
+          console.warn("Could not download attachment:", e);
         }
-      } catch (e) {
-        console.warn("Could not download attachment:", e);
       }
     }
 
@@ -313,7 +322,7 @@ const handler = async (req: Request): Promise<Response> => {
               <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Document Approval Requested</td></tr>
               <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; line-height: 1.6; padding-bottom: 16px;">${personalised}</td></tr>
             </table>
-            ${infoNote("The document is attached to this email for your review.")}
+            ${pdfAttachment ? infoNote("The document is attached to this email for your review.") : infoNote("Please click the button below to view and approve the document.")}
             ${primaryButton(approveUrl, "&#10003; Approve Document")}
             ${fallbackLink(approveUrl)}
           `);
@@ -342,7 +351,7 @@ const handler = async (req: Request): Promise<Response> => {
               ${detailRow("Sent", formatDate(doc.created_at!), true)}
             `, "DOCUMENT DETAILS")}
             ${deadlineInfo}
-            ${infoNote("The document is attached to this email for your review.")}
+             ${pdfAttachment ? infoNote("The document is attached to this email for your review.") : infoNote("Please click the button below to view and approve the document.")}
             ${primaryButton(approveUrl, "&#10003; Approve Document")}
             ${fallbackLink(approveUrl)}
           `);
@@ -408,7 +417,7 @@ const handler = async (req: Request): Promise<Response> => {
             ${detailRow("Sent", formatDate(doc.created_at!), true)}
           `, "DOCUMENT DETAILS")}
           ${deadlineNote}
-          ${infoNote("The document is re-attached for your convenience.")}
+          ${pdfAttachment ? infoNote("The document is re-attached for your convenience.") : infoNote("Please click the button below to view and approve the document.")}
           ${primaryButton(approveUrl, "&#10003; Approve Document")}
           ${fallbackLink(approveUrl)}
         `);
@@ -537,35 +546,41 @@ const handler = async (req: Request): Promise<Response> => {
     // ─── TYPE: SEND_COMPLETED ────────────────────────────────────────
     if (type === "send_completed") {
 
-      // Download the signed PDF from storage
+      // Download the signed PDF from storage (skip if >5MB)
       let signedPdfAttachment: { filename: string; content: string } | null = null;
       const fileUrlToDownload = signed_file_url || doc.signed_file_url;
       console.log("send_completed: fileUrlToDownload =", fileUrlToDownload);
 
       if (fileUrlToDownload) {
-        try {
-          const storagePath = fileUrlToDownload.replace(/^.*approval-documents\//, "");
-          console.log("send_completed: downloading storagePath =", storagePath);
-          const { data: fileData, error: fileErr } = await supabase.storage
-            .from("approval-documents")
-            .download(storagePath);
+        // Check file size first
+        const signedFileSize = doc.file_size_bytes || 0;
+        if (signedFileSize > MAX_ATTACHMENT_BYTES) {
+          console.log(`send_completed: signed PDF too large (${signedFileSize} bytes), skipping attachment`);
+        } else {
+          try {
+            const storagePath = fileUrlToDownload.replace(/^.*approval-documents\//, "");
+            console.log("send_completed: downloading storagePath =", storagePath);
+            const { data: fileData, error: fileErr } = await supabase.storage
+              .from("approval-documents")
+              .download(storagePath);
 
-          if (fileErr) {
-            console.error("send_completed: storage download error:", fileErr);
-          }
+            if (fileErr) {
+              console.error("send_completed: storage download error:", fileErr);
+            }
 
-          if (!fileErr && fileData) {
-            const arrayBuf = await fileData.arrayBuffer();
-            const bytes = new Uint8Array(arrayBuf);
-            const base64Content = encodeBase64(bytes);
-            console.log("send_completed: attachment size =", bytes.length, "bytes, base64 length =", base64Content.length);
-            signedPdfAttachment = {
-              filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
-              content: base64Content,
-            };
+            if (!fileErr && fileData) {
+              const arrayBuf = await fileData.arrayBuffer();
+              const bytes = new Uint8Array(arrayBuf);
+              const base64Content = encodeBase64(bytes);
+              console.log("send_completed: attachment size =", bytes.length, "bytes, base64 length =", base64Content.length);
+              signedPdfAttachment = {
+                filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
+                content: base64Content,
+              };
+            }
+          } catch (e) {
+            console.error("send_completed: Could not download signed PDF attachment:", e);
           }
-        } catch (e) {
-          console.error("send_completed: Could not download signed PDF attachment:", e);
         }
       } else {
         console.warn("send_completed: No signed_file_url available");
@@ -699,4 +714,4 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-serve(handler);
+Deno.serve(handler);
