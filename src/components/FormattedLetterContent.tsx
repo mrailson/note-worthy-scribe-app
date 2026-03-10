@@ -299,11 +299,14 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
       {/* Letter Content */}
       <div className="p-8 pt-2 space-y-6">
         {/* Date */}
-        {dateSection && (
-          <div className="text-right">
-            <p className="text-lg font-semibold text-gray-700">{dateSection}</p>
-          </div>
-        )}
+        {(() => {
+          const displayDate = dateSection || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+          return (
+            <div className="text-right">
+              <p className="text-lg font-semibold text-gray-700">{displayDate}</p>
+            </div>
+          );
+        })()}
 
         {/* Private & Confidential */}
         <div className="text-center">
