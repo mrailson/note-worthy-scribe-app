@@ -102,6 +102,31 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
   return pdfDoc.save();
 }
 
+export async function generateCertificatePdf(options: Omit<GenerateSignedPdfOptions, 'originalPdfBytes' | 'placement'>): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+  pdfDoc.registerFontkit(fontkit);
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  let cursiveFont: PDFFont;
+  try {
+    const fontResponse = await fetch(dancingScriptUrl);
+    const fontBytes = await fontResponse.arrayBuffer();
+    cursiveFont = await pdfDoc.embedFont(fontBytes, { subset: false });
+  } catch {
+    cursiveFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+  }
+
+  const fullOptions: GenerateSignedPdfOptions = {
+    ...options,
+    originalPdfBytes: new ArrayBuffer(0),
+    placement: { method: 'append' },
+  };
+
+  await drawCertificatePages(pdfDoc, fullOptions, helvetica, helveticaBold, cursiveFont);
+  return pdfDoc.save();
+}
+
 // ─── Generate QR code as PNG bytes ────────────────────────────────────
 async function generateQRCodePng(url: string): Promise<Uint8Array | null> {
   try {
