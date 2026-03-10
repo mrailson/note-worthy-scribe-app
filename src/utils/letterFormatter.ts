@@ -451,7 +451,7 @@ export async function createLetterDocument(
     // Regular paragraph
     documentChildren.push(new Paragraph({
       children: formatTextWithBold(trimmedLine),
-      spacing: { after: 360, line: 276, lineRule: "auto" },
+      spacing: { after: 240 },
       alignment: AlignmentType.JUSTIFIED
     }));
   });
