@@ -206,6 +206,7 @@ const signatoryTable = (headCols: string[], rows: string): string => {
 // ─── HANDLER ─────────────────────────────────────────────────────────
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("send-approval-email v3 - with size guard");
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
