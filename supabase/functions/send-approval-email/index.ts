@@ -636,6 +636,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (type === "declined" && signatory_id) {
       const sig = (allSignatories || []).find((s) => s.id === signatory_id);
       if (sig && doc.sender_email) {
+        const sigDisplayName = withTitle(sig.name, sig.signatory_title);
         const declineComment = sig.decline_comment
           ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 16px 0;">
               <tr><td style="border-left: 4px solid #ef4444; background-color: #fef2f2; padding: 12px 16px;">
@@ -650,11 +651,11 @@ const handler = async (req: Request): Promise<Response> => {
         const html = emailWrapper(`
           ${alertBanner("#fef2f2", "#991b1b", "&#10060; Approval Declined")}
           <table cellpadding="0" cellspacing="0" border="0" width="100%">
-            <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">${sig.name} has declined</td></tr>
-            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;"><strong>${sig.name}</strong> has declined to approve <strong>${doc.title}</strong>.</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">${sigDisplayName} has declined</td></tr>
+            <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;"><strong>${sigDisplayName}</strong> has declined to approve <strong>${doc.title}</strong>.</td></tr>
           </table>
           ${detailsCard(`
-            ${detailRow("Signatory", sig.name)}
+            ${detailRow("Signatory", sigDisplayName)}
             ${sig.role ? detailRow("Role", sig.role) : ""}
             ${detailRow("Organisation", sig.organisation || "—", true)}
           `, "SIGNATORY DETAILS")}
