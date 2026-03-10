@@ -21,6 +21,7 @@ interface SignatoryProfile {
   full_name: string | null;
   title: string | null;
   email: string | null;
+  job_title: string | null;
 }
 
 export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
