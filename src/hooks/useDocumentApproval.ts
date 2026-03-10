@@ -224,7 +224,7 @@ export function useDocumentApproval() {
         // Allow a moment for styles and layout to settle
         await new Promise(r => setTimeout(r, 200));
 
-        const pdfBlob: Blob = await html2pdf()
+        const pdfBlob: Blob = await (html2pdf()
           .set({
             margin: [15, 15, 15, 15],
             filename: 'document.pdf',
@@ -238,8 +238,7 @@ export function useDocumentApproval() {
               windowWidth: container.scrollWidth,
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-          })
+          }) as any)
           .from(container.querySelector('.docx-container'))
           .outputPdf('blob');
 
