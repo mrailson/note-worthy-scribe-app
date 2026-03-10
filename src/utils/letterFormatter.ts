@@ -165,6 +165,7 @@ export async function createLetterDocument(
     .replace(/!\[.*?\]\(.*?\)/g, '') // Remove markdown image syntax
     .replace(/```[\s\S]*?$/g, '') // Remove markdown code blocks at the end
     .replace(/```/g, '') // Remove any stray backticks
+    .replace(/&nbsp;/g, ' ') // Convert HTML non-breaking spaces
     .trim();
   
   // Parse content into sections
@@ -452,11 +453,13 @@ export async function createLetterDocument(
       
       // Handle signature name (usually bold) - use provided signatory name if available
       if (trimmedLine.includes('*') || index === 1) {
-        // Check if this is a generic "Complaints Team" line and we have a real signatory name
-        const isGenericTeamName = /complaints?\s*team/i.test(trimmedLine);
-        const displayName = (signatoryName && isGenericTeamName) 
+        const cleanName = trimmedLine.replace(/\*/g, '').trim();
+        // Use signatory name if available and this is a placeholder or generic name
+        const isGenericTeamName = /complaints?\s*team/i.test(cleanName);
+        const isPlaceholder = !cleanName || cleanName === ' ';
+        const displayName = (signatoryName && (isGenericTeamName || isPlaceholder)) 
           ? signatoryName 
-          : trimmedLine.replace(/\*/g, '');
+          : cleanName || signatoryName || '';
         
         documentChildren.push(new Paragraph({
           children: [
