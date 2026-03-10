@@ -252,6 +252,18 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("document_id", document_id)
       .order("sort_order", { ascending: true });
 
+    // Look up sender's title from profiles
+    let senderTitle: string | null = null;
+    if (doc.sender_id) {
+      const { data: senderProfile } = await supabase
+        .from("profiles")
+        .select("title")
+        .eq("user_id", doc.sender_id)
+        .single();
+      senderTitle = senderProfile?.title || null;
+    }
+    const senderDisplayName = withTitle(doc.sender_name || doc.sender_email || "Unknown", senderTitle);
+
     // Download the PDF attachment for request/reminder emails
     let pdfAttachment: { filename: string; content: Uint8Array } | null = null;
     if (type === "request" || type === "reminder") {
