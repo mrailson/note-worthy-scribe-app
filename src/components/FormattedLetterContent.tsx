@@ -426,6 +426,11 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
                       <p className="text-xl font-bold text-blue-800 mb-1">
                         {resolvedName}
                       </p>
+                      {signatoryProfile?.job_title && (
+                        <p className="text-gray-600 text-sm">
+                          {signatoryProfile.job_title}
+                        </p>
+                      )}
                     </div>
                   );
                 }
