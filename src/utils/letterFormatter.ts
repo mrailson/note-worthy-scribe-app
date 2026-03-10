@@ -165,6 +165,7 @@ export async function createLetterDocument(
     .replace(/!\[.*?\]\(.*?\)/g, '') // Remove markdown image syntax
     .replace(/```[\s\S]*?$/g, '') // Remove markdown code blocks at the end
     .replace(/```/g, '') // Remove any stray backticks
+    .replace(/&nbsp;/g, ' ') // Convert HTML non-breaking spaces
     .trim();
   
   // Parse content into sections
