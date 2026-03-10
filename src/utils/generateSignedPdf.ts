@@ -163,7 +163,7 @@ async function drawCertificatePages(
 
   // COMPLETE badge (right side)
   if (allSigned) {
-    const completeText = '✓ COMPLETE';
+    const completeText = 'COMPLETE';
     const ctw = helveticaBold.widthOfTextAtSize(completeText, 10);
     page.drawRectangle({ x: W - RM - ctw - 20, y: y - 18, width: ctw + 20, height: 22, color: GREEN_BG, borderColor: GREEN, borderWidth: 1 });
     page.drawText(completeText, { x: W - RM - ctw - 10, y: y - 12, size: 10, font: helveticaBold, color: GREEN });
