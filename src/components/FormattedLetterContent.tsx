@@ -205,10 +205,12 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // Skip empty lines in header, but preserve them in addressee section as spacing
+    // Skip empty lines in header, but preserve them in addressee section and body as spacing
     if (!line) {
       if (currentSection === 'addressee' && !bodyStarted) {
         addresseeSection.push('');
+      } else if (currentSection === 'body') {
+        bodyLines.push('');
       }
       continue;
     }
