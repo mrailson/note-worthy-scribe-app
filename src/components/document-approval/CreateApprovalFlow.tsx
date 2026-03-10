@@ -452,25 +452,26 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           <Card className="p-6 space-y-5">
             <div>
               <h2 className="font-semibold text-foreground mb-1">Position Signature Block</h2>
-              <p className="text-xs text-muted-foreground">Select the page and drag the overlay to define where signatures will appear</p>
+              <p className="text-xs text-muted-foreground">Drag each signatory's block to position it on the document</p>
             </div>
             <SignaturePositionPicker
               fileUrl={fileUrl}
-              value={stampPosition}
-              onChange={setStampPosition}
+              signatories={validSignatories.map(s => ({ id: s.id, name: s.name }))}
+              value={stampPositions}
+              onChange={setStampPositions}
             />
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep('upload')} className="gap-2">
+              <Button variant="outline" onClick={() => setStep('signatories')} className="gap-2">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
               <Button onClick={handleStampPositionContinue} className="flex-1 gap-2">
-                Continue to Signatories
+                Continue to Review
               </Button>
             </div>
           </Card>
         )}
 
-        {/* ═══ STEP 2: Signatories ═══ */}
+        {/* ═══ STEP 3: Signatories ═══ */}
         {step === 'signatories' && (
           <Card className="p-6 space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-2">
