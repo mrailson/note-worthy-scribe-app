@@ -686,10 +686,10 @@ function OverviewTab({
         </div>
       </Card>
 
-      {/* Document Preview - Inline PDF Viewer */}
+      {/* Document Preview - Inline PDF Viewer (show signed version if available) */}
       <Card>
         <SectionLabel>DOCUMENT PREVIEW</SectionLabel>
-        <InlinePdfPreview fileUrl={doc.file_url} />
+        <InlinePdfPreview fileUrl={signedFileUrl || doc.file_url} />
       </Card>
 
       {/* Document Notes */}
