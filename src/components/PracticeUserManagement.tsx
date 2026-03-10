@@ -497,7 +497,8 @@ export const PracticeUserManagement = () => {
         lg_capture_access: false,
         bp_service_access: false,
         survey_manager_access: user.survey_manager_access || false,
-        policy_service_access: user.policy_service_access || false
+        policy_service_access: user.policy_service_access || false,
+        document_signoff_access: user.document_signoff_access || false
       }
     });
     setShowUserModal(true);
