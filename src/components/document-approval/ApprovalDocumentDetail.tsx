@@ -489,9 +489,6 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                     {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                     Download Signed PDF
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-2" onClick={() => setActiveTab('certificate')}>
-                    <Shield className="h-3.5 w-3.5" /> Audit Certificate
-                  </Button>
                   <Button
                     variant="outline" size="sm" className="gap-2"
                     onClick={handleSendCompletedDocument} disabled={sending || generating}
