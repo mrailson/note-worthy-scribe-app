@@ -242,7 +242,7 @@ async function drawCertificatePages(
     // Status badge (top right)
     const badgeText = isSigned ? '✓ SIGNED' : '⏳ PENDING';
     const badgeColor = isSigned ? GREEN : rgb(0.573, 0.251, 0.055);
-    const badgeBg = isSigned ? rgb(0.086, 0.639, 0.294, 0.1) : rgb(0.961, 0.620, 0.043, 0.12);
+    const badgeBg = isSigned ? rgb(0.9, 0.97, 0.93) : rgb(0.99, 0.95, 0.88);
     const btw = helveticaBold.widthOfTextAtSize(badgeText, 8);
     page.drawRectangle({ x: LM + CW - btw - 24, y: y - 18, width: btw + 16, height: 16, color: badgeBg });
     page.drawText(badgeText, { x: LM + CW - btw - 16, y: y - 14, size: 8, font: helveticaBold, color: badgeColor });
