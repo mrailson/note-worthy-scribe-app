@@ -34,6 +34,26 @@ export async function fetchLetterDetails(signatoryUserId?: string | null): Promi
         .eq('user_id', signatoryUserId)
         .maybeSingle();
       signatoryName = profile?.full_name || null;
+
+      // Fetch job title from complaint_signatures
+      const { data: sigData } = await supabase
+        .from('complaint_signatures')
+        .select('job_title')
+        .eq('user_id', signatoryUserId)
+        .eq('is_default', true)
+        .maybeSingle();
+      
+      if (sigData?.job_title) {
+        signatoryJobTitle = sigData.job_title;
+      } else {
+        const { data: anySigData } = await supabase
+          .from('complaint_signatures')
+          .select('job_title')
+          .eq('user_id', signatoryUserId)
+          .limit(1)
+          .maybeSingle();
+        signatoryJobTitle = anySigData?.job_title ?? null;
+      }
     }
 
     // Fetch practice details - try default first, then fallback
