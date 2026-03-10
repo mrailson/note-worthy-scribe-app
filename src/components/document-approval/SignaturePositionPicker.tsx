@@ -480,9 +480,10 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                 ref={el => { if (el) pageRefs.current.set(pageNum, el); }}
                 data-page={pageNum}
                 className="relative bg-white rounded-sm shadow-lg border border-border/50"
-                style={{ maxWidth: '100%' }}
+                style={{ maxWidth: '100%', cursor: activeSignatoryId && !value[activeSignatoryId] ? 'crosshair' : undefined }}
                 onMouseMove={(e) => handleMouseMove(e, pageNum)}
                 onMouseUp={handleMouseUp}
+                onClick={(e) => handlePageClick(e, pageNum)}
               >
                 {/* Page number badge */}
                 <div className="absolute -top-3 left-3 z-10">
