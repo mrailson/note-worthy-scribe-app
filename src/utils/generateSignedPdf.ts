@@ -383,15 +383,15 @@ async function drawAuditTrailPage(
   y -= 20;
 
   const eventLabels: Record<string, string> = {
-    created: '📄 Document created',
-    sent: '📨 Sent for signing',
-    viewed: '👁 Document viewed',
-    approved: '✍️ Document signed',
-    declined: '❌ Document declined',
-    revoked: '🚫 Approval revoked',
-    reminder_sent: '🔔 Reminder sent',
-    signed_document_generated: '✅ Certificate of Completion issued',
-    email_sent_completed_document: '📧 Completed document emailed',
+    created: 'Document created',
+    sent: 'Sent for signing',
+    viewed: 'Document viewed',
+    approved: 'Document signed',
+    declined: 'Document declined',
+    revoked: 'Approval revoked',
+    reminder_sent: 'Reminder sent',
+    signed_document_generated: 'Certificate of Completion issued',
+    email_sent_completed_document: 'Completed document emailed',
   };
 
   for (const entry of auditLog) {
