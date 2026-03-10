@@ -296,16 +296,16 @@ const handler = async (req: Request): Promise<Response> => {
 
       for (const sig of targets) {
         const approveUrl = `${APP_URL}/approve/${sig.approval_token}`;
-        const fromDisplay = doc.sender_name || doc.sender_email || "Unknown";
+        const sigDisplayName = withTitle(sig.name, sig.signatory_title);
         const fromEmail = doc.sender_email || "";
         const fromValue = fromEmail
-          ? `<a href="mailto:${fromEmail}" style="color: #005EB8; text-decoration: none; font-weight: 500;">${fromDisplay}</a>`
-          : fromDisplay;
+          ? `<a href="mailto:${fromEmail}" style="color: #005EB8; text-decoration: none; font-weight: 500;">${senderDisplayName}</a>`
+          : senderDisplayName;
         let html: string;
 
         if (custom_body) {
           const personalised = custom_body
-            .replace(/\[Signatory Name\]/gi, sig.name)
+            .replace(/\[Signatory Name\]/gi, sigDisplayName)
             .replace(/\n/g, "<br>");
 
           html = emailWrapper(`
