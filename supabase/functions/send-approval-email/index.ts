@@ -376,7 +376,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     // ─── TYPE: SEND_COMPLETED ────────────────────────────────────────
     if (type === "send_completed") {
-      const { signed_file_url }: EmailRequest = await req.clone().json().catch(() => ({}));
 
       // Download the signed PDF from storage
       let signedPdfAttachment: { filename: string; content: Uint8Array } | null = null;
