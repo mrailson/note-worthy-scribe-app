@@ -360,16 +360,25 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
       }
 
       if (existingOutcome) {
-        // Update existing outcome
-        const { error } = await supabase
+        // Update existing outcome — use .select().maybeSingle() to confirm it saved
+        const { data: updatedData, error } = await supabase
           .from('complaint_outcomes')
           .update({ 
             outcome_letter: letterContent,
             updated_at: new Date().toISOString()
           })
-          .eq('id', existingOutcome.id);
+          .eq('id', existingOutcome.id)
+          .select()
+          .maybeSingle();
 
         if (error) throw error;
+        
+        if (!updatedData) {
+          throw new Error('Failed to save the edited outcome letter. Please check your permissions or try again.');
+        }
+        
+        // Refresh local state with confirmed saved data
+        setExistingOutcome(updatedData);
         
         // Update complaint status to closed if not already
         const { error: statusError } = await supabase

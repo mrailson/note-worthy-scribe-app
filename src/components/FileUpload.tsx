@@ -47,16 +47,20 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         throw error;
       }
 
-      const { data: urlData } = supabase.storage
+      const { data: urlData, error: urlError } = await supabase.storage
         .from('communication-files')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 3600);
+
+      if (urlError || !urlData?.signedUrl) {
+        throw new Error('Failed to generate file URL');
+      }
 
       const uploadedFile: UploadedFile = {
         id: data.path,
         name: file.name,
         size: file.size,
         type: file.type,
-        url: urlData.publicUrl
+        url: urlData.signedUrl
       };
 
       // Save file metadata to database if communicationId is provided
