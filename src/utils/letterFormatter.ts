@@ -468,8 +468,21 @@ export async function createLetterDocument(
               font: "Calibri"
             })
           ],
-          spacing: { after: 100 }
+          spacing: { after: signatoryJobTitle ? 40 : 100 }
         }));
+        // Add job title below name
+        if (signatoryJobTitle) {
+          documentChildren.push(new Paragraph({
+            children: [
+              new TextRun({
+                text: signatoryJobTitle,
+                size: 20,
+                font: "Calibri"
+              })
+            ],
+            spacing: { after: 100 }
+          }));
+        }
         return;
       }
       
