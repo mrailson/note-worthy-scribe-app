@@ -48,6 +48,7 @@ interface PracticeUser {
   survey_manager_access?: boolean;
   nres_access?: boolean;
   policy_service_access?: boolean;
+  document_signoff_access?: boolean;
 }
 
 interface CreatedUserData {
@@ -78,6 +79,7 @@ interface ModuleAccessState {
   bp_service_access: boolean;
   survey_manager_access: boolean;
   policy_service_access: boolean;
+  document_signoff_access: boolean;
 }
 
 const practiceRoles = [
@@ -176,7 +178,8 @@ export const PracticeUserManagement = () => {
       lg_capture_access: false,
       bp_service_access: false,
       survey_manager_access: false,
-      policy_service_access: false
+      policy_service_access: false,
+      document_signoff_access: false
     } as ModuleAccessState
   });
 
@@ -495,7 +498,8 @@ export const PracticeUserManagement = () => {
         lg_capture_access: false,
         bp_service_access: false,
         survey_manager_access: user.survey_manager_access || false,
-        policy_service_access: user.policy_service_access || false
+        policy_service_access: user.policy_service_access || false,
+        document_signoff_access: user.document_signoff_access || false
       }
     });
     setShowUserModal(true);
@@ -564,7 +568,8 @@ export const PracticeUserManagement = () => {
         lg_capture_access: false,
         bp_service_access: false,
         survey_manager_access: false,
-        policy_service_access: false
+        policy_service_access: false,
+        document_signoff_access: false
       }
     });
     setPassword('');
@@ -590,7 +595,8 @@ export const PracticeUserManagement = () => {
       survey_manager_access: 'Survey Tool',
       policy_service_access: 'Practice Policy Service',
       complaints_manager_access: 'Complaints Service',
-      fridge_monitoring_access: 'Fridge Monitoring'
+      fridge_monitoring_access: 'Fridge Monitoring',
+      document_signoff_access: 'Document Sign-Off'
     };
 
     Object.entries(createdUserData.module_access).forEach(([key, enabled]) => {
@@ -765,6 +771,7 @@ export const PracticeUserManagement = () => {
                             {user.survey_manager_access && <Badge variant="outline" className="text-xs">Survey</Badge>}
                             {user.policy_service_access && <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">Policies</Badge>}
                             {user.complaints_manager_access && <Badge variant="outline" className="text-xs">Complaints</Badge>}
+                            {user.document_signoff_access && <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">Sign-Off</Badge>}
                             {user.fridge_monitoring_access && <Badge variant="outline" className="text-xs">Fridge</Badge>}
                             {user.nres_access && <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">NRES</Badge>}
                           </div>
@@ -1039,6 +1046,21 @@ export const PracticeUserManagement = () => {
                     />
                     <Label htmlFor="complaints_manager_access" className="text-sm">
                       Complaints Service
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="document_signoff_access"
+                      checked={userFormData.module_access.document_signoff_access}
+                      onCheckedChange={(checked) => 
+                        setUserFormData(prev => ({
+                          ...prev,
+                          module_access: { ...prev.module_access, document_signoff_access: checked }
+                        }))
+                      }
+                    />
+                    <Label htmlFor="document_signoff_access" className="text-sm">
+                      Document Sign-Off
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
