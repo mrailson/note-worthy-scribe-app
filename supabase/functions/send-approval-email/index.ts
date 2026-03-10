@@ -378,26 +378,42 @@ const handler = async (req: Request): Promise<Response> => {
     if (type === "send_completed") {
 
       // Download the signed PDF from storage
-      let signedPdfAttachment: { filename: string; content: Uint8Array } | null = null;
+      let signedPdfAttachment: { filename: string; content: string } | null = null;
       const fileUrlToDownload = signed_file_url || doc.signed_file_url;
+      console.log("send_completed: fileUrlToDownload =", fileUrlToDownload);
 
       if (fileUrlToDownload) {
         try {
           const storagePath = fileUrlToDownload.replace(/^.*approval-documents\//, "");
+          console.log("send_completed: downloading storagePath =", storagePath);
           const { data: fileData, error: fileErr } = await supabase.storage
             .from("approval-documents")
             .download(storagePath);
 
+          if (fileErr) {
+            console.error("send_completed: storage download error:", fileErr);
+          }
+
           if (!fileErr && fileData) {
             const arrayBuf = await fileData.arrayBuffer();
+            // Convert to base64 string for Resend attachment
+            const bytes = new Uint8Array(arrayBuf);
+            let binary = "";
+            for (let i = 0; i < bytes.length; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            const base64Content = btoa(binary);
+            console.log("send_completed: attachment size =", bytes.length, "bytes, base64 length =", base64Content.length);
             signedPdfAttachment = {
               filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
-              content: new Uint8Array(arrayBuf),
+              content: base64Content,
             };
           }
         } catch (e) {
-          console.warn("Could not download signed PDF attachment:", e);
+          console.error("send_completed: Could not download signed PDF attachment:", e);
         }
+      } else {
+        console.warn("send_completed: No signed_file_url available");
       }
 
       const sigSummaryRows = (allSignatories || [])
@@ -451,10 +467,14 @@ const handler = async (req: Request): Promise<Response> => {
         };
 
         if (signedPdfAttachment) {
+          console.log("send_completed: attaching PDF to email for", recipientEmail);
           emailPayload.attachments = [{
             filename: signedPdfAttachment.filename,
             content: signedPdfAttachment.content,
+            type: "application/pdf",
           }];
+        } else {
+          console.warn("send_completed: no attachment available for", recipientEmail);
         }
 
         const { error: sendErr } = await resend.emails.send(emailPayload);
