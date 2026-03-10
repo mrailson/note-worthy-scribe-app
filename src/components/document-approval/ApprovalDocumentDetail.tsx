@@ -42,6 +42,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
   const [revoking, setRevoking] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sending, setSending] = useState(false);
 
   // Access the raw doc data including new columns
   const signedFileUrl = (doc as any).signed_file_url as string | null;
