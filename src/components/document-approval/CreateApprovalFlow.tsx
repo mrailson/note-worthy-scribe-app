@@ -51,6 +51,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     uploadDocument, addSignatories, sendForApproval,
     contacts, contactGroups, saveContact, deleteContact, updateContact, updateSignaturePlacement,
   } = useDocumentApproval();
+  const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory();
 
   const [step, setStep] = useState<'upload' | 'stamp_position' | 'signatories' | 'review'>('upload');
   const [uploading, setUploading] = useState(false);
