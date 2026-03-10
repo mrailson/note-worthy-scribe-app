@@ -48,6 +48,7 @@ interface PracticeUser {
   survey_manager_access?: boolean;
   nres_access?: boolean;
   policy_service_access?: boolean;
+  document_signoff_access?: boolean;
 }
 
 interface CreatedUserData {
