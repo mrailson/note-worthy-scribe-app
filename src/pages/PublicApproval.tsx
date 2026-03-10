@@ -534,24 +534,13 @@ const PublicApproval = () => {
           <div className="space-y-3 pt-2">
             <div className="flex items-start gap-3">
               <Checkbox
-                id="confirm-read"
-                checked={confirmRead}
-                onCheckedChange={v => setConfirmRead(!!v)}
+                id="confirm-approval"
+                checked={confirmApproval}
+                onCheckedChange={v => setConfirmApproval(!!v)}
                 className="mt-0.5"
               />
-              <Label htmlFor="confirm-read" className="text-sm text-foreground cursor-pointer leading-relaxed">
-                I confirm I have read the attached document and approve its contents
-              </Label>
-            </div>
-            <div className="flex items-start gap-3">
-              <Checkbox
-                id="confirm-legal"
-                checked={confirmLegal}
-                onCheckedChange={v => setConfirmLegal(!!v)}
-                className="mt-0.5"
-              />
-              <Label htmlFor="confirm-legal" className="text-sm text-foreground cursor-pointer leading-relaxed">
-                I understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)
+              <Label htmlFor="confirm-approval" className="text-sm text-foreground cursor-pointer leading-relaxed">
+                I confirm I have read the attached document, approve its contents, and understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)
               </Label>
             </div>
           </div>
