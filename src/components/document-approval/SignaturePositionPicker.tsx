@@ -503,7 +503,8 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                         height: `${stamp.height}%`,
                         border: `2px ${isActive ? 'solid' : 'dashed'} ${colour}`,
                         backgroundColor: bgColour,
-                        ringColor: isActive ? colour : undefined,
+                        outline: isActive ? `2px solid ${colour}` : undefined,
+                        outlineOffset: isActive ? '2px' : undefined,
                         zIndex: isActive ? 30 : 20,
                       }}
                       onMouseDown={(e) => handleMouseDown(e, sig.id, pageNum)}
