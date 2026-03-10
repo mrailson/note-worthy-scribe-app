@@ -129,7 +129,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
       }
       const certId = certificateId;
       const sigInfos: SignatoryInfo[] = signatories.map(s => ({
-        name: s.name, email: s.email, role: s.role, organisation: s.organisation,
+        id: s.id, name: s.name, email: s.email, role: s.role, organisation: s.organisation,
         signed_at: s.signed_at, signed_name: s.signed_name, signed_role: s.signed_role,
         signed_organisation: s.signed_organisation,
         signed_ip: (s as any).signed_ip || null,
