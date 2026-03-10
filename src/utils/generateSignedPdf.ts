@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import QRCode from 'qrcode';
 
 export interface SignatoryInfo {
+  id?: string;
   name: string;
   email: string;
   role: string | null;
@@ -17,6 +18,14 @@ export interface SignatoryInfo {
   signatory_title?: string | null;
 }
 
+export interface SignatoryPosition {
+  page: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface SignaturePlacement {
   method: 'append' | 'stamp';
   page?: number;
@@ -24,6 +33,8 @@ export interface SignaturePlacement {
   y?: number;
   width?: number;
   height?: number;
+  /** Per-signatory positions keyed by signatory ID */
+  positions?: Record<string, SignatoryPosition>;
 }
 
 export interface AuditLogEntry {
