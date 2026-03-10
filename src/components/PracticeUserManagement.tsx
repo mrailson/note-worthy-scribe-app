@@ -78,6 +78,7 @@ interface ModuleAccessState {
   bp_service_access: boolean;
   survey_manager_access: boolean;
   policy_service_access: boolean;
+  document_signoff_access: boolean;
 }
 
 const practiceRoles = [
