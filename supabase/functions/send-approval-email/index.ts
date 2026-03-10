@@ -397,13 +397,8 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (!fileErr && fileData) {
             const arrayBuf = await fileData.arrayBuffer();
-            // Convert to base64 string for Resend attachment
             const bytes = new Uint8Array(arrayBuf);
-            let binary = "";
-            for (let i = 0; i < bytes.length; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            const base64Content = btoa(binary);
+            const base64Content = encodeBase64(bytes);
             console.log("send_completed: attachment size =", bytes.length, "bytes, base64 length =", base64Content.length);
             signedPdfAttachment = {
               filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
