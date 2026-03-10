@@ -4824,16 +4824,15 @@ export const MeetingRecorder = ({
         sessionStorage.removeItem('currentSessionId');
       }
       
-      // Reset the meeting immediately for short recordings (background)
+      // Reset the meeting synchronously for short recordings to prevent race conditions
+      // when user starts a new meeting immediately after stopping a short one
       setStopRecordingStep('Complete!');
-      setTimeout(async () => {
-        try {
-          await resetMeeting();
-        } finally {
-          setIsStoppingRecording(false);
-          stopInProgressRef.current = false;
-        }
-      }, 0);
+      try {
+        await resetMeeting();
+      } finally {
+        setIsStoppingRecording(false);
+        stopInProgressRef.current = false;
+      }
       
       // Show toast for short meeting (deduped)
       showToast.info('Meeting was too short to save (minimum 100 words required)', {
