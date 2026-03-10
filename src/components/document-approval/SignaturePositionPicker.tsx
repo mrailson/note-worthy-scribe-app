@@ -366,24 +366,30 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                   style={{ backgroundColor: colour }}
                 />
                 <span className="font-medium text-foreground">{sig.name}</span>
-                {hasPosition && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                    p.{value[sig.id].page}
-                  </Badge>
-                )}
-                {isActive && <Check className="h-3.5 w-3.5 text-primary" />}
+                {hasPosition ? (
+                  <span className="flex items-center gap-1">
+                    <Check className="h-3.5 w-3.5 text-green-600" />
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      p.{value[sig.id].page}
+                    </Badge>
+                  </span>
+                ) : isActive ? (
+                  <span className="text-[10px] text-muted-foreground italic">Click to place</span>
+                ) : null}
               </button>
             );
           })}
         </div>
 
-        {activeSignatoryId && value[activeSignatoryId] && (
-          <p className="text-xs text-muted-foreground">
-            <User className="h-3 w-3 inline mr-1" />
-            {signatories.find(s => s.id === activeSignatoryId)?.name}: page {value[activeSignatoryId].page},
-            position ({Math.round(value[activeSignatoryId].x)}%, {Math.round(value[activeSignatoryId].y)}%)
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground">
+          <User className="h-3 w-3 inline mr-1" />
+          {!activeSignatoryId
+            ? 'Select a signatory above, then click on the document to place their signature'
+            : value[activeSignatoryId]
+              ? `${signatories.find(s => s.id === activeSignatoryId)?.name}: page ${value[activeSignatoryId].page} — drag to reposition`
+              : `Click anywhere on the document to place ${signatories.find(s => s.id === activeSignatoryId)?.name}'s signature block`
+          }
+        </p>
       </Card>
 
       {/* Toolbar */}
