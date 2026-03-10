@@ -250,11 +250,19 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
           <Button variant="outline" size="sm" className="gap-1" onClick={async () => {
             try {
               const blob = await downloadFromStorage(doc.file_url);
-              const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-              window.open(url, '_blank');
+              const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+              const url = URL.createObjectURL(pdfBlob);
+              // Use an anchor tag with download to avoid popup/ad-blocker issues
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = doc.original_filename || 'document.pdf';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
             } catch { toast.error('Failed to open PDF'); }
           }}>
-            <ExternalLink className="h-3 w-3" /> View PDF
+            <Download className="h-3 w-3" /> View PDF
           </Button>
         </div>
 
@@ -310,16 +318,6 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                         } catch { toast.error('Failed to download signed PDF'); }
                       }}>
                         <Download className="h-3.5 w-3.5" /> Download Signed PDF
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-2" onClick={async () => {
-                        try {
-                          const blob = await downloadFromStorage(doc.file_url);
-                          const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-                          const a = document.createElement('a'); a.href = url; a.download = doc.original_filename || 'document.pdf';
-                          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-                        } catch { toast.error('Failed to download document'); }
-                      }}>
-                        <Download className="h-3.5 w-3.5" /> Download PDF (unsigned)
                       </Button>
                     </>
                   ) : (
