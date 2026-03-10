@@ -416,6 +416,16 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
 
         {/* ── Content Container ───────────────────────────────── */}
         <div style={{ maxWidth: 880, margin: '0 auto', padding: '24px 16px' }}>
+          {/* Back to list */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="gap-2 mb-4 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft size={16} />
+            Back to Document Approvals
+          </Button>
           {/* Document Header */}
           <div style={{
             background: '#ffffff', border: `1px solid ${CARD_BORDER}`, borderRadius: 12,
