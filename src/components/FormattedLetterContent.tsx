@@ -457,11 +457,8 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
                     </div>
                   );
                 }
-                
-                // Skip line if it duplicates the job title already shown under the name
-                if (signatoryProfile?.job_title && trimmedLine.replace(/\*/g, '').trim().toLowerCase() === signatoryProfile.job_title.trim().toLowerCase()) {
-                  return null;
-                }
+
+
 
                 // Handle title, qualifications, practice name, etc.
                 return (
