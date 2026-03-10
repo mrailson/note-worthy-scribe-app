@@ -81,12 +81,19 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const [suggestingPositions, setSuggestingPositions] = useState(false);
 
+  // Mouse helpers
+  const getMousePercent = useCallback((e: React.MouseEvent, pageEl: HTMLElement) => {
+    const bounds = pageEl.getBoundingClientRect();
+    return {
+      x: ((e.clientX - bounds.left) / bounds.width) * 100,
+      y: ((e.clientY - bounds.top) / bounds.height) * 100,
+    };
+  }, []);
+
   // Click-to-place handler for PDF pages
   const handlePageClick = useCallback((e: React.MouseEvent, pageNum: number) => {
-    // Don't place if we're finishing a drag
     if (dragging) return;
     if (!activeSignatoryId) return;
-    // Only place if signatory doesn't have a position yet
     if (value[activeSignatoryId]) return;
 
     const pageEl = pageRefs.current.get(pageNum);
