@@ -666,6 +666,7 @@ function OverviewTab({
   signaturePlacement: SignaturePlacement | null;
   certificateId: string;
 }) {
+  const signedFileUrl = (doc as any).signed_file_url as string | null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Approval Progress */}
