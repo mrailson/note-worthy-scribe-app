@@ -263,25 +263,34 @@ const handler = async (req: Request): Promise<Response> => {
     }
     const senderDisplayName = withTitle(doc.sender_name || doc.sender_email || "Unknown", senderTitle);
 
-    // Download the PDF attachment for request/reminder emails
+    // Download the PDF attachment for request/reminder emails (skip if >5MB to avoid memory limits)
+    const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5MB
     let pdfAttachment: { filename: string; content: Uint8Array } | null = null;
+    let pdfDownloadUrl: string | null = null;
     if (type === "request" || type === "reminder") {
-      try {
-        const { data: fileData, error: fileErr } = await supabase.storage
-          .from("approval-documents")
-          .download(doc.file_url.replace(/^.*approval-documents\//, ""));
+      const fileSizeBytes = doc.file_size_bytes || 0;
+      if (fileSizeBytes > MAX_ATTACHMENT_BYTES) {
+        // Too large to attach — provide a download link via the approval page instead
+        console.log(`PDF too large to attach (${fileSizeBytes} bytes), skipping inline attachment`);
+        pdfDownloadUrl = doc.file_url;
+      } else {
+        try {
+          const { data: fileData, error: fileErr } = await supabase.storage
+            .from("approval-documents")
+            .download(doc.file_url.replace(/^.*approval-documents\//, ""));
 
-        if (!fileErr && fileData) {
-          const arrayBuf = await fileData.arrayBuffer();
-          const originalName = doc.original_filename || "document.pdf";
-          const pdfFilename = originalName.replace(/\.docx?$/i, '.pdf');
-          pdfAttachment = {
-            filename: pdfFilename,
-            content: new Uint8Array(arrayBuf),
-          };
+          if (!fileErr && fileData) {
+            const arrayBuf = await fileData.arrayBuffer();
+            const originalName = doc.original_filename || "document.pdf";
+            const pdfFilename = originalName.replace(/\.docx?$/i, '.pdf');
+            pdfAttachment = {
+              filename: pdfFilename,
+              content: new Uint8Array(arrayBuf),
+            };
+          }
+        } catch (e) {
+          console.warn("Could not download attachment:", e);
         }
-      } catch (e) {
-        console.warn("Could not download attachment:", e);
       }
     }
 
