@@ -331,7 +331,7 @@ const handler = async (req: Request): Promise<Response> => {
           html = emailWrapper(`
             <table cellpadding="0" cellspacing="0" border="0" width="100%">
               <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Document Approval Requested</td></tr>
-              <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sig.name},</td></tr>
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sigDisplayName},</td></tr>
               <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">A document has been sent to you for approval. Please review the details below.</td></tr>
             </table>
             ${messageBlock}
