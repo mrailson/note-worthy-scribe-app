@@ -340,7 +340,7 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
               // Handle "Dear" line specially
               if (trimmedLine.toLowerCase().startsWith('dear ')) {
                 specialLines.push(
-                  <p key={`dear-${index}`} className="text-lg font-medium mb-6">
+                  <p key={`dear-${index}`} className="mb-6">
                     {formatTextWithBold(trimmedLine)}
                   </p>
                 );
