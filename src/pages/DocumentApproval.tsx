@@ -376,7 +376,7 @@ export default function DocumentApproval() {
                       <DocumentCard
                         key={doc.id}
                         doc={doc}
-                        onSelect={() => setSelectedDoc(doc)}
+                        onSelect={() => selectDoc(doc)}
                         onChasePending={async () => {
                           setChasingDocId(doc.id);
                           try {
