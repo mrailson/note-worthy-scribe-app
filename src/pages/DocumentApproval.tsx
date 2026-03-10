@@ -70,6 +70,11 @@ export default function DocumentApproval() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<ApprovalDocumentWithSignatories | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
+
+  const selectDoc = useCallback((doc: ApprovalDocumentWithSignatories | null) => {
+    setSelectedDoc(doc);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
   const [sort, setSort] = useState<SortType>('recent');
   const [activeTab, setActiveTab] = useState<TabType>('active');
 
