@@ -2339,12 +2339,15 @@ const ComplaintDetails = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                // Download file logic
-                                const { data } = supabase.storage
+                              onClick={async () => {
+                                const { data, error } = await supabase.storage
                                   .from('communication-files')
-                                  .getPublicUrl(doc.file_path);
-                                window.open(data.publicUrl, '_blank');
+                                  .createSignedUrl(doc.file_path, 3600);
+                                if (error || !data?.signedUrl) {
+                                  showToast.error('Failed to generate download link', { section: 'complaints' });
+                                  return;
+                                }
+                                window.open(data.signedUrl, '_blank');
                               }}
                             >
                               <Download className="h-4 w-4" />
@@ -2352,12 +2355,15 @@ const ComplaintDetails = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                // View file logic
-                                const { data } = supabase.storage
+                              onClick={async () => {
+                                const { data, error } = await supabase.storage
                                   .from('communication-files')
-                                  .getPublicUrl(doc.file_path);
-                                window.open(data.publicUrl, '_blank');
+                                  .createSignedUrl(doc.file_path, 3600);
+                                if (error || !data?.signedUrl) {
+                                  showToast.error('Failed to generate file link', { section: 'complaints' });
+                                  return;
+                                }
+                                window.open(data.signedUrl, '_blank');
                               }}
                             >
                               <Eye className="h-4 w-4" />
