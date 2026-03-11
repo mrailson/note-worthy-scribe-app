@@ -371,10 +371,8 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
         .finally(() => setGenerating(false));
     }
   }, [isCompleted, localSignedUrl, loading, signatories.length, generating]);
-      console.error('Failed to generate signed PDF:', err);
-      toast.error('Failed to generate signed document');
-    } finally { setGenerating(false); }
-  };
+
+
 
   const handleDownloadSignedPdf = async () => {
     // Always regenerate the signed PDF to ensure latest rendering logic is used
