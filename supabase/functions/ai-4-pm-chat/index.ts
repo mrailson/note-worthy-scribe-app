@@ -2017,10 +2017,10 @@ serve(async (req) => {
       })
     );
 
-    // Optimized system prompt - no more Tavily injection, let OpenAI handle web search
+    // Inject current date context (contextual date rules are in the client-side system prompt)
     const todayFormatted = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const today = new Date().toISOString().split('T')[0];
-    const enhancedSystemPrompt = systemPrompt + `\nCURRENT DATE: ${today}\nTODAY'S DATE (BRITISH FORMAT): ${todayFormatted}\n\nCRITICAL DATE RULE: NEVER use placeholder text like "[Insert Date]", "[Date]", or any bracketed date placeholder. When a date is needed, ALWAYS use today's actual date: ${todayFormatted}.`;
+    const enhancedSystemPrompt = systemPrompt + `\nCURRENT DATE: ${today}\nTODAY'S DATE (BRITISH FORMAT): ${todayFormatted}`;
     
     console.log('Using optimized AI4GP with live source verification capabilities');
     console.log('Verification level:', verificationLevel);
