@@ -184,16 +184,20 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       const lastMsg = messages[newCount - 1];
 
       if (lastMsg?.role === 'user') {
+        // User just sent a message — always scroll to bottom and lock
         autoScrollLocked.current = true;
         requestAnimationFrame(() => {
           parentRef.current?.scrollTo({ top: parentRef.current!.scrollHeight, behavior: 'smooth' });
         });
-      } else if (lastMsg?.role === 'assistant' && isNearBottom()) {
-        autoScrollLocked.current = true;
-        requestAnimationFrame(() => scrollToLatestAssistant(true));
+      } else if (lastMsg?.role === 'assistant' && autoScrollLocked.current) {
+        // Assistant reply arrived — use the existing lock (set when user sent their msg)
+        // Use setTimeout to let the virtualizer render the new item first
+        setTimeout(() => {
+          scrollToLatestAssistant(true);
+        }, 50);
       }
     }
-  }, [messages.length, isNearBottom, scrollToLatestAssistant]);
+  }, [messages.length, scrollToLatestAssistant]);
 
   // --- Streaming content updates ---
   const lastMessage = messages[messages.length - 1];
