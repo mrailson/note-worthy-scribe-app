@@ -26,6 +26,7 @@ interface CreateUserRequest {
     fridge_monitoring_access?: boolean;
     survey_manager_access?: boolean;
     policy_service_access?: boolean;
+    document_signoff_access?: boolean;
   };
   send_welcome_email?: boolean;
   practice_name?: string;
@@ -166,7 +167,8 @@ const handler = async (req: Request): Promise<Response> => {
             shared_drive_access: module_access.shared_drive_access || false,
             mic_test_service_access: module_access.mic_test_service_access || false,
             api_testing_service_access: module_access.api_testing_service_access || false,
-            survey_manager_access: module_access.survey_manager_access || false
+            survey_manager_access: module_access.survey_manager_access || false,
+            document_signoff_access: module_access.document_signoff_access || false
           })
           .eq('user_id', existingUserId)
           .eq('practice_id', practiceId);
@@ -270,7 +272,8 @@ const handler = async (req: Request): Promise<Response> => {
         shared_drive_access: module_access.shared_drive_access || false,
         mic_test_service_access: module_access.mic_test_service_access || false,
         api_testing_service_access: module_access.api_testing_service_access || false,
-        survey_manager_access: module_access.survey_manager_access || false
+        survey_manager_access: module_access.survey_manager_access || false,
+        document_signoff_access: module_access.document_signoff_access || false
       });
 
     if (roleInsertError) {
