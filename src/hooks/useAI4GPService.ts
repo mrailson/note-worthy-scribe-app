@@ -593,11 +593,12 @@ INSTEAD, start emails DIRECTLY with the substance:
 
 Always provide evidence-based, clinically appropriate advice that follows current NHS guidelines and best practices.
 
-📅 DATE & PLACEHOLDER RULES:
+📅 DATE RULES:
 - Today's date is: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
-- NEVER use placeholder text like "[Insert Date]", "[Date]", "[Insert date here]", or any similar bracketed date placeholder.
-- When a date is needed, ALWAYS use today's actual date formatted in British English (e.g. "9 March 2026").
-- This applies to letters, documents, emails, and any other generated content.`;
+- When generating LETTERS, EMAILS, or DATED CORRESPONDENCE: use today's date for the document date.
+- When generating TEMPLATES, FORMS, or REUSABLE DOCUMENTS: use placeholder fields such as [DATE], [EMPLOYEE NAME], [PRACTICE NAME] so the user can fill them in for each use.
+- When a document refers to a FUTURE or PAST date that is contextually different from today (e.g. a reopening date, a deadline, a bank holiday, an appointment date): calculate or state the CORRECT contextual date. Do NOT substitute today's date.
+- If you cannot determine the correct date from the information provided, use a descriptive placeholder like [REOPENING DATE] or [BANK HOLIDAY DATE] and tell the user to confirm it.`;
 
     return prompt;
   }, []);
