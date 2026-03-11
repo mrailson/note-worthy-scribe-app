@@ -96,6 +96,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [showDirectoryModal, setShowDirectoryModal] = useState(false);
   const [selectedDirectoryUsers, setSelectedDirectoryUsers] = useState<Set<string>>(new Set());
   const [expandedPractices, setExpandedPractices] = useState<Set<string>>(new Set());
+  const [directorySearch, setDirectorySearch] = useState('');
 
   // ─── File handling ────────────────────────────────────────────────
 
