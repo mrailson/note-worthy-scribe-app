@@ -288,6 +288,16 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
     return () => { cancelled = true; };
   }, [doc.id, fetchSignatories, fetchAuditLog]);
 
+  // Auto-generate signed PDF for completed documents
+  useEffect(() => {
+    if (isCompletedRef.current && !localSignedUrl && !loading && signatories.length > 0 && !generating && !autoGenTriggered.current) {
+      autoGenTriggered.current = true;
+      handleAutoGenerateSignedPdf();
+    }
+  });
+
+  const isCompletedCheck = doc.status === 'completed';
+
   const approvedCount = signatories.filter(s => s.status === 'approved').length;
   const totalCount = signatories.length;
   const progress = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0;
