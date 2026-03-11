@@ -239,6 +239,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     if (!directoryLoaded) fetchDirectory();
     setSelectedDirectoryUsers(new Set());
     setExpandedPractices(new Set());
+    setDirectorySearch('');
     setShowDirectoryModal(true);
   };
 
