@@ -1044,7 +1044,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                           <span className="text-xs text-muted-foreground">{group.users.length} user{group.users.length !== 1 ? 's' : ''}</span>
                         </div>
                       </button>
-                      {isExpanded && (
+                      {(isExpanded || searchLower) && (
                         <div className="divide-y">
                           {group.users.map(u => {
                             const isSelected = selectedDirectoryUsers.has(u.user_id);
