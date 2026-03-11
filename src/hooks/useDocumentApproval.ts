@@ -569,6 +569,11 @@ export function useDocumentApproval() {
     toast.success('Contact updated');
   }, [fetchContacts]);
 
+  const toggleContactFavourite = useCallback(async (contact: ApprovalContact) => {
+    await supabase.from('approval_contacts').update({ is_favourite: !contact.is_favourite }).eq('id', contact.id);
+    await fetchContacts();
+  }, [fetchContacts]);
+
   const deleteContactGroup = useCallback(async (groupId: string) => {
     await supabase.from('approval_contact_groups').delete().eq('id', groupId);
     await fetchContactGroups();
