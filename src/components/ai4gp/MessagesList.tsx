@@ -277,6 +277,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
               <div
                 key={message.id}
                 data-index={index}
+                data-role={message.role}
                 ref={virtualizer.measureElement}
                 style={{
                   position: 'absolute',
