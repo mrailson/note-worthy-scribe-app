@@ -26,6 +26,7 @@ interface DocumentPreviewModalProps {
   infographicSpellingCorrections?: { incorrect: string; correct: string }[];
   onContentUpdated?: (newContent: string) => void;
   onExportPowerPoint?: (content: string, title?: string, slideCount?: number) => void;
+  isPowerPointGenerating?: boolean;
 }
 
 // Extract a sensible title from content
@@ -59,6 +60,16 @@ const INFOGRAPHIC_TIPS = [
   'Applying colour palette…',
   'Rendering infographic…',
   'Adding finishing touches…',
+  'Nearly there…',
+];
+
+const PPTX_TIPS = [
+  'Preparing slide structure…',
+  'Formatting content for slides…',
+  'Applying presentation theme…',
+  'Building visual layout…',
+  'Adding headings and sections…',
+  'Finalising presentation…',
   'Nearly there…',
 ];
 
@@ -482,6 +493,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   infographicSpellingCorrections,
   onContentUpdated,
   onExportPowerPoint,
+  isPowerPointGenerating = false,
 }) => {
   const { prefs, updatePref } = useDocumentPreviewPrefs();
   const { practiceContext } = usePracticeContext();
@@ -499,6 +511,28 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const [infographicTipIdx, setInfographicTipIdx] = useState(0);
   const [infographicFullscreen, setInfographicFullscreen] = useState(false);
   const { generateInfographic, isGenerating: isInfographicGenerating, currentPhase, error: infographicError } = useContentInfographic();
+
+  // PowerPoint progress state
+  const [pptxProgress, setPptxProgress] = useState(0);
+  const [pptxTipIdx, setPptxTipIdx] = useState(0);
+
+  useEffect(() => {
+    if (!isPowerPointGenerating) {
+      setPptxProgress(0);
+      setPptxTipIdx(0);
+      return;
+    }
+    const progressInterval = setInterval(() => {
+      setPptxProgress(prev => {
+        if (prev >= 92) { clearInterval(progressInterval); return prev; }
+        return prev + 3;
+      });
+    }, 1500);
+    const tipInterval = setInterval(() => {
+      setPptxTipIdx(prev => (prev + 1) % PPTX_TIPS.length);
+    }, 3500);
+    return () => { clearInterval(progressInterval); clearInterval(tipInterval); };
+  }, [isPowerPointGenerating]);
 
   // documentTitle already declared above with activeContent
   const logoUrl = practiceContext?.logoUrl;
@@ -741,7 +775,24 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           </div>
         )}
 
-        {/* Infographic error banner */}
+        {/* PowerPoint generating indicator — shown as a banner above the document */}
+        {isPowerPointGenerating && (
+          <div className="px-4 sm:px-6 py-3 border-b bg-primary/5">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 shrink-0">
+                <Presentation className="h-4 w-4 text-primary animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Creating Presentation…</p>
+                <Progress value={pptxProgress} className="h-1.5 mt-1" />
+                <p className="text-xs text-muted-foreground mt-1 animate-pulse">
+                  {PPTX_TIPS[pptxTipIdx]}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {infographicError && !isInfographicGenerating && (
           <div className="px-4 sm:px-6 py-3 border-b bg-destructive/5">
             <div className="flex items-center gap-3">

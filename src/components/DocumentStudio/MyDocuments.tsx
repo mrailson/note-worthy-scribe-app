@@ -22,7 +22,7 @@ export const MyDocuments: React.FC = () => {
   const [documents, setDocuments] = useState<SavedDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [previewDoc, setPreviewDoc] = useState<SavedDocument | null>(null);
-  const { generateWithGamma } = useGammaPowerPoint();
+  const { generateWithGamma, isGenerating: isPptxGenerating } = useGammaPowerPoint();
 
   const fetchDocuments = async () => {
     setIsLoading(true);
@@ -117,6 +117,7 @@ export const MyDocuments: React.FC = () => {
           title={previewDoc.title}
           isOpen={!!previewDoc}
           onClose={() => setPreviewDoc(null)}
+          isPowerPointGenerating={isPptxGenerating}
           onExportPowerPoint={(content, title, slideCount) => {
             generateWithGamma(content, title, true, slideCount || 4).catch((err) => {
               console.error('PowerPoint generation failed:', err);
