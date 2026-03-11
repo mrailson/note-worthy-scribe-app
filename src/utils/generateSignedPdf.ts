@@ -577,18 +577,39 @@ function drawStampSignatures(
         thickness: 0.5, color: rgb(0.6, 0.6, 0.7),
       });
 
-      // Signed date below signature
+      // Details below signature
       const detailFontSize = Math.min(6.5, areaH / 6);
-      const dateY = sigY - detailFontSize - 3;
-      if (date && dateY > areaY + 2) {
-        page.drawText(`Signed: ${date}`, {
-          x: areaX + 4, y: dateY, size: detailFontSize, font: helvetica, color: rgb(0.3, 0.3, 0.3),
+      let currentY = sigY - detailFontSize - 3;
+
+      // Role
+      const role = sig.signed_role || sig.role;
+      if (role && currentY > areaY + 2) {
+        page.drawText(role, {
+          x: areaX + 4, y: currentY, size: detailFontSize, font: helvetica, color: rgb(0.3, 0.3, 0.3),
         });
+        currentY -= detailFontSize + 1.5;
+      }
+
+      // Organisation
+      const org = sig.signed_organisation || (sig as any).organisation;
+      if (org && currentY > areaY + 2) {
+        page.drawText(org, {
+          x: areaX + 4, y: currentY, size: detailFontSize, font: helvetica, color: rgb(0.3, 0.3, 0.3),
+        });
+        currentY -= detailFontSize + 1.5;
+      }
+
+      // Signed date
+      if (date && currentY > areaY + 2) {
+        page.drawText(`Signed: ${date}`, {
+          x: areaX + 4, y: currentY, size: detailFontSize, font: helvetica, color: rgb(0.3, 0.3, 0.3),
+        });
+        currentY -= detailFontSize + 1.5;
       }
 
       // Small "Electronically signed" footer
       const footerY = areaY + 2;
-      if (footerY < dateY - 1) {
+      if (footerY < currentY) {
         page.drawText('Electronically signed via Notewell', {
           x: areaX + 4, y: footerY, size: Math.min(4.5, detailFontSize - 1), font: helvetica, color: rgb(0.7, 0.7, 0.7),
         });
