@@ -67,6 +67,10 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   const isLoadingRef = useRef(isLoading);
   useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
 
+  // --- Debounce ref for virtualizer.measure() during streaming ---
+  const lastMeasureTimeRef = useRef(0);
+  const showScrollButtonRef = useRef(false);
+
   // Show floating button when not at bottom
   const [showScrollButton, setShowScrollButton] = useState(false);
 
@@ -156,7 +160,11 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       autoScrollLocked.current = true;
     }
 
-    setShowScrollButton(!nearBottom);
+    // Only update state when value actually changes to avoid re-renders during streaming
+    if (showScrollButtonRef.current !== !nearBottom) {
+      showScrollButtonRef.current = !nearBottom;
+      setShowScrollButton(!nearBottom);
+    }
   }, []);
 
   // Attach scroll listener (passive for perf)
@@ -185,8 +193,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       } else if (lastMsg?.role === 'assistant' && autoScrollLocked.current) {
         // Assistant reply arrived — use the existing lock (set when user sent their msg)
         // Use setTimeout to let the virtualizer render the new item first
-        setTimeout(() => scrollToLatestAssistant(true), 150);
-        setTimeout(() => scrollToLatestAssistant(true), 300);
+        setTimeout(() => scrollToLatestAssistant(true), 200);
       }
     }
   }, [messages.length, scrollToLatestAssistant]);
@@ -197,8 +204,12 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   useEffect(() => {
     if (isLoading && autoScrollLocked.current && scrollDuringStreamingProp) {
-      // Invalidate virtualiser measurements so scrollHeight reflects new content
-      virtualizer.measure();
+      // Throttle virtualizer.measure() to max once every 300ms to prevent feedback loops
+      const now = Date.now();
+      if (now - lastMeasureTimeRef.current > 300) {
+        lastMeasureTimeRef.current = now;
+        virtualizer.measure();
+      }
       requestAnimationFrame(() => {
         const el = parentRef.current;
         if (el) el.scrollTop = el.scrollHeight;
@@ -206,7 +217,10 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     }
     // Show floating button if new assistant content arrives while scrolled up
     if (isLoading && !autoScrollLocked.current && lastMessage?.role === 'assistant') {
-      setShowScrollButton(true);
+      if (!showScrollButtonRef.current) {
+        showScrollButtonRef.current = true;
+        setShowScrollButton(true);
+      }
     }
   }, [lastMessageContentLength, isLoading, scrollDuringStreamingProp, messages.length, virtualizer]);
 
