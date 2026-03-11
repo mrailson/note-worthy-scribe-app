@@ -61,11 +61,11 @@ const categoryLabels: Record<string, string> = {
 /* ─── Inline PDF Viewer ─────────────────────────────────────── */
 function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryName }: {
   fileUrl: string;
-  signaturePlacement?: Record<string, { page: number; x: number; y: number }> | null;
+  signaturePlacement?: { method: string; positions?: Record<string, { page: number; x: number; y: number }> } | null;
   signatoryId?: string;
   signatoryName?: string;
 }) {
-  const placement = signatoryId && signaturePlacement ? signaturePlacement[signatoryId] : null;
+  const placement = signatoryId && signaturePlacement?.positions ? signaturePlacement.positions[signatoryId] : null;
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
