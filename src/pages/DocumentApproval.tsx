@@ -238,9 +238,26 @@ export default function DocumentApproval() {
               <History className="h-4 w-4 mr-1.5" />
               History
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`rounded-none border-b-2 text-sm px-4 ${activeTab === 'directory' ? 'border-primary text-primary font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              onClick={() => setActiveTab('directory')}
+            >
+              <Users className="h-4 w-4 mr-1.5" />
+              Directory
+            </Button>
           </div>
 
-          {activeTab === 'history' ? (
+          {activeTab === 'directory' ? (
+            <ApprovalDirectory
+              contacts={contacts}
+              onSave={saveContact}
+              onUpdate={updateContact}
+              onDelete={deleteContact}
+              onToggleFavourite={toggleContactFavourite}
+            />
+          ) : activeTab === 'history' ? (
             <ApprovalHistory documents={documents} onSelectDoc={selectDoc} />
           ) : (
             <>
