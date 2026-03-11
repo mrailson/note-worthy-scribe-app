@@ -26,6 +26,7 @@ interface CreateUserRequest {
     fridge_monitoring_access?: boolean;
     survey_manager_access?: boolean;
     policy_service_access?: boolean;
+    document_signoff_access?: boolean;
   };
   send_welcome_email?: boolean;
   practice_name?: string;
