@@ -595,7 +595,7 @@ export const PracticeUserManagement = () => {
       survey_manager_access: 'Survey Tool',
       policy_service_access: 'Practice Policy Service',
       complaints_manager_access: 'Complaints Service',
-      fridge_monitoring_access: 'Fridge Monitoring',
+      document_signoff_access: 'Document Sign-Off'
       document_signoff_access: 'Document Sign-Off'
     };
 
