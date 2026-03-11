@@ -713,7 +713,14 @@ function OverviewTab({
       {/* Document Preview - Inline PDF Viewer (show signed version if available) */}
       <Card>
         <SectionLabel>DOCUMENT PREVIEW</SectionLabel>
-        <InlinePdfPreview fileUrl={signedFileUrl || doc.file_url} />
+        {generating && !localSignedUrl ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, gap: 12, color: MUTED_TEXT }}>
+            <Loader2 className="animate-spin" size={20} />
+            <span style={{ fontSize: 14 }}>Generating signed document…</span>
+          </div>
+        ) : (
+          <InlinePdfPreview fileUrl={localSignedUrl || doc.file_url} />
+        )}
       </Card>
 
       {/* Document Notes */}
