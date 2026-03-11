@@ -101,16 +101,24 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   // --- Scroll to the start of the latest AI message ---
   const scrollToLatestAssistant = useCallback((smooth = true) => {
-    const el = parentRef.current;
-    if (!el) return;
-    const assistantEls = el.querySelectorAll('[data-role="assistant"]');
-    const lastAssistantEl = assistantEls[assistantEls.length - 1];
-    if (lastAssistantEl) {
-      lastAssistantEl.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant', block: 'start' });
-    } else {
-      el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+    // Find the last assistant message index
+    let lastAssistantIndex = -1;
+    for (let i = messagesRef.current.length - 1; i >= 0; i--) {
+      if (messagesRef.current[i]?.role === 'assistant') {
+        lastAssistantIndex = i;
+        break;
+      }
     }
-  }, []);
+    if (lastAssistantIndex >= 0) {
+      virtualizer.scrollToIndex(lastAssistantIndex, {
+        align: 'start',
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    } else {
+      const el = parentRef.current;
+      if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+    }
+  }, [virtualizer]);
 
   // --- Smooth scroll helper ---
   const smoothScrollToBottom = useCallback(() => {
