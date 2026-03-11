@@ -182,12 +182,20 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   useEffect(() => {
     if (isLoading && autoScrollLocked.current && scrollDuringStreamingProp) {
+      // Force virtualiser to re-measure the last item during streaming
+      if (messages.length > 0) {
+        virtualizer.measureElement(null as any); // trigger re-measurement
+      }
       requestAnimationFrame(() => {
         const el = parentRef.current;
         if (el) el.scrollTop = el.scrollHeight;
       });
     }
-  }, [lastMessageContentLength, isLoading, scrollDuringStreamingProp]);
+    // Show floating button if new assistant content arrives while scrolled up
+    if (isLoading && !autoScrollLocked.current && lastMessage?.role === 'assistant') {
+      setShowScrollButton(true);
+    }
+  }, [lastMessageContentLength, isLoading, scrollDuringStreamingProp, messages.length, virtualizer]);
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
