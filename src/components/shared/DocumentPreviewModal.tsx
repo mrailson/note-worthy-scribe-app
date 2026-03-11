@@ -775,7 +775,24 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           </div>
         )}
 
-        {/* Infographic error banner */}
+        {/* PowerPoint generating indicator — shown as a banner above the document */}
+        {isPowerPointGenerating && (
+          <div className="px-4 sm:px-6 py-3 border-b bg-primary/5">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 shrink-0">
+                <Presentation className="h-4 w-4 text-primary animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Creating Presentation…</p>
+                <Progress value={pptxProgress} className="h-1.5 mt-1" />
+                <p className="text-xs text-muted-foreground mt-1 animate-pulse">
+                  {PPTX_TIPS[pptxTipIdx]}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {infographicError && !isInfographicGenerating && (
           <div className="px-4 sm:px-6 py-3 border-b bg-destructive/5">
             <div className="flex items-center gap-3">
