@@ -26,6 +26,7 @@ interface DocumentPreviewModalProps {
   infographicSpellingCorrections?: { incorrect: string; correct: string }[];
   onContentUpdated?: (newContent: string) => void;
   onExportPowerPoint?: (content: string, title?: string, slideCount?: number) => void;
+  isPowerPointGenerating?: boolean;
 }
 
 // Extract a sensible title from content

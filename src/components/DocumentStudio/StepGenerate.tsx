@@ -28,7 +28,7 @@ export const StepGenerate: React.FC<StepGenerateProps> = ({
   onReset,
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
-  const { generateWithGamma } = useGammaPowerPoint();
+  const { generateWithGamma, isGenerating: isPptxGenerating } = useGammaPowerPoint();
   const [showPreview, setShowPreview] = useState(false);
   const [showAIEdit, setShowAIEdit] = useState(false);
   const [progress, setProgress] = useState(0);
