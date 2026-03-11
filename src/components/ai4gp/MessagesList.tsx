@@ -182,12 +182,18 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   useEffect(() => {
     if (isLoading && autoScrollLocked.current && scrollDuringStreamingProp) {
+      // Invalidate virtualiser measurements so scrollHeight reflects new content
+      virtualizer.measure();
       requestAnimationFrame(() => {
         const el = parentRef.current;
         if (el) el.scrollTop = el.scrollHeight;
       });
     }
-  }, [lastMessageContentLength, isLoading, scrollDuringStreamingProp]);
+    // Show floating button if new assistant content arrives while scrolled up
+    if (isLoading && !autoScrollLocked.current && lastMessage?.role === 'assistant') {
+      setShowScrollButton(true);
+    }
+  }, [lastMessageContentLength, isLoading, scrollDuringStreamingProp, messages.length, virtualizer]);
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
@@ -298,18 +304,20 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       {showScrollButton && messages.length > 0 && (
         <Button
           onClick={scrollToBottom}
-          size="icon"
+          size="sm"
           variant="secondary"
           className={cn(
             "absolute bottom-4 left-1/2 -translate-x-1/2 z-10",
-            "absolute bottom-4 left-1/2 -translate-x-1/2 z-10",
             "shadow-lg border border-border/50 rounded-full",
             "animate-in fade-in slide-in-from-bottom-2 duration-200",
-            "h-9 w-9"
+            "h-9 px-4 gap-1.5"
           )}
           title="Scroll to bottom"
         >
           <ChevronDown className="h-4 w-4" />
+          {isLoading && !autoScrollLocked.current && (
+            <span className="text-xs font-medium">New response</span>
+          )}
         </Button>
       )}
     </div>
