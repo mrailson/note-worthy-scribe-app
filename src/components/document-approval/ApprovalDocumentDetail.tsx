@@ -269,6 +269,8 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
 
   const signedFileUrl = (doc as any).signed_file_url as string | null;
   const signaturePlacement = (doc as any).signature_placement as SignaturePlacement | null;
+  const [localSignedUrl, setLocalSignedUrl] = useState<string | null>(signedFileUrl);
+  const autoGenTriggered = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
