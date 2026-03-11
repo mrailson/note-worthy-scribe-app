@@ -512,6 +512,28 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const [infographicFullscreen, setInfographicFullscreen] = useState(false);
   const { generateInfographic, isGenerating: isInfographicGenerating, currentPhase, error: infographicError } = useContentInfographic();
 
+  // PowerPoint progress state
+  const [pptxProgress, setPptxProgress] = useState(0);
+  const [pptxTipIdx, setPptxTipIdx] = useState(0);
+
+  useEffect(() => {
+    if (!isPowerPointGenerating) {
+      setPptxProgress(0);
+      setPptxTipIdx(0);
+      return;
+    }
+    const progressInterval = setInterval(() => {
+      setPptxProgress(prev => {
+        if (prev >= 92) { clearInterval(progressInterval); return prev; }
+        return prev + 3;
+      });
+    }, 1500);
+    const tipInterval = setInterval(() => {
+      setPptxTipIdx(prev => (prev + 1) % PPTX_TIPS.length);
+    }, 3500);
+    return () => { clearInterval(progressInterval); clearInterval(tipInterval); };
+  }, [isPowerPointGenerating]);
+
   // documentTitle already declared above with activeContent
   const logoUrl = practiceContext?.logoUrl;
   const practiceName = practiceContext?.practiceName;
