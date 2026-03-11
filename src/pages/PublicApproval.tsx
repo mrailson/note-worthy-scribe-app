@@ -50,6 +50,7 @@ interface DocumentData {
   created_at: string;
   sender_name: string | null;
   sender_email: string | null;
+  signature_placement: Record<string, { page: number; x: number; y: number }> | null;
 }
 
 const categoryLabels: Record<string, string> = {
