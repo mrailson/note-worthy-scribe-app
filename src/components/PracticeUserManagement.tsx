@@ -595,7 +595,6 @@ export const PracticeUserManagement = () => {
       survey_manager_access: 'Survey Tool',
       policy_service_access: 'Practice Policy Service',
       complaints_manager_access: 'Complaints Service',
-      fridge_monitoring_access: 'Fridge Monitoring',
       document_signoff_access: 'Document Sign-Off'
     };
 
@@ -1061,21 +1060,6 @@ export const PracticeUserManagement = () => {
                     />
                     <Label htmlFor="document_signoff_access" className="text-sm">
                       Document Sign-Off
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="fridge_monitoring_access"
-                      checked={userFormData.module_access.fridge_monitoring_access}
-                      onCheckedChange={(checked) => 
-                        setUserFormData(prev => ({
-                          ...prev,
-                          module_access: { ...prev.module_access, fridge_monitoring_access: checked }
-                        }))
-                      }
-                    />
-                    <Label htmlFor="fridge_monitoring_access" className="text-sm">
-                      Fridge Monitoring
                     </Label>
                   </div>
                 </div>
