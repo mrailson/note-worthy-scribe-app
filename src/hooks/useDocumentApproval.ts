@@ -633,6 +633,7 @@ export function useDocumentApproval() {
     saveContact,
     deleteContact,
     updateContact,
+    toggleContactFavourite,
     saveContactGroup,
     deleteContactGroup,
     refetch: fetchDocuments,
