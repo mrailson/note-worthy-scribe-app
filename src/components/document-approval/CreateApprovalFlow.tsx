@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   ArrowLeft, Upload, Plus, Trash2, Loader2, Send, UserPlus, Users, Building2,
-  GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Stamp, FileSignature, Eye, ChevronDown, ChevronUp, Pencil,
+  GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Stamp, FileSignature, Eye, ChevronDown, ChevronUp, Pencil, Search,
 } from 'lucide-react';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
 import { useNotewellDirectory, NotewellUser } from '@/hooks/useNotewellDirectory';
@@ -96,6 +96,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [showDirectoryModal, setShowDirectoryModal] = useState(false);
   const [selectedDirectoryUsers, setSelectedDirectoryUsers] = useState<Set<string>>(new Set());
   const [expandedPractices, setExpandedPractices] = useState<Set<string>>(new Set());
+  const [directorySearch, setDirectorySearch] = useState('');
 
   // ─── File handling ────────────────────────────────────────────────
 
@@ -238,6 +239,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     if (!directoryLoaded) fetchDirectory();
     setSelectedDirectoryUsers(new Set());
     setExpandedPractices(new Set());
+    setDirectorySearch('');
     setShowDirectoryModal(true);
   };
 
@@ -984,8 +986,35 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 No Notewell users found.
               </p>
             ) : (
-              <div className="space-y-1">
-                {practiceGroups.map(group => {
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name…"
+                    value={directorySearch}
+                    onChange={e => setDirectorySearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                {(() => {
+                  const searchLower = directorySearch.toLowerCase().trim();
+                  const filteredGroups = searchLower
+                    ? practiceGroups
+                        .map(g => ({
+                          ...g,
+                          users: g.users.filter(u =>
+                            u.full_name.toLowerCase().includes(searchLower) ||
+                            u.email.toLowerCase().includes(searchLower)
+                          ),
+                        }))
+                        .filter(g => g.users.length > 0)
+                    : practiceGroups;
+
+                  if (filteredGroups.length === 0) {
+                    return <p className="text-sm text-muted-foreground text-center py-4">No users match "{directorySearch}"</p>;
+                  }
+
+                  return filteredGroups.map(group => {
                   const isExpanded = expandedPractices.has(group.practice_name);
                   const selectedInGroup = group.users.filter(u => selectedDirectoryUsers.has(u.user_id)).length;
                   const orgLabel = group.organisation_type === 'Practice' ? 'NRES Practice'
@@ -1015,7 +1044,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                           <span className="text-xs text-muted-foreground">{group.users.length} user{group.users.length !== 1 ? 's' : ''}</span>
                         </div>
                       </button>
-                      {isExpanded && (
+                      {(isExpanded || searchLower) && (
                         <div className="divide-y">
                           {group.users.map(u => {
                             const isSelected = selectedDirectoryUsers.has(u.user_id);
@@ -1055,7 +1084,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                       )}
                     </div>
                   );
-                })}
+                });
+                })()}
               </div>
             )}
             <div className="flex justify-end gap-2 pt-4">
