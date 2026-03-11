@@ -67,6 +67,10 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   const isLoadingRef = useRef(isLoading);
   useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
 
+  // --- Debounce ref for virtualizer.measure() during streaming ---
+  const lastMeasureTimeRef = useRef(0);
+  const showScrollButtonRef = useRef(false);
+
   // Show floating button when not at bottom
   const [showScrollButton, setShowScrollButton] = useState(false);
 
