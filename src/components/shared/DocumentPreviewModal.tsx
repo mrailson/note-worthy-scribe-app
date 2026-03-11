@@ -493,6 +493,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   infographicSpellingCorrections,
   onContentUpdated,
   onExportPowerPoint,
+  isPowerPointGenerating = false,
 }) => {
   const { prefs, updatePref } = useDocumentPreviewPrefs();
   const { practiceContext } = usePracticeContext();
