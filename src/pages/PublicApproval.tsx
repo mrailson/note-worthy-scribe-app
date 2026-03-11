@@ -251,13 +251,35 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
               key={pageNum}
               data-page={pageNum}
               ref={el => { pageRefs.current.set(pageNum, el); }}
-              className="bg-white shadow-lg rounded border border-border/50"
+              className="bg-white shadow-lg rounded border border-border/50 relative"
               style={{ maxWidth: '100%' }}
             >
               <canvas
                 ref={el => { canvasRefs.current.set(pageNum, el); }}
                 className="block max-w-full h-auto"
               />
+              {placement && placement.page === pageNum && (
+                <div
+                  className="absolute flex flex-col items-center justify-center text-center p-2 border-2 border-dashed border-primary rounded-md bg-primary/10 pointer-events-none"
+                  style={{
+                    left: `${placement.x}%`,
+                    top: `${placement.y}%`,
+                    width: '14%',
+                    height: '6%',
+                  }}
+                >
+                  <span className="text-[8px] sm:text-[10px] font-semibold text-primary leading-tight truncate max-w-full">
+                    {signatoryName || 'Your signature'}
+                  </span>
+                  <span className="text-[6px] sm:text-[8px] text-primary/80 leading-tight mt-0.5">
+                    Your signature will appear here
+                  </span>
+                  <ChevronDown className="h-2.5 w-2.5 text-primary/70 mt-0.5 animate-bounce" />
+                  <span className="text-[5px] sm:text-[7px] text-primary/70 leading-tight">
+                    Complete the declaration below
+                  </span>
+                </div>
+              )}
             </div>
           ))}
         </div>
