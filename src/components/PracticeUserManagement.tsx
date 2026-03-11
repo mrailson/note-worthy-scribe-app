@@ -596,7 +596,6 @@ export const PracticeUserManagement = () => {
       policy_service_access: 'Practice Policy Service',
       complaints_manager_access: 'Complaints Service',
       document_signoff_access: 'Document Sign-Off'
-      document_signoff_access: 'Document Sign-Off'
     };
 
     Object.entries(createdUserData.module_access).forEach(([key, enabled]) => {
