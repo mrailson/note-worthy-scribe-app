@@ -62,6 +62,9 @@ const INFOGRAPHIC_TIPS = [
   'Nearly there…',
 ];
 
+// Known metadata labels for meeting minutes header detection
+const METADATA_LABELS = /^(Meeting Title|Date|Time|Location|Venue|Attendees|Present|Apologies|Chair|Chairperson|Minutes By|Secretary|Distribution|Ref|Reference|Meeting Type):\s*/i;
+
 function renderPreviewContent(content: string): React.ReactNode[] {
   const cleaned = content
     .replace(/^```html\s*/i, '')
@@ -142,7 +145,107 @@ function renderPreviewContent(content: string): React.ReactNode[] {
     inTable = false;
   };
 
-  for (const line of lines) {
+  // ── First pass: extract meeting metadata from preamble lines ──
+  const metadataRows: { label: string; value: string }[] = [];
+  const preambleHeadings: string[] = [];
+  let bodyStartIndex = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+
+    // Stop scanning preamble when we hit a numbered item or markdown heading
+    if (/^\d+\.\s+/.test(trimmed) || /^#{1,4}\s+/.test(trimmed)) {
+      bodyStartIndex = i;
+      break;
+    }
+
+    // Detect "Label: Value" metadata lines
+    const metaMatch = trimmed.match(METADATA_LABELS);
+    if (metaMatch) {
+      const label = metaMatch[1];
+      const value = trimmed.slice(metaMatch[0].length).trim();
+      metadataRows.push({ label, value });
+      bodyStartIndex = i + 1;
+      continue;
+    }
+
+    // If previous metadata row had an empty value, subsequent non-metadata lines are its continuation
+    if (metadataRows.length > 0 && trimmed && !METADATA_LABELS.test(trimmed)) {
+      const last = metadataRows[metadataRows.length - 1];
+      if (last.value === '' || /^(Dr |Mr |Mrs |Ms |Prof |Sister |Nurse |[A-Z][a-z]+ [A-Z])/.test(trimmed)) {
+        last.value = last.value ? `${last.value}, ${trimmed}` : trimmed;
+        bodyStartIndex = i + 1;
+        continue;
+      }
+    }
+
+    // Non-metadata preamble lines (practice name, document title, date)
+    if (trimmed) {
+      preambleHeadings.push(trimmed);
+      bodyStartIndex = i + 1;
+    }
+  }
+
+  // Render preamble headings (practice name, title, date)
+  preambleHeadings.forEach((heading, i) => {
+    if (i === 0) {
+      elements.push(
+        <h1 key={`ph-${keyIndex++}`} className="text-xl font-bold mb-1" style={{ color: COLORS.headingBlue }}>
+          {formatInline(heading.replace(/^#+\s*/, '').replace(/\*\*/g, ''))}
+        </h1>
+      );
+    } else if (i === 1) {
+      elements.push(
+        <h2 key={`ph-${keyIndex++}`} className="text-lg font-semibold mb-1" style={{ color: COLORS.subHeadingBlue }}>
+          {formatInline(heading.replace(/^#+\s*/, '').replace(/\*\*/g, ''))}
+        </h2>
+      );
+    } else {
+      elements.push(
+        <p key={`ph-${keyIndex++}`} className="text-sm mb-1" style={{ color: COLORS.lightGrey }}>
+          {formatInline(heading)}
+        </p>
+      );
+    }
+  });
+
+  // Render metadata table if we found any
+  if (metadataRows.length > 0) {
+    elements.push(
+      <div key={`meta-table-${keyIndex++}`} className="my-4 overflow-x-auto rounded-lg border" style={{ borderColor: COLORS.tableBorder }}>
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th colSpan={2} className="px-4 py-2.5 text-left text-sm font-semibold text-white" style={{ backgroundColor: COLORS.nhsBlue }}>
+                Meeting Details
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {metadataRows.map((row, ri) => (
+              <tr key={ri} className={ri % 2 === 0 ? '' : ''} style={{ backgroundColor: ri % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}>
+                <td className="border-t px-4 py-2.5 font-semibold align-top w-[180px]" style={{ borderColor: COLORS.tableBorder, color: COLORS.headingBlue }}>
+                  {row.label}
+                </td>
+                <td className="border-t px-4 py-2.5" style={{ borderColor: COLORS.tableBorder, color: COLORS.textGrey }}>
+                  {formatInline(row.value)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+
+    // Separator after metadata
+    elements.push(
+      <hr key={`meta-sep-${keyIndex++}`} className="my-4" style={{ borderColor: COLORS.tableBorder }} />
+    );
+  }
+
+  // ── Second pass: render body lines from bodyStartIndex onwards ──
+  for (let i = bodyStartIndex; i < lines.length; i++) {
+    const line = lines[i];
     const trimmed = line.trim();
 
     if (!trimmed) { flushList(); flushTable(); continue; }
@@ -191,11 +294,17 @@ function renderPreviewContent(content: string): React.ReactNode[] {
       continue;
     }
 
-    // Numbered headings (e.g. "1. PURPOSE")
-    const numberedHeading = trimmed.match(/^(\d+)\.\s+([A-Z][A-Z\s]+)$/);
+    // Numbered headings (e.g. "1. PURPOSE" or "1. Welcome, Apologies and Declarations")
+    const numberedHeading = trimmed.match(/^(\d+)\.\s+([A-Z].{2,})$/);
     if (numberedHeading) {
       flushList();
-      elements.push(<h2 key={`nh-${keyIndex++}`} className="text-lg font-bold mt-5 mb-2" style={{ color: COLORS.headingBlue }}>{trimmed}</h2>);
+      elements.push(
+        <div key={`nh-${keyIndex++}`} className="mt-6 mb-3 pl-3 py-2" style={{ borderLeft: `4px solid ${COLORS.nhsBlue}` }}>
+          <h2 className="text-base font-bold" style={{ color: COLORS.headingBlue }}>
+            {numberedHeading[1]}. {formatInline(numberedHeading[2])}
+          </h2>
+        </div>
+      );
       continue;
     }
 

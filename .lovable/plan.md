@@ -1,73 +1,58 @@
 
 
-## Improve Meeting Minutes Layout in Document Preview
+## Problem Analysis
 
-**Goal**: Enhance the `renderPreviewContent` function in `DocumentPreviewModal.tsx` to display meeting header details (date, time, location, attendees, apologies) in a structured two-column table, and improve the formatting of numbered agenda items with better visual hierarchy.
+The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
 
-### Changes — `src/components/shared/DocumentPreviewModal.tsx`
+### Root causes by issue:
 
-**1. Auto-detect and render meeting details as a table (lines ~145-210)**
+| Issue | Cause |
+|-------|-------|
+| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
+| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
+| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
+| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
 
-Add a new detection pass at the start of the rendering loop that identifies "key: value" lines commonly found in meeting minutes headers. Lines matching patterns like `Date:`, `Time:`, `Location:`, `Meeting Title:`, `Attendees:`, `Apologies:`, `Chair:` will be collected into a structured two-column table with a blue header row and alternating styling.
+## Plan
 
-The logic:
-- Scan lines until a numbered item (e.g. `1.`) or a heading is hit
-- Collect any `Label: Value` pairs found in that preamble
-- Render them as a bordered table with the label in bold in column 1 and value in column 2
-- Multi-line values (e.g. attendee lists) are grouped under their parent label
+### 1. Split Part 3 into two steps to prevent token exhaustion
 
-**2. Improve numbered agenda item formatting (lines ~194-200)**
+Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
+- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
+- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
 
-Currently only ALL-CAPS numbered headings are detected (e.g. `1. PURPOSE`). Expand this to also match mixed-case numbered items like `1. Welcome, Apologies and Declarations of Interest` and render them as styled section headings with:
-- A subtle left border accent (primary blue)
-- Slightly larger font weight
-- Clear spacing above/below
+This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
 
-**3. Add separator between meeting details table and agenda content**
+### 2. Raise Part 2b base tokens
 
-Insert a thin horizontal divider after the header table to visually separate metadata from the meeting body.
+Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
 
-### Visual Result
+### 3. Add anti-truncation instructions to all step prompts
 
-Before:
-```text
-Oak Lane Medical Practice
-Partnership Meeting Minutes
-11 March 2026
-Meeting Title: Partnership Meeting
-Date: 5 March 2026
-Time: 13:00 – 15:45
-Location: Partners' Meeting Room
-Attendees:
-Dr Helen Ashworth (Senior Partner, Chair)
-...
-1. Welcome, Apologies and Declarations of Interest
-```
+Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
 
-After:
-```text
-┌──────────────────┬──────────────────────────────┐
-│ Meeting Title    │ Partnership Meeting          │
-│ Date             │ 5 March 2026                 │
-│ Time             │ 13:00 – 15:45               │
-│ Location         │ Partners' Meeting Room       │
-│ Attendees        │ Dr Helen Ashworth, Dr Raj... │
-│ Apologies        │ Dr Fiona Clarke              │
-└──────────────────┴──────────────────────────────┘
+### 4. Update step labels and progress tracking
 
-━━ 1. Welcome, Apologies and Declarations of Interest ━━
-  Dr Ashworth opened the meeting and noted apologies...
+Add `generate_part_3a` and `generate_part_3b` to:
+- The edge function step routing
+- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
+- Progress percentages adjusted for 5 generation steps
 
-━━ 2. Minutes of the Previous Meeting ━━
-  Dr Patel requested a correction to Item 4...
-```
+### 5. Verify Version History enforcement
 
-### Technical Detail
+The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
 
-All changes are in a single file: `src/components/shared/DocumentPreviewModal.tsx`, specifically the `renderPreviewContent` function (lines 65-213). The approach:
+### Files to change
 
-1. First pass: scan lines for `key: value` metadata patterns before the first numbered item or heading, collect into a `metadataRows` array, track which lines were consumed.
-2. Render metadata as a styled `<table>` with NHS blue header background.
-3. For remaining lines, expand the numbered heading regex from `/^(\d+)\.\s+([A-Z][A-Z\s]+)$/` to `/^(\d+)\.\s+(.+)$/` and render with a left-border accent style.
-4. The practice name and document title lines at the very top (before the metadata table) remain as styled headings.
+1. **`supabase/functions/generate-policy/index.ts`**:
+   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
+   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
+   - Add new `generate_part_3b` step with its own prompt and token budget
+   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
+   - Add anti-truncation instruction to Part 2b user prompt
+   - Deploy the updated function
+
+2. **`src/hooks/usePolicyJobs.ts`**:
+   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
+   - Update label text to reflect 5 generation steps
 
