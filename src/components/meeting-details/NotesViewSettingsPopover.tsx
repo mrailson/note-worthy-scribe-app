@@ -33,17 +33,17 @@ export const NotesViewSettingsPopover: React.FC<NotesViewSettingsPopoverProps> =
           <Settings className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-5" align="end">
-        <div className="space-y-4">
-          <div className="space-y-1">
+      <PopoverContent className="w-80 p-6" align="end">
+        <div className="space-y-5">
+          <div className="space-y-1.5">
             <h4 className="font-medium text-sm">Section Visibility</h4>
             <p className="text-xs text-muted-foreground">
               Choose which sections to display in the notes view.
             </p>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {sectionKeys.map((key) => (
-              <div key={key} className="flex items-center justify-between">
+              <div key={key} className="flex items-center justify-between gap-4">
                 <Label
                   htmlFor={`section-toggle-${key}`}
                   className="text-sm font-normal cursor-pointer"
