@@ -1084,7 +1084,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                       )}
                     </div>
                   );
-                })}
+                });
+                })()}
               </div>
             )}
             <div className="flex justify-end gap-2 pt-4">
