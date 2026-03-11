@@ -139,13 +139,6 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     scrollToLatestAssistant(true);
   }, [scrollToLatestAssistant]);
 
-  // --- Lock auto-scroll when streaming starts ---
-  useEffect(() => {
-    if (isLoading) {
-      autoScrollLocked.current = isNearBottom();
-    }
-  }, [isLoading, isNearBottom]);
-
   // --- Scroll event handler ---
   const handleScroll = useCallback(() => {
     const el = parentRef.current;
