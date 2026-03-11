@@ -24,6 +24,7 @@ interface UpdateUserRequest {
     api_testing_service_access?: boolean;
     fridge_monitoring_access?: boolean;
     survey_manager_access?: boolean;
+    document_signoff_access?: boolean;
   };
   policy_service_access?: boolean;
 }
