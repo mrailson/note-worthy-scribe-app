@@ -535,7 +535,12 @@ const PublicApproval = () => {
       )}
 
       {/* Inline PDF Viewer */}
-      <InlinePDFViewer fileUrl={document.file_url} />
+      <InlinePDFViewer
+        fileUrl={document.file_url}
+        signaturePlacement={document.signature_placement}
+        signatoryId={signatory.id}
+        signatoryName={signatory.name}
+      />
 
       {/* Approval form */}
       <Card className="p-5 sm:p-8 space-y-5" id="approval-form">
