@@ -566,6 +566,8 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                     progress={progress}
                     signaturePlacement={signaturePlacement}
                     certificateId={certificateId}
+                    generating={generating}
+                    localSignedUrl={localSignedUrl}
                   />
                 )}
                 {activeTab === 'signatories' && (
