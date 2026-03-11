@@ -1,0 +1,2 @@
+DELETE FROM approval_audit_log WHERE signatory_id IN ('8caf8ace-e42e-454c-9c3c-6c29cd797340', 'dce3be36-9c95-443d-b19d-4845f3826b7f');
+DELETE FROM approval_signatories WHERE id IN ('8caf8ace-e42e-454c-9c3c-6c29cd797340', 'dce3be36-9c95-443d-b19d-4845f3826b7f');
