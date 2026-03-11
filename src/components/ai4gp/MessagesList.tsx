@@ -176,16 +176,16 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       const lastMsg = messages[newCount - 1];
 
       if (lastMsg?.role === 'user') {
-        // Always scroll to show the user's own message
         autoScrollLocked.current = true;
         requestAnimationFrame(() => {
           parentRef.current?.scrollTo({ top: parentRef.current!.scrollHeight, behavior: 'smooth' });
         });
-      } else if (isNearBottom()) {
-        requestAnimationFrame(() => smoothScrollToBottom());
+      } else if (lastMsg?.role === 'assistant' && isNearBottom()) {
+        autoScrollLocked.current = true;
+        requestAnimationFrame(() => scrollToLatestAssistant(true));
       }
     }
-  }, [messages.length, isNearBottom, smoothScrollToBottom]);
+  }, [messages.length, isNearBottom, scrollToLatestAssistant]);
 
   // --- Streaming content updates ---
   const lastMessage = messages[messages.length - 1];
