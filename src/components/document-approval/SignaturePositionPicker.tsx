@@ -507,44 +507,43 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                   style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
                 />
 
-                {/* Signature block overlay — only show active signatory */}
-                {activeSignatoryId && (() => {
-                  const idx = signatories.findIndex(s => s.id === activeSignatoryId);
-                  if (idx === -1) return null;
-                  const sig = signatories[idx];
+                {/* Signature block overlays — show all placed signatories */}
+                {signatories.map((sig, idx) => {
                   const stamp = value[sig.id];
                   if (!stamp || stamp.page !== pageNum) return null;
 
+                  const isActive = sig.id === activeSignatoryId;
                   const colour = getSignatoryColour(idx);
                   const bgColour = getSignatoryBg(idx);
 
                   return (
                     <div
                       key={sig.id}
-                      className="absolute rounded cursor-move flex items-center justify-center shadow-lg ring-2 ring-offset-1"
+                      className={`absolute rounded flex items-center justify-center ${isActive ? 'cursor-move shadow-lg ring-2 ring-offset-1' : ''}`}
                       style={{
                         left: `${stamp.x}%`,
                         top: `${stamp.y}%`,
                         width: `${stamp.width}%`,
                         height: `${stamp.height}%`,
-                        border: `2px solid ${colour}`,
+                        border: `2px ${isActive ? 'solid' : 'dashed'} ${colour}`,
                         backgroundColor: bgColour,
-                        outline: `2px solid ${colour}`,
-                        outlineOffset: '2px',
-                        zIndex: 30,
+                        ...(isActive ? { outline: `2px solid ${colour}`, outlineOffset: '2px' } : {}),
+                        opacity: isActive ? 1 : 0.25,
+                        pointerEvents: isActive ? 'auto' : 'none',
+                        zIndex: isActive ? 30 : 20,
                       }}
-                      onMouseDown={(e) => handleMouseDown(e, sig.id, pageNum)}
+                      onMouseDown={isActive ? (e) => handleMouseDown(e, sig.id, pageNum) : undefined}
                     >
                       <div
                         className="rounded px-2 py-0.5 text-[10px] font-medium flex items-center gap-1 shadow-sm max-w-full truncate"
                         style={{ backgroundColor: 'hsl(var(--background) / 0.92)', color: colour }}
                       >
-                        <Move className="h-2.5 w-2.5 flex-shrink-0" />
+                        {isActive && <Move className="h-2.5 w-2.5 flex-shrink-0" />}
                         <span className="truncate">{sig.name}</span>
                       </div>
                     </div>
                   );
-                })()}
+                })}
               </div>
             ))}
           </div>
