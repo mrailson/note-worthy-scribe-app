@@ -63,6 +63,16 @@ const INFOGRAPHIC_TIPS = [
   'Nearly there…',
 ];
 
+const PPTX_TIPS = [
+  'Preparing slide structure…',
+  'Formatting content for slides…',
+  'Applying presentation theme…',
+  'Building visual layout…',
+  'Adding headings and sections…',
+  'Finalising presentation…',
+  'Nearly there…',
+];
+
 // Known metadata labels for meeting minutes header detection
 const METADATA_LABELS = /^(Meeting Title|Date|Time|Location|Venue|Attendees|Present|Apologies|Chair|Chairperson|Minutes By|Secretary|Distribution|Ref|Reference|Meeting Type):\s*/i;
 
