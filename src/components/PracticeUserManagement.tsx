@@ -281,6 +281,7 @@ export const PracticeUserManagement = () => {
         ...user,
         fridge_monitoring_access: user.fridge_monitoring_access ?? false,
         survey_manager_access: user.survey_manager_access ?? false,
+        document_signoff_access: user.document_signoff_access ?? false,
         nres_access: nresUserIds.has(user.user_id),
         policy_service_access: policyUserIds.has(user.user_id)
       })) || []);
