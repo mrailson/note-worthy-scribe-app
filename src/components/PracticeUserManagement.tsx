@@ -1109,7 +1109,7 @@ export const PracticeUserManagement = () => {
 
       {/* Email Preview Modal */}
       <Dialog open={showEmailPreview} onOpenChange={setShowEmailPreview}>
-        <DialogContent className="max-w-xl max-h-[85vh] flex flex-col">
+        <DialogContent className="max-w-xl max-h-[calc(100vh-3rem)] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
