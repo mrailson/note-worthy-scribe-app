@@ -3,11 +3,12 @@ import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download, Send, History, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download, Send, History, ShieldAlert, RefreshCw, Users } from 'lucide-react';
 import { useDocumentApproval, ApprovalDocumentWithSignatories, ApprovalSignatory } from '@/hooks/useDocumentApproval';
 import { CreateApprovalFlow } from '@/components/document-approval/CreateApprovalFlow';
 import { ApprovalDocumentDetail } from '@/components/document-approval/ApprovalDocumentDetail';
 import { ApprovalHistory } from '@/components/document-approval/ApprovalHistory';
+import { ApprovalDirectory } from '@/components/document-approval/ApprovalDirectory';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -21,7 +22,7 @@ const categoryLabels: Record<string, string> = {
 
 type FilterType = 'all' | 'awaiting' | 'completed' | 'expired';
 type SortType = 'recent' | 'deadline' | 'overdue';
-type TabType = 'active' | 'history';
+type TabType = 'active' | 'history' | 'directory';
 
 function isOverdue(doc: ApprovalDocumentWithSignatories): boolean {
   if (doc.status !== 'pending' || !doc.deadline) return false;
@@ -65,7 +66,7 @@ function getSignatoryContext(sig: ApprovalSignatory, doc: ApprovalDocumentWithSi
 export default function DocumentApproval() {
   const navigate = useNavigate();
   const { hasModuleAccess, isSystemAdmin } = useAuth();
-  const { documents, loading, chaseSignatory, chaseAllPending, chaseAllOverdue, refetch } = useDocumentApproval();
+  const { documents, contacts, loading, chaseSignatory, chaseAllPending, chaseAllOverdue, refetch, saveContact, updateContact, deleteContact, toggleContactFavourite } = useDocumentApproval();
   const [chasingDocId, setChasingDocId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<ApprovalDocumentWithSignatories | null>(null);
@@ -237,9 +238,26 @@ export default function DocumentApproval() {
               <History className="h-4 w-4 mr-1.5" />
               History
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`rounded-none border-b-2 text-sm px-4 ${activeTab === 'directory' ? 'border-primary text-primary font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              onClick={() => setActiveTab('directory')}
+            >
+              <Users className="h-4 w-4 mr-1.5" />
+              Directory
+            </Button>
           </div>
 
-          {activeTab === 'history' ? (
+          {activeTab === 'directory' ? (
+            <ApprovalDirectory
+              contacts={contacts}
+              onSave={saveContact}
+              onUpdate={updateContact}
+              onDelete={deleteContact}
+              onToggleFavourite={toggleContactFavourite}
+            />
+          ) : activeTab === 'history' ? (
             <ApprovalHistory documents={documents} onSelectDoc={selectDoc} />
           ) : (
             <>
