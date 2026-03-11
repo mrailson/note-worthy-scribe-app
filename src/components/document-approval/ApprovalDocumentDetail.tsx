@@ -681,7 +681,7 @@ function MetaItem({ label, value, mono }: { label: string; value: string; mono?:
 
 // ─── Overview Tab ──────────────────────────────────────────────
 function OverviewTab({
-  doc, signatories, approvedCount, totalCount, progress, signaturePlacement, certificateId,
+  doc, signatories, approvedCount, totalCount, progress, signaturePlacement, certificateId, generating, localSignedUrl,
 }: {
   doc: ApprovalDocument;
   signatories: ApprovalSignatory[];
@@ -690,8 +690,9 @@ function OverviewTab({
   progress: number;
   signaturePlacement: SignaturePlacement | null;
   certificateId: string;
+  generating: boolean;
+  localSignedUrl: string | null;
 }) {
-  const signedFileUrl = (doc as any).signed_file_url as string | null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Approval Progress */}
