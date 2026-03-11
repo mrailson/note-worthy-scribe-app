@@ -99,26 +99,37 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     return el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
   }, []);
 
+  // --- Scroll to the start of the latest AI message ---
+  const scrollToLatestAssistant = useCallback((smooth = true) => {
+    const el = parentRef.current;
+    if (!el) return;
+    const assistantEls = el.querySelectorAll('[data-role="assistant"]');
+    const lastAssistantEl = assistantEls[assistantEls.length - 1];
+    if (lastAssistantEl) {
+      lastAssistantEl.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant', block: 'start' });
+    } else {
+      el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+    }
+  }, []);
+
   // --- Smooth scroll helper ---
   const smoothScrollToBottom = useCallback(() => {
     const el = parentRef.current;
     if (!el || !autoScrollLocked.current) return;
 
     if (isLoadingRef.current) {
-      // During streaming: instant jump via rAF for responsiveness
       el.scrollTop = el.scrollHeight;
     } else {
-      // After streaming: smooth finish
-      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+      scrollToLatestAssistant(true);
     }
-  }, []);
+  }, [scrollToLatestAssistant]);
 
-  // --- Public scroll-to-bottom (button click) ---
+  // --- Public scroll-to-latest (button click) ---
   const scrollToBottom = useCallback(() => {
     autoScrollLocked.current = true;
     setShowScrollButton(false);
-    parentRef.current?.scrollTo({ top: parentRef.current.scrollHeight, behavior: 'smooth' });
-  }, []);
+    scrollToLatestAssistant(true);
+  }, [scrollToLatestAssistant]);
 
   // --- Lock auto-scroll when streaming starts ---
   useEffect(() => {
