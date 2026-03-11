@@ -8,6 +8,7 @@ import { useDocumentApproval, ApprovalDocumentWithSignatories, ApprovalSignatory
 import { CreateApprovalFlow } from '@/components/document-approval/CreateApprovalFlow';
 import { ApprovalDocumentDetail } from '@/components/document-approval/ApprovalDocumentDetail';
 import { ApprovalHistory } from '@/components/document-approval/ApprovalHistory';
+import { ApprovalDirectory } from '@/components/document-approval/ApprovalDirectory';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
