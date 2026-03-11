@@ -92,6 +92,7 @@ serve(async (req) => {
           created_at: document.created_at,
           sender_name: document.sender_name,
           sender_email: document.sender_email,
+          signature_placement: document.signature_placement,
         },
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

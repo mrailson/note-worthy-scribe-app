@@ -50,6 +50,7 @@ interface DocumentData {
   created_at: string;
   sender_name: string | null;
   sender_email: string | null;
+  signature_placement: Record<string, { page: number; x: number; y: number }> | null;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -58,7 +59,13 @@ const categoryLabels: Record<string, string> = {
 };
 
 /* ─── Inline PDF Viewer ─────────────────────────────────────── */
-function InlinePDFViewer({ fileUrl }: { fileUrl: string }) {
+function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryName }: {
+  fileUrl: string;
+  signaturePlacement?: Record<string, { page: number; x: number; y: number }> | null;
+  signatoryId?: string;
+  signatoryName?: string;
+}) {
+  const placement = signatoryId && signaturePlacement ? signaturePlacement[signatoryId] : null;
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -244,13 +251,35 @@ function InlinePDFViewer({ fileUrl }: { fileUrl: string }) {
               key={pageNum}
               data-page={pageNum}
               ref={el => { pageRefs.current.set(pageNum, el); }}
-              className="bg-white shadow-lg rounded border border-border/50"
+              className="bg-white shadow-lg rounded border border-border/50 relative"
               style={{ maxWidth: '100%' }}
             >
               <canvas
                 ref={el => { canvasRefs.current.set(pageNum, el); }}
                 className="block max-w-full h-auto"
               />
+              {placement && placement.page === pageNum && (
+                <div
+                  className="absolute flex flex-col items-center justify-center text-center p-2 border-2 border-dashed border-primary rounded-md bg-primary/10 pointer-events-none"
+                  style={{
+                    left: `${placement.x}%`,
+                    top: `${placement.y}%`,
+                    width: '14%',
+                    height: '6%',
+                  }}
+                >
+                  <span className="text-[8px] sm:text-[10px] font-semibold text-primary leading-tight truncate max-w-full">
+                    {signatoryName || 'Your signature'}
+                  </span>
+                  <span className="text-[6px] sm:text-[8px] text-primary/80 leading-tight mt-0.5">
+                    Your signature will appear here
+                  </span>
+                  <ChevronDown className="h-2.5 w-2.5 text-primary/70 mt-0.5 animate-bounce" />
+                  <span className="text-[5px] sm:text-[7px] text-primary/70 leading-tight">
+                    Complete the declaration below
+                  </span>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -506,7 +535,12 @@ const PublicApproval = () => {
       )}
 
       {/* Inline PDF Viewer */}
-      <InlinePDFViewer fileUrl={document.file_url} />
+      <InlinePDFViewer
+        fileUrl={document.file_url}
+        signaturePlacement={document.signature_placement}
+        signatoryId={signatory.id}
+        signatoryName={signatory.name}
+      />
 
       {/* Approval form */}
       <Card className="p-5 sm:p-8 space-y-5" id="approval-form">
