@@ -12319,6 +12319,7 @@ export type Database = {
           complaints_manager_access: boolean
           cqc_compliance_access: boolean
           cso_governance_access: boolean
+          document_signoff_access: boolean
           email: string
           enhanced_access: boolean
           fridge_monitoring_access: boolean
