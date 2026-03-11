@@ -160,7 +160,11 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       autoScrollLocked.current = true;
     }
 
-    setShowScrollButton(!nearBottom);
+    // Only update state when value actually changes to avoid re-renders during streaming
+    if (showScrollButtonRef.current !== !nearBottom) {
+      showScrollButtonRef.current = !nearBottom;
+      setShowScrollButton(!nearBottom);
+    }
   }, []);
 
   // Attach scroll listener (passive for perf)
