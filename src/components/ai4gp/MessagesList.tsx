@@ -182,10 +182,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   useEffect(() => {
     if (isLoading && autoScrollLocked.current && scrollDuringStreamingProp) {
-      // Force virtualiser to re-measure the last item during streaming
-      if (messages.length > 0) {
-        virtualizer.measureElement(null as any); // trigger re-measurement
-      }
+      // Invalidate virtualiser measurements so scrollHeight reflects new content
+      virtualizer.measure();
       requestAnimationFrame(() => {
         const el = parentRef.current;
         if (el) el.scrollTop = el.scrollHeight;
