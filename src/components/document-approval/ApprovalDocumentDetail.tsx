@@ -269,6 +269,8 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
 
   const signedFileUrl = (doc as any).signed_file_url as string | null;
   const signaturePlacement = (doc as any).signature_placement as SignaturePlacement | null;
+  const [localSignedUrl, setLocalSignedUrl] = useState<string | null>(signedFileUrl);
+  const autoGenTriggered = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -295,49 +297,56 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
   const verificationUrl = `https://gpnotewell.co.uk/verify/${certificateId}`;
   const categoryLabel = categoryLabels[doc.category] || doc.category || 'Governance';
 
+  // ─── Core signed PDF generation (shared by auto-gen and manual download) ──
+  const generateSignedPdfCore = async (): Promise<Blob> => {
+    const fileName = doc.original_filename?.toLowerCase() || '';
+    const isPdf = fileName.endsWith('.pdf') || doc.file_url?.toLowerCase().includes('.pdf');
+    let pdfBytes: ArrayBuffer;
+    if (!isPdf) {
+      const { PDFDocument } = await import('pdf-lib');
+      const blankDoc = await PDFDocument.create();
+      pdfBytes = (await blankDoc.save()).buffer as ArrayBuffer;
+    } else {
+      const blob = await downloadFromStorage(doc.file_url);
+      pdfBytes = await blob.arrayBuffer();
+    }
+    const certId = certificateId;
+    const sigInfos: SignatoryInfo[] = signatories.map(s => ({
+      id: s.id, name: s.name, email: s.email, role: s.role, organisation: s.organisation,
+      signed_at: s.signed_at, signed_name: s.signed_name, signed_role: s.signed_role,
+      signed_organisation: s.signed_organisation,
+      signed_ip: (s as any).signed_ip || null,
+      signatory_title: s.signatory_title || null,
+    }));
+    const auditLogEntries: AuditLogEntry[] = auditLog.map((e: any) => ({
+      action: e.action, actor_name: e.actor_name, actor_email: e.actor_email,
+      created_at: e.created_at, ip_address: e.ip_address,
+    }));
+    const placement: SignaturePlacement = !isPdf ? { method: 'append' } : (signaturePlacement || { method: 'append' });
+    const signedPdfBytes = await generateSignedPdf({
+      originalPdfBytes: pdfBytes, title: doc.title, originalFilename: doc.original_filename,
+      certificateId: certId, fileHash: doc.file_hash, signatories: sigInfos, placement,
+      auditLog: auditLogEntries, completedAt: (doc as any).completed_at,
+    });
+    const signedBlob = new Blob([signedPdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+    const storagePath = `signed/${doc.id}-signed-${Date.now()}.pdf`;
+    const { error: uploadError } = await supabase.storage.from('approval-documents').upload(storagePath, signedBlob);
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = supabase.storage.from('approval-documents').getPublicUrl(storagePath);
+    await supabase.from('approval_documents').update({ signed_file_url: publicUrl } as any).eq('id', doc.id);
+    await supabase.from('approval_audit_log').insert({
+      document_id: doc.id, action: 'signed_document_generated', actor_name: 'System',
+      metadata: { certificate_id: certId, method: placement.method } as any,
+    });
+    setLocalSignedUrl(publicUrl);
+    return signedBlob;
+  };
+
   // ─── Handlers ────────────────────────────────────────────────
   const handleGenerateSignedPdf = async () => {
     setGenerating(true);
     try {
-      const fileName = doc.original_filename?.toLowerCase() || '';
-      const isPdf = fileName.endsWith('.pdf') || doc.file_url?.toLowerCase().includes('.pdf');
-      let pdfBytes: ArrayBuffer;
-      if (!isPdf) {
-        const { PDFDocument } = await import('pdf-lib');
-        const blankDoc = await PDFDocument.create();
-        pdfBytes = (await blankDoc.save()).buffer as ArrayBuffer;
-      } else {
-        const blob = await downloadFromStorage(doc.file_url);
-        pdfBytes = await blob.arrayBuffer();
-      }
-      const certId = certificateId;
-      const sigInfos: SignatoryInfo[] = signatories.map(s => ({
-        id: s.id, name: s.name, email: s.email, role: s.role, organisation: s.organisation,
-        signed_at: s.signed_at, signed_name: s.signed_name, signed_role: s.signed_role,
-        signed_organisation: s.signed_organisation,
-        signed_ip: (s as any).signed_ip || null,
-        signatory_title: s.signatory_title || null,
-      }));
-      const auditLogEntries: AuditLogEntry[] = auditLog.map((e: any) => ({
-        action: e.action, actor_name: e.actor_name, actor_email: e.actor_email,
-        created_at: e.created_at, ip_address: e.ip_address,
-      }));
-      const placement: SignaturePlacement = !isPdf ? { method: 'append' } : (signaturePlacement || { method: 'append' });
-      const signedPdfBytes = await generateSignedPdf({
-        originalPdfBytes: pdfBytes, title: doc.title, originalFilename: doc.original_filename,
-        certificateId: certId, fileHash: doc.file_hash, signatories: sigInfos, placement,
-        auditLog: auditLogEntries, completedAt: (doc as any).completed_at,
-      });
-      const signedBlob = new Blob([signedPdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
-      const storagePath = `signed/${doc.id}-signed-${Date.now()}.pdf`;
-      const { error: uploadError } = await supabase.storage.from('approval-documents').upload(storagePath, signedBlob);
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('approval-documents').getPublicUrl(storagePath);
-      await supabase.from('approval_documents').update({ signed_file_url: publicUrl } as any).eq('id', doc.id);
-      await supabase.from('approval_audit_log').insert({
-        document_id: doc.id, action: 'signed_document_generated', actor_name: 'System',
-        metadata: { certificate_id: certId, method: placement.method } as any,
-      });
+      const signedBlob = await generateSignedPdfCore();
       toast.success('Signed document generated');
       const downloadUrl = URL.createObjectURL(signedBlob);
       const a = document.createElement('a');
@@ -350,6 +359,20 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
       toast.error('Failed to generate signed document');
     } finally { setGenerating(false); }
   };
+
+  // Auto-generate signed PDF for completed documents on first load
+  useEffect(() => {
+    if (isCompleted && !localSignedUrl && !loading && signatories.length > 0 && !generating && !autoGenTriggered.current) {
+      autoGenTriggered.current = true;
+      setGenerating(true);
+      generateSignedPdfCore()
+        .then(() => { /* preview updates via setLocalSignedUrl inside core */ })
+        .catch(err => console.error('Auto-generation failed:', err))
+        .finally(() => setGenerating(false));
+    }
+  }, [isCompleted, localSignedUrl, loading, signatories.length, generating]);
+
+
 
   const handleDownloadSignedPdf = async () => {
     // Always regenerate the signed PDF to ensure latest rendering logic is used
@@ -543,6 +566,8 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                     progress={progress}
                     signaturePlacement={signaturePlacement}
                     certificateId={certificateId}
+                    generating={generating}
+                    localSignedUrl={localSignedUrl}
                   />
                 )}
                 {activeTab === 'signatories' && (
@@ -656,7 +681,7 @@ function MetaItem({ label, value, mono }: { label: string; value: string; mono?:
 
 // ─── Overview Tab ──────────────────────────────────────────────
 function OverviewTab({
-  doc, signatories, approvedCount, totalCount, progress, signaturePlacement, certificateId,
+  doc, signatories, approvedCount, totalCount, progress, signaturePlacement, certificateId, generating, localSignedUrl,
 }: {
   doc: ApprovalDocument;
   signatories: ApprovalSignatory[];
@@ -665,8 +690,9 @@ function OverviewTab({
   progress: number;
   signaturePlacement: SignaturePlacement | null;
   certificateId: string;
+  generating: boolean;
+  localSignedUrl: string | null;
 }) {
-  const signedFileUrl = (doc as any).signed_file_url as string | null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Approval Progress */}
@@ -690,7 +716,14 @@ function OverviewTab({
       {/* Document Preview - Inline PDF Viewer (show signed version if available) */}
       <Card>
         <SectionLabel>DOCUMENT PREVIEW</SectionLabel>
-        <InlinePdfPreview fileUrl={signedFileUrl || doc.file_url} />
+        {generating && !localSignedUrl ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, gap: 12, color: MUTED_TEXT }}>
+            <Loader2 className="animate-spin" size={20} />
+            <span style={{ fontSize: 14 }}>Generating signed document…</span>
+          </div>
+        ) : (
+          <InlinePdfPreview fileUrl={localSignedUrl || doc.file_url} />
+        )}
       </Card>
 
       {/* Document Notes */}
