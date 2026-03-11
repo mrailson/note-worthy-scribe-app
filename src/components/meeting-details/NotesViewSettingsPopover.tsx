@@ -33,8 +33,8 @@ export const NotesViewSettingsPopover: React.FC<NotesViewSettingsPopoverProps> =
           <Settings className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 px-8 py-6" align="end">
-        <div className="space-y-5">
+      <PopoverContent className="w-80 p-0" align="end">
+        <div className="space-y-5 px-8 py-6">
           <div className="space-y-1.5">
             <h4 className="font-medium text-sm">Section Visibility</h4>
             <p className="text-xs text-muted-foreground">
