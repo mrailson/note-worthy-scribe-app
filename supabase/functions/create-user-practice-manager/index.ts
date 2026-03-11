@@ -272,7 +272,8 @@ const handler = async (req: Request): Promise<Response> => {
         shared_drive_access: module_access.shared_drive_access || false,
         mic_test_service_access: module_access.mic_test_service_access || false,
         api_testing_service_access: module_access.api_testing_service_access || false,
-        survey_manager_access: module_access.survey_manager_access || false
+        survey_manager_access: module_access.survey_manager_access || false,
+        document_signoff_access: module_access.document_signoff_access || false
       });
 
     if (roleInsertError) {

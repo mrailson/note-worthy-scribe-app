@@ -152,6 +152,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (module_access.api_testing_service_access !== undefined) roleUpdate.api_testing_service_access = module_access.api_testing_service_access;
       if (module_access.fridge_monitoring_access !== undefined) roleUpdate.fridge_monitoring_access = module_access.fridge_monitoring_access;
       if (module_access.survey_manager_access !== undefined) roleUpdate.survey_manager_access = module_access.survey_manager_access;
+      if (module_access.document_signoff_access !== undefined) roleUpdate.document_signoff_access = module_access.document_signoff_access;
     }
 
     if (Object.keys(roleUpdate).length > 0) {
