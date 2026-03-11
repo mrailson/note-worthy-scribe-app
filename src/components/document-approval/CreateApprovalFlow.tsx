@@ -80,7 +80,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [dbSignatories, setDbSignatories] = useState<{ id: string; name: string; email: string }[]>([]);
 
   // Signature placement
-  const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('append');
+  const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('stamp');
   const [stampPositions, setStampPositions] = useState<PerSignatoryPositions>({});
 
   // ─── Step 2: Signatories ──────────────────────────────────────────
