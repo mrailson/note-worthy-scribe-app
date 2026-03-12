@@ -1810,10 +1810,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
   // Handle sending intro/consent message
   const handleSendIntro = useCallback(async () => {
-    const introText = `Welcome to ${practiceName}. We would like to use our translation service to help us communicate with you today. A staff member will control the session. When you see the large green microphone, you can speak naturally in your own language. When you have finished speaking, please indicate to the staff member and they will activate the translation. Are you happy for us to use this service?`;
+    const introText = `Translation service started. The patient has agreed to use AI-assisted translation for this session. Language: ${languageInfo?.name || patientLanguage}.`;
     await sendMessage(introText, 'staff');
     setIntroSent(true);
-  }, [practiceName, sendMessage]);
+  }, [patientLanguage, languageInfo, sendMessage]);
 
   // Confirmation handlers
   const handleConfirmSend = useCallback(async () => {
