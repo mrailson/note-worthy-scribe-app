@@ -1507,7 +1507,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     } finally {
       setIsConnecting(false);
     }
-  }, [isListening, isConnecting, introSent, practiceName, sendMessage]);
+  }, [isListening, isConnecting, introSent, consentGiven, isTrainingMode, practiceName, sendMessage]);
 
   // Mic pause/unpause toggle
   const toggleMicPause = useCallback(() => {
