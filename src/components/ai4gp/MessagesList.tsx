@@ -205,16 +205,17 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   useEffect(() => {
     if (isLoading && autoScrollLocked.current && scrollDuringStreamingProp) {
-      // Throttle virtualizer.measure() to max once every 300ms to prevent feedback loops
       const now = Date.now();
+      // Throttle BOTH measure and scroll to max once per 300ms
       if (now - lastMeasureTimeRef.current > 300) {
         lastMeasureTimeRef.current = now;
         virtualizer.measure();
       }
-      requestAnimationFrame(() => {
+      if (now - lastAutoScrollTimeRef.current > 300) {
+        lastAutoScrollTimeRef.current = now;
         const el = parentRef.current;
         if (el) el.scrollTop = el.scrollHeight;
-      });
+      }
     }
     // Show floating button if new assistant content arrives while scrolled up
     if (isLoading && !autoScrollLocked.current && lastMessage?.role === 'assistant') {
