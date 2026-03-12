@@ -1022,6 +1022,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const { practiceContext } = usePracticeContext();
   const practiceName = practiceContext?.practiceName || 'Our Practice';
   const [introSent, setIntroSent] = useState(false);
+  const [showConsentCard, setShowConsentCard] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(false);
 
   const {
     messages,
