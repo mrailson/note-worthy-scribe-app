@@ -2854,8 +2854,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 })
               )}
 
-              {/* Live transcript (partial - still speaking) - only show for staff mode */}
-              {transcript && !isMicPaused && (
+              {/* Live transcript (partial - still speaking) - show finalised words accumulating */}
+              {(transcript || pendingTranscript) && !isMicPaused && !showConfirmation && (
                 <div className="flex gap-4">
                   {speakerMode === 'patient' && <div className="flex-1" />}
                   <div className="flex-1">
