@@ -256,13 +256,18 @@ export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> =
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
+                          disabled={downloadingSessionId === session.id}
                           onClick={(e) => {
                             e.stopPropagation();
-                            exportSession(session);
+                            exportSessionDocx(session);
                           }}
-                          title="Export"
+                          title="Download Word Report"
                         >
-                          <Download className="h-4 w-4" />
+                          {downloadingSessionId === session.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileText className="h-4 w-4" />
+                          )}
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
