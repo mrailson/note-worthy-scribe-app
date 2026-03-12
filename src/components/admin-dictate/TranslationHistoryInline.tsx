@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { useReceptionTranslationHistory } from '@/hooks/useReceptionTranslationHistory';
+import { useReceptionTranslationHistory, TranslationSessionHistory } from '@/hooks/useReceptionTranslationHistory';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog,
@@ -15,17 +16,24 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { 
-  X, 
-  Languages, 
-  Calendar, 
-  MessageSquare, 
-  FileText, 
-  Trash2, 
-  ChevronUp, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  X,
+  Languages,
+  Calendar,
+  MessageSquare,
+  FileText,
+  Trash2,
   ChevronDown,
   Loader2,
-  History
+  History,
+  Search,
+  GraduationCap,
 } from 'lucide-react';
 import { generateTranslationReportDocx } from '@/utils/generateTranslationReportDocx';
 import { TranslationMessage } from '@/hooks/useReceptionTranslation';
@@ -36,67 +44,108 @@ interface TranslationHistoryInlineProps {
   onClose: () => void;
 }
 
-// Language info lookup
-const getLanguageInfo = (code: string) => {
-  const languages: Record<string, { name: string; flag: string }> = {
-    'ar': { name: 'Arabic', flag: '🇸🇦' },
-    'bn': { name: 'Bengali', flag: '🇧🇩' },
-    'zh': { name: 'Chinese', flag: '🇨🇳' },
-    'cs': { name: 'Czech', flag: '🇨🇿' },
-    'nl': { name: 'Dutch', flag: '🇳🇱' },
-    'fr': { name: 'French', flag: '🇫🇷' },
-    'de': { name: 'German', flag: '🇩🇪' },
-    'el': { name: 'Greek', flag: '🇬🇷' },
-    'gu': { name: 'Gujarati', flag: '🇮🇳' },
-    'hi': { name: 'Hindi', flag: '🇮🇳' },
-    'hu': { name: 'Hungarian', flag: '🇭🇺' },
-    'it': { name: 'Italian', flag: '🇮🇹' },
-    'ja': { name: 'Japanese', flag: '🇯🇵' },
-    'ko': { name: 'Korean', flag: '🇰🇷' },
-    'lt': { name: 'Lithuanian', flag: '🇱🇹' },
-    'lv': { name: 'Latvian', flag: '🇱🇻' },
-    'ne': { name: 'Nepali', flag: '🇳🇵' },
-    'pa': { name: 'Punjabi', flag: '🇮🇳' },
-    'pl': { name: 'Polish', flag: '🇵🇱' },
-    'pt': { name: 'Portuguese', flag: '🇵🇹' },
-    'ro': { name: 'Romanian', flag: '🇷🇴' },
-    'ru': { name: 'Russian', flag: '🇷🇺' },
-    'sk': { name: 'Slovak', flag: '🇸🇰' },
-    'so': { name: 'Somali', flag: '🇸🇴' },
-    'es': { name: 'Spanish', flag: '🇪🇸' },
-    'sw': { name: 'Swahili', flag: '🇰🇪' },
-    'ta': { name: 'Tamil', flag: '🇮🇳' },
-    'tr': { name: 'Turkish', flag: '🇹🇷' },
-    'uk': { name: 'Ukrainian', flag: '🇺🇦' },
-    'ur': { name: 'Urdu', flag: '🇵🇰' },
-    'vi': { name: 'Vietnamese', flag: '🇻🇳' },
-    'am': { name: 'Amharic', flag: '🇪🇹' },
-    'ti': { name: 'Tigrinya', flag: '🇪🇷' },
-    'ps': { name: 'Pashto', flag: '🇦🇫' },
-    'fa': { name: 'Farsi', flag: '🇮🇷' },
-    'ku': { name: 'Kurdish', flag: '🇮🇶' },
-  };
-  return languages[code] || { name: code, flag: '🌐' };
+// ── LANGUAGE INFO ──
+const LANGUAGE_MAP: Record<string, { name: string; flag: string }> = {
+  ar: { name: 'Arabic', flag: '🇸🇦' }, bn: { name: 'Bengali', flag: '🇧🇩' },
+  zh: { name: 'Chinese', flag: '🇨🇳' }, cs: { name: 'Czech', flag: '🇨🇿' },
+  nl: { name: 'Dutch', flag: '🇳🇱' }, fr: { name: 'French', flag: '🇫🇷' },
+  de: { name: 'German', flag: '🇩🇪' }, el: { name: 'Greek', flag: '🇬🇷' },
+  gu: { name: 'Gujarati', flag: '🇮🇳' }, hi: { name: 'Hindi', flag: '🇮🇳' },
+  hu: { name: 'Hungarian', flag: '🇭🇺' }, it: { name: 'Italian', flag: '🇮🇹' },
+  ja: { name: 'Japanese', flag: '🇯🇵' }, ko: { name: 'Korean', flag: '🇰🇷' },
+  lt: { name: 'Lithuanian', flag: '🇱🇹' }, lv: { name: 'Latvian', flag: '🇱🇻' },
+  ne: { name: 'Nepali', flag: '🇳🇵' }, pa: { name: 'Punjabi', flag: '🇮🇳' },
+  pl: { name: 'Polish', flag: '🇵🇱' }, pt: { name: 'Portuguese', flag: '🇵🇹' },
+  ro: { name: 'Romanian', flag: '🇷🇴' }, ru: { name: 'Russian', flag: '🇷🇺' },
+  sk: { name: 'Slovak', flag: '🇸🇰' }, so: { name: 'Somali', flag: '🇸🇴' },
+  es: { name: 'Spanish', flag: '🇪🇸' }, sw: { name: 'Swahili', flag: '🇰🇪' },
+  ta: { name: 'Tamil', flag: '🇮🇳' }, tr: { name: 'Turkish', flag: '🇹🇷' },
+  uk: { name: 'Ukrainian', flag: '🇺🇦' }, ur: { name: 'Urdu', flag: '🇵🇰' },
+  vi: { name: 'Vietnamese', flag: '🇻🇳' }, am: { name: 'Amharic', flag: '🇪🇹' },
+  ti: { name: 'Tigrinya', flag: '🇪🇷' }, ps: { name: 'Pashto', flag: '🇦🇫' },
+  fa: { name: 'Farsi', flag: '🇮🇷' }, ku: { name: 'Kurdish', flag: '🇮🇶' },
 };
+const getLangInfo = (code: string) => LANGUAGE_MAP[code] || { name: code, flag: '🌐' };
+
+// ── LANGUAGE COLOUR MAP ──
+const LANG_COLOURS: Record<string, string> = {
+  ar: '#009639', bn: '#DA291C', ur: '#005EB8', hi: '#FF6B00',
+  pl: '#DC143C', ro: '#002B7F', fr: '#0055A4', es: '#AA151B',
+  pt: '#006600', tr: '#E30A17', so: '#4189DD', ti: '#009639',
+  fa: '#239F40', zh: '#DE2910', pa: '#FF6600', gu: '#FF9933',
+  ta: '#FFCC00', ru: '#0039A6', uk: '#005BBB', am: '#009B3A',
+  de: '#DD0000', it: '#009246', ko: '#003478', ja: '#BC002D',
+  vi: '#DA251D', ne: '#DC143C', sw: '#006B3F',
+};
+const getLangColour = (code: string) => LANG_COLOURS[code] || '#6366F1';
+
+// ── HELPERS ──
+const getSessionDuration = (messages: { created_at: string }[]) => {
+  if (messages.length < 2) return null;
+  const mins = Math.round(
+    (new Date(messages[messages.length - 1].created_at).getTime() - new Date(messages[0].created_at).getTime()) / 60000
+  );
+  return mins < 1 ? '<1 min' : `${mins} min`;
+};
+
+const getPreview = (messages: { original_text: string; speaker: string }[]) => {
+  if (!messages.length) return null;
+  const m = messages[0];
+  const t = m.original_text || '';
+  return {
+    speaker: m.speaker,
+    text: t.length > 80 ? t.substring(0, 80) + '…' : t,
+  };
+};
+
+// ── COMPONENT ──
 
 export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> = ({ onClose }) => {
   const { sessions, isLoading, deleteSession, deleteAllSessions } = useReceptionTranslationHistory();
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [downloadingSessionId, setDownloadingSessionId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [languageFilter, setLanguageFilter] = useState<string | null>(null);
   const { practiceContext } = usePracticeContext();
 
-  const exportSessionDocx = async (session: typeof sessions[0]) => {
+  // Unique languages from sessions
+  const uniqueLanguages = useMemo(() => {
+    const seen = new Set<string>();
+    return sessions
+      .map(s => s.patient_language)
+      .filter(code => { if (seen.has(code)) return false; seen.add(code); return true; })
+      .map(code => ({ code, ...getLangInfo(code) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [sessions]);
+
+  // Filtered sessions
+  const filteredSessions = useMemo(() => {
+    let result = sessions;
+    if (languageFilter) {
+      result = result.filter(s => s.patient_language === languageFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(s =>
+        s.messages.some(m =>
+          m.original_text.toLowerCase().includes(q) ||
+          m.translated_text.toLowerCase().includes(q)
+        )
+      );
+    }
+    return result;
+  }, [sessions, languageFilter, searchQuery]);
+
+  // DOCX download
+  const exportSessionDocx = async (session: TranslationSessionHistory) => {
     if (session.messages.length === 0) {
       showToast.error('No messages to include in report');
       return;
     }
-
     setDownloadingSessionId(session.id);
     try {
-      const langInfo = getLanguageInfo(session.patient_language);
-
-      // Map history messages to the TranslationMessage format expected by the DOCX generator
+      const langInfo = getLangInfo(session.patient_language);
       const messages: TranslationMessage[] = session.messages.map(msg => ({
         id: msg.id,
         speaker: msg.speaker as 'staff' | 'patient',
@@ -106,8 +155,6 @@ export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> =
         targetLanguage: msg.speaker === 'staff' ? session.patient_language : 'en',
         timestamp: new Date(msg.created_at),
       }));
-
-      // Determine session start/end from message timestamps
       const sessionStart = new Date(session.created_at);
       const lastMsg = session.messages[session.messages.length - 1];
       const sessionEnd = lastMsg ? new Date(lastMsg.created_at) : sessionStart;
@@ -141,202 +188,293 @@ export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> =
 
   return (
     <div className="flex flex-col h-full bg-background rounded-lg border shadow-lg">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
-        <div className="flex items-center gap-3">
-          <History className="w-5 h-5 text-violet-500" />
-          <h2 className="text-lg font-semibold">Translation History</h2>
-          <Badge variant="outline" className="text-xs">
-            {sessions.length} session{sessions.length !== 1 ? 's' : ''}
-          </Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Delete All Button */}
-          {sessions.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  disabled={isDeletingAll}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete All
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete All Translation History?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete all {sessions.length} translation session{sessions.length !== 1 ? 's' : ''} and their messages. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={handleDeleteAll}
+      {/* ── HEADER ── */}
+      <div className="px-4 pt-4 pb-3 border-b space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Translation History</h2>
+            <Badge variant="secondary" className="text-xs">
+              {sessions.length} session{sessions.length !== 1 ? 's' : ''}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-1">
+            {sessions.length > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive/60 hover:text-destructive gap-1 text-xs"
+                    disabled={isDeletingAll}
                   >
-                    {isDeletingAll ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Deleting...
-                      </>
-                    ) : (
-                      'Delete All'
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete All
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete all translation history?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete {sessions.length} session record{sessions.length !== 1 ? 's' : ''}. Downloaded reports will not be affected.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={handleDeleteAll}
+                    >
+                      {isDeletingAll ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting…</>
+                      ) : 'Delete All'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Search & filter */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search messages…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 text-sm"
+            />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm">
+                <Languages className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {languageFilter ? getLangInfo(languageFilter).name : 'All Languages'}
+                </span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setLanguageFilter(null)}>
+                🌐 All Languages
+              </DropdownMenuItem>
+              {uniqueLanguages.map(lang => (
+                <DropdownMenuItem key={lang.code} onClick={() => setLanguageFilter(lang.code)}>
+                  {lang.flag} {lang.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Content */}
+      {/* ── SESSION LIST ── */}
       <ScrollArea className="flex-1 p-4">
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : sessions.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            <Languages className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p>No translation sessions yet</p>
-            <p className="text-sm mt-1">Your live translation sessions will appear here</p>
+        ) : filteredSessions.length === 0 ? (
+          <div className="text-center py-12">
+            <History className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">
+              {searchQuery || languageFilter
+                ? 'No sessions match your filters'
+                : 'No translation sessions yet'}
+            </p>
+            {searchQuery || languageFilter ? (
+              <p className="text-xs text-muted-foreground mt-1">Your live translation sessions will appear here</p>
+            ) : null}
+            {(searchQuery || languageFilter) && (
+              <Button
+                variant="link"
+                size="sm"
+                className="mt-2"
+                onClick={() => { setSearchQuery(''); setLanguageFilter(null); }}
+              >
+                Clear filters
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
-            {sessions.map((session) => {
-              const langInfo = getLanguageInfo(session.patient_language);
+            {filteredSessions.map((session) => {
+              const langInfo = getLangInfo(session.patient_language);
+              const colour = getLangColour(session.patient_language);
               const isExpanded = expandedSession === session.id;
+              const duration = getSessionDuration(session.messages);
+              const preview = getPreview(session.messages);
+              const staffCount = session.messages.filter(m => m.speaker === 'staff').length;
+              const patientCount = session.messages.filter(m => m.speaker === 'patient').length;
 
               return (
                 <div
                   key={session.id}
-                  className="rounded-lg border bg-card overflow-hidden"
+                  className={`rounded-xl border-2 transition-all ${
+                    session.is_active
+                      ? 'border-emerald-300 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/20'
+                      : 'border-transparent bg-card hover:border-muted-foreground/20'
+                  }`}
                 >
-                  {/* Session Header */}
+                  {/* Card header */}
                   <div
-                    className="p-3 hover:bg-accent/50 transition-colors cursor-pointer"
+                    className="flex items-center justify-between p-3 cursor-pointer"
                     onClick={() => setExpandedSession(isExpanded ? null : session.id)}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="text-xs">
-                            {langInfo.flag} {langInfo.name}
-                          </Badge>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* Language flag icon */}
+                      <div
+                        className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+                        style={{ background: `${colour}15` }}
+                      >
+                        {langInfo.flag}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        {/* Line 1: Language + badges */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-sm">{langInfo.name}</span>
                           {session.is_active && (
-                            <Badge variant="default" className="text-xs bg-green-600">
-                              Active
+                            <Badge className="bg-emerald-500 text-white text-[0.6rem] px-1.5 py-0 leading-tight">Active</Badge>
+                          )}
+                          {session.is_training && (
+                            <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-700 text-[0.6rem] px-1.5 py-0 leading-tight gap-0.5">
+                              <GraduationCap className="h-2.5 w-2.5" />
+                              Training
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm font-medium">
-                          {session.session_title || `Session ${format(new Date(session.created_at), 'dd MMM')}`}
-                        </p>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {format(new Date(session.created_at), 'dd MMM yyyy, HH:mm')}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MessageSquare className="h-3 w-3" />
-                            {session.messages.length} messages
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          disabled={downloadingSessionId === session.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            exportSessionDocx(session);
-                          }}
-                          title="Download Word Report"
-                        >
-                          {downloadingSessionId === session.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <FileText className="h-4 w-4" />
+
+                        {/* Line 2: Date/time/stats */}
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                          <span>{format(new Date(session.created_at), 'dd MMM, HH:mm')}</span>
+                          <span className="opacity-40">•</span>
+                          <span>{session.messages.length} msgs</span>
+                          {duration && (
+                            <>
+                              <span className="opacity-40">•</span>
+                              <span>{duration}</span>
+                            </>
                           )}
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              onClick={(e) => e.stopPropagation()}
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Translation Session?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete this translation session and all its messages. This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={() => deleteSession(session.id)}
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                        {isExpanded ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          {session.training_scenario && (
+                            <>
+                              <span className="opacity-40">•</span>
+                              <span className="text-amber-600 dark:text-amber-400">{session.training_scenario}</span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Line 3: Preview */}
+                        {preview && (
+                          <p className="text-xs text-muted-foreground mt-1 truncate max-w-md">
+                            💬 {preview.speaker === 'staff' ? 'Staff' : 'Patient'}: {preview.text}
+                          </p>
                         )}
                       </div>
                     </div>
+
+                    {/* Right side */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                      {/* Exchange counts */}
+                      <div className="hidden sm:flex items-center gap-1">
+                        <span className="text-[0.6rem] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                          {staffCount} staff
+                        </span>
+                        <span className="text-[0.6rem] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium">
+                          {patientCount} patient
+                        </span>
+                      </div>
+
+                      {/* Download */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={downloadingSessionId === session.id || session.messages.length === 0}
+                        onClick={(e) => { e.stopPropagation(); exportSessionDocx(session); }}
+                        title="Download Word Report"
+                      >
+                        {downloadingSessionId === session.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <FileText className="h-4 w-4" />
+                        )}
+                      </Button>
+
+                      {/* Delete */}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive/60 hover:text-destructive"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Translation Session?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete this translation session and all its messages. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => deleteSession(session.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      {/* Chevron */}
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    </div>
                   </div>
 
-                  {/* Expanded Messages */}
+                  {/* Expanded messages */}
                   {isExpanded && session.messages.length > 0 && (
-                    <div className="border-t bg-muted/30 p-3 space-y-2 max-h-60 overflow-y-auto">
+                    <div className="border-t px-3 pb-3 pt-2 space-y-2 max-h-[400px] overflow-y-auto">
                       {session.messages.map((msg) => (
                         <div
                           key={msg.id}
-                          className={`p-2 rounded text-sm ${
+                          className={`rounded-lg p-2.5 text-sm ${
                             msg.speaker === 'staff'
-                              ? 'bg-primary/10 border-l-2 border-primary'
-                              : 'bg-secondary/50 border-l-2 border-secondary'
+                              ? 'bg-primary/5 border-l-2 border-primary'
+                              : 'bg-emerald-50 border-l-2 border-emerald-500 dark:bg-emerald-950/20'
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="outline" className="text-xs">
+                            <span className={`text-[0.65rem] font-semibold ${
+                              msg.speaker === 'staff' ? 'text-primary' : 'text-emerald-600 dark:text-emerald-400'
+                            }`}>
                               {msg.speaker === 'staff' ? '🇬🇧 Staff' : `${langInfo.flag} Patient`}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
+                            </span>
+                            <span className="text-[0.6rem] text-muted-foreground">
                               {format(new Date(msg.created_at), 'HH:mm')}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground">Original: {msg.original_text}</p>
-                          <p className="font-medium">→ {msg.translated_text}</p>
+                          <p className="text-foreground">{msg.original_text}</p>
+                          <p className="text-muted-foreground mt-1 text-xs">→ {msg.translated_text}</p>
                         </div>
                       ))}
                     </div>
                   )}
 
                   {isExpanded && session.messages.length === 0 && (
-                    <div className="border-t bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+                    <div className="border-t p-4 text-center text-sm text-muted-foreground">
                       No messages recorded for this session
                     </div>
                   )}
