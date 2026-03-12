@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { X, Languages, Plus, History } from 'lucide-react';
 import { LiveTranslationSetupModal } from '@/components/admin-dictate/LiveTranslationSetupModal';
 import { ReceptionTranslationView } from '@/components/admin-dictate/ReceptionTranslationView';
-import { TranslationHistoryPanel } from './TranslationHistoryPanel';
+import { TranslationHistoryInline } from '@/components/admin-dictate/TranslationHistoryInline';
 
 interface TranslationServicePanelProps {
   onClose: () => void;
@@ -68,7 +68,7 @@ export const TranslationServicePanel: React.FC<TranslationServicePanelProps> = (
   if (showHistory) {
     return (
       <Card className="flex flex-col h-full border-0 shadow-none">
-        <TranslationHistoryPanel onBack={() => setShowHistory(false)} />
+        <TranslationHistoryInline onClose={() => setShowHistory(false)} />
       </Card>
     );
   }
