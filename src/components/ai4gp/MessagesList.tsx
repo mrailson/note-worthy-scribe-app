@@ -69,8 +69,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   // --- Debounce ref for virtualizer.measure() during streaming ---
   const lastMeasureTimeRef = useRef(0);
+  const lastAutoScrollTimeRef = useRef(0);
   const showScrollButtonRef = useRef(false);
-  const lastScrollTopRef = useRef(0);
 
   // Show floating button when not at bottom
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -149,25 +149,19 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     const el = parentRef.current;
     if (!el) return;
 
-    // Dead zone ONLY during streaming — prevents measure/scroll feedback loop
-    // During normal browsing, allow all scroll events through for smooth scrolling
-    const currentScrollTop = el.scrollTop;
-    if (isLoadingRef.current && Math.abs(currentScrollTop - lastScrollTopRef.current) < 5) return;
-    lastScrollTopRef.current = currentScrollTop;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
 
-    const nearBottom = el.scrollHeight - currentScrollTop - el.clientHeight < SCROLL_THRESHOLD;
-
-    // If user scrolled away during streaming, break the lock
+    // Break auto-scroll lock immediately on any upward scroll during streaming
     if (isLoadingRef.current && !nearBottom) {
       autoScrollLocked.current = false;
     }
 
-    // If user scrolls back to bottom, re-engage
+    // Re-engage when user scrolls back to bottom
     if (nearBottom) {
       autoScrollLocked.current = true;
     }
 
-    // Only update state when value actually changes to avoid re-renders during streaming
+    // Update button state only when changed
     if (showScrollButtonRef.current !== !nearBottom) {
       showScrollButtonRef.current = !nearBottom;
       setShowScrollButton(!nearBottom);
@@ -211,16 +205,17 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   useEffect(() => {
     if (isLoading && autoScrollLocked.current && scrollDuringStreamingProp) {
-      // Throttle virtualizer.measure() to max once every 300ms to prevent feedback loops
       const now = Date.now();
+      // Throttle BOTH measure and scroll to max once per 300ms
       if (now - lastMeasureTimeRef.current > 300) {
         lastMeasureTimeRef.current = now;
         virtualizer.measure();
       }
-      requestAnimationFrame(() => {
+      if (now - lastAutoScrollTimeRef.current > 300) {
+        lastAutoScrollTimeRef.current = now;
         const el = parentRef.current;
         if (el) el.scrollTop = el.scrollHeight;
-      });
+      }
     }
     // Show floating button if new assistant content arrives while scrolled up
     if (isLoading && !autoScrollLocked.current && lastMessage?.role === 'assistant') {
