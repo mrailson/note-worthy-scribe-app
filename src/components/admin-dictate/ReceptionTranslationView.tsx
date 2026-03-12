@@ -1286,8 +1286,21 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           console.log('📝 Accumulated transcript:', newText.substring(0, 50) + '...');
           return newText;
         });
+        // FIX 5: For staff mode, show confirm immediately.
+        // For patient mode, start a silence timer — if no more speech
+        // arrives, auto-show the confirm box so staff can review and send.
         if (!isPatientMode) {
           setShowConfirmation(true);
+        } else {
+          // Clear any existing timer and start a new one
+          if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+          }
+          silenceTimerRef.current = setTimeout(() => {
+            console.log(`⏱️ Patient silence threshold reached, showing confirm box`);
+            setShowConfirmation(true);
+          }, silenceWaitTimeRef.current);
         }
         setTranscript('');
       };
