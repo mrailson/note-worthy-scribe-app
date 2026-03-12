@@ -54,6 +54,10 @@ export interface PatientViewPhrases {
   blockedTitle?: string;
   blockedMessage?: string;
   editMessage?: string;
+  // Patient view polish (optional with defaults)
+  connectionLost?: string;
+  privacyNote?: string;
+  you?: string;
 }
 
 // Default email translations for languages that don't have them
@@ -91,6 +95,13 @@ const DEFAULT_MODERATION_PHRASES = {
   editMessage: 'Edit Message',
 };
 
+// Default patient view polish translations
+const DEFAULT_PATIENT_POLISH_PHRASES = {
+  connectionLost: 'Connection lost — reconnecting...',
+  privacyNote: 'This conversation is not stored on your device',
+  you: 'You',
+};
+
 export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
   en: {
     speakNow: 'Speak now',
@@ -120,6 +131,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'Session not found or has expired',
     sessionEnded: 'This session has ended',
     invalidLink: 'Invalid session link',
+    connectionLost: 'Connection lost — reconnecting...',
+    privacyNote: 'This conversation is not stored on your device',
+    you: 'You',
     emailChat: 'Email me this chat',
     emailChatDescription: 'Receive a copy of this conversation',
     yourEmail: 'Your email address',
@@ -160,6 +174,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'Sesja nie została znaleziona lub wygasła',
     sessionEnded: 'Ta sesja została zakończona',
     invalidLink: 'Nieprawidłowy link sesji',
+    connectionLost: 'Połączenie utracone — ponowne łączenie...',
+    privacyNote: 'Ta rozmowa nie jest przechowywana na Twoim urządzeniu',
+    you: 'Ty',
     emailChat: 'Wyślij mi ten czat',
     emailChatDescription: 'Otrzymaj kopię tej rozmowy',
     yourEmail: 'Twój adres e-mail',
@@ -204,6 +221,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     playAudio: 'Redă audio',
     loadingAudio: 'Se încarcă...',
     playing: 'Se redă...',
+    connectionLost: 'Conexiune pierdută — se reconectează...',
+    privacyNote: 'Această conversație nu este stocată pe dispozitivul dvs.',
+    you: 'Dvs.',
     emailChat: 'Trimite-mi acest chat',
     emailChatDescription: 'Primește o copie a acestei conversații',
     yourEmail: 'Adresa ta de e-mail',
@@ -244,6 +264,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     playAudio: 'تشغيل الصوت',
     loadingAudio: 'جار التحميل...',
     playing: 'جار التشغيل...',
+    connectionLost: 'انقطع الاتصال — جارٍ إعادة الاتصال...',
+    privacyNote: 'لا يتم تخزين هذه المحادثة على جهازك',
+    you: 'أنت',
     emailChat: 'أرسل لي هذه المحادثة',
     emailChatDescription: 'احصل على نسخة من هذه المحادثة',
     yourEmail: 'عنوان بريدك الإلكتروني',
@@ -284,6 +307,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     playAudio: 'ऑडियो चलाएं',
     loadingAudio: 'लोड हो रहा है...',
     playing: 'चल रहा है...',
+    connectionLost: 'कनेक्शन टूट गया — फिर से जुड़ रहा है...',
+    privacyNote: 'यह बातचीत आपके डिवाइस पर संग्रहीत नहीं है',
+    you: 'आप',
     emailChat: 'मुझे यह चैट ईमेल करें',
     emailChatDescription: 'इस बातचीत की एक प्रति प्राप्त करें',
     yourEmail: 'आपका ईमेल पता',
@@ -324,6 +350,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     playAudio: 'آڈیو چلائیں',
     loadingAudio: 'لوڈ ہو رہا ہے...',
     playing: 'چل رہا ہے...',
+    connectionLost: 'کنکشن ٹوٹ گیا — دوبارہ جوڑ رہا ہے...',
+    privacyNote: 'یہ گفتگو آپ کے آلے پر محفوظ نہیں ہے',
+    you: 'آپ',
     emailChat: 'مجھے یہ چیٹ ای میل کریں',
     emailChatDescription: 'اس گفتگو کی ایک کاپی حاصل کریں',
     yourEmail: 'آپ کا ای میل پتہ',
@@ -364,6 +393,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     playAudio: 'ਆਡੀਓ ਚਲਾਓ',
     loadingAudio: 'ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...',
     playing: 'ਚੱਲ ਰਿਹਾ ਹੈ...',
+    connectionLost: 'ਕਨੈਕਸ਼ਨ ਟੁੱਟ ਗਿਆ — ਦੁਬਾਰਾ ਜੋੜ ਰਿਹਾ ਹੈ...',
+    privacyNote: 'ਇਹ ਗੱਲਬਾਤ ਤੁਹਾਡੇ ਡਿਵਾਈਸ ਤੇ ਸੁਰੱਖਿਅਤ ਨਹੀਂ ਹੈ',
+    you: 'ਤੁਸੀਂ',
     emailChat: 'ਮੈਨੂੰ ਇਹ ਚੈਟ ਈਮੇਲ ਕਰੋ',
     emailChatDescription: 'ਇਸ ਗੱਲਬਾਤ ਦੀ ਇੱਕ ਕਾਪੀ ਪ੍ਰਾਪਤ ਕਰੋ',
     yourEmail: 'ਤੁਹਾਡਾ ਈਮੇਲ ਪਤਾ',
@@ -404,6 +436,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     playAudio: 'অডিও চালান',
     loadingAudio: 'লোড হচ্ছে...',
     playing: 'চলছে...',
+    connectionLost: 'সংযোগ বিচ্ছিন্ন — পুনরায় সংযোগ হচ্ছে...',
+    privacyNote: 'এই কথোপকথন আপনার ডিভাইসে সংরক্ষিত হয় না',
+    you: 'আপনি',
     emailChat: 'আমাকে এই চ্যাট ইমেইল করুন',
     emailChatDescription: 'এই কথোপকথনের একটি অনুলিপি পান',
     yourEmail: 'আপনার ইমেইল ঠিকানা',
@@ -444,6 +479,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     playAudio: 'Reproducir audio',
     loadingAudio: 'Cargando...',
     playing: 'Reproduciendo...',
+    connectionLost: 'Conexión perdida — reconectando...',
+    privacyNote: 'Esta conversación no se almacena en su dispositivo',
+    you: 'Usted',
     emailChat: 'Enviarme este chat',
     emailChatDescription: 'Recibe una copia de esta conversación',
     yourEmail: 'Tu correo electrónico',
@@ -484,6 +522,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     playAudio: 'Reproduzir áudio',
     loadingAudio: 'Carregando...',
     playing: 'Reproduzindo...',
+    connectionLost: 'Conexão perdida — reconectando...',
+    privacyNote: 'Esta conversa não é armazenada no seu dispositivo',
+    you: 'Você',
     emailChat: 'Enviar-me este chat',
     emailChatDescription: 'Receba uma cópia desta conversa',
     yourEmail: 'Seu endereço de e-mail',
@@ -524,6 +565,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     playAudio: 'Lire l\'audio',
     loadingAudio: 'Chargement...',
     playing: 'Lecture...',
+    connectionLost: 'Connexion perdue — reconnexion...',
+    privacyNote: 'Cette conversation n\'est pas stockée sur votre appareil',
+    you: 'Vous',
     emailChat: 'M\'envoyer ce chat',
     emailChatDescription: 'Recevoir une copie de cette conversation',
     yourEmail: 'Votre adresse e-mail',
@@ -1193,5 +1237,8 @@ export const getPatientViewPhrases = (languageCode: string): Required<PatientVie
     blockedTitle: base.blockedTitle || DEFAULT_MODERATION_PHRASES.blockedTitle,
     blockedMessage: base.blockedMessage || DEFAULT_MODERATION_PHRASES.blockedMessage,
     editMessage: base.editMessage || DEFAULT_MODERATION_PHRASES.editMessage,
+    connectionLost: base.connectionLost || DEFAULT_PATIENT_POLISH_PHRASES.connectionLost,
+    privacyNote: base.privacyNote || DEFAULT_PATIENT_POLISH_PHRASES.privacyNote,
+    you: base.you || DEFAULT_PATIENT_POLISH_PHRASES.you,
   };
 };
