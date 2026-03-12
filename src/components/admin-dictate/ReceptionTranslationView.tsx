@@ -2106,11 +2106,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     await handleDownloadReport();
   };
 
-  const handleSummaryClose = () => {
+  const handleSummaryClose = useCallback(() => {
     setShowSessionSummary(false);
     setSessionSummaryData(null);
-    onClose();
-  };
+    setShowHistory(true);
+  }, []);
 
   // ElevenLabs supported languages (32 languages with natural voices)
   const ELEVENLABS_SUPPORTED = [
