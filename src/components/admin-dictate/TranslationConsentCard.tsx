@@ -596,8 +596,7 @@ export const TranslationConsentCard: React.FC<TranslationConsentCardProps> = ({
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onDecline(); }}>
       <DialogContent
-        className="p-0 gap-0 overflow-hidden border-0 max-w-[580px] w-[95vw] rounded-[20px] shadow-2xl animate-in fade-in-0 zoom-in-95 duration-300"
-        hideCloseButton
+        className="p-0 gap-0 overflow-hidden border-0 max-w-[580px] w-[95vw] rounded-[20px] shadow-2xl animate-in fade-in-0 zoom-in-95 duration-300 [&>button]:hidden"
       >
         {/* ── HEADER BAND ── */}
         <div
