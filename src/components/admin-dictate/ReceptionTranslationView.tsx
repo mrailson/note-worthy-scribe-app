@@ -1285,12 +1285,17 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       } else if (interimTranscript) {
         setTranscript(interimTranscript);
         
-        // Start silence timer — if no new results within wait time, treat interim as final
+        // Start silence timer — if no new results within wait time, populate confirm box
         silenceTimerRef.current = setTimeout(() => {
           const currentInterim = lastInterimRef.current;
           if (currentInterim) {
-            console.log(`⏱️ Silence threshold (${silenceWaitTimeRef.current}ms) reached, processing interim as final`);
-            processFinal(currentInterim);
+            console.log(`⏱️ Silence threshold (${silenceWaitTimeRef.current}ms) reached, populating confirm box`);
+            lastInterimRef.current = '';
+            const isPatientMode = speakerModeRef.current === 'patient';
+            setPendingSpeaker(isPatientMode ? 'patient' : 'staff');
+            setPendingTranscript(prev => prev ? `${prev} ${currentInterim}` : currentInterim);
+            setShowConfirmation(true);
+            setTranscript('');
           }
         }, silenceWaitTimeRef.current);
       }
