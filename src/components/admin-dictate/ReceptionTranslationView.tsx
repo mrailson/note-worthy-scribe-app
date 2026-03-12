@@ -2048,7 +2048,43 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   };
 
   const handleEndSession = async () => {
+    const endTime = new Date();
+    const duration = Math.max(1, Math.round((endTime.getTime() - sessionStartTime.getTime()) / 60000));
+    const staffMsgs = messages.filter(m => m.speaker === 'staff').length;
+    const patientMsgs = messages.filter(m => m.speaker === 'patient').length;
+
+    // Stop listening if active
+    if (isListening) {
+      stoppedByUserRef.current = true;
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+
+    // Set summary data and show the modal
+    setSessionSummaryData({
+      duration,
+      totalMessages: messages.length,
+      staffMessages: staffMsgs,
+      patientMessages: patientMsgs,
+      language: patientLanguage,
+      languageName: languageInfo?.name || patientLanguage,
+      languageFlag: languageInfo?.flag,
+      startTime: sessionStartTime,
+      endTime,
+    });
+    setShowSessionSummary(true);
+
+    // End the session in the background
     await endSession(sessionId);
+  };
+
+  const handleSummaryDownload = async () => {
+    await handleDownloadReport();
+  };
+
+  const handleSummaryClose = () => {
+    setShowSessionSummary(false);
+    setSessionSummaryData(null);
     onClose();
   };
 
