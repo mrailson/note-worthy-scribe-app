@@ -2742,26 +2742,46 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 px-2 gap-1" title="Adjust wait time before processing speech">
                   <Clock className="h-4 w-4" />
-                  <span className="text-xs text-muted-foreground">{(silenceWaitTime / 1000).toFixed(1)}s</span>
+                  <span className="text-xs text-muted-foreground">
+                    {speakerMode === 'staff' ? '🇬🇧' : (languageInfo?.flag || '🗣')} {(silenceWaitTime / 1000).toFixed(1)}s
+                  </span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-3" side="bottom">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Wait Time</span>
-                    <span className="text-sm text-muted-foreground">{(silenceWaitTime / 1000).toFixed(1)}s</span>
+              <PopoverContent className="w-64 p-3" side="bottom">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">🇬🇧 Staff (English)</span>
+                      <span className="text-sm text-muted-foreground">{(gpSilenceWaitTime / 1000).toFixed(1)}s</span>
+                    </div>
+                    <Slider
+                      value={[gpSilenceWaitTime]}
+                      onValueChange={([val]) => {
+                        setGpSilenceWaitTime(val);
+                        localStorage.setItem('translation-silence-wait-time-gp', String(val));
+                      }}
+                      min={1500}
+                      max={5000}
+                      step={500}
+                    />
                   </div>
-                  <Slider
-                    value={[silenceWaitTime]}
-                    onValueChange={([val]) => {
-                      setSilenceWaitTime(val);
-                      localStorage.setItem('translation-silence-wait-time', String(val));
-                    }}
-                    min={1000}
-                    max={5000}
-                    step={500}
-                  />
-                  <p className="text-xs text-muted-foreground">Pause before processing speech</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{languageInfo?.flag || '🗣'} Patient</span>
+                      <span className="text-sm text-muted-foreground">{(patientSilenceWaitTime / 1000).toFixed(1)}s</span>
+                    </div>
+                    <Slider
+                      value={[patientSilenceWaitTime]}
+                      onValueChange={([val]) => {
+                        setPatientSilenceWaitTime(val);
+                        localStorage.setItem('translation-silence-wait-time-patient', String(val));
+                      }}
+                      min={2000}
+                      max={8000}
+                      step={500}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">How long to wait after silence before showing the confirm box</p>
                 </div>
               </PopoverContent>
             </Popover>
