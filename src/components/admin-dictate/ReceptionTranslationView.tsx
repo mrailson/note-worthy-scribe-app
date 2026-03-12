@@ -889,6 +889,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [transcript, setTranscript] = useState('');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [sessionStartTime] = useState<Date>(new Date());
+  const [showSessionSummary, setShowSessionSummary] = useState(false);
+  const [sessionSummaryData, setSessionSummaryData] = useState<{
+    duration: number;
+    totalMessages: number;
+    staffMessages: number;
+    patientMessages: number;
+    language: string;
+    languageName: string;
+    languageFlag?: string;
+    startTime: Date;
+    endTime: Date;
+  } | null>(null);
   const [showExpandedQR, setShowExpandedQR] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showSMSModal, setShowSMSModal] = useState(false);
