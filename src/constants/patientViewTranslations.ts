@@ -1204,5 +1204,8 @@ export const getPatientViewPhrases = (languageCode: string): Required<PatientVie
     blockedTitle: base.blockedTitle || DEFAULT_MODERATION_PHRASES.blockedTitle,
     blockedMessage: base.blockedMessage || DEFAULT_MODERATION_PHRASES.blockedMessage,
     editMessage: base.editMessage || DEFAULT_MODERATION_PHRASES.editMessage,
+    connectionLost: base.connectionLost || DEFAULT_PATIENT_POLISH_PHRASES.connectionLost,
+    privacyNote: base.privacyNote || DEFAULT_PATIENT_POLISH_PHRASES.privacyNote,
+    you: base.you || DEFAULT_PATIENT_POLISH_PHRASES.you,
   };
 };
