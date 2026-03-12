@@ -2593,6 +2593,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           queuedLabel={QUEUED_KEEP_SPEAKING[patientLanguage] || QUEUED_KEEP_SPEAKING['en']}
         />
 
+        {/* Consent Card — mobile */}
+        <TranslationConsentCard
+          open={showConsentCard}
+          onConsent={handleConsent}
+          onDecline={handleDeclineConsent}
+          patientLanguage={patientLanguage}
+          patientLanguageName={languageInfo?.name || patientLanguage}
+          patientLanguageFlag={languageInfo?.flag}
+          practiceName={practiceName}
+          qrCodeUrl={qrCodeUrl}
+        />
+
         {/* QR Modal — reused from desktop */}
         <Dialog open={showExpandedQR} onOpenChange={setShowExpandedQR}>
           <DialogContent className="max-w-[95vw]">
