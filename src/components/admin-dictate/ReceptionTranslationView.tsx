@@ -2424,7 +2424,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
     return (
       <div
-        key={msg.id || index}
+        key={isLatestMessage ? `latest-${messages.length}` : (msg.id || index)}
         className={`flex gap-4 rounded-xl p-1.5 transition-all duration-300 ${
           isLatestMessage 
             ? isStaffMessage
