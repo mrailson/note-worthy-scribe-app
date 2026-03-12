@@ -4,6 +4,7 @@ import { Slider } from '@/components/ui/slider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { MobileTranslationLayout } from './MobileTranslationLayout';
+import { TranslationConsentCard } from './TranslationConsentCard';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -1021,6 +1022,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const { practiceContext } = usePracticeContext();
   const practiceName = practiceContext?.practiceName || 'Our Practice';
   const [introSent, setIntroSent] = useState(false);
+  const [showConsentCard, setShowConsentCard] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(false);
 
   const {
     messages,
@@ -1448,11 +1451,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       return;
     }
 
+    // If consent not yet given and not training mode, show consent card
+    if (!consentGiven && !introSent && !isTrainingMode) {
+      setShowConsentCard(true);
+      return;
+    }
+
     // Prevent double-starts
     if (isStartingRef.current || isConnecting) {
       console.log('Already starting, ignoring');
       return;
     }
+
 
     try {
       setIsConnecting(true);
@@ -1504,7 +1514,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     } finally {
       setIsConnecting(false);
     }
-  }, [isListening, isConnecting, introSent, practiceName, sendMessage]);
+  }, [isListening, isConnecting, introSent, consentGiven, isTrainingMode, practiceName, sendMessage]);
 
   // Mic pause/unpause toggle
   const toggleMicPause = useCallback(() => {
@@ -1514,6 +1524,22 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       setTranscript('');
     }
   }, [isMicPaused]);
+
+  // Consent card handlers
+  const handleConsent = useCallback(async () => {
+    setConsentGiven(true);
+    setShowConsentCard(false);
+    // Use a small setTimeout to let state settle, then start mic
+    setTimeout(() => {
+      toggleListening();
+    }, 100);
+  }, [toggleListening]);
+
+  const handleDeclineConsent = useCallback(() => {
+    setShowConsentCard(false);
+    showToast.info('Translation service declined. You may need to arrange a professional interpreter.');
+  }, []);
+
 
   // System audio capture for testing with videos (supports Whisper batch and AssemblyAI real-time)
   const startSystemAudioCaptureWhisper = useCallback(async (audioStream: MediaStream) => {
@@ -2567,6 +2593,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           queuedLabel={QUEUED_KEEP_SPEAKING[patientLanguage] || QUEUED_KEEP_SPEAKING['en']}
         />
 
+        {/* Consent Card — mobile */}
+        <TranslationConsentCard
+          open={showConsentCard}
+          onConsent={handleConsent}
+          onDecline={handleDeclineConsent}
+          patientLanguage={patientLanguage}
+          patientLanguageName={languageInfo?.name || patientLanguage}
+          patientLanguageFlag={languageInfo?.flag}
+          practiceName={practiceName}
+          qrCodeUrl={qrCodeUrl}
+        />
+
         {/* QR Modal — reused from desktop */}
         <Dialog open={showExpandedQR} onOpenChange={setShowExpandedQR}>
           <DialogContent className="max-w-[95vw]">
@@ -3501,6 +3539,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Consent Card Modal */}
+      <TranslationConsentCard
+        open={showConsentCard}
+        onConsent={handleConsent}
+        onDecline={handleDeclineConsent}
+        patientLanguage={patientLanguage}
+        patientLanguageName={languageInfo?.name || patientLanguage}
+        patientLanguageFlag={languageInfo?.flag}
+        practiceName={practiceName}
+        qrCodeUrl={qrCodeUrl}
+      />
     </div>
   );
 };
