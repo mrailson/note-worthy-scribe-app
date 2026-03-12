@@ -85,6 +85,8 @@ export function useReceptionTranslationHistory() {
         created_at: session.created_at,
         expires_at: session.expires_at,
         is_active: session.is_active,
+        is_training: session.is_training ?? false,
+        training_scenario: session.training_scenario ?? null,
         messages: messagesBySession[session.id] || []
       }));
       
