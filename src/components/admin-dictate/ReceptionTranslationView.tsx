@@ -1451,11 +1451,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       return;
     }
 
+    // If consent not yet given and not training mode, show consent card
+    if (!consentGiven && !introSent && !isTrainingMode) {
+      setShowConsentCard(true);
+      return;
+    }
+
     // Prevent double-starts
     if (isStartingRef.current || isConnecting) {
       console.log('Already starting, ignoring');
       return;
     }
+
 
     try {
       setIsConnecting(true);
