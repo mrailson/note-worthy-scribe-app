@@ -2567,7 +2567,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   <Button
                     variant={playingAudioId === messageId ? "default" : "outline"}
                     size="sm"
-                    className="w-full"
+                    className={`w-full ${isLatestMessage ? 'pulse-3' : ''}`}
                     onClick={() => {
                       if (playingAudioId === messageId) {
                         stopCurrentAudio();
