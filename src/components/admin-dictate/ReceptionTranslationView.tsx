@@ -2004,7 +2004,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showConfirmation, pendingTranscript, speakerMode, handleConfirmSend, handleCancelSend, handleSpeakerModeChange]);
+  }, [showConfirmation, pendingTranscript, speakerMode, handleConfirmSend, handleCancelSend, handleAddMore, handleSpeakerModeChange]);
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(patientUrl);
