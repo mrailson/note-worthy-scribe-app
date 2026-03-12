@@ -71,6 +71,15 @@ const SPEECH_RECOGNITION_LOCALES: Record<string, string> = {
 const toSpeechRecognitionLocale = (languageCode: string) =>
   SPEECH_RECOGNITION_LOCALES[languageCode] ?? languageCode;
 
+// ──────────────────────────────────────────────────────────────
+// FIX 2 — Dynamic silence thresholds per language group.
+// Non-English speakers routinely pause 4-6s mid-sentence while
+// searching for words or code-switching. English (GP) can be
+// shorter because staff tend to speak in short, direct phrases.
+// ──────────────────────────────────────────────────────────────
+const GP_SILENCE_MS = 3000;       // English — staff speak concisely
+const PATIENT_SILENCE_MS = 5000;  // Non-English — allow longer thinking pauses
+
 export interface ConversationEntry {
   id: string;
   speaker: 'gp' | 'patient';
@@ -89,7 +98,7 @@ interface UseGPTranslationOptions {
   autoDetect: boolean;
   volume: number;
   isMuted: boolean;
-  silenceThreshold?: number; // milliseconds before processing speech (default: 3000)
+  silenceThreshold?: number; // override — if not supplied, uses dynamic GP/patient defaults
   onSpeakerDetected?: (speaker: 'gp' | 'patient') => void;
   onError?: (error: string) => void;
 }
@@ -101,16 +110,22 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     autoDetect,
     volume,
     isMuted,
-    silenceThreshold = 3000,
+    silenceThreshold,          // optional manual override
     onSpeakerDetected,
     onError
   } = options;
+
+  // FIX 2 — Pick the right silence threshold based on who is speaking
+  const effectiveSilence = silenceThreshold ?? (speakerMode === 'gp' ? GP_SILENCE_MS : PATIENT_SILENCE_MS);
 
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
   const [currentTranscript, setCurrentTranscript] = useState('');
+
+  // FIX 3 — Expose pending (finalised but not-yet-sent) text so the UI can show it
+  const [pendingTranscript, setPendingTranscript] = useState('');
   
   const recognitionRef = useRef<WebSpeechRecognition | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -118,7 +133,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const audioQueueRef = useRef<{ text: string; languageCode: string }[]>([]);
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
-  const silenceThresholdRef = useRef(silenceThreshold);
+  const silenceThresholdRef = useRef(effectiveSilence);
   const isPlayingRef = useRef(false);
   const isListeningRef = useRef(false);
   const startListeningRef = useRef<() => Promise<void>>();
@@ -129,8 +144,16 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   useEffect(() => {
     volumeRef.current = volume;
     isMutedRef.current = isMuted;
-    silenceThresholdRef.current = silenceThreshold;
-  }, [volume, isMuted, silenceThreshold]);
+    silenceThresholdRef.current = effectiveSilence;
+  }, [volume, isMuted, effectiveSilence]);
+
+  // ── Helper: clear the silence timer safely ──
+  const clearSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  }, []);
 
   // Initialize speech recognition
   const initSpeechRecognition = useCallback((): WebSpeechRecognition | null => {
@@ -306,6 +329,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     
     setIsProcessing(true);
     setCurrentTranscript('');
+    setPendingTranscript('');   // FIX 3 — clear pending display
 
     try {
       let englishText: string;
@@ -331,33 +355,23 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
           // GP spoke English -> translate to patient's language
           englishText = text;
           translatedText = await translateText(text, 'en', selectedLanguage);
-          // Clean up text for natural TTS delivery with language-specific filler removal
           const cleanedTranslation = preprocessTextForTTS(translatedText, selectedLanguage);
           queueAudio(cleanedTranslation, selectedLanguage);
         } else {
           // Patient spoke (detected) -> translate to English
           translatedText = text;
           englishText = autoEnglish.translatedText || text;
-          // Clean up English text for natural TTS delivery
-          const cleanedEnglish = preprocessTextForTTS(englishText, 'en');
-          // Optionally play English for GP verification (can be toggled)
-          // queueAudio(cleanedEnglish, 'en');
         }
       } else if (speakerMode === 'gp') {
         // GP spoke English -> translate to patient's language
         englishText = text;
         translatedText = await translateText(text, 'en', selectedLanguage);
-        // Clean up text for natural TTS delivery with language-specific filler removal
         const cleanedTranslation = preprocessTextForTTS(translatedText, selectedLanguage);
         queueAudio(cleanedTranslation, selectedLanguage);
       } else {
         // Patient spoke their language -> translate to English
         translatedText = text;
         englishText = await translateText(text, selectedLanguage, 'en');
-        // Clean up English text for natural TTS delivery
-        const cleanedEnglish = preprocessTextForTTS(englishText, 'en');
-        // Optionally play English for GP verification (can be toggled)
-        // queueAudio(cleanedEnglish, 'en');
       }
 
       const entry: ConversationEntry = {
@@ -368,7 +382,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
         translatedText,
         languageCode: selectedLanguage,
         timestamp: new Date(),
-        confidence: 0.9, // Could be enhanced with actual confidence scores
+        confidence: 0.9,
       };
 
       setConversation(prev => [...prev, entry]);
@@ -398,6 +412,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
       // Use a ref to avoid stale-closure issues inside recognition callbacks
       isListeningRef.current = true;
       pendingTranscriptRef.current = '';
+      setPendingTranscript('');   // FIX 3
 
       recognition.onstart = () => {
         isListeningRef.current = true;
@@ -417,19 +432,28 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
           }
         }
 
-        // Only show interim transcript (active speech), not final
-        setCurrentTranscript(interimTranscript);
+        // Show both the finalised buffer AND the current interim text
+        // so the receptionist can see the full sentence building up
+        const displayText = (pendingTranscriptRef.current + interimTranscript).trim();
+        setCurrentTranscript(displayText);
 
-        // Reset silence timer
-        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        // FIX 3 — Keep the pending state in sync so the UI can show it
+        if (pendingTranscriptRef.current.trim()) {
+          setPendingTranscript(pendingTranscriptRef.current.trim());
+        }
 
-        // If we have final results, wait for silence then process
+        // Reset silence timer on EVERY result (interim or final)
+        clearSilenceTimer();
+
+        // If we have final results, start the silence countdown.
+        // It will only fire if no further onresult events arrive.
         if (pendingTranscriptRef.current.trim()) {
           silenceTimerRef.current = setTimeout(() => {
             if (pendingTranscriptRef.current.trim()) {
               processCompletedSpeech(pendingTranscriptRef.current.trim());
               pendingTranscriptRef.current = '';
-              setCurrentTranscript(''); // Clear after processing
+              setCurrentTranscript('');
+              setPendingTranscript('');   // FIX 3
             }
           }, silenceThresholdRef.current);
         }
@@ -454,6 +478,13 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
         // Chrome often ends recognition after an utterance even in continuous mode.
         // If the user hasn't stopped listening, restart after a short delay.
         if (isListeningRef.current && recognitionRef.current === recognition) {
+          // ──────────────────────────────────────────────────────
+          // FIX 1 — Reset the silence timer on auto-restart.
+          // The restart itself proves the speaker hasn't finished,
+          // so the countdown should begin fresh.
+          // ──────────────────────────────────────────────────────
+          clearSilenceTimer();
+
           window.setTimeout(() => {
             try {
               recognition.start();
@@ -474,24 +505,49 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
       onError?.('Could not access microphone. Please check permissions.');
       throw err;
     }
-  }, [initSpeechRecognition, processCompletedSpeech, onError]);
+  }, [initSpeechRecognition, processCompletedSpeech, clearSilenceTimer, onError]);
 
   // Keep ref in sync so the effect below can call the latest version without re-running
   useEffect(() => {
     startListeningRef.current = startListening;
   }, [startListening]);
 
-  // Restart recognition when speakerMode or selectedLanguage changes during an active session
+  // ──────────────────────────────────────────────────────────────
+  // FIX 4 — Flush pending buffer on speaker switch.
+  // When speaker mode changes during an active session:
+  //   • Process any buffered text under the PREVIOUS speaker
+  //   • Then restart recognition with the new language
+  // This prevents cross-attribution of speech.
+  // ──────────────────────────────────────────────────────────────
+  const prevSpeakerModeRef = useRef(speakerMode);
+
   useEffect(() => {
-    if (isListeningRef.current && recognitionRef.current) {
-      console.log('Speaker mode or language changed, restarting recognition...');
-      // Stop current recognition
-      recognitionRef.current.onend = null; // prevent auto-restart loop
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-      // Start new recognition with updated language
-      startListeningRef.current?.();
+    if (!isListeningRef.current || !recognitionRef.current) {
+      prevSpeakerModeRef.current = speakerMode;
+      return;
     }
+
+    const hadPendingText = pendingTranscriptRef.current.trim();
+    const previousMode = prevSpeakerModeRef.current;
+    prevSpeakerModeRef.current = speakerMode;
+
+    // If there's buffered text from the previous speaker, process it first
+    if (hadPendingText) {
+      clearSilenceTimer();
+      console.log(`Speaker switched ${previousMode} → ${speakerMode}, flushing pending: "${hadPendingText}"`);
+      processCompletedSpeech(hadPendingText);
+      pendingTranscriptRef.current = '';
+      setCurrentTranscript('');
+      setPendingTranscript('');
+    }
+
+    // Restart recognition with the new language
+    console.log('Speaker mode or language changed, restarting recognition...');
+    recognitionRef.current.onend = null; // prevent auto-restart loop
+    recognitionRef.current.stop();
+    recognitionRef.current = null;
+    startListeningRef.current?.();
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speakerMode, selectedLanguage]);
 
@@ -499,10 +555,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const stopListening = useCallback(() => {
     isListeningRef.current = false;
 
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
+    clearSilenceTimer();
     
     if (recognitionRef.current) {
       recognitionRef.current.stop();
@@ -510,22 +563,21 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     }
     setIsListening(false);
     setCurrentTranscript('');
+    setPendingTranscript('');   // FIX 3
     pendingTranscriptRef.current = '';
-  }, []);
+  }, [clearSilenceTimer]);
 
   // Manual send - immediately process any pending transcript
   const manualSend = useCallback(() => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
+    clearSilenceTimer();
     
     if (pendingTranscriptRef.current.trim()) {
       processCompletedSpeech(pendingTranscriptRef.current.trim());
       pendingTranscriptRef.current = '';
       setCurrentTranscript('');
+      setPendingTranscript('');   // FIX 3
     }
-  }, [processCompletedSpeech]);
+  }, [processCompletedSpeech, clearSilenceTimer]);
 
   // Play audio for a specific text
   const playAudio = useCallback(async (text: string, languageCode: string) => {
@@ -579,6 +631,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const clearConversation = useCallback(() => {
     setConversation([]);
     setCurrentTranscript('');
+    setPendingTranscript('');   // FIX 3
     stopAudio();
   }, [stopAudio]);
 
@@ -639,6 +692,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     isSpeaking,
     conversation,
     currentTranscript,
+    pendingTranscript,    // FIX 3 — NEW: expose so the UI can show buffered text
     startListening,
     stopListening,
     manualSend,

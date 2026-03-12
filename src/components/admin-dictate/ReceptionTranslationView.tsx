@@ -1285,12 +1285,17 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       } else if (interimTranscript) {
         setTranscript(interimTranscript);
         
-        // Start silence timer — if no new results within wait time, treat interim as final
+        // Start silence timer — if no new results within wait time, populate confirm box
         silenceTimerRef.current = setTimeout(() => {
           const currentInterim = lastInterimRef.current;
           if (currentInterim) {
-            console.log(`⏱️ Silence threshold (${silenceWaitTimeRef.current}ms) reached, processing interim as final`);
-            processFinal(currentInterim);
+            console.log(`⏱️ Silence threshold (${silenceWaitTimeRef.current}ms) reached, populating confirm box`);
+            lastInterimRef.current = '';
+            const isPatientMode = speakerModeRef.current === 'patient';
+            setPendingSpeaker(isPatientMode ? 'patient' : 'staff');
+            setPendingTranscript(prev => prev ? `${prev} ${currentInterim}` : currentInterim);
+            setShowConfirmation(true);
+            setTranscript('');
           }
         }, silenceWaitTimeRef.current);
       }
@@ -2849,8 +2854,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 })
               )}
 
-              {/* Live transcript (partial - still speaking) - only show for staff mode */}
-              {transcript && !isMicPaused && (
+              {/* Live transcript (partial - still speaking) - show finalised words accumulating */}
+              {(transcript || pendingTranscript) && !isMicPaused && !showConfirmation && (
                 <div className="flex gap-4">
                   {speakerMode === 'patient' && <div className="flex-1" />}
                   <div className="flex-1">
@@ -2860,7 +2865,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                         : 'bg-primary/50 text-primary-foreground'
                     }`}>
                       <p className="text-sm font-medium mb-1">🎤 Listening...</p>
-                      <p className="text-lg">{transcript}</p>
+                      <p className="text-lg">{transcript || pendingTranscript}</p>
                     </div>
                   </div>
                   {speakerMode === 'staff' && <div className="flex-1" />}
