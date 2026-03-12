@@ -3982,10 +3982,26 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 )}
                 <Button
                   variant="outline"
-                  className="w-full"
-                  onClick={handleSummaryClose}
+                  className="w-full gap-2"
+                  onClick={() => {
+                    setShowSessionSummary(false);
+                    setSessionSummaryData(null);
+                    setShowHistory(true);
+                  }}
                 >
-                  Close
+                  <History className="h-4 w-4" />
+                  View History
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => {
+                    setShowSessionSummary(false);
+                    setSessionSummaryData(null);
+                    onClose();
+                  }}
+                >
+                  Exit Translation Service
                 </Button>
               </div>
 
