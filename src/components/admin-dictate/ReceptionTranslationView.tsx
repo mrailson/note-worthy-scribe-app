@@ -4,6 +4,7 @@ import { Slider } from '@/components/ui/slider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { MobileTranslationLayout } from './MobileTranslationLayout';
+import { TranslationConsentCard } from './TranslationConsentCard';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
