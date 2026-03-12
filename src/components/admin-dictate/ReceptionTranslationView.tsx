@@ -1025,6 +1025,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     isConnected,
     isTranslating,
     patientConnected,
+    patientCount,
     contentWarning,
     blockedContent,
     sendMessage,
