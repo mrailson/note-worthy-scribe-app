@@ -2697,26 +2697,62 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           qrCodeUrl={qrCodeUrl}
         />
 
-        {/* QR Modal — reused from desktop */}
+        {/* QR Modal — mobile */}
         <Dialog open={showExpandedQR} onOpenChange={setShowExpandedQR}>
-          <DialogContent className="max-w-[95vw]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 justify-center text-base">
-                <QrCode className="h-4 w-4" />
+          <DialogContent className="p-0 gap-0 overflow-hidden border-0 max-w-[95vw] rounded-[20px] shadow-2xl [&>button]:hidden">
+            {/* ── NHS BLUE HEADER ── */}
+            <div
+              className="text-center relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #003087, #005EB8)',
+                padding: '1rem 1.5rem 0.75rem',
+              }}
+            >
+              <div className="text-[0.65rem] font-semibold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                {practiceName}
+              </div>
+              <div className="text-[1rem] font-bold text-white mt-0.5">
                 {MODAL_TITLES[patientLanguage] || MODAL_TITLES['en']}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col items-center py-4">
-              <p className="text-sm font-semibold text-primary mb-3">{practiceName}</p>
+              </div>
+              <div className="flex items-center justify-center gap-2 mt-1.5">
+                <span className="text-white text-[0.7rem] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                  🇬🇧 English
+                </span>
+                <span style={{ color: 'rgba(255,255,255,0.4)' }} className="text-[0.85rem]">⇄</span>
+                <span className="text-white text-[0.7rem] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                  {languageInfo?.flag} {languageInfo?.name}
+                </span>
+              </div>
+            </div>
+
+            {/* ── BODY ── */}
+            <div className="px-4 py-4 flex flex-col items-center">
               {largeQrCodeUrl && (
-                <div className="bg-white p-3 rounded-xl shadow-lg mb-3">
-                  <img src={largeQrCodeUrl} alt="Patient QR Code" className="w-56 h-56" />
+                <div
+                  className="bg-white p-2 rounded-xl mb-3"
+                  style={{ border: '2px solid #F0F4F5', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+                >
+                  <img src={largeQrCodeUrl} alt="Patient QR Code" className="w-48 h-48" />
                 </div>
               )}
-              <div className="text-center">
-                <span className="text-xl">{languageInfo?.flag}</span>
-                <p className="text-sm font-medium mt-1">{languageInfo?.name}</p>
+              <div className="w-full p-3 rounded-xl text-center" style={{ background: '#F0F4F5' }}>
+                <p className="text-[0.82rem] font-medium" style={{ color: '#003087' }}>
+                  {qrInstructions.scanInstruction}
+                </p>
+                <p className="text-[0.72rem] mt-1" style={{ color: '#4C6272' }}>
+                  {qrInstructions.welcomeMessage}
+                </p>
               </div>
+            </div>
+
+            <div className="px-4 pb-3 flex justify-center">
+              <button
+                onClick={() => setShowExpandedQR(false)}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl font-semibold text-[0.82rem] transition-all cursor-pointer border-0"
+                style={{ background: '#F0F4F5', color: '#4C6272' }}
+              >
+                <span>✕</span> Close
+              </button>
             </div>
           </DialogContent>
         </Dialog>
