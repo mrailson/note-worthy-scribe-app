@@ -67,9 +67,7 @@ import { PatientSpeakingPrompt } from './PatientSpeakingPrompt';
 import { getWebSpeechLanguageCode, isWebSpeechSupported } from '@/utils/webSpeechLanguages';
 import { TranslationSettingsModal } from './TranslationSettingsModal';
 import { DocumentTranslationPanel } from './DocumentTranslationPanel';
-import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, GraduationCap, Columns2, ListFilter, PanelRightOpen, PanelLeftOpen, Eye, MessageSquareText } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, GraduationCap, MessageSquareText } from 'lucide-react';
 import { TranslationHistoryInline } from './TranslationHistoryInline';
 import {
   Collapsible,
