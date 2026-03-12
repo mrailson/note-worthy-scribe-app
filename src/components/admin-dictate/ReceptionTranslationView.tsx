@@ -3089,8 +3089,15 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                     </p>
                     <textarea
                       data-confirmation-textarea
-                      value={pendingTranscript}
-                      onChange={(e) => setPendingTranscript(e.target.value)}
+                      value={transcript 
+                        ? `${pendingTranscript} ${transcript}` 
+                        : pendingTranscript}
+                      onChange={(e) => {
+                        // Only allow manual edits when not actively hearing speech
+                        if (!transcript) {
+                          setPendingTranscript(e.target.value);
+                        }
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -3102,8 +3109,28 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                           ? 'border-emerald-300 focus:border-emerald-500 hover:bg-emerald-100/50 dark:border-emerald-700 dark:focus:border-emerald-500 dark:hover:bg-emerald-800/30'
                           : 'border-primary-foreground/30 focus:border-primary-foreground hover:bg-primary-foreground/10'
                       }`}
-                      rows={Math.max(2, Math.ceil(pendingTranscript.length / 80))}
+                      rows={Math.max(2, Math.ceil((pendingTranscript + (transcript || '')).length / 80))}
                     />
+                    {/* Live listening indicator — shows when still speaking with confirm box open */}
+                    {isListening && !isMicPaused && (
+                      <div className="flex items-center gap-2 mb-3 px-1">
+                        {/* Animated sound bars */}
+                        <div className="flex items-end gap-0.5 h-4">
+                          <div className="w-1 bg-current rounded-full opacity-60 animate-sound-bar-1" />
+                          <div className="w-1 bg-current rounded-full opacity-60 animate-sound-bar-2" />
+                          <div className="w-1 bg-current rounded-full opacity-60 animate-sound-bar-3" />
+                          <div className="w-1 bg-current rounded-full opacity-60 animate-sound-bar-4" />
+                        </div>
+                        <span className="text-xs opacity-60">
+                          {transcript ? 'Hearing: ' : 'Listening...'}
+                        </span>
+                        {transcript && (
+                          <span className="text-xs italic opacity-50 truncate max-w-[60%]">
+                            {transcript}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <div className="flex gap-2 justify-end">
                       <Button 
                         size="sm" 
@@ -3116,6 +3143,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                       >
                         <XCircle className="h-4 w-4" />
                         Discard
+                        <kbd className="ml-1 text-[0.6rem] opacity-40 font-mono bg-black/10 dark:bg-white/10 px-1 rounded">D</kbd>
                       </Button>
                       <Button 
                         size="sm" 
@@ -3128,6 +3156,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                       >
                         <Mic className="h-4 w-4" />
                         Add More
+                        <kbd className="ml-1 text-[0.6rem] opacity-40 font-mono bg-black/10 dark:bg-white/10 px-1 rounded">A</kbd>
                       </Button>
                       <Button 
                         size="sm" 
@@ -3136,6 +3165,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                       >
                         <Send className="h-4 w-4" />
                         Send
+                        <kbd className="ml-1 text-[0.6rem] opacity-40 font-mono bg-white/20 px-1 rounded">⎵</kbd>
                       </Button>
                     </div>
                   </div>
