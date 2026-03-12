@@ -3477,6 +3477,20 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 <Maximize2 className="h-3 w-3 mr-1" />
                 Expand
               </Button>
+              <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => {
+                printPatientHandout({
+                  practiceName,
+                  practiceAddress: practiceContext?.practiceAddress,
+                  patientLanguage,
+                  patientLanguageName: languageInfo?.name || patientLanguage,
+                  patientLanguageFlag: languageInfo?.flag,
+                  qrCodeUrl: largeQrCodeUrl,
+                  sessionUrl: patientUrl,
+                });
+              }}>
+                <Printer className="h-3 w-3 mr-1" />
+                Handout
+              </Button>
             </div>
 
             {/* Collapsible How it works section */}
