@@ -2955,6 +2955,37 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             </div>
           )}
 
+          {/* Column headers */}
+          {messages.length > 0 && (
+            <div className="flex gap-4 mb-2 px-1">
+              {chatViewMode !== 'patient-only' && (
+                <div className="min-w-0" style={{
+                  flex: chatViewMode === 'gp-focus' ? '1.85 1 0%' 
+                    : chatViewMode === 'patient-focus' ? '0.54 1 0%' 
+                    : '1 1 0%',
+                  transition: 'flex 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary rounded-t-lg text-primary-foreground">
+                    <span className="text-sm">🇬🇧</span>
+                    <span className="text-xs font-semibold">English</span>
+                  </div>
+                </div>
+              )}
+              <div className="min-w-0" style={{
+                flex: chatViewMode === 'patient-only' ? '1 1 0%'
+                  : chatViewMode === 'patient-focus' ? '1.85 1 0%' 
+                  : chatViewMode === 'gp-focus' ? '0.54 1 0%' 
+                  : '1 1 0%',
+                transition: 'flex 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}>
+                <div className="flex items-center justify-end gap-1.5 px-3 py-1.5 bg-emerald-600 rounded-t-lg text-white">
+                  <span className="text-xs font-semibold">{languageInfo?.name || patientLanguage}</span>
+                  <span className="text-sm">{languageInfo?.flag}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
             <div className="space-y-4 pb-8">
               {messages.length === 0 ? (
