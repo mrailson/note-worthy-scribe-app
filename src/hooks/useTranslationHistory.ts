@@ -124,8 +124,9 @@ export const useTranslationHistory = () => {
     isActive: boolean = true
   ) => {
     try {
-      const { data, error } = await supabase.functions.invoke('save-translation-session', {
+      const { data, error } = await supabase.functions.invoke('translation-session-manager', {
         body: {
+          action: 'save',
           sessionId: currentSessionId,
           translations,
           translationScores,
