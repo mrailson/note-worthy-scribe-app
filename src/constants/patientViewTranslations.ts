@@ -95,6 +95,13 @@ const DEFAULT_MODERATION_PHRASES = {
   editMessage: 'Edit Message',
 };
 
+// Default patient view polish translations
+const DEFAULT_PATIENT_POLISH_PHRASES = {
+  connectionLost: 'Connection lost — reconnecting...',
+  privacyNote: 'This conversation is not stored on your device',
+  you: 'You',
+};
+
 export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
   en: {
     speakNow: 'Speak now',
