@@ -70,6 +70,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   // --- Debounce ref for virtualizer.measure() during streaming ---
   const lastMeasureTimeRef = useRef(0);
   const showScrollButtonRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
 
   // Show floating button when not at bottom
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -148,7 +149,12 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     const el = parentRef.current;
     if (!el) return;
 
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
+    // Dead zone — ignore micro-movements that cause feedback loops
+    const currentScrollTop = el.scrollTop;
+    if (Math.abs(currentScrollTop - lastScrollTopRef.current) < 5) return;
+    lastScrollTopRef.current = currentScrollTop;
+
+    const nearBottom = el.scrollHeight - currentScrollTop - el.clientHeight < SCROLL_THRESHOLD;
 
     // If user scrolled away during streaming, break the lock
     if (isLoadingRef.current && !nearBottom) {
