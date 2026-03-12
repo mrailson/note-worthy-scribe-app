@@ -500,3 +500,6 @@ verify_jwt = false
 
 [functions.summarise-translation-session]
 verify_jwt = false
+
+[functions.translation-session-manager]
+verify_jwt = false

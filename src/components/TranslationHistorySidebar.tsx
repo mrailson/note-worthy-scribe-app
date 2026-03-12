@@ -122,8 +122,8 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
   const handleClearAllSessions = async () => {
     setIsClearingAll(true);
     try {
-      const { data, error } = await supabase.functions.invoke('clear-translation-sessions', {
-        body: { preserveProtected: true }
+      const { data, error } = await supabase.functions.invoke('translation-session-manager', {
+        body: { action: 'clear' }
       });
 
       if (error) throw error;

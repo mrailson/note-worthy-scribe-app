@@ -76,8 +76,9 @@ export const useTranslationHistory = () => {
       setError(null);
 
       // Call edge function with query parameters
-      const { data, error } = await supabase.functions.invoke('load-translation-sessions', {
+      const { data, error } = await supabase.functions.invoke('translation-session-manager', {
         body: {
+          action: 'load',
           limit: options.limit,
           offset: options.offset,
           flagged: options.flagged,
@@ -123,8 +124,9 @@ export const useTranslationHistory = () => {
     isActive: boolean = true
   ) => {
     try {
-      const { data, error } = await supabase.functions.invoke('save-translation-session', {
+      const { data, error } = await supabase.functions.invoke('translation-session-manager', {
         body: {
+          action: 'save',
           sessionId: currentSessionId,
           translations,
           translationScores,
@@ -203,8 +205,8 @@ export const useTranslationHistory = () => {
   // Delete translation session
   const deleteSession = useCallback(async (sessionId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('delete-translation-session', {
-        body: { sessionId }
+      const { data, error } = await supabase.functions.invoke('translation-session-manager', {
+        body: { action: 'delete', sessionId }
       });
 
       if (error) throw error;
@@ -233,8 +235,8 @@ export const useTranslationHistory = () => {
     session_title?: string;
   }) => {
     try {
-      const { data, error } = await supabase.functions.invoke('update-translation-session', {
-        body: { sessionId, updates }
+      const { data, error } = await supabase.functions.invoke('translation-session-manager', {
+        body: { action: 'update', sessionId, updates }
       });
 
       if (error) throw error;
