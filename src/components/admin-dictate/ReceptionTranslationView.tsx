@@ -70,6 +70,7 @@ import { DocumentTranslationPanel } from './DocumentTranslationPanel';
 import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, GraduationCap, MessageSquareText } from 'lucide-react';
 import { TranslationHistoryInline } from './TranslationHistoryInline';
 import { TRAINING_SCENARIOS } from '@/constants/trainingScenarios';
+import { printPatientHandout } from '@/utils/generatePatientHandout';
 import {
   Collapsible,
   CollapsibleContent,
@@ -3476,6 +3477,20 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 <Maximize2 className="h-3 w-3 mr-1" />
                 Expand
               </Button>
+              <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => {
+                printPatientHandout({
+                  practiceName,
+                  practiceAddress: practiceContext?.practiceAddress,
+                  patientLanguage,
+                  patientLanguageName: languageInfo?.name || patientLanguage,
+                  patientLanguageFlag: languageInfo?.flag,
+                  qrCodeUrl: largeQrCodeUrl,
+                  sessionUrl: patientUrl,
+                });
+              }}>
+                <Printer className="h-3 w-3 mr-1" />
+                Handout
+              </Button>
             </div>
 
             {/* Collapsible How it works section */}
@@ -3630,6 +3645,26 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               >
                 <Smartphone className="h-4 w-4" />
                 SMS
+              </button>
+              <button
+                onClick={() => {
+                  printPatientHandout({
+                    practiceName,
+                    practiceAddress: practiceContext?.practiceAddress,
+                    patientLanguage,
+                    patientLanguageName: languageInfo?.name || patientLanguage,
+                    patientLanguageFlag: languageInfo?.flag,
+                    qrCodeUrl: largeQrCodeUrl,
+                    sessionUrl: patientUrl,
+                  });
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[0.82rem] font-semibold transition-all cursor-pointer border-0"
+                style={{ background: '#F0F4F5', color: '#4C6272' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#E5E7EB')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#F0F4F5')}
+              >
+                <Printer className="h-4 w-4" />
+                Desk Handout
               </button>
             </div>
 
