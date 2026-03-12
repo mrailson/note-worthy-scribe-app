@@ -1372,31 +1372,38 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         
         console.log(`Speech recognition ended (${isPatientMode ? 'patient' : 'staff'} mode, ${timeSinceLastResult}ms since last result), restarting...`);
         
-        // For patient mode, ALWAYS preserve any interim OR current transcript before restart
-        // This is critical - speech can be lost during the restart gap
-        if (isPatientMode) {
-          const currentTranscript = transcriptRef.current.trim();
-          const interimText = lastInterimRef.current.trim();
-          
-          // Combine any interim and current transcript before restart
-          if (interimText || currentTranscript) {
-            const textToPreserve = [interimText, currentTranscript].filter(Boolean).join(' ').trim();
-            if (textToPreserve) {
-              console.log('📝 Preserving speech before restart:', textToPreserve.substring(0, 50) + (textToPreserve.length > 50 ? '...' : ''));
-              lastInterimRef.current = '';
-              // Queue the text as pending transcript fragment (accumulate)
-              setPendingTranscript(prev => {
-                const newText = prev ? `${prev} ${textToPreserve}` : textToPreserve;
-                return newText;
-              });
-              setTranscript('');
-            }
+        // FIX 1: Reset silence timer when auto-restarting — the restart
+        // itself proves the speaker hasn't finished, so the countdown
+        // should start fresh after recognition resumes.
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+        }
+
+        // FIX 4: Preserve interim text for BOTH speaker modes before restart.
+        // Chrome can fire onend mid-sentence for any language — staff speech
+        // is just as vulnerable to being lost during the restart gap.
+        const currentTranscript = transcriptRef.current.trim();
+        const interimText = lastInterimRef.current.trim();
+
+        if (interimText || currentTranscript) {
+          const textToPreserve = [interimText, currentTranscript].filter(Boolean).join(' ').trim();
+          if (textToPreserve) {
+            console.log('📝 Preserving speech before restart:', textToPreserve.substring(0, 50) + (textToPreserve.length > 50 ? '...' : ''));
+            lastInterimRef.current = '';
+            const preservedSpeaker = isPatientMode ? 'patient' : 'staff';
+            setPendingSpeaker(preservedSpeaker);
+            setPendingTranscript(prev => {
+              const newText = prev ? `${prev} ${textToPreserve}` : textToPreserve;
+              return newText;
+            });
+            setTranscript('');
           }
         }
-        
-        // Use MINIMAL delay for patient mode to avoid losing speech during gaps
-        // The Web Speech API often pauses between words/phrases in non-English languages
-        const restartDelay = isPatientMode ? 10 : 150;
+
+        // FIX 3: Increase patient restart delay from 10ms to 100ms
+        // 10ms is too aggressive — Chrome can throw "already started" errors
+        const restartDelay = isPatientMode ? 100 : 200;
         
         setTimeout(() => {
           if (isListeningRef.current && !isStartingRef.current && recognitionRef.current) {
