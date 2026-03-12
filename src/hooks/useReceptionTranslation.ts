@@ -43,6 +43,7 @@ export const useReceptionTranslation = ({
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [patientConnected, setPatientConnected] = useState(false);
+  const [patientCount, setPatientCount] = useState(0);
   const [contentWarning, setContentWarning] = useState<ContentWarning | null>(null);
   const [blockedContent, setBlockedContent] = useState<{ reason: string; flaggedTerms: string[] } | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
