@@ -69,6 +69,7 @@ import { TranslationSettingsModal } from './TranslationSettingsModal';
 import { DocumentTranslationPanel } from './DocumentTranslationPanel';
 import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, GraduationCap, MessageSquareText } from 'lucide-react';
 import { TranslationHistoryInline } from './TranslationHistoryInline';
+import { TRAINING_SCENARIOS } from '@/constants/trainingScenarios';
 import {
   Collapsible,
   CollapsibleContent,
