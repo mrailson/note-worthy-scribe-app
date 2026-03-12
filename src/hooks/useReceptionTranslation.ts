@@ -81,6 +81,7 @@ export const useReceptionTranslation = ({
       .on('broadcast', { event: 'session_ended' }, () => {
         setIsConnected(false);
         setPatientConnected(false);
+        setPatientCount(0);
         setError('Session ended by GP Practice');
       })
       .on('presence', { event: 'sync' }, () => {
@@ -89,22 +90,23 @@ export const useReceptionTranslation = ({
           (p: any) => p.role === 'patient'
         );
         setPatientConnected(patients.length > 0);
+        setPatientCount(patients.length);
       })
       .on('presence', { event: 'join' }, ({ newPresences }) => {
-        const patientJoined = newPresences.some((p: any) => p.role === 'patient');
-        if (patientJoined) {
-          setPatientConnected(true);
-        }
+        const state = channel.presenceState();
+        const patients = Object.values(state).flat().filter(
+          (p: any) => p.role === 'patient'
+        );
+        setPatientConnected(patients.length > 0);
+        setPatientCount(patients.length);
       })
       .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        const patientLeft = leftPresences.some((p: any) => p.role === 'patient');
-        if (patientLeft) {
-          const state = channel.presenceState();
-          const remaining = Object.values(state).flat().filter(
-            (p: any) => p.role === 'patient'
-          );
-          setPatientConnected(remaining.length > 0);
-        }
+        const state = channel.presenceState();
+        const remaining = Object.values(state).flat().filter(
+          (p: any) => p.role === 'patient'
+        );
+        setPatientConnected(remaining.length > 0);
+        setPatientCount(remaining.length);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
