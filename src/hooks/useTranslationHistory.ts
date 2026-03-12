@@ -76,8 +76,9 @@ export const useTranslationHistory = () => {
       setError(null);
 
       // Call edge function with query parameters
-      const { data, error } = await supabase.functions.invoke('load-translation-sessions', {
+      const { data, error } = await supabase.functions.invoke('translation-session-manager', {
         body: {
+          action: 'load',
           limit: options.limit,
           offset: options.offset,
           flagged: options.flagged,
