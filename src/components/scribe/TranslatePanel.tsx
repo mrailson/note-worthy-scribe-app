@@ -48,7 +48,7 @@ export function TranslatePanel({ autoOpenSetup = true }: TranslatePanelProps) {
   // Show history panel
   if (showHistory) {
     return (
-      <TranslationHistoryPanel onBack={() => setShowHistory(false)} />
+      <TranslationHistoryInline onClose={() => setShowHistory(false)} />
     );
   }
 

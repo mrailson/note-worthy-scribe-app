@@ -62,7 +62,7 @@ export function DictationTranslationWrapper({ onBack }: DictationTranslationWrap
   if (showHistory) {
     return (
       <div className="min-h-[400px]">
-        <TranslationHistoryPanel onBack={() => setShowHistory(false)} />
+        <TranslationHistoryInline onClose={() => setShowHistory(false)} />
       </div>
     );
   }

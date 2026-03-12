@@ -68,7 +68,7 @@ export const TranslationServicePanel: React.FC<TranslationServicePanelProps> = (
   if (showHistory) {
     return (
       <Card className="flex flex-col h-full border-0 shadow-none">
-        <TranslationHistoryPanel onBack={() => setShowHistory(false)} />
+        <TranslationHistoryInline onClose={() => setShowHistory(false)} />
       </Card>
     );
   }
