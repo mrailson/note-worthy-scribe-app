@@ -1853,10 +1853,34 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           translatedText: ''
         });
 
+        // If auto-play is on, wait for the TTS audio to finish before showing AI reply.
+        // This prevents the patient "replying" while their translation is still being read aloud.
+        const waitForAudioThenReply = async () => {
+          if (autoPlayAudioRef.current) {
+            // Wait for any currently playing audio to finish
+            // Poll every 500ms — audio sets currentAudioRef to null when done
+            await new Promise<void>((resolve) => {
+              const checkAudio = () => {
+                if (!currentAudioRef.current || currentAudioRef.current.paused || currentAudioRef.current.ended) {
+                  resolve();
+                } else {
+                  setTimeout(checkAudio, 500);
+                }
+              };
+              // Start checking after a short delay to allow auto-play to begin
+              setTimeout(checkAudio, 1000);
+            });
+            // Additional 2-second pause after audio ends — feels like the patient is thinking
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            // No auto-play — just a brief natural delay
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+          }
+        };
+
         setIsTrainingReplyLoading(true);
 
-        // Brief delay to simulate patient thinking
-        setTimeout(async () => {
+        waitForAudioThenReply().then(async () => {
           try {
             const { data, error } = await supabase.functions.invoke('translation-training-reply', {
               body: {
@@ -1869,9 +1893,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             if (error) throw error;
 
             if (data?.patientReply) {
-              // Send as patient message
               await sendMessage(data.patientReply, 'patient');
-              // Auto-switch back to staff
               setTimeout(() => {
                 handleSpeakerModeChange('staff');
               }, 300);
@@ -1882,7 +1904,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           } finally {
             setIsTrainingReplyLoading(false);
           }
-        }, 1000 + Math.random() * 1000); // 1-2s delay
+        });
         
         return; // Don't auto-switch yet, the AI reply handler will do it
       }
