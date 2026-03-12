@@ -3859,6 +3859,85 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         practiceName={practiceName}
         qrCodeUrl={qrCodeUrl}
       />
+
+      {/* Session Summary Modal */}
+      <Dialog open={showSessionSummary} onOpenChange={(open) => {
+        if (!open) handleSummaryClose();
+      }}>
+        <DialogContent className="max-w-md">
+          {sessionSummaryData && (
+            <>
+              <div className="text-center pt-2">
+                <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-3">
+                  <Check className="h-7 w-7 text-emerald-600" />
+                </div>
+                <DialogHeader className="border-0 bg-transparent px-0 py-0">
+                  <DialogTitle className="text-center text-lg">Session Complete</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {sessionSummaryData.languageFlag} {sessionSummaryData.languageName} translation session ended
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 my-5">
+                <div className="bg-muted/50 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-primary">{sessionSummaryData.duration}</p>
+                  <p className="text-xs text-muted-foreground">Minutes</p>
+                </div>
+                <div className="bg-muted/50 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-primary">{sessionSummaryData.totalMessages}</p>
+                  <p className="text-xs text-muted-foreground">Exchanges</p>
+                </div>
+                <div className="bg-primary/5 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-primary">{sessionSummaryData.staffMessages}</p>
+                  <p className="text-xs text-muted-foreground">🇬🇧 Staff Messages</p>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-emerald-600">{sessionSummaryData.patientMessages}</p>
+                  <p className="text-xs text-muted-foreground">{sessionSummaryData.languageFlag} Patient Messages</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mb-4">
+                <Clock className="h-3.5 w-3.5" />
+                <span>
+                  {sessionSummaryData.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {' — '}
+                  {sessionSummaryData.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {messages.length > 0 && (
+                  <Button
+                    className="w-full gap-2"
+                    onClick={handleSummaryDownload}
+                    disabled={isGeneratingReport}
+                  >
+                    {isGeneratingReport ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileText className="h-4 w-4" />
+                    )}
+                    Download NHS Report
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleSummaryClose}
+                >
+                  Close
+                </Button>
+              </div>
+
+              <p className="text-[0.65rem] text-muted-foreground/50 text-center mt-2">
+                Sherpa • MHRA Class I • Session data saved to practice history
+              </p>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
