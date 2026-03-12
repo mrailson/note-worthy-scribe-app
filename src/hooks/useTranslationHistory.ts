@@ -205,8 +205,8 @@ export const useTranslationHistory = () => {
   // Delete translation session
   const deleteSession = useCallback(async (sessionId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('delete-translation-session', {
-        body: { sessionId }
+      const { data, error } = await supabase.functions.invoke('translation-session-manager', {
+        body: { action: 'delete', sessionId }
       });
 
       if (error) throw error;
