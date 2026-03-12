@@ -996,10 +996,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const patientFontSize = `${(1.125 * patientTextScale).toFixed(3)}rem`;
   const patientLabelSize = `${(0.875 * Math.max(patientTextScale, 1)).toFixed(3)}rem`;
   
-  // Patient column flex ratio scales with text size for more space
-  const patientColumnFlex = patientTextScale <= 1 ? 'flex-1' 
-    : patientTextScale <= 1.5 ? 'flex-[1.5]' 
-    : 'flex-[2]';
+   // patientColumnFlex removed — now using inline flex ratios
   const [howItWorksOpen, setHowItWorksOpen] = useState(true);
   const systemAudioStreamRef = useRef<MediaStream | null>(null);
   const systemAudioRecorderRef = useRef<MediaRecorder | null>(null);
