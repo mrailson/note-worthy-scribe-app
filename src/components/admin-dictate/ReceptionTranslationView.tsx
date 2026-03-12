@@ -3527,6 +3527,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Consent Card Modal */}
+      <TranslationConsentCard
+        open={showConsentCard}
+        onConsent={handleConsent}
+        onDecline={handleDeclineConsent}
+        patientLanguage={patientLanguage}
+        patientLanguageName={languageInfo?.name || patientLanguage}
+        patientLanguageFlag={languageInfo?.flag}
+        practiceName={practiceName}
+        qrCodeUrl={qrCodeUrl}
+      />
     </div>
   );
 };
