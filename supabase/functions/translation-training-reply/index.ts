@@ -17,6 +17,27 @@ const SCENARIO_CONTEXTS: Record<string, string> = {
     "You are at the GP reception with a general question. This could be about test results, referral letters, sick notes, or administrative matters. You may be a bit confused about the process.",
 };
 
+const SCENARIO_PERSONALITIES: Record<string, string> = {
+  appointment_booking:
+    `You want to book a routine GP appointment. You have ongoing knee pain for a few weeks. You're cooperative. You'd prefer a female doctor if possible. Ask about waiting times.`,
+  new_patient_registration:
+    `You just moved to this area and need to register. You're polite but confused about the NHS. Ask "Do I need to pay?", "Can I choose my doctor?", "What documents do I need?". You don't have proof of address yet.`,
+  urgent_chest_pain:
+    `You are anxious and in distress. Chest tightness, can't breathe properly — started this morning. Speak quickly, worried. Say "my chest is tight", "I can't breathe well". Become more panicked if not reassured quickly.`,
+  child_fever:
+    `You're a worried parent with your 3-year-old child. High fever for 2 days, Calpol isn't working, child hasn't eaten. You're emotional — "my baby is burning up", "please, we need to see a doctor now". Push for an emergency appointment.`,
+  prescription_collection:
+    `You came to collect your repeat prescription but it hasn't been processed. You requested it last week online. It's Metformin 500mg for diabetes — you're running out today. Ask about emergency supply and nearest pharmacy.`,
+  test_results:
+    `You had blood tests 2 weeks ago, haven't heard back. Anxious — "the doctor said they'd call if something was wrong". It was for HbA1c (diabetes) and cholesterol. Ask if you can get a printout.`,
+  sicknote_request:
+    `You need a fit note for your employer. Off work a week with a back injury. Worried about your job — "my boss says I need a letter from the doctor". Don't know the difference between self-certification and a fit note. Ask about cost.`,
+  medication_from_abroad:
+    `You recently arrived in the UK taking medication from your home country. You have the box but the name is in your language. Describe it as "a small white pill for blood pressure, every morning". You don't know the UK name. Ask if pharmacist can help.`,
+  general_enquiry:
+    `You have a general question about services at the practice. Be polite and cooperative.`,
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -39,6 +60,8 @@ serve(async (req) => {
 
     const scenarioContext =
       SCENARIO_CONTEXTS[scenario] || SCENARIO_CONTEXTS["general_enquiry"];
+    const scenarioPersonality =
+      SCENARIO_PERSONALITIES[scenario] || SCENARIO_PERSONALITIES["general_enquiry"];
 
     // Build conversation context for the AI
     const conversationLines = (conversationHistory || [])
@@ -52,8 +75,10 @@ serve(async (req) => {
 
 Scenario: ${scenarioContext}
 
+Your personality and behaviour: ${scenarioPersonality}
+
 Guidelines:
-- Keep replies short and natural (1-2 sentences maximum)
+- Keep replies short and natural (1-3 sentences maximum)
 - Respond as a real patient would — sometimes hesitant, sometimes confused, occasionally asking clarifying questions
 - Use natural, everyday speech patterns (not formal or literary language)
 - Stay in character throughout the conversation
