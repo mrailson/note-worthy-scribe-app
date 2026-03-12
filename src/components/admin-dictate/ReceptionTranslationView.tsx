@@ -2705,7 +2705,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       {isTrainingMode && (
         <div className="bg-amber-500 text-white text-center py-2 px-4 text-sm font-bold tracking-wider flex items-center justify-center gap-2">
           <GraduationCap className="h-4 w-4" />
-          TRAINING MODE — AI is playing the patient role
+          TRAINING MODE — {TRAINING_SCENARIOS.find(s => s.id === trainingScenario)?.title || 'AI is playing the patient role'}
         </div>
       )}
       {/* Header */}
