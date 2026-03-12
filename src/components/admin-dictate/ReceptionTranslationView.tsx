@@ -2077,6 +2077,29 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
     // End the session in the background
     await endSession(sessionId);
+
+    // Generate AI summary asynchronously (don't block the modal)
+    if (messages.length > 0) {
+      try {
+        const conversationText = messages.map(m => {
+          const role = m.speaker === 'staff' ? 'Staff (English)' : `Patient (${languageInfo?.name || patientLanguage})`;
+          return `${role}: ${m.originalText}\n[Translated]: ${m.translatedText}`;
+        }).join('\n\n');
+
+        const { data: summaryData } = await supabase.functions.invoke('summarise-translation-session', {
+          body: { conversationText }
+        });
+
+        if (summaryData?.summary) {
+          await supabase
+            .from('reception_translation_sessions')
+            .update({ notes: summaryData.summary })
+            .eq('id', sessionId);
+        }
+      } catch (err) {
+        console.error('Failed to generate session summary:', err);
+      }
+    }
   };
 
   const handleSummaryDownload = async () => {
