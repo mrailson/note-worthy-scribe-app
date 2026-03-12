@@ -2386,22 +2386,27 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     return (
       <div
         key={msg.id || index}
-        className={`flex gap-4 ${
+        className={`flex gap-4 rounded-xl p-1.5 transition-all duration-300 ${
           isLatestMessage 
             ? isStaffMessage
-              ? 'ring-2 ring-blue-500 ring-offset-2 rounded-xl p-2 bg-blue-50/50 dark:bg-blue-950/20'
-              : 'ring-2 ring-slate-400 ring-offset-2 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-950/20'
+              ? 'bg-blue-50/60 outline outline-2 outline-primary/30 dark:bg-blue-950/20'
+              : 'bg-emerald-50/60 outline outline-2 outline-emerald-500/30 dark:bg-emerald-950/20'
             : ''
         }`}
       >
         {/* English column - ALWAYS LEFT (hidden in patient-only mode) */}
         {chatViewMode !== 'patient-only' && (
         <div className={
-          chatViewMode === 'patient-focus' ? 'w-1/4 min-w-0' 
-          : chatViewMode === 'gp-focus' ? 'w-3/4 min-w-0' 
-          : 'flex-1'
-        }>
-          <div className={`inline-block max-w-full rounded-lg p-3 ${
+          chatViewMode === 'patient-focus' ? 'min-w-0' 
+          : chatViewMode === 'gp-focus' ? 'min-w-0' 
+          : 'flex-1 min-w-0'
+        } style={{
+          flex: chatViewMode === 'gp-focus' ? '1.85 1 0%' 
+            : chatViewMode === 'patient-focus' ? '0.54 1 0%' 
+            : undefined,
+          transition: 'flex 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}>
+          <div className={`rounded-xl p-3 h-full ${
             isStaffMessage 
               ? 'bg-primary text-primary-foreground' 
               : 'bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600'
@@ -2452,6 +2457,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 className={`text-lg ${isStaffMessage ? 'cursor-pointer hover:underline hover:decoration-dotted' : ''}`}
                 onClick={() => isStaffMessage && handleStartEdit(msg.id, msg.originalText)}
                 title={isStaffMessage ? 'Click to edit' : undefined}
+                style={{
+                  fontSize: chatViewMode === 'patient-focus' ? '0.82rem' : undefined,
+                  transition: 'font-size 0.3s ease',
+                }}
               >
                 {englishText}
               </p>
@@ -2463,20 +2472,20 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         {/* Patient language column - ALWAYS RIGHT */}
         <div className={`${
           chatViewMode === 'patient-only' ? 'flex-1' 
-          : chatViewMode === 'patient-focus' ? 'w-3/4 min-w-0' 
-          : chatViewMode === 'gp-focus' ? 'w-1/4 min-w-0' 
-          : patientColumnFlex
-        } text-right`}>
+          : 'min-w-0'
+        } text-right`} style={{
+          flex: chatViewMode === 'patient-only' ? undefined 
+            : chatViewMode === 'patient-focus' ? '1.85 1 0%' 
+            : chatViewMode === 'gp-focus' ? '0.54 1 0%' 
+            : '1 1 0%',
+          transition: 'flex 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}>
           <div 
-            className={`inline-block max-w-full rounded-lg p-3 text-left ${
+            className={`rounded-xl p-3 text-left h-full ${
               isStaffMessage 
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800' 
                 : 'bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600'
             }`}
-            style={{ 
-              fontSize: patientFontSize,
-              transformOrigin: 'top right'
-            }}
           >
             <div className="flex items-center gap-2 mb-1">
               <p className="font-medium text-[0.85em]">
@@ -2485,7 +2494,15 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   : (PATIENT_SAID[patientLanguage] || PATIENT_SAID['en'])}
               </p>
             </div>
-            <p className="mb-2" style={{ lineHeight: 1.4 }}>
+            <p className="mb-2" style={{ 
+              fontSize: chatViewMode === 'gp-focus' 
+                ? `${(0.9 * patientTextScale).toFixed(3)}rem`
+                : chatViewMode === 'patient-only' || chatViewMode === 'patient-focus'
+                  ? `${(1.15 * patientTextScale).toFixed(3)}rem`
+                  : patientFontSize,
+              lineHeight: 1.5,
+              transition: 'font-size 0.3s ease',
+            }}>
               {patientLanguageText}
             </p>
             {/* Audio player button - only show for staff messages with TTS-supported languages */}
@@ -2494,7 +2511,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               const hasTTSSupport = langConfig?.hasElevenLabsVoice || langConfig?.hasGoogleTTSVoice;
               
               if (!hasTTSSupport) {
-                // Show "No audio available" message for languages without TTS
                 return (
                   <div className="mt-2 text-center text-sm text-muted-foreground flex items-center justify-center gap-2 py-2">
                     <Volume2 className="h-4 w-4 opacity-50" />
