@@ -1447,7 +1447,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     }
 
     // If consent not yet given and not training mode, show consent card
-    if (!consentGiven && !introSent && !isTrainingMode) {
+    if (!consentGiven && !introSent) {
       setShowConsentCard(true);
       return;
     }
