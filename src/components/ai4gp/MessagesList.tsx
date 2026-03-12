@@ -70,6 +70,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   // --- Debounce ref for virtualizer.measure() during streaming ---
   const lastMeasureTimeRef = useRef(0);
   const showScrollButtonRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
 
   // Show floating button when not at bottom
   const [showScrollButton, setShowScrollButton] = useState(false);
