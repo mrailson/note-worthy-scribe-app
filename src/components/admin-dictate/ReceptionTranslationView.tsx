@@ -2445,7 +2445,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             : undefined,
           transition: 'flex 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
-          <div className={`rounded-xl p-3 h-full ${
+          <div className={`rounded-xl p-3 h-full transition-all ${
+            isLatestMessage ? 'animate-glow-blue' : ''
+          } ${
             isStaffMessage 
               ? 'bg-primary text-primary-foreground' 
               : 'bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600'
