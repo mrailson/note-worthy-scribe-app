@@ -149,7 +149,12 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     const el = parentRef.current;
     if (!el) return;
 
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
+    // Dead zone — ignore micro-movements that cause feedback loops
+    const currentScrollTop = el.scrollTop;
+    if (Math.abs(currentScrollTop - lastScrollTopRef.current) < 5) return;
+    lastScrollTopRef.current = currentScrollTop;
+
+    const nearBottom = el.scrollHeight - currentScrollTop - el.clientHeight < SCROLL_THRESHOLD;
 
     // If user scrolled away during streaming, break the lock
     if (isLoadingRef.current && !nearBottom) {
