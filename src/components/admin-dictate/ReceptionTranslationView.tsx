@@ -940,11 +940,23 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   });
   const [showPatientSidebar, setShowPatientSidebar] = useState(true);
   
-  // Configurable silence wait time (ms) - how long to wait after last speech before processing
-  const [silenceWaitTime, setSilenceWaitTime] = useState<number>(() => {
-    const saved = localStorage.getItem('translation-silence-wait-time');
-    return saved ? parseInt(saved, 10) : 3000;
+  // FIX 2: Separate silence thresholds for GP (English) and patient
+  // GP staff speak in short direct phrases — 3s is fine.
+  // Patients in a second language need 5s for thinking pauses.
+  const GP_SILENCE_MS = 3000;
+  const PATIENT_SILENCE_MS = 5000;
+
+  const [gpSilenceWaitTime, setGpSilenceWaitTime] = useState<number>(() => {
+    const saved = localStorage.getItem('translation-silence-wait-time-gp');
+    return saved ? parseInt(saved, 10) : GP_SILENCE_MS;
   });
+  const [patientSilenceWaitTime, setPatientSilenceWaitTime] = useState<number>(() => {
+    const saved = localStorage.getItem('translation-silence-wait-time-patient');
+    return saved ? parseInt(saved, 10) : PATIENT_SILENCE_MS;
+  });
+
+  // Active threshold follows the current speaker mode
+  const silenceWaitTime = speakerMode === 'staff' ? gpSilenceWaitTime : patientSilenceWaitTime;
   const silenceWaitTimeRef = useRef(silenceWaitTime);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -1274,8 +1286,21 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           console.log('📝 Accumulated transcript:', newText.substring(0, 50) + '...');
           return newText;
         });
+        // FIX 5: For staff mode, show confirm immediately.
+        // For patient mode, start a silence timer — if no more speech
+        // arrives, auto-show the confirm box so staff can review and send.
         if (!isPatientMode) {
           setShowConfirmation(true);
+        } else {
+          // Clear any existing timer and start a new one
+          if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+          }
+          silenceTimerRef.current = setTimeout(() => {
+            console.log(`⏱️ Patient silence threshold reached, showing confirm box`);
+            setShowConfirmation(true);
+          }, silenceWaitTimeRef.current);
         }
         setTranscript('');
       };
@@ -1347,31 +1372,38 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         
         console.log(`Speech recognition ended (${isPatientMode ? 'patient' : 'staff'} mode, ${timeSinceLastResult}ms since last result), restarting...`);
         
-        // For patient mode, ALWAYS preserve any interim OR current transcript before restart
-        // This is critical - speech can be lost during the restart gap
-        if (isPatientMode) {
-          const currentTranscript = transcriptRef.current.trim();
-          const interimText = lastInterimRef.current.trim();
-          
-          // Combine any interim and current transcript before restart
-          if (interimText || currentTranscript) {
-            const textToPreserve = [interimText, currentTranscript].filter(Boolean).join(' ').trim();
-            if (textToPreserve) {
-              console.log('📝 Preserving speech before restart:', textToPreserve.substring(0, 50) + (textToPreserve.length > 50 ? '...' : ''));
-              lastInterimRef.current = '';
-              // Queue the text as pending transcript fragment (accumulate)
-              setPendingTranscript(prev => {
-                const newText = prev ? `${prev} ${textToPreserve}` : textToPreserve;
-                return newText;
-              });
-              setTranscript('');
-            }
+        // FIX 1: Reset silence timer when auto-restarting — the restart
+        // itself proves the speaker hasn't finished, so the countdown
+        // should start fresh after recognition resumes.
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+        }
+
+        // FIX 4: Preserve interim text for BOTH speaker modes before restart.
+        // Chrome can fire onend mid-sentence for any language — staff speech
+        // is just as vulnerable to being lost during the restart gap.
+        const currentTranscript = transcriptRef.current.trim();
+        const interimText = lastInterimRef.current.trim();
+
+        if (interimText || currentTranscript) {
+          const textToPreserve = [interimText, currentTranscript].filter(Boolean).join(' ').trim();
+          if (textToPreserve) {
+            console.log('📝 Preserving speech before restart:', textToPreserve.substring(0, 50) + (textToPreserve.length > 50 ? '...' : ''));
+            lastInterimRef.current = '';
+            const preservedSpeaker = isPatientMode ? 'patient' : 'staff';
+            setPendingSpeaker(preservedSpeaker);
+            setPendingTranscript(prev => {
+              const newText = prev ? `${prev} ${textToPreserve}` : textToPreserve;
+              return newText;
+            });
+            setTranscript('');
           }
         }
-        
-        // Use MINIMAL delay for patient mode to avoid losing speech during gaps
-        // The Web Speech API often pauses between words/phrases in non-English languages
-        const restartDelay = isPatientMode ? 10 : 150;
+
+        // FIX 3: Increase patient restart delay from 10ms to 100ms
+        // 10ms is too aggressive — Chrome can throw "already started" errors
+        const restartDelay = isPatientMode ? 100 : 200;
         
         setTimeout(() => {
           if (isListeningRef.current && !isStartingRef.current && recognitionRef.current) {
@@ -2710,26 +2742,46 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 px-2 gap-1" title="Adjust wait time before processing speech">
                   <Clock className="h-4 w-4" />
-                  <span className="text-xs text-muted-foreground">{(silenceWaitTime / 1000).toFixed(1)}s</span>
+                  <span className="text-xs text-muted-foreground">
+                    {speakerMode === 'staff' ? '🇬🇧' : (languageInfo?.flag || '🗣')} {(silenceWaitTime / 1000).toFixed(1)}s
+                  </span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-3" side="bottom">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Wait Time</span>
-                    <span className="text-sm text-muted-foreground">{(silenceWaitTime / 1000).toFixed(1)}s</span>
+              <PopoverContent className="w-64 p-3" side="bottom">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">🇬🇧 Staff (English)</span>
+                      <span className="text-sm text-muted-foreground">{(gpSilenceWaitTime / 1000).toFixed(1)}s</span>
+                    </div>
+                    <Slider
+                      value={[gpSilenceWaitTime]}
+                      onValueChange={([val]) => {
+                        setGpSilenceWaitTime(val);
+                        localStorage.setItem('translation-silence-wait-time-gp', String(val));
+                      }}
+                      min={1500}
+                      max={5000}
+                      step={500}
+                    />
                   </div>
-                  <Slider
-                    value={[silenceWaitTime]}
-                    onValueChange={([val]) => {
-                      setSilenceWaitTime(val);
-                      localStorage.setItem('translation-silence-wait-time', String(val));
-                    }}
-                    min={1000}
-                    max={5000}
-                    step={500}
-                  />
-                  <p className="text-xs text-muted-foreground">Pause before processing speech</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{languageInfo?.flag || '🗣'} Patient</span>
+                      <span className="text-sm text-muted-foreground">{(patientSilenceWaitTime / 1000).toFixed(1)}s</span>
+                    </div>
+                    <Slider
+                      value={[patientSilenceWaitTime]}
+                      onValueChange={([val]) => {
+                        setPatientSilenceWaitTime(val);
+                        localStorage.setItem('translation-silence-wait-time-patient', String(val));
+                      }}
+                      min={2000}
+                      max={8000}
+                      step={500}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">How long to wait after silence before showing the confirm box</p>
                 </div>
               </PopoverContent>
             </Popover>
