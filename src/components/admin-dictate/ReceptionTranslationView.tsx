@@ -2424,7 +2424,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
     return (
       <div
-        key={msg.id || index}
+        key={isLatestMessage ? `latest-${messages.length}` : (msg.id || index)}
         className={`flex gap-4 rounded-xl p-1.5 transition-all duration-300 ${
           isLatestMessage 
             ? isStaffMessage
@@ -2445,7 +2445,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             : undefined,
           transition: 'flex 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
-          <div className={`rounded-xl p-3 h-full ${
+          <div className={`rounded-xl p-3 h-full transition-all ${
+            isLatestMessage ? 'animate-glow-blue' : ''
+          } ${
             isStaffMessage 
               ? 'bg-primary text-primary-foreground' 
               : 'bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600'
@@ -2520,7 +2522,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           transition: 'flex 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
           <div 
-            className={`rounded-xl p-3 text-left h-full ${
+            className={`rounded-xl p-3 text-left h-full transition-all ${
+              isLatestMessage ? 'animate-glow-green' : ''
+            } ${
               isStaffMessage 
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800' 
                 : 'bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600'
@@ -2563,7 +2567,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   <Button
                     variant={playingAudioId === messageId ? "default" : "outline"}
                     size="sm"
-                    className="w-full"
+                    className={`w-full ${isLatestMessage ? 'pulse-3' : ''}`}
                     onClick={() => {
                       if (playingAudioId === messageId) {
                         stopCurrentAudio();
