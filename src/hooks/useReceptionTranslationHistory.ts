@@ -23,6 +23,8 @@ export interface TranslationSessionHistory {
   created_at: string;
   expires_at: string;
   is_active: boolean;
+  is_training: boolean;
+  training_scenario: string | null;
   messages: TranslationMessageHistory[];
 }
 
