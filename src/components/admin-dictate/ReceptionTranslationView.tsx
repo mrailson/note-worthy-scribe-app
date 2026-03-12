@@ -1526,11 +1526,50 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const handleConsent = useCallback(async () => {
     setConsentGiven(true);
     setShowConsentCard(false);
-    // Use a small setTimeout to let state settle, then start mic
-    setTimeout(() => {
-      toggleListening();
-    }, 100);
-  }, [toggleListening]);
+    
+    // Start mic directly — don't go through toggleListening
+    // to avoid the stale state race condition
+    if (isStartingRef.current || isConnecting) return;
+    
+    try {
+      setIsConnecting(true);
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      if (!recognitionRef.current) {
+        showToast.error('Speech recognition not supported in this browser');
+        setIsConnecting(false);
+        return;
+      }
+      
+      stoppedByUserRef.current = false;
+      isStartingRef.current = true;
+      
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        
+        // Send short consent confirmation message
+        if (!introSent) {
+          const introText = `Translation service started. The patient has agreed to use AI-assisted translation for this session. Language: ${languageInfo?.name || patientLanguage}.`;
+          sendMessage(introText, 'staff');
+          setIntroSent(true);
+        }
+      } catch (e: any) {
+        isStartingRef.current = false;
+        if (e?.name === 'InvalidStateError' || `${e}`.includes('already started')) {
+          setIsListening(true);
+        } else {
+          throw e;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to start:', error);
+      showToast.error('Failed to start microphone');
+      setIsListening(false);
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [isConnecting, introSent, patientLanguage, languageInfo, sendMessage]);
 
   const handleDeclineConsent = useCallback(() => {
     setShowConsentCard(false);
