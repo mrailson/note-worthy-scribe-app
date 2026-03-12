@@ -1025,6 +1025,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     isConnected,
     isTranslating,
     patientConnected,
+    patientCount,
     contentWarning,
     blockedContent,
     sendMessage,
@@ -2787,7 +2788,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <Smartphone className="h-4 w-4" />
               {patientConnected ? (
                 <>
-                  <span>Patient Connected</span>
+                  <span>{patientCount > 1 ? `${patientCount} Patients Connected` : 'Patient Connected'}</span>
                   <Check className="h-4 w-4" />
                 </>
               ) : (

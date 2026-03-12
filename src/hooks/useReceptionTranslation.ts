@@ -43,6 +43,7 @@ export const useReceptionTranslation = ({
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [patientConnected, setPatientConnected] = useState(false);
+  const [patientCount, setPatientCount] = useState(0);
   const [contentWarning, setContentWarning] = useState<ContentWarning | null>(null);
   const [blockedContent, setBlockedContent] = useState<{ reason: string; flaggedTerms: string[] } | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -80,6 +81,7 @@ export const useReceptionTranslation = ({
       .on('broadcast', { event: 'session_ended' }, () => {
         setIsConnected(false);
         setPatientConnected(false);
+        setPatientCount(0);
         setError('Session ended by GP Practice');
       })
       .on('presence', { event: 'sync' }, () => {
@@ -88,22 +90,23 @@ export const useReceptionTranslation = ({
           (p: any) => p.role === 'patient'
         );
         setPatientConnected(patients.length > 0);
+        setPatientCount(patients.length);
       })
       .on('presence', { event: 'join' }, ({ newPresences }) => {
-        const patientJoined = newPresences.some((p: any) => p.role === 'patient');
-        if (patientJoined) {
-          setPatientConnected(true);
-        }
+        const state = channel.presenceState();
+        const patients = Object.values(state).flat().filter(
+          (p: any) => p.role === 'patient'
+        );
+        setPatientConnected(patients.length > 0);
+        setPatientCount(patients.length);
       })
       .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        const patientLeft = leftPresences.some((p: any) => p.role === 'patient');
-        if (patientLeft) {
-          const state = channel.presenceState();
-          const remaining = Object.values(state).flat().filter(
-            (p: any) => p.role === 'patient'
-          );
-          setPatientConnected(remaining.length > 0);
-        }
+        const state = channel.presenceState();
+        const remaining = Object.values(state).flat().filter(
+          (p: any) => p.role === 'patient'
+        );
+        setPatientConnected(remaining.length > 0);
+        setPatientCount(remaining.length);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
@@ -117,6 +120,7 @@ export const useReceptionTranslation = ({
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setIsConnected(false);
           setPatientConnected(false);
+          setPatientCount(0);
         }
       });
 
@@ -378,6 +382,7 @@ export const useReceptionTranslation = ({
     isTranslating,
     error,
     patientConnected,
+    patientCount,
     contentWarning,
     blockedContent,
     sendMessage,
