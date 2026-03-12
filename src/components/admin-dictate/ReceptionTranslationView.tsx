@@ -3646,6 +3646,26 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 <Smartphone className="h-4 w-4" />
                 SMS
               </button>
+              <button
+                onClick={() => {
+                  printPatientHandout({
+                    practiceName,
+                    practiceAddress: practiceContext?.practiceAddress,
+                    patientLanguage,
+                    patientLanguageName: languageInfo?.name || patientLanguage,
+                    patientLanguageFlag: languageInfo?.flag,
+                    qrCodeUrl: largeQrCodeUrl,
+                    sessionUrl: patientUrl,
+                  });
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[0.82rem] font-semibold transition-all cursor-pointer border-0"
+                style={{ background: '#F0F4F5', color: '#4C6272' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#E5E7EB')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#F0F4F5')}
+              >
+                <Printer className="h-4 w-4" />
+                Desk Handout
+              </button>
             </div>
 
             {/* Instructions in patient's language */}
