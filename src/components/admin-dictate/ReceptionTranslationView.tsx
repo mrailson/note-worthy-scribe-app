@@ -1491,7 +1491,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         setIsListening(true);
         // Auto-send intro message on first mic activation
         if (!introSent) {
-          const introText = `Welcome to ${practiceName}. We would like to use our translation service to help us communicate with you today. A staff member will control the session. When you see the large green microphone, you can speak naturally in your own language. When you have finished speaking, please indicate to the staff member and they will activate the translation. Are you happy for us to use this service?`;
+          const introText = `Translation service started. The patient has agreed to use AI-assisted translation for this session. Language: ${languageInfo?.name || patientLanguage}.`;
           sendMessage(introText, 'staff');
           setIntroSent(true);
         }
