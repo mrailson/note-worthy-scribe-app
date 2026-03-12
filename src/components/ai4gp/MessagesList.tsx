@@ -149,9 +149,10 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     const el = parentRef.current;
     if (!el) return;
 
-    // Dead zone — ignore micro-movements that cause feedback loops
+    // Dead zone ONLY during streaming — prevents measure/scroll feedback loop
+    // During normal browsing, allow all scroll events through for smooth scrolling
     const currentScrollTop = el.scrollTop;
-    if (Math.abs(currentScrollTop - lastScrollTopRef.current) < 5) return;
+    if (isLoadingRef.current && Math.abs(currentScrollTop - lastScrollTopRef.current) < 5) return;
     lastScrollTopRef.current = currentScrollTop;
 
     const nearBottom = el.scrollHeight - currentScrollTop - el.clientHeight < SCROLL_THRESHOLD;
