@@ -235,8 +235,8 @@ export const useTranslationHistory = () => {
     session_title?: string;
   }) => {
     try {
-      const { data, error } = await supabase.functions.invoke('update-translation-session', {
-        body: { sessionId, updates }
+      const { data, error } = await supabase.functions.invoke('translation-session-manager', {
+        body: { action: 'update', sessionId, updates }
       });
 
       if (error) throw error;

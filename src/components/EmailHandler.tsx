@@ -236,15 +236,16 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
         },
       ];
 
-      const { error } = await supabase.functions.invoke('save-translation-session', {
+      const { error } = await supabase.functions.invoke('translation-session-manager', {
         body: {
+          action: 'save',
           translations: translationsPayload,
           translationScores: scoresPayload,
           sessionStart: now.toISOString(),
           sessionEnd: now.toISOString(),
           isActive: false,
           sessionMetadata: {
-            translationType: 'Email Translation' // Specify email translation type
+            translationType: 'Email Translation'
           }
         },
       });
