@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Languages, Plus, History } from 'lucide-react';
 import { LiveTranslationSetupModal } from '@/components/admin-dictate/LiveTranslationSetupModal';
 import { ReceptionTranslationView } from '@/components/admin-dictate/ReceptionTranslationView';
-import { TranslationHistoryPanel } from '@/components/ai4gp/TranslationHistoryPanel';
+import { TranslationHistoryInline } from '@/components/admin-dictate/TranslationHistoryInline';
 
 interface DictationTranslationWrapperProps {
   onBack?: () => void;
