@@ -3473,54 +3473,113 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
       {/* Expanded QR Code Modal */}
       <Dialog open={showExpandedQR} onOpenChange={setShowExpandedQR}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-center justify-center">
-              <QrCode className="h-5 w-5" />
+        <DialogContent className="p-0 gap-0 overflow-hidden border-0 max-w-[520px] w-[95vw] rounded-[20px] shadow-2xl [&>button]:hidden">
+          {/* ── NHS BLUE HEADER ── */}
+          <div
+            className="text-center relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, #003087, #005EB8)',
+              padding: '1.25rem 2rem 1rem',
+            }}
+          >
+            <div
+              className="absolute rounded-full"
+              style={{ top: '-40%', right: '-20%', width: 200, height: 200, background: 'rgba(255,255,255,0.05)' }}
+            />
+            <div className="text-[0.7rem] font-semibold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              {practiceName}
+            </div>
+            <div className="text-[1.15rem] font-bold text-white mt-1">
               {MODAL_TITLES[patientLanguage] || MODAL_TITLES['en']}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex flex-col items-center py-6">
-            {/* Practice name */}
-            <p className="text-lg font-semibold text-primary mb-4">{practiceName}</p>
-            
-            {/* Large QR Code */}
+            </div>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <span className="text-white text-[0.75rem] font-semibold px-2.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                🇬🇧 English
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }} className="text-[0.9rem]">⇄</span>
+              <span className="text-white text-[0.75rem] font-semibold px-2.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                {languageInfo?.flag} {languageInfo?.name}
+              </span>
+            </div>
+          </div>
+
+          {/* ── BODY ── */}
+          <div className="px-5 py-5 sm:px-7 flex flex-col items-center">
+            {/* QR Code */}
             {largeQrCodeUrl && (
-              <div className="bg-white p-4 rounded-xl shadow-lg mb-4">
-                <img src={largeQrCodeUrl} alt="Patient QR Code" className="w-72 h-72" />
+              <div
+                className="bg-white p-3 rounded-xl flex items-center justify-center mb-4 transition-transform hover:scale-[1.02]"
+                style={{ border: '2px solid #F0F4F5', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
+              >
+                <img src={largeQrCodeUrl} alt="Patient QR Code" className="w-56 h-56 sm:w-64 sm:h-64 rounded-md" />
               </div>
             )}
 
             {/* Action buttons */}
             <div className="flex justify-center gap-2 mb-4">
-              <Button variant="outline" size="sm" onClick={handlePrint}>
-                <Printer className="h-4 w-4 mr-2" />
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[0.82rem] font-semibold transition-all cursor-pointer border-0"
+                style={{ background: '#F0F4F5', color: '#4C6272' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#E5E7EB')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#F0F4F5')}
+              >
+                <Printer className="h-4 w-4" />
                 Print
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)}>
-                <Mail className="h-4 w-4 mr-2" />
+              </button>
+              <button
+                onClick={() => setShowEmailModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[0.82rem] font-semibold transition-all cursor-pointer border-0"
+                style={{ background: '#F0F4F5', color: '#4C6272' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#E5E7EB')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#F0F4F5')}
+              >
+                <Mail className="h-4 w-4" />
                 Email
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowSMSModal(true)}>
-                <Smartphone className="h-4 w-4 mr-2" />
+              </button>
+              <button
+                onClick={() => setShowSMSModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[0.82rem] font-semibold transition-all cursor-pointer border-0"
+                style={{ background: '#F0F4F5', color: '#4C6272' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#E5E7EB')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#F0F4F5')}
+              >
+                <Smartphone className="h-4 w-4" />
                 SMS
-              </Button>
+              </button>
             </div>
-            
-            {/* Instructions in patient's language - prominent */}
-            <div className="w-full max-w-sm p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/50 dark:to-purple-950/50 border border-violet-200 dark:border-violet-800 text-center">
-              <div className="flex items-center justify-center gap-2 mb-3">
+
+            {/* Instructions in patient's language */}
+            <div className="w-full max-w-sm p-4 rounded-xl text-center" style={{ background: '#F0F4F5' }}>
+              <div className="flex items-center justify-center gap-2 mb-2">
                 <span className="text-2xl">{languageInfo?.flag}</span>
-                <span className="font-semibold text-violet-700 dark:text-violet-300">{languageInfo?.name}</span>
+                <span className="font-semibold text-[0.9rem]" style={{ color: '#005EB8' }}>{languageInfo?.name}</span>
               </div>
-              <p className="text-base text-violet-800 dark:text-violet-200 mb-3 font-medium">
+              <p className="text-[0.88rem] font-medium mb-2" style={{ color: '#003087' }}>
                 {qrInstructions.scanInstruction}
               </p>
-              <p className="text-sm text-violet-600 dark:text-violet-400">
+              <p className="text-[0.78rem]" style={{ color: '#4C6272' }}>
                 {qrInstructions.welcomeMessage}
               </p>
             </div>
+          </div>
+
+          {/* ── CLOSE BUTTON ── */}
+          <div className="px-5 pb-4 sm:px-7 flex justify-center">
+            <button
+              onClick={() => setShowExpandedQR(false)}
+              className="w-full max-w-sm flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-[0.85rem] transition-all cursor-pointer border-0"
+              style={{ background: '#F0F4F5', color: '#4C6272' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#E5E7EB')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#F0F4F5')}
+            >
+              <span>✕</span> Close
+            </button>
+          </div>
+
+          {/* ── PRIVACY FOOTER ── */}
+          <div className="text-center text-[0.65rem] pb-3 px-7 flex items-center justify-center gap-1.5" style={{ color: '#AEB7BD' }}>
+            🔒 No personal data is stored by this translation service
           </div>
         </DialogContent>
       </Dialog>
