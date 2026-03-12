@@ -382,6 +382,7 @@ export const useReceptionTranslation = ({
     isTranslating,
     error,
     patientConnected,
+    patientCount,
     contentWarning,
     blockedContent,
     sendMessage,
