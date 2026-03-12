@@ -1972,6 +1972,20 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           }
         }
         
+        // D to discard (when not in textarea)
+        if ((e.key === 'd' || e.key === 'D') && !isInInput) {
+          e.preventDefault();
+          handleCancelSend();
+          return;
+        }
+        
+        // A to add more (when not in textarea)
+        if ((e.key === 'a' || e.key === 'A') && !isInInput) {
+          e.preventDefault();
+          handleAddMore();
+          return;
+        }
+        
         // Escape to discard
         if (e.key === 'Escape') {
           e.preventDefault();
