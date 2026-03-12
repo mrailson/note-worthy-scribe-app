@@ -2734,38 +2734,50 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           
           {/* Chat View Mode Selector */}
           {translationMode === 'live-chat' && (
-            <TooltipProvider delayDuration={200}>
-              <div className="flex items-center gap-0.5 p-0.5 rounded-lg border bg-muted/50">
-                {([
-                  { mode: 'standard' as ChatViewMode, icon: Columns2, label: 'Standard — 50/50 split' },
-                  { mode: 'recent' as ChatViewMode, icon: ListFilter, label: 'Recent — last 2 messages' },
-                  { mode: 'patient-focus' as ChatViewMode, icon: PanelRightOpen, label: 'Patient Focus — 75% patient language' },
-                  { mode: 'gp-focus' as ChatViewMode, icon: PanelLeftOpen, label: 'GP Focus — 75% English' },
-                  { mode: 'patient-only' as ChatViewMode, icon: Eye, label: 'Patient Only — full width patient language' },
-                ]).map(({ mode, icon: Icon, label }) => (
-                  <Tooltip key={mode}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => {
-                          setChatViewMode(mode);
-                          localStorage.setItem('translation-chat-view-mode', mode);
-                        }}
-                        className={`p-1.5 rounded-md transition-colors ${
-                          chatViewMode === mode
-                            ? 'bg-background shadow-sm text-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p className="text-xs">{label}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
-            </TooltipProvider>
+            <div className="flex items-center gap-1 p-1 rounded-lg border bg-muted/50">
+              {([
+                { mode: 'standard' as ChatViewMode, label: 'Side by Side' },
+                { mode: 'patient-focus' as ChatViewMode, label: 'Patient Focus' },
+                { mode: 'gp-focus' as ChatViewMode, label: 'GP Focus' },
+                { mode: 'patient-only' as ChatViewMode, label: 'Patient Only' },
+                { mode: 'recent' as ChatViewMode, label: 'Last Exchange' },
+              ]).map(({ mode, label }) => (
+                <button
+                  key={mode}
+                  onClick={() => {
+                    setChatViewMode(mode);
+                    localStorage.setItem('translation-chat-view-mode', mode);
+                  }}
+                  className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors text-center ${
+                    chatViewMode === mode
+                      ? 'bg-background shadow-sm text-foreground border border-primary/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                  }`}
+                >
+                  {/* Visual ratio bar */}
+                  <div className="flex gap-0.5">
+                    {mode === 'patient-only' ? (
+                      <div className={`h-1 w-10 rounded-full ${chatViewMode === mode ? 'bg-emerald-500' : 'bg-emerald-500/30'}`} />
+                    ) : mode === 'recent' ? (
+                      <>
+                        <div className={`h-1 w-4 rounded-full ${chatViewMode === mode ? 'bg-primary' : 'bg-primary/30'}`} />
+                        <div className={`h-1 w-4 rounded-full ${chatViewMode === mode ? 'bg-emerald-500' : 'bg-emerald-500/30'}`} />
+                      </>
+                    ) : (
+                      <>
+                        <div className={`h-1 rounded-full ${chatViewMode === mode ? 'bg-primary' : 'bg-primary/30'} ${
+                          mode === 'gp-focus' ? 'w-6' : mode === 'patient-focus' ? 'w-3' : 'w-4'
+                        }`} />
+                        <div className={`h-1 rounded-full ${chatViewMode === mode ? 'bg-emerald-500' : 'bg-emerald-500/30'} ${
+                          mode === 'patient-focus' ? 'w-6' : mode === 'gp-focus' ? 'w-3' : 'w-4'
+                        }`} />
+                      </>
+                    )}
+                  </div>
+                  <span className="text-[0.65rem] font-medium leading-tight whitespace-nowrap">{label}</span>
+                </button>
+              ))}
+            </div>
           )}
           {/* Patient Connection Status - only show in live chat mode and not training */}
           {translationMode === 'live-chat' && !isTrainingMode && (
