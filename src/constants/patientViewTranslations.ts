@@ -54,6 +54,10 @@ export interface PatientViewPhrases {
   blockedTitle?: string;
   blockedMessage?: string;
   editMessage?: string;
+  // Patient view polish (optional with defaults)
+  connectionLost?: string;
+  privacyNote?: string;
+  you?: string;
 }
 
 // Default email translations for languages that don't have them
