@@ -149,25 +149,19 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     const el = parentRef.current;
     if (!el) return;
 
-    // Dead zone ONLY during streaming — prevents measure/scroll feedback loop
-    // During normal browsing, allow all scroll events through for smooth scrolling
-    const currentScrollTop = el.scrollTop;
-    if (isLoadingRef.current && Math.abs(currentScrollTop - lastScrollTopRef.current) < 5) return;
-    lastScrollTopRef.current = currentScrollTop;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
 
-    const nearBottom = el.scrollHeight - currentScrollTop - el.clientHeight < SCROLL_THRESHOLD;
-
-    // If user scrolled away during streaming, break the lock
+    // Break auto-scroll lock immediately on any upward scroll during streaming
     if (isLoadingRef.current && !nearBottom) {
       autoScrollLocked.current = false;
     }
 
-    // If user scrolls back to bottom, re-engage
+    // Re-engage when user scrolls back to bottom
     if (nearBottom) {
       autoScrollLocked.current = true;
     }
 
-    // Only update state when value actually changes to avoid re-renders during streaming
+    // Update button state only when changed
     if (showScrollButtonRef.current !== !nearBottom) {
       showScrollButtonRef.current = !nearBottom;
       setShowScrollButton(!nearBottom);
