@@ -20,13 +20,17 @@ import {
   Languages, 
   Calendar, 
   MessageSquare, 
-  Download, 
+  FileText, 
   Trash2, 
   ChevronUp, 
   ChevronDown,
   Loader2,
   History
 } from 'lucide-react';
+import { generateTranslationReportDocx } from '@/utils/generateTranslationReportDocx';
+import { TranslationMessage } from '@/hooks/useReceptionTranslation';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { showToast } from '@/utils/toastWrapper';
 
 interface TranslationHistoryInlineProps {
   onClose: () => void;
@@ -79,31 +83,54 @@ export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> =
   const { sessions, isLoading, deleteSession, deleteAllSessions } = useReceptionTranslationHistory();
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [downloadingSessionId, setDownloadingSessionId] = useState<string | null>(null);
+  const { practiceContext } = usePracticeContext();
 
-  const exportSession = (session: typeof sessions[0]) => {
-    const lines = [
-      `Translation Session - ${format(new Date(session.created_at), 'dd MMMM yyyy, HH:mm')}`,
-      `Language: ${getLanguageInfo(session.patient_language).name}`,
-      `Messages: ${session.messages.length}`,
-      '',
-      '---',
-      '',
-    ];
+  const exportSessionDocx = async (session: typeof sessions[0]) => {
+    if (session.messages.length === 0) {
+      showToast.error('No messages to include in report');
+      return;
+    }
 
-    session.messages.forEach((msg) => {
-      lines.push(`[${format(new Date(msg.created_at), 'HH:mm')}] ${msg.speaker === 'staff' ? 'Staff' : 'Patient'}:`);
-      lines.push(`  Original: ${msg.original_text}`);
-      lines.push(`  Translated: ${msg.translated_text}`);
-      lines.push('');
-    });
+    setDownloadingSessionId(session.id);
+    try {
+      const langInfo = getLanguageInfo(session.patient_language);
 
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `translation-session-${format(new Date(session.created_at), 'yyyy-MM-dd-HHmm')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+      // Map history messages to the TranslationMessage format expected by the DOCX generator
+      const messages: TranslationMessage[] = session.messages.map(msg => ({
+        id: msg.id,
+        speaker: msg.speaker as 'staff' | 'patient',
+        originalText: msg.original_text,
+        translatedText: msg.translated_text,
+        originalLanguage: msg.speaker === 'staff' ? 'en' : session.patient_language,
+        targetLanguage: msg.speaker === 'staff' ? session.patient_language : 'en',
+        timestamp: new Date(msg.created_at),
+      }));
+
+      // Determine session start/end from message timestamps
+      const sessionStart = new Date(session.created_at);
+      const lastMsg = session.messages[session.messages.length - 1];
+      const sessionEnd = lastMsg ? new Date(lastMsg.created_at) : sessionStart;
+
+      await generateTranslationReportDocx({
+        messages,
+        patientLanguage: session.patient_language,
+        patientLanguageName: langInfo.name,
+        sessionStart,
+        sessionEnd,
+        practiceInfo: {
+          name: practiceContext?.practiceName,
+          address: practiceContext?.practiceAddress,
+          logoUrl: practiceContext?.logoUrl,
+        },
+      });
+      showToast.success('Translation report downloaded');
+    } catch (error) {
+      console.error('Report generation error:', error);
+      showToast.error('Failed to generate report');
+    } finally {
+      setDownloadingSessionId(null);
+    }
   };
 
   const handleDeleteAll = async () => {
