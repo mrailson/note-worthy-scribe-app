@@ -252,7 +252,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
           deviceInfo.isIPhone ? "px-4 py-3" : "px-2 sm:p-2"
         )}
         style={{ 
-          contain: 'layout paint',
+          contain: 'paint',
+          overscrollBehavior: 'contain',
           // Override the CSS variable for text scaling within this container
           '--ai4gp-text-scale': textScale,
         } as React.CSSProperties}
