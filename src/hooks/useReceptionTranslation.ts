@@ -120,6 +120,7 @@ export const useReceptionTranslation = ({
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setIsConnected(false);
           setPatientConnected(false);
+          setPatientCount(0);
         }
       });
 
