@@ -2865,7 +2865,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                         : 'bg-primary/50 text-primary-foreground'
                     }`}>
                       <p className="text-sm font-medium mb-1">🎤 Listening...</p>
-                      <p className="text-lg">{transcript}</p>
+                      <p className="text-lg">{transcript || pendingTranscript}</p>
                     </div>
                   </div>
                   {speakerMode === 'staff' && <div className="flex-1" />}
