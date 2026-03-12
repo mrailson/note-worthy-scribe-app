@@ -1491,7 +1491,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         setIsListening(true);
         // Auto-send intro message on first mic activation
         if (!introSent) {
-          const introText = `Welcome to ${practiceName}. We would like to use our translation service to help us communicate with you today. A staff member will control the session. When you see the large green microphone, you can speak naturally in your own language. When you have finished speaking, please indicate to the staff member and they will activate the translation. Are you happy for us to use this service?`;
+          const introText = `Translation service started. The patient has agreed to use AI-assisted translation for this session. Language: ${languageInfo?.name || patientLanguage}.`;
           sendMessage(introText, 'staff');
           setIntroSent(true);
         }
@@ -1511,7 +1511,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     } finally {
       setIsConnecting(false);
     }
-  }, [isListening, isConnecting, introSent, consentGiven, isTrainingMode, practiceName, sendMessage]);
+  }, [isListening, isConnecting, introSent, consentGiven, isTrainingMode, patientLanguage, languageInfo, sendMessage]);
 
   // Mic pause/unpause toggle
   const toggleMicPause = useCallback(() => {
@@ -1526,11 +1526,50 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const handleConsent = useCallback(async () => {
     setConsentGiven(true);
     setShowConsentCard(false);
-    // Use a small setTimeout to let state settle, then start mic
-    setTimeout(() => {
-      toggleListening();
-    }, 100);
-  }, [toggleListening]);
+    
+    // Start mic directly — don't go through toggleListening
+    // to avoid the stale state race condition
+    if (isStartingRef.current || isConnecting) return;
+    
+    try {
+      setIsConnecting(true);
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      if (!recognitionRef.current) {
+        showToast.error('Speech recognition not supported in this browser');
+        setIsConnecting(false);
+        return;
+      }
+      
+      stoppedByUserRef.current = false;
+      isStartingRef.current = true;
+      
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        
+        // Send short consent confirmation message
+        if (!introSent) {
+          const introText = `Translation service started. The patient has agreed to use AI-assisted translation for this session. Language: ${languageInfo?.name || patientLanguage}.`;
+          sendMessage(introText, 'staff');
+          setIntroSent(true);
+        }
+      } catch (e: any) {
+        isStartingRef.current = false;
+        if (e?.name === 'InvalidStateError' || `${e}`.includes('already started')) {
+          setIsListening(true);
+        } else {
+          throw e;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to start:', error);
+      showToast.error('Failed to start microphone');
+      setIsListening(false);
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [isConnecting, introSent, patientLanguage, languageInfo, sendMessage]);
 
   const handleDeclineConsent = useCallback(() => {
     setShowConsentCard(false);
@@ -1771,10 +1810,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
   // Handle sending intro/consent message
   const handleSendIntro = useCallback(async () => {
-    const introText = `Welcome to ${practiceName}. We would like to use our translation service to help us communicate with you today. A staff member will control the session. When you see the large green microphone, you can speak naturally in your own language. When you have finished speaking, please indicate to the staff member and they will activate the translation. Are you happy for us to use this service?`;
+    const introText = `Translation service started. The patient has agreed to use AI-assisted translation for this session. Language: ${languageInfo?.name || patientLanguage}.`;
     await sendMessage(introText, 'staff');
     setIntroSent(true);
-  }, [practiceName, sendMessage]);
+  }, [patientLanguage, languageInfo, sendMessage]);
 
   // Confirmation handlers
   const handleConfirmSend = useCallback(async () => {
