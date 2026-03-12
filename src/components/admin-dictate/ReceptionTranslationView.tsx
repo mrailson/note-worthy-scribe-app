@@ -1525,6 +1525,22 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     }
   }, [isMicPaused]);
 
+  // Consent card handlers
+  const handleConsent = useCallback(async () => {
+    setConsentGiven(true);
+    setShowConsentCard(false);
+    // Use a small setTimeout to let state settle, then start mic
+    setTimeout(() => {
+      toggleListening();
+    }, 100);
+  }, [toggleListening]);
+
+  const handleDeclineConsent = useCallback(() => {
+    setShowConsentCard(false);
+    showToast.info('Translation service declined. You may need to arrange a professional interpreter.');
+  }, []);
+
+
   // System audio capture for testing with videos (supports Whisper batch and AssemblyAI real-time)
   const startSystemAudioCaptureWhisper = useCallback(async (audioStream: MediaStream) => {
     // Set up MediaRecorder for Whisper batch transcription
