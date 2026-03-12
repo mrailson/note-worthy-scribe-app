@@ -940,11 +940,23 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   });
   const [showPatientSidebar, setShowPatientSidebar] = useState(true);
   
-  // Configurable silence wait time (ms) - how long to wait after last speech before processing
-  const [silenceWaitTime, setSilenceWaitTime] = useState<number>(() => {
-    const saved = localStorage.getItem('translation-silence-wait-time');
-    return saved ? parseInt(saved, 10) : 3000;
+  // FIX 2: Separate silence thresholds for GP (English) and patient
+  // GP staff speak in short direct phrases — 3s is fine.
+  // Patients in a second language need 5s for thinking pauses.
+  const GP_SILENCE_MS = 3000;
+  const PATIENT_SILENCE_MS = 5000;
+
+  const [gpSilenceWaitTime, setGpSilenceWaitTime] = useState<number>(() => {
+    const saved = localStorage.getItem('translation-silence-wait-time-gp');
+    return saved ? parseInt(saved, 10) : GP_SILENCE_MS;
   });
+  const [patientSilenceWaitTime, setPatientSilenceWaitTime] = useState<number>(() => {
+    const saved = localStorage.getItem('translation-silence-wait-time-patient');
+    return saved ? parseInt(saved, 10) : PATIENT_SILENCE_MS;
+  });
+
+  // Active threshold follows the current speaker mode
+  const silenceWaitTime = speakerMode === 'staff' ? gpSilenceWaitTime : patientSilenceWaitTime;
   const silenceWaitTimeRef = useRef(silenceWaitTime);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
