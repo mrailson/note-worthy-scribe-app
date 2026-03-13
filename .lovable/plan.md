@@ -1,58 +1,36 @@
 
 
-## Problem Analysis
+## Two Training Mode Tweaks for Demo Flow
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+### What changes
 
-### Root causes by issue:
+**1. Skip auto-play audio for the consent/intro message (training mode only)**
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+In the auto-play `useEffect` (line 1144), when `isTrainingMode` is true, skip playing audio for the very first staff message (the consent confirmation "Translation service started. The patient has agreed to…"). This is detected by checking if the message is the first staff message in the conversation (index 0 or matching the intro text pattern).
 
-## Plan
+**File:** `ReceptionTranslationView.tsx` ~line 1150
+- Add a condition: if `isTrainingMode` and the new staff message's `originalText` starts with "Translation service started", skip the `playAudioForMessage` call.
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+**2. Show "typing…" indicator earlier, but delay the actual AI reply until 2s after TTS finishes**
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+The existing `waitForAudioThenReply` (line 1871) already waits for audio to finish + adds a 2-second pause. Two refinements:
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+- **Show the typing indicator sooner**: Currently `setIsTrainingReplyLoading(true)` is set at line 1894 *before* `waitForAudioThenReply` runs. Change the flow so the typing indicator appears ~3 seconds before the audio ends rather than after it ends. This means:
+  - When auto-play is on, detect audio duration from `currentAudioRef.current.duration`
+  - Set a timer to show `isTrainingReplyLoading = true` at `max(0, audioDuration - 3)` seconds after audio starts
+  - The actual API call still waits for audio to finish + 2 seconds (keeping existing logic)
 
-### 2. Raise Part 2b base tokens
+- **When auto-play is off**: Keep current behaviour (brief random delay).
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
+**File:** `ReceptionTranslationView.tsx` ~lines 1869-1920
+- Restructure the training reply block:
+  1. Don't set `isTrainingReplyLoading` immediately
+  2. Start a "typing indicator" timer based on audio duration minus 3 seconds
+  3. Keep the existing poll-for-audio-end logic + 2s pause before calling the edge function
 
-### 3. Add anti-truncation instructions to all step prompts
+### Summary of file changes
 
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
-
-### 4. Update step labels and progress tracking
-
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
-
-### 5. Verify Version History enforcement
-
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
-
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+| File | Change |
+|------|--------|
+| `ReceptionTranslationView.tsx` | Skip auto-play for intro message in training mode; show typing indicator 3s before audio ends; keep 2s post-audio delay before AI reply |
 
