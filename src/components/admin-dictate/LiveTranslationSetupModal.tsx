@@ -123,7 +123,7 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className={`transition-all duration-300 max-h-[85vh] flex flex-col ${step === 2 ? 'sm:max-w-2xl' : 'sm:max-w-lg'}`}>
+      <DialogContent className="transition-all duration-300 max-h-[85vh] flex flex-col sm:max-w-2xl">
         {/* STEP 1 */}
         {step === 1 && (
           <div className="animate-in fade-in-0 duration-200 flex flex-col min-h-0 flex-1">
