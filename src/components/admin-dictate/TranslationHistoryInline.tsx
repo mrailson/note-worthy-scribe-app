@@ -390,11 +390,11 @@ export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> =
 
                         {/* Line 3: AI Summary */}
                         {summaries[session.id] ? (
-                          <p className="text-xs text-muted-foreground mt-1 truncate max-w-md">
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2 max-w-2xl">
                             ✨ {summaries[session.id]}
                           </p>
                         ) : session.messages.length > 0 ? (
-                          <p className="text-xs text-muted-foreground/50 mt-1 truncate max-w-md italic">
+                          <p className="text-xs text-muted-foreground/50 mt-1 max-w-2xl italic">
                             Generating summary…
                           </p>
                         ) : null}
