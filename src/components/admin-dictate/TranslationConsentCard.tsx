@@ -588,6 +588,7 @@ export const TranslationConsentCard: React.FC<TranslationConsentCardProps> = ({
   practiceName,
   qrCodeUrl,
 }) => {
+  const [qrExpanded, setQrExpanded] = React.useState(false);
   const en = CONSENT_TRANSLATIONS['en'];
   const pt = getStrings(patientLanguage);
   const isRtl = RTL_LANGS.has(patientLanguage);
