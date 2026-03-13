@@ -119,6 +119,7 @@ export const TranslationServicePanel: React.FC<TranslationServicePanelProps> = (
         isOpen={showSetupModal}
         onClose={handleModalClose}
         onSessionCreated={handleSessionCreated}
+        onShowHistory={() => { setShowSetupModal(false); setShowHistory(true); }}
       />
     </Card>
   );

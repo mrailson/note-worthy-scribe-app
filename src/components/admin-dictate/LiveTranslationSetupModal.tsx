@@ -30,7 +30,8 @@ interface LiveTranslationSetupModalProps {
 export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps> = ({
   isOpen,
   onClose,
-  onSessionCreated
+  onSessionCreated,
+  onShowHistory
 }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);

@@ -102,6 +102,7 @@ export function TranslatePanel({ autoOpenSetup = true }: TranslatePanelProps) {
         isOpen={showSetupModal}
         onClose={handleModalClose}
         onSessionCreated={handleSessionCreated}
+        onShowHistory={() => { setShowSetupModal(false); setShowHistory(true); }}
       />
     </div>
   );
