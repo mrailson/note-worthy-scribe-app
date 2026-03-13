@@ -1,58 +1,63 @@
 
 
-## Problem Analysis
+## Patient Translation Summary Handout — Print, Email, SMS
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+**Goal**: After a translation session ends (and from history), staff can generate a patient-facing summary document in the patient's language, containing key encounter points and actions, plus a translation quality disclaimer. Deliverable via Word download, print, email, or SMS.
 
-### Root causes by issue:
+### New Edge Function: `generate-patient-translation-summary`
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+Creates an AI-generated patient-facing summary in the patient's language using GPT-4o-mini. Input: conversation text + patient language code. Output: a structured summary with:
+- Key points of the encounter (in patient language)
+- Actions for the patient (in patient language)
+- No PII (same rules as the existing `summarise-translation-session` function)
 
-## Plan
+The prompt instructs the model to write in the patient's language, use simple clear language, and structure output as: `{ keyPoints: string[], actions: string[], summary: string }`.
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+### New Utility: `generatePatientHandoutDocx.ts`
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+A new Word document generator (modelled on the existing `generateTranslationReportDocx.ts`) that produces a clean, patient-friendly A4 document:
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+- **Header**: Practice name + "Translation Visit Summary" (bilingual — English + patient language)
+- **Date/Time**: Session date in simple format
+- **Summary section**: AI-generated summary paragraph in patient's language
+- **Key Points**: Bulleted list in patient's language
+- **Actions for You**: Bulleted list of things the patient needs to do, in patient's language
+- **English version**: Same content repeated in English below a separator
+- **Disclaimer box**: Bilingual disclaimer (reuses the existing `PATIENT_DISCLAIMER` translations from `generateTranslationReportDocx.ts`) about AI translation quality and what to do if concerns
+- **Practice contact**: Practice name and address at the bottom
 
-### 2. Raise Part 2b base tokens
+Returns a Blob (not auto-download) so it can be attached to emails or downloaded on demand.
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
+### New Component: `PatientHandoutActions.tsx`
 
-### 3. Add anti-truncation instructions to all step prompts
+A reusable component with 4 action buttons in a row:
+1. **Download Word** — generates the DOCX and triggers download
+2. **Print** — generates DOCX content as HTML print window (simpler: just the key points/actions/disclaimer formatted for print)
+3. **Email** — opens a modal asking for patient email, then sends via `send-meeting-email-resend` with the DOCX attached
+4. **SMS** — opens a modal, generates a short plain-text version of the summary in patient's language (key points + actions + disclaimer), sends via `send-sms-notify` or copies to clipboard
 
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
+Props: `messages`, `patientLanguage`, `patientLanguageName`, `practiceInfo`, `sessionStart`, `sessionEnd`.
 
-### 4. Update step labels and progress tracking
+### Integration Points
 
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
+**1. Session End Summary Modal** (`ReceptionTranslationView.tsx`, lines 3954-4048):
+- Add a new section between the stats grid and "Download NHS Report" button
+- Section header: "Send Patient Summary" with a brief description
+- Embed `<PatientHandoutActions>` component
+- The AI summary generation happens on-demand when any button is pressed (with loading state)
 
-### 5. Verify Version History enforcement
+**2. Translation History Cards** (`TranslationHistoryInline.tsx`, lines 404-430):
+- Add a new icon button next to the existing download (Word report) button — a `Send` or `UserCheck` icon
+- On click, opens a small dropdown/popover with the 4 actions (Download, Print, Email, SMS)
+- Uses the session's messages and metadata to generate the patient handout
 
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
+### Files Changed
 
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+| File | Change |
+|------|--------|
+| `supabase/functions/generate-patient-translation-summary/index.ts` | **New** — AI summary in patient's language |
+| `src/utils/generatePatientHandoutDocx.ts` | **New** — Patient-friendly DOCX generator |
+| `src/components/admin-dictate/PatientHandoutActions.tsx` | **New** — Reusable action buttons component |
+| `src/components/admin-dictate/ReceptionTranslationView.tsx` | Add PatientHandoutActions to session end modal |
+| `src/components/admin-dictate/TranslationHistoryInline.tsx` | Add patient handout button to each history card |
 
