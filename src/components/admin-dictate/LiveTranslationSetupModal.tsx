@@ -24,6 +24,7 @@ interface LiveTranslationSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSessionCreated: (sessionId: string, sessionToken: string, patientLanguage: string, isTrainingMode?: boolean, trainingScenario?: string) => void;
+  onShowHistory?: () => void;
 }
 
 export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps> = ({
