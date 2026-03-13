@@ -311,6 +311,7 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
                   )}
                 </Button>
               )}
+              </div>
             </div>
           </div>
         )}
