@@ -153,14 +153,22 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     const el = parentRef.current;
     if (!el) return;
 
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
+    const currentScrollTop = el.scrollTop;
+    const nearBottom = el.scrollHeight - currentScrollTop - el.clientHeight < SCROLL_THRESHOLD;
+    const scrolledUp = currentScrollTop < previousScrollTopRef.current;
+    previousScrollTopRef.current = currentScrollTop;
 
-    // Break auto-scroll lock immediately on any upward scroll during streaming
-    if (isLoadingRef.current && !nearBottom) {
+    // Break auto-scroll lock immediately on ANY upward scroll movement
+    if (scrolledUp && !nearBottom) {
       autoScrollLocked.current = false;
+      // Clear any pending programmatic scroll
+      if (pendingAutoScrollTimeoutRef.current) {
+        clearTimeout(pendingAutoScrollTimeoutRef.current);
+        pendingAutoScrollTimeoutRef.current = null;
+      }
     }
 
-    // Re-engage when user scrolls back to bottom
+    // Re-engage only when user scrolls back to bottom
     if (nearBottom) {
       autoScrollLocked.current = true;
     }
