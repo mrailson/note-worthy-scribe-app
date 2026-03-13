@@ -71,6 +71,7 @@ import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, Chevr
 import { TranslationHistoryInline } from './TranslationHistoryInline';
 import { TRAINING_SCENARIOS } from '@/constants/trainingScenarios';
 import { printPatientHandout } from '@/utils/generatePatientHandout';
+import { PatientHandoutActions } from './PatientHandoutActions';
 import {
   Collapsible,
   CollapsibleContent,
