@@ -445,34 +445,6 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
     }, 300);
   };
 
-  // Auto-scroll to input when AI response finishes
-  useEffect(() => {
-    if (!isLoading && messages.length > 0) {
-      // Small delay to ensure DOM has updated
-      scrollTimeout1Ref.current = setTimeout(() => {
-        // Scroll to bottom to show input area
-        window.scrollTo({
-          top: document.documentElement.scrollHeight,
-          behavior: 'smooth'
-        });
-        
-        // Also try to focus the input if it exists
-        scrollTimeout2Ref.current = setTimeout(() => {
-          inputRef.current?.focus();
-        }, 300);
-      }, 200);
-    }
-    return () => {
-      if (scrollTimeout1Ref.current) {
-        clearTimeout(scrollTimeout1Ref.current);
-        console.log('cleanup: Cleared scroll timeout 1');
-      }
-      if (scrollTimeout2Ref.current) {
-        clearTimeout(scrollTimeout2Ref.current);
-        console.log('cleanup: Cleared scroll timeout 2');
-      }
-    };
-  }, [isLoading, messages.length]);
 
   // Check if we need to show disclaimer modal on first use
   React.useEffect(() => {
