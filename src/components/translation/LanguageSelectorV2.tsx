@@ -259,18 +259,6 @@ export const LanguageSelectorV2: React.FC<LanguageSelectorV2Props> = ({
           {/* Region filter pills (hidden when searching) */}
           {!isSearching && (
             <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => setActiveRegion(null)}
-                className={cn(
-                  'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
-                  !activeRegion
-                    ? 'bg-foreground text-background'
-                    : 'bg-muted text-muted-foreground hover:bg-muted-foreground/10'
-                )}
-              >
-                All
-              </button>
               {REGION_ORDER.map(region => (
                 <RegionPill
                   key={region}
