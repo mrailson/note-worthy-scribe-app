@@ -206,7 +206,12 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       } else if (lastMsg?.role === 'assistant' && autoScrollLocked.current) {
         // Assistant reply arrived — use the existing lock (set when user sent their msg)
         // Use setTimeout to let the virtualizer render the new item first
-        setTimeout(() => scrollToLatestAssistant(true), 200);
+        // Store timeout so it can be cancelled if user scrolls up
+        if (pendingAutoScrollTimeoutRef.current) clearTimeout(pendingAutoScrollTimeoutRef.current);
+        pendingAutoScrollTimeoutRef.current = setTimeout(() => {
+          pendingAutoScrollTimeoutRef.current = null;
+          if (autoScrollLocked.current) scrollToLatestAssistant(true);
+        }, 200);
       }
     }
   }, [messages.length, scrollToLatestAssistant]);
