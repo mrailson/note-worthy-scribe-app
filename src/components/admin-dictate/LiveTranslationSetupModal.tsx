@@ -35,8 +35,6 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
   const [isCreating, setIsCreating] = useState(false);
   const [isTrainingMode, setIsTrainingMode] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<string>('appointment_booking');
-  const [langSearch, setLangSearch] = useState('');
-  const [langOpen, setLangOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [categoryFilter, setCategoryFilter] = useState('All');
 
