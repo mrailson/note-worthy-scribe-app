@@ -18,7 +18,7 @@ import { useSendSMS } from '@/hooks/useSendSMS';
 import { showToast } from '@/utils/toastWrapper';
 
 interface PatientHandoutActionsProps {
-  messages: TranslationMessage[];
+  messages: Array<TranslationMessage | Record<string, unknown>>;
   patientLanguage: string;
   patientLanguageName: string;
   practiceName: string;
@@ -28,6 +28,14 @@ interface PatientHandoutActionsProps {
   /** Compact mode for history cards */
   compact?: boolean;
 }
+
+const pickText = (message: Record<string, unknown>, keys: string[]): string => {
+  for (const key of keys) {
+    const value = message?.[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+};
 
 export const PatientHandoutActions: React.FC<PatientHandoutActionsProps> = ({
   messages,
