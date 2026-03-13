@@ -40,6 +40,9 @@ import { generateTranslationReportDocx } from '@/utils/generateTranslationReport
 import { TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { showToast } from '@/utils/toastWrapper';
+import { PatientHandoutActions } from './PatientHandoutActions';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { UserCheck } from 'lucide-react';
 
 interface TranslationHistoryInlineProps {
   onClose: () => void;
