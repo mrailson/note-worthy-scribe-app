@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { useReceptionTranslationHistory, TranslationSessionHistory } from '@/hooks/useReceptionTranslationHistory';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -88,21 +89,39 @@ const getSessionDuration = (messages: { created_at: string }[]) => {
   return mins < 1 ? '<1 min' : `${mins} min`;
 };
 
-const getPreview = (messages: { original_text: string; speaker: string }[]) => {
-  if (!messages.length) return null;
-  const m = messages[0];
-  const t = m.original_text || '';
-  return {
-    speaker: m.speaker,
-    text: t.length > 80 ? t.substring(0, 80) + '…' : t,
-  };
-};
 
 // ── COMPONENT ──
 
 export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> = ({ onClose }) => {
-  const { sessions, isLoading, deleteSession, deleteAllSessions } = useReceptionTranslationHistory();
+  const { sessions, isLoading, deleteSession, deleteAllSessions, updateSession } = useReceptionTranslationHistory();
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [summaries, setSummaries] = useState<Record<string, string>>({});
+  const generatingRef = useRef<Set<string>>(new Set());
+
+  // Generate AI summaries lazily, cache to notes column
+  useEffect(() => {
+    sessions.forEach(session => {
+      if (summaries[session.id] || session.messages.length === 0 || generatingRef.current.has(session.id)) return;
+      if (session.notes) {
+        setSummaries(prev => ({ ...prev, [session.id]: session.notes! }));
+        return;
+      }
+      generatingRef.current.add(session.id);
+      const conversationText = session.messages.map(m =>
+        `${m.speaker === 'staff' ? 'Staff' : 'Patient'}: ${m.original_text}`
+      ).join('\n');
+      supabase.functions.invoke('summarise-translation-session', {
+        body: { conversationText }
+      }).then(({ data }) => {
+        if (data?.summary) {
+          setSummaries(prev => ({ ...prev, [session.id]: data.summary }));
+          updateSession(session.id, { notes: data.summary });
+        }
+      }).catch(() => {
+        // Silently fail — summary is non-critical
+      });
+    });
+  }, [sessions]);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [downloadingSessionId, setDownloadingSessionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -309,7 +328,6 @@ export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> =
               const colour = getLangColour(session.patient_language);
               const isExpanded = expandedSession === session.id;
               const duration = getSessionDuration(session.messages);
-              const preview = getPreview(session.messages);
               const staffCount = session.messages.filter(m => m.speaker === 'staff').length;
               const patientCount = session.messages.filter(m => m.speaker === 'patient').length;
 
@@ -370,12 +388,16 @@ export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> =
                           )}
                         </div>
 
-                        {/* Line 3: Preview */}
-                        {preview && (
+                        {/* Line 3: AI Summary */}
+                        {summaries[session.id] ? (
                           <p className="text-xs text-muted-foreground mt-1 truncate max-w-md">
-                            💬 {preview.speaker === 'staff' ? 'Staff' : 'Patient'}: {preview.text}
+                            ✨ {summaries[session.id]}
                           </p>
-                        )}
+                        ) : session.messages.length > 0 ? (
+                          <p className="text-xs text-muted-foreground/50 mt-1 truncate max-w-md italic">
+                            Generating summary…
+                          </p>
+                        ) : null}
                       </div>
                     </div>
 
