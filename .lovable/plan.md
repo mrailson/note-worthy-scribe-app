@@ -1,34 +1,58 @@
 
 
-## Fix: Patient Summary Should Reflect Actual Interaction Type
+## Problem Analysis
 
-### Problem
-The system prompt for `generate-patient-translation-summary` assumes every session is a clinical consultation ("Your doctor has seen you", "treatment advice"). When the actual conversation was an appointment request at reception, the summary is misleading and inaccurate.
+The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
 
-### Root Cause
-The prompt says "overview of what happened during the visit" — this biases the AI toward clinical language. It needs explicit instruction to accurately reflect the nature of the interaction (reception enquiry, appointment booking, prescription collection, etc.) based on the actual conversation content.
+### Root causes by issue:
 
-### Fix — Update Edge Function Prompt
+| Issue | Cause |
+|-------|-------|
+| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
+| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
+| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
+| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
 
-**File**: `supabase/functions/generate-patient-translation-summary/index.ts`
+## Plan
 
-Update the system prompt to:
+### 1. Split Part 3 into two steps to prevent token exhaustion
 
-1. **Identify the interaction type first** — reception enquiry, appointment booking, prescription pickup, registration, clinical consultation, etc.
-2. **Use appropriate language** — "You visited the reception to book an appointment" not "Your doctor has seen you"
-3. **Be specific to what actually happened** — extract real details from the conversation (e.g. "appointment with Dr Smith on Friday at 2pm") rather than generic filler
-4. **Never fabricate clinical content** — if no clinical discussion happened, don't imply one did
+Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
+- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
+- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
 
-Key prompt additions:
-- "IMPORTANT: Most sessions are GP RECEPTION interactions (booking appointments, asking questions, collecting prescriptions) — NOT clinical consultations. Read the conversation carefully and summarise ONLY what actually happened."
-- "If the patient was booking or requesting an appointment, say so clearly. Do NOT use clinical language like 'the doctor saw you' or 'treatment advice' unless a doctor actually provided clinical advice in the conversation."
-- "Be SPECIFIC — include actual details from the conversation (doctor names, dates, times, reasons). Never use vague generic summaries."
+This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
 
-Also increase `max_tokens` from 1500 to 2000 to ensure longer conversations aren't truncated.
+### 2. Raise Part 2b base tokens
 
-### Files Changed
+Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
 
-| File | Change |
-|------|--------|
-| `supabase/functions/generate-patient-translation-summary/index.ts` | Rewrite system prompt to be context-aware and specific |
+### 3. Add anti-truncation instructions to all step prompts
+
+Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
+
+### 4. Update step labels and progress tracking
+
+Add `generate_part_3a` and `generate_part_3b` to:
+- The edge function step routing
+- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
+- Progress percentages adjusted for 5 generation steps
+
+### 5. Verify Version History enforcement
+
+The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
+
+### Files to change
+
+1. **`supabase/functions/generate-policy/index.ts`**:
+   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
+   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
+   - Add new `generate_part_3b` step with its own prompt and token budget
+   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
+   - Add anti-truncation instruction to Part 2b user prompt
+   - Deploy the updated function
+
+2. **`src/hooks/usePolicyJobs.ts`**:
+   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
+   - Update label text to reflect 5 generation steps
 

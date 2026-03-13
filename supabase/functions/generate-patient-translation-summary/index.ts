@@ -5,13 +5,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const systemPrompt = `You are creating a patient-facing summary of an NHS GP reception translation session. The patient does not speak English well, so you must write in their language.
+const systemPrompt = `You are creating a patient-facing summary of an NHS GP translation session. The patient does not speak English well, so you must write in their language.
+
+CRITICAL — IDENTIFY THE INTERACTION TYPE FIRST:
+Most sessions are GP RECEPTION interactions — booking appointments, asking questions, collecting prescriptions, registering as a new patient, requesting sick notes, etc. They are NOT clinical consultations.
+Read the conversation carefully and summarise ONLY what actually happened. Do NOT assume or imply a clinical consultation took place unless a doctor/nurse actually provided clinical advice in the conversation.
+
+WRONG (for an appointment booking): "Your doctor has seen you and provided treatment advice"
+RIGHT (for an appointment booking): "You visited the GP reception to book an appointment with Dr Smith on Friday at 2pm for your knee pain"
 
 OUTPUT FORMAT (strict JSON):
 {
-  "summary": "A 2-3 sentence overview of what happened during the visit, in the patient's language",
-  "keyPoints": ["Key point 1 in patient's language", "Key point 2", ...],
-  "actions": ["Action the patient needs to take, in patient's language", ...],
+  "summary": "A 2-3 sentence overview of what ACTUALLY happened, in the patient's language. Be specific — include names, dates, times, reasons.",
+  "keyPoints": ["Specific key point from the conversation in patient's language", ...],
+  "actions": ["Specific action the patient needs to take, in patient's language", ...],
   "summaryEnglish": "Same summary in English",
   "keyPointsEnglish": ["Key point 1 in English", ...],
   "actionsEnglish": ["Action in English", ...]
@@ -20,8 +27,11 @@ OUTPUT FORMAT (strict JSON):
 RULES:
 - Write in SIMPLE, CLEAR language — the patient may have limited literacy
 - Use short sentences
-- Focus on what the patient needs to KNOW and DO
-- Include appointment dates/times, medication names, next steps
+- Be SPECIFIC — include actual details from the conversation (doctor names, appointment dates/times, medication names, reasons for visit). Never use vague generic summaries
+- If the patient booked or requested an appointment, say so clearly. State the date, time, and doctor if mentioned
+- If the patient collected a prescription, state which medication
+- If the patient asked a question, state what the question was and the answer given
+- Do NOT use clinical language ("the doctor saw you", "treatment advice", "clinical assessment") unless a clinical consultation actually occurred in the conversation
 - NEVER include patient names, dates of birth, NHS numbers, addresses, or phone numbers
 - You MAY include doctor names, appointment times, medication names, symptoms
 - If no clear actions were agreed, return an empty actions array
@@ -71,7 +81,7 @@ ${conversationText}`;
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
-        max_tokens: 1500,
+        max_tokens: 2000,
         response_format: { type: 'json_object' },
       }),
     });
