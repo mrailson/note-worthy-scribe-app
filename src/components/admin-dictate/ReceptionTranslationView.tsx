@@ -1881,9 +1881,20 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             // Also show "typing..." indicator 3s before audio ends for natural flow
             await new Promise<void>((resolve) => {
               let typingIndicatorSet = false;
+              let audioHasEverPlayed = false;
+              let retryCount = 0;
               const checkAudio = () => {
                 const audio = currentAudioRef.current;
+                if (audio && audio.currentTime > 0) {
+                  audioHasEverPlayed = true;
+                }
                 if (!audio || audio.paused || audio.ended) {
+                  // If audio hasn't started yet, wait longer (up to ~7s total)
+                  if (!audioHasEverPlayed && retryCount < 10) {
+                    retryCount++;
+                    setTimeout(checkAudio, 500);
+                    return;
+                  }
                   // Audio finished — make sure typing indicator is shown
                   if (!typingIndicatorSet) {
                     setIsTrainingReplyLoading(true);
@@ -1902,8 +1913,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   setTimeout(checkAudio, 300);
                 }
               };
-              // Start checking after a short delay to allow auto-play to begin
-              setTimeout(checkAudio, 1000);
+              // Start checking after 2s delay to allow auto-play TTS fetch to begin
+              setTimeout(checkAudio, 2000);
             });
             // Additional 2-second pause after audio ends — feels like the patient is thinking
             await new Promise(resolve => setTimeout(resolve, 2000));
