@@ -8,15 +8,13 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Languages, QrCode, Loader2, Check, MessageSquareText, GraduationCap, ChevronsUpDown, Search, ChevronRight, ChevronLeft, History } from 'lucide-react';
-import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
+import { Languages, QrCode, Loader2, GraduationCap, ChevronRight, ChevronLeft, History } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 import { Switch } from '@/components/ui/switch';
 import { TRAINING_SCENARIOS } from '@/constants/trainingScenarios';
+import { LanguageSelectorV2 } from '@/components/translation/LanguageSelectorV2';
+import { TRANSLATION_LANGUAGES } from '@/constants/translationLanguages';
 
 const CATEGORIES = ['All', 'Routine Reception', 'Urgent Triage', 'Admin & Paperwork'];
 
