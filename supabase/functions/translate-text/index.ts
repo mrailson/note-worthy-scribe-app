@@ -132,19 +132,11 @@ serve(async (req) => {
     console.log('Translation successful, response keys:', Object.keys(data));
     const translatedText = data.data.translations[0].translatedText;
 
-    // Include content warning if mild profanity was detected
     const responsePayload: Record<string, unknown> = {
       translatedText,
       sourceLanguage: data.data.translations[0].detectedSourceLanguage || normalisedSourceLanguage || 'unknown',
       targetLanguage,
     };
-
-    if (contentCheck.status === 'warning') {
-      responsePayload.contentWarning = {
-        reason: contentCheck.reason,
-        flaggedTerms: contentCheck.flaggedTerms
-      };
-    }
 
     return new Response(
       JSON.stringify(responsePayload),
