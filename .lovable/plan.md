@@ -1,58 +1,52 @@
 
 
-## Problem Analysis
+## Two Fixes for Training Mode
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+### Issue 1: Double-send on accidental repeat click
+**Root cause**: `handleConfirmSend` (line 1836) checks `if (pendingTranscript)` but doesn't guard against concurrent calls. Two rapid clicks both see `pendingTranscript` as truthy before either clears it.
 
-### Root causes by issue:
+**Fix**: Add an `isSendingRef` guard at the top of `handleConfirmSend`. Set it `true` immediately, clear it at the end. Return early if already sending.
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+```typescript
+const isSendingRef = useRef(false);
 
-## Plan
+const handleConfirmSend = useCallback(async () => {
+  if (!pendingTranscript || isSendingRef.current) return;
+  isSendingRef.current = true;
+  // ... existing logic ...
+  // At the very end (after training reply kickoff or speaker switch):
+  isSendingRef.current = false;
+}, [...]);
+```
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+### Issue 2: Patient reply appears before audio finishes
+**Root cause**: The `waitForAudioThenReply` starts checking audio 1 second after send (line 1903), but the auto-play itself only starts after a 500ms delay (line 1156). If the TTS fetch takes a moment, the audio element may not exist yet when the check runs, so `!audio` evaluates true, the promise resolves immediately, and the AI reply fires before audio even starts.
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+**Fix**: Increase the initial delay before polling from 1000ms to 2000ms, AND add a retry count so it waits for audio to *begin* (not just check once and give up). Specifically:
+- Start checking after 2000ms (giving auto-play time to fetch and start)
+- If no audio element exists yet, retry up to 10 times (3 seconds) before giving up
+- Only resolve when audio has actually ended
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+```typescript
+setTimeout(checkAudio, 2000); // was 1000
 
-### 2. Raise Part 2b base tokens
+// Inside checkAudio:
+if (!audio || audio.paused || audio.ended) {
+  // If audio hasn't started yet, wait longer (up to ~5s total)
+  if (!audioHasEverPlayed && retryCount < 10) {
+    retryCount++;
+    setTimeout(checkAudio, 500);
+    return;
+  }
+  // Audio finished or never started after retries
+  ...
+}
+```
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
+Track `audioHasEverPlayed` by also checking `audio.currentTime > 0` or on the playing path setting a flag.
 
-### 3. Add anti-truncation instructions to all step prompts
-
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
-
-### 4. Update step labels and progress tracking
-
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
-
-### 5. Verify Version History enforcement
-
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
-
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+### Files changed
+| File | Change |
+|------|--------|
+| `ReceptionTranslationView.tsx` | Add `isSendingRef` guard to prevent double-send; fix `waitForAudioThenReply` to wait for audio to actually start before polling for end |
 
