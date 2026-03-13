@@ -1,5 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 // ── RTL LANGUAGE SET ──
 const RTL_LANGS = new Set(['ar', 'ur', 'fa', 'he', 'ps', 'ku']);
