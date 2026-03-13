@@ -1948,6 +1948,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             showToast.error('Failed to generate training reply');
           } finally {
             setIsTrainingReplyLoading(false);
+            isSendingRef.current = false;
           }
         });
         
@@ -1960,6 +1961,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         handleSpeakerModeChange(nextMode);
       }, 300);
     }
+    isSendingRef.current = false;
   }, [pendingTranscript, pendingSpeaker, sendMessage, handleSpeakerModeChange, isTrainingMode, trainingScenario, messages, patientLanguage]);
 
   const handleCancelSend = useCallback(() => {
