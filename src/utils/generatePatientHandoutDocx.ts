@@ -52,6 +52,11 @@ const DISCLAIMERS: Record<string, { heading: string; body: string; caveat: strin
   pt: { heading: 'Informação Importante', body: 'Este documento resume a sua visita usando o nosso serviço de tradução. Leia com atenção. Se algo parecer errado, contacte-nos imediatamente.', caveat: 'Este serviço ajuda na comunicação mas não substitui um intérprete médico profissional.' },
   de: { heading: 'Wichtige Information', body: 'Dieses Dokument fasst Ihren Besuch mit unserem Übersetzungsdienst zusammen. Bitte lesen Sie es sorgfältig. Kontaktieren Sie uns sofort, wenn etwas falsch erscheint.', caveat: 'Dieser Dienst unterstützt die Kommunikation, ersetzt aber keinen professionellen medizinischen Dolmetscher.' },
   it: { heading: 'Informazioni Importanti', body: "Questo documento riassume la vostra visita tramite il nostro servizio di traduzione. Leggetelo attentamente. Se qualcosa sembra errato, contattateci immediatamente.", caveat: "Questo servizio aiuta la comunicazione ma non sostituisce un interprete medico professionale." },
+  hr: { heading: 'Važne informacije', body: 'Ovaj dokument je sažetak vašeg posjeta korištenjem naše usluge prijevoda. Pažljivo ga pročitajte. Ako nešto djeluje netočno, odmah nas kontaktirajte.', caveat: 'Ova usluga pomaže u komunikaciji, ali ne zamjenjuje profesionalnog medicinskog prevoditelja.' },
+  cs: { heading: 'Důležité informace', body: 'Tento dokument je shrnutí vaší návštěvy s využitím naší překladatelské služby. Pečlivě si jej přečtěte. Pokud se něco zdá nesprávné, okamžitě nás kontaktujte.', caveat: 'Tato služba pomáhá s komunikací, ale nenahrazuje profesionálního zdravotnického tlumočníka.' },
+  sk: { heading: 'Dôležité informácie', body: 'Tento dokument je zhrnutie vašej návštevy s využitím našej prekladateľskej služby. Pozorne si ho prečítajte. Ak sa niečo zdá nesprávne, okamžite nás kontaktujte.', caveat: 'Táto služba pomáha s komunikáciou, ale nenahrádza profesionálneho zdravotníckeho tlmočníka.' },
+  nl: { heading: 'Belangrijke informatie', body: 'Dit document is een samenvatting van uw bezoek via onze vertaaldienst. Lees het aandachtig. Als iets onjuist lijkt, neem dan onmiddellijk contact met ons op.', caveat: 'Deze dienst helpt bij communicatie maar vervangt geen professionele medische tolk.' },
+  hu: { heading: 'Fontos információ', body: 'Ez a dokumentum az Ön látogatásának összefoglalója fordítási szolgáltatásunk használatával. Kérjük, olvassa el figyelmesen. Ha valami helytelennek tűnik, azonnal lépjen kapcsolatba velünk.', caveat: 'Ez a szolgáltatás segít a kommunikációban, de nem helyettesíti a professzionális orvosi tolmácsot.' },
 };
 
 // ── LOCALISED SECTION HEADINGS ─────────────────────────────
@@ -74,6 +79,27 @@ const SECTION_LABELS: Record<string, { visitSummary: string; keyPoints: string; 
   pt: { visitSummary: 'Resumo da visita', keyPoints: 'Pontos-chave', actions: 'O que precisa de fazer' },
   de: { visitSummary: 'Besuchszusammenfassung', keyPoints: 'Wichtige Punkte', actions: 'Was Sie tun müssen' },
   it: { visitSummary: 'Riepilogo visita', keyPoints: 'Punti chiave', actions: 'Cosa dovete fare' },
+  // Additional languages
+  hr: { visitSummary: 'Sažetak posjeta', keyPoints: 'Ključne točke', actions: 'Što trebate učiniti' },
+  cs: { visitSummary: 'Shrnutí návštěvy', keyPoints: 'Klíčové body', actions: 'Co musíte udělat' },
+  sk: { visitSummary: 'Zhrnutie návštevy', keyPoints: 'Kľúčové body', actions: 'Čo musíte urobiť' },
+  nl: { visitSummary: 'Samenvatting bezoek', keyPoints: 'Belangrijke punten', actions: 'Wat u moet doen' },
+  el: { visitSummary: 'Περίληψη επίσκεψης', keyPoints: 'Βασικά σημεία', actions: 'Τι πρέπει να κάνετε' },
+  hu: { visitSummary: 'Látogatás összefoglalója', keyPoints: 'Főbb pontok', actions: 'Mit kell tennie' },
+  ja: { visitSummary: '診察の概要', keyPoints: '重要なポイント', actions: 'やるべきこと' },
+  ko: { visitSummary: '방문 요약', keyPoints: '주요 사항', actions: '해야 할 일' },
+  vi: { visitSummary: 'Tóm tắt buổi khám', keyPoints: 'Điểm chính', actions: 'Việc bạn cần làm' },
+  ne: { visitSummary: 'भ्रमण सारांश', keyPoints: 'मुख्य कुराहरू', actions: 'तपाईंले के गर्नुपर्छ' },
+  sw: { visitSummary: 'Muhtasari wa ziara', keyPoints: 'Mambo muhimu', actions: 'Unachohitaji kufanya' },
+  ta: { visitSummary: 'வருகை சுருக்கம்', keyPoints: 'முக்கிய குறிப்புகள்', actions: 'நீங்கள் செய்ய வேண்டியது' },
+  gu: { visitSummary: 'મુલાકાત સારાંશ', keyPoints: 'મુખ્ય મુદ્દાઓ', actions: 'તમારે શું કરવાનું છે' },
+  lt: { visitSummary: 'Vizito santrauka', keyPoints: 'Pagrindiniai punktai', actions: 'Ką turite padaryti' },
+  lv: { visitSummary: 'Vizītes kopsavilkums', keyPoints: 'Galvenie punkti', actions: 'Kas jums jādara' },
+  uk: { visitSummary: 'Підсумок візиту', keyPoints: 'Ключові моменти', actions: 'Що вам потрібно зробити' },
+  am: { visitSummary: 'የጉብኝት ማጠቃለያ', keyPoints: 'ዋና ነጥቦች', actions: 'ምን ማድረግ እንዳለብዎት' },
+  ti: { visitSummary: 'ጽሟቕ ምብጻሕ', keyPoints: 'ቀንዲ ነጥብታት', actions: 'እንታይ ክትገብሩ ከም ዘለኩም' },
+  ps: { visitSummary: 'د لیدنې لنډیز', keyPoints: 'مهم ټکي', actions: 'تاسو باید څه وکړئ' },
+  ku: { visitSummary: 'کورتەی سەردان', keyPoints: 'خاڵە سەرەکییەکان', actions: 'دەبێت چی بکەیت' },
 };
 
 export interface PatientSummaryData {
