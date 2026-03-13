@@ -1150,9 +1150,13 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       if (autoPlayAudioRef.current) {
         const newStaffMessage = newMessages.find(m => m.speaker === 'staff' && m.translatedText);
         if (newStaffMessage) {
-          setTimeout(() => {
-            playAudioForMessage(newStaffMessage.id, newStaffMessage.translatedText!, patientLanguage);
-          }, 500);
+          // In training mode, skip auto-play for the consent/intro message
+          const isConsentMessage = isTrainingMode && newStaffMessage.originalText?.startsWith('Translation service started');
+          if (!isConsentMessage) {
+            setTimeout(() => {
+              playAudioForMessage(newStaffMessage.id, newStaffMessage.translatedText!, patientLanguage);
+            }, 500);
+          }
         }
       }
     }
@@ -1871,13 +1875,28 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         const waitForAudioThenReply = async () => {
           if (autoPlayAudioRef.current) {
             // Wait for any currently playing audio to finish
-            // Poll every 500ms — audio sets currentAudioRef to null when done
+            // Also show "typing..." indicator 3s before audio ends for natural flow
             await new Promise<void>((resolve) => {
+              let typingIndicatorSet = false;
               const checkAudio = () => {
-                if (!currentAudioRef.current || currentAudioRef.current.paused || currentAudioRef.current.ended) {
+                const audio = currentAudioRef.current;
+                if (!audio || audio.paused || audio.ended) {
+                  // Audio finished — make sure typing indicator is shown
+                  if (!typingIndicatorSet) {
+                    setIsTrainingReplyLoading(true);
+                    typingIndicatorSet = true;
+                  }
                   resolve();
                 } else {
-                  setTimeout(checkAudio, 500);
+                  // Audio still playing — check if we should show typing indicator
+                  if (!typingIndicatorSet && !isNaN(audio.duration) && audio.duration > 0) {
+                    const timeRemaining = audio.duration - audio.currentTime;
+                    if (timeRemaining <= 3) {
+                      setIsTrainingReplyLoading(true);
+                      typingIndicatorSet = true;
+                    }
+                  }
+                  setTimeout(checkAudio, 300);
                 }
               };
               // Start checking after a short delay to allow auto-play to begin
@@ -1887,11 +1906,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             await new Promise(resolve => setTimeout(resolve, 2000));
           } else {
             // No auto-play — just a brief natural delay
+            setIsTrainingReplyLoading(true);
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
           }
         };
-
-        setIsTrainingReplyLoading(true);
 
         waitForAudioThenReply().then(async () => {
           try {
