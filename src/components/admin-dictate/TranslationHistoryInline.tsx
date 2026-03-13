@@ -328,7 +328,6 @@ export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> =
               const colour = getLangColour(session.patient_language);
               const isExpanded = expandedSession === session.id;
               const duration = getSessionDuration(session.messages);
-              const preview = getPreview(session.messages);
               const staffCount = session.messages.filter(m => m.speaker === 'staff').length;
               const patientCount = session.messages.filter(m => m.speaker === 'patient').length;
 
