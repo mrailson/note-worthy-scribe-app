@@ -57,7 +57,16 @@ export const PatientHandoutActions: React.FC<PatientHandoutActionsProps> = ({
   const { sendSMS, isSending: isSendingSMS } = useSendSMS();
 
   const generateSummary = useCallback(async (): Promise<PatientSummaryData | null> => {
-    if (summaryData) return summaryData;
+    const cachedText = `${summaryData?.summary || ''} ${summaryData?.summaryEnglish || ''}`.toLowerCase();
+    const looksPlaceholder = /no information|no details|no specific information|nema informacija/.test(cachedText);
+    const hasStructuredContent = Boolean(
+      summaryData?.summary?.trim() ||
+      summaryData?.summaryEnglish?.trim() ||
+      summaryData?.keyPoints?.length ||
+      summaryData?.actions?.length
+    );
+
+    if (summaryData && hasStructuredContent && !looksPlaceholder) return summaryData;
     if (messages.length === 0) {
       showToast.error('No messages to summarise');
       return null;
