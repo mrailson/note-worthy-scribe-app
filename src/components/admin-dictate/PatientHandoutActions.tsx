@@ -65,14 +65,36 @@ export const PatientHandoutActions: React.FC<PatientHandoutActionsProps> = ({
 
     setIsGenerating(true);
     try {
-      const conversationText = messages
-        .map(m => {
-          const isStaff = m.speaker === 'staff';
-          const englishText = isStaff ? m.originalText : (m.translatedText || m.originalText);
-          const patientLangText = isStaff ? (m.translatedText || '') : m.originalText;
-          return `[${isStaff ? 'Staff (English)' : `Patient (${patientLanguageName || patientLanguage})`}]\nEnglish: ${englishText}${patientLangText ? `\n${patientLanguageName || patientLanguage}: ${patientLangText}` : ''}`;
+      const conversationEntries = messages
+        .map((message) => {
+          const m = message as Record<string, unknown>;
+          const speaker = m.speaker === 'staff' ? 'staff' : 'patient';
+          const originalText = pickText(m, ['originalText', 'original_text', 'englishText', 'text']);
+          const translatedText = pickText(m, ['translatedText', 'translated_text', 'patientText']);
+
+          const englishText = speaker === 'staff'
+            ? (originalText || translatedText)
+            : (translatedText || originalText);
+          const patientLangText = speaker === 'staff'
+            ? translatedText
+            : (originalText || translatedText);
+
+          if (!englishText && !patientLangText) return null;
+
+          const speakerLabel = speaker === 'staff'
+            ? 'Staff (English)'
+            : `Patient (${patientLanguageName || patientLanguage})`;
+
+          return `[${speakerLabel}]\nEnglish: ${englishText}${patientLangText ? `\n${patientLanguageName || patientLanguage}: ${patientLangText}` : ''}`;
         })
-        .join('\n\n');
+        .filter((entry): entry is string => Boolean(entry));
+
+      if (conversationEntries.length === 0) {
+        showToast.error('No valid message content to summarise');
+        return null;
+      }
+
+      const conversationText = conversationEntries.join('\n\n');
 
       const { data, error } = await supabase.functions.invoke('generate-patient-translation-summary', {
         body: { conversationText, patientLanguage, patientLanguageName },
