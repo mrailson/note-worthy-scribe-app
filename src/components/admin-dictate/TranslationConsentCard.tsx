@@ -691,15 +691,25 @@ export const TranslationConsentCard: React.FC<TranslationConsentCardProps> = ({
             {/* RIGHT: QR Code — desktop: column beside text; mobile: horizontal card below */}
             {qrCodeUrl && (
               <div className="flex-shrink-0 flex sm:flex-col items-center gap-2 sm:gap-1.5 sm:w-auto p-3 sm:p-0 rounded-xl sm:rounded-none sm:bg-transparent" style={{ background: 'var(--grey-100, #F0F4F5)' }}>
-                <div
-                  className="w-20 h-20 sm:w-[120px] sm:h-[120px] flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-1.5 transition-transform hover:scale-[1.04]"
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('consent-qr-container');
+                    if (el) el.classList.toggle('qr-expanded');
+                  }}
+                  className="group w-20 h-20 sm:w-[120px] sm:h-[120px] flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-1.5 transition-all duration-300 cursor-pointer hover:scale-[1.04] [&.qr-expanded]:!w-[220px] [&.qr-expanded]:!h-[220px] [&.qr-expanded]:sm:!w-[220px] [&.qr-expanded]:sm:!h-[220px]"
+                  id="consent-qr-container"
                   style={{ border: '2px solid #F0F4F5', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+                  aria-label="Click to enlarge QR code"
                 >
                   <img src={qrCodeUrl} alt="QR Code" className="w-full h-full rounded-md" />
-                </div>
+                </button>
                 <div className="flex flex-col justify-center gap-0.5 sm:items-center">
                   <span className="text-[0.65rem] font-semibold text-center sm:text-center" style={{ color: '#005EB8', lineHeight: 1.3 }}>
                     📱 {en.scanPhone}
+                  </span>
+                  <span className="text-[0.55rem] text-center" style={{ color: '#AEB7BD' }}>
+                    Tap to enlarge
                   </span>
                   {isNotEnglish && (
                     <span className="text-[0.62rem] text-center sm:text-center" style={{ color: '#AEB7BD', direction: isRtl ? 'rtl' : 'ltr', lineHeight: 1.3 }}>
