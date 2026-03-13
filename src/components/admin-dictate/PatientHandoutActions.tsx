@@ -58,8 +58,13 @@ export const PatientHandoutActions: React.FC<PatientHandoutActionsProps> = ({
     setIsGenerating(true);
     try {
       const conversationText = messages
-        .map(m => `[${m.speaker === 'staff' ? 'Staff' : 'Patient'}] ${m.originalText}`)
-        .join('\n');
+        .map(m => {
+          const isStaff = m.speaker === 'staff';
+          const englishText = isStaff ? m.originalText : (m.translatedText || m.originalText);
+          const patientLangText = isStaff ? (m.translatedText || '') : m.originalText;
+          return `[${isStaff ? 'Staff (English)' : `Patient (${patientLanguageName || patientLanguage})`}]\nEnglish: ${englishText}${patientLangText ? `\n${patientLanguageName || patientLanguage}: ${patientLangText}` : ''}`;
+        })
+        .join('\n\n');
 
       const { data, error } = await supabase.functions.invoke('generate-patient-translation-summary', {
         body: { conversationText, patientLanguage, patientLanguageName },
