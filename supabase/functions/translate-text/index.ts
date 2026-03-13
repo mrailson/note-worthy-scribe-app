@@ -6,86 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// =============================================================================
-// OFFENSIVE LANGUAGE FILTER
-// =============================================================================
-
-// Severe terms - translation will be BLOCKED
-const BLOCKED_TERMS = [
-  // Severe profanity (English)
-  'fuck', 'fucking', 'fucked', 'fucker', 'motherfucker', 'motherfucking',
-  'cunt', 'cunts',
-  'nigger', 'nigga', 'niggas',
-  'faggot', 'fag', 'faggots',
-  'retard', 'retarded',
-  'spastic', 'spaz',
-  // Slurs and hate speech
-  'kike', 'chink', 'gook', 'wetback', 'beaner', 'spic',
-  'paki', 'pakis',
-  'tranny', 'shemale',
-  // Threats
-  'kill you', 'kill yourself', 'kys',
-];
-
-// Mild terms - translation proceeds with WARNING
-const WARNING_TERMS = [
-  'shit', 'shitty', 'bullshit',
-  'damn', 'damned', 'dammit',
-  'bloody', 'bugger', 'bollocks',
-  'arse', 'arsehole', 'ass', 'asshole',
-  'bitch', 'bitches', 'bitchy',
-  'bastard', 'bastards',
-  'piss', 'pissed', 'pissing',
-  'crap', 'crappy',
-  'sod', 'sodding',
-  'wanker', 'wankers',
-  'twat', 'twats',
-  'dick', 'dickhead',
-  'idiot', 'idiots', 'idiotic',
-  'stupid', 'moron', 'imbecile',
-];
-
-interface ContentCheckResult {
-  status: 'safe' | 'warning' | 'blocked';
-  flaggedTerms: string[];
-  reason?: string;
-}
-
-function checkOffensiveContent(text: string): ContentCheckResult {
-  const lowerText = text.toLowerCase();
-  
-  // Check for blocked content (severe)
-  const blockedMatches = BLOCKED_TERMS.filter(term => {
-    const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    return regex.test(lowerText);
-  });
-  
-  if (blockedMatches.length > 0) {
-    console.log('🚫 Content BLOCKED - matched terms:', blockedMatches);
-    return {
-      status: 'blocked',
-      flaggedTerms: blockedMatches,
-      reason: 'Content contains language that cannot be translated in a healthcare setting'
-    };
-  }
-  
-  // Check for warning content (mild)
-  const warningMatches = WARNING_TERMS.filter(term => {
-    const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    return regex.test(lowerText);
-  });
-  
-  if (warningMatches.length > 0) {
-    console.log('⚠️ Content WARNING - matched terms:', warningMatches);
-    return {
-      status: 'warning',
-      flaggedTerms: warningMatches,
-      reason: 'Content may contain inappropriate language'
-    };
-  }
-  
-  return { status: 'safe', flaggedTerms: [] };
-}
+// Content moderation filter disabled temporarily for translation reliability testing.
 
 // =============================================================================
 // MAIN HANDLER
@@ -157,35 +78,8 @@ serve(async (req) => {
       );
     }
 
-    // ==========================================================================
-    // OFFENSIVE LANGUAGE CHECK
-    // Only apply the English-centric blocked/warning word lists when the
-    // source text is explicitly English.  For non-English input the words may
-    // be legitimate vocabulary in the source language (e.g. Swahili "kike"
-    // means "female").
-    // ==========================================================================
-    const isEnglishSource =
-      !normalisedSourceLanguage || normalisedSourceLanguage === 'en';
-
-    const contentCheck = isEnglishSource
-      ? checkOffensiveContent(text)
-      : { status: 'safe' as const, flaggedTerms: [] };
-    
-    if (contentCheck.status === 'blocked') {
-      console.warn('🚫 Translation BLOCKED - offensive content detected:', contentCheck.flaggedTerms);
-      return new Response(
-        JSON.stringify({
-          error: 'Content cannot be translated',
-          blocked: true,
-          reason: contentCheck.reason,
-          flaggedTerms: contentCheck.flaggedTerms
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    // Content moderation filter disabled temporarily for translation reliability testing.
+    const contentCheck = { status: 'safe' as const, flaggedTerms: [] as string[] };
 
     // Use Google Translate API v2 with neural machine translation
     console.log('Calling Google Translate API...');
@@ -238,19 +132,11 @@ serve(async (req) => {
     console.log('Translation successful, response keys:', Object.keys(data));
     const translatedText = data.data.translations[0].translatedText;
 
-    // Include content warning if mild profanity was detected
     const responsePayload: Record<string, unknown> = {
       translatedText,
       sourceLanguage: data.data.translations[0].detectedSourceLanguage || normalisedSourceLanguage || 'unknown',
       targetLanguage,
     };
-
-    if (contentCheck.status === 'warning') {
-      responsePayload.contentWarning = {
-        reason: contentCheck.reason,
-        flaggedTerms: contentCheck.flaggedTerms
-      };
-    }
 
     return new Response(
       JSON.stringify(responsePayload),
