@@ -943,7 +943,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                    ) : (
                    /* Messages Area */
                     <div className={cn(
-                      "flex-1 min-h-0 overflow-y-auto",
+                      "flex-1 min-h-0 overflow-hidden",
                       isMobile && "pb-36"
                     )}>
                       <MessagesList
