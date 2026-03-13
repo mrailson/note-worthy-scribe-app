@@ -1833,8 +1833,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   }, [patientLanguage, languageInfo, sendMessage]);
 
   // Confirmation handlers
+  const isSendingRef = useRef(false);
   const handleConfirmSend = useCallback(async () => {
-    if (pendingTranscript) {
+    if (!pendingTranscript || isSendingRef.current) return;
+    isSendingRef.current = true;
+    {
       // Use the tracked pendingSpeaker, not the current speakerMode
       // This ensures patient messages are translated correctly even after mode toggle
       const senderMode = pendingSpeaker;
