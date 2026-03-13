@@ -69,7 +69,7 @@ export const TRANSLATION_LANGUAGES: TranslationLanguage[] = [
   { id: "el", name: "Greek", native: "Ελληνικά", hello: "Γεια σας", region: "Eastern Europe" },
 ];
 
-export const QUICK_PICK_IDS = ["pl", "ro", "bn", "gu", "ur", "ar", "zh", "so", "pt", "pa"];
+export const QUICK_PICK_IDS = ["pl", "ro", "bn", "gu", "ur", "ar", "zh", "so"];
 
 export const REGION_COLOURS: Record<string, { bg: string; accent: string; dot: string }> = {
   "South Asia": { bg: "hsl(30 100% 95%)", accent: "hsl(30 85% 40%)", dot: "hsl(38 92% 50%)" },
