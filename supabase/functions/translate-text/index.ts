@@ -159,8 +159,17 @@ serve(async (req) => {
 
     // ==========================================================================
     // OFFENSIVE LANGUAGE CHECK
+    // Only apply the English-centric blocked/warning word lists when the
+    // source text is explicitly English.  For non-English input the words may
+    // be legitimate vocabulary in the source language (e.g. Swahili "kike"
+    // means "female").
     // ==========================================================================
-    const contentCheck = checkOffensiveContent(text);
+    const isEnglishSource =
+      !normalisedSourceLanguage || normalisedSourceLanguage === 'en';
+
+    const contentCheck = isEnglishSource
+      ? checkOffensiveContent(text)
+      : { status: 'safe' as const, flaggedTerms: [] };
     
     if (contentCheck.status === 'blocked') {
       console.warn('🚫 Translation BLOCKED - offensive content detected:', contentCheck.flaggedTerms);
