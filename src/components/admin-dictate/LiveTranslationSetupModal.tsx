@@ -280,7 +280,14 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 flex-shrink-0 border-t px-8 sm:px-10 py-4 bg-background">
+            <div className="flex justify-between items-center flex-shrink-0 border-t px-8 sm:px-10 py-4 bg-background">
+              {onShowHistory ? (
+                <Button variant="ghost" size="sm" onClick={onShowHistory} className="text-xs text-muted-foreground gap-1 px-2">
+                  <History className="h-3 w-3" />
+                  View History
+                </Button>
+              ) : <div />}
+              <div className="flex gap-3">
               <Button variant="outline" onClick={onClose} disabled={isCreating}>
                 Cancel
               </Button>
