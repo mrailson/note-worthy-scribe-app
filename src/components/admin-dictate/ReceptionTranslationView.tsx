@@ -71,6 +71,7 @@ import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, Chevr
 import { TranslationHistoryInline } from './TranslationHistoryInline';
 import { TRAINING_SCENARIOS } from '@/constants/trainingScenarios';
 import { printPatientHandout } from '@/utils/generatePatientHandout';
+import { PatientHandoutActions } from './PatientHandoutActions';
 import {
   Collapsible,
   CollapsibleContent,
@@ -3998,6 +3999,24 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   {sessionSummaryData.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
+
+              {/* Patient Handout */}
+              {messages.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
+                    Send Patient Summary ({sessionSummaryData.languageName})
+                  </p>
+                  <PatientHandoutActions
+                    messages={messages}
+                    patientLanguage={patientLanguage}
+                    patientLanguageName={sessionSummaryData.languageName || patientLanguage}
+                    practiceName={practiceName}
+                    practiceAddress={practiceContext?.practiceAddress}
+                    sessionStart={sessionSummaryData.startTime}
+                    sessionEnd={sessionSummaryData.endTime}
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 {messages.length > 0 && (

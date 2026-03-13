@@ -40,6 +40,9 @@ import { generateTranslationReportDocx } from '@/utils/generateTranslationReport
 import { TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { showToast } from '@/utils/toastWrapper';
+import { PatientHandoutActions } from './PatientHandoutActions';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { UserCheck } from 'lucide-react';
 
 interface TranslationHistoryInlineProps {
   onClose: () => void;
@@ -429,7 +432,34 @@ export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> =
                         )}
                       </Button>
 
-                      {/* Delete */}
+                      {/* Patient Handout */}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            disabled={session.messages.length === 0}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Send Patient Summary"
+                          >
+                            <UserCheck className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-3" align="end" onClick={(e) => e.stopPropagation()}>
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Patient Summary</p>
+                          <PatientHandoutActions
+                            compact
+                            messages={session.messages as any}
+                            patientLanguage={session.patient_language}
+                            patientLanguageName={langInfo?.name || session.patient_language}
+                            practiceName={practiceContext?.practiceName || 'GP Practice'}
+                            practiceAddress={practiceContext?.practiceAddress}
+                            sessionStart={new Date(session.created_at)}
+                          />
+                        </PopoverContent>
+                      </Popover>
+
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
