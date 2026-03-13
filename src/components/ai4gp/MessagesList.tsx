@@ -72,6 +72,10 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   const lastAutoScrollTimeRef = useRef(0);
   const showScrollButtonRef = useRef(false);
 
+  // --- Direction-based scroll unlock ---
+  const previousScrollTopRef = useRef(0);
+  const pendingAutoScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Show floating button when not at bottom
   const [showScrollButton, setShowScrollButton] = useState(false);
 
