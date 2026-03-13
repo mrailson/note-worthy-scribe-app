@@ -388,12 +388,16 @@ export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> =
                           )}
                         </div>
 
-                        {/* Line 3: Preview */}
-                        {preview && (
+                        {/* Line 3: AI Summary */}
+                        {summaries[session.id] ? (
                           <p className="text-xs text-muted-foreground mt-1 truncate max-w-md">
-                            💬 {preview.speaker === 'staff' ? 'Staff' : 'Patient'}: {preview.text}
+                            ✨ {summaries[session.id]}
                           </p>
-                        )}
+                        ) : session.messages.length > 0 ? (
+                          <p className="text-xs text-muted-foreground/50 mt-1 truncate max-w-md italic">
+                            Generating summary…
+                          </p>
+                        ) : null}
                       </div>
                     </div>
 
