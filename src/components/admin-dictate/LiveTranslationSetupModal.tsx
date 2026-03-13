@@ -48,18 +48,7 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
     if (!isTrainingMode) setStep(1);
   }, [isTrainingMode]);
 
-  // Filter out 'none' and English, sort alphabetically
-  const availableLanguages = useMemo(() => HEALTHCARE_LANGUAGES
-    .filter(lang => lang.code !== 'none' && lang.code !== 'en')
-    .sort((a, b) => a.name.localeCompare(b.name)), []);
-
-  const filteredLanguages = useMemo(() => {
-    if (!langSearch) return availableLanguages;
-    const s = langSearch.toLowerCase();
-    return availableLanguages.filter(lang =>
-      lang.name.toLowerCase().includes(s) || lang.code.toLowerCase().includes(s)
-    );
-  }, [langSearch, availableLanguages]);
+  const selectedLang = TRANSLATION_LANGUAGES.find(l => l.id === selectedLanguage);
 
   const filteredScenarios = useMemo(() => {
     if (categoryFilter === 'All') return TRAINING_SCENARIOS;
