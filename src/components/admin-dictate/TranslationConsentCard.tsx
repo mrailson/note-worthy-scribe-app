@@ -712,7 +712,7 @@ export const TranslationConsentCard: React.FC<TranslationConsentCardProps> = ({
                     📱 {en.scanPhone}
                   </span>
                   <span className="text-[0.55rem] text-center" style={{ color: '#AEB7BD' }}>
-                    Tap to enlarge
+                    {qrExpanded ? 'Tap to shrink' : 'Tap to enlarge'}
                   </span>
                   {isNotEnglish && (
                     <span className="text-[0.62rem] text-center sm:text-center" style={{ color: '#AEB7BD', direction: isRtl ? 'rtl' : 'ltr', lineHeight: 1.3 }}>
