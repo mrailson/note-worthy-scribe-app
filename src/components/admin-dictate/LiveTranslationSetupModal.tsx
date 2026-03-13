@@ -8,15 +8,13 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Languages, QrCode, Loader2, Check, MessageSquareText, GraduationCap, ChevronsUpDown, Search, ChevronRight, ChevronLeft, History } from 'lucide-react';
-import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
+import { Languages, QrCode, Loader2, GraduationCap, ChevronRight, ChevronLeft, History } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 import { Switch } from '@/components/ui/switch';
 import { TRAINING_SCENARIOS } from '@/constants/trainingScenarios';
+import { LanguageSelectorV2 } from '@/components/translation/LanguageSelectorV2';
+import { TRANSLATION_LANGUAGES } from '@/constants/translationLanguages';
 
 const CATEGORIES = ['All', 'Routine Reception', 'Urgent Triage', 'Admin & Paperwork'];
 
@@ -37,8 +35,6 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
   const [isCreating, setIsCreating] = useState(false);
   const [isTrainingMode, setIsTrainingMode] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<string>('appointment_booking');
-  const [langSearch, setLangSearch] = useState('');
-  const [langOpen, setLangOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [categoryFilter, setCategoryFilter] = useState('All');
 
@@ -52,18 +48,7 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
     if (!isTrainingMode) setStep(1);
   }, [isTrainingMode]);
 
-  // Filter out 'none' and English, sort alphabetically
-  const availableLanguages = useMemo(() => HEALTHCARE_LANGUAGES
-    .filter(lang => lang.code !== 'none' && lang.code !== 'en')
-    .sort((a, b) => a.name.localeCompare(b.name)), []);
-
-  const filteredLanguages = useMemo(() => {
-    if (!langSearch) return availableLanguages;
-    const s = langSearch.toLowerCase();
-    return availableLanguages.filter(lang =>
-      lang.name.toLowerCase().includes(s) || lang.code.toLowerCase().includes(s)
-    );
-  }, [langSearch, availableLanguages]);
+  const selectedLang = TRANSLATION_LANGUAGES.find(l => l.id === selectedLanguage);
 
   const filteredScenarios = useMemo(() => {
     if (categoryFilter === 'All') return TRAINING_SCENARIOS;
@@ -85,7 +70,6 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
         return;
       }
 
-      // For training mode, save to DB with is_training flag then use fake token
       if (isTrainingMode) {
         const fakeToken = crypto.randomUUID();
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -112,10 +96,7 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
         return;
       }
 
-      // Generate unique session token
       const sessionToken = crypto.randomUUID();
-
-      // Create session in database with 1 hour expiry
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       
       const { data, error } = await supabase
@@ -140,11 +121,9 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
     }
   };
 
-  const selectedLang = availableLanguages.find(l => l.code === selectedLanguage);
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className={`transition-all duration-300 max-h-[85vh] flex flex-col ${step === 2 ? 'sm:max-w-2xl' : 'sm:max-w-md'}`}>
+      <DialogContent className={`transition-all duration-300 max-h-[85vh] flex flex-col ${step === 2 ? 'sm:max-w-2xl' : 'sm:max-w-lg'}`}>
         {/* STEP 1 */}
         {step === 1 && (
           <div className="animate-in fade-in-0 duration-200 flex flex-col min-h-0 flex-1">
@@ -159,92 +138,13 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
             </DialogHeader>
 
             <div className="flex-1 min-h-0 overflow-y-auto">
-              <div className="space-y-6 py-4 px-8 sm:px-10">
+              <div className="space-y-6 py-4 px-1 sm:px-2">
                 <div className="space-y-2">
-                  <Label htmlFor="language">Patient's Language</Label>
-                  
-                  {/* Voice Quality Legend */}
-                  <div className="rounded-md bg-muted/50 p-3 text-xs space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
-                      <span className="text-muted-foreground">Premium voice (natural, realistic)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
-                      <span className="text-muted-foreground">Standard voice (clear, functional)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MessageSquareText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                      <span className="text-muted-foreground">Text only (no audio playback)</span>
-                    </div>
-                  </div>
-                  
-                  <Popover open={langOpen} onOpenChange={setLangOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={langOpen}
-                        className="w-full justify-between"
-                      >
-                        {selectedLang ? (
-                          <span className="flex items-center gap-2">
-                            <span>{selectedLang.flag}</span>
-                            <span>{selectedLang.name}</span>
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">Search or select language...</span>
-                        )}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0 z-[200] bg-popover" align="start">
-                      <div className="p-2 border-b">
-                        <div className="relative">
-                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Search language or code..."
-                            value={langSearch}
-                            onChange={(e) => setLangSearch(e.target.value)}
-                            className="pl-8 h-9"
-                            autoFocus
-                          />
-                        </div>
-                      </div>
-                      <ScrollArea className="h-64">
-                        <div className="p-1">
-                          {filteredLanguages.map((lang) => (
-                            <button
-                              key={lang.code}
-                              onClick={() => {
-                                setSelectedLanguage(lang.code);
-                                setLangOpen(false);
-                                setLangSearch('');
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-                            >
-                              <span>{lang.flag}</span>
-                              <span className="flex-1">{lang.name}</span>
-                              {lang.hasElevenLabsVoice && (
-                                <Check className="h-4 w-4 text-green-500" />
-                              )}
-                              {lang.hasGoogleTTSVoice && !lang.hasElevenLabsVoice && (
-                                <Check className="h-4 w-4 text-amber-500" />
-                              )}
-                              {selectedLanguage === lang.code && (
-                                <Check className="h-4 w-4 text-primary" />
-                              )}
-                            </button>
-                          ))}
-                          {filteredLanguages.length === 0 && (
-                            <div className="py-4 text-center text-sm text-muted-foreground">
-                              No languages found
-                            </div>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </PopoverContent>
-                  </Popover>
+                  <Label>Patient's Language</Label>
+                  <LanguageSelectorV2
+                    value={selectedLanguage}
+                    onChange={setSelectedLanguage}
+                  />
                 </div>
 
                 {selectedLang && (
@@ -281,7 +181,7 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
               </div>
             </div>
 
-            <div className="flex justify-between items-center flex-shrink-0 border-t px-8 sm:px-10 py-4 bg-background">
+            <div className="flex justify-between items-center flex-shrink-0 border-t px-4 sm:px-6 py-4 bg-background">
               {onShowHistory ? (
                 <Button variant="ghost" size="sm" onClick={onShowHistory} className="text-xs text-muted-foreground gap-1 px-2">
                   <History className="h-3 w-3" />
@@ -335,7 +235,7 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
                 <span>The AI patient will play this role during your practice session</span>
                 {selectedLang && (
                   <span className="inline-flex items-center gap-1 text-xs font-medium bg-muted px-2 py-0.5 rounded-full">
-                    {selectedLang.flag} {selectedLang.name}
+                    {selectedLang.native} · {selectedLang.name}
                   </span>
                 )}
               </DialogDescription>
