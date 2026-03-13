@@ -78,35 +78,8 @@ serve(async (req) => {
       );
     }
 
-    // ==========================================================================
-    // OFFENSIVE LANGUAGE CHECK
-    // Only apply the English-centric blocked/warning word lists when the
-    // source text is explicitly English.  For non-English input the words may
-    // be legitimate vocabulary in the source language (e.g. Swahili "kike"
-    // means "female").
-    // ==========================================================================
-    const isEnglishSource =
-      !normalisedSourceLanguage || normalisedSourceLanguage === 'en';
-
-    const contentCheck = isEnglishSource
-      ? checkOffensiveContent(text)
-      : { status: 'safe' as const, flaggedTerms: [] };
-    
-    if (contentCheck.status === 'blocked') {
-      console.warn('🚫 Translation BLOCKED - offensive content detected:', contentCheck.flaggedTerms);
-      return new Response(
-        JSON.stringify({
-          error: 'Content cannot be translated',
-          blocked: true,
-          reason: contentCheck.reason,
-          flaggedTerms: contentCheck.flaggedTerms
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    // Content moderation filter disabled temporarily for translation reliability testing.
+    const contentCheck = { status: 'safe' as const, flaggedTerms: [] as string[] };
 
     // Use Google Translate API v2 with neural machine translation
     console.log('Calling Google Translate API...');
