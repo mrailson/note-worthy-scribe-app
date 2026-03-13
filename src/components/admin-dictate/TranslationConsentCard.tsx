@@ -694,14 +694,15 @@ export const TranslationConsentCard: React.FC<TranslationConsentCardProps> = ({
               <div className="flex-shrink-0 flex sm:flex-col items-center gap-2 sm:gap-1.5 sm:w-auto p-3 sm:p-0 rounded-xl sm:rounded-none sm:bg-transparent" style={{ background: 'var(--grey-100, #F0F4F5)' }}>
                 <button
                   type="button"
-                  onClick={() => {
-                    const el = document.getElementById('consent-qr-container');
-                    if (el) el.classList.toggle('qr-expanded');
-                  }}
-                  className="group w-20 h-20 sm:w-[120px] sm:h-[120px] flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-1.5 transition-all duration-300 cursor-pointer hover:scale-[1.04] [&.qr-expanded]:!w-[220px] [&.qr-expanded]:!h-[220px] [&.qr-expanded]:sm:!w-[220px] [&.qr-expanded]:sm:!h-[220px]"
-                  id="consent-qr-container"
-                  style={{ border: '2px solid #F0F4F5', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-                  aria-label="Click to enlarge QR code"
+                  onClick={() => setQrExpanded(!qrExpanded)}
+                  className={cn(
+                    'flex-shrink-0 bg-white rounded-xl flex items-center justify-center p-1.5 transition-all duration-300 cursor-pointer',
+                    qrExpanded
+                      ? 'w-[220px] h-[220px] shadow-lg'
+                      : 'w-20 h-20 sm:w-[120px] sm:h-[120px] hover:scale-[1.04]'
+                  )}
+                  style={{ border: '2px solid #F0F4F5', boxShadow: qrExpanded ? '0 8px 30px rgba(0,0,0,0.12)' : '0 2px 8px rgba(0,0,0,0.06)' }}
+                  aria-label={qrExpanded ? 'Click to shrink QR code' : 'Click to enlarge QR code'}
                 >
                   <img src={qrCodeUrl} alt="QR Code" className="w-full h-full rounded-md" />
                 </button>
