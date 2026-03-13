@@ -93,8 +93,35 @@ const getSessionDuration = (messages: { created_at: string }[]) => {
 // ── COMPONENT ──
 
 export const TranslationHistoryInline: React.FC<TranslationHistoryInlineProps> = ({ onClose }) => {
-  const { sessions, isLoading, deleteSession, deleteAllSessions } = useReceptionTranslationHistory();
+  const { sessions, isLoading, deleteSession, deleteAllSessions, updateSession } = useReceptionTranslationHistory();
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [summaries, setSummaries] = useState<Record<string, string>>({});
+  const generatingRef = useRef<Set<string>>(new Set());
+
+  // Generate AI summaries lazily, cache to notes column
+  useEffect(() => {
+    sessions.forEach(session => {
+      if (summaries[session.id] || session.messages.length === 0 || generatingRef.current.has(session.id)) return;
+      if (session.notes) {
+        setSummaries(prev => ({ ...prev, [session.id]: session.notes! }));
+        return;
+      }
+      generatingRef.current.add(session.id);
+      const conversationText = session.messages.map(m =>
+        `${m.speaker === 'staff' ? 'Staff' : 'Patient'}: ${m.original_text}`
+      ).join('\n');
+      supabase.functions.invoke('summarise-translation-session', {
+        body: { conversationText }
+      }).then(({ data }) => {
+        if (data?.summary) {
+          setSummaries(prev => ({ ...prev, [session.id]: data.summary }));
+          updateSession(session.id, { notes: data.summary });
+        }
+      }).catch(() => {
+        // Silently fail — summary is non-critical
+      });
+    });
+  }, [sessions]);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [downloadingSessionId, setDownloadingSessionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
