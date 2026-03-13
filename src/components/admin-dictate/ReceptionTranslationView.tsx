@@ -1150,9 +1150,13 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       if (autoPlayAudioRef.current) {
         const newStaffMessage = newMessages.find(m => m.speaker === 'staff' && m.translatedText);
         if (newStaffMessage) {
-          setTimeout(() => {
-            playAudioForMessage(newStaffMessage.id, newStaffMessage.translatedText!, patientLanguage);
-          }, 500);
+          // In training mode, skip auto-play for the consent/intro message
+          const isConsentMessage = isTrainingMode && newStaffMessage.originalText?.startsWith('Translation service started');
+          if (!isConsentMessage) {
+            setTimeout(() => {
+              playAudioForMessage(newStaffMessage.id, newStaffMessage.translatedText!, patientLanguage);
+            }, 500);
+          }
         }
       }
     }
