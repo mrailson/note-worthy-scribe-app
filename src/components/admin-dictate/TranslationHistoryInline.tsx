@@ -89,15 +89,6 @@ const getSessionDuration = (messages: { created_at: string }[]) => {
   return mins < 1 ? '<1 min' : `${mins} min`;
 };
 
-const getPreview = (messages: { original_text: string; speaker: string }[]) => {
-  if (!messages.length) return null;
-  const m = messages[0];
-  const t = m.original_text || '';
-  return {
-    speaker: m.speaker,
-    text: t.length > 80 ? t.substring(0, 80) + '…' : t,
-  };
-};
 
 // ── COMPONENT ──
 
