@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Languages, QrCode, Loader2, Check, MessageSquareText, GraduationCap, ChevronsUpDown, Search, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Languages, QrCode, Loader2, Check, MessageSquareText, GraduationCap, ChevronsUpDown, Search, ChevronRight, ChevronLeft, History } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
@@ -24,12 +24,14 @@ interface LiveTranslationSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSessionCreated: (sessionId: string, sessionToken: string, patientLanguage: string, isTrainingMode?: boolean, trainingScenario?: string) => void;
+  onShowHistory?: () => void;
 }
 
 export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps> = ({
   isOpen,
   onClose,
-  onSessionCreated
+  onSessionCreated,
+  onShowHistory
 }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
@@ -279,7 +281,14 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 flex-shrink-0 border-t px-8 sm:px-10 py-4 bg-background">
+            <div className="flex justify-between items-center flex-shrink-0 border-t px-8 sm:px-10 py-4 bg-background">
+              {onShowHistory ? (
+                <Button variant="ghost" size="sm" onClick={onShowHistory} className="text-xs text-muted-foreground gap-1 px-2">
+                  <History className="h-3 w-3" />
+                  View History
+                </Button>
+              ) : <div />}
+              <div className="flex gap-3">
               <Button variant="outline" onClick={onClose} disabled={isCreating}>
                 Cancel
               </Button>
@@ -303,6 +312,7 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
                   )}
                 </Button>
               )}
+              </div>
             </div>
           </div>
         )}

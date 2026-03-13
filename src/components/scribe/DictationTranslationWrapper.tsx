@@ -102,6 +102,7 @@ export function DictationTranslationWrapper({ onBack }: DictationTranslationWrap
         isOpen={showSetupModal}
         onClose={handleModalClose}
         onSessionCreated={handleSessionCreated}
+        onShowHistory={() => { setShowSetupModal(false); setShowHistory(true); }}
       />
     </div>
   );
