@@ -682,6 +682,9 @@ export const MeetingRecorder = ({
     stopRecordingRef.current?.({ serverTriggered: true });
   }, []);
 
+  // Mic stream ref - declared early for health monitor access
+  const micAudioStreamRef = useRef<MediaStream | null>(null);
+
   const handleRecordingStalled = useCallback(() => {
     console.log('⚠️ Health monitor detected stall - transcription may have stopped');
   }, []);
