@@ -636,24 +636,188 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     return html;
   };
 
-  // Helper function to convert notes to styled HTML for email
-  const convertNotesToStyledHTML = (content: string, senderName: string, title: string): string => {
+  // Helper function to convert notes to styled HTML for email — professional NHS-branded template
+  const convertNotesToStyledHTML = (
+    content: string, 
+    senderName: string, 
+    title: string,
+    meetingMeta?: {
+      date?: string;
+      time?: string;
+      duration?: number;
+      format?: string;
+      location?: string;
+      overview?: string;
+      wordCount?: number;
+      attendees?: string[];
+    }
+  ): string => {
     const formattedNotes = convertToStyledHTML(content);
+    
+    // Extract attendees from notes content if not provided
+    let attendeeList = meetingMeta?.attendees || [];
+    if (attendeeList.length === 0) {
+      const attendeeMatch = content.match(/(?:ATTENDEES|Attendees)\s*\n([\s\S]*?)(?=\n#{1,3}\s|\n[A-Z]{3,}|\n\n\n)/i);
+      if (attendeeMatch) {
+        attendeeList = attendeeMatch[1]
+          .split('\n')
+          .map(l => l.replace(/^[-•*]\s*/, '').trim())
+          .filter(l => l.length > 1 && !l.match(/^TBC$/i));
+      }
+    }
+    
+    // Format meeting time
+    const timeDisplay = meetingMeta?.time || '';
+    const durationDisplay = meetingMeta?.duration ? `${meetingMeta.duration} minutes` : '';
+    
+    // Format display
+    const formatMap: Record<string, string> = {
+      'teams': 'Microsoft Teams',
+      'hybrid': 'Hybrid',
+      'face-to-face': 'Face to Face',
+      'phone': 'Phone Call',
+    };
+    const formatDisplay = formatMap[meetingMeta?.format || ''] || meetingMeta?.format || '';
+    const locationDisplay = meetingMeta?.location || '';
+    
+    // Build overview section
+    let overviewHTML = '';
+    if (meetingMeta?.overview) {
+      const overviewText = meetingMeta.overview
+        .replace(/\*\*/g, '')
+        .replace(/\\\*/g, '');
+      
+      // Split into paragraph and bullets
+      const parts = overviewText.split('\n').filter(l => l.trim());
+      const paragraph = parts.filter(l => !l.trim().startsWith('•')).join(' ').trim();
+      const bullets = parts.filter(l => l.trim().startsWith('•'));
+      
+      overviewHTML = `
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+          <tr><td style="background-color: #F0F9FF; border-left: 4px solid #2563EB; border-radius: 6px; padding: 16px 20px;">
+            <p style="margin: 0 0 8px 0; font-family: Arial, sans-serif; font-size: 13px; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.5px;">Executive Summary</p>
+            <p style="margin: 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.6;">${paragraph}</p>
+            ${bullets.length > 0 ? `
+              <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;">
+                ${bullets.map(b => `<tr><td style="padding: 3px 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.5;">• ${b.replace(/^•\s*/, '')}</td></tr>`).join('\n')}
+              </table>
+            ` : ''}
+          </td></tr>
+        </table>
+      `;
+    }
+    
+    // Build meeting details table rows
+    const detailRows: string[] = [];
+    if (meetingMeta?.date) {
+      detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Date</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${meetingMeta.date}</td></tr>`);
+    }
+    if (timeDisplay) {
+      detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Time</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${timeDisplay}${durationDisplay ? ` (${durationDisplay})` : ''}</td></tr>`);
+    }
+    if (formatDisplay) {
+      detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Format</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${formatDisplay}${locationDisplay ? ` — ${locationDisplay}` : ''}</td></tr>`);
+    }
+    if (attendeeList.length > 0) {
+      detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Attendees</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${attendeeList.join(', ')}</td></tr>`);
+    }
+    
+    const detailsTableHTML = detailRows.length > 0 ? `
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 16px 0; background-color: #F8FAFC; border-radius: 6px;">
+        ${detailRows.join('\n')}
+      </table>
+    ` : '';
 
-    return `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
-      <div style="margin-bottom: 20px;">
-        <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">
-          Dear ${senderName},<br><br>
-          Please find attached the meeting notes for "${title}".<br><br>
-          Kind regards,<br>
-          ${senderName}
+    return `<div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; background-color: #ffffff;">
+
+  <!-- Header -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="background-color: #005EB8; padding: 20px 28px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td>
+              <p style="margin: 0; font-family: Arial, sans-serif; font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: 0.3px;">Notewell AI</p>
+              <p style="margin: 4px 0 0 0; font-family: Arial, sans-serif; font-size: 12px; color: #93C5FD; letter-spacing: 0.5px;">Meeting Notes Service</p>
+            </td>
+            <td style="text-align: right; vertical-align: top;">
+              <span style="display: inline-block; background-color: rgba(255,255,255,0.15); color: #ffffff; font-family: Arial, sans-serif; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 3px; letter-spacing: 0.8px; text-transform: uppercase;">OFFICIAL</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Accent stripe -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr><td style="height: 3px; background: linear-gradient(90deg, #005EB8, #2563EB, #60A5FA);"></td></tr>
+  </table>
+
+  <!-- Title bar -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="background-color: #EFF6FF; padding: 16px 28px; border-bottom: 1px solid #DBEAFE;">
+        <p style="margin: 0; font-family: Arial, sans-serif; font-size: 16px; font-weight: 700; color: #1E40AF;">${title}</p>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Body -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="padding: 24px 28px;">
+        
+        <p style="margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.6;">
+          Dear ${senderName},
         </p>
-      </div>
-      <hr style="border: none; border-top: 3px solid #0066cc; margin: 20px 0;" />
-      <div style="margin-top: 20px;">
+        
+        <p style="margin: 0 0 20px 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.6;">
+          Please find below a summary of your meeting, with the full notes attached as a Word document.
+        </p>
+        
+        ${detailsTableHTML}
+        
+        ${overviewHTML}
+        
+        <!-- Attachment callout -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+          <tr><td style="background-color: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 14px 20px;">
+            <p style="margin: 0 0 4px 0; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; color: #166534;">📎 Full meeting notes attached</p>
+            <p style="margin: 0; font-family: Arial, sans-serif; font-size: 13px; color: #15803D;">Open the Word document for the complete minutes</p>
+          </td></tr>
+        </table>
+        
+        <!-- Divider -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 24px 0 16px 0;">
+          <tr><td style="height: 1px; background-color: #E5E7EB;"></td></tr>
+        </table>
+        
+        <!-- Full notes heading -->
+        <p style="margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 15px; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.5px;">Full Meeting Notes</p>
         ${formattedNotes}
-      </div>
-    </div>`;
+        
+      </td>
+    </tr>
+  </table>
+
+  <!-- Footer -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr><td style="height: 1px; background-color: #E5E7EB;"></td></tr>
+    <tr>
+      <td style="background-color: #F8FAFC; padding: 20px 28px;">
+        <p style="margin: 0 0 10px 0; font-family: Arial, sans-serif; font-size: 13px; color: #374151; line-height: 1.5;">
+          Kind regards,<br/>${senderName}
+        </p>
+        <p style="margin: 0; font-family: Arial, sans-serif; font-size: 11px; color: #9CA3AF; line-height: 1.5;">
+          Generated by Notewell AI — Meeting Intelligence for NHS Primary Care<br/>
+          This email was sent automatically at the end of your recording session.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+</div>`;
   };
 
   const handleViewMeeting = () => {
