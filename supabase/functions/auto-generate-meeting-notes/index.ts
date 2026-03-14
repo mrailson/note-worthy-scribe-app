@@ -1488,7 +1488,8 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
             agenda: meeting.agenda,
             meetingFormat: meeting.meeting_format,
             meetingDate: formattedMeetingDate,
-            documentNames: uploadedDocuments?.map(d => d.file_name)
+            documentNames: uploadedDocuments?.map(d => d.file_name),
+            meetingId: meetingId
           }
         }
       );

@@ -294,7 +294,10 @@ BAD EXAMPLES (never generate these):
 If attendees are provided, you may use their team/department context to make the title more specific.
 If documents were discussed, reference the main document topic.
 
-Respond with ONLY the title text, no quotes, no explanation.`;
+Respond with ONLY the title text, no quotes, no explanation.${correctionHints ? `
+
+NAME AND TERM CORRECTIONS (use the correct spellings in your title):
+${correctionHints}` : ''}`;
 
     const userPrompt = `Current title: ${currentTitle}
 ${contextSection}
