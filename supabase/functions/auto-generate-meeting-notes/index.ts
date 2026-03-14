@@ -833,64 +833,6 @@ Cognitive & Mental Health Assessment
 Memory concerns explored (patient and carer perspective). Orientation, attention, executive function (informal clinical assessment).
 Mood, anxiety, apathy, loneliness. Delirium risk factors. Capacity considerations if relevant.
 Any safeguarding or vulnerability concerns.
-/**
- * Auto-detect meeting format from transcript content.
- * Returns 'teams', 'hybrid', or 'face-to-face'.
- * Only called when the user hasn't explicitly set the format (i.e. it's still the default).
- */
-function detectMeetingFormat(transcript: string): 'teams' | 'hybrid' | 'face-to-face' {
-  const lower = transcript.toLowerCase();
-  
-  const virtualSignals = [
-    'you\'re on mute', 'you\'re muted', 'can you unmute', 'unmute yourself',
-    'share my screen', 'share your screen', 'can you see my screen', 'screen sharing',
-    'i\'ll share the', 'drop off the call', 'drop off now', 'join the call',
-    'joined the meeting', 'left the meeting', 'teams meeting', 'zoom meeting',
-    'zoom call', 'on the call', 'dial in', 'connection issues', 'internet connection',
-    'camera on', 'camera off', 'turn your camera', 'can you hear me', 'audio issues',
-    'breakout room', 'waiting room', 'raise your hand', 'put in the chat',
-    'type in the chat', 'chat function', 'recording this meeting', 'teams is',
-    'i\'m going to leave the', 'kicked off the call', 'logging off', 'signing off',
-    'i\'ll hang up', 'can everyone hear', 'you\'re breaking up', 'frozen screen',
-    'your mic', 'microphone', 'webcam', 'virtual background', 'bandwidth', 'laggy', 'lagging',
-  ];
-  
-  const faceToFaceSignals = [
-    'pass that round', 'pass the', 'hand out', 'take a seat', 'sit down',
-    'whiteboard', 'flip chart', 'on the board', 'walk over', 'room temperature',
-    'close the door', 'coffee', 'tea and coffee', 'shall we take a break',
-    'comfort break', 'grab a seat',
-  ];
-  
-  let virtualScore = 0;
-  let faceToFaceScore = 0;
-  
-  for (const signal of virtualSignals) {
-    const regex = new RegExp(signal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-    const matches = lower.match(regex);
-    if (matches) {
-      virtualScore += Math.min(matches.length, 3);
-    }
-  }
-  
-  for (const signal of faceToFaceSignals) {
-    const regex = new RegExp(signal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-    const matches = lower.match(regex);
-    if (matches) {
-      faceToFaceScore += Math.min(matches.length, 3);
-    }
-  }
-  
-  console.log(`📍 Format detection — Virtual: ${virtualScore}, Face-to-face: ${faceToFaceScore}`);
-  
-  if (virtualScore >= 3 && faceToFaceScore >= 3) return 'hybrid';
-  if (virtualScore >= 3 && virtualScore > faceToFaceScore * 2) return 'teams';
-  if (faceToFaceScore >= 3 && faceToFaceScore > virtualScore * 2) return 'face-to-face';
-  if (virtualScore >= 2) return 'teams';
-  return 'face-to-face';
-}
-
-
 
 Plan
 
