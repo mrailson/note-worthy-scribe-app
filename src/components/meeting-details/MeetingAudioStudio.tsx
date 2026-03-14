@@ -165,6 +165,11 @@ export const MeetingAudioStudio = ({
               console.log(`📊 Loaded ${parsed.slideAnnotations.length} saved slide annotations`);
             }
 
+            if (parsed.turnTimings && parsed.turnTimings.length > 0) {
+              setTurnTimings(parsed.turnTimings);
+              console.log(`⏱️ Loaded ${parsed.turnTimings.length} saved turn timings`);
+            }
+
             if (data.audio_overview_text?.includes('ALICE:') && data.audio_overview_url) {
               setHasSavedDiscussion(true);
               setScriptGenerated(true);
