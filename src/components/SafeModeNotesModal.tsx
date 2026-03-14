@@ -2521,6 +2521,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const applyInlineFormatting = (content: string): string => {
       // Escape HTML first
       let escaped = content
+        .replace(/\\\*/g, '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
