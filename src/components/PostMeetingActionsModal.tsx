@@ -472,8 +472,12 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   const convertToStyledHTML = (text: string): string => {
     // First strip duplicate blocks
     const cleanedText = stripDuplicateBlocks(text);
-    // Strip bold markers
-    let processedText = cleanedText.replace(/\*\*/g, '');
+    // Clean escaped asterisks and stray markdown but preserve intentional bold
+    let processedText = cleanedText
+      .replace(/\\\*/g, '')           // Remove escaped asterisks
+      .replace(/\*{3,}/g, '**')      // Collapse 3+ asterisks to bold
+      .replace(/═+/g, '')            // Remove divider lines
+      .replace(/---+/g, '');          // Remove horizontal rules from AI
     
     // Remove transcript sections
     const transcriptIndex = processedText.indexOf('MEETING TRANSCRIPT FOR REFERENCE:');
