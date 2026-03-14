@@ -320,7 +320,11 @@ export const parseContentToDocxElements = async (content: string) => {
     const headingMatch = line.match(/^(#{1,3})\s+(.+)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;
-      const headingText = decodeHtmlEntities(headingMatch[2]);
+      // Strip bold markers and stray asterisks from heading text
+      const headingText = decodeHtmlEntities(headingMatch[2])
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .trim();
       
       const headingLevels = [HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3];
       
@@ -389,6 +393,11 @@ export const parseContentToDocxElements = async (content: string) => {
   return elements;
 };
 
+// Strip stray asterisks from a text fragment (after bold/italic has been extracted)
+const cleanStrayAsterisks = (text: string): string => {
+  return text.replace(/\*+/g, '').replace(/\s{2,}/g, ' ');
+};
+
 // Parse inline bold/italic formatting
 const parseInlineFormatting = (text: string, TextRun: any) => {
   const runs: any[] = [];
@@ -402,9 +411,9 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   let match;
   
   while ((match = markdownRegex.exec(decodedText)) !== null) {
-    // Add text before match
+    // Add text before match (clean stray asterisks)
     if (match.index > currentIndex) {
-      const normalText = decodedText.substring(currentIndex, match.index);
+      const normalText = cleanStrayAsterisks(decodedText.substring(currentIndex, match.index));
       if (normalText) {
         runs.push(new TextRun({ 
           text: normalText, 
@@ -415,11 +424,11 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
       }
     }
     
-    // Add formatted text
+    // Add formatted text (also clean any nested stray asterisks)
     if (match[2]) {
       // Bold
       runs.push(new TextRun({ 
-        text: match[2], 
+        text: cleanStrayAsterisks(match[2]), 
         size: FONTS.size.body, 
         bold: true,
         color: NHS_COLORS.textGrey,
@@ -428,7 +437,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
     } else if (match[3]) {
       // Italic
       runs.push(new TextRun({ 
-        text: match[3], 
+        text: cleanStrayAsterisks(match[3]), 
         size: FONTS.size.body, 
         italics: true,
         color: NHS_COLORS.textGrey,
@@ -439,9 +448,9 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
     currentIndex = match.index + match[0].length;
   }
   
-  // Add remaining text
+  // Add remaining text (clean stray asterisks)
   if (currentIndex < decodedText.length) {
-    const remainingText = decodedText.substring(currentIndex);
+    const remainingText = cleanStrayAsterisks(decodedText.substring(currentIndex));
     if (remainingText) {
       runs.push(new TextRun({ 
         text: remainingText, 
@@ -455,7 +464,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   // If no formatting found, return plain text
   if (runs.length === 0) {
     runs.push(new TextRun({ 
-      text: decodedText, 
+      text: cleanStrayAsterisks(decodedText), 
       size: FONTS.size.body,
       color: NHS_COLORS.textGrey,
       font: FONTS.default,

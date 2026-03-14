@@ -129,6 +129,7 @@ export const cleanMarkdownText = (text: string): string => {
     .replace(/\*\*\*([\s\S]+?)\*\*\*/g, '$1') // Remove bold+italic
     .replace(/\*\*([\s\S]+?)\*\*/g, '$1')       // Remove bold
     .replace(/\*([^*\n]+)\*/g, '$1')              // Remove italic
+    .replace(/\*+/g, '')                            // Remove any stray asterisks
     .replace(/`([^`]+)`/g, '$1')                    // Remove code
     .replace(/#{1,6}\s+/g, '')                      // Remove heading markers
     .replace(/^[-•]\s+/gm, '')                      // Remove bullet points
