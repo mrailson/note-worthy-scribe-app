@@ -373,11 +373,16 @@ Any American English spelling in the output is a CRITICAL ERROR. Check every wor
       link.href = url;
       
       // Clean filename
-      const safeTitle = data.meetingTitle
+      // Use clean British date filename format
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const now = new Date();
+      const datePrefix = `${String(now.getDate()).padStart(2, '0')} ${months[now.getMonth()]} ${now.getFullYear()}`;
+      const cleanTitle = data.meetingTitle
         .replace(/[^a-zA-Z0-9\s-]/g, '')
-        .replace(/\s+/g, '_')
-        .substring(0, 50);
-      link.download = `${safeTitle}_Summary_Infographic.png`;
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+        .substring(0, 60);
+      link.download = `${datePrefix} - ${cleanTitle} - Infographic.png`;
       
       document.body.appendChild(link);
       link.click();
