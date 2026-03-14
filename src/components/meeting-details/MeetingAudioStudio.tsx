@@ -1078,6 +1078,9 @@ export const MeetingAudioStudio = ({
         </>
       )}
 
+        </>
+      ) : null}
+
       <PronunciationDialog
         open={showPronunciationDialog}
         onOpenChange={setShowPronunciationDialog}
