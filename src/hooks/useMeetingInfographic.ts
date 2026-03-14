@@ -201,6 +201,24 @@ export const useMeetingInfographic = () => {
     return trimmed;
   };
 
+  // Format meeting data into a concise text summary for the infographic prompt
+  const formatMeetingForInfographic = (data: MeetingInfographicData): string => {
+    const parts: string[] = [];
+    parts.push(`Meeting: ${data.meetingTitle}`);
+    if (data.meetingDate) parts.push(`Date: ${data.meetingDate}`);
+    if (data.meetingTime) parts.push(`Time: ${data.meetingTime}`);
+    if (data.location) parts.push(`Location: ${data.location}`);
+    if (data.attendees?.length) parts.push(`Attendees: ${data.attendees.join(', ')}`);
+    if (data.notesContent) parts.push(`\nNotes:\n${data.notesContent}`);
+    if (data.actionItems?.length) {
+      parts.push(`\nAction Items (${data.actionItems.length}):`);
+      data.actionItems.forEach(item => {
+        parts.push(`- ${item.description}${item.owner ? ` (${item.owner})` : ''}${item.deadline ? ` by ${item.deadline}` : ''}`);
+      });
+    }
+    return parts.join('\n');
+  };
+
   const generateInfographic = async (
     data: MeetingInfographicData,
     options?: InfographicOptions
