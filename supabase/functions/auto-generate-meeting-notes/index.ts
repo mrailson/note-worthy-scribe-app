@@ -804,6 +804,67 @@ serve(async (req) => {
 
     console.log('📄 Using', transcriptUsed, 'transcript for notes generation');
 
+    // ============= APPLY PERSISTENT NAME/TERM CORRECTIONS =============
+    // Load corrections from the database (user-specific + global + practice-level)
+    let correctionsApplied = 0;
+    let correctionsList: Array<{ incorrect: string; correct: string }> = [];
+    try {
+      console.log('📋 Loading term corrections...');
+      
+      // Fetch all applicable corrections: user's own, global, and practice-level
+      const { data: corrections, error: corrError } = await supabase
+        .from('medical_term_corrections')
+        .select('incorrect_term, correct_term, usage_count')
+        .or(`user_id.eq.${meeting.user_id},is_global.eq.true${meeting.practice_id ? `,practice_id.eq.${meeting.practice_id}` : ''}`)
+        .order('usage_count', { ascending: false });
+      
+      if (corrError) {
+        console.warn('⚠️ Failed to load corrections:', corrError.message);
+      } else if (corrections && corrections.length > 0) {
+        console.log(`📋 Loaded ${corrections.length} term corrections`);
+        
+        // Store for AI prompt injection
+        correctionsList = corrections.map(c => ({ 
+          incorrect: c.incorrect_term, 
+          correct: c.correct_term 
+        }));
+        
+        // Apply corrections directly to the transcript text
+        for (const correction of corrections) {
+          const incorrectTerm = correction.incorrect_term.trim();
+          const correctTerm = correction.correct_term.trim();
+          
+          // Case-insensitive word boundary replacement
+          const regex = new RegExp(
+            `\\b${incorrectTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 
+            'gi'
+          );
+          
+          const before = cleanedTranscript;
+          cleanedTranscript = cleanedTranscript.replace(regex, (match) => {
+            // Preserve case: if original is capitalised, capitalise replacement
+            if (match[0] === match[0].toUpperCase() && match.slice(1) === match.slice(1).toLowerCase()) {
+              return correctTerm.charAt(0).toUpperCase() + correctTerm.slice(1);
+            }
+            if (match === match.toUpperCase()) {
+              return correctTerm.toUpperCase();
+            }
+            return correctTerm;
+          });
+          
+          if (cleanedTranscript !== before) {
+            correctionsApplied++;
+          }
+        }
+        
+        console.log(`✅ Applied corrections to transcript (${correctionsApplied} terms matched)`);
+      } else {
+        console.log('📋 No term corrections found for this user/practice');
+      }
+    } catch (correctionError) {
+      console.warn('⚠️ Correction loading failed (non-fatal):', correctionError);
+    }
+
     // Detail level instructions for note generation
     const detailInstructions: Record<string, string> = {
       'brief': `
@@ -1151,6 +1212,31 @@ CROSS-REFERENCE HANDLING:
 - ONLY use the cross-reference to: clarify unclear names or spellings, resolve ambiguous medical/clinical terms, confirm intent behind decisions
 - Do NOT introduce any topic, decision, or action that only appears in the cross-reference section
 - If the cross-reference contradicts the primary transcript, trust the primary`;
+
+    // Inject corrections list into prompt if we have any
+    if (correctionsList.length > 0) {
+      // Limit to top 50 most-used corrections to avoid prompt bloat
+      const topCorrections = correctionsList.slice(0, 50);
+      const correctionsBlock = topCorrections
+        .map(c => `"${c.incorrect}" → "${c.correct}"`)
+        .join('\n');
+      
+      systemPrompt += `
+
+═══════════════════════════════════════════════════════════════════════════════
+KNOWN NAME AND TERM CORRECTIONS (APPLY THESE AND SIMILAR VARIATIONS)
+═══════════════════════════════════════════════════════════════════════════════
+
+The following corrections are CONFIRMED by the user. Apply them throughout the notes.
+Also apply them to SIMILAR mishearings — for example, if "Towcester" is the correct spelling,
+also correct "Toaster", "Tow Chester", "Towster", and any other phonetic variation.
+If a person's name is listed, also correct any phonetically similar mishearing of that name.
+
+${correctionsBlock}
+
+IMPORTANT: These corrections take absolute priority over what appears in the transcript.
+The transcript mishears these terms regularly — always use the corrected versions.`;
+    }
 
     // Format date in British format with day of week
     const meetingDate = new Date(meeting.created_at);
