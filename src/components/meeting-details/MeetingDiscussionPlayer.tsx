@@ -10,11 +10,19 @@ interface DialogueTurn {
   endTime: number;
 }
 
+interface SlideAnnotation {
+  turnIndex: number;
+  heading: string;
+  figure?: string | null;
+  bullets?: string[] | null;
+}
+
 interface MeetingDiscussionPlayerProps {
   audioUrl: string;
   dialogueScript: string;
   meetingTitle: string;
   meetingDate?: string;
+  slideAnnotations?: SlideAnnotation[];
 }
 
 const SPEAKER_STYLES = {
