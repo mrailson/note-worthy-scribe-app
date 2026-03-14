@@ -686,13 +686,20 @@ export const MeetingRecorder = ({
     console.log('⚠️ Health monitor detected stall - transcription may have stopped');
   }, []);
 
-  // Recording health monitor - detects stalls and server-side closures
+  const handleTracksDied = useCallback(() => {
+    console.error('🔴 Health monitor: mic tracks died — recording likely broken');
+    // Don't auto-stop — let the user decide, but warn them clearly
+  }, []);
+
+  // Recording health monitor - detects stalls, server-side closures, and dead mic tracks
   const { serverStatus, isStalled } = useRecordingHealthMonitor({
     meetingId: currentMeetingIdFromStorage,
     isRecording,
     lastChunkTimestamp,
     onServerClosureDetected: handleServerClosureDetected,
-    onRecordingStalled: handleRecordingStalled
+    onRecordingStalled: handleRecordingStalled,
+    micStreamRef: micAudioStreamRef,
+    onTracksDied: handleTracksDied
   });
 
   // Duration warning and hard limit effect
