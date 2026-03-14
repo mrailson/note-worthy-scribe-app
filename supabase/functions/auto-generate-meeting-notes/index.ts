@@ -1241,40 +1241,9 @@ SPEAKER ATTRIBUTION RULES:
 
 Key Points
 
-1. **[Topic Heading]**
+${keyPointsTemplate}
 
-   **Context:** [One sentence — why this topic was raised, what triggered the discussion]
-
-   **Discussion:** [2-4 sentences covering the key positions, figures, and concerns raised. Include specific numbers, names, and quotes where the transcript supports them. Weight the detail by how much discussion time the topic received — longer debates deserve fuller coverage.]
-
-   **Agreed:** [One sentence stating the outcome in bold. What was decided, agreed, or resolved? If no decision was reached, state "No formal decision was reached — to be revisited at [next meeting/date]."]
-
-   **Implication:** [One sentence — what this means going forward for practices, patients, or the organisation]
-
-2. **[Next Topic Heading]**
-
-   **Context:** [...]
-   **Discussion:** [...]
-   **Agreed:** [...]
-   **Implication:** [...]
-
-(Continue for all significant discussion items, typically 3-8 topics per meeting)
-
-═══ MANDATORY FORMAT CHECK ═══
-EVERY key point above MUST use these EXACT bold sub-headings on their own lines. This is NOT optional:
-
-   **Context:** [text]
-
-   **Discussion:** [text]
-
-   **Agreed:** [text]
-
-   **Implication:** [text]
-
-If ANY key point is written as a plain paragraph without these four bold sub-headings, your output is INCORRECT. Go back and restructure it.
-A key point that is just a paragraph of text is WRONG. It MUST have the four labelled sections.
-The **Agreed:** line is the single most important line in the entire document — make the outcome absolutely explicit and specific.
-═══ END FORMAT CHECK ═══
+${formatCheckBlock}
 
 # DECISIONS REGISTER
 
