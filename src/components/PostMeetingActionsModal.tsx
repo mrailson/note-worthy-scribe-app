@@ -550,13 +550,38 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         continue;
       }
       
+      // Handle **Label:** text sub-headings (Context, Discussion, Agreed, Implication)
+      const subHeadingMatch = line.match(/^\s*[-•]?\s*\*{0,2}(Context|Discussion|Agreed|Implication|Meeting Purpose)[:\s]*\*{0,2}\s*(.*)$/i);
+      if (subHeadingMatch) {
+        const label = subHeadingMatch[1].trim();
+        const bodyText = (subHeadingMatch[2] || '').replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
+        const isAgreed = label.toLowerCase() === 'agreed';
+        
+        const labelColor = isAgreed ? '#DC2626' : '#2563EB';
+        const bodyWeight = isAgreed ? 'font-weight: 600;' : '';
+        
+        html += `<p style="margin: 4px 0 4px 24px; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">`;
+        html += `<strong style="color: ${labelColor};">${label}: </strong>`;
+        if (bodyText) {
+          html += `<span style="color: #1a1a1a; ${bodyWeight}">${bodyText}</span>`;
+        }
+        html += `</p>\n`;
+        i++;
+        continue;
+      }
+      
       // Handle bullet points
-      if (line.match(/^[•\-\*]\s/)) {
+      if (line.match(/^[•\-]\s/) || (line.match(/^\*\s/) && !line.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
         let listHTML = '<ul style="margin: 8px 0 8px 20px; padding: 0;">\n';
-        while (i < lines.length && lines[i].trim().match(/^[•\-\*]\s/)) {
-          const itemText = lines[i].trim().replace(/^[•\-\*]\s/, '');
-          listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
-          i++;
+        while (i < lines.length) {
+          const curLine = lines[i].trim();
+          if (curLine.match(/^[•\-]\s/) || (curLine.match(/^\*\s/) && !curLine.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
+            const itemText = curLine.replace(/^[•\-\*]\s/, '').replace(/\*\*/g, '').replace(/\\\*/g, '');
+            listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
+            i++;
+          } else {
+            break;
+          }
         }
         listHTML += '</ul>\n';
         html += listHTML;
