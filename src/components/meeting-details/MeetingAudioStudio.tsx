@@ -125,19 +125,81 @@ export const MeetingAudioStudio = ({
   const [testingPronunciation, setTestingPronunciation] = useState<string | null>(null);
   const [pronunciationTestUrl, setPronunciationTestUrl] = useState<string | null>(null);
   const [slideAnnotations, setSlideAnnotations] = useState<any[]>([]);
+  const [hasSavedDiscussion, setHasSavedDiscussion] = useState(false);
+  const [isLoadingDiscussion, setIsLoadingDiscussion] = useState(true);
 
-  // Load existing audio overview if available
+  // Load saved discussion data from database on mount
   useEffect(() => {
-    if (audioOverviewUrl && audioOverviewText) {
-      setAudioUrl(audioOverviewUrl);
-      setEditedText(audioOverviewText);
-      setOriginalText(audioOverviewText);
-      setScriptGenerated(true);
-      if (audioOverviewDuration) {
-        setAudioDuration(audioOverviewDuration);
+    const loadDiscussionData = async () => {
+      if (!meetingId) {
+        setIsLoadingDiscussion(false);
+        return;
       }
-    }
-  }, [audioOverviewUrl, audioOverviewText, audioOverviewDuration]);
+
+      try {
+        const { data } = await supabase
+          .from('meeting_overviews')
+          .select('audio_overview_url, audio_overview_text, discussion_data')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+
+        if (data?.audio_overview_url) {
+          setAudioUrl(data.audio_overview_url);
+        }
+
+        if (data?.audio_overview_text) {
+          setOriginalText(data.audio_overview_text);
+          setEditedText(data.audio_overview_text);
+          setScriptGenerated(true);
+        }
+
+        if (data?.discussion_data) {
+          try {
+            const parsed = typeof data.discussion_data === 'string'
+              ? JSON.parse(data.discussion_data)
+              : data.discussion_data;
+
+            if (parsed.slideAnnotations && parsed.slideAnnotations.length > 0) {
+              setSlideAnnotations(parsed.slideAnnotations);
+              console.log(`📊 Loaded ${parsed.slideAnnotations.length} saved slide annotations`);
+            }
+
+            if (data.audio_overview_text?.includes('ALICE:') && data.audio_overview_url) {
+              setHasSavedDiscussion(true);
+              setScriptGenerated(true);
+              console.log('🎙️ Loaded saved discussion — ready to play');
+            }
+          } catch (e) {
+            console.warn('Failed to parse saved discussion data:', e);
+          }
+        }
+
+        // Fallback to props if DB had nothing
+        if (!data && audioOverviewUrl && audioOverviewText) {
+          setAudioUrl(audioOverviewUrl);
+          setEditedText(audioOverviewText);
+          setOriginalText(audioOverviewText);
+          setScriptGenerated(true);
+          if (audioOverviewDuration) {
+            setAudioDuration(audioOverviewDuration);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load discussion data:', err);
+        // Fallback to props
+        if (audioOverviewUrl && audioOverviewText) {
+          setAudioUrl(audioOverviewUrl);
+          setEditedText(audioOverviewText);
+          setOriginalText(audioOverviewText);
+          setScriptGenerated(true);
+        }
+      } finally {
+        setIsLoadingDiscussion(false);
+      }
+    };
+
+    loadDiscussionData();
+  }, [meetingId]);
 
   const handleGenerateScript = async () => {
     setIsGeneratingScript(true);
