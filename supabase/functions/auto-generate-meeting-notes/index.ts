@@ -1090,7 +1090,7 @@ If the consultation lasted two hours, the notes should look like two hours of wo
     console.log('📊 Using note type:', noteType);
 
     // Only enforce Context/Discussion/Agreed/Implication structure for Standard note type
-    const formatCheckBlock = noteType === 'standard' ? `
+    const formatCheckBlock = noteType === '__structured__' ? `
 ═══ MANDATORY FORMAT CHECK ═══
 EVERY key point above MUST use these EXACT bold sub-headings on their own lines. This is NOT optional:
 
