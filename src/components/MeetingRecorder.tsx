@@ -4419,6 +4419,11 @@ export const MeetingRecorder = ({
         }
       }
       
+      // Reset Whisper cost tracking for new meeting
+      sessionStorage.setItem('whisper_call_count', '0');
+      sessionStorage.setItem('whisper_total_duration', '0');
+      console.log('💰 WHISPER_MEETING_TRACKER: reset for new meeting');
+
       setIsRecording(true);
       isRecordingRef.current = true;
       // Recording start time already set earlier - don't reset it here
