@@ -752,7 +752,7 @@ export function EmailMeetingMinutesModal({
           }
           
           // Handle regular paragraphs
-          html += `<p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${line}</p>\n`;
+          html += `<p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${stripMd(line)}</p>\n`;
           i++;
         }
         
