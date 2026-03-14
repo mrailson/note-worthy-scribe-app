@@ -229,15 +229,30 @@ Create a ${durationMinutes}-minute audio script following the ${scriptStyle} sty
 
     const aiData = await aiResponse.json();
     const narrativeText = aiData.choices[0].message.content;
+
+    // Extract slide annotations if present
+    let slides: any[] = [];
+    let cleanScript = narrativeText;
+    const slidesMatch = narrativeText.match(/===SLIDES===\s*([\s\S]*?)\s*===SLIDES===/);
+    if (slidesMatch) {
+      try {
+        slides = JSON.parse(slidesMatch[1].trim());
+        console.log(`📊 Extracted ${slides.length} slide annotations`);
+      } catch (e) {
+        console.warn('Failed to parse slide annotations:', e);
+      }
+      cleanScript = narrativeText.replace(/===SLIDES===[\s\S]*?===SLIDES===/, '').trim();
+    }
     
-    console.log('Generated script length:', narrativeText.length);
-    console.log('Target words:', wordCountTarget, 'Actual words:', Math.round(narrativeText.split(' ').length));
+    console.log('Generated script length:', cleanScript.length);
+    console.log('Target words:', wordCountTarget, 'Actual words:', Math.round(cleanScript.split(' ').length));
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        narrativeText,
-        wordCount: narrativeText.split(' ').length,
+        narrativeText: cleanScript,
+        slides,
+        wordCount: cleanScript.split(' ').length,
         targetDuration,
         scriptStyle
       }),

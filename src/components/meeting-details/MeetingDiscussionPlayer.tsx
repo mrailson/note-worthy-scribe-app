@@ -240,14 +240,29 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
           </div>
 
           {/* Right: Current text / slide */}
-          <div className="flex-1 min-w-0">
-            {currentFigure && (
-              <div className="text-4xl font-bold text-white mb-3 font-mono tracking-tight animate-in fade-in duration-300">
-                {currentFigure}
+          <div className="flex-1 min-w-0 space-y-3">
+            {activeSlide?.heading && (
+              <p className="text-white/60 text-xs font-medium uppercase tracking-wider">
+                {activeSlide.heading}
+              </p>
+            )}
+            {activeSlide?.figure && (
+              <div className="mb-2">
+                <span className="text-4xl font-bold text-white font-mono tracking-tight">{activeSlide.figure}</span>
               </div>
             )}
-            <p className="text-base text-slate-200 leading-relaxed transition-all duration-300">
-              {activeTurn?.text || 'Press play to begin the discussion...'}
+            {activeSlide?.bullets && activeSlide.bullets.length > 0 && (
+              <ul className="space-y-1">
+                {activeSlide.bullets.map((b: string, i: number) => (
+                  <li key={i} className="text-white/70 text-sm flex items-start gap-2">
+                    <span className="text-white/40 mt-1">•</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-white/90 text-base leading-relaxed italic mt-4">
+              "{activeTurn?.text || 'Press play to begin the discussion...'}"
             </p>
           </div>
         </div>
