@@ -629,6 +629,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     const sectionHeadings = [
       'EXECUTIVE SUMMARY',
+      'DISCUSSION SUMMARY',
       'KEY DECISIONS',
       // Accept common variants produced by AI models
       'KEY POINTS',
