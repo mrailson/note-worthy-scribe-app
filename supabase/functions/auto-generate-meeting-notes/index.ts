@@ -1000,15 +1000,30 @@ Key Points
 # ACTION ITEMS
 | Action | Responsible Party | Deadline | Priority |
 |--------|-------------------|----------|----------|
-| [Specific task description] | [Person's name OR "TBC" if not explicitly mentioned] | [Date/timeframe OR "TBC" if not specified] | High/Medium/Low |
-| [Next action item] | [Person's name OR "TBC" if not explicitly mentioned] | [Date/timeframe OR "TBC" if not specified] | High/Medium/Low |
+| [Specific task with a clear deliverable] | [Person's name OR "TBC"] | [Date/timeframe OR "TBC"] | High/Medium/Low |
 
-CRITICAL: For Action Items:
-- ONLY include a person's name in "Responsible Party" if they were EXPLICITLY mentioned in the transcript as being responsible for that specific action
-- NEVER infer, assume, or make up who should be responsible
+STRICT RULES FOR ACTION ITEMS — quality over quantity:
+- ONLY include actions that were EXPLICITLY AGREED or COMMITTED TO during the meeting
+- Each action must have a CLEAR DELIVERABLE — something that can be completed and ticked off
+- Maximum 8 action items per meeting. If more than 8 were discussed, include only the most important ones
+- NEVER include ongoing responsibilities, standing tasks, or watching briefs (e.g., "Continue to monitor...", "Keep reviewing...", "Maintain oversight of...")
+- NEVER include vague actions like "Consider options", "Review situation", "Assess position", "Explore possibilities"
+- If an action doesn't answer "What specific thing will be DONE and FINISHED?", it's not an action — it belongs in OPEN ITEMS & RISKS instead
+- ONLY include a person's name in "Responsible Party" if they were EXPLICITLY mentioned in the transcript as being responsible
 - If the responsible party is not explicitly stated, write "TBC" (To Be Confirmed)
 - If a deadline is not explicitly mentioned, write "TBC"
-- Do NOT assign actions to people based on their role or position unless explicitly stated in the transcript
+- Do NOT assign actions to people based on their role or position unless explicitly stated
+
+EXAMPLES OF REAL ACTIONS (include these):
+- "Draft email to practices summarising board proposals" — has a deliverable (the email)
+- "Attend GPA Board meeting on 18th March to represent PCN concerns" — specific event, specific date
+- "Update SOP for locum ICE access onboarding" — clear deliverable (the updated SOP)
+
+EXAMPLES OF NON-ACTIONS (move these to OPEN ITEMS & RISKS instead):
+- "Monitor ICB updates regarding contract wording" — ongoing watching brief, no deliverable
+- "Continue to assess financial position" — standing responsibility
+- "Keep practices informed of developments" — vague, no end point
+- "Review situation at next meeting" — not an action, it's an agenda item
 
 (Format as a proper markdown table with these exact column headers)
 
