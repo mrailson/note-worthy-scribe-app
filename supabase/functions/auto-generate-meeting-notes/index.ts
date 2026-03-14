@@ -1141,6 +1141,22 @@ Key Points
 
 (Continue for all significant discussion items, typically 3-8 topics per meeting)
 
+═══ MANDATORY FORMAT CHECK ═══
+EVERY key point above MUST use these EXACT bold sub-headings on their own lines. This is NOT optional:
+
+   **Context:** [text]
+
+   **Discussion:** [text]
+
+   **Agreed:** [text]
+
+   **Implication:** [text]
+
+If ANY key point is written as a plain paragraph without these four bold sub-headings, your output is INCORRECT. Go back and restructure it.
+A key point that is just a paragraph of text is WRONG. It MUST have the four labelled sections.
+The **Agreed:** line is the single most important line in the entire document — make the outcome absolutely explicit and specific.
+═══ END FORMAT CHECK ═══
+
 # DECISIONS REGISTER
 
 A quick-scan list of every decision made in this meeting:
