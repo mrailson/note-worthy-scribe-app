@@ -70,7 +70,7 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
           time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
         },
         content: exportContent,
-        filename: `${templateName.toLowerCase().replace(/\s+/g, '-')}-${now.toISOString().split('T')[0]}.docx`,
+        filename: generateMeetingFilename(templateName || 'Dictation', now, 'docx'),
       });
       showToast.success('Document downloaded');
     } catch (error) {
