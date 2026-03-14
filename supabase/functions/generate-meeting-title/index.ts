@@ -189,10 +189,12 @@ serve(async (req) => {
     const systemPrompt = `You are a meeting title generator that creates SPECIFIC, MEMORABLE titles.
 
 STEP 1 - Extract from the transcript:
-- The main topic, project, or initiative discussed
+- Identify which topic received the MOST discussion time (not just the first topic mentioned — the longest and most debated topic should dominate the title)
 - Any specific decisions made or outcomes
 - The type of meeting (planning, review, governance, clinical, etc.)
 - Key named entities (projects, systems, programmes, organisations)
+
+IMPORTANT: Weight the title toward whichever topic consumed the most discussion time. If a governance debate took 40 minutes and a clinical update took 5 minutes, the governance topic should lead the title — even if the clinical update was mentioned first.
 
 STEP 2 - Generate a title that:
 - Is 4-15 words long
