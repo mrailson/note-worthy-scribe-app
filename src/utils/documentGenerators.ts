@@ -464,7 +464,7 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
     });
 
     // Generate and optionally save the document
-    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`;
+    const fileName = generateMeetingFilename(title, new Date(), 'docx');
     const blob = await Packer.toBlob(doc);
     
     if (saveFile) {
