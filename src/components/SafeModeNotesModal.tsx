@@ -3599,8 +3599,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
         {/* Audio Studio Panel (shown when toggled) */}
         {showAudioStudio && meeting && (
-          <div className="mx-6 mt-4 border rounded-lg p-4 bg-muted/30">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mx-6 mt-4 border rounded-lg bg-muted/30 flex flex-col max-h-[calc(100vh-12rem)] overflow-hidden">
+            <div className="flex items-center justify-between p-4 pb-2 flex-shrink-0">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Mic className="h-5 w-5" />
                 Audio Studio
@@ -3609,11 +3609,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <MeetingAudioStudio
-              meetingId={meeting.id}
-              meetingTitle={meeting.title}
-              onAudioGenerated={() => {}}
-            />
+            <div className="overflow-y-auto px-4 pb-4 flex-1 min-h-0">
+              <MeetingAudioStudio
+                meetingId={meeting.id}
+                meetingTitle={meeting.title}
+                onAudioGenerated={() => {}}
+              />
+            </div>
           </div>
         )}
 
