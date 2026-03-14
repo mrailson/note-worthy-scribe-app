@@ -2521,6 +2521,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const applyInlineFormatting = (content: string): string => {
       // Escape HTML first
       let escaped = content
+        .replace(/\\\*/g, '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
@@ -2627,6 +2628,22 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         continue;
       }
       
+      // Check for sub-heading patterns (Context, Discussion, Agreed, Implication)
+      const subHeadingMatch = line.match(/^\s*[-•]?\s*\*{0,2}(Context|Discussion|Agreed|Implication|Meeting Purpose)[:\s]*\*{0,2}\\?\*?\s*(.*)$/i);
+      if (subHeadingMatch) {
+        flushPendingListItem();
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        const label = subHeadingMatch[1].trim();
+        const bodyText = (subHeadingMatch[2] || '').replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
+        const isAgreed = label.toLowerCase() === 'agreed';
+        const labelClass = isAgreed ? 'text-red-600 font-bold' : 'text-blue-600 font-semibold';
+        const bodyClass = isAgreed ? 'font-bold text-red-700' : 'text-muted-foreground';
+        const topMargin = label.toLowerCase() === 'context' ? 'mt-4' : 'mt-2';
+        result.push(`<div class="${topMargin} pl-4"><span class="${labelClass}">${label}:</span> <span class="${bodyClass}">${applyInlineFormatting(bodyText)}</span></div>`);
+        continue;
+      }
+
       // Check for bullet list items (-, *, •) - not indented (top-level bullets)
       const bulletMatch = line.match(/^[-*•]\s+(.*)$/);
       if (bulletMatch) {

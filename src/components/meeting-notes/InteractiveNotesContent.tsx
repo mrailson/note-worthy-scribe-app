@@ -4,12 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface ParsedLine {
-  type: 'heading' | 'bullet' | 'numbered' | 'paragraph' | 'empty';
+  type: 'heading' | 'bullet' | 'numbered' | 'paragraph' | 'empty' | 'subheading';
   content: string;
   htmlContent: string;
   level?: 1 | 2 | 3;
   originalLine: string;
   indent?: number;
+  labelPrefix?: string;
 }
 
 interface InteractiveNotesContentProps {
@@ -32,6 +33,7 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
   // Apply inline formatting (bold, italic)
   const applyInlineFormatting = useCallback((text: string): string => {
     let escaped = text
+      .replace(/\\\*/g, '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
@@ -98,6 +100,24 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
         continue;
       }
 
+      // Sub-heading patterns (Context, Discussion, Agreed, Implication)
+      const subHeadingMatch = trimmed.match(/^\s*[-•]?\s*\*{0,2}(Context|Discussion|Agreed|Implication|Meeting Purpose)[:\s]*\*{0,2}\\?\*?\s*(.*)$/i);
+      if (subHeadingMatch) {
+        const label = subHeadingMatch[1].trim();
+        const bodyText = (subHeadingMatch[2] || '').replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
+        const isAgreed = label.toLowerCase() === 'agreed';
+        const labelClass = isAgreed ? 'text-red-600 font-bold' : 'text-blue-600 font-semibold';
+        const bodyClass = isAgreed ? 'font-bold text-red-700' : '';
+        result.push({
+          type: 'subheading',
+          content: bodyText,
+          htmlContent: `<span class="${labelClass}">${label}:</span> <span class="${bodyClass}">${applyInlineFormatting(bodyText)}</span>`,
+          originalLine: line,
+          labelPrefix: label,
+        });
+        continue;
+      }
+
       // Numbered list
       const numberedMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
       if (numberedMatch) {
@@ -155,6 +175,9 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
       if (line.type === 'bullet') {
         const indent = ' '.repeat(line.indent || 0);
         return `${indent}- ${line.content}`;
+      }
+      if (line.type === 'subheading') {
+        return `**${line.labelPrefix}:** ${line.content}`;
       }
       return line.content;
     }).join('\n');
@@ -236,6 +259,7 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
     }
 
     if (line.type === 'numbered') return 'py-3';
+    if (line.type === 'subheading') return line.labelPrefix?.toLowerCase() === 'context' ? 'pt-4 pb-2 pl-4' : 'pt-2 pb-2 pl-4';
     if (line.type === 'bullet') return 'py-2';
 
     // Paragraph
