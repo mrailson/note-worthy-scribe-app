@@ -297,7 +297,12 @@ Maintain readability but prioritise the requested visual style.`;
 - British English spelling throughout
 - NO attendee counts or participant numbers
 - Action items should be MINIMAL - just mention count, not full details
-- Make the custom style the dominant visual theme`
+- Make the custom style the dominant visual theme
+- CRITICAL TEXT LENGTH RULE: Every text block on the infographic must be SHORT. Maximum 20 words per sentence. Maximum 2 sentences per section. If a discussion point needs more detail, split it into a bold heading (5-8 words) and one short explanatory line (15 words max). Long sentences WILL render with garbled characters — brevity prevents this.
+- Use bullet points with 8-12 words each rather than full paragraphs
+- Headings should be 3-6 words maximum
+- Never render a sentence longer than 20 words — break it into two lines or shorten it
+- NEVER duplicate a section. Each heading (Key Discussion Points, Decisions Made, Action Items, The Meeting in Brief) must appear EXACTLY ONCE in the infographic. If you find yourself writing the same heading twice, you have made an error — remove the duplicate.`
         : `- "WHAT YOU MISSED" banner/badge styling at the top
 - ${orientationInstruction}
 - Date should be a VISUAL FOCAL POINT (large, perhaps in a date card/badge design)
@@ -307,7 +312,12 @@ Maintain readability but prioritise the requested visual style.`;
 - British English spelling throughout
 - NO attendee counts or participant numbers
 - Action items should be MINIMAL - just mention count, not full details
-- Make it feel like catching up with a colleague, not a task list`;
+- Make it feel like catching up with a colleague, not a task list
+- CRITICAL TEXT LENGTH RULE: Every text block on the infographic must be SHORT. Maximum 20 words per sentence. Maximum 2 sentences per section. If a discussion point needs more detail, split it into a bold heading (5-8 words) and one short explanatory line (15 words max). Long sentences WILL render with garbled characters — brevity prevents this.
+- Use bullet points with 8-12 words each rather than full paragraphs
+- Headings should be 3-6 words maximum
+- Never render a sentence longer than 20 words — break it into two lines or shorten it
+- NEVER duplicate a section. Each heading (Key Discussion Points, Decisions Made, Action Items, The Meeting in Brief) must appear EXACTLY ONCE in the infographic. If you find yourself writing the same heading twice, you have made an error — remove the duplicate.`;
 
       const customPrompt = `Create a HIGH QUALITY "WHAT YOU MISSED" meeting overview infographic.
 
