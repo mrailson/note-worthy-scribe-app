@@ -97,7 +97,9 @@ import {
   Stethoscope,
   Shield,
   Heart,
-  BookOpen
+  BookOpen,
+  Building2,
+  Home
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
