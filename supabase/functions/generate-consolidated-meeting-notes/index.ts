@@ -118,6 +118,7 @@ serve(async (req) => {
       batchTranscript, 
       liveTranscript,
       deepgramTranscript,
+      hasSpeakerLabels,
       meetingId,
       meetingTitle,
       meetingDate,
