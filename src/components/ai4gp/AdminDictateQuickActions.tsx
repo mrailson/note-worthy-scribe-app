@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { WordIcon } from '@/components/icons/WordIcon';
 import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
 import { showToast } from '@/utils/toastWrapper';
+import { generateMeetingFilename } from '@/utils/meetingFilename';
 
 interface AdminDictateQuickActionsProps {
   status: AdminDictationStatus;
