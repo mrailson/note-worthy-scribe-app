@@ -74,10 +74,10 @@ serve(async (req) => {
     
     let narrative: string;
     
-    // Use overrideText if provided, otherwise generate with AI
-    if (overrideText && overrideText.trim()) {
+    // Use overrideText/text if provided, otherwise generate with AI
+    if (effectiveOverrideText && effectiveOverrideText.trim()) {
       console.log('Using provided override text for audio generation');
-      narrative = overrideText.trim();
+      narrative = effectiveOverrideText.trim();
     } else {
       if (!transcript && !meetingNotes) {
         throw new Error('No transcript or summary available for this meeting');
