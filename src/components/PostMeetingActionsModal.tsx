@@ -249,13 +249,25 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
               year: 'numeric' 
             });
         
-        const subject = `Meeting Minutes - ${freshMeetingData.title} - ${meetingDate}`;
+        const subject = `Notewell AI | ${freshMeetingData.title} — ${meetingDate}`;
         
         // Convert notes content to styled HTML
         const htmlContent = convertNotesToStyledHTML(
           freshMeetingData.content,
           senderName,
-          freshMeetingData.title
+          freshMeetingData.title,
+          {
+            date: meetingDate,
+            time: freshMeetingData.startTime 
+              ? new Date(freshMeetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' GMT'
+              : undefined,
+            duration: freshMeetingData.duration,
+            format: freshMeetingData.format,
+            location: freshMeetingData.location,
+            overview: freshMeetingData.overview,
+            wordCount: freshMeetingData.wordCount,
+            attendees: Array.isArray(freshMeetingData.participants) ? freshMeetingData.participants : [],
+          }
         );
         
         // Generate Word document attachment
