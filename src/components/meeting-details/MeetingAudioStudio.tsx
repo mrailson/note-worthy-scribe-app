@@ -369,7 +369,18 @@ export const MeetingAudioStudio = ({
         
         const finalAudioUrl = `${urlData.publicUrl}?v=${Date.now()}`;
         
-        // Save to meeting_overviews
+        // Save to meeting_overviews with discussion data
+        const discussionData = {
+          scriptStyle: 'discussion',
+          slideAnnotations: slideAnnotations,
+          turnCount: turns.length,
+          voices: {
+            ALICE: DISCUSSION_VOICES['ALICE'],
+            GEORGE: DISCUSSION_VOICES['GEORGE'],
+          },
+          generatedAt: new Date().toISOString(),
+        };
+
         const { data: existingOverview } = await supabase
           .from('meeting_overviews')
           .select('id')
@@ -382,6 +393,7 @@ export const MeetingAudioStudio = ({
             .update({
               audio_overview_url: finalAudioUrl,
               audio_overview_text: editedText,
+              discussion_data: discussionData as any,
               updated_at: new Date().toISOString(),
             })
             .eq('meeting_id', meetingId);
@@ -393,12 +405,14 @@ export const MeetingAudioStudio = ({
               overview: editedText.slice(0, 600),
               audio_overview_url: finalAudioUrl,
               audio_overview_text: editedText,
+              discussion_data: discussionData as any,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             });
         }
         
         setAudioUrl(finalAudioUrl);
+        setHasSavedDiscussion(true);
         showToast.success(`Discussion generated! ${turns.length} exchanges between Alice and George.`, { section: 'meeting_manager' });
         onAudioGenerated?.();
         
