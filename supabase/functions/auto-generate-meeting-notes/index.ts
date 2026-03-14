@@ -1112,7 +1112,7 @@ Do NOT use Context/Discussion/Agreed/Implication sub-headings unless the NOTE TY
 Follow the NOTE TYPE format EXACTLY as specified — it takes priority over any other structural instructions in this prompt.
 ═══ END FORMAT NOTE ═══`;
 
-    const keyPointsTemplate = noteType === 'standard' ? `
+    const keyPointsTemplate = noteType === '__structured__' ? `
 1. **[Topic Heading]**
 
    **Context:** [One sentence — why this topic was raised, what triggered the discussion]
