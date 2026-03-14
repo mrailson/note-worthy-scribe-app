@@ -66,7 +66,7 @@ serve(async (req) => {
     while (retryCount < maxRetries) {
       const { data: meetingData, error: meetingError } = await supabase
         .from('meetings')
-        .select('meeting_format, meeting_location')
+        .select('meeting_format, meeting_location, agenda, title, participants')
         .eq('id', meetingId)
         .maybeSingle();
 
