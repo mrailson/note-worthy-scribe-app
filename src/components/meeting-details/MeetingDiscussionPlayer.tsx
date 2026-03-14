@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Download,
+import { Play, Pause, SkipBack, SkipForward, Volume2, Download, Maximize2, Minimize2,
          ClipboardList, TrendingUp, CheckCircle2, AlertTriangle, ListChecks, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -25,8 +25,6 @@ interface MeetingDiscussionPlayerProps {
   meetingDate?: string;
   slideAnnotations?: SlideAnnotation[];
 }
-
-// --- Slide type detection & theming ---
 
 type SlideType = 'overview' | 'statistic' | 'decision' | 'risk' | 'action' | 'topic';
 
@@ -160,10 +158,30 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
   slideAnnotations,
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const playerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [activeTurnIndex, setActiveTurnIndex] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Listen for fullscreen changes (including Escape key exit)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!playerRef.current) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      playerRef.current.requestFullscreen();
+    }
+  };
 
   // Parse turns from script (timing calculated separately from actual duration)
   const turns = useMemo(() => {
@@ -314,7 +332,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
   const theme = SLIDE_THEMES[slideType];
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border bg-card shadow-lg">
+    <div ref={playerRef} className={`rounded-xl overflow-hidden border border-border bg-card shadow-lg ${isFullscreen ? 'flex flex-col h-screen' : ''}`}>
       {/* Audio bars animation */}
       <style>{`
         @keyframes audioBar {
@@ -327,7 +345,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
       {/* Visual display area — themed by slide content */}
-      <div className={`relative bg-gradient-to-br ${theme.gradient} text-white min-h-[360px] flex flex-col transition-all duration-700 overflow-hidden`}>
+      <div className={`relative bg-gradient-to-br ${theme.gradient} text-white ${isFullscreen ? 'flex-1' : 'min-h-[360px]'} flex flex-col transition-all duration-700 overflow-hidden`}>
 
         {/* Decorative background elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -340,35 +358,47 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
           }} />
         </div>
 
-        {/* Top bar — meeting info + slide type badge */}
+        {/* Top bar — meeting info + slide type badge + fullscreen */}
         <div className="relative z-10 flex items-start justify-between px-6 pt-5 pb-3">
           <div>
             <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">
               Meeting Discussion
             </p>
-            <h3 className="text-lg font-semibold text-slate-100 mt-1 leading-tight">
+            <h3 className={`${isFullscreen ? 'text-2xl' : 'text-lg'} font-semibold text-slate-100 mt-1 leading-tight`}>
               {meetingTitle}
             </h3>
           </div>
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${theme.iconBg} border ${theme.borderAccent} backdrop-blur-sm`}>
-            <span className={theme.iconColor}>{SLIDE_ICONS[slideType]}</span>
-            <span className={`text-xs font-semibold ${theme.accentColor} uppercase tracking-wide`}>
-              {theme.badgeLabel}
-            </span>
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${theme.iconBg} border ${theme.borderAccent} backdrop-blur-sm`}>
+              <span className={theme.iconColor}>{SLIDE_ICONS[slideType]}</span>
+              <span className={`text-xs font-semibold ${theme.accentColor} uppercase tracking-wide`}>
+                {theme.badgeLabel}
+              </span>
+            </div>
+            <button
+              onClick={toggleFullscreen}
+              className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            >
+              {isFullscreen
+                ? <Minimize2 className="h-3 w-3 text-white/60" />
+                : <Maximize2 className="h-3 w-3 text-white/60" />
+              }
+            </button>
           </div>
         </div>
 
         {/* Main content area */}
-        <div className="relative z-10 flex-1 flex items-center gap-6 px-6 pb-4">
+        <div className={`relative z-10 flex-1 flex items-center gap-6 ${isFullscreen ? 'px-12 pb-8' : 'px-6 pb-4'}`}>
 
           {/* Left: Speaker indicator */}
-          <div className="flex flex-col items-center gap-3 min-w-[80px]">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 ${activeStyle.avatarBg} ${activeStyle.avatarText} ring-2 ring-white/10`}>
+          <div className={`flex flex-col items-center gap-3 ${isFullscreen ? 'min-w-[120px]' : 'min-w-[80px]'}`}>
+            <div className={`${isFullscreen ? 'w-24 h-24 text-3xl' : 'w-16 h-16 text-2xl'} rounded-full flex items-center justify-center font-bold transition-all duration-300 ${activeStyle.avatarBg} ${activeStyle.avatarText} ring-2 ring-white/10`}>
               {activeTurn?.speaker === 'ALICE' ? 'A' : 'G'}
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-slate-200">{activeStyle.name}</p>
-              <p className="text-xs text-slate-400">{activeStyle.role}</p>
+              <p className={`text-slate-200 ${isFullscreen ? 'text-base' : 'text-sm'} font-semibold`}>{activeStyle.name}</p>
+              <p className={`text-slate-400 ${isFullscreen ? 'text-sm' : 'text-xs'}`}>{activeStyle.role}</p>
             </div>
             {isPlaying && (
               <div className="flex items-end gap-0.5 h-5">
@@ -387,15 +417,15 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
           </div>
 
           {/* Right: Slide content card */}
-          <div className={`flex-1 min-w-0 rounded-xl border ${theme.borderAccent} bg-white/5 backdrop-blur-sm p-5 space-y-3 transition-all duration-500`}>
+          <div className={`flex-1 min-w-0 rounded-xl border ${theme.borderAccent} bg-white/5 backdrop-blur-sm ${isFullscreen ? 'p-8' : 'p-5'} space-y-3 transition-all duration-500`}>
 
             {/* Slide heading with icon */}
             {activeSlide?.heading && (
               <div className="flex items-center gap-2.5">
-                <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${theme.iconBg} flex items-center justify-center ${theme.iconColor}`}>
+                <div className={`flex-shrink-0 ${isFullscreen ? 'w-10 h-10' : 'w-8 h-8'} rounded-lg ${theme.iconBg} flex items-center justify-center ${theme.iconColor}`}>
                   {SLIDE_ICONS[slideType]}
                 </div>
-                <h4 className={`text-base font-semibold ${theme.headingColor} leading-tight`}>
+                <h4 className={`${isFullscreen ? 'text-xl' : 'text-base'} font-semibold ${theme.headingColor} leading-tight`}>
                   {activeSlide.heading}
                 </h4>
               </div>
@@ -404,7 +434,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
             {/* Key figure — large and prominent */}
             {activeSlide?.figure && (
               <div className="py-1">
-                <span className={`text-4xl font-bold ${theme.figureColor} font-mono tracking-tight`}>
+                <span className={`${isFullscreen ? 'text-6xl' : 'text-4xl'} font-bold ${theme.figureColor} font-mono tracking-tight`}>
                   {activeSlide.figure}
                 </span>
               </div>
@@ -414,7 +444,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
             {activeSlide?.bullets && activeSlide.bullets.length > 0 && (
               <ul className="space-y-1.5 pt-1">
                 {activeSlide.bullets.map((b: string, i: number) => (
-                  <li key={i} className={`${theme.bulletColor} text-sm flex items-start gap-2`}>
+                  <li key={i} className={`${theme.bulletColor} ${isFullscreen ? 'text-base' : 'text-sm'} flex items-start gap-2`}>
                     <span className={`${theme.accentColor} mt-0.5 text-xs`}>●</span>
                     <span>{b}</span>
                   </li>
@@ -424,7 +454,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
 
             {/* Current speech text — italicised quote */}
             <div className="pt-2 border-t border-white/10">
-              <p className="text-white/80 text-sm leading-relaxed italic">
+              <p className={`text-white/80 ${isFullscreen ? 'text-lg' : 'text-sm'} leading-relaxed italic`}>
                 "{activeTurn?.text || 'Press play to begin the discussion...'}"
               </p>
             </div>
@@ -461,11 +491,11 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
       </div>
 
       {/* Audio controls */}
-      <div className="bg-card border-t border-border p-4 space-y-3">
+      <div className={`p-4 space-y-3 ${isFullscreen ? 'bg-slate-900 border-t border-white/10' : 'bg-card border-t border-border'}`}>
 
         {/* Progress bar */}
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span className="w-10 text-right tabular-nums">{formatTime(currentTime)}</span>
+        <div className="flex items-center gap-3 text-sm">
+          <span className={`w-10 text-right tabular-nums ${isFullscreen ? 'text-white/50' : 'text-muted-foreground'}`}>{formatTime(currentTime)}</span>
           <Slider
             value={[currentTime]}
             max={duration || 1}
@@ -473,29 +503,29 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
             onValueChange={([v]) => seekTo(v)}
             className="flex-1"
           />
-          <span className="w-10 tabular-nums">{formatTime(duration)}</span>
+          <span className={`w-10 tabular-nums ${isFullscreen ? 'text-white/50' : 'text-muted-foreground'}`}>{formatTime(duration)}</span>
         </div>
 
         {/* Playback controls */}
         <div className="flex items-center justify-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => seekTo(currentTime - 15)}>
+          <Button variant="ghost" size="icon" onClick={() => seekTo(currentTime - 15)} className={isFullscreen ? 'text-white/70 hover:text-white hover:bg-white/10' : ''}>
             <SkipBack className="h-4 w-4" />
           </Button>
           <Button
             variant="default"
             size="icon"
-            className="h-10 w-10 rounded-full"
+            className={`h-10 w-10 rounded-full ${isFullscreen ? 'bg-white text-slate-900 hover:bg-white/90' : ''}`}
             onClick={togglePlayPause}
           >
             {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => seekTo(currentTime + 15)}>
+          <Button variant="ghost" size="icon" onClick={() => seekTo(currentTime + 15)} className={isFullscreen ? 'text-white/70 hover:text-white hover:bg-white/10' : ''}>
             <SkipForward className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Turn counter */}
-        <p className="text-xs text-center text-muted-foreground">
+        <p className={`text-xs text-center ${isFullscreen ? 'text-white/40' : 'text-muted-foreground'}`}>
           Exchange {activeTurnIndex + 1} of {timedTurns.length} —{' '}
           {activeTurn?.speaker === 'ALICE'
             ? 'Alice speaking'
