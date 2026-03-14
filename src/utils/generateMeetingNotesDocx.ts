@@ -408,7 +408,12 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   let currentIndex = 0;
   
   // Decode HTML entities first
-  const decodedText = decodeHtmlEntities(text);
+  let decodedText = decodeHtmlEntities(text);
+  
+  // Pre-clean: fix malformed bold markers like "Gap** –" (orphaned closing **)
+  // Convert orphaned ** that don't have a matching pair into nothing
+  // First, process valid bold/italic, then strip leftovers
+  decodedText = decodedText.replace(/\*{3,}/g, '**'); // Normalize 3+ asterisks to 2
   
   // Match **bold** and *italic*
   const markdownRegex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
