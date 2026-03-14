@@ -150,6 +150,7 @@ async function transcribeChunkViaWhisper(
   let response: Response | undefined;
   let lastError: Error | undefined;
   for (let attempt = 1; attempt <= 3; attempt++) {
+    console.log(`💰 [${requestId}] WHISPER_API_CALL: attempt=${attempt}/${3}, file=${fileName}, bytes=${audioBytes.length}`);
     try {
       response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
@@ -164,10 +165,15 @@ async function transcribeChunkViaWhisper(
     } catch (e: any) {
       lastError = e;
     }
-    if (attempt < 3) await new Promise(r => setTimeout(r, Math.pow(2, attempt - 1) * 1000));
+    if (attempt < 3) {
+      console.log(`⚠️ [${requestId}] WHISPER_RETRY: attempt=${attempt} failed, retrying in ${Math.pow(2, attempt - 1)}s. Status=${response?.status || 'no_response'}, error=${lastError?.message || 'unknown'}`);
+      await new Promise(r => setTimeout(r, Math.pow(2, attempt - 1) * 1000));
+    }
   }
   if (!response || !response.ok) throw lastError || new Error('Whisper failed after retries');
   const result = await response.json();
+  const costEstimate = (result.duration / 60) * 0.006;
+  console.log(`💰 [${requestId}] WHISPER_COST_LOG: duration=${result.duration.toFixed(1)}s, est_cost=$${costEstimate.toFixed(4)}, text_len=${result.text.length}, file=${fileName}`);
   return { text: result.text || '', duration: result.duration || 0 };
 }
 
