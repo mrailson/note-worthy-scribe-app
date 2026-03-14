@@ -1370,7 +1370,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
       addFooter(contentSlide);
     }
 
-    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pptx`;
+    const fileName = generateMeetingFilename(title, new Date(), 'pptx');
     await pptx.writeFile({ fileName });
     
   } catch (error) {
