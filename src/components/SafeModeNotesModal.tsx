@@ -2611,6 +2611,22 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         continue;
       }
       
+      // Check for sub-heading patterns (Context, Discussion, Agreed, Implication) - MUST be before bullet checks
+      const subHeadingMatch = line.match(/^\s*[-•]?\s*\*{0,2}(Context|Discussion|Agreed|Implication|Meeting Purpose)[:\s]*\*{0,2}\\?\*?\s*(.*)$/i);
+      if (subHeadingMatch) {
+        flushPendingListItem();
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        const label = subHeadingMatch[1].trim();
+        const bodyText = (subHeadingMatch[2] || '').replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
+        const isAgreed = label.toLowerCase() === 'agreed';
+        const labelClass = isAgreed ? 'text-red-600 font-bold' : 'text-blue-600 font-semibold';
+        const bodyClass = isAgreed ? 'font-bold text-red-700' : 'text-muted-foreground';
+        const topMargin = label.toLowerCase() === 'context' ? 'mt-4' : 'mt-2';
+        result.push(`<div class="${topMargin} pl-4"><span class="${labelClass}">${label}:</span> <span class="${bodyClass}">${applyInlineFormatting(bodyText)}</span></div>`);
+        continue;
+      }
+
       // Check for indented sub-bullets (2+ spaces/tabs followed by -, *, •)
       const subBulletMatch = line.match(/^(\s{2,}|\t+)[-*•]\s+(.*)$/);
       if (subBulletMatch) {
@@ -2625,22 +2641,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           // Not in any list context
           result.push(`<ul class="list-disc pl-6 mt-1 mb-1 space-y-1 marker:text-muted-foreground"><li class="leading-relaxed text-muted-foreground">${content}</li></ul>`);
         }
-        continue;
-      }
-      
-      // Check for sub-heading patterns (Context, Discussion, Agreed, Implication)
-      const subHeadingMatch = line.match(/^\s*[-•]?\s*\*{0,2}(Context|Discussion|Agreed|Implication|Meeting Purpose)[:\s]*\*{0,2}\\?\*?\s*(.*)$/i);
-      if (subHeadingMatch) {
-        flushPendingListItem();
-        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
-        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
-        const label = subHeadingMatch[1].trim();
-        const bodyText = (subHeadingMatch[2] || '').replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
-        const isAgreed = label.toLowerCase() === 'agreed';
-        const labelClass = isAgreed ? 'text-red-600 font-bold' : 'text-blue-600 font-semibold';
-        const bodyClass = isAgreed ? 'font-bold text-red-700' : 'text-muted-foreground';
-        const topMargin = label.toLowerCase() === 'context' ? 'mt-4' : 'mt-2';
-        result.push(`<div class="${topMargin} pl-4"><span class="${labelClass}">${label}:</span> <span class="${bodyClass}">${applyInlineFormatting(bodyText)}</span></div>`);
         continue;
       }
 
