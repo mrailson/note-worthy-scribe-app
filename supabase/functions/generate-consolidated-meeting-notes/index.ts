@@ -210,13 +210,28 @@ ${attendees?.length > 0 ? attendees.map((a: string) => `- ${a}`).join('\n') : '-
 
 # KEY TOPICS DISCUSSED
 
-- **[Topic 1]**: [Clear summary of what was discussed and the outcome]
-- **[Topic 2]**: [Clear summary]
+1. **[Topic Heading]**
+
+   **Context:** [One sentence — why this was discussed]
+
+   **Discussion:** [Key positions, figures, and concerns. Weight by discussion time.]
+
+   **Agreed:** [What was decided — bold the outcome. If no decision: state explicitly.]
+
+   **Implication:** [What this means going forward]
+
+2. **[Next Topic]**
+   **Context:** [...]
+   **Discussion:** [...]
+   **Agreed:** [...]
+   **Implication:** [...]
+
 (Continue for all significant topics)
 
-# DECISIONS / AGREED POSITIONS
+# DECISIONS REGISTER
 
-- [Decision 1 - be specific about what was agreed]
+Quick-scan list of every decision made:
+- [Decision 1]
 - [Decision 2]
 (If none: "No formal decisions were recorded")
 

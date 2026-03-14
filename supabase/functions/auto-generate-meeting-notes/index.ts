@@ -872,16 +872,16 @@ serve(async (req) => {
 DETAIL LEVEL: BRIEF
 - Focus ONLY on key decisions and action items
 - Executive summary: 1-2 sentences maximum
-- Discussion summary: Maximum 3 bullet points
-- Skip the Background section
+- Discussion summary: Maximum 3 key points, each with Agreed line only (skip Context, Discussion, and Implication sub-sections)
+- Replace "Meeting Purpose" with a single sentence
+- Skip DECISIONS REGISTER section (covered in key points)
 - Keep total notes to approximately 300 words`,
       
       'summary': `
 DETAIL LEVEL: SUMMARY
 - Concise coverage of main discussion points
 - Executive summary: 2-3 sentences
-- Discussion summary: 4-5 key points only
-- Brief background context
+- Discussion summary: 4-5 key points with Context and Agreed sub-sections only (skip Discussion and Implication to save space)
 - Keep total notes to approximately 500 words`,
       
       'standard': `
@@ -1118,15 +1118,38 @@ SPEAKER ATTRIBUTION RULES:
 
 # DISCUSSION SUMMARY
 
-Background
-[Write a context-setting paragraph explaining what led to this meeting and the key topics to be addressed]
+**Meeting Purpose:** [One sentence explaining why this meeting was called and the key topics on the agenda]
 
 Key Points
-1. [First major discussion point with full context and outcomes]
 
-2. [Second major discussion point with details]
+1. **[Topic Heading]**
 
-3. [Continue with all significant discussion items]
+   **Context:** [One sentence — why this topic was raised, what triggered the discussion]
+
+   **Discussion:** [2-4 sentences covering the key positions, figures, and concerns raised. Include specific numbers, names, and quotes where the transcript supports them. Weight the detail by how much discussion time the topic received — longer debates deserve fuller coverage.]
+
+   **Agreed:** [One sentence stating the outcome in bold. What was decided, agreed, or resolved? If no decision was reached, state "No formal decision was reached — to be revisited at [next meeting/date]."]
+
+   **Implication:** [One sentence — what this means going forward for practices, patients, or the organisation]
+
+2. **[Next Topic Heading]**
+
+   **Context:** [...]
+   **Discussion:** [...]
+   **Agreed:** [...]
+   **Implication:** [...]
+
+(Continue for all significant discussion items, typically 3-8 topics per meeting)
+
+# DECISIONS REGISTER
+
+A quick-scan list of every decision made in this meeting:
+- [Decision 1 — one line, specific, with who/what/when if known]
+- [Decision 2]
+- [Continue for all decisions]
+(If no decisions were made: "No formal decisions were recorded in this meeting")
+
+This section must ONLY contain decisions that were explicitly agreed during the meeting — not ongoing positions or general sentiments.
 
 # ACTION ITEMS
 | Action | Responsible Party | Deadline | Priority |
@@ -1173,6 +1196,16 @@ CRITICAL FORMATTING RULES:
 - ACTION ITEMS MUST be a properly formatted markdown table with pipes (|)
 - Do not use ## (level 2 headers) for main sections
 - Respect the authoritative location provided - never contradict it
+
+DISCUSSION POINT QUALITY RULES:
+- Weight each key point's detail by how much discussion time it received in the transcript. If a governance debate dominates 40 minutes of a 60-minute meeting, it should be the longest and most detailed point — not given equal weight to a 2-minute operational update.
+- Every key point MUST have all four sub-sections: Context, Discussion, Agreed, and Implication. Do not skip any.
+- The "Agreed" line is the most important part of each key point — a reader skimming the notes should be able to read ONLY the "Agreed" lines and understand every outcome from the meeting.
+- Bold the "Agreed" line content (not just the label) for visual scanning: **Agreed: Tom will attend the board meeting on 18th March to represent PCN concerns.**
+- Do NOT pad short topics with filler. If a topic was a brief update with no discussion, it's fine for the Discussion section to be one sentence.
+- If there were opposing views or concerns raised, capture them briefly: "Members expressed concern that..." or "Sam noted that..." — but keep it governance-safe per the tone rules.
+- Include specific figures, percentages, pound amounts, dates, and names wherever the transcript contains them. These are what make notes useful vs generic.
+- NEVER start a discussion point with "The group discussed..." or "Members talked about..." — lead with the substance: "LD health check completion rates have risen from 60.5% to 78.5%."
 
 Keep the executive summary concise and focused - maximum 3-4 sentences that quickly convey the meeting's purpose and key outcomes.
 
