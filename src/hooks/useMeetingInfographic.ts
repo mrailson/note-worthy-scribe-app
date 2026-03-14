@@ -201,6 +201,7 @@ export const useMeetingInfographic = () => {
     return trimmed;
   };
 
+  const generateInfographic = async (
     data: MeetingInfographicData,
     options?: InfographicOptions
   ): Promise<GenerationResult> => {
