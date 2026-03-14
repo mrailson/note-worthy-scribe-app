@@ -732,9 +732,9 @@ export function EmailMeetingMinutesModal({
               
               // Heading in blue and bold, body text in regular black
               html += '<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">';
-              html += `<strong style="color: #2563EB;">${number}. ${heading}</strong>`;
+              html += `<strong style="color: #2563EB;">${number}. ${stripMd(heading)}</strong>`;
               if (bodyText) {
-                html += ` <span style="color: #1a1a1a; font-weight: normal;">${bodyText}</span>`;
+                html += ` <span style="color: #1a1a1a; font-weight: normal;">${stripMd(bodyText)}</span>`;
               }
               html += '</p>\n';
             } else {
