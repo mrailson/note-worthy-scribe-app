@@ -172,6 +172,33 @@ serve(async (req) => {
       transcriptExcerpt = `${first4k}\n\n[... transcript continues ...]\n\n${mid3k}\n\n[... transcript continues ...]\n\n${last4k}`;
     }
 
+    // Load and apply name corrections to transcript excerpt before AI processing
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    try {
+      const { data: corrections } = await supabase
+        .from('medical_term_corrections')
+        .select('incorrect_term, correct_term')
+        .or('is_global.eq.true')
+        .order('usage_count', { ascending: false })
+        .limit(100);
+      
+      if (corrections && corrections.length > 0) {
+        for (const c of corrections) {
+          const regex = new RegExp(
+            `\\b${c.incorrect_term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 
+            'gi'
+          );
+          transcriptExcerpt = transcriptExcerpt.replace(regex, c.correct_term);
+        }
+        console.log(`📋 Applied ${corrections.length} term corrections to title excerpt`);
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not load corrections for title (non-fatal)');
+    }
+
     // Build context section
     let contextSection = '';
     if (attendees && attendees.length > 0 && attendees[0] !== 'TBC') {

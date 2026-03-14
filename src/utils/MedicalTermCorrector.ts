@@ -106,6 +106,15 @@ export class MedicalTermCorrector {
           return false;
         }
       } else {
+        // Look up user's practice for automatic sharing
+        let practiceId = null;
+        try {
+          const { data: practiceIds } = await supabase.rpc('get_user_practice_ids', { p_user_id: actualUserId });
+          practiceId = practiceIds && practiceIds.length > 0 ? practiceIds[0] : null;
+        } catch (e) {
+          console.warn('Could not determine practice_id for correction sharing');
+        }
+
         // Insert new correction
         const { error } = await supabase
           .from('medical_term_corrections')
@@ -116,6 +125,7 @@ export class MedicalTermCorrector {
             context_phrase: contextPhrase?.trim(),
             usage_count: 1,
             is_global: false,
+            practice_id: practiceId,
           });
 
         if (error) {

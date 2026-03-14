@@ -1213,6 +1213,31 @@ CROSS-REFERENCE HANDLING:
 - Do NOT introduce any topic, decision, or action that only appears in the cross-reference section
 - If the cross-reference contradicts the primary transcript, trust the primary`;
 
+    // Inject corrections list into prompt if we have any
+    if (correctionsList.length > 0) {
+      // Limit to top 50 most-used corrections to avoid prompt bloat
+      const topCorrections = correctionsList.slice(0, 50);
+      const correctionsBlock = topCorrections
+        .map(c => `"${c.incorrect}" → "${c.correct}"`)
+        .join('\n');
+      
+      systemPrompt += `
+
+═══════════════════════════════════════════════════════════════════════════════
+KNOWN NAME AND TERM CORRECTIONS (APPLY THESE AND SIMILAR VARIATIONS)
+═══════════════════════════════════════════════════════════════════════════════
+
+The following corrections are CONFIRMED by the user. Apply them throughout the notes.
+Also apply them to SIMILAR mishearings — for example, if "Towcester" is the correct spelling,
+also correct "Toaster", "Tow Chester", "Towster", and any other phonetic variation.
+If a person's name is listed, also correct any phonetically similar mishearing of that name.
+
+${correctionsBlock}
+
+IMPORTANT: These corrections take absolute priority over what appears in the transcript.
+The transcript mishears these terms regularly — always use the corrected versions.`;
+    }
+
     // Format date in British format with day of week
     const meetingDate = new Date(meeting.created_at);
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

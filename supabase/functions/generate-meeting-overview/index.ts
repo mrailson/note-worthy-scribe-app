@@ -96,6 +96,29 @@ serve(async (req) => {
       }
     }
 
+    // Load and apply name corrections to content before AI processing
+    try {
+      const { data: corrections } = await supabase
+        .from('medical_term_corrections')
+        .select('incorrect_term, correct_term')
+        .or('is_global.eq.true')
+        .order('usage_count', { ascending: false })
+        .limit(100);
+      
+      if (corrections && corrections.length > 0) {
+        for (const c of corrections) {
+          const regex = new RegExp(
+            `\\b${c.incorrect_term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 
+            'gi'
+          );
+          content = content.replace(regex, c.correct_term);
+        }
+        console.log(`📋 Applied ${corrections.length} term corrections to overview content`);
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not load corrections (non-fatal)');
+    }
+
     // Build authoritative location context
     let locationContext = '';
     if (meeting?.meeting_format === 'teams') {
