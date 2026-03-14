@@ -4412,6 +4412,7 @@ export const MeetingRecorder = ({
         } else {
           // Other browsers: Use stereo recording
           addDebugLog('🎧 Starting stereo recording (mic + system audio)...');
+          console.warn('💰 WHISPER_DOUBLE_PATH: Non-Chrome stereo mode — BOTH startStereoRecording() AND startMicrophoneTranscription() will call Whisper. This may double transcription costs.');
           await startStereoRecording();
           await startMicrophoneTranscription(realMeetingId);
           setMicCaptured(true);
