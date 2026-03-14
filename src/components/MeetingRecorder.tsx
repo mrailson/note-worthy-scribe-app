@@ -1663,6 +1663,14 @@ export const MeetingRecorder = ({
 
         const data = await response.json();
 
+        // Track cumulative Whisper calls for cost monitoring
+        const whisperCallCount = parseInt(sessionStorage.getItem('whisper_call_count') || '0') + 1;
+        const whisperTotalDuration = parseFloat(sessionStorage.getItem('whisper_total_duration') || '0') + (data.duration || 0);
+        const whisperEstCost = (whisperTotalDuration / 60) * 0.006;
+        sessionStorage.setItem('whisper_call_count', String(whisperCallCount));
+        sessionStorage.setItem('whisper_total_duration', String(whisperTotalDuration));
+        console.log(`💰 WHISPER_MEETING_TRACKER: call #${whisperCallCount}, chunk_duration=${(data.duration || 0).toFixed(1)}s, cumulative_duration=${whisperTotalDuration.toFixed(1)}s, est_total_cost=$${whisperEstCost.toFixed(4)}`);
+
         // Process transcription result
         const transcriptionText = data.text || '';
         const confidence = data.confidence || 0;
@@ -4404,6 +4412,7 @@ export const MeetingRecorder = ({
         } else {
           // Other browsers: Use stereo recording
           addDebugLog('🎧 Starting stereo recording (mic + system audio)...');
+          console.warn('💰 WHISPER_DOUBLE_PATH: Non-Chrome stereo mode — BOTH startStereoRecording() AND startMicrophoneTranscription() will call Whisper. This may double transcription costs.');
           await startStereoRecording();
           await startMicrophoneTranscription(realMeetingId);
           setMicCaptured(true);
@@ -4411,6 +4420,11 @@ export const MeetingRecorder = ({
         }
       }
       
+      // Reset Whisper cost tracking for new meeting
+      sessionStorage.setItem('whisper_call_count', '0');
+      sessionStorage.setItem('whisper_total_duration', '0');
+      console.log('💰 WHISPER_MEETING_TRACKER: reset for new meeting');
+
       setIsRecording(true);
       isRecordingRef.current = true;
       // Recording start time already set earlier - don't reset it here
@@ -5278,6 +5292,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       console.log('🚨 DATABASE UPDATE RESULT:');
       console.log('🚨 SaveError:', saveError);
       console.log('🚨 SavedMeeting:', savedMeeting);
+
+      // Log final Whisper cost for this meeting
+      const finalCallCount = sessionStorage.getItem('whisper_call_count') || '0';
+      const finalDuration = sessionStorage.getItem('whisper_total_duration') || '0';
+      const finalCost = (parseFloat(finalDuration) / 60) * 0.006;
+      console.log(`💰 WHISPER_MEETING_FINAL: meeting=${meetingId}, total_whisper_calls=${finalCallCount}, total_audio_duration=${parseFloat(finalDuration).toFixed(1)}s (${(parseFloat(finalDuration) / 60).toFixed(1)} min), estimated_whisper_cost=$${finalCost.toFixed(4)}`);
 
       // Safety Net 1: Consolidate transcript chunks before generating notes
       setStopRecordingStep('Consolidating transcript chunks...');
