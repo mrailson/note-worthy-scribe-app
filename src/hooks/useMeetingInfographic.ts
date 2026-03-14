@@ -230,9 +230,9 @@ Examples:
 Maintain readability but prioritise the requested visual style.`;
         console.log('[useMeetingInfographic] Using custom style:', options.customStyle);
       } else {
-        const styleData = INFOGRAPHIC_STYLES[options?.style || 'clean-professional'];
-        styleInstruction = styleData?.prompt || INFOGRAPHIC_STYLES['clean-professional'].prompt;
-        console.log('[useMeetingInfographic] Using preset style:', options?.style || 'clean-professional');
+        const styleData = INFOGRAPHIC_STYLES[options?.style || 'practice-professional'];
+        styleInstruction = styleData?.prompt || INFOGRAPHIC_STYLES['practice-professional'].prompt;
+        console.log('[useMeetingInfographic] Using preset style:', options?.style || 'practice-professional');
       }
       
       setCurrentPhase('generating');
