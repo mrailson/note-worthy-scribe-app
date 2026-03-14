@@ -211,7 +211,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         // Fetch fresh meeting metadata
         const { data: freshMeeting } = await supabase
           .from('meetings')
-          .select('title, start_time, duration_minutes, participants')
+          .select('title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count')
           .eq('id', meetingId)
           .maybeSingle();
         
@@ -220,7 +220,11 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           startTime: freshMeeting?.start_time,
           duration: freshMeeting?.duration_minutes,
           participants: freshMeeting?.participants || [],
-          content: freshNotes
+          content: freshNotes,
+          format: freshMeeting?.meeting_format,
+          location: freshMeeting?.meeting_location,
+          overview: freshMeeting?.overview,
+          wordCount: freshMeeting?.word_count,
         };
         
         // Get user's full name from profile
