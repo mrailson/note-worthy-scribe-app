@@ -344,6 +344,13 @@ CRITICAL CONTENT HIERARCHY (in order of visual prominence):
 DESIGN REQUIREMENTS:
 ${designRequirements}
 
+CRITICAL ACCURACY RULES:
+- ONLY include information that appears in the document content provided. NEVER invent, fabricate, or extrapolate figures, budgets, percentages, monetary amounts, or decisions that are not explicitly stated in the source material.
+- If you are unsure whether a specific figure or detail was discussed, OMIT it entirely. A missing detail is far better than an invented one.
+- Do NOT split monetary amounts into sub-amounts unless the source material explicitly provides that breakdown.
+- Do NOT invent "proposals" or "recommendations" — only state what the document content says was actually agreed or decided.
+- If the document mentions "£50,000 shortfall", do NOT turn this into "£35,000 immediate + £15,000 later" unless those exact figures appear in the source.
+
 CRITICAL SPELLING AND LANGUAGE RULES:
 This infographic is for a British NHS audience. You MUST use British English spelling throughout ALL text content. Specifically:
 - "organisation" NOT "organization"
