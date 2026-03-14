@@ -63,25 +63,21 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
   const [duration, setDuration] = useState(0);
   const [activeTurnIndex, setActiveTurnIndex] = useState(0);
 
-  // Parse turns from script and estimate timing from word count
+  // Parse turns from script (timing calculated separately from actual duration)
   const turns = useMemo(() => {
     const parsed: DialogueTurn[] = [];
     const lines = dialogueScript.split('\n').filter(l => l.trim());
     let currentSpeaker: 'ALICE' | 'GEORGE' | null = null;
     let currentText = '';
-    let runningTime = 0;
 
     const flush = () => {
       if (currentSpeaker && currentText.trim()) {
-        const wordCount = currentText.trim().split(/\s+/).length;
-        const estimatedDuration = wordCount / 2.5;
         parsed.push({
           speaker: currentSpeaker,
           text: currentText.trim(),
-          startTime: runningTime,
-          endTime: runningTime + estimatedDuration,
+          startTime: 0,
+          endTime: 0,
         });
-        runningTime += estimatedDuration + 0.3;
       }
     };
 
@@ -98,6 +94,31 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
     return parsed;
   }, [dialogueScript]);
 
+  // Recalculate turn timing proportionally from actual audio duration
+  const timedTurns = useMemo(() => {
+    if (turns.length === 0 || duration <= 0) return turns;
+
+    const wordCounts = turns.map(t => t.text.split(/\s+/).length);
+    const totalWords = wordCounts.reduce((sum, wc) => sum + wc, 0);
+
+    if (totalWords === 0) return turns;
+
+    const GAP = 0.25;
+    const totalGapTime = GAP * (turns.length - 1);
+    const availableSpeakingTime = Math.max(duration - totalGapTime, duration * 0.8);
+
+    let runningTime = 0;
+    return turns.map((turn, i) => {
+      const proportion = wordCounts[i] / totalWords;
+      const turnDuration = proportion * availableSpeakingTime;
+      const startTime = runningTime;
+      const endTime = runningTime + turnDuration;
+      runningTime = endTime + GAP;
+
+      return { ...turn, startTime, endTime };
+    });
+  }, [turns, duration]);
+
   // Track active turn based on audio playback time
   useEffect(() => {
     const audio = audioRef.current;
@@ -107,17 +128,17 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
       const time = audio.currentTime;
       setCurrentTime(time);
 
-      const estimatedTotal = turns.length > 0 ? turns[turns.length - 1].endTime : 1;
-      const scale = duration > 0 ? duration / estimatedTotal : 1;
+      let newIdx = 0;
+      for (let i = 0; i < timedTurns.length; i++) {
+        if (time >= timedTurns[i].startTime) {
+          newIdx = i;
+        } else {
+          break;
+        }
+      }
 
-      const idx = turns.findIndex((t) => {
-        const scaledStart = t.startTime * scale;
-        const scaledEnd = t.endTime * scale;
-        return time >= scaledStart && time < scaledEnd;
-      });
-
-      if (idx >= 0) {
-        setActiveTurnIndex(idx);
+      if (newIdx !== activeTurnIndex) {
+        setActiveTurnIndex(newIdx);
       }
     };
 
@@ -133,7 +154,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
       audio.removeEventListener('loadedmetadata', handleDurationChange);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [turns, duration]);
+  }, [timedTurns, duration, activeTurnIndex]);
 
   const togglePlayPause = useCallback(() => {
     if (!audioRef.current) return;
@@ -154,7 +175,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const activeTurn = turns[activeTurnIndex];
+  const activeTurn = timedTurns[activeTurnIndex];
   const activeStyle = activeTurn ? SPEAKER_STYLES[activeTurn.speaker] : SPEAKER_STYLES.ALICE;
 
   // Get active slide from annotations or fallback to text extraction
@@ -176,7 +197,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
     }
 
     // Fallback: extract from text
-    const turn = turns[turnIdx];
+    const turn = timedTurns[turnIdx];
     if (!turn) return null;
     const figureMatch = turn.text.match(/(£[\d,]+(?:\.\d+)?|[\d.]+%|\d+ (?:families|patients|meetings|days|weeks|months|staff|practices|sessions))/i);
     return {
@@ -190,8 +211,8 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
 
   // Progress dots — show a window around the active turn
   const dotWindowStart = Math.max(0, activeTurnIndex - 5);
-  const dotWindowEnd = Math.min(turns.length, activeTurnIndex + 6);
-  const visibleDots = turns.slice(dotWindowStart, dotWindowEnd);
+  const dotWindowEnd = Math.min(timedTurns.length, activeTurnIndex + 6);
+  const visibleDots = timedTurns.slice(dotWindowStart, dotWindowEnd);
 
   return (
     <div className="rounded-xl overflow-hidden border border-border bg-card shadow-lg">
@@ -285,9 +306,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
                     : 'w-2 h-2 bg-slate-600'
                 }`}
                 onClick={() => {
-                  const estimatedTotal = turns.length > 0 ? turns[turns.length - 1].endTime : 1;
-                  const scale = duration > 0 ? duration / estimatedTotal : 1;
-                  seekTo(turns[realIdx].startTime * scale);
+                  seekTo(timedTurns[realIdx].startTime);
                 }}
                 title={`${t.speaker}: ${t.text.substring(0, 40)}...`}
               />
@@ -332,7 +351,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
 
         {/* Turn counter */}
         <p className="text-xs text-center text-muted-foreground">
-          Exchange {activeTurnIndex + 1} of {turns.length} —{' '}
+          Exchange {activeTurnIndex + 1} of {timedTurns.length} —{' '}
           {activeTurn?.speaker === 'ALICE'
             ? 'Alice speaking'
             : activeTurn?.speaker === 'GEORGE'
