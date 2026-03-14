@@ -97,7 +97,9 @@ import {
   Stethoscope,
   Shield,
   Heart,
-  BookOpen
+  BookOpen,
+  Building2,
+  Home
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
@@ -3392,42 +3394,77 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 </TooltipTrigger>
                 <TooltipContent>Generate Summary Infographic</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent className="w-80 bg-background border shadow-lg z-50" align="end">
+               <DropdownMenuContent className="w-80 bg-background border shadow-lg z-50" align="end">
+                {/* Orientation Toggle - applies to all styles */}
+                <div className="flex items-center justify-between px-3 py-2 border-b">
+                  <span className="text-xs text-muted-foreground">Layout</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs ${infographicOrientation === 'portrait' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Portrait</span>
+                    <Switch
+                      checked={infographicOrientation === 'landscape'}
+                      onCheckedChange={(checked) => setInfographicOrientation(checked ? 'landscape' : 'portrait')}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <span className={`text-xs ${infographicOrientation === 'landscape' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Landscape</span>
+                  </div>
+                </div>
+
                 {/* Preset Styles - GP Practice focused */}
                 <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Choose Style</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'practice-professional' }); setShowInfographicModal(true); }}>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'practice-professional', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
                   <Sparkles className="h-4 w-4 mr-2 text-primary" />
                   <div className="flex flex-col">
                     <span>Practice Professional</span>
                     <span className="text-xs text-muted-foreground">Clean GP practice meeting style</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'clinical-governance' }); setShowInfographicModal(true); }}>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'clinical-governance', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
                   <Target className="h-4 w-4 mr-2 text-blue-600" />
                   <div className="flex flex-col">
                     <span>Clinical Governance</span>
                     <span className="text-xs text-muted-foreground">Compliance & audit focused</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'patient-safety' }); setShowInfographicModal(true); }}>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'patient-safety', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
                   <Shield className="h-4 w-4 mr-2 text-green-600" />
                   <div className="flex flex-col">
                     <span>Patient Safety Focus</span>
                     <span className="text-xs text-muted-foreground">Safety & incident tracking themed</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'team-engagement' }); setShowInfographicModal(true); }}>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'team-engagement', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
                   <Users className="h-4 w-4 mr-2 text-purple-500" />
                   <div className="flex flex-col">
                     <span>Team Engagement</span>
                     <span className="text-xs text-muted-foreground">Staff wellbeing & team focus</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'qof-targets' }); setShowInfographicModal(true); }}>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'qof-targets', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
                   <TrendingUp className="h-4 w-4 mr-2 text-orange-500" />
                   <div className="flex flex-col">
                     <span>QOF & Targets</span>
                     <span className="text-xs text-muted-foreground">Performance metrics & KPIs</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'board-pack', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
+                  <FileText className="h-4 w-4 mr-2 text-amber-700" />
+                  <div className="flex flex-col">
+                    <span>Board Pack Summary</span>
+                    <span className="text-xs text-muted-foreground">Formal executive governance style</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'icb-submission', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
+                  <Building2 className="h-4 w-4 mr-2 text-blue-800" />
+                  <div className="flex flex-col">
+                    <span>ICB Submission</span>
+                    <span className="text-xs text-muted-foreground">Commissioner evidence & delivery</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'neighbourhood', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
+                  <Home className="h-4 w-4 mr-2 text-teal-600" />
+                  <div className="flex flex-col">
+                    <span>Neighbourhood Team</span>
+                    <span className="text-xs text-muted-foreground">Multi-agency community focused</span>
                   </div>
                 </DropdownMenuItem>
 
@@ -3444,20 +3481,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}
                   />
-                  
-                  {/* Orientation Toggle */}
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <span className="text-xs text-muted-foreground">Layout</span>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs ${infographicOrientation === 'portrait' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Portrait</span>
-                      <Switch
-                        checked={infographicOrientation === 'landscape'}
-                        onCheckedChange={(checked) => setInfographicOrientation(checked ? 'landscape' : 'portrait')}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <span className={`text-xs ${infographicOrientation === 'landscape' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Landscape</span>
-                    </div>
-                  </div>
                   
                   <Button 
                     size="sm" 
