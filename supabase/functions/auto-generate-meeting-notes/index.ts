@@ -363,6 +363,20 @@ serve(async (req) => {
           })
           .filter(Boolean) || [];
         
+        // Also fetch Deepgram transcript if available for cross-reference
+        let deepgramText = '';
+        try {
+          const { data: dgData } = await supabase
+            .from('meetings')
+            .select('deepgram_transcript_text')
+            .eq('id', meetingId)
+            .single();
+          deepgramText = dgData?.deepgram_transcript_text || '';
+          if (deepgramText) console.log(`📊 Deepgram transcript available: ${deepgramText.length} chars`);
+        } catch (e) {
+          console.log('📊 No Deepgram transcript column or data available');
+        }
+
         const consolidatedResponse = await fetch(`${supabaseUrl}/functions/v1/generate-consolidated-meeting-notes`, {
           method: 'POST',
           headers: {
@@ -372,6 +386,7 @@ serve(async (req) => {
           body: JSON.stringify({
             batchTranscript,
             liveTranscript,
+            deepgramTranscript: deepgramText,
             meetingId,
             meetingTitle: meeting.title,
             meetingDate: meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : null,
