@@ -3005,7 +3005,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <Select 
               value={noteType} 
               onValueChange={(value) => {
-                setNoteType(value);
+                saveNoteTypePreference(value);
                 triggerRegeneration(detailLevel, value);
               }}
               disabled={isRegeneratingNotes}

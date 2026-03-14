@@ -5514,10 +5514,32 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           // Trigger background generation (fire and forget)
           setStopRecordingStep('Generating notes...');
           
-          console.log('🔍 Background: Invoking auto-generate-meeting-notes function...');
+          // Load user's preferred note type
+          let preferredNoteType = 'standard';
+          try {
+            const { data: noteTypePref } = await supabase
+              .from('user_settings')
+              .select('setting_value')
+              .eq('user_id', user.id)
+              .eq('setting_key', 'preferred_note_type')
+              .maybeSingle();
+            
+            if (noteTypePref?.setting_value) {
+              preferredNoteType = typeof noteTypePref.setting_value === 'string'
+                ? noteTypePref.setting_value
+                : (noteTypePref.setting_value as any)?.noteType || 'standard';
+              console.log('📝 Using user preferred note type for generation:', preferredNoteType);
+            }
+          } catch (err) {
+            console.warn('Failed to load note type preference, using standard:', err);
+          }
+
           const functionResult = await supabase.functions
             .invoke('auto-generate-meeting-notes', {
-              body: { meetingId: savedMeeting.id }
+              body: { 
+                meetingId: savedMeeting.id,
+                noteType: preferredNoteType,
+              }
             });
           
           if (functionResult.error) {

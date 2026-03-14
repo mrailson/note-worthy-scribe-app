@@ -9,37 +9,37 @@ export const MEETING_NOTE_TYPES: MeetingNoteType[] = [
   { 
     id: 'standard', 
     label: 'Standard', 
-    description: 'Balanced professional format for general meetings',
+    description: 'Full structured format with Context, Discussion, Agreed, Implication',
     iconName: 'FileText'
   },
   { 
     id: 'nhs-formal', 
     label: 'NHS Formal', 
-    description: 'Board-ready governance documents, CQC-compliant',
+    description: 'Shorter, formal key points — ideal for board packs and ICB circulation',
     iconName: 'Award'
   },
   { 
     id: 'clinical', 
     label: 'Clinical Notes', 
-    description: 'SOAP-style format for clinical team meetings',
+    description: 'SOAP-style format for MDT and clinical governance meetings',
     iconName: 'Stethoscope'
   },
   { 
     id: 'action-focused', 
     label: 'Action-Focused', 
-    description: 'Emphasis on decisions and action items',
+    description: 'Minimal narrative — leads with decisions and actions for busy executives',
     iconName: 'Target'
   },
   { 
     id: 'educational', 
     label: 'Educational/CPD', 
-    description: 'Learning objectives and key takeaways',
+    description: 'Learning objectives, takeaways, and CPD portfolio statement',
     iconName: 'GraduationCap'
   },
   { 
     id: 'ageing-well', 
     label: 'Ageing Well', 
-    description: 'CGA/Frailty review – History & Plan format',
+    description: 'Comprehensive frailty review — History & Plan for EMIS/SystmOne',
     iconName: 'Heart'
   }
 ];
