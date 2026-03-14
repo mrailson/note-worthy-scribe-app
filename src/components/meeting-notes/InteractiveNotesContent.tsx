@@ -4,12 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface ParsedLine {
-  type: 'heading' | 'bullet' | 'numbered' | 'paragraph' | 'empty';
+  type: 'heading' | 'bullet' | 'numbered' | 'paragraph' | 'empty' | 'subheading';
   content: string;
   htmlContent: string;
   level?: 1 | 2 | 3;
   originalLine: string;
   indent?: number;
+  labelPrefix?: string;
 }
 
 interface InteractiveNotesContentProps {
