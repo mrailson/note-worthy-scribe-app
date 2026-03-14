@@ -211,7 +211,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         // Fetch fresh meeting metadata
         const { data: freshMeeting } = await supabase
           .from('meetings')
-          .select('title, start_time, duration_minutes, participants')
+          .select('title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count')
           .eq('id', meetingId)
           .maybeSingle();
         
@@ -220,7 +220,11 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           startTime: freshMeeting?.start_time,
           duration: freshMeeting?.duration_minutes,
           participants: freshMeeting?.participants || [],
-          content: freshNotes
+          content: freshNotes,
+          format: freshMeeting?.meeting_format,
+          location: freshMeeting?.meeting_location,
+          overview: freshMeeting?.overview,
+          wordCount: freshMeeting?.word_count,
         };
         
         // Get user's full name from profile
@@ -245,13 +249,25 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
               year: 'numeric' 
             });
         
-        const subject = `Meeting Minutes - ${freshMeetingData.title} - ${meetingDate}`;
+        const subject = `Notewell AI | ${freshMeetingData.title} — ${meetingDate}`;
         
         // Convert notes content to styled HTML
         const htmlContent = convertNotesToStyledHTML(
           freshMeetingData.content,
           senderName,
-          freshMeetingData.title
+          freshMeetingData.title,
+          {
+            date: meetingDate,
+            time: freshMeetingData.startTime 
+              ? new Date(freshMeetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' GMT'
+              : undefined,
+            duration: freshMeetingData.duration,
+            format: freshMeetingData.format,
+            location: freshMeetingData.location,
+            overview: freshMeetingData.overview,
+            wordCount: freshMeetingData.wordCount,
+            attendees: Array.isArray(freshMeetingData.participants) ? freshMeetingData.participants : [],
+          }
         );
         
         // Generate Word document attachment
@@ -321,14 +337,16 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           reader.readAsDataURL(blob);
           const base64Content = await base64Promise;
           
-          const safeFilename = freshMeetingData.title
-            .replace(/[^a-zA-Z0-9\s]/g, '')
-            .replace(/\s+/g, '_')
-            .substring(0, 50);
+          const { generateMeetingFilename } = await import('@/utils/meetingFilename');
+          const attachmentFilename = generateMeetingFilename(
+            freshMeetingData.title,
+            freshMeetingData.startTime ? new Date(freshMeetingData.startTime) : new Date(),
+            'docx'
+          );
           
           wordAttachment = {
             content: base64Content,
-            filename: `${safeFilename}_Meeting_Notes.docx`,
+            filename: attachmentFilename,
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           };
         } catch (docError) {
@@ -359,14 +377,16 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
               audioReader.readAsDataURL(audioBlob);
               const audioBase64 = await audioBase64Promise;
               
-              const safeAudioFilename = freshMeetingData.title
-                .replace(/[^a-zA-Z0-9\s]/g, '')
-                .replace(/\s+/g, '_')
-                .substring(0, 50);
+              const { generateMeetingFilename: genAudioFilename } = await import('@/utils/meetingFilename');
+              const audioFilename = genAudioFilename(
+                freshMeetingData.title + ' - Audio Overview',
+                freshMeetingData.startTime ? new Date(freshMeetingData.startTime) : new Date(),
+                'mp3'
+              );
               
               audioAttachment = {
                 content: audioBase64,
-                filename: `${safeAudioFilename}_Audio_Overview.mp3`,
+                filename: audioFilename,
                 type: 'audio/mpeg'
               };
               console.log('✅ Audio attachment prepared');
@@ -452,8 +472,12 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   const convertToStyledHTML = (text: string): string => {
     // First strip duplicate blocks
     const cleanedText = stripDuplicateBlocks(text);
-    // Strip bold markers
-    let processedText = cleanedText.replace(/\*\*/g, '');
+    // Clean escaped asterisks and stray markdown but preserve intentional bold
+    let processedText = cleanedText
+      .replace(/\\\*/g, '')           // Remove escaped asterisks
+      .replace(/\*{3,}/g, '**')      // Collapse 3+ asterisks to bold
+      .replace(/═+/g, '')            // Remove divider lines
+      .replace(/---+/g, '');          // Remove horizontal rules from AI
     
     // Remove transcript sections
     const transcriptIndex = processedText.indexOf('MEETING TRANSCRIPT FOR REFERENCE:');
@@ -526,13 +550,38 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         continue;
       }
       
+      // Handle **Label:** text sub-headings (Context, Discussion, Agreed, Implication)
+      const subHeadingMatch = line.match(/^\s*[-•]?\s*\*{0,2}(Context|Discussion|Agreed|Implication|Meeting Purpose)[:\s]*\*{0,2}\s*(.*)$/i);
+      if (subHeadingMatch) {
+        const label = subHeadingMatch[1].trim();
+        const bodyText = (subHeadingMatch[2] || '').replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
+        const isAgreed = label.toLowerCase() === 'agreed';
+        
+        const labelColor = isAgreed ? '#DC2626' : '#2563EB';
+        const bodyWeight = isAgreed ? 'font-weight: 600;' : '';
+        
+        html += `<p style="margin: 4px 0 4px 24px; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">`;
+        html += `<strong style="color: ${labelColor};">${label}: </strong>`;
+        if (bodyText) {
+          html += `<span style="color: #1a1a1a; ${bodyWeight}">${bodyText}</span>`;
+        }
+        html += `</p>\n`;
+        i++;
+        continue;
+      }
+      
       // Handle bullet points
-      if (line.match(/^[•\-\*]\s/)) {
+      if (line.match(/^[•\-]\s/) || (line.match(/^\*\s/) && !line.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
         let listHTML = '<ul style="margin: 8px 0 8px 20px; padding: 0;">\n';
-        while (i < lines.length && lines[i].trim().match(/^[•\-\*]\s/)) {
-          const itemText = lines[i].trim().replace(/^[•\-\*]\s/, '');
-          listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
-          i++;
+        while (i < lines.length) {
+          const curLine = lines[i].trim();
+          if (curLine.match(/^[•\-]\s/) || (curLine.match(/^\*\s/) && !curLine.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
+            const itemText = curLine.replace(/^[•\-\*]\s/, '').replace(/\*\*/g, '').replace(/\\\*/g, '');
+            listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
+            i++;
+          } else {
+            break;
+          }
         }
         listHTML += '</ul>\n';
         html += listHTML;
@@ -575,31 +624,200 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       }
       
       // Handle regular paragraphs
-      html += `<p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${line}</p>\n`;
+      // Convert remaining **bold** markers to <strong> tags
+      const htmlLine = line
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/\\\*/g, '');
+      html += `<p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${htmlLine}</p>\n`;
       i++;
     }
     
     return html;
   };
 
-  // Helper function to convert notes to styled HTML for email
-  const convertNotesToStyledHTML = (content: string, senderName: string, title: string): string => {
+  // Helper function to convert notes to styled HTML for email — professional NHS-branded template
+  const convertNotesToStyledHTML = (
+    content: string, 
+    senderName: string, 
+    title: string,
+    meetingMeta?: {
+      date?: string;
+      time?: string;
+      duration?: number;
+      format?: string;
+      location?: string;
+      overview?: string;
+      wordCount?: number;
+      attendees?: string[];
+    }
+  ): string => {
     const formattedNotes = convertToStyledHTML(content);
+    
+    // Extract attendees from notes content if not provided
+    let attendeeList = meetingMeta?.attendees || [];
+    if (attendeeList.length === 0) {
+      const attendeeMatch = content.match(/(?:ATTENDEES|Attendees)\s*\n([\s\S]*?)(?=\n#{1,3}\s|\n[A-Z]{3,}|\n\n\n)/i);
+      if (attendeeMatch) {
+        attendeeList = attendeeMatch[1]
+          .split('\n')
+          .map(l => l.replace(/^[-•*]\s*/, '').trim())
+          .filter(l => l.length > 1 && !l.match(/^TBC$/i));
+      }
+    }
+    
+    // Format meeting time
+    const timeDisplay = meetingMeta?.time || '';
+    const durationDisplay = meetingMeta?.duration ? `${meetingMeta.duration} minutes` : '';
+    
+    // Format display
+    const formatMap: Record<string, string> = {
+      'teams': 'Microsoft Teams',
+      'hybrid': 'Hybrid',
+      'face-to-face': 'Face to Face',
+      'phone': 'Phone Call',
+    };
+    const formatDisplay = formatMap[meetingMeta?.format || ''] || meetingMeta?.format || '';
+    const locationDisplay = meetingMeta?.location || '';
+    
+    // Build overview section
+    let overviewHTML = '';
+    if (meetingMeta?.overview) {
+      const overviewText = meetingMeta.overview
+        .replace(/\*\*/g, '')
+        .replace(/\\\*/g, '');
+      
+      // Split into paragraph and bullets
+      const parts = overviewText.split('\n').filter(l => l.trim());
+      const paragraph = parts.filter(l => !l.trim().startsWith('•')).join(' ').trim();
+      const bullets = parts.filter(l => l.trim().startsWith('•'));
+      
+      overviewHTML = `
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+          <tr><td style="background-color: #F0F9FF; border-left: 4px solid #2563EB; border-radius: 6px; padding: 16px 20px;">
+            <p style="margin: 0 0 8px 0; font-family: Arial, sans-serif; font-size: 13px; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.5px;">Executive Summary</p>
+            <p style="margin: 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.6;">${paragraph}</p>
+            ${bullets.length > 0 ? `
+              <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;">
+                ${bullets.map(b => `<tr><td style="padding: 3px 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.5;">• ${b.replace(/^•\s*/, '')}</td></tr>`).join('\n')}
+              </table>
+            ` : ''}
+          </td></tr>
+        </table>
+      `;
+    }
+    
+    // Build meeting details table rows
+    const detailRows: string[] = [];
+    if (meetingMeta?.date) {
+      detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Date</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${meetingMeta.date}</td></tr>`);
+    }
+    if (timeDisplay) {
+      detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Time</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${timeDisplay}${durationDisplay ? ` (${durationDisplay})` : ''}</td></tr>`);
+    }
+    if (formatDisplay) {
+      detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Format</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${formatDisplay}${locationDisplay ? ` — ${locationDisplay}` : ''}</td></tr>`);
+    }
+    if (attendeeList.length > 0) {
+      detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Attendees</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${attendeeList.join(', ')}</td></tr>`);
+    }
+    
+    const detailsTableHTML = detailRows.length > 0 ? `
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 16px 0; background-color: #F8FAFC; border-radius: 6px;">
+        ${detailRows.join('\n')}
+      </table>
+    ` : '';
 
-    return `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
-      <div style="margin-bottom: 20px;">
-        <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">
-          Dear ${senderName},<br><br>
-          Please find attached the meeting notes for "${title}".<br><br>
-          Kind regards,<br>
-          ${senderName}
+    return `<div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; background-color: #ffffff;">
+
+  <!-- Header -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="background-color: #005EB8; padding: 20px 28px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td>
+              <p style="margin: 0; font-family: Arial, sans-serif; font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: 0.3px;">Notewell AI</p>
+              <p style="margin: 4px 0 0 0; font-family: Arial, sans-serif; font-size: 12px; color: #93C5FD; letter-spacing: 0.5px;">Meeting Notes Service</p>
+            </td>
+            <td style="text-align: right; vertical-align: top;">
+              <span style="display: inline-block; background-color: rgba(255,255,255,0.15); color: #ffffff; font-family: Arial, sans-serif; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 3px; letter-spacing: 0.8px; text-transform: uppercase;">OFFICIAL</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Accent stripe -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr><td style="height: 3px; background: linear-gradient(90deg, #005EB8, #2563EB, #60A5FA);"></td></tr>
+  </table>
+
+  <!-- Title bar -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="background-color: #EFF6FF; padding: 16px 28px; border-bottom: 1px solid #DBEAFE;">
+        <p style="margin: 0; font-family: Arial, sans-serif; font-size: 16px; font-weight: 700; color: #1E40AF;">${title}</p>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Body -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="padding: 24px 28px;">
+        
+        <p style="margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.6;">
+          Dear ${senderName},
         </p>
-      </div>
-      <hr style="border: none; border-top: 3px solid #0066cc; margin: 20px 0;" />
-      <div style="margin-top: 20px;">
+        
+        <p style="margin: 0 0 20px 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.6;">
+          Please find below a summary of your meeting, with the full notes attached as a Word document.
+        </p>
+        
+        ${detailsTableHTML}
+        
+        ${overviewHTML}
+        
+        <!-- Attachment callout -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+          <tr><td style="background-color: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 14px 20px;">
+            <p style="margin: 0 0 4px 0; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; color: #166534;">📎 Full meeting notes attached</p>
+            <p style="margin: 0; font-family: Arial, sans-serif; font-size: 13px; color: #15803D;">Open the Word document for the complete minutes</p>
+          </td></tr>
+        </table>
+        
+        <!-- Divider -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 24px 0 16px 0;">
+          <tr><td style="height: 1px; background-color: #E5E7EB;"></td></tr>
+        </table>
+        
+        <!-- Full notes heading -->
+        <p style="margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 15px; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.5px;">Full Meeting Notes</p>
         ${formattedNotes}
-      </div>
-    </div>`;
+        
+      </td>
+    </tr>
+  </table>
+
+  <!-- Footer -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr><td style="height: 1px; background-color: #E5E7EB;"></td></tr>
+    <tr>
+      <td style="background-color: #F8FAFC; padding: 20px 28px;">
+        <p style="margin: 0 0 10px 0; font-family: Arial, sans-serif; font-size: 13px; color: #374151; line-height: 1.5;">
+          Kind regards,<br/>${senderName}
+        </p>
+        <p style="margin: 0; font-family: Arial, sans-serif; font-size: 11px; color: #9CA3AF; line-height: 1.5;">
+          Generated by Notewell AI — Meeting Intelligence for NHS Primary Care<br/>
+          This email was sent automatically at the end of your recording session.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+</div>`;
   };
 
   const handleViewMeeting = () => {
