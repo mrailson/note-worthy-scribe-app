@@ -691,7 +691,7 @@ export function EmailMeetingMinutesModal({
           // Handle markdown headers (# ## ###) - strip the hash characters
           if (line.match(/^#{1,6}\s/)) {
             const headerText = line.replace(/^#{1,6}\s*/, '').trim();
-            html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${headerText}</h2>\n`;
+            html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${stripMd(headerText)}</h2>\n`;
             i++;
             continue;
           }
