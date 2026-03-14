@@ -1,6 +1,7 @@
 import { saveAs } from "file-saver";
 import { NHS_COLORS, FONTS, buildNHSStyles, buildNumbering } from "./wordTheme";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
+import { generateMeetingFilename } from "./meetingFilename";
 
 // Decode HTML entities to plain characters for Word output
 const decodeHtmlEntities = (text: string): string => {
@@ -690,6 +691,6 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
   
   // Generate and save
   const blob = await Packer.toBlob(doc);
-  const filename = options.filename || `meeting-notes-${dateStr.replace(/\//g, '-')}.docx`;
+  const filename = options.filename || generateMeetingFilename(options.metadata.title || 'Meeting Notes', new Date(), 'docx');
   saveAs(blob, filename);
 };

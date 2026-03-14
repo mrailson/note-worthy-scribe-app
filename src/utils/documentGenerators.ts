@@ -2,6 +2,7 @@ import { Document, Packer, Paragraph, TextRun, ExternalHyperlink, Table, TableRo
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import jsPDF from 'jspdf';
+import { generateMeetingFilename } from './meetingFilename';
 
 // Detect if text contains right-to-left scripts (Arabic, Hebrew, etc.)
 const containsRTL = (text: string) => /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
@@ -463,7 +464,7 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
     });
 
     // Generate and optionally save the document
-    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`;
+    const fileName = generateMeetingFilename(title, new Date(), 'docx');
     const blob = await Packer.toBlob(doc);
     
     if (saveFile) {
@@ -681,7 +682,7 @@ export const generateScribeWordDocument = async (details: ScribeExportDetails): 
     });
 
     // Generate and save the document
-    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`;
+    const fileName = generateMeetingFilename(title, new Date(), 'docx');
     const blob = await Packer.toBlob(doc);
     saveAs(blob, fileName);
     
@@ -1369,7 +1370,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
       addFooter(contentSlide);
     }
 
-    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pptx`;
+    const fileName = generateMeetingFilename(title, new Date(), 'pptx');
     await pptx.writeFile({ fileName });
     
   } catch (error) {
@@ -1699,7 +1700,7 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
     }
 
     // Save
-    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+    const fileName = generateMeetingFilename(title, new Date(), 'pdf');
     pdf.save(fileName);
     
   } catch (error: any) {

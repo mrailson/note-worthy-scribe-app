@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { WordIcon } from '@/components/icons/WordIcon';
 import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
 import { showToast } from '@/utils/toastWrapper';
+import { generateMeetingFilename } from '@/utils/meetingFilename';
 
 interface AdminDictateQuickActionsProps {
   status: AdminDictationStatus;
@@ -69,7 +70,7 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
           time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
         },
         content: exportContent,
-        filename: `${templateName.toLowerCase().replace(/\s+/g, '-')}-${now.toISOString().split('T')[0]}.docx`,
+        filename: generateMeetingFilename(templateName || 'Dictation', now, 'docx'),
       });
       showToast.success('Document downloaded');
     } catch (error) {

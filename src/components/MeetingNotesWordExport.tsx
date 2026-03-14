@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react';
 import { showToast } from '@/utils/toastWrapper';
 import { extractAttendees } from '@/utils/extractAttendees';
 import { useAuth } from '@/contexts/AuthContext';
+import { generateMeetingFilename } from '@/utils/meetingFilename';
 
 interface MeetingData {
   title: string;
@@ -62,7 +63,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
       const titleMatch = fullContent.match(/^\s*[-•*]?\s*\**\s*Meeting Title\s*:\s*(.+)$/im);
       const extractedTitle = titleMatch ? titleMatch[1].trim() : (meetingData.title || 'Meeting Notes');
       const safeTitle = extractedTitle.replace(/\*\*/g, '').replace(/\*/g, '').trim();
-      const filename = `${safeTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString()}.docx`;
+      const filename = generateMeetingFilename(safeTitle, new Date(), 'docx');
       
       // Prefer meetingData.attendees, otherwise extract from content
       const computedAttendees = (meetingData.attendees && meetingData.attendees.trim())
