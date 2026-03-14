@@ -1538,6 +1538,7 @@ const MeetingHistory = () => {
 
   const [isDeletingEmpty, setIsDeletingEmpty] = useState(false);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [showCorrections, setShowCorrections] = useState(false);
   const [showDeleteEmptyDialog, setShowDeleteEmptyDialog] = useState(false);
 
   const handleClearEmptyMeetings = async () => {
