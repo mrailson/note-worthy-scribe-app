@@ -116,7 +116,8 @@ serve(async (req) => {
 
     const { 
       batchTranscript, 
-      liveTranscript, 
+      liveTranscript,
+      deepgramTranscript,
       meetingId,
       meetingTitle,
       meetingDate,
