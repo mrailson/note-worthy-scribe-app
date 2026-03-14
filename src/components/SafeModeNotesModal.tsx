@@ -3597,6 +3597,26 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           </div>
         </div>
 
+        {/* Audio Studio Panel (shown when toggled) */}
+        {showAudioStudio && meeting && (
+          <div className="mx-6 mt-4 border rounded-lg p-4 bg-muted/30">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Mic className="h-5 w-5" />
+                Audio Studio
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowAudioStudio(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <MeetingAudioStudio
+              meetingId={meeting.id}
+              meetingTitle={meeting.title}
+              onAudioGenerated={() => {}}
+            />
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
           <div className="mx-6 mt-4 flex items-center gap-2">
