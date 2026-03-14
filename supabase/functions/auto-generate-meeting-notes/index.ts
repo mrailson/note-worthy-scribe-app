@@ -1531,12 +1531,58 @@ ${cleanedTranscript}`;
           }
         }
         
-        // Insert extracted action items
-        if (actionItemsToInsert.length > 0) {
-          console.log(`📋 Inserting ${actionItemsToInsert.length} extracted action items`);
+        // Quality filter: remove vague/ongoing items that aren't real deliverables
+        const vaguePatterns = [
+          /^(?:continue|keep|maintain|ensure|remain)\s+(?:to\s+)?(?:monitor|review|assess|track|oversee|watch|check)/i,
+          /^monitor\s/i,
+          /^review\s+(?:situation|position|progress|status)\s/i,
+          /^(?:consider|explore|think about|look into)\s+(?:options|possibilities|alternatives|ways)/i,
+          /^keep\s+(?:an eye|track|monitoring|reviewing|practices informed)/i,
+          /^(?:await|wait for)\s/i,
+          /^note\s+(?:that|the)\s/i,
+          /^(?:be aware|stay aware|remain aware)\s/i,
+          /^follow\s+up\s+(?:as needed|if required|when appropriate)/i,
+          /^discuss\s+(?:at|in|during)\s+(?:next|future|upcoming)\s+meeting/i,
+          /^(?:agenda item|standing item|return to this)/i,
+        ];
+
+        const filteredItems = actionItemsToInsert.filter(item => {
+          const text = item.action_text.trim();
+          
+          if (text.length < 25) {
+            console.log(`🔍 Filtered out (too short): "${text}"`);
+            return false;
+          }
+          
+          const isVague = vaguePatterns.some(pattern => pattern.test(text));
+          if (isVague) {
+            console.log(`🔍 Filtered out (vague/ongoing): "${text}"`);
+            return false;
+          }
+          
+          if (text.match(/^(?:action items?|open items?|next steps?|risks?|decisions?)/i)) {
+            console.log(`🔍 Filtered out (header): "${text}"`);
+            return false;
+          }
+          
+          return true;
+        });
+
+        // Cap at maximum 8 action items — keep highest priority first
+        const priorityOrder: Record<string, number> = { 'High': 0, 'Medium': 1, 'Low': 2 };
+        const cappedItems = filteredItems
+          .sort((a, b) => (priorityOrder[a.priority] ?? 1) - (priorityOrder[b.priority] ?? 1))
+          .slice(0, 8)
+          .map((item, index) => ({ ...item, sort_order: index }));
+
+        console.log(`📋 Action items: ${actionItemsToInsert.length} extracted → ${filteredItems.length} after quality filter → ${cappedItems.length} after cap`);
+
+        // Insert filtered action items
+        if (cappedItems.length > 0) {
+          console.log(`📋 Inserting ${cappedItems.length} quality action items`);
           const { error: actionError } = await supabase
             .from('meeting_action_items')
-            .insert(actionItemsToInsert);
+            .insert(cappedItems);
           
           if (actionError) {
             console.warn('⚠️ Failed to insert action items:', actionError.message);
@@ -1544,7 +1590,7 @@ ${cleanedTranscript}`;
             console.log('✅ Action items extracted and stored successfully');
           }
         } else {
-          console.log('📋 No action items found in generated notes');
+          console.log('📋 No quality action items found after filtering');
         }
       }
     } catch (actionError: any) {
