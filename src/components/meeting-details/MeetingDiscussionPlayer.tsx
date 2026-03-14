@@ -55,6 +55,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
   dialogueScript,
   meetingTitle,
   meetingDate,
+  slideAnnotations,
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
