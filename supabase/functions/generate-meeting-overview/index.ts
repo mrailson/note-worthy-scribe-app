@@ -108,29 +108,23 @@ serve(async (req) => {
       locationContext = `Location: ${meeting.meeting_location}\n`;
     }
 
-    const systemPrompt = `Create a concise executive meeting summary using British English spellings and conventions.
+    const systemPrompt = `Create a specific executive meeting summary using British English spellings and conventions.
 
 Format:
-1. Opening paragraph (20-30 words): Brief overview of meeting purpose and main outcome
-2. Key points (3-5 bullet points): Specific decisions, actions, and deliverables
+1. Opening paragraph (30-50 words): State the meeting purpose, the main decision or outcome, and who was involved. Name at least one specific topic, project, or initiative discussed.
+2. Key points (3-5 bullet points): Each must contain a concrete fact — a decision made, an action assigned to a named person, a deadline, or a specific number/metric discussed.
 
 Requirements:
 - Use British English spellings (e.g., 'organised', 'realise', 'colour', 'centre')
-- Total: 60-80 words maximum
+- Total: 80-120 words maximum
 - Opening paragraph on its own line, followed by blank line
 - Then each bullet point on separate line with • character
-- Each bullet point: one clear, specific statement (8-12 words)
-- Focus on key decisions, actions, and outcomes only
-- Include critical details: names, deadlines, deliverables (if mentioned)
+- Each bullet point: one clear, specific statement (10-15 words)
+- NEVER use generic phrases like "various topics were discussed", "key issues were raised", or "important matters were covered"
+- Every bullet must answer: WHO decided/will do WHAT by WHEN (where known)
+- Include specific names, deadlines, figures, and deliverables from the notes
 - Professional, direct tone
-- NO introductory phrases or filler words
-
-Example format:
-[Paragraph describing meeting]
-
-• [First key point]
-• [Second key point]
-• [Third key point]`;
+- NO introductory phrases or filler words`;
 
 
     const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || 'Meeting'}":
