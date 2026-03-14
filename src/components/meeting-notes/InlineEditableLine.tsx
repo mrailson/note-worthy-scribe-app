@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 export type AILineAction = 'regenerate' | 'check_tone' | 'reduce' | 'expand' | 'formalise';
 
 interface InlineEditableLineProps {
-  type: 'heading' | 'bullet' | 'numbered' | 'paragraph';
+  type: 'heading' | 'bullet' | 'numbered' | 'paragraph' | 'subheading';
   content: string;
   htmlContent: string;
   level?: 1 | 2 | 3;
