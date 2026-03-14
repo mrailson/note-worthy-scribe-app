@@ -3578,6 +3578,21 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TooltipContent>Generate Audio Summary</TooltipContent>
             </Tooltip>
 
+            {/* Audio Studio button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant={showAudioStudio ? "default" : "ghost"}
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => setShowAudioStudio(!showAudioStudio)}
+                >
+                  <Mic className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Audio Studio (Discussion Mode)</TooltipContent>
+            </Tooltip>
+
           </div>
         </div>
 
