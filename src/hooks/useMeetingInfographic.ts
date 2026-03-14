@@ -369,7 +369,13 @@ This infographic is for a British NHS audience. You MUST use British English spe
 - Use "whilst" or "while" (both acceptable)
 - Date format: "11 March 2026" or "11th March 2026" (never "March 11, 2026")
 - Time format: "13:00" or "1:00 PM" (never "1:00 pm" lowercase)
-Any American English spelling in the output is a CRITICAL ERROR. Check every word before finalising.`;
+Any American English spelling in the output is a CRITICAL ERROR. Check every word before finalising.
+- NEVER render prompt instructions, template variables, or formatting directives as visible text. Specifically:
+  - Never show "[Number]", "[Text]", or any square-bracket placeholders
+  - Never show "Minimal, count:" or any instruction-style labels
+  - Never show colour hex codes like "#EF4444" or "#005EB8"
+  - Never show "e.g.," examples from the prompt — use the actual meeting data instead
+  - If you don't have data for a section, write "See full minutes" not a placeholder`;
 
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
