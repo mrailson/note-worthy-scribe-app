@@ -85,7 +85,7 @@ export const useNotesViewSettings = () => {
     if (/executive\s*summary/i.test(heading)) {
       return settings.visibleSections.executiveSummary;
     }
-    if (/key\s*points/i.test(heading)) {
+    if (/(key\s*(points|discussion|discussion\s*points|highlights|takeaways))|(discussion\s*summary)/i.test(heading)) {
       return settings.visibleSections.keyPoints;
     }
     if (/action\s*(list|items?)/i.test(heading)) {

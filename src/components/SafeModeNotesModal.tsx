@@ -2481,9 +2481,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       cleaned = cleaned.replace(/##?\s*Completed\s*(Items?)?\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
     }
 
-    // Remove Discussion Summary section (covered by Executive Summary) - more precise regex
-    cleaned = cleaned.replace(/##?\s*Discussion\s+Summary\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
-    
     // Remove meeting details section heading/label
     cleaned = cleaned.replace(/^#{1,6}\s*Meeting\s+Details\s*$/gim, '');
     cleaned = cleaned.replace(/^Meeting\s+Details\s*$/gim, '');
