@@ -2020,6 +2020,10 @@ const MeetingHistory = () => {
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Empty (&lt;100 words)
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowCorrections(true)}>
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Name & Term Corrections
+                    </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => setShowDeleteAllDialog(true)} 
                       className="text-destructive focus:text-destructive"
