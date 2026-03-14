@@ -1118,15 +1118,38 @@ SPEAKER ATTRIBUTION RULES:
 
 # DISCUSSION SUMMARY
 
-Background
-[Write a context-setting paragraph explaining what led to this meeting and the key topics to be addressed]
+**Meeting Purpose:** [One sentence explaining why this meeting was called and the key topics on the agenda]
 
 Key Points
-1. [First major discussion point with full context and outcomes]
 
-2. [Second major discussion point with details]
+1. **[Topic Heading]**
 
-3. [Continue with all significant discussion items]
+   **Context:** [One sentence — why this topic was raised, what triggered the discussion]
+
+   **Discussion:** [2-4 sentences covering the key positions, figures, and concerns raised. Include specific numbers, names, and quotes where the transcript supports them. Weight the detail by how much discussion time the topic received — longer debates deserve fuller coverage.]
+
+   **Agreed:** [One sentence stating the outcome in bold. What was decided, agreed, or resolved? If no decision was reached, state "No formal decision was reached — to be revisited at [next meeting/date]."]
+
+   **Implication:** [One sentence — what this means going forward for practices, patients, or the organisation]
+
+2. **[Next Topic Heading]**
+
+   **Context:** [...]
+   **Discussion:** [...]
+   **Agreed:** [...]
+   **Implication:** [...]
+
+(Continue for all significant discussion items, typically 3-8 topics per meeting)
+
+# DECISIONS REGISTER
+
+A quick-scan list of every decision made in this meeting:
+- [Decision 1 — one line, specific, with who/what/when if known]
+- [Decision 2]
+- [Continue for all decisions]
+(If no decisions were made: "No formal decisions were recorded in this meeting")
+
+This section must ONLY contain decisions that were explicitly agreed during the meeting — not ongoing positions or general sentiments.
 
 # ACTION ITEMS
 | Action | Responsible Party | Deadline | Priority |
