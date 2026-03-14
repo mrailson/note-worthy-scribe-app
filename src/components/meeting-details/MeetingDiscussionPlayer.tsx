@@ -197,7 +197,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
     }
 
     // Fallback: extract from text
-    const turn = turns[turnIdx];
+    const turn = timedTurns[turnIdx];
     if (!turn) return null;
     const figureMatch = turn.text.match(/(£[\d,]+(?:\.\d+)?|[\d.]+%|\d+ (?:families|patients|meetings|days|weeks|months|staff|practices|sessions))/i);
     return {
