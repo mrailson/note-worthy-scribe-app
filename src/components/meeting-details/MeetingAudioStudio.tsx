@@ -565,8 +565,16 @@ export const MeetingAudioStudio = ({
 
   return (
     <div className="space-y-6">
-      {/* Generated Audio Display */}
-      {audioUrl && editedText.includes('ALICE:') && editedText.includes('GEORGE:') ? (
+      {/* Loading state */}
+      {isLoadingDiscussion && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-sm text-muted-foreground">Loading saved discussion...</span>
+        </div>
+      )}
+
+      {/* Saved discussion — show player immediately */}
+      {!isLoadingDiscussion && hasSavedDiscussion && audioUrl && editedText.includes('ALICE:') ? (
         <div className="space-y-4">
           <MeetingDiscussionPlayer
             audioUrl={audioUrl}
@@ -574,187 +582,227 @@ export const MeetingAudioStudio = ({
             meetingTitle={meetingTitle}
             slideAnnotations={slideAnnotations}
           />
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button onClick={handleDownload} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Download MP3
-            </Button>
-            <Button 
-              onClick={handleSendToEmail} 
-              variant="outline" 
-              size="sm"
-              disabled={isSendingEmail}
-            >
-              {isSendingEmail ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send to me
-                </>
-              )}
-            </Button>
-            <Button onClick={handleStartOver} variant="outline" size="sm">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Start Over
-            </Button>
-          </div>
-        </div>
-      ) : audioUrl ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Generated Audio</CardTitle>
-            <CardDescription>
-              Your audio overview is ready
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg">
-              <audio 
-                controls 
-                className="w-full" 
-                src={audioUrl}
-                preload="metadata"
-              >
-                Your browser does not support audio playback.
-              </audio>
-            </div>
-            
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center justify-between px-1">
+            <p className="text-xs text-muted-foreground">
+              Saved discussion — {slideAnnotations.length} slide{slideAnnotations.length !== 1 ? 's' : ''}
+            </p>
+            <div className="flex gap-2">
               <Button onClick={handleDownload} variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Download MP3
+                <Download className="h-4 w-4 mr-1.5" />
+                Download
               </Button>
-              <Button 
-                onClick={handleSendToEmail} 
-                variant="outline" 
-                size="sm"
-                disabled={isSendingEmail}
-              >
-                {isSendingEmail ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="h-4 w-4 mr-2" />
-                    Send to me
-                  </>
-                )}
+              <Button variant="ghost" size="sm" onClick={() => {
+                setHasSavedDiscussion(false);
+              }}>
+                <Edit className="h-3 w-3 mr-1.5" />
+                Edit Script
               </Button>
-              <Button onClick={handleStartOver} variant="outline" size="sm">
-                <RotateCcw className="h-4 w-4 mr-2" />
+              <Button variant="ghost" size="sm" onClick={() => {
+                setHasSavedDiscussion(false);
+                setScriptGenerated(false);
+                setOriginalText('');
+                setEditedText('');
+                setAudioUrl(null);
+                setSlideAnnotations([]);
+              }}>
+                <RotateCcw className="h-3 w-3 mr-1.5" />
                 Start Over
               </Button>
-              {audioDuration && (
-                <Badge variant="secondary">
-                  Duration: {Math.floor(audioDuration / 60)}:{(audioDuration % 60).toString().padStart(2, '0')}
-                </Badge>
-              )}
             </div>
-
-            {/* Show narration text */}
-            <Collapsible className="space-y-2">
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full justify-between">
-                  <span>View Narration Text</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="bg-background border rounded-lg p-4 text-sm max-h-96 overflow-y-auto">
-                  {editedText}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {/* Step 1: Generate Script */}
-      {!scriptGenerated && !audioUrl && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Step 1: Generate Script</CardTitle>
-            <CardDescription>
-              Create an AI-generated narration script from your meeting
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Target Duration: {duration[0]} minute{duration[0] > 1 ? 's' : ''}</Label>
-              <Slider
-                value={duration}
-                onValueChange={setDuration}
-                min={1}
-                max={10}
-                step={1}
-                className="w-full"
+          </div>
+        </div>
+      ) : !isLoadingDiscussion ? (
+        <>
+          {/* Generated Audio Display (non-saved / freshly generated) */}
+          {audioUrl && editedText.includes('ALICE:') && editedText.includes('GEORGE:') ? (
+            <div className="space-y-4">
+              <MeetingDiscussionPlayer
+                audioUrl={audioUrl}
+                dialogueScript={editedText}
+                meetingTitle={meetingTitle}
+                slideAnnotations={slideAnnotations}
               />
-              <p className="text-xs text-muted-foreground">
-                AI will create an overview approximately {duration[0]} minute{duration[0] > 1 ? 's' : ''} long
-              </p>
-            </div>
-
-            <AudioScriptStyleSelector 
-              selectedStyle={selectedScriptStyle}
-              onStyleSelect={setSelectedScriptStyle}
-            />
-
-            <Collapsible
-              open={directionsExpanded}
-              onOpenChange={setDirectionsExpanded}
-              className="space-y-2"
-            >
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full justify-between">
-                  <span>Custom Directions (Optional)</span>
-                  {directionsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button onClick={handleDownload} variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download MP3
                 </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Textarea
-                    value={customDirections}
-                    onChange={(e) => setCustomDirections(e.target.value)}
-                    placeholder="e.g., Focus on clinical decisions, emphasise action items, use formal tone..."
-                    className="min-h-[80px]"
-                  />
-                  <SpeechToText
-                    onTranscription={setCustomDirections}
-                    size="sm"
-                  />
+                <Button 
+                  onClick={handleSendToEmail} 
+                  variant="outline" 
+                  size="sm"
+                  disabled={isSendingEmail}
+                >
+                  {isSendingEmail ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Send to me
+                    </>
+                  )}
+                </Button>
+                <Button onClick={handleStartOver} variant="outline" size="sm">
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Start Over
+                </Button>
+              </div>
+            </div>
+          ) : audioUrl ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Generated Audio</CardTitle>
+                <CardDescription>
+                  Your audio overview is ready
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-muted p-4 rounded-lg">
+                  <audio 
+                    controls 
+                    className="w-full" 
+                    src={audioUrl}
+                    preload="metadata"
+                  >
+                    Your browser does not support audio playback.
+                  </audio>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Add specific instructions to customise the script generation
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
+                
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button onClick={handleDownload} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download MP3
+                  </Button>
+                  <Button 
+                    onClick={handleSendToEmail} 
+                    variant="outline" 
+                    size="sm"
+                    disabled={isSendingEmail}
+                  >
+                    {isSendingEmail ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Send to me
+                      </>
+                    )}
+                  </Button>
+                  <Button onClick={handleStartOver} variant="outline" size="sm">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Start Over
+                  </Button>
+                  {audioDuration && (
+                    <Badge variant="secondary">
+                      Duration: {Math.floor(audioDuration / 60)}:{(audioDuration % 60).toString().padStart(2, '0')}
+                    </Badge>
+                  )}
+                </div>
 
-            <Button
-              onClick={handleGenerateScript}
-              disabled={isGeneratingScript}
-              className="w-full"
-            >
-              {isGeneratingScript ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating Script...
-                </>
-              ) : (
-                <>
-                  <Mic className="h-4 w-4 mr-2" />
-                  Generate Script
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+                {/* Show narration text */}
+                <Collapsible className="space-y-2">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-full justify-between">
+                      <span>View Narration Text</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="bg-background border rounded-lg p-4 text-sm max-h-96 overflow-y-auto">
+                      {editedText}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {/* Step 1: Generate Script */}
+          {!scriptGenerated && !audioUrl && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Step 1: Generate Script</CardTitle>
+                <CardDescription>
+                  Create an AI-generated narration script from your meeting
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Target Duration: {duration[0]} minute{duration[0] > 1 ? 's' : ''}</Label>
+                  <Slider
+                    value={duration}
+                    onValueChange={setDuration}
+                    min={1}
+                    max={10}
+                    step={1}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    AI will create an overview approximately {duration[0]} minute{duration[0] > 1 ? 's' : ''} long
+                  </p>
+                </div>
+
+                <AudioScriptStyleSelector 
+                  selectedStyle={selectedScriptStyle}
+                  onStyleSelect={setSelectedScriptStyle}
+                />
+
+                <Collapsible
+                  open={directionsExpanded}
+                  onOpenChange={setDirectionsExpanded}
+                  className="space-y-2"
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-full justify-between">
+                      <span>Custom Directions (Optional)</span>
+                      {directionsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Textarea
+                        value={customDirections}
+                        onChange={(e) => setCustomDirections(e.target.value)}
+                        placeholder="e.g., Focus on clinical decisions, emphasise action items, use formal tone..."
+                        className="min-h-[80px]"
+                      />
+                      <SpeechToText
+                        onTranscription={setCustomDirections}
+                        size="sm"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Add specific instructions to customise the script generation
+                    </p>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Button
+                  onClick={handleGenerateScript}
+                  disabled={isGeneratingScript}
+                  className="w-full"
+                >
+                  {isGeneratingScript ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating Script...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="h-4 w-4 mr-2" />
+                      Generate Script
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
       {/* Step 2: Review & Edit Script */}
       {scriptGenerated && !audioUrl && (
