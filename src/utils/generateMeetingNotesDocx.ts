@@ -320,7 +320,11 @@ export const parseContentToDocxElements = async (content: string) => {
     const headingMatch = line.match(/^(#{1,3})\s+(.+)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;
-      const headingText = decodeHtmlEntities(headingMatch[2]);
+      // Strip bold markers and stray asterisks from heading text
+      const headingText = decodeHtmlEntities(headingMatch[2])
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .trim();
       
       const headingLevels = [HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3];
       
