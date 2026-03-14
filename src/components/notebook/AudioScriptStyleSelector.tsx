@@ -2,6 +2,7 @@ import { Briefcase, GraduationCap, ClipboardList, Radio, FileCode, HeartPulse } 
 import { Card } from "@/components/ui/card";
 
 export type ScriptStyle = 
+  | 'discussion'
   | 'executive' 
   | 'training' 
   | 'meeting' 
