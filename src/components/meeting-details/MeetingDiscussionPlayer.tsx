@@ -306,9 +306,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
                     : 'w-2 h-2 bg-slate-600'
                 }`}
                 onClick={() => {
-                  const estimatedTotal = turns.length > 0 ? turns[turns.length - 1].endTime : 1;
-                  const scale = duration > 0 ? duration / estimatedTotal : 1;
-                  seekTo(turns[realIdx].startTime * scale);
+                  seekTo(timedTurns[realIdx].startTime);
                 }}
                 title={`${t.speaker}: ${t.text.substring(0, 40)}...`}
               />
