@@ -24,7 +24,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
-import { Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download, Upload, Plus, FolderOpen, MoreVertical } from "lucide-react";
+import { Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download, Upload, Plus, FolderOpen, MoreVertical, BookOpen } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import {
@@ -55,6 +55,7 @@ import { showToast } from "@/utils/toastWrapper";
 import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFoldersManager";
 import { MeetingFolderView } from "@/components/meeting-folders/MeetingFolderView";
+import { CorrectionManager } from "@/components/CorrectionManager";
 
 interface Meeting {
   id: string;
@@ -1538,6 +1539,7 @@ const MeetingHistory = () => {
 
   const [isDeletingEmpty, setIsDeletingEmpty] = useState(false);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [showCorrections, setShowCorrections] = useState(false);
   const [showDeleteEmptyDialog, setShowDeleteEmptyDialog] = useState(false);
 
   const handleClearEmptyMeetings = async () => {
@@ -2018,6 +2020,10 @@ const MeetingHistory = () => {
                     <DropdownMenuItem onClick={() => setShowDeleteEmptyDialog(true)} disabled={isDeletingEmpty}>
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Empty (&lt;100 words)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowCorrections(true)}>
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Name & Term Corrections
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => setShowDeleteAllDialog(true)} 
@@ -2779,6 +2785,14 @@ const MeetingHistory = () => {
           open={foldersDialogOpen}
           onOpenChange={setFoldersDialogOpen}
         />
+
+        {/* Name & Term Corrections Modal */}
+        {showCorrections && (
+          <CorrectionManager 
+            onClose={() => setShowCorrections(false)}
+            onCorrectionApplied={() => {}}
+          />
+        )}
 
       </div>
     </div>

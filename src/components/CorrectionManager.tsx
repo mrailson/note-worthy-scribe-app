@@ -246,11 +246,47 @@ export function CorrectionManager({ onClose, onCorrectionApplied }: CorrectionMa
                   <div className="text-center py-8 text-muted-foreground">
                     Loading corrections...
                   </div>
+                ) : filteredCorrections.length === 0 && !searchTerm ? (
+                  <div className="text-center py-8 space-y-4">
+                    <BookOpen className="h-10 w-10 mx-auto text-muted-foreground opacity-50" />
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        No corrections added yet. Add names and terms that speech-to-text regularly gets wrong.
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        Examples of common corrections:
+                      </p>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {[
+                          { wrong: 'Toaster', right: 'Towcester' },
+                          { wrong: 'Anshul', right: 'Anshal' },
+                          { wrong: 'Book Brook', right: 'Bugbrook' },
+                          { wrong: 'Rushed In', right: 'Rushden' },
+                          { wrong: 'System One', right: 'SystmOne' },
+                        ].map(example => (
+                          <Button
+                            key={example.wrong}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs gap-1"
+                            onClick={() => {
+                              setNewIncorrect(example.wrong);
+                              setNewCorrect(example.right);
+                            }}
+                          >
+                            <span className="line-through text-muted-foreground">{example.wrong}</span>
+                            <span>→</span>
+                            <span>{example.right}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 ) : filteredCorrections.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No corrections found</p>
-                    {searchTerm && <p className="text-sm">Try adjusting your search</p>}
+                    <p className="text-sm">Try adjusting your search</p>
                   </div>
                 ) : (
                   filteredCorrections.map((correction) => (

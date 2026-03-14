@@ -96,7 +96,8 @@ import {
   Hash,
   Stethoscope,
   Shield,
-  Heart
+  Heart,
+  BookOpen
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
@@ -125,6 +126,7 @@ import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 import { useNotesViewSettings } from "@/hooks/useNotesViewSettings";
 import { NotesViewSettingsPopover } from "@/components/meeting-details/NotesViewSettingsPopover";
+import { CorrectionManager } from "@/components/CorrectionManager";
 
 interface Meeting {
   id: string;
@@ -236,6 +238,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [infographicOrientation, setInfographicOrientation] = useState<'portrait' | 'landscape'>('landscape');
   const [showQuickAudioModal, setShowQuickAudioModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showCorrections, setShowCorrections] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
   
   // Refs for selection-based find/replace
@@ -2896,6 +2899,23 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TooltipContent>{viewMode === 'plain' ? 'Plain Text' : 'Formatted'}</TooltipContent>
             </Tooltip>
 
+            {/* Name & Term Corrections */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => setShowCorrections(true)}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                >
+                  <BookOpen className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Name & Term Corrections</p>
+              </TooltipContent>
+            </Tooltip>
+
             {/* Saving indicator */}
             {isSavingSections && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground ml-1">
@@ -4283,6 +4303,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           onOpenChange={setShowQuickAudioModal}
           meetingId={meeting.id}
           meetingTitle={meeting.title}
+        />
+      )}
+      {/* Name & Term Corrections Modal */}
+      {showCorrections && (
+        <CorrectionManager 
+          onClose={() => setShowCorrections(false)}
+          onCorrectionApplied={() => {}}
         />
       )}
     </Dialog>
