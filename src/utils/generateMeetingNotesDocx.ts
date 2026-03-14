@@ -395,7 +395,11 @@ export const parseContentToDocxElements = async (content: string) => {
 
 // Strip stray asterisks from a text fragment (after bold/italic has been extracted)
 const cleanStrayAsterisks = (text: string): string => {
-  return text.replace(/\*+/g, '').replace(/\s{2,}/g, ' ');
+  return text
+    .replace(/\*{2,}/g, '')   // Remove runs of 2+ asterisks
+    .replace(/(?<!\S)\*|\*(?!\S)/g, '') // Remove lone asterisks at word boundaries
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 };
 
 // Parse inline bold/italic formatting
@@ -404,7 +408,12 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   let currentIndex = 0;
   
   // Decode HTML entities first
-  const decodedText = decodeHtmlEntities(text);
+  let decodedText = decodeHtmlEntities(text);
+  
+  // Pre-clean: fix malformed bold markers like "Gap** –" (orphaned closing **)
+  // Convert orphaned ** that don't have a matching pair into nothing
+  // First, process valid bold/italic, then strip leftovers
+  decodedText = decodedText.replace(/\*{3,}/g, '**'); // Normalize 3+ asterisks to 2
   
   // Match **bold** and *italic*
   const markdownRegex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
