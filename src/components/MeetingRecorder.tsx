@@ -5293,6 +5293,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       console.log('🚨 SaveError:', saveError);
       console.log('🚨 SavedMeeting:', savedMeeting);
 
+      // Log final Whisper cost for this meeting
+      const finalCallCount = sessionStorage.getItem('whisper_call_count') || '0';
+      const finalDuration = sessionStorage.getItem('whisper_total_duration') || '0';
+      const finalCost = (parseFloat(finalDuration) / 60) * 0.006;
+      console.log(`💰 WHISPER_MEETING_FINAL: meeting=${meetingId}, total_whisper_calls=${finalCallCount}, total_audio_duration=${parseFloat(finalDuration).toFixed(1)}s (${(parseFloat(finalDuration) / 60).toFixed(1)} min), estimated_whisper_cost=$${finalCost.toFixed(4)}`);
+
       // Safety Net 1: Consolidate transcript chunks before generating notes
       setStopRecordingStep('Consolidating transcript chunks...');
       try {

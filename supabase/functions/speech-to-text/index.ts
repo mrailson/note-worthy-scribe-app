@@ -443,6 +443,7 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
 
         if (attempt < maxRetries) {
           const delay = Math.pow(2, attempt - 1) * 1000;
+          console.log(`⚠️ [${requestId}] WHISPER_RETRY_MAIN: attempt=${attempt} failed, retrying in ${Math.pow(2, attempt - 1)}s. Status=${response?.status || 'no_response'}, error=${lastError?.message || 'unknown'}`);
           console.log(`⏳ [${requestId}] Waiting ${delay}ms before retry…`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
