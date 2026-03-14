@@ -417,6 +417,7 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
     const maxRetries = 3;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`💰 [${requestId}] WHISPER_API_CALL_MAIN: attempt=${attempt}/${maxRetries}, ext=${fileExtension}, bytes=${preprocessed.bytes.length}`);
       try {
         console.log(`🔄 [${requestId}] Attempt ${attempt}/${maxRetries}`);
 
