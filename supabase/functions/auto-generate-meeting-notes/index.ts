@@ -872,16 +872,16 @@ serve(async (req) => {
 DETAIL LEVEL: BRIEF
 - Focus ONLY on key decisions and action items
 - Executive summary: 1-2 sentences maximum
-- Discussion summary: Maximum 3 bullet points
-- Skip the Background section
+- Discussion summary: Maximum 3 key points, each with Agreed line only (skip Context, Discussion, and Implication sub-sections)
+- Replace "Meeting Purpose" with a single sentence
+- Skip DECISIONS REGISTER section (covered in key points)
 - Keep total notes to approximately 300 words`,
       
       'summary': `
 DETAIL LEVEL: SUMMARY
 - Concise coverage of main discussion points
 - Executive summary: 2-3 sentences
-- Discussion summary: 4-5 key points only
-- Brief background context
+- Discussion summary: 4-5 key points with Context and Agreed sub-sections only (skip Discussion and Implication to save space)
 - Keep total notes to approximately 500 words`,
       
       'standard': `
