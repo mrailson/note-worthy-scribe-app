@@ -650,9 +650,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       'ATTENDEES',
     ];
     
-    // Implicit heading patterns (plain text lines that should start a Key Points section)
-    // Matches: "Key Points", "Key Points:", "**Key Points**", "**Key Points:**", etc.
-    const implicitKeyPointsPattern = /^\s*(?:\*\*)?(?:Key\s+(?:Points|Discussion|Discussion\s+Points|Highlights|Takeaways))(?:\*\*)?:?\s*$/i;
+    // Implicit heading patterns (plain text lines that should start a main discussion section)
+    // Matches: "Key Points", "Discussion Summary", "**Key Points:**", etc.
+    const implicitKeyPointsPattern = /^\s*(?:\*\*)?(?:(?:Key\s+(?:Points|Discussion|Discussion\s+Points|Highlights|Takeaways))|(?:Discussion\s+Summary))(?:\*\*)?:?\s*$/i;
     
     const result: Section[] = [];
     const lines = content.split('\n');
