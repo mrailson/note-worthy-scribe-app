@@ -39,6 +39,48 @@ const VOICE_OPTIONS = [
   { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'British Male - Authoritative' },
 ];
 
+// Parse a two-host discussion script into speaker turns
+const parseDialogueTurns = (script: string): Array<{ speaker: 'ALICE' | 'GEORGE'; text: string }> => {
+  const turns: Array<{ speaker: 'ALICE' | 'GEORGE'; text: string }> = [];
+  const lines = script.split('\n').filter(l => l.trim());
+  
+  let currentSpeaker: 'ALICE' | 'GEORGE' | null = null;
+  let currentText = '';
+  
+  for (const line of lines) {
+    const aliceMatch = line.match(/^ALICE:\s*(.*)$/);
+    const georgeMatch = line.match(/^GEORGE:\s*(.*)$/);
+    
+    if (aliceMatch) {
+      if (currentSpeaker && currentText.trim()) {
+        turns.push({ speaker: currentSpeaker, text: currentText.trim() });
+      }
+      currentSpeaker = 'ALICE';
+      currentText = aliceMatch[1];
+    } else if (georgeMatch) {
+      if (currentSpeaker && currentText.trim()) {
+        turns.push({ speaker: currentSpeaker, text: currentText.trim() });
+      }
+      currentSpeaker = 'GEORGE';
+      currentText = georgeMatch[1];
+    } else if (currentSpeaker) {
+      currentText += ' ' + line.trim();
+    }
+  }
+  
+  if (currentSpeaker && currentText.trim()) {
+    turns.push({ speaker: currentSpeaker, text: currentText.trim() });
+  }
+  
+  return turns;
+};
+
+// Voice mapping for discussion mode
+const DISCUSSION_VOICES: Record<string, string> = {
+  'ALICE': 'Xb7hH8MSUJpSbSDYk0k2',  // Alice - British Female
+  'GEORGE': 'JBFqnCBsd6RMkjVDRZzb',  // George - British Male
+};
+
 export const MeetingAudioStudio = ({ 
   meetingId, 
   meetingTitle,
