@@ -682,7 +682,7 @@ export const generateScribeWordDocument = async (details: ScribeExportDetails): 
     });
 
     // Generate and save the document
-    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`;
+    const fileName = generateMeetingFilename(title, new Date(), 'docx');
     const blob = await Packer.toBlob(doc);
     saveAs(blob, fileName);
     
