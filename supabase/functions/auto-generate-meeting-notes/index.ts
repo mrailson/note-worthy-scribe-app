@@ -916,11 +916,16 @@ DETAIL LEVEL: FULL
     const noteTypeInstructions: Record<string, string> = {
       'standard': `
 NOTE TYPE: STANDARD PROFESSIONAL
-This is the default Notewell format with the full structured layout.
-- Use the Context / Discussion / Agreed / Implication structure for each discussion point
+IMPORTANT: Do NOT use Context/Discussion/Agreed/Implication sub-headings.
+Instead, use traditional numbered key points as concise paragraphs:
+
+KEY POINTS format:
+1. **[Topic Heading]**
+[One or two concise paragraphs covering what was discussed and what was decided. Keep it tight — no more than 4-5 sentences per point.]
+
+Additional rules:
+- Balanced professional language — formal but accessible
 - Include a Decisions Register section
-- Balanced coverage of all meeting elements
-- Professional but accessible language
 - Include Open Items & Risks section
 - Full action items with owners and deadlines
 - Suitable for general practice meetings, PCN meetings, team meetings`,
