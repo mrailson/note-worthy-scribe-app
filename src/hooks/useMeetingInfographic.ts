@@ -158,8 +158,8 @@ export const useMeetingInfographic = () => {
       'pixar': 'vibrant animated adventure theme: bold cheerful colours, playful rounded typography, expressive character-driven layouts, heartwarming atmosphere',
       'studio ghibli': 'Japanese animation theme: watercolour landscapes, magical nature spirits, gentle pastel colours, contemplative atmosphere, Miyazaki wonder',
       'spirited away': 'Studio Ghibli theme: Japanese bathhouse, magical spirits, food transformation, wonder',
-      'simpsons': 'animated sitcom theme: bright yellow, suburban small-town satire, chunky cartoon outlines, warm yellow (#FED90F) as dominant colour',
-      'the simpsons': 'animated sitcom theme: bright yellow, suburban small-town satire, chunky cartoon outlines, warm yellow (#FED90F) as dominant colour',
+      'simpsons': 'animated sitcom theme: bright yellow, suburban small-town satire, chunky cartoon outlines, warm yellow as dominant colour',
+      'the simpsons': 'animated sitcom theme: bright yellow, suburban small-town satire, chunky cartoon outlines, warm yellow as dominant colour',
       'minions': 'playful yellow cartoon theme: bright yellow and blue palette, banana motifs, silly rounded typography, fun chaotic energy',
       
       // TV Shows
