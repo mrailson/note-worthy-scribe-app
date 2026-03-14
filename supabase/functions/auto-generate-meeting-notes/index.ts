@@ -1084,6 +1084,85 @@ If the consultation lasted two hours, the notes should look like two hours of wo
     const selectedNoteTypeInstruction = noteTypeInstructions[noteType] || noteTypeInstructions['standard'];
     console.log('📊 Using note type:', noteType);
 
+    // Only enforce Context/Discussion/Agreed/Implication structure for Standard note type
+    const formatCheckBlock = noteType === 'standard' ? `
+═══ MANDATORY FORMAT CHECK ═══
+EVERY key point above MUST use these EXACT bold sub-headings on their own lines. This is NOT optional:
+
+   **Context:** [text]
+
+   **Discussion:** [text]
+
+   **Agreed:** [text]
+
+   **Implication:** [text]
+
+If ANY key point is written as a plain paragraph without these four bold sub-headings, your output is INCORRECT. Go back and restructure it.
+A key point that is just a paragraph of text is WRONG. It MUST have the four labelled sections.
+The **Agreed:** line is the single most important line in the entire document — make the outcome absolutely explicit and specific.
+═══ END FORMAT CHECK ═══` : `
+═══ FORMAT NOTE ═══
+For this note type, use the structure specified in the NOTE TYPE instructions above.
+Do NOT use Context/Discussion/Agreed/Implication sub-headings unless the NOTE TYPE instructions explicitly require them.
+Follow the NOTE TYPE format EXACTLY as specified — it takes priority over any other structural instructions in this prompt.
+═══ END FORMAT NOTE ═══`;
+
+    const keyPointsTemplate = noteType === 'standard' ? `
+1. **[Topic Heading]**
+
+   **Context:** [One sentence — why this topic was raised, what triggered the discussion]
+
+   **Discussion:** [2-4 sentences covering the key positions, figures, and concerns raised. Include specific numbers, names, and quotes where the transcript supports them. Weight the detail by how much discussion time the topic received — longer debates deserve fuller coverage.]
+
+   **Agreed:** [One sentence stating the outcome in bold. What was decided, agreed, or resolved? If no decision was reached, state "No formal decision was reached — to be revisited at [next meeting/date]."]
+
+   **Implication:** [One sentence — what this means going forward for practices, patients, or the organisation]
+
+2. **[Next Topic Heading]**
+
+   **Context:** [...]
+   **Discussion:** [...]
+   **Agreed:** [...]
+   **Implication:** [...]
+
+(Continue for all significant discussion items, typically 3-8 topics per meeting)` : `
+Follow the structure specified in the NOTE TYPE instructions above for each key point.
+(Continue for all significant discussion items, typically 3-8 topics per meeting)`;
+
+    const discussionQualityRules = noteType === 'standard' ? `
+DISCUSSION POINT QUALITY RULES:
+- Weight each key point's detail by how much discussion time it received in the transcript. If a governance debate dominates 40 minutes of a 60-minute meeting, it should be the longest and most detailed point — not given equal weight to a 2-minute operational update.
+- Every key point MUST have all four sub-sections: Context, Discussion, Agreed, and Implication. Do not skip any.
+- The "Agreed" line is the most important part of each key point — a reader skimming the notes should be able to read ONLY the "Agreed" lines and understand every outcome from the meeting.
+- Bold the "Agreed" line content (not just the label) for visual scanning: **Agreed: Tom will attend the board meeting on 18th March to represent PCN concerns.**
+- Do NOT pad short topics with filler. If a topic was a brief update with no discussion, it's fine for the Discussion section to be one sentence.
+- If there were opposing views or concerns raised, capture them briefly: "Members expressed concern that..." or "Sam noted that..." — but keep it governance-safe per the tone rules.
+- Include specific figures, percentages, pound amounts, dates, and names wherever the transcript contains them. These are what make notes useful vs generic.
+- NEVER start a discussion point with "The group discussed..." or "Members talked about..." — lead with the substance: "LD health check completion rates have risen from 60.5% to 78.5%."` : `
+DISCUSSION POINT QUALITY RULES:
+- Follow the NOTE TYPE format instructions above — they take priority over any other structural guidance.
+- Weight each key point's detail by how much discussion time it received in the transcript.
+- Include specific figures, percentages, pound amounts, dates, and names wherever the transcript contains them.
+- NEVER start a discussion point with "The group discussed..." — lead with the substance.
+- Do NOT pad short topics with filler.`;
+
+    const finalChecklist = noteType === 'standard' ? `
+═══ FINAL OUTPUT CHECKLIST — VERIFY BEFORE RESPONDING ═══
+Before returning your response, check:
+1. Does EVERY key point under DISCUSSION SUMMARY have bold **Context:**, **Discussion:**, **Agreed:**, and **Implication:** sub-headings? If not, fix it now.
+2. Is there a # DECISIONS REGISTER section with a bullet list of every decision? If not, add it now.
+3. Does the EXECUTIVE SUMMARY contain BOTH a paragraph AND bullet points? If no bullets, add 3-5 now.
+4. Are action items specific deliverables with clear end points (not monitoring tasks or ongoing responsibilities)?
+If any check fails, fix it before returning.
+═══ END CHECKLIST ═══` : `
+═══ FINAL OUTPUT CHECKLIST ═══
+Before returning your response, check:
+1. Have you followed the NOTE TYPE format instructions exactly?
+2. Are action items specific deliverables with clear end points?
+3. Is British English spelling used throughout?
+If any check fails, fix it before returning.
+═══ END CHECKLIST ═══`;
+
     // Generate notes using Lovable AI
     let systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from ANY provided transcript content.
 
@@ -1162,40 +1241,9 @@ SPEAKER ATTRIBUTION RULES:
 
 Key Points
 
-1. **[Topic Heading]**
+${keyPointsTemplate}
 
-   **Context:** [One sentence — why this topic was raised, what triggered the discussion]
-
-   **Discussion:** [2-4 sentences covering the key positions, figures, and concerns raised. Include specific numbers, names, and quotes where the transcript supports them. Weight the detail by how much discussion time the topic received — longer debates deserve fuller coverage.]
-
-   **Agreed:** [One sentence stating the outcome in bold. What was decided, agreed, or resolved? If no decision was reached, state "No formal decision was reached — to be revisited at [next meeting/date]."]
-
-   **Implication:** [One sentence — what this means going forward for practices, patients, or the organisation]
-
-2. **[Next Topic Heading]**
-
-   **Context:** [...]
-   **Discussion:** [...]
-   **Agreed:** [...]
-   **Implication:** [...]
-
-(Continue for all significant discussion items, typically 3-8 topics per meeting)
-
-═══ MANDATORY FORMAT CHECK ═══
-EVERY key point above MUST use these EXACT bold sub-headings on their own lines. This is NOT optional:
-
-   **Context:** [text]
-
-   **Discussion:** [text]
-
-   **Agreed:** [text]
-
-   **Implication:** [text]
-
-If ANY key point is written as a plain paragraph without these four bold sub-headings, your output is INCORRECT. Go back and restructure it.
-A key point that is just a paragraph of text is WRONG. It MUST have the four labelled sections.
-The **Agreed:** line is the single most important line in the entire document — make the outcome absolutely explicit and specific.
-═══ END FORMAT CHECK ═══
+${formatCheckBlock}
 
 # DECISIONS REGISTER
 
@@ -1253,15 +1301,7 @@ CRITICAL FORMATTING RULES:
 - Do not use ## (level 2 headers) for main sections
 - Respect the authoritative location provided - never contradict it
 
-DISCUSSION POINT QUALITY RULES:
-- Weight each key point's detail by how much discussion time it received in the transcript. If a governance debate dominates 40 minutes of a 60-minute meeting, it should be the longest and most detailed point — not given equal weight to a 2-minute operational update.
-- Every key point MUST have all four sub-sections: Context, Discussion, Agreed, and Implication. Do not skip any.
-- The "Agreed" line is the most important part of each key point — a reader skimming the notes should be able to read ONLY the "Agreed" lines and understand every outcome from the meeting.
-- Bold the "Agreed" line content (not just the label) for visual scanning: **Agreed: Tom will attend the board meeting on 18th March to represent PCN concerns.**
-- Do NOT pad short topics with filler. If a topic was a brief update with no discussion, it's fine for the Discussion section to be one sentence.
-- If there were opposing views or concerns raised, capture them briefly: "Members expressed concern that..." or "Sam noted that..." — but keep it governance-safe per the tone rules.
-- Include specific figures, percentages, pound amounts, dates, and names wherever the transcript contains them. These are what make notes useful vs generic.
-- NEVER start a discussion point with "The group discussed..." or "Members talked about..." — lead with the substance: "LD health check completion rates have risen from 60.5% to 78.5%."
+${discussionQualityRules}
 
 Keep the executive summary concise and focused - maximum 3-4 sentences that quickly convey the meeting's purpose and key outcomes.
 
@@ -1315,14 +1355,7 @@ CROSS-REFERENCE HANDLING:
 - Do NOT introduce any topic, decision, or action that only appears in the cross-reference section
 - If the cross-reference contradicts the primary transcript, trust the primary
 
-═══ FINAL OUTPUT CHECKLIST — VERIFY BEFORE RESPONDING ═══
-Before returning your response, check:
-1. Does EVERY key point under DISCUSSION SUMMARY have bold **Context:**, **Discussion:**, **Agreed:**, and **Implication:** sub-headings? If not, fix it now.
-2. Is there a # DECISIONS REGISTER section with a bullet list of every decision? If not, add it now.
-3. Does the EXECUTIVE SUMMARY contain BOTH a paragraph AND bullet points? If no bullets, add 3-5 now.
-4. Are action items specific deliverables with clear end points (not monitoring tasks or ongoing responsibilities)?
-If any check fails, fix it before returning.
-═══ END CHECKLIST ═══`;
+${finalChecklist}`;
 
     // Inject corrections list into prompt if we have any
     if (correctionsList.length > 0) {
