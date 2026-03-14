@@ -661,6 +661,7 @@ export const MeetingAudioStudio = ({
                 dialogueScript={editedText}
                 meetingTitle={meetingTitle}
                 slideAnnotations={slideAnnotations}
+                turnTimings={turnTimings}
               />
               <div className="flex items-center gap-2 flex-wrap">
                 <Button onClick={handleDownload} variant="outline" size="sm">
