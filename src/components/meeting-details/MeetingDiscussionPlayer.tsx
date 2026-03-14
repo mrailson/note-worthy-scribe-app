@@ -175,7 +175,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const activeTurn = turns[activeTurnIndex];
+  const activeTurn = timedTurns[activeTurnIndex];
   const activeStyle = activeTurn ? SPEAKER_STYLES[activeTurn.speaker] : SPEAKER_STYLES.ALICE;
 
   // Get active slide from annotations or fallback to text extraction
