@@ -315,7 +315,7 @@ export const MeetingAudioStudio = ({
           return;
         }
         
-        const audioChunks: Blob[] = [];
+        const audioChunks: Array<{ blob: Blob; duration: number; speaker: string }> = [];
         
         for (let i = 0; i < turns.length; i++) {
           const turn = turns[i];
@@ -348,13 +348,44 @@ export const MeetingAudioStudio = ({
           const audioResponse = await fetch(data.audioUrl);
           if (!audioResponse.ok) throw new Error(`Failed to fetch audio for turn ${i + 1}`);
           const audioBlob = await audioResponse.blob();
-          audioChunks.push(audioBlob);
+          
+          // Measure the actual duration of this audio chunk
+          const chunkDuration = await new Promise<number>((resolve) => {
+            const tempAudio = new Audio();
+            const blobUrl = URL.createObjectURL(audioBlob);
+            tempAudio.src = blobUrl;
+            tempAudio.addEventListener('loadedmetadata', () => {
+              const dur = tempAudio.duration;
+              URL.revokeObjectURL(blobUrl);
+              resolve(isFinite(dur) ? dur : turn.text.split(/\s+/).length / 2.5);
+            });
+            tempAudio.addEventListener('error', () => {
+              URL.revokeObjectURL(blobUrl);
+              resolve(turn.text.split(/\s+/).length / 2.5);
+            });
+          });
+          
+          console.log(`🎙️ Turn ${i + 1}: ${turn.speaker} — actual duration: ${chunkDuration.toFixed(2)}s`);
+          audioChunks.push({ blob: audioBlob, duration: chunkDuration, speaker: turn.speaker });
         }
         
         showToast.info('Stitching audio together...', { id: 'discussion-synth', duration: 10000, section: 'meeting_manager' });
         
+        // Build precise timing from actual audio durations
+        const GAP = 0.05; // 50ms — MP3 concatenation gap is tiny
+        const turnTimingsData: Array<{ startTime: number; endTime: number }> = [];
+        let runningTime = 0;
+        for (const chunk of audioChunks) {
+          turnTimingsData.push({
+            startTime: runningTime,
+            endTime: runningTime + chunk.duration,
+          });
+          runningTime += chunk.duration + GAP;
+        }
+        console.log(`🎙️ Total audio from chunks: ${runningTime.toFixed(2)}s, ${turnTimingsData.length} turns`);
+        
         // Concatenate all audio chunks into a single blob
-        const combinedBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+        const combinedBlob = new Blob(audioChunks.map(c => c.blob), { type: 'audio/mpeg' });
         
         // Upload the combined audio
         const fileName = `${meetingId}/discussion_${Date.now()}.mp3`;
