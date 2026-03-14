@@ -24,6 +24,7 @@ interface MeetingDiscussionPlayerProps {
   meetingTitle: string;
   meetingDate?: string;
   slideAnnotations?: SlideAnnotation[];
+  turnTimings?: Array<{ startTime: number; endTime: number }>;
 }
 
 type SlideType = 'overview' | 'statistic' | 'decision' | 'risk' | 'action' | 'topic';

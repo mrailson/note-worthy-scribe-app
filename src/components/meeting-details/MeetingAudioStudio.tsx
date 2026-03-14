@@ -125,6 +125,7 @@ export const MeetingAudioStudio = ({
   const [testingPronunciation, setTestingPronunciation] = useState<string | null>(null);
   const [pronunciationTestUrl, setPronunciationTestUrl] = useState<string | null>(null);
   const [slideAnnotations, setSlideAnnotations] = useState<any[]>([]);
+  const [turnTimings, setTurnTimings] = useState<Array<{ startTime: number; endTime: number }>>([]);
   const [hasSavedDiscussion, setHasSavedDiscussion] = useState(false);
   const [isLoadingDiscussion, setIsLoadingDiscussion] = useState(true);
 
