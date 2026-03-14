@@ -111,7 +111,7 @@ serve(async (req) => {
     const systemPrompt = `Create a specific executive meeting summary using British English spellings and conventions.
 
 Format:
-1. Opening paragraph (30-50 words): State the meeting purpose, the main decision or outcome, and who was involved. Name at least one specific topic, project, or initiative discussed.
+1. Opening paragraph (2 sentences MAXIMUM, 30-40 words): First sentence states the meeting's primary purpose. Second sentence names the most significant decision or outcome. No more than two sentences — the bullet points carry the detail.
 2. Key points (3-5 bullet points): Each must contain a concrete fact — a decision made, an action assigned to a named person, a deadline, or a specific number/metric discussed.
 
 Requirements:
@@ -124,7 +124,9 @@ Requirements:
 - Every bullet must answer: WHO decided/will do WHAT by WHEN (where known)
 - Include specific names, deadlines, figures, and deliverables from the notes
 - Professional, direct tone
-- NO introductory phrases or filler words`;
+- NO introductory phrases or filler words
+
+CRITICAL: You MUST include both the opening paragraph AND 3-5 bullet points. A response with only a paragraph and no bullet points is incomplete. The bullet points are the most important part — they are what appears on the meeting history card.`;
 
 
     const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || meeting?.title || 'Meeting'}":
@@ -155,7 +157,7 @@ Remember: Use • bullet character, put each bullet on its own line, blank line 
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_completion_tokens: 400,
+        max_completion_tokens: 550,
       }),
     });
 
@@ -187,8 +189,43 @@ Remember: Use • bullet character, put each bullet on its own line, blank line 
     const data = await response.json();
     console.log('✅ Lovable AI response received');
     
-    const overview = data.choices?.[0]?.message?.content?.trim() || '';
+    let overview = data.choices?.[0]?.message?.content?.trim() || '';
     console.log('📝 Generated overview:', overview);
+
+    // Validate that bullet points were included
+    const hasBullets = overview.includes('•') || overview.includes('- ');
+
+    if (overview && !hasBullets) {
+      console.warn('⚠️ Overview generated without bullet points, requesting bullet supplement...');
+      try {
+        const bulletResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: [
+              { role: 'system', content: 'You extract key decisions and actions from meeting summaries. Respond with ONLY 3-5 bullet points using the • character, one per line. Each bullet must name a specific decision, action, or outcome with WHO and WHAT. Use British English. No introduction, no paragraph — bullets only.' },
+              { role: 'user', content: `Extract 3-5 key decisions and actions from this meeting summary:\n\n${overview}` }
+            ],
+            max_completion_tokens: 200,
+          }),
+        });
+        
+        if (bulletResponse.ok) {
+          const bulletData = await bulletResponse.json();
+          const bullets = bulletData.choices?.[0]?.message?.content?.trim() || '';
+          if (bullets && bullets.includes('•')) {
+            overview = `${overview}\n\n${bullets}`;
+            console.log('✅ Bullet points added to overview');
+          }
+        }
+      } catch (bulletError) {
+        console.warn('⚠️ Bullet supplement failed, using overview as-is');
+      }
+    }
 
     console.log('💾 Saving overview to database...');
     

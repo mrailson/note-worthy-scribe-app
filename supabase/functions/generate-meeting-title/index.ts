@@ -189,10 +189,12 @@ serve(async (req) => {
     const systemPrompt = `You are a meeting title generator that creates SPECIFIC, MEMORABLE titles.
 
 STEP 1 - Extract from the transcript:
-- The main topic, project, or initiative discussed
+- Identify which topic received the MOST discussion time (not just the first topic mentioned — the longest and most debated topic should dominate the title)
 - Any specific decisions made or outcomes
 - The type of meeting (planning, review, governance, clinical, etc.)
 - Key named entities (projects, systems, programmes, organisations)
+
+IMPORTANT: Weight the title toward whichever topic consumed the most discussion time. If a governance debate took 40 minutes and a clinical update took 5 minutes, the governance topic should lead the title — even if the clinical update was mentioned first.
 
 STEP 2 - Generate a title that:
 - Is 4-15 words long
@@ -236,7 +238,7 @@ ${contextSection}
 TRANSCRIPT EXCERPT:
 ${transcriptExcerpt}
 
-Generate a SPECIFIC, descriptive title (4-15 words) that clearly identifies what this meeting was about. Remember: no generic phrases like "Team Meeting" or "Progress Update".`;
+Generate a SPECIFIC, descriptive title (4-15 words) that clearly identifies what this meeting was about. The title should lead with the topic that received the MOST discussion time in the transcript, not necessarily the first topic mentioned. If there were two equally major topics, include both. Remember: no generic phrases like "Team Meeting" or "Progress Update".`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
