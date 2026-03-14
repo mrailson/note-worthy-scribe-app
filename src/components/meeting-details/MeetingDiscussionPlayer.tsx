@@ -211,8 +211,8 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
 
   // Progress dots — show a window around the active turn
   const dotWindowStart = Math.max(0, activeTurnIndex - 5);
-  const dotWindowEnd = Math.min(turns.length, activeTurnIndex + 6);
-  const visibleDots = turns.slice(dotWindowStart, dotWindowEnd);
+  const dotWindowEnd = Math.min(timedTurns.length, activeTurnIndex + 6);
+  const visibleDots = timedTurns.slice(dotWindowStart, dotWindowEnd);
 
   return (
     <div className="rounded-xl overflow-hidden border border-border bg-card shadow-lg">
