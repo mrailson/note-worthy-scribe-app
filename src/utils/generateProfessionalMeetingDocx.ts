@@ -108,7 +108,16 @@ const stripTranscriptAndDetails = (content: string): string => {
   // Clean up any resulting empty lines
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
-  return cleaned.trim();
+  // Clean markdown artifacts that cause formatting issues in Word
+  cleaned = cleaned
+    .replace(/\\\*/g, '')                    // Remove all escaped asterisks
+    .replace(/\*\\\*/g, '')                  // Remove *\* patterns
+    .replace(/\n\s*═+\s*\n/g, '\n')         // Remove ═══ divider lines
+    .replace(/\n\s*---+\s*\n/g, '\n')       // Remove --- divider lines
+    .replace(/\n{4,}/g, '\n\n\n')           // Collapse excessive blank lines to max 3
+    .trim();
+  
+  return cleaned;
 };
 
 // Deduplicate action items in content - critical to prevent repeated sections
@@ -223,12 +232,22 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   let currentIndex = 0;
   
   const decodedText = decodeHtmlEntities(text);
+  
+  // Clean markdown artifacts that don't belong in Word output
+  const cleanedText = decodedText
+    .replace(/\\\*/g, '')           // Remove escaped asterisks \*
+    .replace(/\*\\\*/g, '')         // Remove *\* patterns
+    .replace(/\\\*\*/g, '')         // Remove \** patterns
+    .replace(/\*{3,}/g, '**')      // Collapse 3+ asterisks to bold marker
+    .replace(/^\s*[-–—]\s*$/, '')   // Remove standalone dashes
+    .trim();
+  
   const markdownRegex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
   let match;
   
-  while ((match = markdownRegex.exec(decodedText)) !== null) {
+  while ((match = markdownRegex.exec(cleanedText)) !== null) {
     if (match.index > currentIndex) {
-      const normalText = decodedText.substring(currentIndex, match.index);
+      const normalText = cleanedText.substring(currentIndex, match.index);
       if (normalText) {
         runs.push(new TextRun({ 
           text: normalText, 
@@ -260,8 +279,8 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
     currentIndex = match.index + match[0].length;
   }
   
-  if (currentIndex < decodedText.length) {
-    const remainingText = decodedText.substring(currentIndex);
+  if (currentIndex < cleanedText.length) {
+    const remainingText = cleanedText.substring(currentIndex);
     if (remainingText) {
       runs.push(new TextRun({ 
         text: remainingText, 
@@ -274,7 +293,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   
   if (runs.length === 0) {
     runs.push(new TextRun({ 
-      text: decodedText, 
+      text: cleanedText, 
       size: FONTS.size.body,
       color: NHS_COLORS.textGrey,
       font: FONTS.default,
@@ -967,6 +986,24 @@ const parseContentToDocxElements = async (content: string) => {
         continue;
       }
       
+      // Give Decisions Register a distinctive look
+      if (headingText.includes('DECISIONS REGISTER') || headingText.includes('DECISIONS')) {
+        elements.push(await createSectionDivider());
+        elements.push(new Paragraph({
+          children: [new TextRun({
+            text: headingText,
+            bold: true,
+            size: FONTS.size.heading2,
+            color: NHS_COLORS.headingBlue,
+            font: FONTS.default,
+          })],
+          spacing: { before: 0, after: 140 },
+        }));
+        previousWasHeading = true;
+        i++;
+        continue;
+      }
+      
       // Add section divider before major headings
       if (level === 1 || level === 2) {
         elements.push(await createSectionDivider());
@@ -990,9 +1027,65 @@ const parseContentToDocxElements = async (content: string) => {
       continue;
     }
     
-    // Check for bullet points
-    if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
-      const bulletText = line.replace(/^[-•*]\s*/, '');
+    // Handle **Label:** text patterns (Context, Discussion, Agreed, Implication sub-headings)
+    const subHeadingMatch = line.match(/^\s*[-•]?\s*\*{1,2}(Context|Discussion|Agreed|Implication|Meeting Purpose)[:\s]*\*{0,2}\\?\*?\s*(.*)$/i);
+    if (subHeadingMatch) {
+      const label = subHeadingMatch[1].trim();
+      let bodyText = subHeadingMatch[2]
+        .replace(/^\*{1,2}\s*/, '')
+        .replace(/\*{1,2}\\?\*?\s*$/, '')
+        .replace(/\\\*/g, '')
+        .trim();
+      
+      const isAgreed = label.toLowerCase() === 'agreed';
+      
+      const runs: any[] = [
+        new TextRun({
+          text: `${label}: `,
+          bold: true,
+          size: FONTS.size.body,
+          color: isAgreed ? NHS_COLORS.priorityHigh : NHS_COLORS.headingBlue,
+          font: FONTS.default,
+        }),
+      ];
+      
+      if (bodyText) {
+        bodyText = bodyText.replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
+        runs.push(new TextRun({
+          text: bodyText,
+          bold: isAgreed,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+          font: FONTS.default,
+        }));
+      }
+      
+      elements.push(new Paragraph({
+        children: runs,
+        indent: { left: 360 },
+        spacing: { 
+          before: label.toLowerCase() === 'context' ? 120 : 40,
+          after: label.toLowerCase() === 'implication' ? 200 : 80,
+        },
+      }));
+      previousWasHeading = false;
+      i++;
+      continue;
+    }
+    
+    // Check for bullet points — not italic/bold markdown markers
+    const isBulletPoint = (
+      line.startsWith('- ') || 
+      line.startsWith('• ') || 
+      (line.startsWith('* ') && !line.startsWith('** ') && !line.startsWith('*Context') && !line.startsWith('*Discussion') && !line.startsWith('*Agreed') && !line.startsWith('*Implication') && !line.startsWith('*Meeting'))
+    );
+    if (isBulletPoint) {
+      const bulletText = line
+        .replace(/^[-•*]\s*/, '')
+        .replace(/\\\*/g, '')
+        .replace(/^\*{1,2}\s*/, '')
+        .replace(/\*{1,2}\s*$/, '')
+        .trim();
       const runs = parseInlineFormatting(bulletText, TextRun);
       
       elements.push(new Paragraph({
@@ -1011,7 +1104,37 @@ const parseContentToDocxElements = async (content: string) => {
     // Check for numbered lists
     const numberMatch = line.match(/^(\d+)\.\s+(.+)$/);
     if (numberMatch) {
-      const listText = numberMatch[2];
+      let listText = numberMatch[2];
+      
+      // Check if this is a bold topic heading (e.g., "**Learning Disability (LD) Health Check Performance**")
+      const topicHeadingMatch = listText.match(/^\*\*(.+?)\*\*\s*$/);
+      if (topicHeadingMatch) {
+        const topicTitle = topicHeadingMatch[1].replace(/\\\*/g, '').trim();
+        elements.push(new Paragraph({
+          children: [
+            new TextRun({
+              text: `${numberMatch[1]}. `,
+              bold: true,
+              size: FONTS.size.heading3,
+              color: NHS_COLORS.headingBlue,
+              font: FONTS.default,
+            }),
+            new TextRun({
+              text: topicTitle,
+              bold: true,
+              size: FONTS.size.heading3,
+              color: NHS_COLORS.headingBlue,
+              font: FONTS.default,
+            }),
+          ],
+          spacing: { before: 280, after: 80 },
+        }));
+        previousWasHeading = true;
+        i++;
+        continue;
+      }
+      
+      listText = listText.replace(/\\\*/g, '').trim();
       const runs = parseInlineFormatting(listText, TextRun);
       
       elements.push(new Paragraph({
