@@ -487,31 +487,73 @@ serve(async (req) => {
       console.log('📄 Auto mode: checking best_of_all_transcript first...');
       const { data: boaCheck } = await supabase
         .from('meetings')
-        .select('best_of_all_transcript')
+        .select('best_of_all_transcript, whisper_transcript_text, assembly_transcript_text, live_transcript_text')
         .eq('id', meetingId)
         .single();
       
       if (boaCheck?.best_of_all_transcript && boaCheck.best_of_all_transcript.trim().length > 50) {
-        console.log('✅ Auto mode: using best_of_all_transcript');
-        fullTranscript = boaCheck.best_of_all_transcript;
+        console.log('✅ Auto mode: using best_of_all_transcript with cross-reference');
+        
+        // Use best_of_all as the primary, but append a cross-reference section
+        // from the other engines so the AI can resolve ambiguities
+        const whisperText = boaCheck.whisper_transcript_text?.trim() || '';
+        const assemblyText = (boaCheck.assembly_transcript_text || boaCheck.live_transcript_text || '').trim();
+        
+        // Only add cross-reference if we have a second source and it's meaningfully different
+        const hasSecondSource = assemblyText.length > 100 || whisperText.length > 100;
+        
+        if (hasSecondSource && whisperText.length > 100 && assemblyText.length > 100) {
+          // Sample sections from the alternative sources for cross-referencing
+          // Take first 2K + last 2K from whichever source best_of_all isn't primarily based on
+          const crossRefSource = assemblyText; // Assembly is the most different from Whisper-heavy best_of_all
+          const crossRefSample = crossRefSource.length <= 4000 
+            ? crossRefSource 
+            : crossRefSource.substring(0, 2000) + '\n\n[...]\n\n' + crossRefSource.substring(crossRefSource.length - 2000);
+          
+          fullTranscript = boaCheck.best_of_all_transcript + 
+            '\n\n═══ CROSS-REFERENCE: LIVE TRANSCRIPT EXCERPT (use only to clarify names, terms, or intent — do NOT introduce new topics from this section) ═══\n\n' + 
+            crossRefSample;
+          
+          console.log(`📊 Cross-reference added: ${crossRefSample.length} chars from live transcript`);
+        } else {
+          fullTranscript = boaCheck.best_of_all_transcript;
+        }
+        
         actualTranscriptSource = 'best_of_all';
       } else {
-        console.log('📄 Using auto transcript selection via get_meeting_full_transcript');
-        const { data: finalTranscriptResult, error: transcriptError } = await supabase
-          .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
+        // best_of_all not ready yet — wait briefly in case consolidation is still running
+        console.log('⏳ best_of_all not found, waiting 5s for consolidation to complete...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Retry once
+        const { data: boaRetry } = await supabase
+          .from('meetings')
+          .select('best_of_all_transcript, whisper_transcript_text, assembly_transcript_text, live_transcript_text')
+          .eq('id', meetingId)
+          .single();
+        
+        if (boaRetry?.best_of_all_transcript && boaRetry.best_of_all_transcript.trim().length > 50) {
+          console.log('✅ best_of_all arrived after retry');
+          fullTranscript = boaRetry.best_of_all_transcript;
+          actualTranscriptSource = 'best_of_all';
+        } else {
+          console.log('📄 Using auto transcript selection via get_meeting_full_transcript');
+          const { data: finalTranscriptResult, error: transcriptError } = await supabase
+            .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
 
-        if (transcriptError) {
-          console.error('❌ Error fetching transcript:', transcriptError);
-          await supabase
-            .from('meetings')
-            .update({ notes_generation_status: 'failed' })
-            .eq('id', meetingId);
-          throw new Error(`Failed to fetch transcript: ${transcriptError.message}`);
+          if (transcriptError) {
+            console.error('❌ Error fetching transcript:', transcriptError);
+            await supabase
+              .from('meetings')
+              .update({ notes_generation_status: 'failed' })
+              .eq('id', meetingId);
+            throw new Error(`Failed to fetch transcript: ${transcriptError.message}`);
+          }
+
+          const transcriptData = finalTranscriptResult?.[0];
+          fullTranscript = transcriptData?.transcript || '';
+          itemCount = transcriptData?.item_count || 0;
         }
-
-        const transcriptData = finalTranscriptResult?.[0];
-        fullTranscript = transcriptData?.transcript || '';
-        itemCount = transcriptData?.item_count || 0;
       }
     }
     
