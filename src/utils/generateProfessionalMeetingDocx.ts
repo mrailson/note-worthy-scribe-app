@@ -232,12 +232,22 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   let currentIndex = 0;
   
   const decodedText = decodeHtmlEntities(text);
+  
+  // Clean markdown artifacts that don't belong in Word output
+  const cleanedText = decodedText
+    .replace(/\\\*/g, '')           // Remove escaped asterisks \*
+    .replace(/\*\\\*/g, '')         // Remove *\* patterns
+    .replace(/\\\*\*/g, '')         // Remove \** patterns
+    .replace(/\*{3,}/g, '**')      // Collapse 3+ asterisks to bold marker
+    .replace(/^\s*[-–—]\s*$/, '')   // Remove standalone dashes
+    .trim();
+  
   const markdownRegex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
   let match;
   
-  while ((match = markdownRegex.exec(decodedText)) !== null) {
+  while ((match = markdownRegex.exec(cleanedText)) !== null) {
     if (match.index > currentIndex) {
-      const normalText = decodedText.substring(currentIndex, match.index);
+      const normalText = cleanedText.substring(currentIndex, match.index);
       if (normalText) {
         runs.push(new TextRun({ 
           text: normalText, 
@@ -269,8 +279,8 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
     currentIndex = match.index + match[0].length;
   }
   
-  if (currentIndex < decodedText.length) {
-    const remainingText = decodedText.substring(currentIndex);
+  if (currentIndex < cleanedText.length) {
+    const remainingText = cleanedText.substring(currentIndex);
     if (remainingText) {
       runs.push(new TextRun({ 
         text: remainingText, 
@@ -283,7 +293,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   
   if (runs.length === 0) {
     runs.push(new TextRun({ 
-      text: decodedText, 
+      text: cleanedText, 
       size: FONTS.size.body,
       color: NHS_COLORS.textGrey,
       font: FONTS.default,
