@@ -25,7 +25,8 @@ export class MedicalTermCorrector {
 
       // Load user-specific corrections if user ID provided
       if (userId) {
-        query = query.or(`user_id.eq.${userId},is_global.eq.true`);
+        // Load user's own + global + practice-level corrections
+        query = query.or(`user_id.eq.${userId},is_global.eq.true,practice_id.not.is.null`);
       } else {
         // Load only global corrections for anonymous users
         query = query.eq('is_global', true);
