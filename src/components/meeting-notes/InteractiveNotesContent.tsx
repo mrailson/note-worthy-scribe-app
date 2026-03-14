@@ -33,6 +33,7 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
   // Apply inline formatting (bold, italic)
   const applyInlineFormatting = useCallback((text: string): string => {
     let escaped = text
+      .replace(/\\\*/g, '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
