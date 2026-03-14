@@ -239,6 +239,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [customInfographicStyle, setCustomInfographicStyle] = useState('');
   const [infographicOrientation, setInfographicOrientation] = useState<'portrait' | 'landscape'>('landscape');
   const [showQuickAudioModal, setShowQuickAudioModal] = useState(false);
+  const [showAudioStudio, setShowAudioStudio] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showCorrections, setShowCorrections] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
