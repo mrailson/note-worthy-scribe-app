@@ -4305,6 +4305,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           meetingTitle={meeting.title}
         />
       )}
+      {/* Name & Term Corrections Modal */}
+      {showCorrections && (
+        <CorrectionManager 
+          onClose={() => setShowCorrections(false)}
+          onCorrectionApplied={() => {}}
+        />
+      )}
     </Dialog>
   );
 };

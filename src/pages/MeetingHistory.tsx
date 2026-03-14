@@ -55,6 +55,7 @@ import { showToast } from "@/utils/toastWrapper";
 import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFoldersManager";
 import { MeetingFolderView } from "@/components/meeting-folders/MeetingFolderView";
+import { CorrectionManager } from "@/components/CorrectionManager";
 
 interface Meeting {
   id: string;
