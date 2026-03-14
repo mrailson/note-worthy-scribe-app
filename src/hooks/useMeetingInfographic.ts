@@ -295,7 +295,27 @@ CRITICAL CONTENT HIERARCHY (in order of visual prominence):
 7. ACTION ITEMS - Small/optional section with just a count or brief mention
 
 DESIGN REQUIREMENTS:
-${designRequirements}`;
+${designRequirements}
+
+CRITICAL SPELLING AND LANGUAGE RULES:
+This infographic is for a British NHS audience. You MUST use British English spelling throughout ALL text content. Specifically:
+- "organisation" NOT "organization"
+- "colour" NOT "color"  
+- "summarise" NOT "summarize"
+- "centre" NOT "center"
+- "programme" NOT "program" (when referring to a plan/scheme)
+- "recognise" NOT "recognize"
+- "prioritise" NOT "prioritize"
+- "behaviour" NOT "behavior"
+- "analyse" NOT "analyze"
+- "defence" NOT "defense"
+- "licence" NOT "license" (noun)
+- "practise" NOT "practice" (verb)
+- "focussed" or "focused" (both acceptable)
+- Use "whilst" or "while" (both acceptable)
+- Date format: "11 March 2026" or "11th March 2026" (never "March 11, 2026")
+- Time format: "13:00" or "1:00 PM" (never "1:00 pm" lowercase)
+Any American English spelling in the output is a CRITICAL ERROR. Check every word before finalising.`;
 
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
