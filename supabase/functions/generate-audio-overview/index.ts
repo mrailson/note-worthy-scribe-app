@@ -12,7 +12,10 @@ serve(async (req) => {
   }
 
   try {
-    const { meetingId, voiceProvider = 'deepgram', voiceId, overrideText, targetDuration = 2 } = await req.json();
+    const body = await req.json();
+    const { meetingId, voiceProvider = 'deepgram', voiceId, overrideText, targetDuration = 2, skipSave = false } = body;
+    // Support 'text' as alias for 'overrideText' (used by discussion mode)
+    const effectiveOverrideText = overrideText || body.text || null;
     
     if (!meetingId) {
       throw new Error('meetingId is required');
