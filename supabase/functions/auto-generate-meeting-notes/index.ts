@@ -1000,15 +1000,30 @@ Key Points
 # ACTION ITEMS
 | Action | Responsible Party | Deadline | Priority |
 |--------|-------------------|----------|----------|
-| [Specific task description] | [Person's name OR "TBC" if not explicitly mentioned] | [Date/timeframe OR "TBC" if not specified] | High/Medium/Low |
-| [Next action item] | [Person's name OR "TBC" if not explicitly mentioned] | [Date/timeframe OR "TBC" if not specified] | High/Medium/Low |
+| [Specific task with a clear deliverable] | [Person's name OR "TBC"] | [Date/timeframe OR "TBC"] | High/Medium/Low |
 
-CRITICAL: For Action Items:
-- ONLY include a person's name in "Responsible Party" if they were EXPLICITLY mentioned in the transcript as being responsible for that specific action
-- NEVER infer, assume, or make up who should be responsible
+STRICT RULES FOR ACTION ITEMS — quality over quantity:
+- ONLY include actions that were EXPLICITLY AGREED or COMMITTED TO during the meeting
+- Each action must have a CLEAR DELIVERABLE — something that can be completed and ticked off
+- Maximum 8 action items per meeting. If more than 8 were discussed, include only the most important ones
+- NEVER include ongoing responsibilities, standing tasks, or watching briefs (e.g., "Continue to monitor...", "Keep reviewing...", "Maintain oversight of...")
+- NEVER include vague actions like "Consider options", "Review situation", "Assess position", "Explore possibilities"
+- If an action doesn't answer "What specific thing will be DONE and FINISHED?", it's not an action — it belongs in OPEN ITEMS & RISKS instead
+- ONLY include a person's name in "Responsible Party" if they were EXPLICITLY mentioned in the transcript as being responsible
 - If the responsible party is not explicitly stated, write "TBC" (To Be Confirmed)
 - If a deadline is not explicitly mentioned, write "TBC"
-- Do NOT assign actions to people based on their role or position unless explicitly stated in the transcript
+- Do NOT assign actions to people based on their role or position unless explicitly stated
+
+EXAMPLES OF REAL ACTIONS (include these):
+- "Draft email to practices summarising board proposals" — has a deliverable (the email)
+- "Attend GPA Board meeting on 18th March to represent PCN concerns" — specific event, specific date
+- "Update SOP for locum ICE access onboarding" — clear deliverable (the updated SOP)
+
+EXAMPLES OF NON-ACTIONS (move these to OPEN ITEMS & RISKS instead):
+- "Monitor ICB updates regarding contract wording" — ongoing watching brief, no deliverable
+- "Continue to assess financial position" — standing responsibility
+- "Keep practices informed of developments" — vague, no end point
+- "Review situation at next meeting" — not an action, it's an agenda item
 
 (Format as a proper markdown table with these exact column headers)
 
@@ -1424,7 +1439,7 @@ ${cleanedTranscript}`;
               const [actionText, assignee, deadline, priority] = cells;
               
               // Skip if action text is too short or is a header
-              if (actionText.length < 10 || actionText.match(/^Action$/i)) continue;
+              if (actionText.length < 25 || actionText.match(/^Action$/i)) continue;
               
               // Normalise and dedupe
               const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
@@ -1465,7 +1480,7 @@ ${cleanedTranscript}`;
                 // Skip header-like lines
                 if (rawText.match(/^\*\*[^*]+\*\*:?\s*$/)) continue;
                 if (rawText.match(/^(?:Action Items|Actions|Completed|Open|High Priority|Medium Priority|Low Priority)/i)) continue;
-                if (rawText.length < 10) continue;
+                if (rawText.length < 25) continue;
                 
                 // Parse out assignee, due date, priority from text
                 let actionText = rawText;
@@ -1496,7 +1511,7 @@ ${cleanedTranscript}`;
                 actionText = actionText.replace(/[—–-]\s*$/, '').trim();
                 
                 const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
-                if (seenTexts.has(normalizedText) || normalizedText.length < 10) continue;
+                if (seenTexts.has(normalizedText) || normalizedText.length < 25) continue;
                 seenTexts.add(normalizedText);
                 
                 actionItemsToInsert.push({
@@ -1516,12 +1531,58 @@ ${cleanedTranscript}`;
           }
         }
         
-        // Insert extracted action items
-        if (actionItemsToInsert.length > 0) {
-          console.log(`📋 Inserting ${actionItemsToInsert.length} extracted action items`);
+        // Quality filter: remove vague/ongoing items that aren't real deliverables
+        const vaguePatterns = [
+          /^(?:continue|keep|maintain|ensure|remain)\s+(?:to\s+)?(?:monitor|review|assess|track|oversee|watch|check)/i,
+          /^monitor\s/i,
+          /^review\s+(?:situation|position|progress|status)\s/i,
+          /^(?:consider|explore|think about|look into)\s+(?:options|possibilities|alternatives|ways)/i,
+          /^keep\s+(?:an eye|track|monitoring|reviewing|practices informed)/i,
+          /^(?:await|wait for)\s/i,
+          /^note\s+(?:that|the)\s/i,
+          /^(?:be aware|stay aware|remain aware)\s/i,
+          /^follow\s+up\s+(?:as needed|if required|when appropriate)/i,
+          /^discuss\s+(?:at|in|during)\s+(?:next|future|upcoming)\s+meeting/i,
+          /^(?:agenda item|standing item|return to this)/i,
+        ];
+
+        const filteredItems = actionItemsToInsert.filter(item => {
+          const text = item.action_text.trim();
+          
+          if (text.length < 25) {
+            console.log(`🔍 Filtered out (too short): "${text}"`);
+            return false;
+          }
+          
+          const isVague = vaguePatterns.some(pattern => pattern.test(text));
+          if (isVague) {
+            console.log(`🔍 Filtered out (vague/ongoing): "${text}"`);
+            return false;
+          }
+          
+          if (text.match(/^(?:action items?|open items?|next steps?|risks?|decisions?)/i)) {
+            console.log(`🔍 Filtered out (header): "${text}"`);
+            return false;
+          }
+          
+          return true;
+        });
+
+        // Cap at maximum 8 action items — keep highest priority first
+        const priorityOrder: Record<string, number> = { 'High': 0, 'Medium': 1, 'Low': 2 };
+        const cappedItems = filteredItems
+          .sort((a, b) => (priorityOrder[a.priority] ?? 1) - (priorityOrder[b.priority] ?? 1))
+          .slice(0, 8)
+          .map((item, index) => ({ ...item, sort_order: index }));
+
+        console.log(`📋 Action items: ${actionItemsToInsert.length} extracted → ${filteredItems.length} after quality filter → ${cappedItems.length} after cap`);
+
+        // Insert filtered action items
+        if (cappedItems.length > 0) {
+          console.log(`📋 Inserting ${cappedItems.length} quality action items`);
           const { error: actionError } = await supabase
             .from('meeting_action_items')
-            .insert(actionItemsToInsert);
+            .insert(cappedItems);
           
           if (actionError) {
             console.warn('⚠️ Failed to insert action items:', actionError.message);
@@ -1529,7 +1590,7 @@ ${cleanedTranscript}`;
             console.log('✅ Action items extracted and stored successfully');
           }
         } else {
-          console.log('📋 No action items found in generated notes');
+          console.log('📋 No quality action items found after filtering');
         }
       }
     } catch (actionError: any) {
