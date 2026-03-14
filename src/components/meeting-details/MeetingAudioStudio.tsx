@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, Plus, Trash2, ChevronDown, ChevronUp, Save, Copy, Mail } from 'lucide-react';
+import { MeetingDiscussionPlayer } from './MeetingDiscussionPlayer';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -484,7 +485,43 @@ export const MeetingAudioStudio = ({
   return (
     <div className="space-y-6">
       {/* Generated Audio Display */}
-      {audioUrl && (
+      {audioUrl && editedText.includes('ALICE:') && editedText.includes('GEORGE:') ? (
+        <div className="space-y-4">
+          <MeetingDiscussionPlayer
+            audioUrl={audioUrl}
+            dialogueScript={editedText}
+            meetingTitle={meetingTitle}
+          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button onClick={handleDownload} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Download MP3
+            </Button>
+            <Button 
+              onClick={handleSendToEmail} 
+              variant="outline" 
+              size="sm"
+              disabled={isSendingEmail}
+            >
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send to me
+                </>
+              )}
+            </Button>
+            <Button onClick={handleStartOver} variant="outline" size="sm">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Start Over
+            </Button>
+          </div>
+        </div>
+      ) : audioUrl ? (
         <Card>
           <CardHeader>
             <CardTitle>Generated Audio</CardTitle>
@@ -554,7 +591,7 @@ export const MeetingAudioStudio = ({
             </Collapsible>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* Step 1: Generate Script */}
       {!scriptGenerated && !audioUrl && (
