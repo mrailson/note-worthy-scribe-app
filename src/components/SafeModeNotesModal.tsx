@@ -2899,6 +2899,23 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TooltipContent>{viewMode === 'plain' ? 'Plain Text' : 'Formatted'}</TooltipContent>
             </Tooltip>
 
+            {/* Name & Term Corrections */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => setShowCorrections(true)}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                >
+                  <BookOpen className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Name & Term Corrections</p>
+              </TooltipContent>
+            </Tooltip>
+
             {/* Saving indicator */}
             {isSavingSections && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground ml-1">
