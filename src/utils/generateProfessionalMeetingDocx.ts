@@ -986,6 +986,24 @@ const parseContentToDocxElements = async (content: string) => {
         continue;
       }
       
+      // Give Decisions Register a distinctive look
+      if (headingText.includes('DECISIONS REGISTER') || headingText.includes('DECISIONS')) {
+        elements.push(await createSectionDivider());
+        elements.push(new Paragraph({
+          children: [new TextRun({
+            text: headingText,
+            bold: true,
+            size: FONTS.size.heading2,
+            color: NHS_COLORS.headingBlue,
+            font: FONTS.default,
+          })],
+          spacing: { before: 0, after: 140 },
+        }));
+        previousWasHeading = true;
+        i++;
+        continue;
+      }
+      
       // Add section divider before major headings
       if (level === 1 || level === 2) {
         elements.push(await createSectionDivider());
