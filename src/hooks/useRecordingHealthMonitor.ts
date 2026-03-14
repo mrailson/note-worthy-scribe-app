@@ -33,7 +33,9 @@ export const useRecordingHealthMonitor = ({
   isRecording,
   lastChunkTimestamp,
   onServerClosureDetected,
-  onRecordingStalled
+  onRecordingStalled,
+  micStreamRef,
+  onTracksDied
 }: UseRecordingHealthMonitorProps) => {
   const [state, setState] = useState<HealthMonitorState>({
     lastServerCheck: null,
@@ -46,6 +48,8 @@ export const useRecordingHealthMonitor = ({
   const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const criticalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastChunkTimestampRef = useRef<number | null>(lastChunkTimestamp);
+  const trackDeathNotifiedRef = useRef(false);
+  const trackHealthIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Keep ref in sync with prop
   useEffect(() => {
