@@ -157,13 +157,36 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
   const activeTurn = turns[activeTurnIndex];
   const activeStyle = activeTurn ? SPEAKER_STYLES[activeTurn.speaker] : SPEAKER_STYLES.ALICE;
 
-  // Extract key figures from the current turn text
-  const extractFigure = (text: string): string | null => {
-    const match = text.match(/(£[\d,]+(?:\.\d+)?|[\d.]+%|\d+ (?:families|patients|meetings|days|weeks|months|staff|practices|sessions))/i);
-    return match ? match[1] : null;
+  // Get active slide from annotations or fallback to text extraction
+  const getActiveSlide = (turnIdx: number): { heading: string; figure: string | null; bullets: string[] | null } | null => {
+    if (slideAnnotations && slideAnnotations.length > 0) {
+      let activeSlide = slideAnnotations[0];
+      for (const slide of slideAnnotations) {
+        if (slide.turnIndex <= turnIdx) {
+          activeSlide = slide;
+        } else {
+          break;
+        }
+      }
+      return {
+        heading: activeSlide.heading,
+        figure: activeSlide.figure || null,
+        bullets: activeSlide.bullets || null,
+      };
+    }
+
+    // Fallback: extract from text
+    const turn = turns[turnIdx];
+    if (!turn) return null;
+    const figureMatch = turn.text.match(/(£[\d,]+(?:\.\d+)?|[\d.]+%|\d+ (?:families|patients|meetings|days|weeks|months|staff|practices|sessions))/i);
+    return {
+      heading: turn.text.split(/[.!?]/)[0].trim().substring(0, 60),
+      figure: figureMatch?.[1] || null,
+      bullets: null,
+    };
   };
 
-  const currentFigure = activeTurn ? extractFigure(activeTurn.text) : null;
+  const activeSlide = getActiveSlide(activeTurnIndex);
 
   // Progress dots — show a window around the active turn
   const dotWindowStart = Math.max(0, activeTurnIndex - 5);
