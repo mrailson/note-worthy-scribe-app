@@ -477,6 +477,11 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
     console.log(`✅ [${requestId}] Transcription successful, text length: ${result.text?.length || 0}`);
     console.log(`📝 [${requestId}] Transcript preview: ${result.text?.slice(0, 100)}…`);
 
+    // Cost tracking — log billed duration and estimated cost per chunk
+    const billedDuration = result.duration || 0;
+    const estCost = (billedDuration / 60) * 0.006;
+    console.log(`💰 [${requestId}] WHISPER_COST_LOG: billed_duration=${billedDuration.toFixed(1)}s, est_cost=$${estCost.toFixed(4)}, text_len=${result.text?.length || 0}, bytes_sent=${preprocessed.bytes.length}, ext=${fileExtension}`);
+
     // Calculate real confidence from segments
     let confidence = 0.5;
     let avg_logprob = -0.3;
