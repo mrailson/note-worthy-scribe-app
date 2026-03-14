@@ -176,6 +176,9 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
         const indent = ' '.repeat(line.indent || 0);
         return `${indent}- ${line.content}`;
       }
+      if (line.type === 'subheading') {
+        return `**${line.labelPrefix}:** ${line.content}`;
+      }
       return line.content;
     }).join('\n');
   }, []);
