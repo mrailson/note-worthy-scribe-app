@@ -620,6 +620,7 @@ export const MeetingAudioStudio = ({
             dialogueScript={editedText}
             meetingTitle={meetingTitle}
             slideAnnotations={slideAnnotations}
+            turnTimings={turnTimings}
           />
           <div className="flex items-center justify-between px-1">
             <p className="text-xs text-muted-foreground">
