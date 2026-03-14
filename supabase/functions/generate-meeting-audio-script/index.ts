@@ -94,6 +94,35 @@ serve(async (req) => {
 
     // Style-specific system prompts
     const stylePrompts: Record<string, string> = {
+      discussion: `Create a ${durationMinutes}-minute TWO-HOST DISCUSSION about this meeting.
+
+FORMAT: This is a natural conversation between two NHS professionals discussing what happened in the meeting. The output MUST use these exact speaker tags on their own lines:
+
+ALICE: [Alice's dialogue here]
+GEORGE: [George's dialogue here]
+ALICE: [Alice's response]
+GEORGE: [George's follow-up]
+
+ROLES:
+- ALICE is the informed host who attended the meeting. She explains what happened, names specific people, quotes figures, and describes decisions. She's warm, knowledgeable, and British.
+- GEORGE is the curious colleague who missed it. He asks smart clarifying questions, reacts naturally ("Oh, that's significant", "Right, so what does that mean for us?"), draws out implications, and occasionally adds his own perspective.
+
+CONVERSATION RULES:
+- Start with ALICE setting the scene: "So this meeting on ${dayOfWeek} the ${formattedDate} was really about..."
+- GEORGE should ask genuine questions that a colleague would ask, not just feed lines
+- Include natural reactions: "Wow", "That's a lot", "I didn't realise that", "Good point"
+- Each speaker turn should be 2-4 sentences maximum — keep it snappy and conversational
+- Cover ALL major discussion points from the meeting but through natural conversation flow
+- End with GEORGE summarising the key takeaways and ALICE confirming or adding one final point
+- Aim for approximately ${Math.round(targetDuration / 6)} exchanges (turns) total
+- Use British English throughout — "organisations", "recognised", "programme"
+- Reference specific names, figures, dates, and decisions from the meeting content
+- NO stage directions, NO sound effects, NO [laughs] or [pauses]
+- Every line must start with either "ALICE: " or "GEORGE: " — no exceptions
+- Make it feel like two real colleagues catching up over coffee, not a scripted radio show
+
+TARGET: ${wordCountTarget} words total across both speakers for approximately ${durationMinutes} minutes speaking time.`,
+
       executive: `Create a ${durationMinutes}-minute executive summary of this meeting for senior leadership.
         - Strategic overview with high-level decisions and implications
         - Leadership tone with clear, confident delivery
