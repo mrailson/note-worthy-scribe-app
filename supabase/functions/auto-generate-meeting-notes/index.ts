@@ -1439,7 +1439,7 @@ ${cleanedTranscript}`;
               const [actionText, assignee, deadline, priority] = cells;
               
               // Skip if action text is too short or is a header
-              if (actionText.length < 10 || actionText.match(/^Action$/i)) continue;
+              if (actionText.length < 25 || actionText.match(/^Action$/i)) continue;
               
               // Normalise and dedupe
               const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
