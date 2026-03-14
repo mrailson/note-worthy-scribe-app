@@ -100,6 +100,24 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
         continue;
       }
 
+      // Sub-heading patterns (Context, Discussion, Agreed, Implication)
+      const subHeadingMatch = trimmed.match(/^\s*[-•]?\s*\*{0,2}(Context|Discussion|Agreed|Implication|Meeting Purpose)[:\s]*\*{0,2}\\?\*?\s*(.*)$/i);
+      if (subHeadingMatch) {
+        const label = subHeadingMatch[1].trim();
+        const bodyText = (subHeadingMatch[2] || '').replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
+        const isAgreed = label.toLowerCase() === 'agreed';
+        const labelClass = isAgreed ? 'text-red-600 font-bold' : 'text-blue-600 font-semibold';
+        const bodyClass = isAgreed ? 'font-bold text-red-700' : '';
+        result.push({
+          type: 'subheading',
+          content: bodyText,
+          htmlContent: `<span class="${labelClass}">${label}:</span> <span class="${bodyClass}">${applyInlineFormatting(bodyText)}</span>`,
+          originalLine: line,
+          labelPrefix: label,
+        });
+        continue;
+      }
+
       // Numbered list
       const numberedMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
       if (numberedMatch) {
