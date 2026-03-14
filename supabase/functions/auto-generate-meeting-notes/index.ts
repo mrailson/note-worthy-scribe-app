@@ -1134,7 +1134,7 @@ Follow the NOTE TYPE format EXACTLY as specified — it takes priority over any 
 Follow the structure specified in the NOTE TYPE instructions above for each key point.
 (Continue for all significant discussion items, typically 3-8 topics per meeting)`;
 
-    const discussionQualityRules = noteType === 'standard' ? `
+    const discussionQualityRules = noteType === '__structured__' ? `
 DISCUSSION POINT QUALITY RULES:
 - Weight each key point's detail by how much discussion time it received in the transcript. If a governance debate dominates 40 minutes of a 60-minute meeting, it should be the longest and most detailed point — not given equal weight to a 2-minute operational update.
 - Every key point MUST have all four sub-sections: Context, Discussion, Agreed, and Implication. Do not skip any.
