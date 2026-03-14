@@ -190,7 +190,17 @@ export const useMeetingInfographic = () => {
       'halloween': 'spooky Halloween theme: orange and black, cobwebs, carved pumpkins, gothic typography, creepy fun',
     };
 
-  const generateInfographic = async (
+    // Check if the input matches a known franchise
+    for (const [key, replacement] of Object.entries(franchiseMappings)) {
+      if (lower.includes(key)) {
+        return replacement;
+      }
+    }
+
+    // No match — return the original (trimmed) input
+    return trimmed;
+  };
+
     data: MeetingInfographicData,
     options?: InfographicOptions
   ): Promise<GenerationResult> => {
