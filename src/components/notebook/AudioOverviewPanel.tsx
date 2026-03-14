@@ -764,6 +764,11 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                                 <span className="font-medium">"{rule.original}"</span>
                                 <span className="text-muted-foreground">→</span>
                                 <span className="font-medium">"{rule.pronounceAs}"</span>
+                                {rule.isSystem && (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                    System
+                                  </Badge>
+                                )}
                                 {matchCount > 0 && (
                                   <Badge variant="outline" className="text-xs">
                                     ×{matchCount}
@@ -790,15 +795,17 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                                   <Play className="h-4 w-4" />
                                 )}
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemovePronunciation(rule.id)}
-                                className="h-8 w-8 p-0"
-                                title="Remove rule"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {!rule.isSystem && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemovePronunciation(rule.id)}
+                                  className="h-8 w-8 p-0"
+                                  title="Remove rule"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>
