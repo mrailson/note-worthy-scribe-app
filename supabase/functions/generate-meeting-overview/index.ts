@@ -66,7 +66,7 @@ serve(async (req) => {
     while (retryCount < maxRetries) {
       const { data: meetingData, error: meetingError } = await supabase
         .from('meetings')
-        .select('meeting_format, meeting_location, agenda, title, participants')
+        .select('meeting_format, meeting_location, agenda, title, participants, user_id, practice_id')
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -97,23 +97,50 @@ serve(async (req) => {
     }
 
     // Load and apply name corrections to content before AI processing
+    let correctionHints = '';
     try {
+      // Build filter for user-specific + global + practice-level corrections
+      const userId = meeting?.user_id;
+      const practiceId = meeting?.practice_id;
+      let filterParts = ['is_global.eq.true'];
+      if (userId) filterParts.push(`user_id.eq.${userId}`);
+      if (practiceId) filterParts.push(`practice_id.eq.${practiceId}`);
+      
       const { data: corrections } = await supabase
         .from('medical_term_corrections')
         .select('incorrect_term, correct_term')
-        .or('is_global.eq.true')
+        .or(filterParts.join(','))
         .order('usage_count', { ascending: false })
         .limit(100);
       
       if (corrections && corrections.length > 0) {
-        for (const c of corrections) {
-          const regex = new RegExp(
-            `\\b${c.incorrect_term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 
-            'gi'
-          );
-          content = content.replace(regex, c.correct_term);
+        // Deduplicate by lowercase incorrect_term
+        const seen = new Set<string>();
+        const uniqueCorrections = corrections.filter(c => {
+          const key = c.incorrect_term.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        
+        for (const c of uniqueCorrections) {
+          try {
+            const regex = new RegExp(
+              `\\b${c.incorrect_term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 
+              'gi'
+            );
+            content = content.replace(regex, c.correct_term);
+          } catch (regexErr) {
+            console.warn(`⚠️ Failed to apply correction "${c.incorrect_term}":`, regexErr);
+          }
         }
-        console.log(`📋 Applied ${corrections.length} term corrections to overview content`);
+        console.log(`📋 Applied ${uniqueCorrections.length} term corrections to overview content`);
+        
+        // Build hints for AI prompt injection
+        correctionHints = uniqueCorrections
+          .slice(0, 50)
+          .map(c => `"${c.incorrect_term}" → "${c.correct_term}"`)
+          .join('; ');
       }
     } catch (e) {
       console.warn('⚠️ Could not load corrections (non-fatal)');
@@ -172,7 +199,12 @@ Example of WRONG format (paragraph only, no bullets):
 The meeting addressed X and decided Y. Members also reviewed Z and discussed various topics including A, B, and C.
 
 If your response does not contain at least three • bullet points, it is wrong. Add them now.
-═══ END REQUIREMENT ═══`;
+═══ END REQUIREMENT ═══${correctionHints ? `
+
+NAME AND TERM CORRECTIONS (apply these throughout your summary):
+The following terms are commonly misheard by speech-to-text. Always use the correct spelling:
+${correctionHints}
+Also correct any phonetic variations of these terms that you encounter.` : ''}`;
 
 
     const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || meeting?.title || 'Meeting'}":
