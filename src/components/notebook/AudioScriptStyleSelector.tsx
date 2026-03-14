@@ -20,6 +20,13 @@ interface ScriptStyleOption {
 
 const SCRIPT_STYLES: ScriptStyleOption[] = [
   {
+    id: 'discussion',
+    name: 'Two-Host Discussion',
+    icon: Radio,
+    description: 'NotebookLM-style conversation between two hosts',
+    characteristics: ['Two voices', 'Natural dialogue', 'Engaging Q&A flow']
+  },
+  {
     id: 'executive',
     name: 'Executive Summary',
     icon: Briefcase,

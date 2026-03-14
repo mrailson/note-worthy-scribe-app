@@ -133,7 +133,12 @@ serve(async (req) => {
 
     const stylePrompt = stylePrompts[scriptStyle] || stylePrompts['executive'];
 
-    let systemPrompt = `${stylePrompt}
+    // Discussion style has its own comprehensive prompt; others get the shared guidelines
+    let systemPrompt: string;
+    if (scriptStyle === 'discussion') {
+      systemPrompt = stylePrompt;
+    } else {
+      systemPrompt = `${stylePrompt}
 
 Guidelines:
 - Write in a clear, professional conversational tone
@@ -146,6 +151,7 @@ Guidelines:
 - British English spelling and phrasing
 - Be informative and engaging
 - Include specific details about outcomes and next steps when relevant`;
+    }
 
     if (customDirections) {
       systemPrompt += `\n\nCustom Directions: ${customDirections}`;
