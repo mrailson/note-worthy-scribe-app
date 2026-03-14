@@ -337,14 +337,16 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           reader.readAsDataURL(blob);
           const base64Content = await base64Promise;
           
-          const safeFilename = freshMeetingData.title
-            .replace(/[^a-zA-Z0-9\s]/g, '')
-            .replace(/\s+/g, '_')
-            .substring(0, 50);
+          const { generateMeetingFilename } = await import('@/utils/meetingFilename');
+          const attachmentFilename = generateMeetingFilename(
+            freshMeetingData.title,
+            freshMeetingData.startTime ? new Date(freshMeetingData.startTime) : new Date(),
+            'docx'
+          );
           
           wordAttachment = {
             content: base64Content,
-            filename: `${safeFilename}_Meeting_Notes.docx`,
+            filename: attachmentFilename,
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           };
         } catch (docError) {
