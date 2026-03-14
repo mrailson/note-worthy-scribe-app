@@ -435,6 +435,9 @@ export function EmailMeetingMinutesModal({
           removeExecutiveSummary: false // Keep in email for now
         });
         
+        // Strip markdown bold/italic markers from any text string
+        const stripMd = (s: string) => s.replace(/\*\*\*(.+?)\*\*\*/g, '$1').replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/\\?\*/g, '');
+        
         const lines = processedText.split('\n');
         let html = '';
         
