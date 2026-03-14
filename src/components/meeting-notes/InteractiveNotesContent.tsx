@@ -259,6 +259,7 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
     }
 
     if (line.type === 'numbered') return 'py-3';
+    if (line.type === 'subheading') return line.labelPrefix?.toLowerCase() === 'context' ? 'pt-4 pb-2 pl-4' : 'pt-2 pb-2 pl-4';
     if (line.type === 'bullet') return 'py-2';
 
     // Paragraph
