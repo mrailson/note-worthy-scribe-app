@@ -234,6 +234,14 @@ export const useMeetingInfographic = () => {
       const documentContent = rawContent.length > 3000 
         ? rawContent.substring(0, 3000) + '\n\n[Content truncated for infographic generation]'
         : rawContent;
+
+      // Count action items for the prompt
+      const actionItemCount = data.actionItems?.length || 0;
+      const actionItemText = actionItemCount === 0 
+        ? 'No specific action items were recorded.'
+        : actionItemCount === 1 
+          ? '1 action item was assigned.'
+          : `${actionItemCount} action items were assigned.`;
       
       // Log options received - CRITICAL for debugging custom styles
       console.log('[useMeetingInfographic] Options received:', JSON.stringify(options));
