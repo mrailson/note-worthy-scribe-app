@@ -377,14 +377,16 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
               audioReader.readAsDataURL(audioBlob);
               const audioBase64 = await audioBase64Promise;
               
-              const safeAudioFilename = freshMeetingData.title
-                .replace(/[^a-zA-Z0-9\s]/g, '')
-                .replace(/\s+/g, '_')
-                .substring(0, 50);
+              const { generateMeetingFilename: genAudioFilename } = await import('@/utils/meetingFilename');
+              const audioFilename = genAudioFilename(
+                freshMeetingData.title + ' - Audio Overview',
+                freshMeetingData.startTime ? new Date(freshMeetingData.startTime) : new Date(),
+                'mp3'
+              );
               
               audioAttachment = {
                 content: audioBase64,
-                filename: `${safeAudioFilename}_Audio_Overview.mp3`,
+                filename: audioFilename,
                 type: 'audio/mpeg'
               };
               console.log('✅ Audio attachment prepared');
