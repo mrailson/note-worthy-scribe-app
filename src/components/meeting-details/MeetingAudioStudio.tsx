@@ -124,6 +124,7 @@ export const MeetingAudioStudio = ({
   const [pronunciationExpanded, setPronunciationExpanded] = useState(false);
   const [testingPronunciation, setTestingPronunciation] = useState<string | null>(null);
   const [pronunciationTestUrl, setPronunciationTestUrl] = useState<string | null>(null);
+  const [slideAnnotations, setSlideAnnotations] = useState<any[]>([]);
 
   // Load existing audio overview if available
   useEffect(() => {
