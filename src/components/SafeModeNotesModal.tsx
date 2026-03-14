@@ -629,6 +629,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     const sectionHeadings = [
       'EXECUTIVE SUMMARY',
+      'DISCUSSION SUMMARY',
       'KEY DECISIONS',
       // Accept common variants produced by AI models
       'KEY POINTS',
@@ -643,16 +644,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     // Sections to explicitly exclude from formatted view
     const excludedHeadings = [
-      'DISCUSSION SUMMARY',
       'NEXT MEETING',
       'ACTION ITEMS',
       'MEETING DETAILS',
       'ATTENDEES',
     ];
     
-    // Implicit heading patterns (plain text lines that should start a Key Points section)
-    // Matches: "Key Points", "Key Points:", "**Key Points**", "**Key Points:**", etc.
-    const implicitKeyPointsPattern = /^\s*(?:\*\*)?(?:Key\s+(?:Points|Discussion|Discussion\s+Points|Highlights|Takeaways))(?:\*\*)?:?\s*$/i;
+    // Implicit heading patterns (plain text lines that should start a main discussion section)
+    // Matches: "Key Points", "Discussion Summary", "**Key Points:**", etc.
+    const implicitKeyPointsPattern = /^\s*(?:\*\*)?(?:(?:Key\s+(?:Points|Discussion|Discussion\s+Points|Highlights|Takeaways))|(?:Discussion\s+Summary))(?:\*\*)?:?\s*$/i;
     
     const result: Section[] = [];
     const lines = content.split('\n');
@@ -713,6 +713,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Sort sections by preferred display order (Executive Summary first, then Key Points, etc.)
     const displayOrder = [
       'EXECUTIVE SUMMARY',
+      'DISCUSSION SUMMARY',
       'KEY POINTS',
       'KEY DISCUSSION',
       'KEY DISCUSSION POINTS',
@@ -743,6 +744,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Keep everything before the first editable section and after the last one
     const sectionHeadings = [
       'EXECUTIVE SUMMARY',
+      'DISCUSSION SUMMARY',
       'KEY DECISIONS',
       // Accept common variants produced by AI models
       'KEY POINTS',
@@ -756,7 +758,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     ];
     
     // Implicit heading patterns (plain text lines that should be treated as section boundaries)
-    const implicitKeyPointsPattern = /^\s*(?:\*\*)?(?:Key\s+(?:Points|Discussion|Discussion\s+Points|Highlights|Takeaways))(?:\*\*)?:?\s*$/i;
+    const implicitKeyPointsPattern = /^\s*(?:\*\*)?(?:(?:Key\s+(?:Points|Discussion|Discussion\s+Points|Highlights|Takeaways))|(?:Discussion\s+Summary))(?:\*\*)?:?\s*$/i;
     
     const lines = originalContent.split('\n');
     const result: string[] = [];
@@ -2479,9 +2481,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       cleaned = cleaned.replace(/##?\s*Completed\s*(Items?)?\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
     }
 
-    // Remove Discussion Summary section (covered by Executive Summary) - more precise regex
-    cleaned = cleaned.replace(/##?\s*Discussion\s+Summary\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
-    
     // Remove meeting details section heading/label
     cleaned = cleaned.replace(/^#{1,6}\s*Meeting\s+Details\s*$/gim, '');
     cleaned = cleaned.replace(/^Meeting\s+Details\s*$/gim, '');

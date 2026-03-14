@@ -26,7 +26,7 @@ export const SECTION_LABELS: Record<keyof NotesViewSettings['visibleSections'], 
 // Maps section keys to patterns that match section headings in the notes
 export const SECTION_HEADING_PATTERNS: Record<keyof NotesViewSettings['visibleSections'], RegExp> = {
   executiveSummary: /executive\s*summary/i,
-  keyPoints: /key\s*points/i,
+  keyPoints: /(key\s*(points|discussion|discussion\s*points|highlights|takeaways))|(discussion\s*summary)/i,
   actionList: /action\s*(list|items?)/i,
   openItems: /open\s*(items?|issues?)/i,
 };
