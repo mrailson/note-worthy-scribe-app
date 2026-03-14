@@ -96,7 +96,8 @@ import {
   Hash,
   Stethoscope,
   Shield,
-  Heart
+  Heart,
+  BookOpen
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
