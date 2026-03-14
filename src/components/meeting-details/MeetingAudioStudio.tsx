@@ -405,6 +405,7 @@ export const MeetingAudioStudio = ({
         const discussionData = {
           scriptStyle: 'discussion',
           slideAnnotations: slideAnnotations,
+          turnTimings: turnTimingsData,
           turnCount: turns.length,
           voices: {
             ALICE: DISCUSSION_VOICES['ALICE'],
