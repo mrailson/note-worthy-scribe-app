@@ -624,7 +624,12 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       }
       
       // Handle regular paragraphs
-      html += `<p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${line}</p>\n`;
+      // Convert remaining **bold** markers to <strong> tags
+      const htmlLine = line
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/\\\*/g, '');
+      html += `<p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${htmlLine}</p>\n`;
       i++;
     }
     
