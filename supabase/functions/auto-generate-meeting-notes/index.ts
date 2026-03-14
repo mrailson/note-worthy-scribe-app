@@ -1480,7 +1480,7 @@ ${cleanedTranscript}`;
                 // Skip header-like lines
                 if (rawText.match(/^\*\*[^*]+\*\*:?\s*$/)) continue;
                 if (rawText.match(/^(?:Action Items|Actions|Completed|Open|High Priority|Medium Priority|Low Priority)/i)) continue;
-                if (rawText.length < 10) continue;
+                if (rawText.length < 25) continue;
                 
                 // Parse out assignee, due date, priority from text
                 let actionText = rawText;
