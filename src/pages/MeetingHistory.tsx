@@ -2785,6 +2785,14 @@ const MeetingHistory = () => {
           onOpenChange={setFoldersDialogOpen}
         />
 
+        {/* Name & Term Corrections Modal */}
+        {showCorrections && (
+          <CorrectionManager 
+            onClose={() => setShowCorrections(false)}
+            onCorrectionApplied={() => {}}
+          />
+        )}
+
       </div>
     </div>
   );
