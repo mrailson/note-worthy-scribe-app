@@ -708,7 +708,7 @@ export function EmailMeetingMinutesModal({
             let listHTML = '<ul style="margin: 8px 0 8px 20px; padding: 0;">\n';
             while (i < lines.length && lines[i].trim().match(/^[•\-\*]\s/)) {
               const itemText = lines[i].trim().replace(/^[•\-\*]\s/, '');
-              listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
+              listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${stripMd(itemText)}</li>\n`;
               i++;
             }
             listHTML += '</ul>\n';
