@@ -445,6 +445,7 @@ export const MeetingAudioStudio = ({
         }
         
         setAudioUrl(finalAudioUrl);
+        setTurnTimings(turnTimingsData);
         setHasSavedDiscussion(true);
         showToast.success(`Discussion generated! ${turns.length} exchanges between Alice and George.`, { section: 'meeting_manager' });
         onAudioGenerated?.();
