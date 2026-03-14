@@ -157,6 +157,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
   meetingTitle,
   meetingDate,
   slideAnnotations,
+  turnTimings,
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
