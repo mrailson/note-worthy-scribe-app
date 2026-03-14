@@ -178,23 +178,58 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
+    let correctionHints = '';
     try {
+      // Build filter for user-specific + global + practice-level corrections
+      let filterParts = ['is_global.eq.true'];
+      
+      if (meetingId) {
+        // Look up user_id and practice_id from the meeting
+        const { data: meetingOwner } = await supabase
+          .from('meetings')
+          .select('user_id, practice_id')
+          .eq('id', meetingId)
+          .maybeSingle();
+        
+        if (meetingOwner?.user_id) filterParts.push(`user_id.eq.${meetingOwner.user_id}`);
+        if (meetingOwner?.practice_id) filterParts.push(`practice_id.eq.${meetingOwner.practice_id}`);
+      }
+      
       const { data: corrections } = await supabase
         .from('medical_term_corrections')
         .select('incorrect_term, correct_term')
-        .or('is_global.eq.true')
+        .or(filterParts.join(','))
         .order('usage_count', { ascending: false })
         .limit(100);
       
       if (corrections && corrections.length > 0) {
-        for (const c of corrections) {
-          const regex = new RegExp(
-            `\\b${c.incorrect_term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 
-            'gi'
-          );
-          transcriptExcerpt = transcriptExcerpt.replace(regex, c.correct_term);
+        // Deduplicate by lowercase incorrect_term
+        const seen = new Set<string>();
+        const uniqueCorrections = corrections.filter(c => {
+          const key = c.incorrect_term.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        
+        for (const c of uniqueCorrections) {
+          try {
+            const regex = new RegExp(
+              `\\b${c.incorrect_term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 
+              'gi'
+            );
+            transcriptExcerpt = transcriptExcerpt.replace(regex, c.correct_term);
+          } catch (regexErr) {
+            console.warn(`⚠️ Failed to apply correction "${c.incorrect_term}":`, regexErr);
+          }
         }
-        console.log(`📋 Applied ${corrections.length} term corrections to title excerpt`);
+        console.log(`📋 Applied ${uniqueCorrections.length} term corrections to title excerpt`);
+        
+        // Build hints for AI prompt injection
+        correctionHints = uniqueCorrections
+          .slice(0, 50)
+          .map(c => `"${c.incorrect_term}" → "${c.correct_term}"`)
+          .join('; ');
       }
     } catch (e) {
       console.warn('⚠️ Could not load corrections for title (non-fatal)');
