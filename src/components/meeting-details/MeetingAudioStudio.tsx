@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, Plus, Trash2, ChevronDown, ChevronUp, Save, Copy, Mail } from 'lucide-react';
+import { MeetingDiscussionPlayer } from './MeetingDiscussionPlayer';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
