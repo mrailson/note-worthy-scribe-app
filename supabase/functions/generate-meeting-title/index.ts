@@ -150,7 +150,8 @@ serve(async (req) => {
       agenda,
       meetingFormat,
       meetingDate,
-      documentNames
+      documentNames,
+      meetingId
     } = await req.json();
     
     if (!transcript || transcript.trim().length === 0) {

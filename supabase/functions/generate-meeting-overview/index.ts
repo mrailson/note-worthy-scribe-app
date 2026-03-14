@@ -199,7 +199,12 @@ Example of WRONG format (paragraph only, no bullets):
 The meeting addressed X and decided Y. Members also reviewed Z and discussed various topics including A, B, and C.
 
 If your response does not contain at least three • bullet points, it is wrong. Add them now.
-═══ END REQUIREMENT ═══`;
+═══ END REQUIREMENT ═══${correctionHints ? `
+
+NAME AND TERM CORRECTIONS (apply these throughout your summary):
+The following terms are commonly misheard by speech-to-text. Always use the correct spelling:
+${correctionHints}
+Also correct any phonetic variations of these terms that you encounter.` : ''}`;
 
 
     const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || meeting?.title || 'Meeting'}":
