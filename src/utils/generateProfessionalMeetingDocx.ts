@@ -1027,9 +1027,65 @@ const parseContentToDocxElements = async (content: string) => {
       continue;
     }
     
-    // Check for bullet points
-    if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
-      const bulletText = line.replace(/^[-•*]\s*/, '');
+    // Handle **Label:** text patterns (Context, Discussion, Agreed, Implication sub-headings)
+    const subHeadingMatch = line.match(/^\s*[-•]?\s*\*{1,2}(Context|Discussion|Agreed|Implication|Meeting Purpose)[:\s]*\*{0,2}\\?\*?\s*(.*)$/i);
+    if (subHeadingMatch) {
+      const label = subHeadingMatch[1].trim();
+      let bodyText = subHeadingMatch[2]
+        .replace(/^\*{1,2}\s*/, '')
+        .replace(/\*{1,2}\\?\*?\s*$/, '')
+        .replace(/\\\*/g, '')
+        .trim();
+      
+      const isAgreed = label.toLowerCase() === 'agreed';
+      
+      const runs: any[] = [
+        new TextRun({
+          text: `${label}: `,
+          bold: true,
+          size: FONTS.size.body,
+          color: isAgreed ? NHS_COLORS.priorityHigh : NHS_COLORS.headingBlue,
+          font: FONTS.default,
+        }),
+      ];
+      
+      if (bodyText) {
+        bodyText = bodyText.replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
+        runs.push(new TextRun({
+          text: bodyText,
+          bold: isAgreed,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+          font: FONTS.default,
+        }));
+      }
+      
+      elements.push(new Paragraph({
+        children: runs,
+        indent: { left: 360 },
+        spacing: { 
+          before: label.toLowerCase() === 'context' ? 120 : 40,
+          after: label.toLowerCase() === 'implication' ? 200 : 80,
+        },
+      }));
+      previousWasHeading = false;
+      i++;
+      continue;
+    }
+    
+    // Check for bullet points — not italic/bold markdown markers
+    const isBulletPoint = (
+      line.startsWith('- ') || 
+      line.startsWith('• ') || 
+      (line.startsWith('* ') && !line.startsWith('** ') && !line.startsWith('*Context') && !line.startsWith('*Discussion') && !line.startsWith('*Agreed') && !line.startsWith('*Implication') && !line.startsWith('*Meeting'))
+    );
+    if (isBulletPoint) {
+      const bulletText = line
+        .replace(/^[-•*]\s*/, '')
+        .replace(/\\\*/g, '')
+        .replace(/^\*{1,2}\s*/, '')
+        .replace(/\*{1,2}\s*$/, '')
+        .trim();
       const runs = parseInlineFormatting(bulletText, TextRun);
       
       elements.push(new Paragraph({
