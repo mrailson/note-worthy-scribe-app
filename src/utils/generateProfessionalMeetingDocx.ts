@@ -108,7 +108,16 @@ const stripTranscriptAndDetails = (content: string): string => {
   // Clean up any resulting empty lines
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
-  return cleaned.trim();
+  // Clean markdown artifacts that cause formatting issues in Word
+  cleaned = cleaned
+    .replace(/\\\*/g, '')                    // Remove all escaped asterisks
+    .replace(/\*\\\*/g, '')                  // Remove *\* patterns
+    .replace(/\n\s*═+\s*\n/g, '\n')         // Remove ═══ divider lines
+    .replace(/\n\s*---+\s*\n/g, '\n')       // Remove --- divider lines
+    .replace(/\n{4,}/g, '\n\n\n')           // Collapse excessive blank lines to max 3
+    .trim();
+  
+  return cleaned;
 };
 
 // Deduplicate action items in content - critical to prevent repeated sections
