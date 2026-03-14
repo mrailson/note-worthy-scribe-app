@@ -739,7 +739,7 @@ export function EmailMeetingMinutesModal({
               html += '</p>\n';
             } else {
               // No colon, entire line is heading
-              html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;"><strong style="color: #2563EB;">${number}. ${fullText}</strong></p>\n`;
+              html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;"><strong style="color: #2563EB;">${number}. ${stripMd(fullText)}</strong></p>\n`;
             }
             i++;
             continue;
