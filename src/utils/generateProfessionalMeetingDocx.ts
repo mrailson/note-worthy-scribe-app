@@ -1104,7 +1104,37 @@ const parseContentToDocxElements = async (content: string) => {
     // Check for numbered lists
     const numberMatch = line.match(/^(\d+)\.\s+(.+)$/);
     if (numberMatch) {
-      const listText = numberMatch[2];
+      let listText = numberMatch[2];
+      
+      // Check if this is a bold topic heading (e.g., "**Learning Disability (LD) Health Check Performance**")
+      const topicHeadingMatch = listText.match(/^\*\*(.+?)\*\*\s*$/);
+      if (topicHeadingMatch) {
+        const topicTitle = topicHeadingMatch[1].replace(/\\\*/g, '').trim();
+        elements.push(new Paragraph({
+          children: [
+            new TextRun({
+              text: `${numberMatch[1]}. `,
+              bold: true,
+              size: FONTS.size.heading3,
+              color: NHS_COLORS.headingBlue,
+              font: FONTS.default,
+            }),
+            new TextRun({
+              text: topicTitle,
+              bold: true,
+              size: FONTS.size.heading3,
+              color: NHS_COLORS.headingBlue,
+              font: FONTS.default,
+            }),
+          ],
+          spacing: { before: 280, after: 80 },
+        }));
+        previousWasHeading = true;
+        i++;
+        continue;
+      }
+      
+      listText = listText.replace(/\\\*/g, '').trim();
       const runs = parseInlineFormatting(listText, TextRun);
       
       elements.push(new Paragraph({
