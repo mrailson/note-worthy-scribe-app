@@ -1511,7 +1511,7 @@ ${cleanedTranscript}`;
                 actionText = actionText.replace(/[—–-]\s*$/, '').trim();
                 
                 const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
-                if (seenTexts.has(normalizedText) || normalizedText.length < 10) continue;
+                if (seenTexts.has(normalizedText) || normalizedText.length < 25) continue;
                 seenTexts.add(normalizedText);
                 
                 actionItemsToInsert.push({
