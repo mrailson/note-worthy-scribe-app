@@ -50,7 +50,7 @@ serve(async (req) => {
       });
     }
 
-    const content = meetingNotes || transcript;
+    let content = meetingNotes || transcript;
     console.log('📄 Content length:', content.length);
 
     // Initialize Supabase client and fetch meeting context
