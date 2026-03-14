@@ -103,7 +103,7 @@ Produce a single consolidated transcript that represents the most accurate versi
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
-        max_tokens: 8000,
+        max_tokens: 16000,
       }),
     });
 

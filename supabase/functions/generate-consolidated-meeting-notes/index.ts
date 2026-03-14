@@ -116,7 +116,8 @@ serve(async (req) => {
 
     const { 
       batchTranscript, 
-      liveTranscript, 
+      liveTranscript,
+      deepgramTranscript,
       meetingId,
       meetingTitle,
       meetingDate,
@@ -247,13 +248,22 @@ CRITICAL LANGUAGE RULES:
 - British date format: Wednesday 15th January 2025
 - 24-hour time format: 14:30 rather than 2:30 PM`;
 
-    const userPrompt = `Generate authoritative NHS governance-ready meeting notes using the following dual transcripts.
+    let userPrompt = `Generate authoritative NHS governance-ready meeting notes using the following transcripts.
 
 === BATCH TRANSCRIPT (PRIMARY SOURCE OF FACT) ===
 ${batchTranscript}
 
 === LIVE TRANSCRIPT (NUANCE & CONTEXT ONLY) ===
 ${liveTranscript}`;
+
+    if (deepgramTranscript?.trim() && deepgramTranscript.trim().length > 100) {
+      // Sample Deepgram for cross-reference (first 3K + last 2K to keep within context)
+      const dgSample = deepgramTranscript.length <= 5000 
+        ? deepgramTranscript 
+        : deepgramTranscript.substring(0, 3000) + '\n\n[...]\n\n' + deepgramTranscript.substring(deepgramTranscript.length - 2000);
+      userPrompt += `\n\n=== DEEPGRAM TRANSCRIPT (TERTIARY CROSS-REFERENCE — use only to resolve unclear names/terms) ===\n${dgSample}`;
+      console.log(`📊 Deepgram cross-reference added: ${dgSample.length} chars`);
+    }
 
     console.log('🤖 Calling Lovable AI for consolidated notes generation...');
 
@@ -270,7 +280,7 @@ ${liveTranscript}`;
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.3, // Lower temperature for more consistent, factual output
-        max_tokens: 8000,
+        max_tokens: 16000,
       }),
     });
 
