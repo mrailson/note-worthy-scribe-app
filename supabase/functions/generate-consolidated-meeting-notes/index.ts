@@ -280,7 +280,7 @@ ${liveTranscript}`;
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.3, // Lower temperature for more consistent, factual output
-        max_tokens: 8000,
+        max_tokens: 16000,
       }),
     });
 

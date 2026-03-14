@@ -1128,7 +1128,14 @@ NHS Board Packs, ICB circulation, sharing with NHFT or PML, FOI response, CQC re
 
 ${selectedNoteTypeInstruction}
 
-${selectedDetailInstruction}`;
+${selectedDetailInstruction}
+
+CROSS-REFERENCE HANDLING:
+- If the transcript includes a "CROSS-REFERENCE" section, treat it as a SECONDARY source only
+- Use the primary transcript as the source of truth for all facts, decisions, and actions
+- ONLY use the cross-reference to: clarify unclear names or spellings, resolve ambiguous medical/clinical terms, confirm intent behind decisions
+- Do NOT introduce any topic, decision, or action that only appears in the cross-reference section
+- If the cross-reference contradicts the primary transcript, trust the primary`;
 
     // Format date in British format with day of week
     const meetingDate = new Date(meeting.created_at);
