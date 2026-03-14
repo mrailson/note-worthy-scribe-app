@@ -713,6 +713,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Sort sections by preferred display order (Executive Summary first, then Key Points, etc.)
     const displayOrder = [
       'EXECUTIVE SUMMARY',
+      'DISCUSSION SUMMARY',
       'KEY POINTS',
       'KEY DISCUSSION',
       'KEY DISCUSSION POINTS',
