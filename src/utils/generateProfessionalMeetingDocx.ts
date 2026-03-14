@@ -340,6 +340,11 @@ const createMeetingDetailsBox = async (metadata: MeetingMetadata) => {
   const rows: any[] = [];
   
   // Helper to create a detail row
+  // Meeting Details table — explicit DXA widths to prevent iOS Word collapse
+  const TABLE_WIDTH_DXA = 9026; // A4 content width in DXA (11906 - 2×1440 margins)
+  const LABEL_COL_DXA = 2400;  // ~1.67 inches — enough for "Location" with padding
+  const VALUE_COL_DXA = TABLE_WIDTH_DXA - LABEL_COL_DXA;
+
   const createDetailRow = (label: string, value: string) => {
     return new TableRow({
       children: [
@@ -353,7 +358,7 @@ const createMeetingDetailsBox = async (metadata: MeetingMetadata) => {
               font: FONTS.default,
             })],
           })],
-          width: { size: 20, type: WidthType.PERCENTAGE },
+          width: { size: LABEL_COL_DXA, type: WidthType.DXA },
           margins: { top: 80, bottom: 80, left: 120, right: 60 },
           borders: {
             top: { style: BorderStyle.NONE },
@@ -372,7 +377,7 @@ const createMeetingDetailsBox = async (metadata: MeetingMetadata) => {
               font: FONTS.default,
             })],
           })],
-          width: { size: 80, type: WidthType.PERCENTAGE },
+          width: { size: VALUE_COL_DXA, type: WidthType.DXA },
           margins: { top: 80, bottom: 80, left: 60, right: 120 },
           borders: {
             top: { style: BorderStyle.NONE },
@@ -409,7 +414,8 @@ const createMeetingDetailsBox = async (metadata: MeetingMetadata) => {
   if (rows.length === 0) return [];
   
   const table = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: TABLE_WIDTH_DXA, type: WidthType.DXA },
+    columnWidths: [LABEL_COL_DXA, VALUE_COL_DXA],
     borders: {
       top: { style: BorderStyle.NONE },
       bottom: { style: BorderStyle.NONE },
