@@ -758,7 +758,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     ];
     
     // Implicit heading patterns (plain text lines that should be treated as section boundaries)
-    const implicitKeyPointsPattern = /^\s*(?:\*\*)?(?:Key\s+(?:Points|Discussion|Discussion\s+Points|Highlights|Takeaways))(?:\*\*)?:?\s*$/i;
+    const implicitKeyPointsPattern = /^\s*(?:\*\*)?(?:(?:Key\s+(?:Points|Discussion|Discussion\s+Points|Highlights|Takeaways))|(?:Discussion\s+Summary))(?:\*\*)?:?\s*$/i;
     
     const lines = originalContent.split('\n');
     const result: string[] = [];
