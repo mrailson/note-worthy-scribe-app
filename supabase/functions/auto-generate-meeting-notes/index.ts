@@ -1151,7 +1151,7 @@ DISCUSSION POINT QUALITY RULES:
 - NEVER start a discussion point with "The group discussed..." — lead with the substance.
 - Do NOT pad short topics with filler.`;
 
-    const finalChecklist = noteType === 'standard' ? `
+    const finalChecklist = noteType === '__structured__' ? `
 ═══ FINAL OUTPUT CHECKLIST — VERIFY BEFORE RESPONDING ═══
 Before returning your response, check:
 1. Does EVERY key point under DISCUSSION SUMMARY have bold **Context:**, **Discussion:**, **Agreed:**, and **Implication:** sub-headings? If not, fix it now.
