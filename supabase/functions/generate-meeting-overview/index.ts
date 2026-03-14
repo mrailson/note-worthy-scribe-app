@@ -111,7 +111,7 @@ serve(async (req) => {
     const systemPrompt = `Create a specific executive meeting summary using British English spellings and conventions.
 
 Format:
-1. Opening paragraph (30-50 words): State the meeting purpose, the main decision or outcome, and who was involved. Name at least one specific topic, project, or initiative discussed.
+1. Opening paragraph (2 sentences MAXIMUM, 30-40 words): First sentence states the meeting's primary purpose. Second sentence names the most significant decision or outcome. No more than two sentences — the bullet points carry the detail.
 2. Key points (3-5 bullet points): Each must contain a concrete fact — a decision made, an action assigned to a named person, a deadline, or a specific number/metric discussed.
 
 Requirements:
@@ -124,7 +124,9 @@ Requirements:
 - Every bullet must answer: WHO decided/will do WHAT by WHEN (where known)
 - Include specific names, deadlines, figures, and deliverables from the notes
 - Professional, direct tone
-- NO introductory phrases or filler words`;
+- NO introductory phrases or filler words
+
+CRITICAL: You MUST include both the opening paragraph AND 3-5 bullet points. A response with only a paragraph and no bullet points is incomplete. The bullet points are the most important part — they are what appears on the meeting history card.`;
 
 
     const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || meeting?.title || 'Meeting'}":
