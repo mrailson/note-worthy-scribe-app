@@ -216,9 +216,22 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
     return parsed;
   }, [dialogueScript]);
 
-  // Recalculate turn timing proportionally from actual audio duration
+  // Recalculate turn timing — use real synthesis timings if available, else fallback to word-count estimation
   const timedTurns = useMemo(() => {
-    if (turns.length === 0 || duration <= 0) return turns;
+    if (turns.length === 0) return turns;
+
+    // If we have real timings from synthesis, use them directly
+    if (turnTimings && turnTimings.length === turns.length) {
+      console.log('⏱️ Using real synthesis timings for slide sync');
+      return turns.map((turn, i) => ({
+        ...turn,
+        startTime: turnTimings[i].startTime,
+        endTime: turnTimings[i].endTime,
+      }));
+    }
+
+    // Fallback: proportional word-count estimation (for old discussions without saved timings)
+    if (duration <= 0) return turns.map(t => ({ ...t, startTime: 0, endTime: 0 }));
 
     const wordCounts = turns.map(t => t.text.split(/\s+/).length);
     const totalWords = wordCounts.reduce((sum, wc) => sum + wc, 0);
@@ -239,7 +252,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
 
       return { ...turn, startTime, endTime };
     });
-  }, [turns, duration]);
+  }, [turns, turnTimings, duration]);
 
   // Track active turn based on audio playback time
   useEffect(() => {
