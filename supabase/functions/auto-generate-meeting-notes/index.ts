@@ -916,56 +916,94 @@ DETAIL LEVEL: FULL
     const noteTypeInstructions: Record<string, string> = {
       'standard': `
 NOTE TYPE: STANDARD PROFESSIONAL
-- Use the default format structure as specified
+This is the default Notewell format with the full structured layout.
+- Use the Context / Discussion / Agreed / Implication structure for each discussion point
+- Include a Decisions Register section
 - Balanced coverage of all meeting elements
-- Professional but accessible language`,
+- Professional but accessible language
+- Include Open Items & Risks section
+- Full action items with owners and deadlines
+- Suitable for general practice meetings, PCN meetings, team meetings`,
 
       'nhs-formal': `
 NOTE TYPE: NHS FORMAL GOVERNANCE
-- Strict adherence to NHS governance language standards
+This is a shorter, more formal style preferred for board packs and governance circulation.
+IMPORTANT: For this note type, use a SIMPLER discussion structure. Do NOT use the Context/Discussion/Agreed/Implication sub-headings.
+Instead, use traditional numbered key points as concise paragraphs:
+
+KEY POINTS format:
+1. **[Topic Heading]**
+[One or two concise paragraphs covering what was discussed and what was decided. Use formal passive voice: "The meeting noted...", "It was resolved that...", "Members agreed...". Keep it tight — no more than 4-5 sentences per point.]
+
+Additional NHS Formal rules:
+- Use formal NHS governance language throughout
 - Suitable for ICB circulation, CQC review, Board packs
-- Use formal terminology: "The meeting noted...", "It was resolved that...", "Members agreed..."
-- Include explicit risk statements and compliance references
-- Reference relevant NHS policies or frameworks where applicable
+- Use passive voice: "The meeting noted...", "It was resolved that...", "Members agreed..."
+- Include explicit risk statements
 - Structure with clear governance headers: DECISIONS, RISKS, ESCALATIONS
-- Use passive voice throughout for formality
+- Add "For Information", "For Decision", "For Approval" markers where appropriate
 - Include quorum confirmation if attendance suggests it
-- Add "For Information", "For Decision", "For Approval" markers where appropriate`,
+- Keep action items formal with clear ownership
+- This style is deliberately more concise than Standard — aim for approximately 60% of the word count`,
 
       'clinical': `
-NOTE TYPE: CLINICAL MEETING NOTES
+NOTE TYPE: CLINICAL TEAM MEETING
+Structured for MDT, clinical governance, or clinical team meetings.
 - Use clinical terminology appropriate for healthcare professionals
-- Structure using clinical frameworks where relevant (SOAP, MDT format)
+- Structure discussion points using an adapted SOAP framework where relevant:
+  **Situation:** What was presented / the clinical scenario
+  **Background:** Relevant history, guidelines, or data
+  **Assessment:** Clinical discussion, differing views, risk assessment
+  **Plan:** Agreed clinical actions, pathways, safety netting
 - Highlight patient pathways, clinical outcomes, and care decisions
-- Include sections for: Clinical Discussions, Patient-Related Actions, Safety Considerations
-- Reference clinical guidelines or NICE recommendations if mentioned
+- Include a separate SAFETY CONSIDERATIONS section for any patient safety items raised
+- Reference clinical guidelines (NICE, BNF, local pathways) if mentioned
 - Use appropriate clinical abbreviations (define on first use)
-- Include safety netting advice and red flags where clinically relevant
-- Structure around clinical decision-making processes`,
+- Include red flags and safety netting advice where clinically relevant
+- Action items should distinguish between clinical actions and administrative actions
+- Suitable for clinical governance records and CQC evidence`,
 
       'action-focused': `
-NOTE TYPE: ACTION-FOCUSED SUMMARY
-- Prioritise decisions made and actions agreed
-- Minimal background/context - focus on outcomes
-- Lead with the ACTION ITEMS table prominently
-- Brief bullet points for key decisions only
-- Omit detailed discussion unless directly tied to an action
-- Clear ownership and deadlines for every action
+NOTE TYPE: ACTION-FOCUSED EXECUTIVE SUMMARY
+Designed for busy executives who need to act, not read.
+IMPORTANT: Drastically reduce narrative. This should be the shortest note type.
+
+Structure:
+1. QUICK REFERENCE box at the top: "X decisions made | Y actions assigned | Z deadlines this month"
+2. DECISIONS — bullet list of every decision, one line each, bold the outcome
+3. ACTION ITEMS — the full action table with owners, deadlines, and priority (this is the PRIMARY content)
+4. KEY CONTEXT — only 2-3 sentences of background, maximum, for each major topic. Only include context that is essential to understand the actions.
+5. RISKS — bullet list only if there are genuine risks or blockers
+
+Rules:
+- Lead with actions and decisions, not discussion
+- No detailed discussion summaries — if it didn't result in a decision or action, skip it
 - Group actions by priority (High → Medium → Low)
-- Include a "Quick Reference" section at the top with counts: X decisions, Y actions, Z deadlines
-- Skip narrative sections - this is for busy executives who need to act`,
+- Clear ownership and deadlines for every action — chase any that are TBC
+- Maximum 1 page of content (excluding the action table)
+- This style should be approximately 40% of Standard word count`,
 
       'educational': `
-NOTE TYPE: EDUCATIONAL/CPD FORMAT
-- Structure around learning objectives and outcomes
-- Include sections: Learning Objectives, Key Concepts Discussed, Discussion Points, Reflection Questions
-- Highlight CPD-relevant content and learning takeaways
-- Summarise educational content in digestible format
-- Include suggested further reading or resources if mentioned in the meeting
-- Add a "Key Takeaways" summary section at the end
+NOTE TYPE: EDUCATIONAL / CPD SESSION NOTES
+Structured for training sessions, educational meetings, significant event analyses, and CPD activities.
+
+Structure:
+1. SESSION OVERVIEW — title, facilitator/presenter, date, duration
+2. LEARNING OBJECTIVES — what the session aimed to achieve (extract from discussion or infer)
+3. KEY LEARNING POINTS — the main educational content, structured as numbered takeaways
+   For each point: what was taught/discussed and why it matters for practice
+4. DISCUSSION & REFLECTION — key questions raised, different perspectives shared, areas of uncertainty
+5. PRACTICE IMPLICATIONS — how this learning should change day-to-day clinical or operational practice
+6. ACTION POINTS — specific follow-up actions (e.g., update protocols, share with team, further reading)
+7. CPD STATEMENT — a brief reflective summary suitable for a CPD portfolio entry:
+   "This [duration] session on [topic] covered [key areas]. Key learning included [1-2 points]. 
+   I will apply this by [specific change]. This session contributes approximately [X] hours of CPD."
+
+Rules:
+- Frame everything through a learning lens — what can be taken away and applied
+- Include suggested further reading or resources if mentioned
 - Note any training requirements or competency gaps identified
-- Format suitable for inclusion in CPD portfolios and training records
-- Include hours that could count towards CPD if the meeting was educational`,
+- Suitable for CPD portfolios, training records, and appraisal evidence`,
 
       'ageing-well': `
 NOTE TYPE: AGEING WELL – COMPLEX FRAILTY REVIEW (UK GP)
@@ -1008,6 +1046,8 @@ Cognitive & Mental Health Assessment
 Memory concerns explored (patient and carer perspective). Orientation, attention, executive function (informal clinical assessment).
 Mood, anxiety, apathy, loneliness. Delirium risk factors. Capacity considerations if relevant.
 Any safeguarding or vulnerability concerns.
+
+
 
 Plan
 

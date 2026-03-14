@@ -136,13 +136,32 @@ Deno.serve(async (req) => {
       // ─── Step 5: Trigger immediate notes generation ───
       stepStart = Date.now();
       try {
+        // Load user's preferred note type
+        let preferredNoteType = 'standard';
+        try {
+          const { data: noteTypePref } = await supabase
+            .from('user_settings')
+            .select('setting_value')
+            .eq('user_id', meeting.user_id)
+            .eq('setting_key', 'preferred_note_type')
+            .maybeSingle();
+          
+          if (noteTypePref?.setting_value) {
+            const val = noteTypePref.setting_value as any;
+            preferredNoteType = typeof val === 'string' ? val : val?.noteType || 'standard';
+            console.log('📝 User preferred note type:', preferredNoteType);
+          }
+        } catch (err) {
+          console.warn('Failed to load note type preference:', err);
+        }
+
         console.log('📝 Invoking auto-generate-meeting-notes...');
         const { data: notesResult, error: notesError } = await supabase.functions.invoke('auto-generate-meeting-notes', {
           body: {
             meetingId,
             forceRegenerate: true,
             detailLevel: 'standard',
-            noteType: 'standard',
+            noteType: preferredNoteType,
           },
         });
 

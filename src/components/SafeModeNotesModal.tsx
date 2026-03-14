@@ -269,7 +269,64 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [controlMode, setControlMode] = useState<'fontSize' | 'detailLevel'>('fontSize');
   const [detailLevel, setDetailLevel] = useState<number>(3); // Default: Standard
   const [noteType, setNoteType] = useState<string>('standard'); // Note type selection
+  const [noteTypeLoaded, setNoteTypeLoaded] = useState(false);
   const [isRegeneratingNotes, setIsRegeneratingNotes] = useState(false);
+
+  // Load the user's preferred note style from user_settings
+  useEffect(() => {
+    const loadNoteTypePreference = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) return;
+      try {
+        const { data } = await supabase
+          .from('user_settings')
+          .select('setting_value')
+          .eq('user_id', user.id)
+          .eq('setting_key', 'preferred_note_type')
+          .maybeSingle();
+        
+        if (data?.setting_value) {
+          const pref = typeof data.setting_value === 'string' 
+            ? data.setting_value 
+            : (data.setting_value as any)?.noteType || 'standard';
+          setNoteType(pref);
+          console.log('📝 Loaded user note type preference:', pref);
+        }
+      } catch (err) {
+        console.warn('Failed to load note type preference:', err);
+      } finally {
+        setNoteTypeLoaded(true);
+      }
+    };
+    loadNoteTypePreference();
+  }, []);
+
+  // Save note type preference for this user
+  const saveNoteTypePreference = async (newType: string) => {
+    setNoteType(newType);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) return;
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          setting_key: 'preferred_note_type',
+          setting_value: { noteType: newType },
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,setting_key' });
+      
+      if (!error) {
+        console.log('💾 Saved note type preference:', newType);
+        const label = MEETING_NOTE_TYPES.find(t => t.id === newType)?.label || newType;
+        toast.success(`Note style set to "${label}" — all future meetings will use this style`, {
+          duration: 4000,
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to save note type preference:', err);
+    }
+  };
   
   // Notes transcript source selection (which transcript to use for generating notes)
   const [notesTranscriptSource, setNotesTranscriptSource] = useState<'batch' | 'live' | 'consolidated' | 'best_of_all'>('batch');
@@ -2948,7 +3005,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <Select 
               value={noteType} 
               onValueChange={(value) => {
-                setNoteType(value);
+                saveNoteTypePreference(value);
                 triggerRegeneration(detailLevel, value);
               }}
               disabled={isRegeneratingNotes}
