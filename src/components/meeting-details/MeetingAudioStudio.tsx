@@ -39,6 +39,48 @@ const VOICE_OPTIONS = [
   { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'British Male - Authoritative' },
 ];
 
+// Parse a two-host discussion script into speaker turns
+const parseDialogueTurns = (script: string): Array<{ speaker: 'ALICE' | 'GEORGE'; text: string }> => {
+  const turns: Array<{ speaker: 'ALICE' | 'GEORGE'; text: string }> = [];
+  const lines = script.split('\n').filter(l => l.trim());
+  
+  let currentSpeaker: 'ALICE' | 'GEORGE' | null = null;
+  let currentText = '';
+  
+  for (const line of lines) {
+    const aliceMatch = line.match(/^ALICE:\s*(.*)$/);
+    const georgeMatch = line.match(/^GEORGE:\s*(.*)$/);
+    
+    if (aliceMatch) {
+      if (currentSpeaker && currentText.trim()) {
+        turns.push({ speaker: currentSpeaker, text: currentText.trim() });
+      }
+      currentSpeaker = 'ALICE';
+      currentText = aliceMatch[1];
+    } else if (georgeMatch) {
+      if (currentSpeaker && currentText.trim()) {
+        turns.push({ speaker: currentSpeaker, text: currentText.trim() });
+      }
+      currentSpeaker = 'GEORGE';
+      currentText = georgeMatch[1];
+    } else if (currentSpeaker) {
+      currentText += ' ' + line.trim();
+    }
+  }
+  
+  if (currentSpeaker && currentText.trim()) {
+    turns.push({ speaker: currentSpeaker, text: currentText.trim() });
+  }
+  
+  return turns;
+};
+
+// Voice mapping for discussion mode
+const DISCUSSION_VOICES: Record<string, string> = {
+  'ALICE': 'Xb7hH8MSUJpSbSDYk0k2',  // Alice - British Female
+  'GEORGE': 'JBFqnCBsd6RMkjVDRZzb',  // George - British Male
+};
+
 export const MeetingAudioStudio = ({ 
   meetingId, 
   meetingTitle,
@@ -191,29 +233,133 @@ export const MeetingAudioStudio = ({
         countPronunciationMatches(editedText, rule) > 0
       ).length;
 
-      const { data, error } = await supabase.functions.invoke('generate-audio-overview', {
-        body: {
-          meetingId,
-          voiceProvider: 'elevenlabs',
-          voiceId: selectedVoice,
-          overrideText: textWithPronunciations,
-          targetDuration: duration[0]
+      // Check if this is a discussion-style script (has ALICE: and GEORGE: tags)
+      const isDiscussionScript = editedText.includes('ALICE:') && editedText.includes('GEORGE:');
+
+      if (isDiscussionScript) {
+        // Multi-voice synthesis
+        const turns = parseDialogueTurns(textWithPronunciations);
+        console.log(`🎙️ Discussion mode: ${turns.length} turns to synthesize`);
+        
+        if (turns.length === 0) {
+          showToast.error('Could not parse dialogue turns. Ensure script uses ALICE: and GEORGE: tags.', { section: 'meeting_manager' });
+          return;
         }
-      });
-
-      if (error) throw error;
-
-      if (data.audioUrl) {
-        setAudioUrl(data.audioUrl);
-        setAudioDuration(data.duration || null);
-        if (appliedCount > 0) {
-          showToast.success(`Audio generated with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`, { section: 'meeting_manager' });
+        
+        const audioChunks: Blob[] = [];
+        
+        for (let i = 0; i < turns.length; i++) {
+          const turn = turns[i];
+          const voiceId = DISCUSSION_VOICES[turn.speaker] || DISCUSSION_VOICES['ALICE'];
+          
+          console.log(`🎙️ Synthesizing turn ${i + 1}/${turns.length}: ${turn.speaker} (${turn.text.substring(0, 50)}...)`);
+          showToast.info(`Generating voice ${i + 1} of ${turns.length} (${turn.speaker})...`, { 
+            id: 'discussion-synth', 
+            duration: 60000,
+            section: 'meeting_manager'
+          });
+          
+          const { data, error } = await supabase.functions.invoke('generate-audio-overview', {
+            body: {
+              meetingId,
+              voiceProvider: 'elevenlabs',
+              voiceId: voiceId,
+              text: turn.text,
+              skipSave: true,
+            }
+          });
+          
+          if (error || !data?.audioUrl) {
+            console.error(`Failed to synthesize turn ${i + 1}:`, error);
+            showToast.error(`Failed to generate ${turn.speaker}'s voice for turn ${i + 1}`, { section: 'meeting_manager' });
+            return;
+          }
+          
+          // Fetch the audio blob
+          const audioResponse = await fetch(data.audioUrl);
+          if (!audioResponse.ok) throw new Error(`Failed to fetch audio for turn ${i + 1}`);
+          const audioBlob = await audioResponse.blob();
+          audioChunks.push(audioBlob);
+        }
+        
+        showToast.info('Stitching audio together...', { id: 'discussion-synth', duration: 10000, section: 'meeting_manager' });
+        
+        // Concatenate all audio chunks into a single blob
+        const combinedBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+        
+        // Upload the combined audio
+        const fileName = `${meetingId}/discussion_${Date.now()}.mp3`;
+        const { error: uploadError } = await supabase.storage
+          .from('meeting-audio-overviews')
+          .upload(fileName, combinedBlob, { contentType: 'audio/mpeg', upsert: true });
+        
+        if (uploadError) throw uploadError;
+        
+        const { data: urlData } = supabase.storage
+          .from('meeting-audio-overviews')
+          .getPublicUrl(fileName);
+        
+        const finalAudioUrl = `${urlData.publicUrl}?v=${Date.now()}`;
+        
+        // Save to meeting_overviews
+        const { data: existingOverview } = await supabase
+          .from('meeting_overviews')
+          .select('id')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+        
+        if (existingOverview?.id) {
+          await supabase
+            .from('meeting_overviews')
+            .update({
+              audio_overview_url: finalAudioUrl,
+              audio_overview_text: editedText,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('meeting_id', meetingId);
         } else {
-          showToast.success('Full audio generated successfully', { section: 'meeting_manager' });
+          await supabase
+            .from('meeting_overviews')
+            .insert({
+              meeting_id: meetingId,
+              overview: editedText.slice(0, 600),
+              audio_overview_url: finalAudioUrl,
+              audio_overview_text: editedText,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
         }
+        
+        setAudioUrl(finalAudioUrl);
+        showToast.success(`Discussion generated! ${turns.length} exchanges between Alice and George.`, { section: 'meeting_manager' });
         onAudioGenerated?.();
+        
       } else {
-        throw new Error('No audio URL returned');
+        // Existing single-voice synthesis path
+        const { data, error } = await supabase.functions.invoke('generate-audio-overview', {
+          body: {
+            meetingId,
+            voiceProvider: 'elevenlabs',
+            voiceId: selectedVoice,
+            overrideText: textWithPronunciations,
+            targetDuration: duration[0]
+          }
+        });
+
+        if (error) throw error;
+
+        if (data.audioUrl) {
+          setAudioUrl(data.audioUrl);
+          setAudioDuration(data.duration || null);
+          if (appliedCount > 0) {
+            showToast.success(`Audio generated with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`, { section: 'meeting_manager' });
+          } else {
+            showToast.success('Full audio generated successfully', { section: 'meeting_manager' });
+          }
+          onAudioGenerated?.();
+        } else {
+          throw new Error('No audio URL returned');
+        }
       }
     } catch (error: any) {
       console.error('Audio generation error:', error);

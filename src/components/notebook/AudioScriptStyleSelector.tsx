@@ -2,6 +2,7 @@ import { Briefcase, GraduationCap, ClipboardList, Radio, FileCode, HeartPulse } 
 import { Card } from "@/components/ui/card";
 
 export type ScriptStyle = 
+  | 'discussion'
   | 'executive' 
   | 'training' 
   | 'meeting' 
@@ -18,6 +19,13 @@ interface ScriptStyleOption {
 }
 
 const SCRIPT_STYLES: ScriptStyleOption[] = [
+  {
+    id: 'discussion',
+    name: 'Two-Host Discussion',
+    icon: Radio,
+    description: 'NotebookLM-style conversation between two hosts',
+    characteristics: ['Two voices', 'Natural dialogue', 'Engaging Q&A flow']
+  },
   {
     id: 'executive',
     name: 'Executive Summary',

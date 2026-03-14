@@ -12,7 +12,10 @@ serve(async (req) => {
   }
 
   try {
-    const { meetingId, voiceProvider = 'deepgram', voiceId, overrideText, targetDuration = 2 } = await req.json();
+    const body = await req.json();
+    const { meetingId, voiceProvider = 'deepgram', voiceId, overrideText, targetDuration = 2, skipSave = false } = body;
+    // Support 'text' as alias for 'overrideText' (used by discussion mode)
+    const effectiveOverrideText = overrideText || body.text || null;
     
     if (!meetingId) {
       throw new Error('meetingId is required');
@@ -71,10 +74,10 @@ serve(async (req) => {
     
     let narrative: string;
     
-    // Use overrideText if provided, otherwise generate with AI
-    if (overrideText && overrideText.trim()) {
+    // Use overrideText/text if provided, otherwise generate with AI
+    if (effectiveOverrideText && effectiveOverrideText.trim()) {
       console.log('Using provided override text for audio generation');
-      narrative = overrideText.trim();
+      narrative = effectiveOverrideText.trim();
     } else {
       if (!transcript && !meetingNotes) {
         throw new Error('No transcript or summary available for this meeting');
@@ -195,48 +198,52 @@ Create an informal ${targetDuration}-minute audio overview of this meeting.`;
     const estimatedWords = narrative.length / 5;
     const estimatedDuration = Math.ceil((estimatedWords / 150) * 60); // in seconds
 
-    // Save to database
-    console.log('Saving audio overview metadata to database...');
+    // Save to database (skip if skipSave flag is set — used for individual discussion turns)
+    if (!skipSave) {
+      console.log('Saving audio overview metadata to database...');
 
-    // Check if overview record exists to avoid NOT NULL constraint issues on overview
-    const { data: existingOverview } = await supabase
-      .from('meeting_overviews')
-      .select('id')
-      .eq('meeting_id', meetingId)
-      .maybeSingle();
-
-    let dbError = null as any;
-
-    if (existingOverview?.id) {
-      const { error } = await supabase
+      // Check if overview record exists to avoid NOT NULL constraint issues on overview
+      const { data: existingOverview } = await supabase
         .from('meeting_overviews')
-        .update({
-          audio_overview_url: audioUrl,
-          audio_overview_text: narrative,
-          audio_overview_duration: estimatedDuration,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('meeting_id', meetingId);
-      dbError = error;
+        .select('id')
+        .eq('meeting_id', meetingId)
+        .maybeSingle();
+
+      let dbError = null as any;
+
+      if (existingOverview?.id) {
+        const { error } = await supabase
+          .from('meeting_overviews')
+          .update({
+            audio_overview_url: audioUrl,
+            audio_overview_text: narrative,
+            audio_overview_duration: estimatedDuration,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('meeting_id', meetingId);
+        dbError = error;
+      } else {
+        const fallbackOverview = (meetingNotes || transcript)?.slice(0, 600) || '';
+        const { error } = await supabase
+          .from('meeting_overviews')
+          .insert({
+            meeting_id: meetingId,
+            overview: fallbackOverview, // required NOT NULL
+            audio_overview_url: audioUrl,
+            audio_overview_text: narrative,
+            audio_overview_duration: estimatedDuration,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        dbError = error;
+      }
+
+      if (dbError) {
+        console.error('Database update error:', dbError);
+        throw new Error('Failed to save audio overview metadata');
+      }
     } else {
-      const fallbackOverview = (meetingNotes || transcript)?.slice(0, 600) || '';
-      const { error } = await supabase
-        .from('meeting_overviews')
-        .insert({
-          meeting_id: meetingId,
-          overview: fallbackOverview, // required NOT NULL
-          audio_overview_url: audioUrl,
-          audio_overview_text: narrative,
-          audio_overview_duration: estimatedDuration,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-      dbError = error;
-    }
-
-    if (dbError) {
-      console.error('Database update error:', dbError);
-      throw new Error('Failed to save audio overview metadata');
+      console.log('Skipping database save (skipSave=true)');
     }
 
     console.log('Audio overview generated successfully');
