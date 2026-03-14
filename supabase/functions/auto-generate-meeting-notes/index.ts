@@ -667,6 +667,28 @@ serve(async (req) => {
       }
     }
 
+    // Auto-detect meeting format if user didn't explicitly set it (default is 'face-to-face')
+    if (meeting.meeting_format === 'face-to-face' || !meeting.meeting_format) {
+      const detectedFormat = detectMeetingFormat(cleanedTranscript);
+      if (detectedFormat !== 'face-to-face') {
+        console.log(`📍 Auto-detected meeting format: ${detectedFormat} (was: ${meeting.meeting_format || 'not set'})`);
+        
+        const { error: formatUpdateError } = await supabase
+          .from('meetings')
+          .update({ meeting_format: detectedFormat })
+          .eq('id', meetingId);
+        
+        if (formatUpdateError) {
+          console.warn('⚠️ Failed to update meeting format:', formatUpdateError.message);
+        } else {
+          meeting.meeting_format = detectedFormat;
+          console.log(`✅ Meeting format updated to: ${detectedFormat}`);
+        }
+      } else {
+        console.log('📍 Format detection confirms face-to-face (or no clear signals)');
+      }
+    }
+
     console.log('📄 Using', transcriptUsed, 'transcript for notes generation');
 
     // Detail level instructions for note generation
