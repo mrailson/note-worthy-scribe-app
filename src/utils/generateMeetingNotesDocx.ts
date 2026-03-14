@@ -1,6 +1,7 @@
 import { saveAs } from "file-saver";
 import { NHS_COLORS, FONTS, buildNHSStyles, buildNumbering } from "./wordTheme";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
+import { generateMeetingFilename } from "./meetingFilename";
 
 // Decode HTML entities to plain characters for Word output
 const decodeHtmlEntities = (text: string): string => {
