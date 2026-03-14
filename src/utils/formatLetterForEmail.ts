@@ -35,7 +35,9 @@ const EMAIL_STYLES = {
  * Converts markdown bold to HTML strong with inline styles
  */
 const formatTextWithBold = (text: string): string => {
-  return text.replace(/\*\*(.+?)\*\*/g, `<strong style="font-weight: 600; color: ${EMAIL_STYLES.colors.text};">$1</strong>`);
+  return text
+    .replace(/\*\*(.+?)\*\*/g, `<strong style="font-weight: 600; color: ${EMAIL_STYLES.colors.text};">$1</strong>`)
+    .replace(/\*+/g, ''); // Remove any stray asterisks after bold processing
 };
 
 /**
