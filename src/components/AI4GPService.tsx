@@ -545,7 +545,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
           overscrollBehavior: 'contain',
           maxWidth: '100%',
           width: '100%',
-          height: deviceInfo.supportsViewportUnits ? '100dvh' : '100vh'
+          
         }}
       >
         {/* Left Sidebar - Desktop Only */}
