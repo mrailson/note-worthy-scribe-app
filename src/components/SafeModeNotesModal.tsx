@@ -744,6 +744,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Keep everything before the first editable section and after the last one
     const sectionHeadings = [
       'EXECUTIVE SUMMARY',
+      'DISCUSSION SUMMARY',
       'KEY DECISIONS',
       // Accept common variants produced by AI models
       'KEY POINTS',
