@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Download } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Download,
+         ClipboardList, TrendingUp, CheckCircle2, AlertTriangle, ListChecks, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 
@@ -25,13 +26,117 @@ interface MeetingDiscussionPlayerProps {
   slideAnnotations?: SlideAnnotation[];
 }
 
+// --- Slide type detection & theming ---
+
+type SlideType = 'overview' | 'statistic' | 'decision' | 'risk' | 'action' | 'topic';
+
+const detectSlideType = (
+  slide: { heading?: string; figure?: string | null; bullets?: string[] | null },
+  turnText?: string
+): SlideType => {
+  const h = (slide.heading || '').toLowerCase();
+  if (h.includes('overview') || h.includes('meeting in brief') || h.includes('introduction')) return 'overview';
+  if (h.includes('decision') || h.includes('agreed') || h.includes('approved') || h.includes('resolved')) return 'decision';
+  if (h.includes('risk') || h.includes('concern') || h.includes('challenge') || h.includes('issue') || h.includes('shortfall')) return 'risk';
+  if (h.includes('action') || h.includes('next step') || h.includes('follow up') || h.includes('takeaway')) return 'action';
+  if (slide.figure) return 'statistic';
+  return 'topic';
+};
+
+interface SlideTheme {
+  gradient: string;
+  accentColor: string;
+  iconBg: string;
+  iconColor: string;
+  headingColor: string;
+  figureColor: string;
+  bulletColor: string;
+  borderAccent: string;
+  badgeLabel: string;
+}
+
+const SLIDE_THEMES: Record<SlideType, SlideTheme> = {
+  overview: {
+    gradient: 'from-slate-900 via-blue-950 to-slate-900',
+    accentColor: 'text-blue-400',
+    iconBg: 'bg-blue-500/20',
+    iconColor: 'text-blue-400',
+    headingColor: 'text-blue-300',
+    figureColor: 'text-white',
+    bulletColor: 'text-blue-200/80',
+    borderAccent: 'border-blue-500/30',
+    badgeLabel: 'Overview',
+  },
+  statistic: {
+    gradient: 'from-slate-900 via-emerald-950 to-slate-900',
+    accentColor: 'text-emerald-400',
+    iconBg: 'bg-emerald-500/20',
+    iconColor: 'text-emerald-400',
+    headingColor: 'text-emerald-300',
+    figureColor: 'text-emerald-400',
+    bulletColor: 'text-emerald-200/80',
+    borderAccent: 'border-emerald-500/30',
+    badgeLabel: 'Key Figure',
+  },
+  decision: {
+    gradient: 'from-slate-900 via-amber-950 to-slate-900',
+    accentColor: 'text-amber-400',
+    iconBg: 'bg-amber-500/20',
+    iconColor: 'text-amber-400',
+    headingColor: 'text-amber-300',
+    figureColor: 'text-amber-400',
+    bulletColor: 'text-amber-200/80',
+    borderAccent: 'border-amber-500/30',
+    badgeLabel: 'Decision',
+  },
+  risk: {
+    gradient: 'from-slate-900 via-red-950 to-slate-900',
+    accentColor: 'text-red-400',
+    iconBg: 'bg-red-500/20',
+    iconColor: 'text-red-400',
+    headingColor: 'text-red-300',
+    figureColor: 'text-red-400',
+    bulletColor: 'text-red-200/80',
+    borderAccent: 'border-red-500/30',
+    badgeLabel: 'Risk',
+  },
+  action: {
+    gradient: 'from-slate-900 via-purple-950 to-slate-900',
+    accentColor: 'text-purple-400',
+    iconBg: 'bg-purple-500/20',
+    iconColor: 'text-purple-400',
+    headingColor: 'text-purple-300',
+    figureColor: 'text-purple-400',
+    bulletColor: 'text-purple-200/80',
+    borderAccent: 'border-purple-500/30',
+    badgeLabel: 'Actions',
+  },
+  topic: {
+    gradient: 'from-slate-900 via-teal-950 to-slate-900',
+    accentColor: 'text-teal-400',
+    iconBg: 'bg-teal-500/20',
+    iconColor: 'text-teal-400',
+    headingColor: 'text-teal-300',
+    figureColor: 'text-white',
+    bulletColor: 'text-teal-200/80',
+    borderAccent: 'border-teal-500/30',
+    badgeLabel: 'Discussion',
+  },
+};
+
+const SLIDE_ICONS: Record<SlideType, React.ReactNode> = {
+  overview: <ClipboardList className="h-5 w-5" />,
+  statistic: <TrendingUp className="h-5 w-5" />,
+  decision: <CheckCircle2 className="h-5 w-5" />,
+  risk: <AlertTriangle className="h-5 w-5" />,
+  action: <ListChecks className="h-5 w-5" />,
+  topic: <MessageCircle className="h-5 w-5" />,
+};
+
 const SPEAKER_STYLES = {
   ALICE: {
     name: 'Alice',
     role: 'Meeting Attendee',
-    bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-    borderColor: 'border-blue-300 dark:border-blue-700',
-    textColor: 'text-blue-800 dark:text-blue-200',
     accentColor: 'bg-blue-600',
     avatarBg: 'bg-blue-100 dark:bg-blue-900',
     avatarText: 'text-blue-700 dark:text-blue-300',
@@ -40,9 +145,6 @@ const SPEAKER_STYLES = {
   GEORGE: {
     name: 'George',
     role: 'Colleague',
-    bgColor: 'bg-teal-50 dark:bg-teal-950/30',
-    borderColor: 'border-teal-300 dark:border-teal-700',
-    textColor: 'text-teal-800 dark:text-teal-200',
     accentColor: 'bg-teal-600',
     avatarBg: 'bg-teal-100 dark:bg-teal-900',
     avatarText: 'text-teal-700 dark:text-teal-300',
@@ -208,36 +310,60 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
   };
 
   const activeSlide = getActiveSlide(activeTurnIndex);
-
-  // Progress dots — show a window around the active turn
-  const dotWindowStart = Math.max(0, activeTurnIndex - 5);
-  const dotWindowEnd = Math.min(timedTurns.length, activeTurnIndex + 6);
-  const visibleDots = timedTurns.slice(dotWindowStart, dotWindowEnd);
+  const slideType = activeSlide ? detectSlideType(activeSlide, activeTurn?.text) : 'overview';
+  const theme = SLIDE_THEMES[slideType];
 
   return (
     <div className="rounded-xl overflow-hidden border border-border bg-card shadow-lg">
+      {/* Audio bars animation */}
+      <style>{`
+        @keyframes audioBar {
+          from { transform: scaleY(0.4); }
+          to { transform: scaleY(1); }
+        }
+      `}</style>
+
       {/* Hidden audio element */}
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
-      {/* Visual display area */}
-      <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white min-h-[320px] flex flex-col">
+      {/* Visual display area — themed by slide content */}
+      <div className={`relative bg-gradient-to-br ${theme.gradient} text-white min-h-[360px] flex flex-col transition-all duration-700 overflow-hidden`}>
 
-        {/* Meeting title overlay */}
-        <div className="px-6 pt-5 pb-3">
-          <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">
-            {meetingDate || 'Meeting Discussion'}
-          </p>
-          <h3 className="text-lg font-semibold text-slate-100 mt-1 leading-tight">
-            {meetingTitle}
-          </h3>
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className={`absolute -top-20 -right-20 w-64 h-64 rounded-full ${theme.iconBg} blur-3xl opacity-40 transition-all duration-700`} />
+          <div className={`absolute -bottom-16 -left-16 w-48 h-48 rounded-full ${theme.iconBg} blur-3xl opacity-30 transition-all duration-700`} />
+          {/* Subtle grid pattern */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+          }} />
+        </div>
+
+        {/* Top bar — meeting info + slide type badge */}
+        <div className="relative z-10 flex items-start justify-between px-6 pt-5 pb-3">
+          <div>
+            <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">
+              Meeting Discussion
+            </p>
+            <h3 className="text-lg font-semibold text-slate-100 mt-1 leading-tight">
+              {meetingTitle}
+            </h3>
+          </div>
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${theme.iconBg} border ${theme.borderAccent} backdrop-blur-sm`}>
+            <span className={theme.iconColor}>{SLIDE_ICONS[slideType]}</span>
+            <span className={`text-xs font-semibold ${theme.accentColor} uppercase tracking-wide`}>
+              {theme.badgeLabel}
+            </span>
+          </div>
         </div>
 
         {/* Main content area */}
-        <div className="flex-1 flex items-center gap-6 px-6 pb-4">
+        <div className="relative z-10 flex-1 flex items-center gap-6 px-6 pb-4">
 
           {/* Left: Speaker indicator */}
           <div className="flex flex-col items-center gap-3 min-w-[80px]">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 ${activeStyle.avatarBg} ${activeStyle.avatarText}`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 ${activeStyle.avatarBg} ${activeStyle.avatarText} ring-2 ring-white/10`}>
               {activeTurn?.speaker === 'ALICE' ? 'A' : 'G'}
             </div>
             <div className="text-center">
@@ -251,8 +377,8 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
                     key={i}
                     className={`w-1 rounded-full ${activeStyle.accentColor}`}
                     style={{
-                      height: `${8 + Math.random() * 12}px`,
-                      animation: `pulse ${0.4 + i * 0.1}s ease-in-out infinite alternate`,
+                      height: '16px',
+                      animation: `audioBar ${0.4 + i * 0.1}s ease-in-out infinite alternate`,
                     }}
                   />
                 ))}
@@ -260,58 +386,77 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
             )}
           </div>
 
-          {/* Right: Current text / slide */}
-          <div className="flex-1 min-w-0 space-y-3">
+          {/* Right: Slide content card */}
+          <div className={`flex-1 min-w-0 rounded-xl border ${theme.borderAccent} bg-white/5 backdrop-blur-sm p-5 space-y-3 transition-all duration-500`}>
+
+            {/* Slide heading with icon */}
             {activeSlide?.heading && (
-              <p className="text-white/60 text-xs font-medium uppercase tracking-wider">
-                {activeSlide.heading}
-              </p>
-            )}
-            {activeSlide?.figure && (
-              <div className="mb-2">
-                <span className="text-4xl font-bold text-white font-mono tracking-tight">{activeSlide.figure}</span>
+              <div className="flex items-center gap-2.5">
+                <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${theme.iconBg} flex items-center justify-center ${theme.iconColor}`}>
+                  {SLIDE_ICONS[slideType]}
+                </div>
+                <h4 className={`text-base font-semibold ${theme.headingColor} leading-tight`}>
+                  {activeSlide.heading}
+                </h4>
               </div>
             )}
+
+            {/* Key figure — large and prominent */}
+            {activeSlide?.figure && (
+              <div className="py-1">
+                <span className={`text-4xl font-bold ${theme.figureColor} font-mono tracking-tight`}>
+                  {activeSlide.figure}
+                </span>
+              </div>
+            )}
+
+            {/* Bullet points */}
             {activeSlide?.bullets && activeSlide.bullets.length > 0 && (
-              <ul className="space-y-1">
+              <ul className="space-y-1.5 pt-1">
                 {activeSlide.bullets.map((b: string, i: number) => (
-                  <li key={i} className="text-white/70 text-sm flex items-start gap-2">
-                    <span className="text-white/40 mt-1">•</span>
+                  <li key={i} className={`${theme.bulletColor} text-sm flex items-start gap-2`}>
+                    <span className={`${theme.accentColor} mt-0.5 text-xs`}>●</span>
                     <span>{b}</span>
                   </li>
                 ))}
               </ul>
             )}
-            <p className="text-white/90 text-base leading-relaxed italic mt-4">
-              "{activeTurn?.text || 'Press play to begin the discussion...'}"
-            </p>
+
+            {/* Current speech text — italicised quote */}
+            <div className="pt-2 border-t border-white/10">
+              <p className="text-white/80 text-sm leading-relaxed italic">
+                "{activeTurn?.text || 'Press play to begin the discussion...'}"
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Turn progress dots */}
-        <div className="flex justify-center items-center gap-1.5 pb-4 px-6">
-          {visibleDots.map((t, i) => {
-            const realIdx = dotWindowStart + i;
-            const isActive = realIdx === activeTurnIndex;
-            const isPast = realIdx < activeTurnIndex;
-            const dotStyle = SPEAKER_STYLES[t.speaker];
-            return (
-              <button
-                key={realIdx}
-                className={`rounded-full transition-all duration-200 ${
-                  isActive
-                    ? `w-6 h-2.5 ${dotStyle.dotColor}`
-                    : isPast
-                    ? `w-2 h-2 ${dotStyle.dotColor} opacity-40`
-                    : 'w-2 h-2 bg-slate-600'
-                }`}
-                onClick={() => {
-                  seekTo(timedTurns[realIdx].startTime);
-                }}
-                title={`${t.speaker}: ${t.text.substring(0, 40)}...`}
-              />
-            );
-          })}
+        {/* Bottom bar — turn progress dots */}
+        <div className="relative z-10 flex items-center justify-between px-6 pb-4">
+          <p className="text-xs text-slate-500">{meetingDate || ''}</p>
+          <div className="flex items-center gap-1.5">
+            {timedTurns.slice(Math.max(0, activeTurnIndex - 6), activeTurnIndex + 7).map((t, i) => {
+              const realIdx = Math.max(0, activeTurnIndex - 6) + i;
+              const isActive = realIdx === activeTurnIndex;
+              const isPast = realIdx < activeTurnIndex;
+              const dotStyle = SPEAKER_STYLES[t.speaker];
+              return (
+                <button
+                  key={realIdx}
+                  className={`rounded-full transition-all duration-200 ${
+                    isActive
+                      ? `w-6 h-2.5 ${dotStyle.dotColor}`
+                      : isPast
+                      ? `w-2 h-2 ${dotStyle.dotColor} opacity-40`
+                      : 'w-2 h-2 bg-slate-600'
+                  }`}
+                  onClick={() => seekTo(timedTurns[realIdx].startTime)}
+                  title={`${t.speaker}: ${t.text.substring(0, 40)}...`}
+                />
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-500">Notewell AI</p>
         </div>
       </div>
 
