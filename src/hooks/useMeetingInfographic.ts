@@ -339,7 +339,7 @@ CRITICAL CONTENT HIERARCHY (in order of visual prominence):
 4. THE MEETING IN BRIEF - Key summary paragraph (what this meeting was about)
 5. KEY DISCUSSION POINTS - The main topics and conversations that took place
 6. DECISIONS MADE - Important outcomes that were agreed
-7. ACTION ITEMS - Small/optional section with just a count or brief mention
+7. ACTION ITEMS - Small section stating: "${actionItemText}" — do NOT list individual actions, just show this count.
 
 DESIGN REQUIREMENTS:
 ${designRequirements}
