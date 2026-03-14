@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react';
 import { showToast } from '@/utils/toastWrapper';
 import { extractAttendees } from '@/utils/extractAttendees';
 import { useAuth } from '@/contexts/AuthContext';
+import { generateMeetingFilename } from '@/utils/meetingFilename';
 
 interface MeetingData {
   title: string;
