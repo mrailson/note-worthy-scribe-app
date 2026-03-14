@@ -8,6 +8,8 @@ interface UseRecordingHealthMonitorProps {
   lastChunkTimestamp: number | null;
   onServerClosureDetected: () => void;
   onRecordingStalled?: () => void;
+  micStreamRef?: React.RefObject<MediaStream | null>;
+  onTracksDied?: () => void;
 }
 
 interface HealthMonitorState {
