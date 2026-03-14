@@ -10,11 +10,19 @@ interface DialogueTurn {
   endTime: number;
 }
 
+interface SlideAnnotation {
+  turnIndex: number;
+  heading: string;
+  figure?: string | null;
+  bullets?: string[] | null;
+}
+
 interface MeetingDiscussionPlayerProps {
   audioUrl: string;
   dialogueScript: string;
   meetingTitle: string;
   meetingDate?: string;
+  slideAnnotations?: SlideAnnotation[];
 }
 
 const SPEAKER_STYLES = {
@@ -47,6 +55,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
   dialogueScript,
   meetingTitle,
   meetingDate,
+  slideAnnotations,
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -148,13 +157,36 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
   const activeTurn = turns[activeTurnIndex];
   const activeStyle = activeTurn ? SPEAKER_STYLES[activeTurn.speaker] : SPEAKER_STYLES.ALICE;
 
-  // Extract key figures from the current turn text
-  const extractFigure = (text: string): string | null => {
-    const match = text.match(/(£[\d,]+(?:\.\d+)?|[\d.]+%|\d+ (?:families|patients|meetings|days|weeks|months|staff|practices|sessions))/i);
-    return match ? match[1] : null;
+  // Get active slide from annotations or fallback to text extraction
+  const getActiveSlide = (turnIdx: number): { heading: string; figure: string | null; bullets: string[] | null } | null => {
+    if (slideAnnotations && slideAnnotations.length > 0) {
+      let activeSlide = slideAnnotations[0];
+      for (const slide of slideAnnotations) {
+        if (slide.turnIndex <= turnIdx) {
+          activeSlide = slide;
+        } else {
+          break;
+        }
+      }
+      return {
+        heading: activeSlide.heading,
+        figure: activeSlide.figure || null,
+        bullets: activeSlide.bullets || null,
+      };
+    }
+
+    // Fallback: extract from text
+    const turn = turns[turnIdx];
+    if (!turn) return null;
+    const figureMatch = turn.text.match(/(£[\d,]+(?:\.\d+)?|[\d.]+%|\d+ (?:families|patients|meetings|days|weeks|months|staff|practices|sessions))/i);
+    return {
+      heading: turn.text.split(/[.!?]/)[0].trim().substring(0, 60),
+      figure: figureMatch?.[1] || null,
+      bullets: null,
+    };
   };
 
-  const currentFigure = activeTurn ? extractFigure(activeTurn.text) : null;
+  const activeSlide = getActiveSlide(activeTurnIndex);
 
   // Progress dots — show a window around the active turn
   const dotWindowStart = Math.max(0, activeTurnIndex - 5);
@@ -208,14 +240,29 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
           </div>
 
           {/* Right: Current text / slide */}
-          <div className="flex-1 min-w-0">
-            {currentFigure && (
-              <div className="text-4xl font-bold text-white mb-3 font-mono tracking-tight animate-in fade-in duration-300">
-                {currentFigure}
+          <div className="flex-1 min-w-0 space-y-3">
+            {activeSlide?.heading && (
+              <p className="text-white/60 text-xs font-medium uppercase tracking-wider">
+                {activeSlide.heading}
+              </p>
+            )}
+            {activeSlide?.figure && (
+              <div className="mb-2">
+                <span className="text-4xl font-bold text-white font-mono tracking-tight">{activeSlide.figure}</span>
               </div>
             )}
-            <p className="text-base text-slate-200 leading-relaxed transition-all duration-300">
-              {activeTurn?.text || 'Press play to begin the discussion...'}
+            {activeSlide?.bullets && activeSlide.bullets.length > 0 && (
+              <ul className="space-y-1">
+                {activeSlide.bullets.map((b: string, i: number) => (
+                  <li key={i} className="text-white/70 text-sm flex items-start gap-2">
+                    <span className="text-white/40 mt-1">•</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-white/90 text-base leading-relaxed italic mt-4">
+              "{activeTurn?.text || 'Press play to begin the discussion...'}"
             </p>
           </div>
         </div>

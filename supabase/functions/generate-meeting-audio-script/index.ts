@@ -121,7 +121,20 @@ CONVERSATION RULES:
 - Every line must start with either "ALICE: " or "GEORGE: " — no exceptions
 - Make it feel like two real colleagues catching up over coffee, not a scripted radio show
 
-TARGET: ${wordCountTarget} words total across both speakers for approximately ${durationMinutes} minutes speaking time.`,
+TARGET: ${wordCountTarget} words total across both speakers for approximately ${durationMinutes} minutes speaking time.
+
+AFTER the dialogue script, on a new line, output a JSON block wrapped in ===SLIDES=== tags containing slide annotations for the visual player. Each slide corresponds to a discussion topic and should appear when that topic is being discussed:
+
+===SLIDES===
+[
+  {"turnIndex": 0, "heading": "Meeting Overview", "figure": null, "bullets": null},
+  {"turnIndex": 3, "heading": "Service Demand Doubled", "figure": "42 families/week", "bullets": ["Demand doubled in 4 years", "Post-COVID surge expected"]},
+  {"turnIndex": 8, "heading": "Building Expansion", "figure": "£50,000", "bullets": ["10% cost increase", "September 2026 target"]},
+  {"turnIndex": 14, "heading": "Decisions Made", "figure": null, "bullets": ["Recognised essential role", "Proceed with grant submission"]}
+]
+===SLIDES===
+
+The turnIndex should approximate which dialogue exchange the slide relates to (0-indexed). Include 4-6 slides covering the main topics. Only include a "figure" when there is a specific number, percentage, or monetary amount to highlight.`,
 
       executive: `Create a ${durationMinutes}-minute executive summary of this meeting for senior leadership.
         - Strategic overview with high-level decisions and implications
@@ -216,15 +229,30 @@ Create a ${durationMinutes}-minute audio script following the ${scriptStyle} sty
 
     const aiData = await aiResponse.json();
     const narrativeText = aiData.choices[0].message.content;
+
+    // Extract slide annotations if present
+    let slides: any[] = [];
+    let cleanScript = narrativeText;
+    const slidesMatch = narrativeText.match(/===SLIDES===\s*([\s\S]*?)\s*===SLIDES===/);
+    if (slidesMatch) {
+      try {
+        slides = JSON.parse(slidesMatch[1].trim());
+        console.log(`📊 Extracted ${slides.length} slide annotations`);
+      } catch (e) {
+        console.warn('Failed to parse slide annotations:', e);
+      }
+      cleanScript = narrativeText.replace(/===SLIDES===[\s\S]*?===SLIDES===/, '').trim();
+    }
     
-    console.log('Generated script length:', narrativeText.length);
-    console.log('Target words:', wordCountTarget, 'Actual words:', Math.round(narrativeText.split(' ').length));
+    console.log('Generated script length:', cleanScript.length);
+    console.log('Target words:', wordCountTarget, 'Actual words:', Math.round(cleanScript.split(' ').length));
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        narrativeText,
-        wordCount: narrativeText.split(' ').length,
+        narrativeText: cleanScript,
+        slides,
+        wordCount: cleanScript.split(' ').length,
         targetDuration,
         scriptStyle
       }),

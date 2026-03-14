@@ -124,6 +124,7 @@ export const MeetingAudioStudio = ({
   const [pronunciationExpanded, setPronunciationExpanded] = useState(false);
   const [testingPronunciation, setTestingPronunciation] = useState<string | null>(null);
   const [pronunciationTestUrl, setPronunciationTestUrl] = useState<string | null>(null);
+  const [slideAnnotations, setSlideAnnotations] = useState<any[]>([]);
 
   // Load existing audio overview if available
   useEffect(() => {
@@ -157,6 +158,10 @@ export const MeetingAudioStudio = ({
         setOriginalText(data.narrativeText);
         setEditedText(data.narrativeText);
         setScriptGenerated(true);
+        if (data.slides && data.slides.length > 0) {
+          setSlideAnnotations(data.slides);
+          console.log(`📊 Loaded ${data.slides.length} slide annotations`);
+        }
         showToast.success('Script generated successfully', { section: 'meeting_manager' });
       } else {
         throw new Error('No script text returned');
@@ -491,6 +496,7 @@ export const MeetingAudioStudio = ({
             audioUrl={audioUrl}
             dialogueScript={editedText}
             meetingTitle={meetingTitle}
+            slideAnnotations={slideAnnotations}
           />
           <div className="flex items-center gap-2 flex-wrap">
             <Button onClick={handleDownload} variant="outline" size="sm">
