@@ -2,6 +2,7 @@ import { Document, Packer, Paragraph, TextRun, ExternalHyperlink, Table, TableRo
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import jsPDF from 'jspdf';
+import { generateMeetingFilename } from './meetingFilename';
 
 // Detect if text contains right-to-left scripts (Arabic, Hebrew, etc.)
 const containsRTL = (text: string) => /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
