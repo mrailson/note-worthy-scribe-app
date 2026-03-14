@@ -435,6 +435,9 @@ export function EmailMeetingMinutesModal({
           removeExecutiveSummary: false // Keep in email for now
         });
         
+        // Strip markdown bold/italic markers from any text string
+        const stripMd = (s: string) => s.replace(/\*\*\*(.+?)\*\*\*/g, '$1').replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/\\?\*/g, '');
+        
         const lines = processedText.split('\n');
         let html = '';
         
@@ -688,7 +691,7 @@ export function EmailMeetingMinutesModal({
           // Handle markdown headers (# ## ###) - strip the hash characters
           if (line.match(/^#{1,6}\s/)) {
             const headerText = line.replace(/^#{1,6}\s*/, '').trim();
-            html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${headerText}</h2>\n`;
+            html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${stripMd(headerText)}</h2>\n`;
             i++;
             continue;
           }
@@ -705,7 +708,7 @@ export function EmailMeetingMinutesModal({
             let listHTML = '<ul style="margin: 8px 0 8px 20px; padding: 0;">\n';
             while (i < lines.length && lines[i].trim().match(/^[•\-\*]\s/)) {
               const itemText = lines[i].trim().replace(/^[•\-\*]\s/, '');
-              listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
+              listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${stripMd(itemText)}</li>\n`;
               i++;
             }
             listHTML += '</ul>\n';
@@ -729,14 +732,14 @@ export function EmailMeetingMinutesModal({
               
               // Heading in blue and bold, body text in regular black
               html += '<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">';
-              html += `<strong style="color: #2563EB;">${number}. ${heading}</strong>`;
+              html += `<strong style="color: #2563EB;">${number}. ${stripMd(heading)}</strong>`;
               if (bodyText) {
-                html += ` <span style="color: #1a1a1a; font-weight: normal;">${bodyText}</span>`;
+                html += ` <span style="color: #1a1a1a; font-weight: normal;">${stripMd(bodyText)}</span>`;
               }
               html += '</p>\n';
             } else {
               // No colon, entire line is heading
-              html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;"><strong style="color: #2563EB;">${number}. ${fullText}</strong></p>\n`;
+              html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;"><strong style="color: #2563EB;">${number}. ${stripMd(fullText)}</strong></p>\n`;
             }
             i++;
             continue;
@@ -749,7 +752,7 @@ export function EmailMeetingMinutesModal({
           }
           
           // Handle regular paragraphs
-          html += `<p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${line}</p>\n`;
+          html += `<p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${stripMd(line)}</p>\n`;
           i++;
         }
         
