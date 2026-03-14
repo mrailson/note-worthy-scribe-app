@@ -395,7 +395,11 @@ export const parseContentToDocxElements = async (content: string) => {
 
 // Strip stray asterisks from a text fragment (after bold/italic has been extracted)
 const cleanStrayAsterisks = (text: string): string => {
-  return text.replace(/\*+/g, '').replace(/\s{2,}/g, ' ');
+  return text
+    .replace(/\*{2,}/g, '')   // Remove runs of 2+ asterisks
+    .replace(/(?<!\S)\*|\*(?!\S)/g, '') // Remove lone asterisks at word boundaries
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 };
 
 // Parse inline bold/italic formatting
