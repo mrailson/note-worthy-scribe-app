@@ -916,11 +916,16 @@ DETAIL LEVEL: FULL
     const noteTypeInstructions: Record<string, string> = {
       'standard': `
 NOTE TYPE: STANDARD PROFESSIONAL
-This is the default Notewell format with the full structured layout.
-- Use the Context / Discussion / Agreed / Implication structure for each discussion point
+IMPORTANT: Do NOT use Context/Discussion/Agreed/Implication sub-headings.
+Instead, use traditional numbered key points as concise paragraphs:
+
+KEY POINTS format:
+1. **[Topic Heading]**
+[One or two concise paragraphs covering what was discussed and what was decided. Keep it tight — no more than 4-5 sentences per point.]
+
+Additional rules:
+- Balanced professional language — formal but accessible
 - Include a Decisions Register section
-- Balanced coverage of all meeting elements
-- Professional but accessible language
 - Include Open Items & Risks section
 - Full action items with owners and deadlines
 - Suitable for general practice meetings, PCN meetings, team meetings`,
@@ -1085,7 +1090,7 @@ If the consultation lasted two hours, the notes should look like two hours of wo
     console.log('📊 Using note type:', noteType);
 
     // Only enforce Context/Discussion/Agreed/Implication structure for Standard note type
-    const formatCheckBlock = noteType === 'standard' ? `
+    const formatCheckBlock = noteType === '__structured__' ? `
 ═══ MANDATORY FORMAT CHECK ═══
 EVERY key point above MUST use these EXACT bold sub-headings on their own lines. This is NOT optional:
 
@@ -1107,7 +1112,7 @@ Do NOT use Context/Discussion/Agreed/Implication sub-headings unless the NOTE TY
 Follow the NOTE TYPE format EXACTLY as specified — it takes priority over any other structural instructions in this prompt.
 ═══ END FORMAT NOTE ═══`;
 
-    const keyPointsTemplate = noteType === 'standard' ? `
+    const keyPointsTemplate = noteType === '__structured__' ? `
 1. **[Topic Heading]**
 
    **Context:** [One sentence — why this topic was raised, what triggered the discussion]
@@ -1129,7 +1134,7 @@ Follow the NOTE TYPE format EXACTLY as specified — it takes priority over any 
 Follow the structure specified in the NOTE TYPE instructions above for each key point.
 (Continue for all significant discussion items, typically 3-8 topics per meeting)`;
 
-    const discussionQualityRules = noteType === 'standard' ? `
+    const discussionQualityRules = noteType === '__structured__' ? `
 DISCUSSION POINT QUALITY RULES:
 - Weight each key point's detail by how much discussion time it received in the transcript. If a governance debate dominates 40 minutes of a 60-minute meeting, it should be the longest and most detailed point — not given equal weight to a 2-minute operational update.
 - Every key point MUST have all four sub-sections: Context, Discussion, Agreed, and Implication. Do not skip any.
@@ -1146,7 +1151,7 @@ DISCUSSION POINT QUALITY RULES:
 - NEVER start a discussion point with "The group discussed..." — lead with the substance.
 - Do NOT pad short topics with filler.`;
 
-    const finalChecklist = noteType === 'standard' ? `
+    const finalChecklist = noteType === '__structured__' ? `
 ═══ FINAL OUTPUT CHECKLIST — VERIFY BEFORE RESPONDING ═══
 Before returning your response, check:
 1. Does EVERY key point under DISCUSSION SUMMARY have bold **Context:**, **Discussion:**, **Agreed:**, and **Implication:** sub-headings? If not, fix it now.
