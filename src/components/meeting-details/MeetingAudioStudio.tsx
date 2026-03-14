@@ -158,6 +158,10 @@ export const MeetingAudioStudio = ({
         setOriginalText(data.narrativeText);
         setEditedText(data.narrativeText);
         setScriptGenerated(true);
+        if (data.slides && data.slides.length > 0) {
+          setSlideAnnotations(data.slides);
+          console.log(`📊 Loaded ${data.slides.length} slide annotations`);
+        }
         showToast.success('Script generated successfully', { section: 'meeting_manager' });
       } else {
         throw new Error('No script text returned');
