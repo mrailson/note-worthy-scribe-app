@@ -924,7 +924,7 @@ export const MeetingRecorder = ({
   const autoCleanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const liveNotesIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
-  const micAudioStreamRef = useRef<MediaStream | null>(null);
+  // micAudioStreamRef declared earlier (line ~686) for health monitor access
   const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
   const isRecordingRef = useRef<boolean>(false);
   const recordingStartTimeRef = useRef<Date | null>(null);
