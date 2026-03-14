@@ -351,7 +351,7 @@ export const MeetingDiscussionPlayer: React.FC<MeetingDiscussionPlayerProps> = (
 
         {/* Turn counter */}
         <p className="text-xs text-center text-muted-foreground">
-          Exchange {activeTurnIndex + 1} of {turns.length} —{' '}
+          Exchange {activeTurnIndex + 1} of {timedTurns.length} —{' '}
           {activeTurn?.speaker === 'ALICE'
             ? 'Alice speaking'
             : activeTurn?.speaker === 'GEORGE'
