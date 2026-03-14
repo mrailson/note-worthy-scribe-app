@@ -99,7 +99,8 @@ import {
   Heart,
   BookOpen,
   Building2,
-  Home
+  Home,
+  Mic
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
@@ -239,6 +240,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [customInfographicStyle, setCustomInfographicStyle] = useState('');
   const [infographicOrientation, setInfographicOrientation] = useState<'portrait' | 'landscape'>('landscape');
   const [showQuickAudioModal, setShowQuickAudioModal] = useState(false);
+  const [showAudioStudio, setShowAudioStudio] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showCorrections, setShowCorrections] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
@@ -3577,8 +3579,43 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TooltipContent>Generate Audio Summary</TooltipContent>
             </Tooltip>
 
+            {/* Audio Studio button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant={showAudioStudio ? "default" : "ghost"}
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => setShowAudioStudio(!showAudioStudio)}
+                >
+                  <Mic className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Audio Studio (Discussion Mode)</TooltipContent>
+            </Tooltip>
+
           </div>
         </div>
+
+        {/* Audio Studio Panel (shown when toggled) */}
+        {showAudioStudio && meeting && (
+          <div className="mx-6 mt-4 border rounded-lg p-4 bg-muted/30">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Mic className="h-5 w-5" />
+                Audio Studio
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowAudioStudio(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <MeetingAudioStudio
+              meetingId={meeting.id}
+              meetingTitle={meeting.title}
+              onAudioGenerated={() => {}}
+            />
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
