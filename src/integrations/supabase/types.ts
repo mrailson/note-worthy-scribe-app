@@ -6094,6 +6094,7 @@ export type Database = {
           audio_overview_url: string | null
           created_at: string
           created_by: string | null
+          discussion_data: Json | null
           id: string
           meeting_id: string
           overview: string
@@ -6109,6 +6110,7 @@ export type Database = {
           audio_overview_url?: string | null
           created_at?: string
           created_by?: string | null
+          discussion_data?: Json | null
           id?: string
           meeting_id: string
           overview: string
@@ -6124,6 +6126,7 @@ export type Database = {
           audio_overview_url?: string | null
           created_at?: string
           created_by?: string | null
+          discussion_data?: Json | null
           id?: string
           meeting_id?: string
           overview?: string

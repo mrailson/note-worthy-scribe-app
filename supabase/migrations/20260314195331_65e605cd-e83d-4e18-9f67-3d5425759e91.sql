@@ -1,0 +1,1 @@
+ALTER TABLE meeting_overviews ADD COLUMN IF NOT EXISTS discussion_data jsonb;
