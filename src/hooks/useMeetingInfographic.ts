@@ -33,27 +33,70 @@ interface InfographicOptions {
   orientation?: 'portrait' | 'landscape';
 }
 
-// GP Practice-focused infographic style presets
 const INFOGRAPHIC_STYLES: Record<string, { name: string; prompt: string }> = {
   'practice-professional': {
     name: 'Practice Professional',
-    prompt: 'Clean GP practice meeting style with calming blue and green tones, stethoscope and primary care icons, professional medical typography (Calibri/Arial), structured sections for clinical governance, patient safety items, and practice management. Trust-inspiring and NHS-aligned.'
+    prompt: `Clean, premium GP practice meeting summary design. Use a calming palette of NHS blue (#005EB8), soft teal (#00A499), and warm grey (#F5F5F5) backgrounds with white card sections. 
+Layout: Bold "WHAT YOU MISSED" header in NHS blue banner at top. Date displayed as a prominent badge/card element. Meeting title in large, confident Calibri/Arial typography. 
+Content organised into clearly separated card sections with subtle drop shadows: "In Brief" summary box with a left blue border accent, numbered key discussion points with lightbulb icons, decisions in a highlighted green-tinted box with checkmark icons, and a small action count badge at the bottom.
+Visual style: Flat design healthcare icons (stethoscope, clipboard, calendar, people silhouettes), generous white space, professional but approachable. Feels like a premium NHS document, not a busy poster.
+British English spelling throughout (organisation, colour, summarise, centre, programme, recognise, prioritise).`
   },
   'clinical-governance': {
     name: 'Clinical Governance',
-    prompt: 'Formal clinical governance style using NHS blue (#005EB8) with red/amber/green RAG rating indicators, checklist icons, compliance and audit focused layout, structured risk assessment sections, clear action tracking visual elements, and regulatory compliance theming.'
+    prompt: `Formal clinical governance and audit-focused infographic. NHS blue (#005EB8) as the dominant colour with a structured, grid-based layout that feels authoritative and compliant.
+Layout: "WHAT YOU MISSED" in a dark navy banner. Date in a formal badge. Meeting title in bold uppercase. 
+Content structured as a governance dashboard: RAG-rated sections (red/amber/green traffic light indicators next to each discussion point), compliance checklist icons (ticked boxes, shield symbols), risk register styling for open items, and a prominent "Decisions Made" panel with a gavel or stamp icon.
+Visual style: Clean grid lines separating sections, numbered items with circle badges, minimal decoration — this should look like something you'd present to a CQC inspector or clinical lead. Data-driven feel with progress bars or status indicators where appropriate.
+British English spelling throughout (organisation, colour, summarise, centre, programme, recognise, prioritise).`
   },
   'patient-safety': {
     name: 'Patient Safety Focus',
-    prompt: 'Patient safety themed design with protective healthcare imagery, amber and green accents on white, shield and safety icons, prominent incident tracking sections, clear escalation pathways visualised, and compassionate professional aesthetic.'
+    prompt: `Patient safety and quality improvement themed infographic. Protective, compassionate colour palette: deep teal (#00695C) and amber (#F9A825) accents on a clean white background with soft green (#E8F5E9) section backgrounds.
+Layout: "WHAT YOU MISSED" with a shield icon in the header. Date prominently displayed. Meeting title clear and readable.
+Content structured around safety themes: discussion points with safety shield or heart-in-hand icons, incident/concern items highlighted in amber warning boxes, improvement actions in green "safe" boxes, decisions displayed with prominent checkmark-in-shield icons.
+Visual style: Caring and protective feel — rounded corners on all boxes, gentle gradients, healthcare safety iconography (shields, crosses, protective hands, alert triangles for risks). Should feel reassuring and thorough, like a patient safety bulletin board.
+British English spelling throughout (organisation, colour, summarise, centre, programme, recognise, prioritise).`
   },
   'team-engagement': {
     name: 'Team Engagement',
-    prompt: 'Warm and engaging team-focused style with friendly people icons, collaborative imagery, soft purple and teal colours, celebration of achievements, staff wellbeing focus, and approachable modern design that feels supportive and team-oriented.'
+    prompt: `Warm, engaging team-focused meeting summary designed to make staff feel valued and informed. Friendly palette: soft purple (#7C3AED), warm teal (#0D9488), and sunshine yellow (#FBBF24) accents on light backgrounds.
+Layout: "WHAT YOU MISSED" in a friendly, slightly playful banner. Date in a calendar-page style element. Meeting title welcoming and clear.
+Content designed for staff engagement: "The Big Picture" summary in a warm-toned card, discussion points with people/team icons and speech bubble motifs, celebrations or achievements highlighted with star/trophy icons, decisions in a collaborative "agreed together" styled box, and a "Your Actions" section with friendly task icons.
+Visual style: Modern and approachable — think team newsletter rather than formal minutes. Rounded shapes, friendly sans-serif typography, subtle confetti or sparkle accents for positive items, supportive messaging. Should make someone who missed the meeting feel included, not lectured.
+British English spelling throughout (organisation, colour, summarise, centre, programme, recognise, prioritise).`
   },
   'qof-targets': {
     name: 'QOF & Targets',
-    prompt: 'Data-driven QOF and targets style with progress bars, pie charts, percentage indicators, green for achieved targets, performance dashboard aesthetic, KPI visualisation, and clear metric tracking focused on practice performance outcomes.'
+    prompt: `Data-driven performance and targets dashboard infographic. Bold, results-focused palette: deep blue (#1E3A5F) headers, green (#22C55E) for achieved/on-track, amber (#F59E0B) for approaching, red (#EF4444) for at-risk, on a clean white/light grey background.
+Layout: "WHAT YOU MISSED" in a dark dashboard-style header bar. Date prominent. Meeting title as a dashboard title.
+Content structured as a performance report: KPI-style metric cards with large numbers and trend arrows, discussion points formatted as "performance areas" with progress bar indicators, target percentages displayed prominently (e.g., "78.5% achieved" in large bold text), decisions as "agreed targets" with milestone markers, and a compact action tracker at the bottom.
+Visual style: Dashboard aesthetic — clean data cards with shadows, donut charts or progress rings for percentages, trend arrows (up/down), colour-coded status badges. Should look like a practice performance dashboard printed as a one-page summary.
+British English spelling throughout (organisation, colour, summarise, centre, programme, recognise, prioritise).`
+  },
+  'board-pack': {
+    name: 'Board Pack Summary',
+    prompt: `Executive board pack summary — formal, authoritative, and designed for governance review. Palette: deep navy (#0F172A) header, NHS blue (#005EB8) accents, gold (#D97706) for key decisions, on pristine white with subtle grey (#F8FAFC) section backgrounds.
+Layout: "WHAT YOU MISSED" styled as a formal document header with a thin gold underline. Date in a formal "Board Meeting — DD MMM YYYY" format. Meeting title large and professional.
+Content structured for executive consumption: a 2-3 line "Executive Summary" box at the top with a blue left border, numbered discussion items as formal agenda-point summaries (concise, no fluff), a bold "DECISIONS REGISTER" section in gold/navy styling listing each decision as a bullet, and "Matters Arising / Risks" in a separate formal panel.
+Visual style: Think annual report meets board minutes — serif headings (optional), clean horizontal dividers between sections, minimal iconography (just small bullet indicators), formal classification badge ("OFFICIAL" in top corner). Must look like something a CD or Practice Manager would be comfortable sharing with the ICB.
+British English spelling throughout (organisation, colour, summarise, centre, programme, recognise, prioritise).`
+  },
+  'icb-submission': {
+    name: 'ICB Submission',
+    prompt: `ICB / commissioner-facing meeting summary designed to evidence delivery and outcomes. Palette: NHS blue (#005EB8) and NHS dark blue (#003087) as primary colours, NHS green (#009639) for positive outcomes, NHS warm yellow (#FFB81C) for items requiring attention, on white.
+Layout: "WHAT YOU MISSED" styled as an evidence summary header. "Meeting held: DD MMM YYYY" as a formal date line. Meeting title as a programme/project title.
+Content structured as a commissioner evidence pack: "Programme Update" summary paragraph, key discussion points framed as "delivery milestones" or "programme workstreams" with status indicators, outcomes and decisions presented as "evidenced achievements" with green tick badges, risks and open items in a formal "Risks & Mitigations" panel with amber/red indicators.
+Visual style: NHS England document aesthetic — clean, evidence-based, no frivolous decoration. Horizontal progress bars for workstream status, formal NHS typography, structured grid layout. Should look like something extracted from an ICB programme board report.
+British English spelling throughout (organisation, colour, summarise, centre, programme, recognise, prioritise).`
+  },
+  'neighbourhood': {
+    name: 'Neighbourhood Team',
+    prompt: `Neighbourhood / place-based team meeting summary — collaborative, multi-agency, and community-focused. Palette: NHS teal (#00A499) as primary, warm coral (#E8634A) accents for community items, soft blue (#E0F2FE) backgrounds, with friendly earth tones.
+Layout: "WHAT YOU MISSED" in a warm teal banner with a community/neighbourhood icon (houses, people). Date prominent. Meeting title reflecting the neighbourhood/place-based focus.
+Content structured for multi-disciplinary consumption: "Meeting Overview" summary that sets the neighbourhood context, discussion points with icons representing different agencies/services (health, social care, community, housing), decisions framed as "agreed actions for our neighbourhood" with collaborative language, and a compact "Who's Doing What" section linking actions to organisations.
+Visual style: Community health poster meets professional summary — friendly but credible, with simple illustrations of community (houses, trees, people together), warm accessible typography, inclusive design. Should feel like something you'd pin up in a neighbourhood hub or share across a multi-agency WhatsApp group.
+British English spelling throughout (organisation, colour, summarise, centre, programme, recognise, prioritise).`
   }
 };
 
