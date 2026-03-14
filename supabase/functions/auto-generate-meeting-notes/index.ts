@@ -1372,12 +1372,29 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
     const minutes = String(startTime.getUTCMinutes()).padStart(2, '0');
     const formattedStartTime = `${hours}:${minutes} GMT`;
 
+    const speakerSection = speakerContext ? `
+**SPEAKER-LABELLED TRANSCRIPT (USE FOR ATTRIBUTION ONLY):**
+The following transcript excerpt includes speaker labels from voice detection. Use these labels to:
+1. Identify WHO said what, WHO made each decision, and WHO was assigned each action
+2. Map speaker labels to real names using context clues (e.g., "Thanks Tom" after Speaker A speaks = Speaker A is Tom)
+3. Cross-reference with the attendees list above to confirm speaker identities
+4. Attribute specific statements, decisions, and commitments to named individuals in the notes
+
+If you cannot confidently identify a speaker, use their role (e.g., "the Clinical Director") rather than "Speaker A".
+Do NOT introduce the speaker labels themselves (Speaker A, Speaker B) into the final notes — always use real names or roles.
+
+${speakerContext}
+
+---
+` : '';
+
     const userPrompt = `Meeting Title: ${generatedTitle}
 Meeting Date: ${formattedDate}
 Recording Start Time: ${formattedStartTime}
 Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 
 ${contextInfo}
+${speakerSection}
 Transcript:
 ${cleanedTranscript}`;
 
