@@ -159,14 +159,16 @@ serve(async (req) => {
     console.log('📝 Generating meeting title from transcript length:', transcript.length);
     console.log('📝 Context - Attendees:', attendees?.length || 0, 'Agenda:', agenda?.length || 0, 'Format:', meetingFormat);
 
-    // Use first 5000 + last 5000 chars for better topic coverage
+    // Sample three slices of the transcript for better topic coverage
     let transcriptExcerpt: string;
-    if (transcript.length <= 10000) {
+    if (transcript.length <= 12000) {
       transcriptExcerpt = transcript;
     } else {
-      const first5k = transcript.substring(0, 5000);
-      const last5k = transcript.substring(transcript.length - 5000);
-      transcriptExcerpt = `${first5k}\n\n[... transcript continues ...]\n\n${last5k}`;
+      const first4k = transcript.substring(0, 4000);
+      const midPoint = Math.floor(transcript.length / 2);
+      const mid3k = transcript.substring(midPoint - 1500, midPoint + 1500);
+      const last4k = transcript.substring(transcript.length - 4000);
+      transcriptExcerpt = `${first4k}\n\n[... transcript continues ...]\n\n${mid3k}\n\n[... transcript continues ...]\n\n${last4k}`;
     }
 
     // Build context section

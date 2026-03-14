@@ -155,7 +155,7 @@ Remember: Use • bullet character, put each bullet on its own line, blank line 
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_completion_tokens: 150,
+        max_completion_tokens: 400,
       }),
     });
 
