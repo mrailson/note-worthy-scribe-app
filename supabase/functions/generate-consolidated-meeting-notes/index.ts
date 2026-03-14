@@ -185,6 +185,15 @@ PROCESS:
    - medicines safety
    - CQC / MHRA / NICE expectations
 5) If no action was agreed, explicitly state "No action agreed".
+${hasSpeakerLabels ? `
+SPEAKER ATTRIBUTION:
+The LIVE transcript contains speaker labels in the format [Speaker A], [Speaker B], etc.
+Use these to attribute statements, decisions, and actions to specific speakers.
+Map speaker labels to real names using context clues (direct address, self-identification, role references).
+Cross-reference with the attendees list to confirm identities.
+Never write "Speaker A" in the final notes — always use real names or role descriptors.
+In ACTION items, use speaker labels to identify who volunteered or was assigned the task.
+` : ''}
 
 OUTPUT FORMAT (strict):
 

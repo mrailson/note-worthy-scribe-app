@@ -387,6 +387,7 @@ serve(async (req) => {
             batchTranscript,
             liveTranscript,
             deepgramTranscript: deepgramText,
+            hasSpeakerLabels: /\[Speaker [A-Z]\]/i.test(liveTranscript || ''),
             meetingId,
             meetingTitle: meeting.title,
             meetingDate: meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : null,
