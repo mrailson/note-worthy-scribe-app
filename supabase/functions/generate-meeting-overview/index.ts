@@ -127,20 +127,16 @@ Requirements:
 - NO introductory phrases or filler words`;
 
 
-    const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || 'Meeting'}":
+    const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || meeting?.title || 'Meeting'}":
 
-${locationContext ? `**MEETING CONTEXT (AUTHORITATIVE):**
-${locationContext}
-**CRITICAL: This location/format is authoritative. Do not contradict it even if the content mentions other locations.**
-
-` : ''}${content.substring(0, 3000)}
+${meeting?.agenda ? `**Agenda:** ${meeting.agenda.substring(0, 500)}\n\n` : ''}${locationContext ? `**MEETING CONTEXT (AUTHORITATIVE):**\n${locationContext}\n**CRITICAL: This location/format is authoritative. Do not contradict it even if the content mentions other locations.**\n\n` : ''}${content.length <= 9000 ? content : content.substring(0, 6000) + '\n\n[... middle section omitted for brevity ...]\n\n' + content.substring(content.length - 3000)}
 
 Format your response exactly like this:
-[Brief paragraph describing the meeting purpose and outcome]
+[Brief paragraph describing the meeting purpose, main decision, and who was involved — name at least one specific topic or initiative]
 
-• [Key decision/action/deliverable]
-• [Key decision/action/deliverable]
-• [Key decision/action/deliverable]
+• [Key decision/action/deliverable with WHO and WHAT]
+• [Key decision/action/deliverable with WHO and WHAT]
+• [Key decision/action/deliverable with WHO and WHAT]
 • [Additional points as needed, max 5 total]
 
 Remember: Use • bullet character, put each bullet on its own line, blank line between paragraph and bullets.`;
