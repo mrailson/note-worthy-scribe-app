@@ -126,6 +126,7 @@ import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 import { useNotesViewSettings } from "@/hooks/useNotesViewSettings";
 import { NotesViewSettingsPopover } from "@/components/meeting-details/NotesViewSettingsPopover";
+import { CorrectionManager } from "@/components/CorrectionManager";
 
 interface Meeting {
   id: string;
