@@ -36,7 +36,7 @@ interface InfographicOptions {
 const INFOGRAPHIC_STYLES: Record<string, { name: string; prompt: string }> = {
   'practice-professional': {
     name: 'Practice Professional',
-    prompt: `Clean, premium GP practice meeting summary design. Use a calming palette of NHS blue (#005EB8), soft teal (#00A499), and warm grey (#F5F5F5) backgrounds with white card sections. 
+    prompt: `Clean, premium GP practice meeting summary design. Use a calming palette of NHS blue, soft teal, and warm grey backgrounds with white card sections. 
 Layout: Bold "WHAT YOU MISSED" header in NHS blue banner at top. Date displayed as a prominent badge/card element. Meeting title in large, confident Calibri/Arial typography. 
 Content organised into clearly separated card sections with subtle drop shadows: "In Brief" summary box with a left blue border accent, numbered key discussion points with lightbulb icons, decisions in a highlighted green-tinted box with checkmark icons, and a small action count badge at the bottom.
 Visual style: Flat design healthcare icons (stethoscope, clipboard, calendar, people silhouettes), generous white space, professional but approachable. Feels like a premium NHS document, not a busy poster.
@@ -44,7 +44,7 @@ British English spelling throughout (organisation, colour, summarise, centre, pr
   },
   'clinical-governance': {
     name: 'Clinical Governance',
-    prompt: `Formal clinical governance and audit-focused infographic. NHS blue (#005EB8) as the dominant colour with a structured, grid-based layout that feels authoritative and compliant.
+    prompt: `Formal clinical governance and audit-focused infographic. NHS blue as the dominant colour with a structured, grid-based layout that feels authoritative and compliant.
 Layout: "WHAT YOU MISSED" in a dark navy banner. Date in a formal badge. Meeting title in bold uppercase. 
 Content structured as a governance dashboard: RAG-rated sections (red/amber/green traffic light indicators next to each discussion point), compliance checklist icons (ticked boxes, shield symbols), risk register styling for open items, and a prominent "Decisions Made" panel with a gavel or stamp icon.
 Visual style: Clean grid lines separating sections, numbered items with circle badges, minimal decoration — this should look like something you'd present to a CQC inspector or clinical lead. Data-driven feel with progress bars or status indicators where appropriate.
@@ -52,7 +52,7 @@ British English spelling throughout (organisation, colour, summarise, centre, pr
   },
   'patient-safety': {
     name: 'Patient Safety Focus',
-    prompt: `Patient safety and quality improvement themed infographic. Protective, compassionate colour palette: deep teal (#00695C) and amber (#F9A825) accents on a clean white background with soft green (#E8F5E9) section backgrounds.
+    prompt: `Patient safety and quality improvement themed infographic. Protective, compassionate colour palette: deep teal and amber accents on a clean white background with soft green section backgrounds.
 Layout: "WHAT YOU MISSED" with a shield icon in the header. Date prominently displayed. Meeting title clear and readable.
 Content structured around safety themes: discussion points with safety shield or heart-in-hand icons, incident/concern items highlighted in amber warning boxes, improvement actions in green "safe" boxes, decisions displayed with prominent checkmark-in-shield icons.
 Visual style: Caring and protective feel — rounded corners on all boxes, gentle gradients, healthcare safety iconography (shields, crosses, protective hands, alert triangles for risks). Should feel reassuring and thorough, like a patient safety bulletin board.
@@ -60,7 +60,7 @@ British English spelling throughout (organisation, colour, summarise, centre, pr
   },
   'team-engagement': {
     name: 'Team Engagement',
-    prompt: `Warm, engaging team-focused meeting summary designed to make staff feel valued and informed. Friendly palette: soft purple (#7C3AED), warm teal (#0D9488), and sunshine yellow (#FBBF24) accents on light backgrounds.
+    prompt: `Warm, engaging team-focused meeting summary designed to make staff feel valued and informed. Friendly palette: soft purple, warm teal, and sunshine yellow accents on light backgrounds.
 Layout: "WHAT YOU MISSED" in a friendly, slightly playful banner. Date in a calendar-page style element. Meeting title welcoming and clear.
 Content designed for staff engagement: "The Big Picture" summary in a warm-toned card, discussion points with people/team icons and speech bubble motifs, celebrations or achievements highlighted with star/trophy icons, decisions in a collaborative "agreed together" styled box, and a "Your Actions" section with friendly task icons.
 Visual style: Modern and approachable — think team newsletter rather than formal minutes. Rounded shapes, friendly sans-serif typography, subtle confetti or sparkle accents for positive items, supportive messaging. Should make someone who missed the meeting feel included, not lectured.
@@ -68,7 +68,7 @@ British English spelling throughout (organisation, colour, summarise, centre, pr
   },
   'qof-targets': {
     name: 'QOF & Targets',
-    prompt: `Data-driven performance and targets dashboard infographic. Bold, results-focused palette: deep blue (#1E3A5F) headers, green (#22C55E) for achieved/on-track, amber (#F59E0B) for approaching, red (#EF4444) for at-risk, on a clean white/light grey background.
+    prompt: `Data-driven performance and targets dashboard infographic. Bold, results-focused palette: dark blue headers, green for achieved/on-track, amber for approaching, red for at-risk, on a clean white/light grey background.
 Layout: "WHAT YOU MISSED" in a dark dashboard-style header bar. Date prominent. Meeting title as a dashboard title.
 Content structured as a performance report: KPI-style metric cards with large numbers and trend arrows, discussion points formatted as "performance areas" with progress bar indicators, target percentages displayed prominently (e.g., "78.5% achieved" in large bold text), decisions as "agreed targets" with milestone markers, and a compact action tracker at the bottom.
 Visual style: Dashboard aesthetic — clean data cards with shadows, donut charts or progress rings for percentages, trend arrows (up/down), colour-coded status badges. Should look like a practice performance dashboard printed as a one-page summary.
@@ -76,7 +76,7 @@ British English spelling throughout (organisation, colour, summarise, centre, pr
   },
   'board-pack': {
     name: 'Board Pack Summary',
-    prompt: `Executive board pack summary — formal, authoritative, and designed for governance review. Palette: deep navy (#0F172A) header, NHS blue (#005EB8) accents, gold (#D97706) for key decisions, on pristine white with subtle grey (#F8FAFC) section backgrounds.
+    prompt: `Executive board pack summary — formal, authoritative, and designed for governance review. Palette: deep navy header, NHS blue accents, gold for key decisions, on pristine white with subtle grey section backgrounds.
 Layout: "WHAT YOU MISSED" styled as a formal document header with a thin gold underline. Date in a formal "Board Meeting — DD MMM YYYY" format. Meeting title large and professional.
 Content structured for executive consumption: a 2-3 line "Executive Summary" box at the top with a blue left border, numbered discussion items as formal agenda-point summaries (concise, no fluff), a bold "DECISIONS REGISTER" section in gold/navy styling listing each decision as a bullet, and "Matters Arising / Risks" in a separate formal panel.
 Visual style: Think annual report meets board minutes — serif headings (optional), clean horizontal dividers between sections, minimal iconography (just small bullet indicators), formal classification badge ("OFFICIAL" in top corner). Must look like something a CD or Practice Manager would be comfortable sharing with the ICB.
@@ -84,7 +84,7 @@ British English spelling throughout (organisation, colour, summarise, centre, pr
   },
   'icb-submission': {
     name: 'ICB Submission',
-    prompt: `ICB / commissioner-facing meeting summary designed to evidence delivery and outcomes. Palette: NHS blue (#005EB8) and NHS dark blue (#003087) as primary colours, NHS green (#009639) for positive outcomes, NHS warm yellow (#FFB81C) for items requiring attention, on white.
+    prompt: `ICB / commissioner-facing meeting summary designed to evidence delivery and outcomes. Palette: NHS blue and NHS dark blue as primary colours, NHS green for positive outcomes, NHS warm yellow for items requiring attention, on white.
 Layout: "WHAT YOU MISSED" styled as an evidence summary header. "Meeting held: DD MMM YYYY" as a formal date line. Meeting title as a programme/project title.
 Content structured as a commissioner evidence pack: "Programme Update" summary paragraph, key discussion points framed as "delivery milestones" or "programme workstreams" with status indicators, outcomes and decisions presented as "evidenced achievements" with green tick badges, risks and open items in a formal "Risks & Mitigations" panel with amber/red indicators.
 Visual style: NHS England document aesthetic — clean, evidence-based, no frivolous decoration. Horizontal progress bars for workstream status, formal NHS typography, structured grid layout. Should look like something extracted from an ICB programme board report.
@@ -92,7 +92,7 @@ British English spelling throughout (organisation, colour, summarise, centre, pr
   },
   'neighbourhood': {
     name: 'Neighbourhood Team',
-    prompt: `Neighbourhood / place-based team meeting summary — collaborative, multi-agency, and community-focused. Palette: NHS teal (#00A499) as primary, warm coral (#E8634A) accents for community items, soft blue (#E0F2FE) backgrounds, with friendly earth tones.
+    prompt: `Neighbourhood / place-based team meeting summary — collaborative, multi-agency, and community-focused. Palette: NHS teal as primary, warm coral accents for community items, soft blue backgrounds, with friendly earth tones.
 Layout: "WHAT YOU MISSED" in a warm teal banner with a community/neighbourhood icon (houses, people). Date prominent. Meeting title reflecting the neighbourhood/place-based focus.
 Content structured for multi-disciplinary consumption: "Meeting Overview" summary that sets the neighbourhood context, discussion points with icons representing different agencies/services (health, social care, community, housing), decisions framed as "agreed actions for our neighbourhood" with collaborative language, and a compact "Who's Doing What" section linking actions to organisations.
 Visual style: Community health poster meets professional summary — friendly but credible, with simple illustrations of community (houses, trees, people together), warm accessible typography, inclusive design. Should feel like something you'd pin up in a neighbourhood hub or share across a multi-agency WhatsApp group.
@@ -158,8 +158,8 @@ export const useMeetingInfographic = () => {
       'pixar': 'vibrant animated adventure theme: bold cheerful colours, playful rounded typography, expressive character-driven layouts, heartwarming atmosphere',
       'studio ghibli': 'Japanese animation theme: watercolour landscapes, magical nature spirits, gentle pastel colours, contemplative atmosphere, Miyazaki wonder',
       'spirited away': 'Studio Ghibli theme: Japanese bathhouse, magical spirits, food transformation, wonder',
-      'simpsons': 'animated sitcom theme: bright yellow, suburban small-town satire, chunky cartoon outlines, warm yellow (#FED90F) as dominant colour',
-      'the simpsons': 'animated sitcom theme: bright yellow, suburban small-town satire, chunky cartoon outlines, warm yellow (#FED90F) as dominant colour',
+      'simpsons': 'animated sitcom theme: bright yellow, suburban small-town satire, chunky cartoon outlines, warm yellow as dominant colour',
+      'the simpsons': 'animated sitcom theme: bright yellow, suburban small-town satire, chunky cartoon outlines, warm yellow as dominant colour',
       'minions': 'playful yellow cartoon theme: bright yellow and blue palette, banana motifs, silly rounded typography, fun chaotic energy',
       
       // TV Shows
@@ -180,7 +180,7 @@ export const useMeetingInfographic = () => {
       'art deco': 'Art Deco luxury theme: geometric gold patterns on dark backgrounds, gatsby-era elegance, bold symmetrical layouts',
       'cyberpunk': 'cyberpunk neon city theme: rain-soaked neon streets, holographic displays, augmented reality overlays, purple and cyan',
       'minimalist': 'ultra-minimalist Scandinavian theme: vast white space, single accent colour, thin-line typography, zen simplicity',
-      'dark mode': 'dark mode interface theme: charcoal (#1a1a2e) background, neon accent colours, sleek modern typography, futuristic UI feel',
+      'dark mode': 'dark mode interface theme: dark charcoal background, neon accent colours, sleek modern typography, futuristic UI feel',
       'vintage poster': 'vintage travel poster theme: bold flat colours, simplified illustrations, art-deco typography, retro tourism aesthetic',
       'comic book': 'comic book pop-art theme: Ben-Day dots, bold outlines, speech bubbles, BAM/POW energy, primary colours',
       'watercolour': 'soft watercolour painting theme: flowing colour washes, paint drip effects, handwritten typography, artistic and organic feel',
@@ -234,6 +234,14 @@ export const useMeetingInfographic = () => {
       const documentContent = rawContent.length > 3000 
         ? rawContent.substring(0, 3000) + '\n\n[Content truncated for infographic generation]'
         : rawContent;
+
+      // Count action items for the prompt
+      const actionItemCount = data.actionItems?.length || 0;
+      const actionItemText = actionItemCount === 0 
+        ? 'No specific action items were recorded.'
+        : actionItemCount === 1 
+          ? '1 action item was assigned.'
+          : `${actionItemCount} action items were assigned.`;
       
       // Log options received - CRITICAL for debugging custom styles
       console.log('[useMeetingInfographic] Options received:', JSON.stringify(options));
@@ -289,7 +297,12 @@ Maintain readability but prioritise the requested visual style.`;
 - British English spelling throughout
 - NO attendee counts or participant numbers
 - Action items should be MINIMAL - just mention count, not full details
-- Make the custom style the dominant visual theme`
+- Make the custom style the dominant visual theme
+- CRITICAL TEXT LENGTH RULE: Every text block on the infographic must be SHORT. Maximum 20 words per sentence. Maximum 2 sentences per section. If a discussion point needs more detail, split it into a bold heading (5-8 words) and one short explanatory line (15 words max). Long sentences WILL render with garbled characters — brevity prevents this.
+- Use bullet points with 8-12 words each rather than full paragraphs
+- Headings should be 3-6 words maximum
+- Never render a sentence longer than 20 words — break it into two lines or shorten it
+- NEVER duplicate a section. Each heading (Key Discussion Points, Decisions Made, Action Items, The Meeting in Brief) must appear EXACTLY ONCE in the infographic. If you find yourself writing the same heading twice, you have made an error — remove the duplicate.`
         : `- "WHAT YOU MISSED" banner/badge styling at the top
 - ${orientationInstruction}
 - Date should be a VISUAL FOCAL POINT (large, perhaps in a date card/badge design)
@@ -299,7 +312,12 @@ Maintain readability but prioritise the requested visual style.`;
 - British English spelling throughout
 - NO attendee counts or participant numbers
 - Action items should be MINIMAL - just mention count, not full details
-- Make it feel like catching up with a colleague, not a task list`;
+- Make it feel like catching up with a colleague, not a task list
+- CRITICAL TEXT LENGTH RULE: Every text block on the infographic must be SHORT. Maximum 20 words per sentence. Maximum 2 sentences per section. If a discussion point needs more detail, split it into a bold heading (5-8 words) and one short explanatory line (15 words max). Long sentences WILL render with garbled characters — brevity prevents this.
+- Use bullet points with 8-12 words each rather than full paragraphs
+- Headings should be 3-6 words maximum
+- Never render a sentence longer than 20 words — break it into two lines or shorten it
+- NEVER duplicate a section. Each heading (Key Discussion Points, Decisions Made, Action Items, The Meeting in Brief) must appear EXACTLY ONCE in the infographic. If you find yourself writing the same heading twice, you have made an error — remove the duplicate.`;
 
       const customPrompt = `Create a HIGH QUALITY "WHAT YOU MISSED" meeting overview infographic.
 
@@ -321,10 +339,17 @@ CRITICAL CONTENT HIERARCHY (in order of visual prominence):
 4. THE MEETING IN BRIEF - Key summary paragraph (what this meeting was about)
 5. KEY DISCUSSION POINTS - The main topics and conversations that took place
 6. DECISIONS MADE - Important outcomes that were agreed
-7. ACTION ITEMS - Small/optional section with just a count or brief mention
+7. ACTION ITEMS - Small section stating: "${actionItemText}" — do NOT list individual actions, just show this count.
 
 DESIGN REQUIREMENTS:
 ${designRequirements}
+
+CRITICAL ACCURACY RULES:
+- ONLY include information that appears in the document content provided. NEVER invent, fabricate, or extrapolate figures, budgets, percentages, monetary amounts, or decisions that are not explicitly stated in the source material.
+- If you are unsure whether a specific figure or detail was discussed, OMIT it entirely. A missing detail is far better than an invented one.
+- Do NOT split monetary amounts into sub-amounts unless the source material explicitly provides that breakdown.
+- Do NOT invent "proposals" or "recommendations" — only state what the document content says was actually agreed or decided.
+- If the document mentions "£50,000 shortfall", do NOT turn this into "£35,000 immediate + £15,000 later" unless those exact figures appear in the source.
 
 CRITICAL SPELLING AND LANGUAGE RULES:
 This infographic is for a British NHS audience. You MUST use British English spelling throughout ALL text content. Specifically:
@@ -344,7 +369,13 @@ This infographic is for a British NHS audience. You MUST use British English spe
 - Use "whilst" or "while" (both acceptable)
 - Date format: "11 March 2026" or "11th March 2026" (never "March 11, 2026")
 - Time format: "13:00" or "1:00 PM" (never "1:00 pm" lowercase)
-Any American English spelling in the output is a CRITICAL ERROR. Check every word before finalising.`;
+Any American English spelling in the output is a CRITICAL ERROR. Check every word before finalising.
+- NEVER render prompt instructions, template variables, or formatting directives as visible text. Specifically:
+  - Never show "[Number]", "[Text]", or any square-bracket placeholders
+  - Never show "Minimal, count:" or any instruction-style labels
+  - Never show colour hex codes like "#EF4444" or "#005EB8"
+  - Never show "e.g.," examples from the prompt — use the actual meeting data instead
+  - If you don't have data for a section, write "See full minutes" not a placeholder`;
 
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
