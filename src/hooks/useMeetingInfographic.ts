@@ -180,7 +180,7 @@ export const useMeetingInfographic = () => {
       'art deco': 'Art Deco luxury theme: geometric gold patterns on dark backgrounds, gatsby-era elegance, bold symmetrical layouts',
       'cyberpunk': 'cyberpunk neon city theme: rain-soaked neon streets, holographic displays, augmented reality overlays, purple and cyan',
       'minimalist': 'ultra-minimalist Scandinavian theme: vast white space, single accent colour, thin-line typography, zen simplicity',
-      'dark mode': 'dark mode interface theme: charcoal (#1a1a2e) background, neon accent colours, sleek modern typography, futuristic UI feel',
+      'dark mode': 'dark mode interface theme: dark charcoal background, neon accent colours, sleek modern typography, futuristic UI feel',
       'vintage poster': 'vintage travel poster theme: bold flat colours, simplified illustrations, art-deco typography, retro tourism aesthetic',
       'comic book': 'comic book pop-art theme: Ben-Day dots, bold outlines, speech bubbles, BAM/POW energy, primary colours',
       'watercolour': 'soft watercolour painting theme: flowing colour washes, paint drip effects, handwritten typography, artistic and organic feel',
