@@ -189,8 +189,43 @@ Remember: Use • bullet character, put each bullet on its own line, blank line 
     const data = await response.json();
     console.log('✅ Lovable AI response received');
     
-    const overview = data.choices?.[0]?.message?.content?.trim() || '';
+    let overview = data.choices?.[0]?.message?.content?.trim() || '';
     console.log('📝 Generated overview:', overview);
+
+    // Validate that bullet points were included
+    const hasBullets = overview.includes('•') || overview.includes('- ');
+
+    if (overview && !hasBullets) {
+      console.warn('⚠️ Overview generated without bullet points, requesting bullet supplement...');
+      try {
+        const bulletResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: [
+              { role: 'system', content: 'You extract key decisions and actions from meeting summaries. Respond with ONLY 3-5 bullet points using the • character, one per line. Each bullet must name a specific decision, action, or outcome with WHO and WHAT. Use British English. No introduction, no paragraph — bullets only.' },
+              { role: 'user', content: `Extract 3-5 key decisions and actions from this meeting summary:\n\n${overview}` }
+            ],
+            max_completion_tokens: 200,
+          }),
+        });
+        
+        if (bulletResponse.ok) {
+          const bulletData = await bulletResponse.json();
+          const bullets = bulletData.choices?.[0]?.message?.content?.trim() || '';
+          if (bullets && bullets.includes('•')) {
+            overview = `${overview}\n\n${bullets}`;
+            console.log('✅ Bullet points added to overview');
+          }
+        }
+      } catch (bulletError) {
+        console.warn('⚠️ Bullet supplement failed, using overview as-is');
+      }
+    }
 
     console.log('💾 Saving overview to database...');
     

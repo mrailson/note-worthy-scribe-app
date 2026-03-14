@@ -238,7 +238,7 @@ ${contextSection}
 TRANSCRIPT EXCERPT:
 ${transcriptExcerpt}
 
-Generate a SPECIFIC, descriptive title (4-15 words) that clearly identifies what this meeting was about. Remember: no generic phrases like "Team Meeting" or "Progress Update".`;
+Generate a SPECIFIC, descriptive title (4-15 words) that clearly identifies what this meeting was about. The title should lead with the topic that received the MOST discussion time in the transcript, not necessarily the first topic mentioned. If there were two equally major topics, include both. Remember: no generic phrases like "Team Meeting" or "Progress Update".`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
