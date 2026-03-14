@@ -125,6 +125,7 @@ export const MeetingAudioStudio = ({
   const [testingPronunciation, setTestingPronunciation] = useState<string | null>(null);
   const [pronunciationTestUrl, setPronunciationTestUrl] = useState<string | null>(null);
   const [slideAnnotations, setSlideAnnotations] = useState<any[]>([]);
+  const [turnTimings, setTurnTimings] = useState<Array<{ startTime: number; endTime: number }>>([]);
   const [hasSavedDiscussion, setHasSavedDiscussion] = useState(false);
   const [isLoadingDiscussion, setIsLoadingDiscussion] = useState(true);
 
@@ -162,6 +163,11 @@ export const MeetingAudioStudio = ({
             if (parsed.slideAnnotations && parsed.slideAnnotations.length > 0) {
               setSlideAnnotations(parsed.slideAnnotations);
               console.log(`📊 Loaded ${parsed.slideAnnotations.length} saved slide annotations`);
+            }
+
+            if (parsed.turnTimings && parsed.turnTimings.length > 0) {
+              setTurnTimings(parsed.turnTimings);
+              console.log(`⏱️ Loaded ${parsed.turnTimings.length} saved turn timings`);
             }
 
             if (data.audio_overview_text?.includes('ALICE:') && data.audio_overview_url) {
@@ -314,7 +320,7 @@ export const MeetingAudioStudio = ({
           return;
         }
         
-        const audioChunks: Blob[] = [];
+        const audioChunks: Array<{ blob: Blob; duration: number; speaker: string }> = [];
         
         for (let i = 0; i < turns.length; i++) {
           const turn = turns[i];
@@ -347,13 +353,44 @@ export const MeetingAudioStudio = ({
           const audioResponse = await fetch(data.audioUrl);
           if (!audioResponse.ok) throw new Error(`Failed to fetch audio for turn ${i + 1}`);
           const audioBlob = await audioResponse.blob();
-          audioChunks.push(audioBlob);
+          
+          // Measure the actual duration of this audio chunk
+          const chunkDuration = await new Promise<number>((resolve) => {
+            const tempAudio = new Audio();
+            const blobUrl = URL.createObjectURL(audioBlob);
+            tempAudio.src = blobUrl;
+            tempAudio.addEventListener('loadedmetadata', () => {
+              const dur = tempAudio.duration;
+              URL.revokeObjectURL(blobUrl);
+              resolve(isFinite(dur) ? dur : turn.text.split(/\s+/).length / 2.5);
+            });
+            tempAudio.addEventListener('error', () => {
+              URL.revokeObjectURL(blobUrl);
+              resolve(turn.text.split(/\s+/).length / 2.5);
+            });
+          });
+          
+          console.log(`🎙️ Turn ${i + 1}: ${turn.speaker} — actual duration: ${chunkDuration.toFixed(2)}s`);
+          audioChunks.push({ blob: audioBlob, duration: chunkDuration, speaker: turn.speaker });
         }
         
         showToast.info('Stitching audio together...', { id: 'discussion-synth', duration: 10000, section: 'meeting_manager' });
         
+        // Build precise timing from actual audio durations
+        const GAP = 0.05; // 50ms — MP3 concatenation gap is tiny
+        const turnTimingsData: Array<{ startTime: number; endTime: number }> = [];
+        let runningTime = 0;
+        for (const chunk of audioChunks) {
+          turnTimingsData.push({
+            startTime: runningTime,
+            endTime: runningTime + chunk.duration,
+          });
+          runningTime += chunk.duration + GAP;
+        }
+        console.log(`🎙️ Total audio from chunks: ${runningTime.toFixed(2)}s, ${turnTimingsData.length} turns`);
+        
         // Concatenate all audio chunks into a single blob
-        const combinedBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+        const combinedBlob = new Blob(audioChunks.map(c => c.blob), { type: 'audio/mpeg' });
         
         // Upload the combined audio
         const fileName = `${meetingId}/discussion_${Date.now()}.mp3`;
@@ -373,6 +410,7 @@ export const MeetingAudioStudio = ({
         const discussionData = {
           scriptStyle: 'discussion',
           slideAnnotations: slideAnnotations,
+          turnTimings: turnTimingsData,
           turnCount: turns.length,
           voices: {
             ALICE: DISCUSSION_VOICES['ALICE'],
@@ -412,6 +450,7 @@ export const MeetingAudioStudio = ({
         }
         
         setAudioUrl(finalAudioUrl);
+        setTurnTimings(turnTimingsData);
         setHasSavedDiscussion(true);
         showToast.success(`Discussion generated! ${turns.length} exchanges between Alice and George.`, { section: 'meeting_manager' });
         onAudioGenerated?.();
@@ -581,6 +620,7 @@ export const MeetingAudioStudio = ({
             dialogueScript={editedText}
             meetingTitle={meetingTitle}
             slideAnnotations={slideAnnotations}
+            turnTimings={turnTimings}
           />
           <div className="flex items-center justify-between px-1">
             <p className="text-xs text-muted-foreground">
@@ -621,6 +661,7 @@ export const MeetingAudioStudio = ({
                 dialogueScript={editedText}
                 meetingTitle={meetingTitle}
                 slideAnnotations={slideAnnotations}
+                turnTimings={turnTimings}
               />
               <div className="flex items-center gap-2 flex-wrap">
                 <Button onClick={handleDownload} variant="outline" size="sm">
