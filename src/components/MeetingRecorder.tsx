@@ -682,17 +682,27 @@ export const MeetingRecorder = ({
     stopRecordingRef.current?.({ serverTriggered: true });
   }, []);
 
+  // Mic stream ref - declared early for health monitor access
+  const micAudioStreamRef = useRef<MediaStream | null>(null);
+
   const handleRecordingStalled = useCallback(() => {
     console.log('⚠️ Health monitor detected stall - transcription may have stopped');
   }, []);
 
-  // Recording health monitor - detects stalls and server-side closures
+  const handleTracksDied = useCallback(() => {
+    console.error('🔴 Health monitor: mic tracks died — recording likely broken');
+    // Don't auto-stop — let the user decide, but warn them clearly
+  }, []);
+
+  // Recording health monitor - detects stalls, server-side closures, and dead mic tracks
   const { serverStatus, isStalled } = useRecordingHealthMonitor({
     meetingId: currentMeetingIdFromStorage,
     isRecording,
     lastChunkTimestamp,
     onServerClosureDetected: handleServerClosureDetected,
-    onRecordingStalled: handleRecordingStalled
+    onRecordingStalled: handleRecordingStalled,
+    micStreamRef: micAudioStreamRef,
+    onTracksDied: handleTracksDied
   });
 
   // Duration warning and hard limit effect
@@ -914,7 +924,7 @@ export const MeetingRecorder = ({
   const autoCleanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const liveNotesIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
-  const micAudioStreamRef = useRef<MediaStream | null>(null);
+  // micAudioStreamRef declared earlier (line ~686) for health monitor access
   const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
   const isRecordingRef = useRef<boolean>(false);
   const recordingStartTimeRef = useRef<Date | null>(null);

@@ -8,6 +8,8 @@ interface UseRecordingHealthMonitorProps {
   lastChunkTimestamp: number | null;
   onServerClosureDetected: () => void;
   onRecordingStalled?: () => void;
+  micStreamRef?: React.RefObject<MediaStream | null>;
+  onTracksDied?: () => void;
 }
 
 interface HealthMonitorState {
@@ -31,7 +33,9 @@ export const useRecordingHealthMonitor = ({
   isRecording,
   lastChunkTimestamp,
   onServerClosureDetected,
-  onRecordingStalled
+  onRecordingStalled,
+  micStreamRef,
+  onTracksDied
 }: UseRecordingHealthMonitorProps) => {
   const [state, setState] = useState<HealthMonitorState>({
     lastServerCheck: null,
@@ -44,6 +48,8 @@ export const useRecordingHealthMonitor = ({
   const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const criticalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastChunkTimestampRef = useRef<number | null>(lastChunkTimestamp);
+  const trackDeathNotifiedRef = useRef(false);
+  const trackHealthIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Keep ref in sync with prop
   useEffect(() => {
@@ -129,22 +135,86 @@ export const useRecordingHealthMonitor = ({
     }
   }, [isRecording, state.stalledWarningShown, state.criticalWarningShown, onRecordingStalled]);
 
-  // Handle visibility changes - re-check status when tab becomes visible
+  // Check if mic tracks are alive
+  const checkTrackHealth = useCallback(() => {
+    if (!isRecording || !micStreamRef?.current) return;
+
+    const tracks = micStreamRef.current.getAudioTracks();
+    if (tracks.length === 0) return;
+
+    const allDead = tracks.every(t => t.readyState === 'ended');
+    if (allDead && !trackDeathNotifiedRef.current) {
+      trackDeathNotifiedRef.current = true;
+      console.error('🔴 TRACK_HEALTH: all mic tracks ended while recording');
+      showToast.error('Microphone was disconnected — recording may have stopped.', {
+        section: 'meeting_manager',
+        duration: 15000
+      });
+      onTracksDied?.();
+    }
+  }, [isRecording, micStreamRef, onTracksDied]);
+
+  // Attach onended handlers to mic tracks
+  useEffect(() => {
+    if (!isRecording || !micStreamRef?.current) return;
+
+    trackDeathNotifiedRef.current = false;
+    const tracks = micStreamRef.current.getAudioTracks();
+
+    const handler = (event: Event) => {
+      const track = event.target as MediaStreamTrack;
+      console.warn(`⚠️ TRACK_ENDED: mic track ended unexpectedly (label=${track.label}, readyState=${track.readyState})`);
+      // Defer to the periodic check to decide if ALL tracks are dead
+      checkTrackHealth();
+    };
+
+    tracks.forEach(track => {
+      track.addEventListener('ended', handler);
+    });
+
+    return () => {
+      tracks.forEach(track => {
+        track.removeEventListener('ended', handler);
+      });
+    };
+  }, [isRecording, micStreamRef, checkTrackHealth]);
+
+  // Periodic track health check every 5 seconds
+  useEffect(() => {
+    if (!isRecording || !micStreamRef?.current) {
+      if (trackHealthIntervalRef.current) {
+        clearInterval(trackHealthIntervalRef.current);
+        trackHealthIntervalRef.current = null;
+      }
+      return;
+    }
+
+    trackHealthIntervalRef.current = setInterval(checkTrackHealth, 5000);
+
+    return () => {
+      if (trackHealthIntervalRef.current) {
+        clearInterval(trackHealthIntervalRef.current);
+        trackHealthIntervalRef.current = null;
+      }
+    };
+  }, [isRecording, micStreamRef, checkTrackHealth]);
+
+  // Handle visibility changes - re-check status and track health when tab becomes visible
   useEffect(() => {
     if (!isRecording || !meetingId) return;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('📡 Health monitor: Tab visible - checking meeting status');
-        // Immediate check when tab becomes visible
+        console.log('📡 Health monitor: Tab visible - checking meeting status and track health');
         checkMeetingStatus();
         checkForStalls();
+        checkTrackHealth();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isRecording, meetingId, checkMeetingStatus, checkForStalls]);
+  }, [isRecording, meetingId, checkMeetingStatus, checkForStalls, checkTrackHealth]);
 
   // Start/stop polling based on recording state
   useEffect(() => {
@@ -163,6 +233,7 @@ export const useRecordingHealthMonitor = ({
         criticalTimeoutRef.current = null;
       }
       // Reset state
+      trackDeathNotifiedRef.current = false;
       setState({
         lastServerCheck: null,
         serverStatus: 'unknown',
@@ -198,6 +269,7 @@ export const useRecordingHealthMonitor = ({
     lastServerCheck: state.lastServerCheck,
     serverStatus: state.serverStatus,
     isStalled: state.stalledWarningShown || state.criticalWarningShown,
+    tracksAlive: !trackDeathNotifiedRef.current,
     forceCheck: checkMeetingStatus
   };
 };
