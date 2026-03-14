@@ -1700,7 +1700,7 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
     }
 
     // Save
-    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+    const fileName = generateMeetingFilename(title, new Date(), 'pdf');
     pdf.save(fileName);
     
   } catch (error: any) {

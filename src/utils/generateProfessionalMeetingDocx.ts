@@ -1667,12 +1667,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   const blob = await Packer.toBlob(doc);
   
   // Generate filename
-  const safeTitle = metadata.title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_|_$/g, '');
-  const dateStamp = now.toISOString().split('T')[0];
-  const filename = options.filename || `${safeTitle}_${dateStamp}.docx`;
+  const filename = options.filename || generateMeetingFilename(metadata.title, now, 'docx');
   
   saveAs(blob, filename);
 };

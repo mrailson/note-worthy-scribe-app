@@ -691,6 +691,6 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
   
   // Generate and save
   const blob = await Packer.toBlob(doc);
-  const filename = options.filename || `meeting-notes-${dateStr.replace(/\//g, '-')}.docx`;
+  const filename = options.filename || generateMeetingFilename(options.metadata.title || 'Meeting Notes', new Date(), 'docx');
   saveAs(blob, filename);
 };
