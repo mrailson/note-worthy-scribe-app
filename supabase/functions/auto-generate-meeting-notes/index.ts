@@ -1141,6 +1141,22 @@ Key Points
 
 (Continue for all significant discussion items, typically 3-8 topics per meeting)
 
+═══ MANDATORY FORMAT CHECK ═══
+EVERY key point above MUST use these EXACT bold sub-headings on their own lines. This is NOT optional:
+
+   **Context:** [text]
+
+   **Discussion:** [text]
+
+   **Agreed:** [text]
+
+   **Implication:** [text]
+
+If ANY key point is written as a plain paragraph without these four bold sub-headings, your output is INCORRECT. Go back and restructure it.
+A key point that is just a paragraph of text is WRONG. It MUST have the four labelled sections.
+The **Agreed:** line is the single most important line in the entire document — make the outcome absolutely explicit and specific.
+═══ END FORMAT CHECK ═══
+
 # DECISIONS REGISTER
 
 A quick-scan list of every decision made in this meeting:
@@ -1257,7 +1273,16 @@ CROSS-REFERENCE HANDLING:
 - Use the primary transcript as the source of truth for all facts, decisions, and actions
 - ONLY use the cross-reference to: clarify unclear names or spellings, resolve ambiguous medical/clinical terms, confirm intent behind decisions
 - Do NOT introduce any topic, decision, or action that only appears in the cross-reference section
-- If the cross-reference contradicts the primary transcript, trust the primary`;
+- If the cross-reference contradicts the primary transcript, trust the primary
+
+═══ FINAL OUTPUT CHECKLIST — VERIFY BEFORE RESPONDING ═══
+Before returning your response, check:
+1. Does EVERY key point under DISCUSSION SUMMARY have bold **Context:**, **Discussion:**, **Agreed:**, and **Implication:** sub-headings? If not, fix it now.
+2. Is there a # DECISIONS REGISTER section with a bullet list of every decision? If not, add it now.
+3. Does the EXECUTIVE SUMMARY contain BOTH a paragraph AND bullet points? If no bullets, add 3-5 now.
+4. Are action items specific deliverables with clear end points (not monitoring tasks or ongoing responsibilities)?
+If any check fails, fix it before returning.
+═══ END CHECKLIST ═══`;
 
     // Inject corrections list into prompt if we have any
     if (correctionsList.length > 0) {

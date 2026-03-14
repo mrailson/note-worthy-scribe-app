@@ -149,7 +149,30 @@ Requirements:
 - Professional, direct tone
 - NO introductory phrases or filler words
 
-CRITICAL: You MUST include both the opening paragraph AND 3-5 bullet points. A response with only a paragraph and no bullet points is incomplete. The bullet points are the most important part — they are what appears on the meeting history card.`;
+CRITICAL: You MUST include both the opening paragraph AND 3-5 bullet points. A response with only a paragraph and no bullet points is incomplete. The bullet points are the most important part — they are what appears on the meeting history card.
+
+═══ CRITICAL FORMAT REQUIREMENT ═══
+Your response MUST contain BOTH of these elements:
+1. An opening paragraph (2 sentences maximum)
+2. Followed by a blank line
+3. Followed by 3-5 bullet points using the • character
+
+A response with ONLY a paragraph and NO bullet points is INCOMPLETE and WRONG.
+A response with ONLY bullet points and NO paragraph is also WRONG.
+You MUST have BOTH.
+
+Example of CORRECT format:
+The meeting addressed X and decided Y. Members also reviewed Z.
+
+• First key decision or action with specific detail
+• Second key decision with who and what
+• Third outcome or deliverable
+
+Example of WRONG format (paragraph only, no bullets):
+The meeting addressed X and decided Y. Members also reviewed Z and discussed various topics including A, B, and C.
+
+If your response does not contain at least three • bullet points, it is wrong. Add them now.
+═══ END REQUIREMENT ═══`;
 
 
     const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || meeting?.title || 'Meeting'}":
