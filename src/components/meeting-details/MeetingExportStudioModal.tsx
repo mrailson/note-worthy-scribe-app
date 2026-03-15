@@ -48,6 +48,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { generateProfessionalWordFromContent, filterContentByVisibility, ParsedMeetingDetailsInput, ParsedActionItemInput } from '@/utils/generateProfessionalMeetingDocx';
 import { MeetingPowerPointModal } from './MeetingPowerPointModal';
 import { MeetingInfographicModal } from './MeetingInfographicModal';
+import { SlidesStylePicker, type SlidePickerConfig } from './SlidesStylePicker';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MeetingDetails {
@@ -393,6 +394,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const [pptxProgress, setPptxProgress] = useState(0);
   const [pptxTipIdx, setPptxTipIdx] = useState(0);
   const [isPptGenerating, setIsPptGenerating] = useState(false);
+  const [pptxPhase, setPptxPhase] = useState('');
+  const [pptxSubPhase, setPptxSubPhase] = useState('');
 
   // Infographic state
   const [showInfographicModal, setShowInfographicModal] = useState(false);
@@ -495,10 +498,50 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     }
   }, [notesContent, documentTitle, meetingDetails, meetingType, meetingLocation, attendees, meetingId, visibleSections, docSettings, logoUrl]);
 
-  // PPT slide count selection
+  // PPT slide count selection (legacy)
   const handlePptGenerate = useCallback((slideCount: number) => {
     setPptOptions({ style: 'professional', content: 'standard', slideCount });
     setShowPptModal(true);
+  }, []);
+
+  // PPT generation from style picker
+  const handleSlidePickerGenerate = useCallback((config: SlidePickerConfig) => {
+    const slideCount = config.slideCount === 'auto' ? 8 : config.slideCount;
+
+    // Progress simulation
+    const phases = [
+      { pct: 20, phase: 'Building your presentation…', sub: 'Extracting key points…' },
+      { pct: 45, phase: 'Structuring slides…', sub: `Applying ${config.theme.label} theme…` },
+      { pct: 70, phase: 'Laying out content…', sub: 'Adding speaker notes…' },
+      { pct: 90, phase: 'Finalising…', sub: 'Almost ready…' },
+      { pct: 100, phase: 'Complete!', sub: 'Your download will start shortly…' },
+    ];
+
+    setIsPptGenerating(true);
+    setPptxProgress(0);
+    setPptxPhase('');
+    setPptxSubPhase('');
+
+    let step = 0;
+    const stepInterval = setInterval(() => {
+      if (step < phases.length) {
+        setPptxProgress(phases[step].pct);
+        setPptxPhase(phases[step].phase);
+        setPptxSubPhase(phases[step].sub);
+        step++;
+      }
+    }, 1800);
+
+    // Trigger actual generation
+    setPptOptions({ style: config.theme.key, content: config.textDensity, slideCount });
+    setShowPptModal(true);
+
+    // Clean up progress after modal opens
+    setTimeout(() => {
+      clearInterval(stepInterval);
+      setIsPptGenerating(false);
+      setPptxProgress(0);
+    }, 1400);
   }, []);
 
   // Infographic generation
@@ -881,6 +924,16 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 </div>
 
                 {/* Action panel */}
+                {selectedExport === 'slides' ? (
+                  <SlidesStylePicker
+                    logoUrl={logoUrl}
+                    onGenerate={handleSlidePickerGenerate}
+                    isGenerating={isPptGenerating}
+                    generationProgress={pptxProgress}
+                    generationPhase={pptxPhase}
+                    generationSubPhase={pptxSubPhase}
+                  />
+                ) : (
                 <div className="rounded-lg p-[10px_12px]" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}>
                   {selectedExport === 'word' && (
                     <div className="flex items-center justify-between gap-3">
@@ -892,33 +945,6 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                         {isDownloadingWord ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                         Download
                       </Button>
-                    </div>
-                  )}
-
-                  {selectedExport === 'slides' && (
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground">Create as PowerPoint</p>
-                        <p className="text-xs text-muted-foreground">Generates NHS-branded slide deck</p>
-                      </div>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button size="sm" className="shrink-0 gap-1.5">
-                            <Presentation className="h-3.5 w-3.5" />
-                            Generate
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-36 p-2" align="end">
-                          <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Slide count</p>
-                          <div className="grid grid-cols-2 gap-1">
-                            {[5, 6, 8, 10, 12, 15].map(count => (
-                              <Button key={count} variant="ghost" size="sm" className="text-sm justify-center" onClick={() => handlePptGenerate(count)}>
-                                {count}
-                              </Button>
-                            ))}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
                     </div>
                   )}
 
@@ -1068,6 +1094,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                     </div>
                   )}
                 </div>
+                )}
 
                 {/* View infographic link */}
                 {infographicUrl && !isInfographicGenerating && (
