@@ -80,36 +80,6 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
     if (!settingsLoading) setLocalSettings(savedSettings);
   }, [savedSettings, settingsLoading]);
 
-  // KEY FIX: Radix Dialog continuously sets pointer-events:none on document.body.
-  // Use a MutationObserver to persistently override it while our modal is open.
-  useEffect(() => {
-    if (!isOpen) return;
-    const body = document.body;
-    const force = () => {
-      if (body.style.pointerEvents === 'none') {
-        body.style.pointerEvents = 'auto';
-      }
-    };
-    force();
-    const observer = new MutationObserver(force);
-    observer.observe(body, { attributes: true, attributeFilter: ['style'] });
-    // Also use an interval as a fallback for inline style changes the observer may miss
-    const interval = setInterval(force, 100);
-    return () => {
-      observer.disconnect();
-      clearInterval(interval);
-    };
-  }, [isOpen]);
-
-  // Escape to close
-  useEffect(() => {
-    if (!isOpen) return;
-    const h = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); }
-    };
-    document.addEventListener('keydown', h, true);
-    return () => document.removeEventListener('keydown', h, true);
-  }, [isOpen, onClose]);
 
   const updateLocal = useCallback(<K extends keyof UserDocumentSettings>(key: K, value: UserDocumentSettings[K]) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
