@@ -241,20 +241,14 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
     .replace(/\\\*\*/g, '')         // Remove \** patterns
     .replace(/\*{3,}/g, '**')      // Collapse 3+ asterisks to bold marker
     .replace(/^\s*[-–—]\s*$/, '')   // Remove standalone dashes
-    .trim()
-    // After the main bold regex pass below, any orphaned ** will be cleaned;
-    // but first strip unmatched/orphaned bold markers (opening without closing or vice versa)
-    .replace(/^([^*]*)\*\*\s*$/gm, '$1')       // trailing orphan **
-    .replace(/^([^*]*?)\*\*(?![^*]*\*\*)/g,     // opening ** with no closing **
-      (m) => m.replace(/\*\*/g, ''))
-    .replace(/(?<!\*\*[^*]*)\*\*([^*]*)$/g, '$1'); // closing ** with no opening **
+    .trim();
   
   const markdownRegex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
   let match;
   
   while ((match = markdownRegex.exec(cleanedText)) !== null) {
     if (match.index > currentIndex) {
-      const normalText = cleanedText.substring(currentIndex, match.index);
+      const normalText = cleanedText.substring(currentIndex, match.index).replace(/\*{1,2}/g, '');
       if (normalText) {
         runs.push(new TextRun({ 
           text: normalText, 
@@ -267,7 +261,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
     
     if (match[2]) {
       runs.push(new TextRun({ 
-        text: match[2], 
+        text: match[2].replace(/\*{1,2}/g, ''), 
         size: FONTS.size.body, 
         bold: true,
         color: NHS_COLORS.textGrey,
@@ -275,7 +269,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
       }));
     } else if (match[3]) {
       runs.push(new TextRun({ 
-        text: match[3], 
+        text: match[3].replace(/\*{1,2}/g, ''), 
         size: FONTS.size.body, 
         italics: true,
         color: NHS_COLORS.textGrey,
@@ -287,7 +281,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   }
   
   if (currentIndex < cleanedText.length) {
-    const remainingText = cleanedText.substring(currentIndex);
+    const remainingText = cleanedText.substring(currentIndex).replace(/\*{1,2}/g, '');
     if (remainingText) {
       runs.push(new TextRun({ 
         text: remainingText, 
