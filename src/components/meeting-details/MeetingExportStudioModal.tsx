@@ -975,7 +975,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                             <img
                               src={thumb}
                               alt={`${selectedInfographicStyle} style preview`}
-                              className="mt-2 rounded-md border border-border w-full max-h-[120px] object-cover object-top"
+                              className="mt-2 rounded border border-border max-w-[25%] max-h-[60px] object-cover object-top"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                           ) : null;
