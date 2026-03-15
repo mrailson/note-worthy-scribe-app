@@ -177,7 +177,6 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
         slideCount,
         textDensity,
         imageMode,
-        speakerNotes,
         includeLogo,
         titleClosingSlide,
       };
