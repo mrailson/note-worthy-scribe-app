@@ -150,19 +150,11 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
   if (localSettings.open_items_on) pills.push({ label: 'Open items', pillKey: 'open_items' });
 
   return createPortal(
-    <>
-      {/* Override Radix overlay pointer-events so our modal is fully interactive */}
-      <style>{`[data-radix-dialog-overlay]{pointer-events:none!important;}[data-radix-dialog-content]{pointer-events:none!important;}`}</style>
-
-      <div
-        ref={containerRef}
-        tabIndex={-1}
-        onPointerDown={e => e.stopPropagation()}
-        onMouseDown={e => e.stopPropagation()}
-        onClick={e => e.stopPropagation()}
-        onKeyDown={e => e.stopPropagation()}
-        style={{ position: 'fixed', inset: 0, zIndex: 2147483646, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      >
+    <div
+      ref={containerRef}
+      tabIndex={-1}
+      style={{ position: 'fixed', inset: 0, zIndex: 2147483646, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
         {/* Backdrop */}
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)' }} onClick={onClose} />
 
