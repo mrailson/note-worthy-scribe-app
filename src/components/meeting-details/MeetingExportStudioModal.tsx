@@ -598,22 +598,23 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     const slideCount = config.slideCount === 'auto' ? 8 : config.slideCount;
 
     // Fetch active logo if includeLogo is on
-    let logoData: { name: string; imageBase64?: string | null } | null = null;
+    let logoData: { name: string; imageUrl?: string | null } | null = null;
     if (config.includeLogo) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const { data: activeLogo } = await supabase
             .from('user_logos' as any)
-            .select('name, image_base64')
+            .select('name, image_url')
             .eq('user_id', user.id)
             .eq('is_active', true)
             .single();
           if (activeLogo) {
             logoData = {
               name: (activeLogo as any).name,
-              imageBase64: (activeLogo as any).image_base64,
+              imageUrl: (activeLogo as any).image_url,
             };
+            console.log('[ExportStudio] Active logo found:', logoData.name, 'hasImage:', !!logoData.imageUrl);
           }
         }
       } catch (err) {

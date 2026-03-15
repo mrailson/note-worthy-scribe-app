@@ -38,7 +38,7 @@ interface PowerPointOptions {
   includeLogo?: boolean;
   logoData?: {
     name: string;
-    imageBase64?: string | null;
+    imageUrl?: string | null;
   } | null;
 }
 
