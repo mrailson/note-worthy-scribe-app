@@ -981,6 +981,29 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                           )}
                         </div>
 
+                        {/* Style thumbnail preview - inline */}
+                        {(() => {
+                          const thumbnails: Record<string, string> = {
+                            'practice-professional': '/images/infographic-thumbnails/practice-professional.png',
+                            'clinical-governance': '/images/infographic-thumbnails/clinical-governance.png',
+                            'patient-safety': '/images/infographic-thumbnails/patient-safety.png',
+                            'team-engagement': '/images/infographic-thumbnails/team-engagement.png',
+                            'qof-targets': '/images/infographic-thumbnails/qof-targets.png',
+                            'board-pack': '/images/infographic-thumbnails/board-pack.png',
+                            'icb-submission': '/images/infographic-thumbnails/icb-submission.png',
+                            'neighbourhood': '/images/infographic-thumbnails/neighbourhood.png',
+                          };
+                          const thumb = thumbnails[selectedInfographicStyle];
+                          return thumb ? (
+                            <img
+                              src={thumb}
+                              alt={`${selectedInfographicStyle} style preview`}
+                              className="rounded border border-border flex-1 min-w-0 max-h-[176px] object-cover object-top"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          ) : <div className="flex-1" />;
+                        })()}
+
                         <Button
                           size="sm"
                           className="shrink-0 gap-1.5"
@@ -991,29 +1014,6 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                           Generate
                         </Button>
                       </div>
-
-                      {/* Style thumbnail preview */}
-                      {(() => {
-                        const thumbnails: Record<string, string> = {
-                          'practice-professional': '/images/infographic-thumbnails/practice-professional.png',
-                          'clinical-governance': '/images/infographic-thumbnails/clinical-governance.png',
-                          'patient-safety': '/images/infographic-thumbnails/patient-safety.png',
-                          'team-engagement': '/images/infographic-thumbnails/team-engagement.png',
-                          'qof-targets': '/images/infographic-thumbnails/qof-targets.png',
-                          'board-pack': '/images/infographic-thumbnails/board-pack.png',
-                          'icb-submission': '/images/infographic-thumbnails/icb-submission.png',
-                          'neighbourhood': '/images/infographic-thumbnails/neighbourhood.png',
-                        };
-                        const thumb = thumbnails[selectedInfographicStyle];
-                        return thumb ? (
-                          <img
-                            src={thumb}
-                            alt={`${selectedInfographicStyle} style preview`}
-                            className="rounded border border-border max-w-[52%] max-h-[117px] object-cover object-top"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                        ) : null;
-                      })()}
                     </div>
                   )}
 
