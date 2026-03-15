@@ -671,7 +671,7 @@ const parseActionItems = (content: string): ParsedActionItem[] => {
 };
 
 // Create action items table
-const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnOn: boolean = true) => {
+const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnOn: boolean = false) => {
   const { Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } = await import("docx");
   
   if (items.length === 0) {
