@@ -104,7 +104,7 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
   const [slideCount, setSlideCount] = useState<SlideCount>('auto');
   const [textDensity, setTextDensity] = useState<TextDensity>('brief');
   const [imageMode, setImageMode] = useState<ImageMode>('noImages');
-  const [speakerNotes, setSpeakerNotes] = useState(true);
+  
   const [includeLogo, setIncludeLogo] = useState(true);
   const [titleClosingSlide, setTitleClosingSlide] = useState(true);
 
