@@ -32,7 +32,6 @@ export interface SlidePickerConfig {
   slideCount: SlideCount;
   textDensity: TextDensity;
   imageMode: ImageMode;
-  speakerNotes: boolean;
   includeLogo: boolean;
   titleClosingSlide: boolean;
 }
@@ -105,7 +104,7 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
   const [slideCount, setSlideCount] = useState<SlideCount>('auto');
   const [textDensity, setTextDensity] = useState<TextDensity>('brief');
   const [imageMode, setImageMode] = useState<ImageMode>('noImages');
-  const [speakerNotes, setSpeakerNotes] = useState(true);
+  
   const [includeLogo, setIncludeLogo] = useState(true);
   const [titleClosingSlide, setTitleClosingSlide] = useState(true);
 
@@ -178,7 +177,6 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
         slideCount,
         textDensity,
         imageMode,
-        speakerNotes,
         includeLogo,
         titleClosingSlide,
       };
@@ -217,7 +215,7 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
     { label: textDensity.charAt(0).toUpperCase() + textDensity.slice(1), bg: '#EAF3DE', color: '#27500A' },
     { label: imageModeOptions.find(o => o.value === imageMode)?.label || 'None', bg: '#E6F1FB', color: '#0C447C' },
   ];
-  if (speakerNotes) pills.push({ label: 'Speaker notes', bg: '#FAEEDA', color: '#633806' });
+  
   if (includeLogo) pills.push({ label: 'Logo', bg: '#E6F1FB', color: '#0C447C' });
   if (titleClosingSlide) pills.push({ label: 'Title + closing', bg: '#EAF3DE', color: '#27500A' });
 
@@ -363,7 +361,6 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
         </p>
         <div style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb', borderRadius: 8 }} className="overflow-hidden">
           {[
-            { label: 'Speaker notes', subtitle: 'One talking-point note per slide', checked: speakerNotes, onChange: setSpeakerNotes },
             { label: 'Include logo', subtitle: 'From your active logo in Document Settings', checked: includeLogo, onChange: setIncludeLogo },
             { label: 'Title + closing slide', subtitle: 'Auto-generated cover and thank-you slides', checked: titleClosingSlide, onChange: setTitleClosingSlide },
           ].map((opt, idx) => (
