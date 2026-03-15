@@ -581,40 +581,10 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
           {/* Document Settings */}
           <div className="px-4 sm:px-6 py-2 border-b bg-muted/20 flex items-center">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground hover:text-foreground">
-                  <Settings2 className="h-4 w-4" />
-                  Document Settings
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-72 space-y-3 bg-popover">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Display</p>
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="exp-show-logo" className="text-sm cursor-pointer">Logo</Label>
-                    <Switch id="exp-show-logo" checked={prefs.showLogo} onCheckedChange={(v) => updatePref('showLogo', v)} />
-                  </div>
-                  {prefs.showLogo && (
-                    <div className="flex items-center justify-between pl-4">
-                      <Label className="text-xs text-muted-foreground">Position</Label>
-                      <Select value={prefs.logoPosition} onValueChange={(v) => updatePref('logoPosition', v as LogoPosition)}>
-                        <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent className="bg-background">
-                          <SelectItem value="left">Left</SelectItem>
-                          <SelectItem value="centre">Centre</SelectItem>
-                          <SelectItem value="right">Right</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="exp-show-footer" className="text-sm cursor-pointer">Footer</Label>
-                    <Switch id="exp-show-footer" checked={prefs.showFooter} onCheckedChange={(v) => updatePref('showFooter', v)} />
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowSettingsModal(true)}>
+              <Settings2 className="h-4 w-4" />
+              Document Settings
+            </Button>
           </div>
 
           {/* Infographic generating banner */}
