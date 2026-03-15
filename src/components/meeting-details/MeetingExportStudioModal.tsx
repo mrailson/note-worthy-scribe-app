@@ -527,7 +527,12 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         })),
       };
 
-      const result = await generateInfographic(meetingData, { style, orientation });
+      const result = await generateInfographic(meetingData, {
+        style,
+        orientation,
+        logoUrl: includeLogoInInfographic ? logoUrl : undefined,
+        practiceName: includeLogoInInfographic ? practiceName : undefined,
+      });
 
       clearInterval(progressInterval);
       clearInterval(tipInterval);
