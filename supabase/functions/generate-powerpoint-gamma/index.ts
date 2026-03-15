@@ -196,6 +196,9 @@ serve(async (req) => {
     if (supportingContent) {
       inputText += `\n\nKey content to include:\n${supportingContent}`;
     }
+    if (includeSpeakerNotes) {
+      inputText += `\n\nInclude a speaker note on every slide with one clear talking point for the presenter.`;
+    }
 
     // Build additional instructions — condensed to stay within Gamma's 5000-char limit
     let additionalInstructions = `British English spelling throughout. Audience: ${audience}. Professional design. Each slide: clear, actionable message.`;
@@ -296,7 +299,12 @@ serve(async (req) => {
       },
     };
 
-    // Stock Library Images: inject URLs and disable AI generation
+    // Add branding/logo if provided
+    if (branding?.logo?.src) {
+      requestPayload.branding = branding;
+      console.log('[Gamma] Branding logo included in payload');
+    }
+
     if (useStockLibraryImages) {
       try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
