@@ -627,7 +627,6 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
       content: config.textDensity,
       slideCount,
       imageMode: config.imageMode,
-      speakerNotes: config.speakerNotes,
       includeLogo: config.includeLogo,
       logoData,
     });
