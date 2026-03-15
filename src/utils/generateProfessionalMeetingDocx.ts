@@ -1534,7 +1534,7 @@ const removeOpenItemsSection = (content: string): string => {
 };
 
 // Filter content based on section visibility settings
-const filterContentByVisibility = (content: string, visibleSections?: VisibleSectionsInput): string => {
+export const filterContentByVisibility = (content: string, visibleSections?: VisibleSectionsInput): string => {
   if (!visibleSections) return content;
   
   let filtered = content;

@@ -42,7 +42,7 @@ import { cn } from '@/lib/utils';
 import { showToast } from '@/utils/toastWrapper';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { generateProfessionalWordFromContent, ParsedMeetingDetailsInput, ParsedActionItemInput } from '@/utils/generateProfessionalMeetingDocx';
+import { generateProfessionalWordFromContent, filterContentByVisibility, ParsedMeetingDetailsInput, ParsedActionItemInput } from '@/utils/generateProfessionalMeetingDocx';
 import { MeetingPowerPointModal } from './MeetingPowerPointModal';
 import { MeetingInfographicModal } from './MeetingInfographicModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -413,7 +413,18 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
   const documentTitle = meetingDetails?.title || meetingTitle || 'Meeting Notes';
 
-  const previewElements = useMemo(() => renderMeetingContent(notesContent), [notesContent]);
+  // Filter content based on section toggles for preview
+  const filteredNotesContent = useMemo(() => {
+    const sectionVisibility = {
+      executiveSummary: docSettings.exec_summary_on,
+      actionList: docSettings.action_items_on,
+      openItems: docSettings.open_items_on,
+      keyPoints: true, // always show key points / discussion summary
+    };
+    return filterContentByVisibility(notesContent, sectionVisibility);
+  }, [notesContent, docSettings.exec_summary_on, docSettings.action_items_on, docSettings.open_items_on]);
+
+  const previewElements = useMemo(() => renderMeetingContent(filteredNotesContent), [filteredNotesContent]);
 
   // Word download
   const handleDownloadWord = useCallback(async () => {
@@ -728,7 +739,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 </div>
 
                 {/* Action Items Table */}
-                {actionItems.length > 0 && (
+                {actionItems.length > 0 && docSettings.action_items_on && (
                   <div className="mt-6 overflow-x-auto rounded-lg border" style={{ borderColor: COLORS.tableBorder }}>
                     <table className="w-full border-collapse text-sm">
                       <thead>
