@@ -406,6 +406,10 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const [infographicProgress, setInfographicProgress] = useState(0);
   const [infographicTipIdx, setInfographicTipIdx] = useState(0);
   const [infographicFullscreen, setInfographicFullscreen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Saved infographics history
+  const { infographics: savedInfographics, count: savedCount, saveInfographic, deleteInfographic, refresh: refreshInfographics } = useMeetingInfographicHistory(meetingId);
 
   // Determine the logo URL to use: prefer user-managed active logo, fall back to practice context
   const logoUrl = activeLogo?.image_url || practiceContext?.logoUrl;
