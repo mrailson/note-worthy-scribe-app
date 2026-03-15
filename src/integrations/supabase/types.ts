@@ -11280,6 +11280,7 @@ export type Database = {
           logo_scale: number | null
           meeting_details_on: boolean | null
           open_items_on: boolean | null
+          priority_column_on: boolean
           updated_at: string | null
           user_id: string
         }
@@ -11294,6 +11295,7 @@ export type Database = {
           logo_scale?: number | null
           meeting_details_on?: boolean | null
           open_items_on?: boolean | null
+          priority_column_on?: boolean
           updated_at?: string | null
           user_id: string
         }
@@ -11308,6 +11310,7 @@ export type Database = {
           logo_scale?: number | null
           meeting_details_on?: boolean | null
           open_items_on?: boolean | null
+          priority_column_on?: boolean
           updated_at?: string | null
           user_id?: string
         }
