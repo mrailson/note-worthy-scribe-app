@@ -24,7 +24,7 @@ const DEFAULTS: UserDocumentSettings = {
   open_items_on: true,
   attendees_on: true,
   meeting_details_on: true,
-  priority_column_on: true,
+  priority_column_on: false,
 };
 
 export function useUserDocumentSettings() {
@@ -50,7 +50,7 @@ export function useUserDocumentSettings() {
         open_items_on: data.open_items_on ?? true,
         attendees_on: (data as any).attendees_on ?? true,
         meeting_details_on: (data as any).meeting_details_on ?? true,
-        priority_column_on: (data as any).priority_column_on ?? true,
+        priority_column_on: (data as any).priority_column_on ?? false,
       });
     }
     setLoading(false);
