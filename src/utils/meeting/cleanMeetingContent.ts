@@ -158,17 +158,24 @@ const isActionOrCompletedHeading = (line: string): boolean => {
  * or ALLCAPS plain headings (3+ chars).
  */
 const isNonActionSectionHeading = (line: string): boolean => {
-  const t = line.trim();
+  const t = line.replace(/\r/g, '').trim();
+  if (!t) return false;
   // Markdown heading that is NOT action/completed
   if (/^#{1,6}\s+\S/.test(t) && !isActionOrCompletedHeading(line)) return true;
   // Bold heading that is NOT action/completed (e.g. **KEY DECISIONS**)
   if (/^\*{2}[A-Z][A-Z\s&]{2,}\*{2}\s*:?\s*$/.test(t) && !isActionOrCompletedHeading(line)) return true;
+  // Plain ALLCAPS heading (3+ uppercase chars, possibly with & and spaces)
+  if (/^[A-Z][A-Z\s&]{2,}$/.test(t) && !isActionOrCompletedHeading(line)) return true;
   return false;
 };
 
 // Remove action items & completed sections from content (line-based, robust)
 export const removeActionItemsSection = (content: string): string => {
-  const lines = content.split('\n');
+  if (!content) return content;
+  
+  // Normalise line endings
+  const normalised = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = normalised.split('\n');
   const result: string[] = [];
   let skipping = false;
   
@@ -189,8 +196,20 @@ export const removeActionItemsSection = (content: string): string => {
     }
   }
   
-  return result.join('\n').replace(/\n{3,}/g, '\n\n');
-};
+  let cleaned = result.join('\n');
+  
+  // FALLBACK: aggressive regex pass to catch any remaining action items blocks
+  // that the line-based parser might have missed
+  // Matches "Action Items" heading (with any markdown/bold decoration) followed by
+  // content until the next section heading or end of string
+  cleaned = cleaned.replace(
+    /\n*(?:^|\n)(?:#{1,6}\s*)?(?:\*{0,2})(?:action\s+items?)(?:\*{0,2})\s*:?\s*\n[\s\S]*?(?=\n#{1,6}\s|\n[A-Z][A-Z\s&]{2,}\n|\n\*{2}[A-Z]|\s*$)/gi,
+    '\n'
+  );
+  
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  
+  return cleaned;
 
 // Remove executive summary section from content (when rendering in separate box)
 export const removeExecutiveSummarySection = (content: string): string => {
