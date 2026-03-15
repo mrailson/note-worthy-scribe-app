@@ -427,10 +427,11 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
       executiveSummary: docSettings.exec_summary_on,
       actionList: docSettings.action_items_on,
       openItems: docSettings.open_items_on,
+      attendees: docSettings.attendees_on,
       keyPoints: true, // always show key points / discussion summary
     };
     return filterContentByVisibility(notesContent, sectionVisibility);
-  }, [notesContent, docSettings.exec_summary_on, docSettings.action_items_on, docSettings.open_items_on]);
+  }, [notesContent, docSettings.exec_summary_on, docSettings.action_items_on, docSettings.open_items_on, docSettings.attendees_on]);
 
   const previewElements = useMemo(() => renderMeetingContent(filteredNotesContent), [filteredNotesContent]);
 
