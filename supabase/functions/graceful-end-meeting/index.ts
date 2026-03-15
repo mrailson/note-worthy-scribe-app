@@ -208,6 +208,12 @@ Deno.serve(async (req) => {
             .single();
 
           const notesContent = summaryData?.summary || meetingNotes?.notes_style_3 || '';
+          const cleanedNotesContent = notesContent
+            .replace(/\\\*/g, '')
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\*\*/g, '')
+            .replace(/═+/g, '')
+            .trim();
 
           const meetingDate = new Date(meeting.created_at).toLocaleDateString('en-GB', {
             weekday: 'long',
