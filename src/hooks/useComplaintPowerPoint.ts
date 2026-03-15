@@ -632,7 +632,6 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
       return {
         success: true,
         downloadUrl,
-        gammaUrl,
       };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';

@@ -412,24 +412,6 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                           <Download className="h-3.5 w-3.5 mr-1" />
                           Download
                         </Button>
-                        {persistedPowerPoint.gammaUrl && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
-                          >
-                            <a
-                              href={persistedPowerPoint.gammaUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                              View / Edit
-                            </a>
-                          </Button>
-                        )}
                       </div>
                       <Button
                         variant="ghost"
