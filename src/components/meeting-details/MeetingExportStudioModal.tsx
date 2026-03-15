@@ -935,7 +935,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                             )} />
                           </div>
                           <span className={cn('text-[10px] font-medium', selectedInfographicOrientation === 'portrait' ? 'text-foreground' : 'text-muted-foreground')}>
-                            <ImageIcon className="h-3 w-3 inline mr-0.5" />P
+                            <ImageIcon className="h-3 w-3 inline mr-0.5" />Portrait
                           </span>
                         </button>
 
