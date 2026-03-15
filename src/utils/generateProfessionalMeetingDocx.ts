@@ -822,23 +822,25 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
           );
         }
 
-        // Status column
-        cells.push(
-            new TableCell({
-              children: [new Paragraph({
-                children: [new TextRun({ 
-                  text: statusDisplay.text,
-                  size: FONTS.size.body,
-                  color: statusDisplay.color,
-                  font: FONTS.default,
-                  bold: item.isCompleted,
+        // Status column (only when priority/status columns are on)
+        if (priorityColumnOn) {
+          cells.push(
+              new TableCell({
+                children: [new Paragraph({
+                  children: [new TextRun({ 
+                    text: statusDisplay.text,
+                    size: FONTS.size.body,
+                    color: statusDisplay.color,
+                    font: FONTS.default,
+                    bold: item.isCompleted,
+                  })],
+                  spacing: { before: 60, after: 60 },
                 })],
-                spacing: { before: 60, after: 60 },
-              })],
-              shading: rowBg ? { fill: rowBg } : undefined,
-              margins: { top: 80, bottom: 80, left: 120, right: 120 },
-            }),
-        );
+                shading: rowBg ? { fill: rowBg } : undefined,
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+              }),
+          );
+        }
 
         return new TableRow({ children: cells });
       }),
