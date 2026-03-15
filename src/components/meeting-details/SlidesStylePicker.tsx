@@ -37,13 +37,15 @@ export interface SlidePickerConfig {
   titleClosingSlide: boolean;
 }
 
+export interface SlideGenerationResult {
+  success: boolean;
+  downloadUrl?: string;
+  error?: string;
+}
+
 interface SlidesStylePickerProps {
   logoUrl?: string | null;
-  onGenerate: (config: SlidePickerConfig) => void;
-  isGenerating: boolean;
-  generationProgress: number;
-  generationPhase: string;
-  generationSubPhase: string;
+  onGenerate: (config: SlidePickerConfig) => Promise<SlideGenerationResult>;
 }
 
 // ─── Mini slide thumbnail (CSS only) ──────────────────────────
@@ -97,10 +99,6 @@ const NhsToggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> 
 export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
   logoUrl,
   onGenerate,
-  isGenerating,
-  generationProgress,
-  generationPhase,
-  generationSubPhase,
 }) => {
   const [selectedTheme, setSelectedTheme] = useState<SlideTheme>(SLIDE_THEMES[0]);
   const [themeExpanded, setThemeExpanded] = useState(false);
@@ -110,6 +108,15 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
   const [speakerNotes, setSpeakerNotes] = useState(true);
   const [includeLogo, setIncludeLogo] = useState(true);
   const [titleClosingSlide, setTitleClosingSlide] = useState(true);
+
+  // Generation state (managed locally)
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [phase, setPhase] = useState('');
+  const [subPhase, setSubPhase] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isComplete, setIsComplete] = useState(false);
+  const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const slideCountOptions: { label: string; value: SlideCount }[] = [
     { label: 'Auto', value: 'auto' },
@@ -132,16 +139,75 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
     { label: 'Illustrations', subtitle: 'Generated visuals', icon: <Star className="h-3.5 w-3.5" />, value: 'aiGenerated' },
   ];
 
-  const handleGenerate = () => {
-    onGenerate({
-      theme: selectedTheme,
-      slideCount,
-      textDensity,
-      imageMode,
-      speakerNotes,
-      includeLogo,
-      titleClosingSlide,
-    });
+  const handleGenerate = async () => {
+    setError(null);
+    setIsGenerating(true);
+    setIsComplete(false);
+    setProgress(0);
+    setPhase('');
+    setSubPhase('');
+
+    const phases = [
+      { pct: 20, label: 'Building your presentation…', sub: 'Extracting key points…' },
+      { pct: 45, label: 'Structuring slides…', sub: `Applying ${selectedTheme.label} theme…` },
+      { pct: 70, label: 'Laying out content…', sub: 'Adding speaker notes…' },
+      { pct: 90, label: 'Finalising…', sub: 'Almost ready…' },
+    ];
+
+    // Step through progress phases on a timer until API returns
+    let step = 0;
+    const stepTime = 12_000; // ~12s per step, reaching 90% at ~48s
+    intervalRef.current = setInterval(() => {
+      if (step < phases.length) {
+        setProgress(phases[step].pct);
+        setPhase(phases[step].label);
+        setSubPhase(phases[step].sub);
+        step++;
+      }
+    }, stepTime);
+
+    // Kick off first step immediately
+    setProgress(phases[0].pct);
+    setPhase(phases[0].label);
+    setSubPhase(phases[0].sub);
+    step = 1;
+
+    try {
+      const config: SlidePickerConfig = {
+        theme: selectedTheme,
+        slideCount,
+        textDensity,
+        imageMode,
+        speakerNotes,
+        includeLogo,
+        titleClosingSlide,
+      };
+
+      const result = await onGenerate(config);
+
+      if (intervalRef.current) clearInterval(intervalRef.current);
+
+      if (result.success) {
+        setProgress(100);
+        setPhase('Complete!');
+        setSubPhase('Downloading your presentation…');
+        setIsComplete(true);
+
+        // Restore button after 1.5s
+        setTimeout(() => {
+          setIsGenerating(false);
+          setIsComplete(false);
+          setProgress(0);
+        }, 1500);
+      } else {
+        throw new Error(result.error || 'Generation failed');
+      }
+    } catch (err) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setIsGenerating(false);
+      setProgress(0);
+      setError(err instanceof Error ? err.message : 'Generation failed');
+    }
   };
 
   // ─── Summary pills ───────────────────────────────────────
@@ -339,8 +405,43 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
         ))}
       </div>
 
-      {/* SECTION 6 — Generate button / Progress */}
-      {!isGenerating ? (
+      {/* SECTION 6 — Generate button / Progress / Error */}
+      {error && !isGenerating && (
+        <div className="space-y-2">
+          <div
+            style={{
+              background: '#fef2f2',
+              border: '0.5px solid #fecaca',
+              borderRadius: 8,
+              padding: '10px 12px',
+              fontSize: 12,
+              color: '#991b1b',
+            }}
+          >
+            {error}
+          </div>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            className="w-full flex items-center justify-center gap-2 transition-colors hover:opacity-90"
+            style={{
+              background: '#003087',
+              color: '#ffffff',
+              borderRadius: 8,
+              padding: 11,
+              fontSize: 13,
+              fontWeight: 500,
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <Sparkles className="h-4 w-4" />
+            Generate Presentation
+          </button>
+        </div>
+      )}
+
+      {!isGenerating && !error && (
         <button
           type="button"
           onClick={handleGenerate}
@@ -359,23 +460,25 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
           <Sparkles className="h-4 w-4" />
           Generate Presentation
         </button>
-      ) : (
+      )}
+
+      {isGenerating && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>{generationPhase}</span>
-            <span style={{ fontSize: 11, color: '#003087', fontWeight: 500 }}>{generationProgress}%</span>
+            <span style={{ fontSize: 11, color: '#9ca3af' }}>{phase}</span>
+            <span style={{ fontSize: 11, color: '#003087', fontWeight: 500 }}>{progress}%</span>
           </div>
           <div className="w-full overflow-hidden" style={{ height: 4, background: '#e5e7eb', borderRadius: 2 }}>
             <div
-              className="h-full transition-all duration-500"
+              className="h-full transition-all duration-700"
               style={{
-                width: `${generationProgress}%`,
+                width: `${progress}%`,
                 background: 'linear-gradient(90deg, #009639, #003087)',
                 borderRadius: 2,
               }}
             />
           </div>
-          <p style={{ fontSize: 10, color: '#9ca3af' }}>{generationSubPhase}</p>
+          <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 4 }}>{subPhase}</p>
         </div>
       )}
     </div>

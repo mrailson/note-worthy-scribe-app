@@ -46,9 +46,9 @@ import { showToast } from '@/utils/toastWrapper';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { generateProfessionalWordFromContent, filterContentByVisibility, ParsedMeetingDetailsInput, ParsedActionItemInput } from '@/utils/generateProfessionalMeetingDocx';
-import { MeetingPowerPointModal } from './MeetingPowerPointModal';
 import { MeetingInfographicModal } from './MeetingInfographicModal';
-import { SlidesStylePicker, type SlidePickerConfig } from './SlidesStylePicker';
+import { SlidesStylePicker, type SlidePickerConfig, type SlideGenerationResult } from './SlidesStylePicker';
+import { useMeetingPowerPoint } from '@/hooks/useMeetingPowerPoint';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MeetingDetails {
@@ -388,14 +388,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const [selectedExport, setSelectedExport] = useState<ExportTab>('word');
   const [exportPanelExpanded, setExportPanelExpanded] = useState(false);
 
-  // PPT state
-  const [showPptModal, setShowPptModal] = useState(false);
-  const [pptOptions, setPptOptions] = useState<{ style: string; content: string; slideCount: number; imageMode?: string } | null>(null);
-  const [pptxProgress, setPptxProgress] = useState(0);
-  const [pptxTipIdx, setPptxTipIdx] = useState(0);
-  const [isPptGenerating, setIsPptGenerating] = useState(false);
-  const [pptxPhase, setPptxPhase] = useState('');
-  const [pptxSubPhase, setPptxSubPhase] = useState('');
+  // PPT generation hook
+  const { generatePowerPoint } = useMeetingPowerPoint();
 
   // Infographic state
   const [showInfographicModal, setShowInfographicModal] = useState(false);
@@ -498,51 +492,6 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     }
   }, [notesContent, documentTitle, meetingDetails, meetingType, meetingLocation, attendees, meetingId, visibleSections, docSettings, logoUrl]);
 
-  // PPT slide count selection (legacy)
-  const handlePptGenerate = useCallback((slideCount: number) => {
-    setPptOptions({ style: 'professional', content: 'standard', slideCount });
-    setShowPptModal(true);
-  }, []);
-
-  // PPT generation from style picker
-  const handleSlidePickerGenerate = useCallback((config: SlidePickerConfig) => {
-    const slideCount = config.slideCount === 'auto' ? 8 : config.slideCount;
-
-    // Progress simulation
-    const phases = [
-      { pct: 20, phase: 'Building your presentation…', sub: 'Extracting key points…' },
-      { pct: 45, phase: 'Structuring slides…', sub: `Applying ${config.theme.label} theme…` },
-      { pct: 70, phase: 'Laying out content…', sub: 'Adding speaker notes…' },
-      { pct: 90, phase: 'Finalising…', sub: 'Almost ready…' },
-      { pct: 100, phase: 'Complete!', sub: 'Your download will start shortly…' },
-    ];
-
-    setIsPptGenerating(true);
-    setPptxProgress(0);
-    setPptxPhase('');
-    setPptxSubPhase('');
-
-    let step = 0;
-    const stepInterval = setInterval(() => {
-      if (step < phases.length) {
-        setPptxProgress(phases[step].pct);
-        setPptxPhase(phases[step].phase);
-        setPptxSubPhase(phases[step].sub);
-        step++;
-      }
-    }, 1800);
-
-    // Trigger actual generation
-    setPptOptions({ style: config.theme.key, content: config.textDensity, slideCount, imageMode: config.imageMode });
-    setShowPptModal(true);
-
-    // Clean up progress after modal opens
-    setTimeout(() => {
-      clearInterval(stepInterval);
-      setIsPptGenerating(false);
-      setPptxProgress(0);
-    }, 1400);
-  }, []);
 
   // Infographic generation
   const handleGenerateInfographic = useCallback(async (style: string, orientation: 'landscape' | 'portrait') => {
@@ -644,7 +593,24 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     })),
   }), [documentTitle, meetingDetails, attendees, notesContent, actionItems]);
 
-  return (
+  // PPT generation from style picker — returns result for inline progress
+  const handleSlidePickerGenerate = useCallback(async (config: SlidePickerConfig): Promise<SlideGenerationResult> => {
+    const slideCount = config.slideCount === 'auto' ? 8 : config.slideCount;
+
+    const result = await generatePowerPoint(meetingData, {
+      style: config.theme.key,
+      content: config.textDensity,
+      slideCount,
+      imageMode: config.imageMode,
+    });
+
+    return {
+      success: result.success,
+      downloadUrl: result.downloadUrl,
+      error: result.error,
+    };
+  }, [generatePowerPoint, meetingData]);
+
     <>
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !infographicFullscreen) handleClose(); }}>
         <DialogContent className={cn(
@@ -928,10 +894,6 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                   <SlidesStylePicker
                     logoUrl={logoUrl}
                     onGenerate={handleSlidePickerGenerate}
-                    isGenerating={isPptGenerating}
-                    generationProgress={pptxProgress}
-                    generationPhase={pptxPhase}
-                    generationSubPhase={pptxSubPhase}
                   />
                 ) : (
                 <div className="rounded-lg p-[10px_12px]" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}>
@@ -1109,13 +1071,6 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         </DialogContent>
       </Dialog>
 
-      {/* PowerPoint Modal */}
-      <MeetingPowerPointModal
-        isOpen={showPptModal}
-        onClose={() => { setShowPptModal(false); setPptOptions(null); }}
-        meetingData={meetingData}
-        options={pptOptions || undefined}
-      />
 
       {/* Fullscreen infographic */}
       {infographicFullscreen && infographicUrl && createPortal(
