@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { X, Plus, Check, Upload } from 'lucide-react';
+import { Plus, Check, Upload } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useUserLogos, type LogoType } from '@/hooks/useUserLogos';
 import { useUserDocumentSettings, type UserDocumentSettings } from '@/hooks/useUserDocumentSettings';
 import { toast } from 'sonner';
