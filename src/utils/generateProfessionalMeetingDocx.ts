@@ -1887,7 +1887,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
       spacing: { before: 0, after: 180 },
     }));
     
-    const actionTableElements = await createActionItemsTable(actionItems);
+    const actionTableElements = await createActionItemsTable(actionItems, options.priorityColumnOn !== false);
     children.push(...actionTableElements);
   }
   
