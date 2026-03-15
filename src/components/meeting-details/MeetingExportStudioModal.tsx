@@ -407,7 +407,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
   // Determine the logo URL to use: prefer user-managed active logo, fall back to practice context
   const logoUrl = activeLogo?.image_url || practiceContext?.logoUrl;
-  const practiceName = practiceContext?.practiceName;
+  const practiceName = activeLogo?.name || practiceContext?.practiceName;
   const practiceAddress = practiceContext?.practiceAddress;
 
   const logoAlignmentClass = {
