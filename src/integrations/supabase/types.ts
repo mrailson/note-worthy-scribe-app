@@ -5974,6 +5974,39 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_infographics: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string
+          meeting_id: string
+          orientation: string | null
+          storage_path: string | null
+          style: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url: string
+          meeting_id: string
+          orientation?: string | null
+          storage_path?: string | null
+          style?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string
+          meeting_id?: string
+          orientation?: string | null
+          storage_path?: string | null
+          style?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       meeting_notes_multi: {
         Row: {
           content: string

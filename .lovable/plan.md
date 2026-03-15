@@ -1,81 +1,58 @@
 
 
-# Save & Browse Meeting Infographics
+## Problem Analysis
 
-## Overview
-When an infographic is generated for a meeting, persist it to Supabase Storage and record it in a new database table. Show a badge count next to the Infographic tab in Export Studio. Selecting the tab shows saved infographics as thumbnail cards with preview, download, fullscreen view, and delete options.
+The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
 
-## Database & Storage Changes
+### Root causes by issue:
 
-**New table: `meeting_infographics`**
-```sql
-create table public.meeting_infographics (
-  id uuid primary key default gen_random_uuid(),
-  meeting_id text not null,
-  user_id uuid references auth.users(id) on delete cascade not null,
-  image_url text not null,
-  style text,
-  orientation text default 'landscape',
-  created_at timestamptz default now()
-);
-alter table public.meeting_infographics enable row level security;
-create policy "Users manage own infographics"
-  on public.meeting_infographics for all to authenticated
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
-```
+| Issue | Cause |
+|-------|-------|
+| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
+| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
+| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
+| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
 
-**Storage**: Use existing `complaint-infographics` bucket (or create `meeting-infographics` bucket). Upload each generated infographic as `{meetingId}/{timestamp}.png`.
+## Plan
 
-## Code Changes
+### 1. Split Part 3 into two steps to prevent token exhaustion
 
-### 1. Save infographic after generation (`MeetingExportStudioModal.tsx`)
-After `handleGenerateInfographic` succeeds and `result.imageUrl` is set:
-- Convert the image (base64 data URL or fetched blob) to a Blob
-- Upload to Supabase Storage under `meeting-infographics/{meetingId}/{timestamp}.png`
-- Insert a row into `meeting_infographics` with the public URL, style, orientation, meeting_id, user_id
-- Refresh the saved infographics list
+Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
+- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
+- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
 
-### 2. New hook: `useMeetingInfographicHistory.ts`
-- Fetches all rows from `meeting_infographics` where `meeting_id` matches
-- Returns `{ infographics, loading, refresh, deleteInfographic }`
-- `deleteInfographic` removes from both Storage and the table
+This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
 
-### 3. UI changes in `MeetingExportStudioModal.tsx`
+### 2. Raise Part 2b base tokens
 
-**Badge on Infographic tab**: Show a small count badge (e.g., `3`) next to the Infographic tab icon when saved infographics exist for this meeting.
+Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
 
-**Saved infographics gallery** (shown above or below the generation controls when `selectedExport === 'infographic'`):
-- Horizontal scrollable row of thumbnail cards
-- Each card shows: thumbnail image, style label, date, and number (e.g., "#1", "#2")
-- Click → opens `InfographicFullscreen` with that image
-- Download button on each card
-- Delete button (with confirmation) on each card
-- If no saved infographics, show nothing (just the generation controls)
+### 3. Add anti-truncation instructions to all step prompts
 
-### 4. Fullscreen viewer reuse
-Reuse the existing `InfographicFullscreen` component. Set `infographicUrl` to the selected saved infographic's URL and open `infographicFullscreen = true`.
+Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
 
-## UI Layout (Infographic tab when expanded)
+### 4. Update step labels and progress tracking
 
-```text
-┌─────────────────────────────────────────────┐
-│ Saved Infographics (3)                      │
-│ ┌────┐ ┌────┐ ┌────┐                       │
-│ │ #1 │ │ #2 │ │ #3 │  ← scrollable thumbs  │
-│ │    │ │    │ │    │                         │
-│ └────┘ └────┘ └────┘                         │
-│  Pro   Gov    Safety   ← style labels       │
-│                                             │
-│ [Landscape/Portrait] [Logo] [Generate]      │
-│ Style thumbnails row...                     │
-└─────────────────────────────────────────────┘
-```
+Add `generate_part_3a` and `generate_part_3b` to:
+- The edge function step routing
+- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
+- Progress percentages adjusted for 5 generation steps
 
-## File Summary
-| File | Change |
-|------|--------|
-| SQL migration | Create `meeting_infographics` table + RLS |
-| `src/hooks/useMeetingInfographicHistory.ts` | New hook: fetch/delete saved infographics |
-| `src/components/meeting-details/MeetingExportStudioModal.tsx` | Save after generation, show gallery + badge count |
-| Storage bucket | Create `meeting-infographics` bucket (or reuse existing) |
+### 5. Verify Version History enforcement
+
+The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
+
+### Files to change
+
+1. **`supabase/functions/generate-policy/index.ts`**:
+   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
+   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
+   - Add new `generate_part_3b` step with its own prompt and token budget
+   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
+   - Add anti-truncation instruction to Part 2b user prompt
+   - Deploy the updated function
+
+2. **`src/hooks/usePolicyJobs.ts`**:
+   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
+   - Update label text to reflect 5 generation steps
 

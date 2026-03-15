@@ -49,7 +49,10 @@ import { generateProfessionalWordFromContent, filterContentByVisibility, ParsedM
 import { MeetingInfographicModal } from './MeetingInfographicModal';
 import { SlidesStylePicker, type SlidePickerConfig, type SlideGenerationResult } from './SlidesStylePicker';
 import { useMeetingPowerPoint } from '@/hooks/useMeetingPowerPoint';
+import { useMeetingInfographicHistory } from '@/hooks/useMeetingInfographicHistory';
 import { supabase } from '@/integrations/supabase/client';
+import { downloadFile } from '@/utils/downloadFile';
+import { Trash2, Eye } from 'lucide-react';
 
 interface MeetingDetails {
   title?: string;
@@ -403,6 +406,10 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const [infographicProgress, setInfographicProgress] = useState(0);
   const [infographicTipIdx, setInfographicTipIdx] = useState(0);
   const [infographicFullscreen, setInfographicFullscreen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Saved infographics history
+  const { infographics: savedInfographics, count: savedCount, saveInfographic, deleteInfographic, refresh: refreshInfographics } = useMeetingInfographicHistory(meetingId);
 
   // Determine the logo URL to use: prefer user-managed active logo, fall back to practice context
   const logoUrl = activeLogo?.image_url || practiceContext?.logoUrl;
@@ -541,13 +548,15 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
       if (result?.success && result.imageUrl) {
         setInfographicUrl(result.imageUrl);
         setInfographicFullscreen(true);
+        // Persist to storage + DB
+        await saveInfographic(result.imageUrl, style, orientation);
       }
     } catch {
       clearInterval(progressInterval);
       clearInterval(tipInterval);
       setInfographicProgress(0);
     }
-  }, [documentTitle, meetingDetails, attendees, notesContent, actionItems, generateInfographic, includeLogoInInfographic, logoUrl, practiceName]);
+  }, [documentTitle, meetingDetails, attendees, notesContent, actionItems, generateInfographic, includeLogoInInfographic, logoUrl, practiceName, saveInfographic]);
 
   const handleDownloadInfographic = useCallback(() => {
     if (!infographicUrl) return;
@@ -887,11 +896,11 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 {/* 4-column tab grid */}
                 <div className="grid grid-cols-4 gap-2 mb-3">
                   {([
-                    { key: 'word' as ExportTab, icon: FileText, label: 'Word', subtitle: 'Download' },
-                    { key: 'slides' as ExportTab, icon: Presentation, label: 'Slides', subtitle: 'PowerPoint' },
-                    { key: 'infographic' as ExportTab, icon: LayoutGrid, label: 'Infographic', subtitle: 'Visual summary' },
-                    { key: 'audio' as ExportTab, icon: Headphones, label: 'Audio Studio', subtitle: 'Discussion' },
-                  ]).map(({ key, icon: Icon, label, subtitle }) => {
+                    { key: 'word' as ExportTab, icon: FileText, label: 'Word', subtitle: 'Download', badgeCount: 0 },
+                    { key: 'slides' as ExportTab, icon: Presentation, label: 'Slides', subtitle: 'PowerPoint', badgeCount: 0 },
+                    { key: 'infographic' as ExportTab, icon: LayoutGrid, label: 'Infographic', subtitle: 'Visual summary', badgeCount: savedCount },
+                    { key: 'audio' as ExportTab, icon: Headphones, label: 'Audio Studio', subtitle: 'Discussion', badgeCount: 0 },
+                  ]).map(({ key, icon: Icon, label, subtitle, badgeCount }) => {
                     const isActive = selectedExport === key;
                     return (
                       <button
@@ -899,13 +908,18 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                         type="button"
                         onClick={() => setSelectedExport(key)}
                         className={cn(
-                          'flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-center transition-colors cursor-pointer',
+                          'relative flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-center transition-colors cursor-pointer',
                           isActive
                             ? 'bg-[#003087] text-white'
                             : 'bg-white border border-border text-foreground hover:bg-muted/50'
                         )}
                         style={!isActive ? { borderWidth: '0.5px' } : undefined}
                       >
+                        {badgeCount > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                            {badgeCount}
+                          </span>
+                        )}
                         <Icon className="h-5 w-5" />
                         <span className="text-xs font-medium leading-tight">{label}</span>
                         <span className={cn(
@@ -940,6 +954,78 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
                   {selectedExport === 'infographic' && (
                     <div className="space-y-2">
+                      {/* Saved infographics gallery */}
+                      {savedInfographics.length > 0 && (
+                        <div>
+                          <p className="text-[11px] text-muted-foreground mb-1.5 font-medium">Saved Infographics ({savedCount})</p>
+                          <div className="flex gap-2 overflow-x-auto pb-1.5">
+                            {savedInfographics.map((item, idx) => {
+                              const styleLabel = item.style?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Custom';
+                              const dateStr = new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                              return (
+                                <div
+                                  key={item.id}
+                                  className="relative shrink-0 rounded-lg border border-border bg-white overflow-hidden group cursor-pointer"
+                                  style={{ width: 100 }}
+                                >
+                                  <img
+                                    src={item.image_url}
+                                    alt={`Infographic #${savedInfographics.length - idx}`}
+                                    className="w-full h-[68px] object-cover object-top"
+                                    onClick={() => { setInfographicUrl(item.image_url); setInfographicFullscreen(true); }}
+                                  />
+                                  <div className="px-1.5 py-1">
+                                    <p className="text-[9px] font-medium text-foreground truncate">#{savedInfographics.length - idx} {styleLabel}</p>
+                                    <p className="text-[8px] text-muted-foreground">{dateStr}</p>
+                                  </div>
+                                  {/* Actions overlay */}
+                                  <div className="absolute top-0.5 right-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      type="button"
+                                      className="p-1 rounded bg-background/80 hover:bg-background text-foreground"
+                                      title="View fullscreen"
+                                      onClick={(e) => { e.stopPropagation(); setInfographicUrl(item.image_url); setInfographicFullscreen(true); }}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="p-1 rounded bg-background/80 hover:bg-background text-foreground"
+                                      title="Download"
+                                      onClick={(e) => { e.stopPropagation(); downloadFile(item.image_url, `infographic_${savedInfographics.length - idx}.png`); }}
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="p-1 rounded bg-background/80 hover:bg-destructive/90 hover:text-white text-destructive"
+                                      title="Delete"
+                                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(item.id); }}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                  {/* Delete confirmation */}
+                                  {deleteConfirmId === item.id && (
+                                    <div className="absolute inset-0 bg-background/95 flex flex-col items-center justify-center gap-1 p-1">
+                                      <p className="text-[9px] font-medium text-destructive text-center">Delete this?</p>
+                                      <div className="flex gap-1">
+                                        <Button size="sm" variant="destructive" className="h-5 text-[9px] px-2" onClick={() => { deleteInfographic(item.id); setDeleteConfirmId(null); }}>
+                                          Yes
+                                        </Button>
+                                        <Button size="sm" variant="outline" className="h-5 text-[9px] px-2" onClick={() => setDeleteConfirmId(null)}>
+                                          No
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Row 1: Orientation + Logo sliders + Generate */}
                       <div className="flex items-center gap-3">
                         {/* Orientation slider */}
@@ -1019,10 +1105,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                                 type="button"
                                 onClick={() => {
                                   if (expandedInfographicThumb === key) {
-                                    // Already expanded — collapse
                                     setExpandedInfographicThumb(null);
                                   } else {
-                                    // Select + expand (works for both new and current selection)
                                     setSelectedInfographicStyle(key);
                                     setExpandedInfographicThumb(key);
                                   }
