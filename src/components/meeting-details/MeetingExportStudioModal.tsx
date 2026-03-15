@@ -381,6 +381,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const isMobile = useIsMobile();
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [selectedExport, setSelectedExport] = useState<ExportTab>('word');
 
   // PPT state
   const [showPptModal, setShowPptModal] = useState(false);
