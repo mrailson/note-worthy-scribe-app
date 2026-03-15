@@ -617,14 +617,12 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         persistPowerPoint(
           complaintId,
           downloadUrl,
-          gammaUrl,
           slideCount,
           data.referenceNumber,
           data.category,
         ).then((thumbnailUrl) => {
           setPersistedData({
             downloadUrl: downloadUrl!,
-            gammaUrl,
             thumbnailUrl: thumbnailUrl || undefined,
             slideCount,
           });
