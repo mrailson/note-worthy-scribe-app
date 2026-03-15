@@ -478,10 +478,11 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             if (cells.length > 0) {
               tableHTML += '  <tr>\n';
               cells.forEach(cell => {
+                const cleanCell = stripInlineMarkdown(cell);
                 if (isFirstRow) {
-                  tableHTML += `    <th style="border: 1px solid #ddd; padding: 10px; background-color: #f5f5f5; text-align: left; font-weight: 600;">${cell}</th>\n`;
+                  tableHTML += `    <th style="border: 1px solid #ddd; padding: 10px; background-color: #f5f5f5; text-align: left; font-weight: 600;">${cleanCell}</th>\n`;
                 } else {
-                  tableHTML += `    <td style="border: 1px solid #ddd; padding: 10px; text-align: left;">${cell}</td>\n`;
+                  tableHTML += `    <td style="border: 1px solid #ddd; padding: 10px; text-align: left;">${cleanCell}</td>\n`;
                 }
               });
               tableHTML += '  </tr>\n';
@@ -498,9 +499,9 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         continue;
       }
       
-      // Handle markdown headers (# ## ###) - strip the hash characters
+      // Handle markdown headers (# ## ###) - strip the hash characters and markdown markers
       if (line.match(/^#{1,6}\s/)) {
-        const headerText = line.replace(/^#{1,6}\s*/, '').trim();
+        const headerText = stripInlineMarkdown(line.replace(/^#{1,6}\s*/, ''));
         html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${headerText}</h2>\n`;
         i++;
         continue;
@@ -508,7 +509,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       
       // Handle section headers (ALL CAPS lines)
       if (line.length > 0 && line === line.toUpperCase() && line.length < 100 && !line.match(/^\d/)) {
-        html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${line}</h2>\n`;
+        html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${stripInlineMarkdown(line)}</h2>\n`;
         i++;
         continue;
       }
@@ -517,7 +518,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       const subHeadingMatch = line.match(/^\s*[-•]?\s*\*{0,2}(Context|Discussion|Agreed|Implication|Meeting Purpose)[:\s]*\*{0,2}\s*(.*)$/i);
       if (subHeadingMatch) {
         const label = subHeadingMatch[1].trim();
-        const bodyText = (subHeadingMatch[2] || '').replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
+        const bodyText = stripInlineMarkdown(subHeadingMatch[2] || '');
         const isAgreed = label.toLowerCase() === 'agreed';
         
         const labelColor = isAgreed ? '#DC2626' : '#2563EB';
@@ -539,7 +540,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         while (i < lines.length) {
           const curLine = lines[i].trim();
           if (curLine.match(/^[•\-]\s/) || (curLine.match(/^\*\s/) && !curLine.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
-            const itemText = curLine.replace(/^[•\-\*]\s/, '').replace(/\*\*/g, '').replace(/\\\*/g, '');
+            const itemText = stripInlineMarkdown(curLine.replace(/^[•\-\*]\s/, ''));
             listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
             i++;
           } else {
@@ -555,15 +556,15 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       // Body text that follows should remain regular weight and black
       if (line.match(/^\d+\.\s/)) {
         // Extract just the heading part (before the first colon if present)
-        const fullText = line.replace(/^\d+\.\s*/, '');
+        const fullText = stripInlineMarkdown(line.replace(/^\d+\.\s*/, ''));
         const numberMatch = line.match(/^(\d+)\.\s/);
         const number = numberMatch ? numberMatch[1] : '';
         
         // If there's a colon, split heading from body text
         const colonIndex = fullText.indexOf(':');
         if (colonIndex !== -1) {
-          const heading = fullText.substring(0, colonIndex + 1);
-          const bodyText = fullText.substring(colonIndex + 1).trim();
+          const heading = stripInlineMarkdown(fullText.substring(0, colonIndex + 1));
+          const bodyText = stripInlineMarkdown(fullText.substring(colonIndex + 1).trim());
           
           // Heading in blue and bold, body text in regular black
           html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">`;
