@@ -269,7 +269,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
           <button type="button" onClick={handleApply} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: 'none', background: '#003087', color: '#fff', cursor: 'pointer' }}>Apply</button>
         </div>
       </div>
-    </div>,
-    document.body
+      </DialogContent>
+    </Dialog>
   );
 };
