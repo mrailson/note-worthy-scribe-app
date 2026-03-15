@@ -1578,7 +1578,7 @@ const ComplaintsSystem = () => {
         keywords="NHS complaints management, GP complaint system, compliments, medical complaints handling, NHS compliance, complaint audit trail"
       />
       <Header onNewMeeting={() => {}} />
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+      <div className="container mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 lg:py-6 xl:py-8">
         <MaintenanceBanner />
         <div className="mb-4 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1865,7 +1865,7 @@ const ComplaintsSystem = () => {
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-muted-foreground">Complaint</p>
                   </div>
-                  <div className="grid items-center gap-3 grid-cols-[110px_230px_100px_180px_auto] w-[780px]">
+                  <div className="hidden lg:grid items-center gap-2 grid-cols-[100px_1fr_90px_160px_auto] w-full">
                     <div className="text-sm font-semibold text-muted-foreground text-center">Open Date</div>
                     <div className="text-sm font-semibold text-muted-foreground text-center">Practice</div>
                     <div className="text-sm font-semibold text-muted-foreground text-center">Deadline</div>
@@ -1951,7 +1951,7 @@ const ComplaintsSystem = () => {
                           </div>
                           <p className="text-base text-muted-foreground">{complaint.complaint_title}</p>
                         </div>
-                        <div className="grid items-center gap-3 grid-cols-[110px_230px_100px_180px_auto] w-[780px]">
+                        <div className="lg:grid items-center gap-2 grid-cols-[100px_1fr_90px_160px_auto] w-full hidden">
                           {/* Open Date */}
                           <div className="text-sm text-muted-foreground text-center">
                             {format(new Date(complaint.submitted_at || complaint.created_at), 'do MMM yyyy')}
