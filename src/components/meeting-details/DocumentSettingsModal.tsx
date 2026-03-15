@@ -125,6 +125,8 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
   const pills: { label: string; pillKey: string }[] = [];
   if (localSettings.logo_on) pills.push({ label: 'Logo', pillKey: 'logo' });
   if (localSettings.footer_on) pills.push({ label: 'Footer', pillKey: 'footer' });
+  if (localSettings.meeting_details_on) pills.push({ label: 'Meeting details', pillKey: 'meeting_details' });
+  if (localSettings.attendees_on) pills.push({ label: 'Attendees', pillKey: 'attendees' });
   if (localSettings.exec_summary_on) pills.push({ label: 'Executive summary', pillKey: 'exec_summary' });
   if (localSettings.action_items_on) pills.push({ label: 'Action items', pillKey: 'action_items' });
   if (localSettings.open_items_on) pills.push({ label: 'Open items', pillKey: 'open_items' });

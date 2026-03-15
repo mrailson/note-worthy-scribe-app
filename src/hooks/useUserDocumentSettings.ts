@@ -9,6 +9,8 @@ export interface UserDocumentSettings {
   exec_summary_on: boolean;
   action_items_on: boolean;
   open_items_on: boolean;
+  attendees_on: boolean;
+  meeting_details_on: boolean;
 }
 
 const DEFAULTS: UserDocumentSettings = {
@@ -19,6 +21,8 @@ const DEFAULTS: UserDocumentSettings = {
   exec_summary_on: true,
   action_items_on: true,
   open_items_on: true,
+  attendees_on: true,
+  meeting_details_on: true,
 };
 
 export function useUserDocumentSettings() {
@@ -42,6 +46,8 @@ export function useUserDocumentSettings() {
         exec_summary_on: data.exec_summary_on ?? true,
         action_items_on: data.action_items_on ?? true,
         open_items_on: data.open_items_on ?? true,
+        attendees_on: (data as any).attendees_on ?? true,
+        meeting_details_on: (data as any).meeting_details_on ?? true,
       });
     }
     setLoading(false);
@@ -56,7 +62,7 @@ export function useUserDocumentSettings() {
       user_id: user.id,
       ...s,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
+    } as any, { onConflict: 'user_id' });
     setSettings(s);
   }, []);
 
