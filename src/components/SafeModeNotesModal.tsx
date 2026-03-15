@@ -3454,6 +3454,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           <div className="space-y-4">
                             {sections
                               .filter(section => notesViewSettings.isSectionVisible(section.heading))
+                              .filter(section => !/action\s+items?|completed\s+items?/i.test(section.heading))
                               .map((section, index, filteredSections) => (
                               <EditableSection
                                 key={section.id}
