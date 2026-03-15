@@ -418,7 +418,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
           </div>
         </div>
       </div>
-    </>,
+    </div>,
     document.body
   );
 };
