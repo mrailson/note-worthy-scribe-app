@@ -5,32 +5,11 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import PptxGenJS from 'pptxgenjs';
 
-// ─── PptxGenJS loader ─────────────────────────────────────────────────────────
-// Eagerly load PptxGenJS on first import
-let pptxLoadPromise: Promise<void> | null = null;
-function ensurePptxScript(): Promise<void> {
-  if ((window as any).PptxGenJS) return Promise.resolve();
-  if (pptxLoadPromise) return pptxLoadPromise;
-  pptxLoadPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js';
-    s.onload = () => resolve();
-    s.onerror = () => { pptxLoadPromise = null; reject(new Error('Failed to load PptxGenJS')); };
-    document.head.appendChild(s);
-  });
-  return pptxLoadPromise;
-}
-// Start loading immediately when this module is imported
-ensurePptxScript().catch(() => {});
-
+// PptxGenJS is now imported as an npm module — always ready
 function usePptxGen() {
-  const [ready, setReady] = useState(!!(window as any).PptxGenJS);
-  useEffect(() => {
-    if (ready) return;
-    ensurePptxScript().then(() => setReady(true)).catch(() => {});
-  }, [ready]);
-  return ready;
+  return true;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
