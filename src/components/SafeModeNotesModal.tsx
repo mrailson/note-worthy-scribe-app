@@ -2530,8 +2530,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Always remove Action Items section from the notes text body
     // When the actionList toggle is ON, the InlineActionItemsTable component renders them as a proper table below
     // When OFF, they should not be shown at all
-    cleaned = cleaned.replace(/##?\s*Action\s+Items?\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
-    cleaned = cleaned.replace(/##?\s*Completed\s*(Items?)?\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
+    cleaned = cleaned.replace(/^#{0,6}\s*\*{0,2}Action\s+Items?\*{0,2}\s*\n[\s\S]*?(?=\n#{1,2}\s|\n[A-Z][A-Z\s&]{2,}\n|\n\*\*[A-Z]|$)/gim, '');
+    cleaned = cleaned.replace(/^#{0,6}\s*\*{0,2}Completed\s*(Items?)?\*{0,2}\s*\n[\s\S]*?(?=\n#{1,2}\s|\n[A-Z][A-Z\s&]{2,}\n|\n\*\*[A-Z]|$)/gim, '');
 
     // Remove meeting details section heading/label
     cleaned = cleaned.replace(/^#{1,6}\s*Meeting\s+Details\s*$/gim, '');
