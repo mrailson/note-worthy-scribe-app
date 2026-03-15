@@ -5,32 +5,11 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import PptxGenJS from 'pptxgenjs';
 
-// ─── PptxGenJS loader ─────────────────────────────────────────────────────────
-// Eagerly load PptxGenJS on first import
-let pptxLoadPromise: Promise<void> | null = null;
-function ensurePptxScript(): Promise<void> {
-  if ((window as any).PptxGenJS) return Promise.resolve();
-  if (pptxLoadPromise) return pptxLoadPromise;
-  pptxLoadPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js';
-    s.onload = () => resolve();
-    s.onerror = () => { pptxLoadPromise = null; reject(new Error('Failed to load PptxGenJS')); };
-    document.head.appendChild(s);
-  });
-  return pptxLoadPromise;
-}
-// Start loading immediately when this module is imported
-ensurePptxScript().catch(() => {});
-
+// PptxGenJS is now imported as an npm module — always ready
 function usePptxGen() {
-  const [ready, setReady] = useState(!!(window as any).PptxGenJS);
-  useEffect(() => {
-    if (ready) return;
-    ensurePptxScript().then(() => setReady(true)).catch(() => {});
-  }, [ready]);
-  return ready;
+  return true;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -134,7 +113,7 @@ async function buildPptx({ content, scheme, practice, imageMode, logo }: {
   content: any; scheme: string; practice: string; imageMode: string; logo: boolean;
 }) {
   const col = SCHEMES[scheme] || SCHEMES['NHS Blue'];
-  const pptx = new (window as any).PptxGenJS();
+  const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE';
 
   // Title slide
@@ -597,13 +576,6 @@ export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = (
     setStatus('generating'); setStep(0); setError(null);
     try {
       if (engine === 'pptxgenjs') {
-        // Wait for PptxGenJS to load (up to 10s)
-        if (!(window as any).PptxGenJS) {
-          await Promise.race([
-            ensurePptxScript(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('PptxGenJS failed to load — please check your internet connection and try again.')), 10000)),
-          ]);
-        }
         setStep(1);
         const content = await generateSlideContent({ ...form, sourceFiles, pasteText, brief: pasteText });
         setStep(2);
