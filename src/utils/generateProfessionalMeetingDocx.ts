@@ -1813,6 +1813,7 @@ interface GenerateWithParsedDataOptions {
   footerOn?: boolean;
   meetingDetailsOn?: boolean;
   attendeesOn?: boolean;
+  priorityColumnOn?: boolean;
 }
 
 export const generateProfessionalMeetingDocxWithParsedData = async (options: GenerateWithParsedDataOptions): Promise<void> => {
