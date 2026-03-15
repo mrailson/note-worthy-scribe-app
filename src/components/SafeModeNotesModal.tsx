@@ -3445,7 +3445,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                             className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
                             style={{ fontSize: `${fontSize}px` }}
                           >
-                            {notesContent}
+                            {contentWithoutActionItems}
                           </pre>
                         ) : sections.length > 0 ? (
                           <div className="space-y-4">
