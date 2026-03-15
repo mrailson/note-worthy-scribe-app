@@ -437,12 +437,20 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         isCompleted: item.status === 'Completed',
       }));
 
+      // Merge section toggle settings with visibleSections
+      const mergedSections = {
+        ...visibleSections,
+        executiveSummary: docSettings.exec_summary_on,
+        actionList: docSettings.action_items_on,
+        openItems: docSettings.open_items_on,
+      };
+
       await generateProfessionalWordFromContent(
         notesContent,
         documentTitle,
         parsedDetails,
-        parsedActionItems,
-        visibleSections,
+        docSettings.action_items_on ? parsedActionItems : [],
+        mergedSections,
         docSettings.logo_on ? logoUrl : undefined
       );
       toast.success('Word document downloaded');
