@@ -196,6 +196,9 @@ serve(async (req) => {
     if (supportingContent) {
       inputText += `\n\nKey content to include:\n${supportingContent}`;
     }
+    if (includeSpeakerNotes) {
+      inputText += `\n\nInclude a speaker note on every slide with one clear talking point for the presenter.`;
+    }
 
     // Build additional instructions — condensed to stay within Gamma's 5000-char limit
     let additionalInstructions = `British English spelling throughout. Audience: ${audience}. Professional design. Each slide: clear, actionable message.`;
