@@ -493,7 +493,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   }, []);
 
   // Infographic generation
-  const handleGenerateInfographic = useCallback(async (orientation: 'landscape' | 'portrait') => {
+  const handleGenerateInfographic = useCallback(async (style: string, orientation: 'landscape' | 'portrait') => {
     setInfographicUrl(null);
     setInfographicProgress(0);
     setInfographicTipIdx(0);
