@@ -89,32 +89,16 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
     if (!settingsLoading) setLocalSettings(savedSettings);
   }, [savedSettings, settingsLoading]);
 
-  // Trap focus inside our modal and block Radix from stealing it
+  // When open: override Radix's body pointer-events:none and restore on close
   useEffect(() => {
     if (!isOpen) return;
 
-    const trap = (e: FocusEvent) => {
-      // If focus goes outside our container, pull it back
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        e.stopImmediatePropagation();
-        containerRef.current.focus();
-      }
-    };
-
-    // Block Radix Dialog's keydown handler from interfering
-    const blockRadixKeys = (e: KeyboardEvent) => {
-      if (containerRef.current?.contains(e.target as Node)) {
-        // Let the event through for our elements but stop Radix from processing it
-        e.stopPropagation();
-      }
-    };
-
-    document.addEventListener('focusin', trap, true);
-    document.addEventListener('keydown', blockRadixKeys, true);
+    // Radix Dialog sets pointer-events:none on document.body as inline style
+    const prevPointerEvents = document.body.style.pointerEvents;
+    document.body.style.pointerEvents = 'auto';
 
     return () => {
-      document.removeEventListener('focusin', trap, true);
-      document.removeEventListener('keydown', blockRadixKeys, true);
+      document.body.style.pointerEvents = prevPointerEvents;
     };
   }, [isOpen]);
 
