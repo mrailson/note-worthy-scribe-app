@@ -21,6 +21,8 @@ import {
   Settings2,
   Presentation,
   BarChart3,
+  LayoutGrid,
+  Headphones,
   Calendar as CalendarIcon,
   Clock,
   MapPin,
