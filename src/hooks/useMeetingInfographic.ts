@@ -31,6 +31,8 @@ interface InfographicOptions {
   style: string;
   customStyle?: string;
   orientation?: 'portrait' | 'landscape';
+  logoUrl?: string;
+  practiceName?: string;
 }
 
 const INFOGRAPHIC_STYLES: Record<string, { name: string; prompt: string }> = {
