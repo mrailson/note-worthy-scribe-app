@@ -24,7 +24,7 @@ const DEFAULTS: UserDocumentSettings = {
   open_items_on: true,
   attendees_on: true,
   meeting_details_on: true,
-  priority_column_on: true,
+  priority_column_on: false,
 };
 
 export function useUserDocumentSettings() {
