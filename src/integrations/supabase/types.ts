@@ -11271,36 +11271,42 @@ export type Database = {
       user_document_settings: {
         Row: {
           action_items_on: boolean | null
+          attendees_on: boolean | null
           exec_summary_on: boolean | null
           footer_on: boolean | null
           id: string
           logo_on: boolean | null
           logo_position: string | null
           logo_scale: number | null
+          meeting_details_on: boolean | null
           open_items_on: boolean | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           action_items_on?: boolean | null
+          attendees_on?: boolean | null
           exec_summary_on?: boolean | null
           footer_on?: boolean | null
           id?: string
           logo_on?: boolean | null
           logo_position?: string | null
           logo_scale?: number | null
+          meeting_details_on?: boolean | null
           open_items_on?: boolean | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           action_items_on?: boolean | null
+          attendees_on?: boolean | null
           exec_summary_on?: boolean | null
           footer_on?: boolean | null
           id?: string
           logo_on?: boolean | null
           logo_position?: string | null
           logo_scale?: number | null
+          meeting_details_on?: boolean | null
           open_items_on?: boolean | null
           updated_at?: string | null
           user_id?: string
