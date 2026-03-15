@@ -1337,7 +1337,7 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   const children: any[] = [];
   
   // Header block
-  const headerElements = await createHeaderBlock(metadata.title, generatedDate, options.logoUrl);
+  const headerElements = await createHeaderBlock(metadata.title, generatedDate, options.logoUrl, options.logoScale);
   children.push(...headerElements);
   
   // Meeting details box
