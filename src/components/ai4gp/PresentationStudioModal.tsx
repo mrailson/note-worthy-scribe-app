@@ -620,13 +620,17 @@ export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = (
         }));
       } else {
         setStep(1);
-        const res = await callGammaStub(form);
+        const res = await callGamma({ ...form, pasteText, sourceFiles });
         setStep(2);
         setResults(r => ({
           ...r, gamma: {
-            title: form.title, slideCount: form.slides, scheme: form.scheme,
+            title: res.title || form.title, slideCount: res.slideCount || form.slides, scheme: form.scheme,
             gammaUrl: res.gammaUrl, sourceLabel: sourceLabel(),
-            note: 'Demo URL shown. Production: calls real Gamma API with imageSource: ' + form.imageSource,
+            note: res.downloadUrl
+              ? `Downloaded via Gamma. ${res.gammaUrl ? 'Also available at Gamma.app.' : ''}`
+              : res.gammaUrl
+                ? 'Open in Gamma.app to view and download.'
+                : 'Generation complete.',
           }
         }));
       }
