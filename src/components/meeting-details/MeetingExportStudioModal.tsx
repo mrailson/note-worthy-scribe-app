@@ -483,7 +483,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         docSettings.logo_scale ?? 1.0,
         docSettings.footer_on,
         docSettings.meeting_details_on,
-        docSettings.attendees_on
+        docSettings.attendees_on,
+        docSettings.priority_column_on
       );
       toast.success('Word document downloaded');
     } catch (error) {
