@@ -913,12 +913,29 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
                   {selectedExport === 'infographic' && (
                     <div className="space-y-3">
-                      {/* Top row: title + orientation slider + logo toggle + generate */}
+                      {/* Top row: style dropdown + orientation slider + logo toggle + generate */}
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-foreground">Generate infographic</p>
-                          </div>
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {/* Style dropdown */}
+                          <Select value={selectedInfographicStyle} onValueChange={setSelectedInfographicStyle}>
+                            <SelectTrigger className="h-8 w-[140px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[
+                                { key: 'practice-professional', label: 'Professional' },
+                                { key: 'clinical-governance', label: 'Governance' },
+                                { key: 'patient-safety', label: 'Patient Safety' },
+                                { key: 'team-engagement', label: 'Staff / Team' },
+                                { key: 'qof-targets', label: 'QOF & Targets' },
+                                { key: 'board-pack', label: 'Board Pack' },
+                                { key: 'icb-submission', label: 'ICB Submission' },
+                                { key: 'neighbourhood', label: 'Neighbourhood' },
+                              ].map(({ key, label }) => (
+                                <SelectItem key={key} value={key} className="text-xs">{label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
 
                           {/* Orientation slider */}
                           <button
@@ -975,59 +992,28 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                         </Button>
                       </div>
 
-                      {/* Style selector */}
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1.5">Style</p>
-                        <div className="flex flex-wrap gap-1">
-                          {[
-                            { key: 'practice-professional', label: 'Professional' },
-                            { key: 'clinical-governance', label: 'Governance' },
-                            { key: 'patient-safety', label: 'Patient Safety' },
-                            { key: 'team-engagement', label: 'Staff / Team' },
-                            { key: 'qof-targets', label: 'QOF & Targets' },
-                            { key: 'board-pack', label: 'Board Pack' },
-                            { key: 'icb-submission', label: 'ICB Submission' },
-                            { key: 'neighbourhood', label: 'Neighbourhood' },
-                          ].map(({ key, label }) => (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => setSelectedInfographicStyle(key)}
-                              className={cn(
-                                'px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
-                                selectedInfographicStyle === key
-                                  ? 'bg-[#003087] text-white'
-                                  : 'bg-white border border-border text-foreground hover:bg-muted/50'
-                              )}
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Style thumbnail preview */}
-                        {(() => {
-                          const thumbnails: Record<string, string> = {
-                            'practice-professional': '/images/infographic-thumbnails/practice-professional.png',
-                            'clinical-governance': '/images/infographic-thumbnails/clinical-governance.png',
-                            'patient-safety': '/images/infographic-thumbnails/patient-safety.png',
-                            'team-engagement': '/images/infographic-thumbnails/team-engagement.png',
-                            'qof-targets': '/images/infographic-thumbnails/qof-targets.png',
-                            'board-pack': '/images/infographic-thumbnails/board-pack.png',
-                            'icb-submission': '/images/infographic-thumbnails/icb-submission.png',
-                            'neighbourhood': '/images/infographic-thumbnails/neighbourhood.png',
-                          };
-                          const thumb = thumbnails[selectedInfographicStyle];
-                          return thumb ? (
-                            <img
-                              src={thumb}
-                              alt={`${selectedInfographicStyle} style preview`}
-                              className="mt-2 rounded border border-border max-w-[40%] max-h-[90px] object-cover object-top"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                            />
-                          ) : null;
-                        })()}
-                      </div>
+                      {/* Style thumbnail preview */}
+                      {(() => {
+                        const thumbnails: Record<string, string> = {
+                          'practice-professional': '/images/infographic-thumbnails/practice-professional.png',
+                          'clinical-governance': '/images/infographic-thumbnails/clinical-governance.png',
+                          'patient-safety': '/images/infographic-thumbnails/patient-safety.png',
+                          'team-engagement': '/images/infographic-thumbnails/team-engagement.png',
+                          'qof-targets': '/images/infographic-thumbnails/qof-targets.png',
+                          'board-pack': '/images/infographic-thumbnails/board-pack.png',
+                          'icb-submission': '/images/infographic-thumbnails/icb-submission.png',
+                          'neighbourhood': '/images/infographic-thumbnails/neighbourhood.png',
+                        };
+                        const thumb = thumbnails[selectedInfographicStyle];
+                        return thumb ? (
+                          <img
+                            src={thumb}
+                            alt={`${selectedInfographicStyle} style preview`}
+                            className="rounded border border-border max-w-[52%] max-h-[117px] object-cover object-top"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : null;
+                      })()}
                     </div>
                   )}
 
