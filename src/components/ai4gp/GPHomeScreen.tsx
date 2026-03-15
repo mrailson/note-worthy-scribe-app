@@ -216,7 +216,7 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
       <div className="space-y-2">
         {activeView.type === 'main' ? (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-2xl mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2 max-w-3xl mx-auto">
               {gpCategories.map((category) => 
                 renderCard(
                   category.id,
