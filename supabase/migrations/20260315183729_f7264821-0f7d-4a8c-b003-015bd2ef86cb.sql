@@ -1,0 +1,1 @@
+ALTER TABLE public.user_document_settings ALTER COLUMN priority_column_on SET DEFAULT false;
