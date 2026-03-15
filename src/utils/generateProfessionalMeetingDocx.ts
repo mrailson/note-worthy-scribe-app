@@ -710,11 +710,11 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
   // Column widths - adjust based on whether priority is shown
   const columnWidths = priorityColumnOn 
     ? [38, 14, 16, 12, 20] // Action, Owner, Deadline, Priority, Status
-    : [44, 16, 18, 22]; // Action, Owner, Deadline, Status (wider without Priority)
+    : [55, 22, 23]; // Action, Owner, Deadline (no Priority or Status)
   
   const headerCells = priorityColumnOn 
     ? ['Action', 'Owner', 'Deadline', 'Priority', 'Status']
-    : ['Action', 'Owner', 'Deadline', 'Status'];
+    : ['Action', 'Owner', 'Deadline'];
   
   const table = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
