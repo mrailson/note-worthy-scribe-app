@@ -1632,6 +1632,7 @@ export const generateProfessionalWordFromContent = async (
       actionItems: actionItemsToUse,
       logoUrl,
       logoScale,
+      footerOn,
     });
   } else {
     // Fallback to auto-parsing
