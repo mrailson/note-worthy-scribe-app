@@ -671,7 +671,7 @@ const parseActionItems = (content: string): ParsedActionItem[] => {
 };
 
 // Create action items table
-const createActionItemsTable = async (items: ParsedActionItem[]) => {
+const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnOn: boolean = true) => {
   const { Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } = await import("docx");
   
   if (items.length === 0) {
@@ -707,10 +707,14 @@ const createActionItemsTable = async (items: ParsedActionItem[]) => {
     return { text: '○ Open', color: NHS_COLORS.textGrey };
   };
   
-  // Column widths
-  const columnWidths = [38, 14, 16, 12, 20]; // Action, Owner, Deadline, Priority, Status
+  // Column widths - adjust based on whether priority is shown
+  const columnWidths = priorityColumnOn 
+    ? [38, 14, 16, 12, 20] // Action, Owner, Deadline, Priority, Status
+    : [44, 16, 18, 22]; // Action, Owner, Deadline, Status (wider without Priority)
   
-  const headerCells = ['Action', 'Owner', 'Deadline', 'Priority', 'Status'];
+  const headerCells = priorityColumnOn 
+    ? ['Action', 'Owner', 'Deadline', 'Priority', 'Status']
+    : ['Action', 'Owner', 'Deadline', 'Status'];
   
   const table = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
