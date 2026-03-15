@@ -17,7 +17,6 @@ interface UserTemplatePreference {
 interface GenerationResult {
   success: boolean;
   downloadUrl?: string;
-  gammaUrl?: string;
   title?: string;
   error?: string;
 }
