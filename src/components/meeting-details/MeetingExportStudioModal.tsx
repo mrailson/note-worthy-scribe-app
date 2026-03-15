@@ -896,11 +896,11 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 {/* 4-column tab grid */}
                 <div className="grid grid-cols-4 gap-2 mb-3">
                   {([
-                    { key: 'word' as ExportTab, icon: FileText, label: 'Word', subtitle: 'Download' },
-                    { key: 'slides' as ExportTab, icon: Presentation, label: 'Slides', subtitle: 'PowerPoint' },
-                    { key: 'infographic' as ExportTab, icon: LayoutGrid, label: 'Infographic', subtitle: 'Visual summary' },
-                    { key: 'audio' as ExportTab, icon: Headphones, label: 'Audio Studio', subtitle: 'Discussion' },
-                  ]).map(({ key, icon: Icon, label, subtitle }) => {
+                    { key: 'word' as ExportTab, icon: FileText, label: 'Word', subtitle: 'Download', badgeCount: 0 },
+                    { key: 'slides' as ExportTab, icon: Presentation, label: 'Slides', subtitle: 'PowerPoint', badgeCount: 0 },
+                    { key: 'infographic' as ExportTab, icon: LayoutGrid, label: 'Infographic', subtitle: 'Visual summary', badgeCount: savedCount },
+                    { key: 'audio' as ExportTab, icon: Headphones, label: 'Audio Studio', subtitle: 'Discussion', badgeCount: 0 },
+                  ]).map(({ key, icon: Icon, label, subtitle, badgeCount }) => {
                     const isActive = selectedExport === key;
                     return (
                       <button
@@ -908,13 +908,18 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                         type="button"
                         onClick={() => setSelectedExport(key)}
                         className={cn(
-                          'flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-center transition-colors cursor-pointer',
+                          'relative flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-center transition-colors cursor-pointer',
                           isActive
                             ? 'bg-[#003087] text-white'
                             : 'bg-white border border-border text-foreground hover:bg-muted/50'
                         )}
                         style={!isActive ? { borderWidth: '0.5px' } : undefined}
                       >
+                        {badgeCount > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                            {badgeCount}
+                          </span>
+                        )}
                         <Icon className="h-5 w-5" />
                         <span className="text-xs font-medium leading-tight">{label}</span>
                         <span className={cn(
