@@ -762,11 +762,9 @@ export function EmailMeetingMinutesModal({
           html += '<table style="border-collapse: collapse; width: 100%; margin: 12px 0 20px 0; font-family: Arial, sans-serif; font-size: 13px;">\n';
           html += '  <thead>\n';
           html += '    <tr style="background: linear-gradient(135deg, #005EB8 0%, #003d7a 100%);">\n';
-          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 45%;">Action</th>\n';
-          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 18%;">Owner</th>\n';
-          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 17%;">Deadline</th>\n';
-          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: center; font-weight: 600; color: white; width: 10%;">Priority</th>\n';
-          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: center; font-weight: 600; color: white; width: 10%;">Status</th>\n';
+          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 55%;">Action</th>\n';
+          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 22%;">Owner</th>\n';
+          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 23%;">Deadline</th>\n';
           html += '    </tr>\n';
           html += '  </thead>\n';
           html += '  <tbody>\n';
