@@ -299,7 +299,7 @@ export default function ComplaintResponse() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 lg:py-6 xl:py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground">NHS Complaint Response</h1>
