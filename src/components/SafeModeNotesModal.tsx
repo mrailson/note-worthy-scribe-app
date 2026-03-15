@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { dedupTranscriptText } from '@/lib/dedupTranscriptText';
-import wordIcon from '@/assets/word-icon.png';
+
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { SelectionFindReplacePopup } from '@/components/SelectionFindReplacePopup';
-import powerpointIcon from '@/assets/powerpoint-icon.png';
-import infographicIcon from '@/assets/infographic-icon.png';
 import { MeetingPowerPointModal } from '@/components/meeting-details/MeetingPowerPointModal';
 import { MeetingInfographicModal } from '@/components/meeting-details/MeetingInfographicModal';
+import { MeetingExportStudioModal } from '@/components/meeting-details/MeetingExportStudioModal';
 import { QuickAudioSummaryModal } from '@/components/meeting-details/QuickAudioSummaryModal';
 import {
   Dialog,
@@ -242,6 +241,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showQuickAudioModal, setShowQuickAudioModal] = useState(false);
   const [showAudioStudio, setShowAudioStudio] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showExportStudio, setShowExportStudio] = useState(false);
   const [showCorrections, setShowCorrections] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
   
@@ -3151,418 +3151,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TooltipContent>{copied ? 'Copied!' : 'Copy to clipboard'}</TooltipContent>
             </Tooltip>
 
-            {/* Download Word button */}
+            {/* Export Studio button — replaces Word/PPT/Infographic */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDownloadWord}>
-                  <img src={wordIcon} alt="Download as Word" className="h-7 w-7" />
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowExportStudio(true)}>
+                  <Download className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Download as Word</TooltipContent>
+              <TooltipContent>Export Studio</TooltipContent>
             </Tooltip>
-
-            {/* Generate PowerPoint with options dropdown */}
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <img src={powerpointIcon} alt="Generate PowerPoint" className="h-7 w-7" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Generate Executive PowerPoint</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent className="w-80 bg-background border shadow-lg z-50" align="end">
-                {/* Style Category */}
-                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Presentation Style</DropdownMenuLabel>
-                
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Briefcase className="h-4 w-4 mr-2 text-slate-600" />
-                    <div className="flex flex-col">
-                      <span>Executive Board</span>
-                      <span className="text-xs text-muted-foreground">Formal, strategic focus</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'executive-board', content: 'standard', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Presentation className="h-4 w-4 mr-2 text-blue-600" />
-                    <div className="flex flex-col">
-                      <span>Team Update</span>
-                      <span className="text-xs text-muted-foreground">Collaborative, detailed</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'team-update', content: 'standard', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Target className="h-4 w-4 mr-2 text-blue-700" />
-                    <div className="flex flex-col">
-                      <span>NHS Clinical</span>
-                      <span className="text-xs text-muted-foreground">NHS branding, clinical focus</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'nhs-clinical', content: 'standard', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Zap className="h-4 w-4 mr-2 text-purple-500" />
-                    <div className="flex flex-col">
-                      <span>Modern Minimal</span>
-                      <span className="text-xs text-muted-foreground">Clean, contemporary design</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'modern-minimal', content: 'standard', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <GraduationCap className="h-4 w-4 mr-2 text-amber-600" />
-                    <div className="flex flex-col">
-                      <span>Training Session</span>
-                      <span className="text-xs text-muted-foreground">Educational, step-by-step</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'training', content: 'standard', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSeparator />
-
-                {/* Content Focus Category */}
-                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Content Focus</DropdownMenuLabel>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
-                    <div className="flex flex-col">
-                      <span>Action Items Focus</span>
-                      <span className="text-xs text-muted-foreground">Tasks, owners, deadlines</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'professional', content: 'actions', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Lightbulb className="h-4 w-4 mr-2 text-yellow-500" />
-                    <div className="flex flex-col">
-                      <span>Decisions Focus</span>
-                      <span className="text-xs text-muted-foreground">Key decisions and rationale</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'professional', content: 'decisions', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <TrendingUp className="h-4 w-4 mr-2 text-indigo-500" />
-                    <div className="flex flex-col">
-                      <span>Progress & Metrics</span>
-                      <span className="text-xs text-muted-foreground">KPIs, outcomes, trends</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'professional', content: 'metrics', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <MessageCircle className="h-4 w-4 mr-2 text-teal-500" />
-                    <div className="flex flex-col">
-                      <span>Discussion Summary</span>
-                      <span className="text-xs text-muted-foreground">Full discussion recap</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'professional', content: 'discussion', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <ArrowRight className="h-4 w-4 mr-2 text-rose-600" />
-                    <div className="flex flex-col">
-                      <span>Next Steps Only</span>
-                      <span className="text-xs text-muted-foreground">Forward-looking actions</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'professional', content: 'next-steps', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSeparator />
-
-                {/* Special Formats */}
-                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Special Formats</DropdownMenuLabel>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Award className="h-4 w-4 mr-2 text-orange-500" />
-                    <div className="flex flex-col">
-                      <span>Stakeholder Report</span>
-                      <span className="text-xs text-muted-foreground">External-ready summary</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'stakeholder', content: 'comprehensive', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Eye className="h-4 w-4 mr-2 text-green-500" />
-                    <div className="flex flex-col">
-                      <span>Quick Overview</span>
-                      <span className="text-xs text-muted-foreground">3-minute presentation</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[3, 5, 6].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'quick', content: 'highlights', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Layers className="h-4 w-4 mr-2 text-violet-500" />
-                    <div className="flex flex-col">
-                      <span>Comprehensive Pack</span>
-                      <span className="text-xs text-muted-foreground">Full meeting details</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'comprehensive', content: 'all', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <PieChart className="h-4 w-4 mr-2 text-cyan-500" />
-                    <div className="flex flex-col">
-                      <span>Data-Driven</span>
-                      <span className="text-xs text-muted-foreground">Charts and visualisations</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-background border shadow-lg">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Number of Slides</DropdownMenuLabel>
-                    {[5, 8, 10, 12, 15].map(count => (
-                      <DropdownMenuItem key={count} onClick={() => { setPptOptions({ style: 'data-driven', content: 'visualisations', slideCount: count }); setShowPptModal(true); }}>
-                        <Hash className="h-4 w-4 mr-2" /> {count} slides
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Generate Infographic with options dropdown */}
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <img src={infographicIcon} alt="Generate Infographic" className="h-7 w-7" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Generate Summary Infographic</TooltipContent>
-              </Tooltip>
-               <DropdownMenuContent className="w-80 bg-background border shadow-lg z-50" align="end">
-                {/* Orientation Toggle - applies to all styles */}
-                <div className="flex items-center justify-between px-3 py-2 border-b">
-                  <span className="text-xs text-muted-foreground">Layout</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs ${infographicOrientation === 'portrait' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Portrait</span>
-                    <Switch
-                      checked={infographicOrientation === 'landscape'}
-                      onCheckedChange={(checked) => setInfographicOrientation(checked ? 'landscape' : 'portrait')}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <span className={`text-xs ${infographicOrientation === 'landscape' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Landscape</span>
-                  </div>
-                </div>
-
-                {/* Preset Styles - GP Practice focused */}
-                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Choose Style</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'practice-professional', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
-                  <Sparkles className="h-4 w-4 mr-2 text-primary" />
-                  <div className="flex flex-col">
-                    <span>Practice Professional</span>
-                    <span className="text-xs text-muted-foreground">Clean GP practice meeting style</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'clinical-governance', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
-                  <Target className="h-4 w-4 mr-2 text-blue-600" />
-                  <div className="flex flex-col">
-                    <span>Clinical Governance</span>
-                    <span className="text-xs text-muted-foreground">Compliance & audit focused</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'patient-safety', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
-                  <Shield className="h-4 w-4 mr-2 text-green-600" />
-                  <div className="flex flex-col">
-                    <span>Patient Safety Focus</span>
-                    <span className="text-xs text-muted-foreground">Safety & incident tracking themed</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'team-engagement', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
-                  <Users className="h-4 w-4 mr-2 text-purple-500" />
-                  <div className="flex flex-col">
-                    <span>Team Engagement</span>
-                    <span className="text-xs text-muted-foreground">Staff wellbeing & team focus</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'qof-targets', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
-                  <TrendingUp className="h-4 w-4 mr-2 text-orange-500" />
-                  <div className="flex flex-col">
-                    <span>QOF & Targets</span>
-                    <span className="text-xs text-muted-foreground">Performance metrics & KPIs</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'board-pack', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
-                  <FileText className="h-4 w-4 mr-2 text-amber-700" />
-                  <div className="flex flex-col">
-                    <span>Board Pack Summary</span>
-                    <span className="text-xs text-muted-foreground">Formal executive governance style</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'icb-submission', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
-                  <Building2 className="h-4 w-4 mr-2 text-blue-800" />
-                  <div className="flex flex-col">
-                    <span>ICB Submission</span>
-                    <span className="text-xs text-muted-foreground">Commissioner evidence & delivery</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'neighbourhood', orientation: infographicOrientation }); setShowInfographicModal(true); }}>
-                  <Home className="h-4 w-4 mr-2 text-teal-600" />
-                  <div className="flex flex-col">
-                    <span>Neighbourhood Team</span>
-                    <span className="text-xs text-muted-foreground">Multi-agency community focused</span>
-                  </div>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                {/* Custom Style Section */}
-                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Custom Style</DropdownMenuLabel>
-                <div className="px-2 py-2">
-                  <Input 
-                    placeholder="e.g., 'The Castle', 'Star Wars', 'retro 80s'"
-                    value={customInfographicStyle}
-                    onChange={(e) => setCustomInfographicStyle(e.target.value)}
-                    className="mb-3 text-sm"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  />
-                  
-                  <Button 
-                    size="sm" 
-                    className="w-full"
-                    onClick={() => {
-                      if (customInfographicStyle.trim()) {
-                        setInfographicOptions({ 
-                          style: 'custom', 
-                          customStyle: customInfographicStyle.trim(),
-                          orientation: infographicOrientation
-                        });
-                        setShowInfographicModal(true);
-                        setCustomInfographicStyle('');
-                      }
-                    }}
-                    disabled={!customInfographicStyle.trim()}
-                  >
-                    <Palette className="h-4 w-4 mr-2" />
-                    Generate with Custom Style
-                  </Button>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             {/* Quick Audio Summary button */}
             <Tooltip>
@@ -4445,6 +4042,22 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         <CorrectionManager 
           onClose={() => setShowCorrections(false)}
           onCorrectionApplied={() => {}}
+        />
+      )}
+      {/* Export Studio Modal */}
+      {meeting && (
+        <MeetingExportStudioModal
+          isOpen={showExportStudio}
+          onClose={() => setShowExportStudio(false)}
+          meetingId={meeting.id}
+          meetingTitle={meeting.title}
+          notesContent={notesContent || ''}
+          meetingDetails={meetingDetails}
+          attendees={attendees}
+          actionItems={actionItems}
+          meetingType={meetingType}
+          meetingLocation={meetingLocation}
+          visibleSections={notesViewSettings.settings.visibleSections}
         />
       )}
     </Dialog>
