@@ -548,6 +548,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
       if (result?.success && result.imageUrl) {
         setInfographicUrl(result.imageUrl);
         setInfographicFullscreen(true);
+        // Persist to storage + DB
+        await saveInfographic(result.imageUrl, style, orientation);
       }
     } catch {
       clearInterval(progressInterval);
