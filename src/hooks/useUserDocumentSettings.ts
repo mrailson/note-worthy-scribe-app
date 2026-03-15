@@ -5,6 +5,7 @@ export interface UserDocumentSettings {
   logo_on: boolean;
   footer_on: boolean;
   logo_position: string;
+  logo_scale: number;
   exec_summary_on: boolean;
   action_items_on: boolean;
   open_items_on: boolean;
@@ -14,6 +15,7 @@ const DEFAULTS: UserDocumentSettings = {
   logo_on: true,
   footer_on: true,
   logo_position: 'centre',
+  logo_scale: 1.0,
   exec_summary_on: true,
   action_items_on: true,
   open_items_on: true,
