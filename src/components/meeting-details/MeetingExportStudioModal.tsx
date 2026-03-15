@@ -1037,7 +1037,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                           <img
                             src={`/images/infographic-thumbnails/${expandedInfographicThumb}.png`}
                             alt="Style preview"
-                            className="rounded-md border border-border w-full max-h-[260px] object-contain cursor-pointer"
+                            className="rounded-md border border-border w-full max-h-[312px] object-contain cursor-pointer"
                             onClick={() => setExpandedInfographicThumb(null)}
                           />
                         </div>
