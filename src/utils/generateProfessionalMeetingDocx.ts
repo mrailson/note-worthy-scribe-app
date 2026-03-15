@@ -241,7 +241,13 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
     .replace(/\\\*\*/g, '')         // Remove \** patterns
     .replace(/\*{3,}/g, '**')      // Collapse 3+ asterisks to bold marker
     .replace(/^\s*[-–—]\s*$/, '')   // Remove standalone dashes
-    .trim();
+    .trim()
+    // After the main bold regex pass below, any orphaned ** will be cleaned;
+    // but first strip unmatched/orphaned bold markers (opening without closing or vice versa)
+    .replace(/^([^*]*)\*\*\s*$/gm, '$1')       // trailing orphan **
+    .replace(/^([^*]*?)\*\*(?![^*]*\*\*)/g,     // opening ** with no closing **
+      (m) => m.replace(/\*\*/g, ''))
+    .replace(/(?<!\*\*[^*]*)\*\*([^*]*)$/g, '$1'); // closing ** with no opening **
   
   const markdownRegex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
   let match;
