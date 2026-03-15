@@ -379,6 +379,20 @@ Any American English spelling in the output is a CRITICAL ERROR. Check every wor
   - Never show "e.g.," examples from the prompt — use the actual meeting data instead
   - If you don't have data for a section, write "See full minutes" not a placeholder`;
 
+      // Build practice context for branding
+      const practiceCtx: Record<string, any> = {
+        brandingLevel: options?.logoUrl ? 'logo-only' : 'none',
+      };
+      if (options?.logoUrl) {
+        practiceCtx.logoUrl = options.logoUrl;
+        practiceCtx.includeLogo = true;
+        practiceCtx.logoPlacement = 'top-right';
+      }
+      if (options?.practiceName) {
+        practiceCtx.practiceName = options.practiceName;
+        practiceCtx.brandingLevel = options?.logoUrl ? 'name-and-logo' : 'name-only';
+      }
+
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
           prompt: customPrompt,
@@ -386,9 +400,7 @@ Any American English spelling in the output is a CRITICAL ERROR. Check every wor
           documentContent: documentContent,
           requestType: 'infographic',
           imageModel: 'google/gemini-3-pro-image-preview',
-          practiceContext: {
-            brandingLevel: 'none'
-          }
+          practiceContext: practiceCtx
         },
       });
 
