@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { X, Plus, Check, Upload } from 'lucide-react';
+import { X, Plus, Check, Upload, Trash2, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useUserLogos, type LogoType } from '@/hooks/useUserLogos';
 import { useUserDocumentSettings, type UserDocumentSettings } from '@/hooks/useUserDocumentSettings';
@@ -64,7 +64,7 @@ const SpecToggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }>
 );
 
 export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ isOpen, onClose, onApply }) => {
-  const { logos, activeLogo, setActiveLogo, addLogo } = useUserLogos();
+  const { logos, activeLogo, setActiveLogo, addLogo, deleteLogo } = useUserLogos();
   const { settings: savedSettings, saveSettings, loading: settingsLoading } = useUserDocumentSettings();
 
   const [localSettings, setLocalSettings] = useState<UserDocumentSettings>(savedSettings);
@@ -73,6 +73,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
   const [newType, setNewType] = useState<LogoType>('practice');
   const [newFile, setNewFile] = useState<File | null>(null);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Sync settings when loaded from DB
@@ -102,6 +103,14 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
     } catch { toast.error('Failed to add logo'); }
     finally { setIsSavingLogo(false); }
   }, [newName, newType, newFile, addLogo]);
+
+  const handleDeleteLogo = useCallback(async (logoId: string) => {
+    try {
+      await deleteLogo(logoId);
+      setConfirmDeleteId(null);
+      toast.success('Logo removed');
+    } catch { toast.error('Failed to remove logo'); }
+  }, [deleteLogo]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -161,28 +170,67 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
                     {logos.map(logo => {
                       const sel = logo.is_active;
                       const b = TYPE_BADGE[logo.type] || TYPE_BADGE.practice;
+                      const isDeleting = confirmDeleteId === logo.id;
                       return (
-                        <button key={logo.id} type="button" onClick={() => setActiveLogo(logo.id)} style={{
-                          position: 'relative', background: '#fff', borderRadius: 8,
-                          border: sel ? '2px solid #003087' : '0.5px solid #e5e7eb',
-                          padding: '10px 6px 8px', cursor: 'pointer',
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                        }}>
-                          {sel && (
-                            <span style={{ position: 'absolute', top: -5, right: -5, width: 16, height: 16, borderRadius: '50%', background: '#003087', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Check size={10} color="#fff" strokeWidth={3} />
-                            </span>
-                          )}
-                          {logo.image_url ? (
-                            <img src={logo.image_url} alt={logo.name} style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover' }} />
-                          ) : (
-                            <div style={{ width: 38, height: 38, borderRadius: '50%', background: b.bg, color: b.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600 }}>
-                              {getInitials(logo.name)}
+                        <div key={logo.id} style={{ position: 'relative' }}>
+                          <button type="button" onClick={() => setActiveLogo(logo.id)} style={{
+                            position: 'relative', background: '#fff', borderRadius: 8, width: '100%',
+                            border: sel ? '2px solid #003087' : '0.5px solid #e5e7eb',
+                            padding: '10px 6px 8px', cursor: 'pointer',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                          }}>
+                            {sel && (
+                              <span style={{ position: 'absolute', top: -5, right: -5, width: 16, height: 16, borderRadius: '50%', background: '#003087', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Check size={10} color="#fff" strokeWidth={3} />
+                              </span>
+                            )}
+                            {logo.image_url ? (
+                              <img src={logo.image_url} alt={logo.name} style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ width: 38, height: 38, borderRadius: '50%', background: b.bg, color: b.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600 }}>
+                                {getInitials(logo.name)}
+                              </div>
+                            )}
+                            <span style={{ fontSize: 11, fontWeight: 500, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{truncateName(logo.name)}</span>
+                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 20, background: b.bg, color: b.fg }}>{TYPE_LABELS[logo.type]}</span>
+                          </button>
+                          {/* Delete button */}
+                          {isDeleting ? (
+                            <div style={{
+                              position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.95)', borderRadius: 8,
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, zIndex: 5,
+                              border: '1px solid #fca5a5',
+                            }}>
+                              <p style={{ fontSize: 10, color: '#dc2626', fontWeight: 500, textAlign: 'center', margin: 0, lineHeight: 1.3 }}>Remove?</p>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <button type="button" onClick={() => setConfirmDeleteId(null)} style={{
+                                  fontSize: 10, padding: '3px 8px', borderRadius: 4, border: '0.5px solid #e5e7eb',
+                                  background: '#fff', cursor: 'pointer', color: '#374151',
+                                }}>No</button>
+                                <button type="button" onClick={() => handleDeleteLogo(logo.id)} style={{
+                                  fontSize: 10, padding: '3px 8px', borderRadius: 4, border: 'none',
+                                  background: '#dc2626', color: '#fff', cursor: 'pointer',
+                                }}>Yes</button>
+                              </div>
                             </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(logo.id); }}
+                              style={{
+                                position: 'absolute', top: 2, left: 2, width: 18, height: 18, borderRadius: '50%',
+                                background: '#fff', border: '0.5px solid #e5e7eb', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                opacity: 0.6, transition: 'opacity 0.15s',
+                              }}
+                              onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                              onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}
+                              title="Remove logo"
+                            >
+                              <Trash2 size={10} color="#dc2626" />
+                            </button>
                           )}
-                          <span style={{ fontSize: 11, fontWeight: 500, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{truncateName(logo.name)}</span>
-                          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 20, background: b.bg, color: b.fg }}>{TYPE_LABELS[logo.type]}</span>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>

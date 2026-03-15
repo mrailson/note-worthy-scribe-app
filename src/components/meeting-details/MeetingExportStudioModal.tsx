@@ -938,7 +938,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
       <DocumentSettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
-        onApply={(s) => setDocSettings(s)}
+        onApply={(s) => { setDocSettings(s); fetchLogos(); }}
       />
     </>
   );
