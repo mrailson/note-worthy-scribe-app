@@ -125,6 +125,7 @@ serve(async (req) => {
       includeSpeakerNotes = true,
       pastedContent,
       useStockLibraryImages = false,
+      imageOptions: userImageOptions,
     } = requestBody;
 
     // Handle supportingContent
