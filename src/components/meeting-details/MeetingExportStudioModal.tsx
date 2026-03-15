@@ -611,6 +611,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     };
   }, [generatePowerPoint, meetingData]);
 
+  return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !infographicFullscreen) handleClose(); }}>
         <DialogContent className={cn(
@@ -1091,3 +1092,4 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     </>
   );
 };
+
