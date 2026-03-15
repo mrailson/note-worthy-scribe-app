@@ -444,6 +444,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     processedText = processedText.replace(/\n*Transcript:[\s\S]*$/i, '');
     processedText = processedText.replace(/\n*Full Transcript:[\s\S]*$/i, '');
     
+    const stripInlineMarkdown = (input: string): string =>
+      input
+        .replace(/\\\*/g, '')
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .trim();
+
     const lines = processedText.split('\n');
     let html = '';
     let i = 0;
