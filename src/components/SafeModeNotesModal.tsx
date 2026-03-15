@@ -3995,27 +3995,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         />
       )}
 
-      {/* PowerPoint Generation Modal */}
-      <MeetingPowerPointModal
-        isOpen={showPptModal}
-        onClose={() => { setShowPptModal(false); setPptOptions(null); }}
-        meetingData={{
-          meetingTitle: meetingDetails?.title || meeting?.title || 'Meeting Notes',
-          meetingDate: meetingDetails?.date,
-          meetingTime: meetingDetails?.time,
-          location: meetingDetails?.location,
-          attendees: attendees.map(a => a.name),
-          notesContent: notesContent || '',
-          actionItems: actionItems.map(item => ({
-            description: item.action,
-            owner: item.owner,
-            deadline: item.deadline,
-            status: item.status,
-            priority: item.priority,
-          })),
-        }}
-        options={pptOptions || undefined}
-      />
 
       {/* Infographic Generation Modal */}
       <MeetingInfographicModal
