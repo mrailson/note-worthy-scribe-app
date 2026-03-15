@@ -252,7 +252,6 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
       if (overviewResult.data?.powerpoint_download_url) {
         setPersistedData({
           downloadUrl: overviewResult.data.powerpoint_download_url,
-          gammaUrl: overviewResult.data.powerpoint_gamma_url || undefined,
           thumbnailUrl: overviewResult.data.powerpoint_thumbnail_url || undefined,
           slideCount: overviewResult.data.powerpoint_slide_count || undefined,
         });
