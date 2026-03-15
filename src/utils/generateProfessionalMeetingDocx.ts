@@ -303,34 +303,70 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   return runs;
 };
 
+// Fetch a logo URL and return as Uint8Array for docx ImageRun
+const fetchLogoForDocx = async (logoUrl: string): Promise<{ data: Uint8Array; type: 'png' | 'jpg' } | null> => {
+  if (!logoUrl) return null;
+  try {
+    const response = await fetch(logoUrl);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    const arrayBuffer = await blob.arrayBuffer();
+    const type = logoUrl.toLowerCase().includes('.png') ? 'png' : 'jpg';
+    return { data: new Uint8Array(arrayBuffer), type };
+  } catch (error) {
+    console.warn('Failed to fetch logo for Word export:', error);
+    return null;
+  }
+};
+
 // Create professional header block with title and accent bar (no generated date)
-const createHeaderBlock = async (title: string, _generatedDate?: string) => {
-  const { Paragraph, TextRun, BorderStyle, AlignmentType } = await import("docx");
+const createHeaderBlock = async (title: string, _generatedDate?: string, logoUrl?: string) => {
+  const { Paragraph, TextRun, BorderStyle, AlignmentType, ImageRun } = await import("docx");
   
   const cleanTitle = title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim().toUpperCase();
-  
-  return [
-    // Main title - large, centred, blue
-    new Paragraph({
-      children: [new TextRun({
-        text: cleanTitle,
-        bold: true,
-        size: FONTS.size.documentTitle,
-        color: NHS_COLORS.headingBlue,
-        font: FONTS.default,
-      })],
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 0, after: 120 },
-    }),
-    // Blue accent bar (using bottom border)
-    new Paragraph({
-      children: [new TextRun({ text: "", size: 4 })],
-      border: {
-        bottom: { style: BorderStyle.SINGLE, size: 24, color: NHS_COLORS.headingBlue },
-      },
-      spacing: { after: 360 },
-    }),
-  ];
+  const elements: any[] = [];
+
+  // Practice logo (if available)
+  if (logoUrl) {
+    const logoData = await fetchLogoForDocx(logoUrl);
+    if (logoData) {
+      elements.push(new Paragraph({
+        children: [
+          new ImageRun({
+            data: logoData.data,
+            transformation: { width: 160, height: 70 },
+            type: logoData.type,
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+      }));
+    }
+  }
+
+  // Main title - large, centred, blue
+  elements.push(new Paragraph({
+    children: [new TextRun({
+      text: cleanTitle,
+      bold: true,
+      size: FONTS.size.documentTitle,
+      color: NHS_COLORS.headingBlue,
+      font: FONTS.default,
+    })],
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 0, after: 120 },
+  }));
+
+  // Blue accent bar (using bottom border)
+  elements.push(new Paragraph({
+    children: [new TextRun({ text: "", size: 4 })],
+    border: {
+      bottom: { style: BorderStyle.SINGLE, size: 24, color: NHS_COLORS.headingBlue },
+    },
+    spacing: { after: 360 },
+  }));
+
+  return elements;
 };
 
 // Create meeting details info box
