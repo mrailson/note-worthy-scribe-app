@@ -32,7 +32,6 @@ export interface SlidePickerConfig {
   slideCount: SlideCount;
   textDensity: TextDensity;
   imageMode: ImageMode;
-  speakerNotes: boolean;
   includeLogo: boolean;
   titleClosingSlide: boolean;
 }
