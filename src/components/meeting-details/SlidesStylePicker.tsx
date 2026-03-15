@@ -361,7 +361,6 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
         </p>
         <div style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb', borderRadius: 8 }} className="overflow-hidden">
           {[
-            { label: 'Speaker notes', subtitle: 'One talking-point note per slide', checked: speakerNotes, onChange: setSpeakerNotes },
             { label: 'Include logo', subtitle: 'From your active logo in Document Settings', checked: includeLogo, onChange: setIncludeLogo },
             { label: 'Title + closing slide', subtitle: 'Auto-generated cover and thank-you slides', checked: titleClosingSlide, onChange: setTitleClosingSlide },
           ].map((opt, idx) => (
