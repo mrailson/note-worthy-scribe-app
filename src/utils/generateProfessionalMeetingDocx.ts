@@ -671,7 +671,7 @@ const parseActionItems = (content: string): ParsedActionItem[] => {
 };
 
 // Create action items table
-const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnOn: boolean = true) => {
+const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnOn: boolean = false) => {
   const { Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } = await import("docx");
   
   if (items.length === 0) {
@@ -710,11 +710,11 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
   // Column widths - adjust based on whether priority is shown
   const columnWidths = priorityColumnOn 
     ? [38, 14, 16, 12, 20] // Action, Owner, Deadline, Priority, Status
-    : [44, 16, 18, 22]; // Action, Owner, Deadline, Status (wider without Priority)
+    : [55, 22, 23]; // Action, Owner, Deadline (no Priority or Status)
   
   const headerCells = priorityColumnOn 
     ? ['Action', 'Owner', 'Deadline', 'Priority', 'Status']
-    : ['Action', 'Owner', 'Deadline', 'Status'];
+    : ['Action', 'Owner', 'Deadline'];
   
   const table = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -822,23 +822,25 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
           );
         }
 
-        // Status column
-        cells.push(
-            new TableCell({
-              children: [new Paragraph({
-                children: [new TextRun({ 
-                  text: statusDisplay.text,
-                  size: FONTS.size.body,
-                  color: statusDisplay.color,
-                  font: FONTS.default,
-                  bold: item.isCompleted,
+        // Status column (only when priority/status columns are on)
+        if (priorityColumnOn) {
+          cells.push(
+              new TableCell({
+                children: [new Paragraph({
+                  children: [new TextRun({ 
+                    text: statusDisplay.text,
+                    size: FONTS.size.body,
+                    color: statusDisplay.color,
+                    font: FONTS.default,
+                    bold: item.isCompleted,
+                  })],
+                  spacing: { before: 60, after: 60 },
                 })],
-                spacing: { before: 60, after: 60 },
-              })],
-              shading: rowBg ? { fill: rowBg } : undefined,
-              margins: { top: 80, bottom: 80, left: 120, right: 120 },
-            }),
-        );
+                shading: rowBg ? { fill: rowBg } : undefined,
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+              }),
+          );
+        }
 
         return new TableRow({ children: cells });
       }),
@@ -913,8 +915,21 @@ const parseContentToDocxElements = async (content: string) => {
             .map(cell => decodeHtmlEntities(cell.replace(/\*\*/g, '').replace(/\*/g, '')));
         };
         
-        const headerCells = parseCells(tableLines[0]);
-        const bodyRows = tableLines.slice(1).map(parseCells);
+        let headerCells = parseCells(tableLines[0]);
+        let bodyRows = tableLines.slice(1).map(parseCells);
+        
+        // Remove Priority and Status columns from action item tables
+        const excludeIndices = new Set<number>();
+        headerCells.forEach((h, idx) => {
+          const lower = h.toLowerCase().trim();
+          if (lower === 'priority' || lower === 'status') {
+            excludeIndices.add(idx);
+          }
+        });
+        if (excludeIndices.size > 0) {
+          headerCells = headerCells.filter((_, idx) => !excludeIndices.has(idx));
+          bodyRows = bodyRows.map(row => row.filter((_, idx) => !excludeIndices.has(idx)));
+        }
         
         // Check if this is an action items table
         const priorityColIndex = headerCells.findIndex(h => h.toLowerCase().includes('priority'));
