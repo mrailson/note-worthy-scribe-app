@@ -400,6 +400,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const [selectedInfographicStyle, setSelectedInfographicStyle] = useState('practice-professional');
   const [selectedInfographicOrientation, setSelectedInfographicOrientation] = useState<'landscape' | 'portrait'>('landscape');
   const [includeLogoInInfographic, setIncludeLogoInInfographic] = useState(true);
+  const [expandedInfographicThumb, setExpandedInfographicThumb] = useState<string | null>(null);
   const { generateInfographic, isGenerating: isInfographicGenerating, error: infographicError } = useMeetingInfographic();
   const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
   const [infographicProgress, setInfographicProgress] = useState(0);
@@ -912,97 +913,53 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                   )}
 
                   {selectedExport === 'infographic' && (
-                    <div className="space-y-3">
-                      {/* Top row: style dropdown + orientation slider + logo toggle + generate */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {/* Style dropdown */}
-                          <Select value={selectedInfographicStyle} onValueChange={setSelectedInfographicStyle}>
-                            <SelectTrigger className="h-8 w-[140px] text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[
-                                { key: 'practice-professional', label: 'Professional' },
-                                { key: 'clinical-governance', label: 'Governance' },
-                                { key: 'patient-safety', label: 'Patient Safety' },
-                                { key: 'team-engagement', label: 'Staff / Team' },
-                                { key: 'qof-targets', label: 'QOF & Targets' },
-                                { key: 'board-pack', label: 'Board Pack' },
-                                { key: 'icb-submission', label: 'ICB Submission' },
-                                { key: 'neighbourhood', label: 'Neighbourhood' },
-                              ].map(({ key, label }) => (
-                                <SelectItem key={key} value={key} className="text-xs">{label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                    <div className="space-y-2">
+                      {/* Row 1: Orientation + Logo sliders + Generate */}
+                      <div className="flex items-center gap-3">
+                        {/* Orientation slider */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedInfographicOrientation(prev => prev === 'landscape' ? 'portrait' : 'landscape')}
+                          className="flex items-center gap-1.5 shrink-0"
+                        >
+                          <span className={cn('text-[10px] font-medium', selectedInfographicOrientation === 'landscape' ? 'text-foreground' : 'text-muted-foreground')}>
+                            <Monitor className="h-3 w-3 inline mr-0.5" />L
+                          </span>
+                          <div className={cn(
+                            'relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                            'bg-[#003087]'
+                          )}>
+                            <span className={cn(
+                              'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition-transform',
+                              selectedInfographicOrientation === 'portrait' ? 'translate-x-4' : 'translate-x-0'
+                            )} />
+                          </div>
+                          <span className={cn('text-[10px] font-medium', selectedInfographicOrientation === 'portrait' ? 'text-foreground' : 'text-muted-foreground')}>
+                            <ImageIcon className="h-3 w-3 inline mr-0.5" />P
+                          </span>
+                        </button>
 
-                          {/* Orientation slider */}
+                        {/* Logo toggle */}
+                        {logoUrl && (
                           <button
                             type="button"
-                            onClick={() => setSelectedInfographicOrientation(prev => prev === 'landscape' ? 'portrait' : 'landscape')}
+                            onClick={() => setIncludeLogoInInfographic(prev => !prev)}
                             className="flex items-center gap-1.5 shrink-0"
                           >
-                            <span className={cn('text-[10px] font-medium', selectedInfographicOrientation === 'landscape' ? 'text-foreground' : 'text-muted-foreground')}>
-                              <Monitor className="h-3 w-3 inline mr-0.5" />L
-                            </span>
+                            <img src={logoUrl} alt="" className="h-5 w-auto max-w-[40px] object-contain rounded" />
                             <div className={cn(
                               'relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                              'bg-[#003087]'
+                              includeLogoInInfographic ? 'bg-[#003087]' : 'bg-muted'
                             )}>
                               <span className={cn(
                                 'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition-transform',
-                                selectedInfographicOrientation === 'portrait' ? 'translate-x-4' : 'translate-x-0'
+                                includeLogoInInfographic ? 'translate-x-4' : 'translate-x-0'
                               )} />
                             </div>
-                            <span className={cn('text-[10px] font-medium', selectedInfographicOrientation === 'portrait' ? 'text-foreground' : 'text-muted-foreground')}>
-                              <ImageIcon className="h-3 w-3 inline mr-0.5" />P
-                            </span>
                           </button>
+                        )}
 
-                          {/* Logo toggle */}
-                          {logoUrl && (
-                            <button
-                              type="button"
-                              onClick={() => setIncludeLogoInInfographic(prev => !prev)}
-                              className="flex items-center gap-1.5 shrink-0"
-                            >
-                              <img src={logoUrl} alt="" className="h-5 w-auto max-w-[40px] object-contain rounded" />
-                              <div className={cn(
-                                'relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                                includeLogoInInfographic ? 'bg-[#003087]' : 'bg-muted'
-                              )}>
-                                <span className={cn(
-                                  'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition-transform',
-                                  includeLogoInInfographic ? 'translate-x-4' : 'translate-x-0'
-                                )} />
-                              </div>
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Style thumbnail preview - inline */}
-                        {(() => {
-                          const thumbnails: Record<string, string> = {
-                            'practice-professional': '/images/infographic-thumbnails/practice-professional.png',
-                            'clinical-governance': '/images/infographic-thumbnails/clinical-governance.png',
-                            'patient-safety': '/images/infographic-thumbnails/patient-safety.png',
-                            'team-engagement': '/images/infographic-thumbnails/team-engagement.png',
-                            'qof-targets': '/images/infographic-thumbnails/qof-targets.png',
-                            'board-pack': '/images/infographic-thumbnails/board-pack.png',
-                            'icb-submission': '/images/infographic-thumbnails/icb-submission.png',
-                            'neighbourhood': '/images/infographic-thumbnails/neighbourhood.png',
-                          };
-                          const thumb = thumbnails[selectedInfographicStyle];
-                          return thumb ? (
-                            <img
-                              src={thumb}
-                              alt={`${selectedInfographicStyle} style preview`}
-                              className="rounded border border-border flex-1 min-w-0 max-h-[176px] object-cover object-top"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                            />
-                          ) : <div className="flex-1" />;
-                        })()}
+                        <div className="flex-1" />
 
                         <Button
                           size="sm"
@@ -1014,6 +971,75 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                           Generate
                         </Button>
                       </div>
+
+                      {/* Row 2: Style label + thumbnail gallery */}
+                      <div>
+                        <p className="text-[11px] text-muted-foreground mb-1.5">Select a style — click to preview</p>
+                        <div className="flex gap-1.5 overflow-x-auto pb-1">
+                          {[
+                            { key: 'practice-professional', label: 'Professional' },
+                            { key: 'clinical-governance', label: 'Governance' },
+                            { key: 'patient-safety', label: 'Patient Safety' },
+                            { key: 'team-engagement', label: 'Staff / Team' },
+                            { key: 'qof-targets', label: 'QOF & Targets' },
+                            { key: 'board-pack', label: 'Board Pack' },
+                            { key: 'icb-submission', label: 'ICB Submission' },
+                            { key: 'neighbourhood', label: 'Neighbourhood' },
+                          ].map(({ key, label }) => {
+                            const thumb = `/images/infographic-thumbnails/${key}.png`;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => {
+                                  if (selectedInfographicStyle === key) {
+                                    setExpandedInfographicThumb(prev => prev === key ? null : key);
+                                  } else {
+                                    setSelectedInfographicStyle(key);
+                                    setExpandedInfographicThumb(null);
+                                  }
+                                }}
+                                className={cn(
+                                  'flex flex-col items-center gap-0.5 shrink-0 rounded-md p-1 transition-all border-2',
+                                  selectedInfographicStyle === key
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-transparent hover:border-muted-foreground/20'
+                                )}
+                              >
+                                <img
+                                  src={thumb}
+                                  alt={label}
+                                  className="rounded w-[68px] h-[48px] object-cover object-top"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                                <span className={cn(
+                                  'text-[9px] leading-tight text-center max-w-[68px] truncate',
+                                  selectedInfographicStyle === key ? 'font-semibold text-primary' : 'text-muted-foreground'
+                                )}>{label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Expanded preview overlay */}
+                      {expandedInfographicThumb && (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedInfographicThumb(null)}
+                            className="absolute top-1 right-1 z-10 rounded-full bg-background/80 p-0.5 hover:bg-background"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                          <img
+                            src={`/images/infographic-thumbnails/${expandedInfographicThumb}.png`}
+                            alt="Style preview"
+                            className="rounded-md border border-border w-full max-h-[200px] object-contain cursor-pointer"
+                            onClick={() => setExpandedInfographicThumb(null)}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
