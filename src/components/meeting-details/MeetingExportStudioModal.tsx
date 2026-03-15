@@ -989,6 +989,32 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                           </button>
                         </div>
                       </div>
+
+                      {/* Practice logo toggle */}
+                      {logoUrl && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <img src={logoUrl} alt="Practice logo" className="h-6 w-6 object-contain rounded" />
+                            <div>
+                              <p className="text-xs font-medium text-foreground">{practiceName || 'Practice Logo'}</p>
+                              <p className="text-[10px] text-muted-foreground">Include on infographic</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIncludeLogoInInfographic(prev => !prev)}
+                            className={cn(
+                              'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                              includeLogoInInfographic ? 'bg-[#003087]' : 'bg-muted'
+                            )}
+                          >
+                            <span className={cn(
+                              'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition-transform',
+                              includeLogoInInfographic ? 'translate-x-4' : 'translate-x-0'
+                            )} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
