@@ -3,7 +3,7 @@ import { dedupTranscriptText } from '@/lib/dedupTranscriptText';
 
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { SelectionFindReplacePopup } from '@/components/SelectionFindReplacePopup';
-import { MeetingPowerPointModal } from '@/components/meeting-details/MeetingPowerPointModal';
+
 import { MeetingInfographicModal } from '@/components/meeting-details/MeetingInfographicModal';
 import { MeetingExportStudioModal } from '@/components/meeting-details/MeetingExportStudioModal';
 import { QuickAudioSummaryModal } from '@/components/meeting-details/QuickAudioSummaryModal';
