@@ -739,7 +739,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 </div>
 
                 {/* Action Items Table */}
-                {actionItems.length > 0 && (
+                {actionItems.length > 0 && docSettings.action_items_on && (
                   <div className="mt-6 overflow-x-auto rounded-lg border" style={{ borderColor: COLORS.tableBorder }}>
                     <table className="w-full border-collapse text-sm">
                       <thead>
