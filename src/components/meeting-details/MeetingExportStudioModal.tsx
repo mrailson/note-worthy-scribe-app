@@ -446,7 +446,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         parsedDetails,
         parsedActionItems,
         visibleSections,
-        prefs.showLogo ? logoUrl : undefined
+        docSettings.logo_on ? logoUrl : undefined
       );
       toast.success('Word document downloaded');
     } catch (error) {
