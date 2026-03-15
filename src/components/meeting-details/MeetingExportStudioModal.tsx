@@ -763,7 +763,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                     <table className="w-full border-collapse text-sm">
                       <thead>
                         <tr>
-                          <th colSpan={5} className="px-4 py-2.5 text-left text-sm font-semibold text-white" style={{ backgroundColor: COLORS.nhsBlue }}>
+                          <th colSpan={docSettings.priority_column_on ? 5 : 4} className="px-4 py-2.5 text-left text-sm font-semibold text-white" style={{ backgroundColor: COLORS.nhsBlue }}>
                             <div className="flex items-center gap-2">
                               <CheckCircle2 className="h-4 w-4" />
                               Action Items ({actionItems.length})
@@ -774,7 +774,9 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                           <th className="border-t px-3 py-2 text-left font-semibold text-xs" style={{ borderColor: COLORS.tableBorder }}>Action</th>
                           <th className="border-t px-3 py-2 text-left font-semibold text-xs w-24" style={{ borderColor: COLORS.tableBorder }}>Owner</th>
                           <th className="border-t px-3 py-2 text-left font-semibold text-xs w-24" style={{ borderColor: COLORS.tableBorder }}>Deadline</th>
-                          <th className="border-t px-3 py-2 text-left font-semibold text-xs w-20" style={{ borderColor: COLORS.tableBorder }}>Priority</th>
+                          {docSettings.priority_column_on && (
+                            <th className="border-t px-3 py-2 text-left font-semibold text-xs w-20" style={{ borderColor: COLORS.tableBorder }}>Priority</th>
+                          )}
                           <th className="border-t px-3 py-2 text-left font-semibold text-xs w-20" style={{ borderColor: COLORS.tableBorder }}>Status</th>
                         </tr>
                       </thead>
@@ -784,10 +786,12 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                             <td className="border-t px-3 py-2" style={{ borderColor: COLORS.tableBorder, color: COLORS.textGrey }}>{item.action}</td>
                             <td className="border-t px-3 py-2 text-xs" style={{ borderColor: COLORS.tableBorder, color: COLORS.textGrey }}>{item.owner}</td>
                             <td className="border-t px-3 py-2 text-xs" style={{ borderColor: COLORS.tableBorder, color: COLORS.textGrey }}>{item.deadline || '—'}</td>
-                            <td className="border-t px-3 py-2 text-xs font-medium" style={{
-                              borderColor: COLORS.tableBorder,
-                              color: item.priority === 'High' ? COLORS.agreedRed : item.priority === 'Low' ? '#16A34A' : COLORS.textGrey,
-                            }}>{item.priority}</td>
+                            {docSettings.priority_column_on && (
+                              <td className="border-t px-3 py-2 text-xs font-medium" style={{
+                                borderColor: COLORS.tableBorder,
+                                color: item.priority === 'High' ? COLORS.agreedRed : item.priority === 'Low' ? '#16A34A' : COLORS.textGrey,
+                              }}>{item.priority}</td>
+                            )}
                             <td className="border-t px-3 py-2 text-xs" style={{ borderColor: COLORS.tableBorder, color: COLORS.textGrey }}>{item.status}</td>
                           </tr>
                         ))}
