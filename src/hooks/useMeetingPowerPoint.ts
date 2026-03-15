@@ -190,9 +190,8 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
       const imageSource = options?.imageMode || 'noImages';
       console.log('[useMeetingPowerPoint] Image mode:', imageSource);
 
-      // Speaker notes — default to true
-      const includeSpeakerNotes = options?.speakerNotes !== false;
-      console.log('[useMeetingPowerPoint] Speaker notes:', includeSpeakerNotes);
+      // Speaker notes — always enabled
+      const includeSpeakerNotes = true;
 
       // Logo instruction fallback (Gamma endpoint rejects branding payload)
       const logoData = options?.includeLogo ? options.logoData : null;
