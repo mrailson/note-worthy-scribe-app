@@ -597,11 +597,38 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const handleSlidePickerGenerate = useCallback(async (config: SlidePickerConfig): Promise<SlideGenerationResult> => {
     const slideCount = config.slideCount === 'auto' ? 8 : config.slideCount;
 
+    // Fetch active logo if includeLogo is on
+    let logoData: { name: string; imageBase64?: string | null } | null = null;
+    if (config.includeLogo) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: activeLogo } = await supabase
+            .from('user_logos' as any)
+            .select('name, image_base64')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .single();
+          if (activeLogo) {
+            logoData = {
+              name: (activeLogo as any).name,
+              imageBase64: (activeLogo as any).image_base64,
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('[ExportStudio] Failed to fetch active logo:', err);
+      }
+    }
+
     const result = await generatePowerPoint(meetingData, {
       style: config.theme.key,
       content: config.textDensity,
       slideCount,
       imageMode: config.imageMode,
+      speakerNotes: config.speakerNotes,
+      includeLogo: config.includeLogo,
+      logoData,
     });
 
     return {

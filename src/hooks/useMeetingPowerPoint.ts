@@ -191,6 +191,25 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
       const imageSource = options?.imageMode || 'noImages';
       console.log('[useMeetingPowerPoint] Image mode:', imageSource);
 
+      // Speaker notes — default to true
+      const includeSpeakerNotes = options?.speakerNotes !== false;
+      console.log('[useMeetingPowerPoint] Speaker notes:', includeSpeakerNotes);
+
+      // Logo branding
+      const logoData = options?.includeLogo ? options.logoData : null;
+      console.log('[useMeetingPowerPoint] Include logo:', options?.includeLogo, 'Logo data:', logoData?.name);
+
+      // Build branding parameter if logo has image data
+      const branding = logoData?.imageBase64
+        ? { logo: { src: `data:image/png;base64,${logoData.imageBase64}` } }
+        : undefined;
+
+      // Append logo instruction to inputText if logo is on but no image
+      let logoInstruction = '';
+      if (options?.includeLogo && logoData?.name && !logoData?.imageBase64) {
+        logoInstruction = `\n\nInclude the organisation logo on the title slide and footer of each slide. Logo name: ${logoData.name}.`;
+      }
+
       const { data: startData, error: startError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
         body: {
           topic: `Executive Summary: ${data.meetingTitle}`,
@@ -198,10 +217,12 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
                            options?.style === 'stakeholder' ? 'Stakeholder Report' :
                            options?.style === 'quick' ? 'Quick Overview' : 'Executive Overview',
           slideCount: slideCount,
-          supportingContent,
+          supportingContent: supportingContent + logoInstruction,
           customInstructions,
           audience: 'healthcare professionals and NHS executives',
           useStockLibraryImages: imageSource !== 'noImages',
+          includeSpeakerNotes,
+          branding,
           imageOptions: {
             source: imageSource,
           },
