@@ -11268,6 +11268,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_document_settings: {
+        Row: {
+          action_items_on: boolean | null
+          exec_summary_on: boolean | null
+          footer_on: boolean | null
+          id: string
+          logo_on: boolean | null
+          logo_position: string | null
+          open_items_on: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_items_on?: boolean | null
+          exec_summary_on?: boolean | null
+          footer_on?: boolean | null
+          id?: string
+          logo_on?: boolean | null
+          logo_position?: string | null
+          open_items_on?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_items_on?: boolean | null
+          exec_summary_on?: boolean | null
+          footer_on?: boolean | null
+          id?: string
+          logo_on?: boolean | null
+          logo_position?: string | null
+          open_items_on?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_generated_images: {
         Row: {
           alt_text: string | null
@@ -11350,6 +11386,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_logos: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_modules: {
         Row: {

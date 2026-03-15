@@ -2,9 +2,6 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +31,9 @@ import {
 } from 'lucide-react';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useUserDocumentSettings, type UserDocumentSettings } from '@/hooks/useUserDocumentSettings';
+import { useUserLogos } from '@/hooks/useUserLogos';
+import { DocumentSettingsModal } from './DocumentSettingsModal';
 import { useContentInfographic } from '@/hooks/useContentInfographic';
 import { useMeetingInfographic } from '@/hooks/useMeetingInfographic';
 import { cn } from '@/lib/utils';
@@ -370,8 +370,11 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 }) => {
   const { prefs, updatePref } = useDocumentPreviewPrefs();
   const { practiceContext } = usePracticeContext();
+  const { settings: docSettings, setSettings: setDocSettings } = useUserDocumentSettings();
+  const { activeLogo } = useUserLogos();
   const isMobile = useIsMobile();
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // PPT state
   const [showPptModal, setShowPptModal] = useState(false);
@@ -389,7 +392,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const [infographicTipIdx, setInfographicTipIdx] = useState(0);
   const [infographicFullscreen, setInfographicFullscreen] = useState(false);
 
-  const logoUrl = practiceContext?.logoUrl;
+  // Determine the logo URL to use: prefer user-managed active logo, fall back to practice context
+  const logoUrl = activeLogo?.image_url || practiceContext?.logoUrl;
   const practiceName = practiceContext?.practiceName;
   const practiceAddress = practiceContext?.practiceAddress;
 
@@ -398,7 +402,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     center: 'justify-center',
     centre: 'justify-center',
     right: 'justify-end',
-  }[prefs.logoPosition] || 'justify-start';
+  }[docSettings.logo_position] || 'justify-start';
 
   const documentTitle = meetingDetails?.title || meetingTitle || 'Meeting Notes';
 
@@ -433,13 +437,21 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         isCompleted: item.status === 'Completed',
       }));
 
+      // Merge section toggle settings with visibleSections
+      const mergedSections = {
+        ...visibleSections,
+        executiveSummary: docSettings.exec_summary_on,
+        actionList: docSettings.action_items_on,
+        openItems: docSettings.open_items_on,
+      };
+
       await generateProfessionalWordFromContent(
         notesContent,
         documentTitle,
         parsedDetails,
-        parsedActionItems,
-        visibleSections,
-        prefs.showLogo ? logoUrl : undefined
+        docSettings.action_items_on ? parsedActionItems : [],
+        mergedSections,
+        docSettings.logo_on ? logoUrl : undefined
       );
       toast.success('Word document downloaded');
     } catch (error) {
@@ -448,7 +460,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     } finally {
       setIsDownloadingWord(false);
     }
-  }, [notesContent, documentTitle, meetingDetails, meetingType, meetingLocation, attendees, meetingId, visibleSections]);
+  }, [notesContent, documentTitle, meetingDetails, meetingType, meetingLocation, attendees, meetingId, visibleSections, docSettings, logoUrl]);
 
   // PPT slide count selection
   const handlePptGenerate = useCallback((slideCount: number) => {
@@ -574,40 +586,10 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
           {/* Document Settings */}
           <div className="px-4 sm:px-6 py-2 border-b bg-muted/20 flex items-center">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground hover:text-foreground">
-                  <Settings2 className="h-4 w-4" />
-                  Document Settings
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-72 space-y-3 bg-popover">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Display</p>
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="exp-show-logo" className="text-sm cursor-pointer">Logo</Label>
-                    <Switch id="exp-show-logo" checked={prefs.showLogo} onCheckedChange={(v) => updatePref('showLogo', v)} />
-                  </div>
-                  {prefs.showLogo && (
-                    <div className="flex items-center justify-between pl-4">
-                      <Label className="text-xs text-muted-foreground">Position</Label>
-                      <Select value={prefs.logoPosition} onValueChange={(v) => updatePref('logoPosition', v as LogoPosition)}>
-                        <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent className="bg-background">
-                          <SelectItem value="left">Left</SelectItem>
-                          <SelectItem value="centre">Centre</SelectItem>
-                          <SelectItem value="right">Right</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="exp-show-footer" className="text-sm cursor-pointer">Footer</Label>
-                    <Switch id="exp-show-footer" checked={prefs.showFooter} onCheckedChange={(v) => updatePref('showFooter', v)} />
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowSettingsModal(true)}>
+              <Settings2 className="h-4 w-4" />
+              Document Settings
+            </Button>
           </div>
 
           {/* Infographic generating banner */}
@@ -646,7 +628,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 style={{ fontFamily: 'Calibri, sans-serif', padding: isMobile ? '24px' : '40px', maxWidth: '210mm' }}
               >
                 {/* Logo */}
-                {prefs.showLogo && logoUrl && (
+                {docSettings.logo_on && logoUrl && (
                   <div className={cn('flex mb-6', logoAlignmentClass)}>
                     <img src={logoUrl} alt="Practice Logo" className="max-h-16 object-contain" />
                   </div>
@@ -778,7 +760,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 )}
 
                 {/* Footer */}
-                {prefs.showFooter && (
+                {docSettings.footer_on && (
                   <div className="mt-8 pt-4 border-t flex items-center justify-between text-xs" style={{ color: COLORS.lightGrey }}>
                     <div>
                       {practiceName && <p className="font-medium">{practiceName}</p>}
@@ -863,6 +845,13 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         />,
         document.body
       )}
+
+      {/* Document Settings Modal */}
+      <DocumentSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        onApply={(s) => setDocSettings(s)}
+      />
     </>
   );
 };
