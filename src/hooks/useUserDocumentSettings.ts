@@ -11,6 +11,7 @@ export interface UserDocumentSettings {
   open_items_on: boolean;
   attendees_on: boolean;
   meeting_details_on: boolean;
+  priority_column_on: boolean;
 }
 
 const DEFAULTS: UserDocumentSettings = {
@@ -23,6 +24,7 @@ const DEFAULTS: UserDocumentSettings = {
   open_items_on: true,
   attendees_on: true,
   meeting_details_on: true,
+  priority_column_on: true,
 };
 
 export function useUserDocumentSettings() {
