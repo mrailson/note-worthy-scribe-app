@@ -295,11 +295,7 @@ serve(async (req) => {
       },
     };
 
-    // Add branding/logo if provided
-    if (branding?.logo?.src) {
-      requestPayload.branding = branding;
-      console.log('[Gamma] Branding logo included in payload');
-    }
+    // Note: Gamma rejects a top-level `branding` property for this endpoint; use prompt fallback above.
 
     if (useStockLibraryImages) {
       try {

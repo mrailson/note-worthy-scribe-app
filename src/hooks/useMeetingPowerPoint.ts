@@ -216,7 +216,6 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
           audience: 'healthcare professionals and NHS executives',
           useStockLibraryImages: imageSource !== 'noImages',
           includeSpeakerNotes,
-          branding,
           imageOptions: {
             source: imageSource,
           },
