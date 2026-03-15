@@ -197,17 +197,17 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
 
       // Logo branding
       const logoData = options?.includeLogo ? options.logoData : null;
-      console.log('[useMeetingPowerPoint] Include logo:', options?.includeLogo, 'Logo data:', logoData?.name);
+      console.log('[useMeetingPowerPoint] Include logo:', options?.includeLogo, 'Logo data:', logoData?.name, 'hasImage:', !!logoData?.imageUrl);
 
-      // Build branding parameter if logo has image data
-      const branding = logoData?.imageBase64
-        ? { logo: { src: `data:image/png;base64,${logoData.imageBase64}` } }
+      // Build branding parameter if logo has an image URL
+      const branding = logoData?.imageUrl
+        ? { logo: { src: logoData.imageUrl } }
         : undefined;
 
       // Append logo instruction to inputText if logo is on but no image
       let logoInstruction = '';
-      if (options?.includeLogo && logoData?.name && !logoData?.imageBase64) {
-        logoInstruction = `\n\nInclude the organisation logo on the title slide and footer of each slide. Logo name: ${logoData.name}.`;
+      if (options?.includeLogo && logoData?.name && !logoData?.imageUrl) {
+        logoInstruction = `\n\nInclude the organisation name '${logoData.name}' on the title slide.`;
       }
 
       const { data: startData, error: startError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
