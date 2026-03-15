@@ -127,32 +127,57 @@ export const deduplicateActionItems = (content: string): string => {
   return result.join('\n').replace(/\n{3,}/g, '\n\n');
 };
 
-// Remove action items section from content (when rendering as separate table)
+/**
+ * Test whether a line is an Action Items or Completed Items heading.
+ * Supports: `## Action Items`, `# ACTION ITEMS:`, `**Action Items**`,
+ * `**Action Items:**`, `Action Items`, `COMPLETED`, `## Completed Items`, etc.
+ */
+const isActionOrCompletedHeading = (line: string): boolean => {
+  const t = line.trim();
+  // Markdown heading variants: # Action Items, ## Completed Items:
+  if (/^#{1,6}\s*\**\s*(?:action\s+items?|completed(?:\s+items?)?)\s*\**\s*:?\s*$/i.test(t)) return true;
+  // Bold heading variants: **Action Items**, **Completed Items:**
+  if (/^\*{2}\s*(?:action\s+items?|completed(?:\s+items?)?)\s*:?\s*\*{2}\s*$/i.test(t)) return true;
+  // Plain text heading variants: ACTION ITEMS, Completed Items:
+  if (/^(?:action\s+items?|completed(?:\s+items?)?)\s*:?\s*$/i.test(t)) return true;
+  return false;
+};
+
+/**
+ * Test whether a line is any non-action main section heading.
+ * Returns true for `## Something`, `# Heading`, bold headings like `**HEADING**`,
+ * or ALLCAPS plain headings (3+ chars).
+ */
+const isNonActionSectionHeading = (line: string): boolean => {
+  const t = line.trim();
+  // Markdown heading that is NOT action/completed
+  if (/^#{1,6}\s+\S/.test(t) && !isActionOrCompletedHeading(line)) return true;
+  // Bold heading that is NOT action/completed (e.g. **KEY DECISIONS**)
+  if (/^\*{2}[A-Z][A-Z\s&]{2,}\*{2}\s*:?\s*$/.test(t) && !isActionOrCompletedHeading(line)) return true;
+  return false;
+};
+
+// Remove action items & completed sections from content (line-based, robust)
 export const removeActionItemsSection = (content: string): string => {
   const lines = content.split('\n');
   const result: string[] = [];
-  let inActionSection = false;
+  let skipping = false;
   
   for (const line of lines) {
-    const trimmed = line.trim();
-    
-    // Detect Action Items section
-    if (/^#{1,3}\s*action\s+items?\s*:?\s*$/i.test(trimmed)) {
-      inActionSection = true;
+    // Start skipping when we hit an action/completed heading
+    if (isActionOrCompletedHeading(line)) {
+      skipping = true;
       continue;
     }
     
-    // Detect end of action section (new main heading that's not action-related)
-    if (inActionSection && /^#{1,2}\s+\S/.test(trimmed) && !/action|completed/i.test(trimmed)) {
-      inActionSection = false;
+    // Stop skipping when we hit a real non-action section heading
+    if (skipping && isNonActionSectionHeading(line)) {
+      skipping = false;
     }
     
-    // Skip lines in action section
-    if (inActionSection) {
-      continue;
+    if (!skipping) {
+      result.push(line);
     }
-    
-    result.push(line);
   }
   
   return result.join('\n').replace(/\n{3,}/g, '\n\n');
