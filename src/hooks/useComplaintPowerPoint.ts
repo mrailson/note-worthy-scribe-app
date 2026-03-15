@@ -189,7 +189,7 @@ const persistPowerPoint = async (
 
     const pptData = {
       powerpoint_download_url: downloadUrl,
-      powerpoint_gamma_url: gammaUrl || null,
+      powerpoint_gamma_url: null,
       powerpoint_thumbnail_url: thumbnailUrl,
       powerpoint_slide_count: slideCount,
     };
