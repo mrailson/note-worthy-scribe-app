@@ -842,6 +842,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                 )}>
                   {messages.length === 0 && !showEmbeddedPMGenie ? (
                     /* Welcome Screen - Compact, mobile-optimized - Hidden when PM Genie is active */
+                    <div className="flex-1 relative min-h-0 flex flex-col">
                     <div className={cn(
                       "flex-1 overflow-y-auto",
                     isMobile ? "p-0 pb-36" : "p-1 sm:p-4 space-y-1 sm:space-y-3"
