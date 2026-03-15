@@ -492,51 +492,23 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     }
   }, [notesContent, documentTitle, meetingDetails, meetingType, meetingLocation, attendees, meetingId, visibleSections, docSettings, logoUrl]);
 
-  // PPT slide count selection (legacy)
-  const handlePptGenerate = useCallback((slideCount: number) => {
-    setPptOptions({ style: 'professional', content: 'standard', slideCount });
-    setShowPptModal(true);
-  }, []);
-
-  // PPT generation from style picker
-  const handleSlidePickerGenerate = useCallback((config: SlidePickerConfig) => {
+  // PPT generation from style picker — returns result for inline progress
+  const handleSlidePickerGenerate = useCallback(async (config: SlidePickerConfig): Promise<SlideGenerationResult> => {
     const slideCount = config.slideCount === 'auto' ? 8 : config.slideCount;
 
-    // Progress simulation
-    const phases = [
-      { pct: 20, phase: 'Building your presentation…', sub: 'Extracting key points…' },
-      { pct: 45, phase: 'Structuring slides…', sub: `Applying ${config.theme.label} theme…` },
-      { pct: 70, phase: 'Laying out content…', sub: 'Adding speaker notes…' },
-      { pct: 90, phase: 'Finalising…', sub: 'Almost ready…' },
-      { pct: 100, phase: 'Complete!', sub: 'Your download will start shortly…' },
-    ];
+    const result = await generatePowerPoint(meetingData, {
+      style: config.theme.key,
+      content: config.textDensity,
+      slideCount,
+      imageMode: config.imageMode,
+    });
 
-    setIsPptGenerating(true);
-    setPptxProgress(0);
-    setPptxPhase('');
-    setPptxSubPhase('');
-
-    let step = 0;
-    const stepInterval = setInterval(() => {
-      if (step < phases.length) {
-        setPptxProgress(phases[step].pct);
-        setPptxPhase(phases[step].phase);
-        setPptxSubPhase(phases[step].sub);
-        step++;
-      }
-    }, 1800);
-
-    // Trigger actual generation
-    setPptOptions({ style: config.theme.key, content: config.textDensity, slideCount, imageMode: config.imageMode });
-    setShowPptModal(true);
-
-    // Clean up progress after modal opens
-    setTimeout(() => {
-      clearInterval(stepInterval);
-      setIsPptGenerating(false);
-      setPptxProgress(0);
-    }, 1400);
-  }, []);
+    return {
+      success: result.success,
+      downloadUrl: result.downloadUrl,
+      error: result.error,
+    };
+  }, [generatePowerPoint, meetingData]);
 
   // Infographic generation
   const handleGenerateInfographic = useCallback(async (style: string, orientation: 'landscape' | 'portrait') => {
