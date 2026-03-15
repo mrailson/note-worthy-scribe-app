@@ -195,18 +195,12 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
       const includeSpeakerNotes = options?.speakerNotes !== false;
       console.log('[useMeetingPowerPoint] Speaker notes:', includeSpeakerNotes);
 
-      // Logo branding
+      // Logo instruction fallback (Gamma endpoint rejects branding payload)
       const logoData = options?.includeLogo ? options.logoData : null;
       console.log('[useMeetingPowerPoint] Include logo:', options?.includeLogo, 'Logo data:', logoData?.name, 'hasImage:', !!logoData?.imageUrl);
 
-      // Build branding parameter if logo has an image URL
-      const branding = logoData?.imageUrl
-        ? { logo: { src: logoData.imageUrl } }
-        : undefined;
-
-      // Append logo instruction to inputText if logo is on but no image
       let logoInstruction = '';
-      if (options?.includeLogo && logoData?.name && !logoData?.imageUrl) {
+      if (options?.includeLogo && logoData?.name) {
         logoInstruction = `\n\nInclude the organisation name '${logoData.name}' on the title slide.`;
       }
 
@@ -222,7 +216,6 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
           audience: 'healthcare professionals and NHS executives',
           useStockLibraryImages: imageSource !== 'noImages',
           includeSpeakerNotes,
-          branding,
           imageOptions: {
             source: imageSource,
           },
