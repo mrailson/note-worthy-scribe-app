@@ -191,7 +191,6 @@ const savePersistedHistory = (userId: string, history: PresentationHistoryItem[]
           title: item.result.title,
           slideCount: item.result.slideCount,
           downloadUrl: item.result.downloadUrl,
-          gammaUrl: item.result.gammaUrl,
           generatedAt: item.result.generatedAt,
         },
       }));
@@ -738,7 +737,6 @@ export function usePresentationStudio() {
         slideCount: data.presentation?.slides?.length || settings.slideCount,
         downloadUrl: data.downloadUrl,
         pptxBase64: data.pptxBase64,
-        gammaUrl: data.gammaUrl,
         hasVoiceover,
         voiceoverPptxBase64: hasVoiceover ? voiceoverPptxBase64 : undefined,
         generatedAt: new Date(),

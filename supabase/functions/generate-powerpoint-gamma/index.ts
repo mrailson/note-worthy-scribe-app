@@ -36,6 +36,77 @@ interface GammaCompletedResponse {
   credits?: { deducted: number; remaining: number };
 }
 
+/**
+ * Fetch the PPTX binary from Gamma's CDN and re-upload it to Supabase Storage.
+ * Returns the persistent Supabase public URL, or falls back to the original URL on failure.
+ */
+async function persistPptxToStorage(gammaDownloadUrl: string, userId: string, title: string): Promise<string> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    console.log('[Gamma] Fetching PPTX binary from Gamma CDN...');
+    const pptxResponse = await fetch(gammaDownloadUrl);
+    if (!pptxResponse.ok) {
+      console.error(`[Gamma] Failed to fetch PPTX: ${pptxResponse.status}`);
+      return gammaDownloadUrl; // fallback
+    }
+
+    const pptxBlob = await pptxResponse.blob();
+    console.log(`[Gamma] PPTX fetched: ${pptxBlob.size} bytes`);
+
+    const sanitisedTitle = (title || 'presentation')
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .substring(0, 50)
+      .trim()
+      .replace(/\s+/g, '_');
+    const storagePath = `${userId}/presentations/${Date.now()}-${sanitisedTitle}.pptx`;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from('ai4pm-assets')
+      .upload(storagePath, pptxBlob, {
+        contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('[Gamma] Storage upload error:', uploadError);
+      return gammaDownloadUrl; // fallback
+    }
+
+    const { data: urlData } = supabaseClient.storage
+      .from('ai4pm-assets')
+      .getPublicUrl(storagePath);
+
+    const publicUrl = urlData?.publicUrl;
+    if (publicUrl) {
+      console.log(`[Gamma] PPTX persisted to Supabase Storage: ${storagePath}`);
+      return publicUrl;
+    }
+
+    return gammaDownloadUrl; // fallback
+  } catch (err) {
+    console.error('[Gamma] persistPptxToStorage error:', err);
+    return gammaDownloadUrl; // fallback
+  }
+}
+
+/**
+ * Extract the user ID from the Authorization header JWT.
+ */
+function extractUserIdFromAuth(req: Request): string | null {
+  try {
+    const authHeader = req.headers.get('authorization') || '';
+    const token = authHeader.replace('Bearer ', '');
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub || null;
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -48,6 +119,7 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json();
+    const userId = extractUserIdFromAuth(req);
 
     // ──────────────────────────────────────────────────────────
     // MODE 1: Poll for an existing generation's status
@@ -75,13 +147,19 @@ serve(async (req) => {
       console.log(`[Gamma] Poll result: status=${data.status}`);
 
       if (data.status === 'completed') {
-        const downloadUrl = data.exportUrl || data.pptxUrl;
+        let downloadUrl = data.exportUrl || data.pptxUrl;
+
+        // Persist the PPTX to Supabase Storage so the link never expires
+        if (downloadUrl && userId) {
+          downloadUrl = await persistPptxToStorage(downloadUrl, userId, requestBody.title || 'presentation');
+        }
+
         return new Response(
           JSON.stringify({
             success: true,
             status: 'completed',
             downloadUrl,
-            gammaUrl: data.gammaUrl,
+            // gammaUrl intentionally omitted — never expose Gamma platform links
             generationId,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

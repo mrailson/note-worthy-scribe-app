@@ -44,13 +44,11 @@ interface ComplaintPowerPointData {
 interface GenerationResult {
   success: boolean;
   downloadUrl?: string;
-  gammaUrl?: string;
   error?: string;
 }
 
 interface PersistedPowerPoint {
   downloadUrl: string;
-  gammaUrl?: string;
   thumbnailUrl?: string;
   slideCount?: number;
 }
@@ -148,7 +146,6 @@ const generateTitleSlideThumbnail = (
 const persistPowerPoint = async (
   complaintId: string,
   downloadUrl: string,
-  gammaUrl: string | undefined,
   slideCount: number,
   referenceNumber: string,
   category: string,
@@ -192,7 +189,7 @@ const persistPowerPoint = async (
 
     const pptData = {
       powerpoint_download_url: downloadUrl,
-      powerpoint_gamma_url: gammaUrl || null,
+      powerpoint_gamma_url: null,
       powerpoint_thumbnail_url: thumbnailUrl,
       powerpoint_slide_count: slideCount,
     };
@@ -242,7 +239,7 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
       const [overviewResult, complaintResult] = await Promise.all([
         supabase
           .from('complaint_audio_overviews')
-          .select('powerpoint_download_url, powerpoint_gamma_url, powerpoint_thumbnail_url, powerpoint_slide_count')
+          .select('powerpoint_download_url, powerpoint_thumbnail_url, powerpoint_slide_count')
           .eq('complaint_id', complaintId!)
           .maybeSingle(),
       supabase
@@ -255,7 +252,6 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
       if (overviewResult.data?.powerpoint_download_url) {
         setPersistedData({
           downloadUrl: overviewResult.data.powerpoint_download_url,
-          gammaUrl: overviewResult.data.powerpoint_gamma_url || undefined,
           thumbnailUrl: overviewResult.data.powerpoint_thumbnail_url || undefined,
           slideCount: overviewResult.data.powerpoint_slide_count || undefined,
         });
@@ -535,7 +531,6 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         new Promise(r => setTimeout(r, ms * (0.9 + Math.random() * 0.2)));
 
       let downloadUrl: string | undefined;
-      let gammaUrl: string | undefined;
 
       while (Date.now() - startTime < maxPollTime) {
         await sleepWithJitter(currentInterval);
@@ -572,7 +567,6 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
 
         if (pollResponse?.status === 'completed') {
           downloadUrl = pollResponse.downloadUrl;
-          gammaUrl = pollResponse.gammaUrl;
           break;
         }
 
@@ -623,14 +617,12 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         persistPowerPoint(
           complaintId,
           downloadUrl,
-          gammaUrl,
           slideCount,
           data.referenceNumber,
           data.category,
         ).then((thumbnailUrl) => {
           setPersistedData({
             downloadUrl: downloadUrl!,
-            gammaUrl,
             thumbnailUrl: thumbnailUrl || undefined,
             slideCount,
           });
@@ -640,7 +632,6 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
       return {
         success: true,
         downloadUrl,
-        gammaUrl,
       };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';

@@ -25,7 +25,6 @@ interface MeetingPowerPointData {
 interface GenerationResult {
   success: boolean;
   downloadUrl?: string;
-  gammaUrl?: string;
   error?: string;
 }
 
@@ -312,7 +311,6 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
       return {
         success: true,
         downloadUrl: response.downloadUrl,
-        gammaUrl: response.gammaUrl,
       };
 
     } catch (err) {

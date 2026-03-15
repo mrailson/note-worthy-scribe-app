@@ -17,7 +17,6 @@ interface UserTemplatePreference {
 interface GenerationResult {
   success: boolean;
   downloadUrl?: string;
-  gammaUrl?: string;
   title?: string;
   error?: string;
 }
@@ -231,7 +230,7 @@ export const useGammaPowerPoint = () => {
           console.log('[Gamma Hook] Using direct download URL from Gamma');
           downloadFromUrl(data.downloadUrl, presentationTitle);
           toast.success('Professional presentation downloaded!');
-          return { success: true, downloadUrl: data.downloadUrl, gammaUrl: data.gammaUrl, title: presentationTitle };
+          return { success: true, downloadUrl: data.downloadUrl, title: presentationTitle };
         }
         if (data.pptxBase64) {
           console.log('[Gamma Hook] Using legacy base64 response');
@@ -334,7 +333,7 @@ export const useGammaPowerPoint = () => {
         console.log('[Gamma Hook] Using direct download URL from Gamma');
         downloadFromUrl(data.downloadUrl, presentationTitle);
         toast.success('Professional presentation downloaded!');
-        return { success: true, downloadUrl: data.downloadUrl, gammaUrl: data.gammaUrl, title: presentationTitle };
+        return { success: true, downloadUrl: data.downloadUrl, title: presentationTitle };
       }
 
       if (data.pptxBase64) {
