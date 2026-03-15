@@ -3,7 +3,7 @@ import { dedupTranscriptText } from '@/lib/dedupTranscriptText';
 
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { SelectionFindReplacePopup } from '@/components/SelectionFindReplacePopup';
-import { MeetingPowerPointModal } from '@/components/meeting-details/MeetingPowerPointModal';
+
 import { MeetingInfographicModal } from '@/components/meeting-details/MeetingInfographicModal';
 import { MeetingExportStudioModal } from '@/components/meeting-details/MeetingExportStudioModal';
 import { QuickAudioSummaryModal } from '@/components/meeting-details/QuickAudioSummaryModal';
@@ -225,12 +225,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showTranscriptFindReplace, setShowTranscriptFindReplace] = useState(false);
   const [showNotesFindReplace, setShowNotesFindReplace] = useState(false);
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
-  const [showPptModal, setShowPptModal] = useState(false);
-  const [pptOptions, setPptOptions] = useState<{
-    style: string;
-    content: string;
-    slideCount: number;
-  } | null>(null);
   const [showInfographicModal, setShowInfographicModal] = useState(false);
   const [infographicOptions, setInfographicOptions] = useState<{
     style: string;
@@ -4001,27 +3995,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         />
       )}
 
-      {/* PowerPoint Generation Modal */}
-      <MeetingPowerPointModal
-        isOpen={showPptModal}
-        onClose={() => { setShowPptModal(false); setPptOptions(null); }}
-        meetingData={{
-          meetingTitle: meetingDetails?.title || meeting?.title || 'Meeting Notes',
-          meetingDate: meetingDetails?.date,
-          meetingTime: meetingDetails?.time,
-          location: meetingDetails?.location,
-          attendees: attendees.map(a => a.name),
-          notesContent: notesContent || '',
-          actionItems: actionItems.map(item => ({
-            description: item.action,
-            owner: item.owner,
-            deadline: item.deadline,
-            status: item.status,
-            priority: item.priority,
-          })),
-        }}
-        options={pptOptions || undefined}
-      />
 
       {/* Infographic Generation Modal */}
       <MeetingInfographicModal
