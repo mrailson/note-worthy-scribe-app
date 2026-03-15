@@ -413,7 +413,18 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
   const documentTitle = meetingDetails?.title || meetingTitle || 'Meeting Notes';
 
-  const previewElements = useMemo(() => renderMeetingContent(notesContent), [notesContent]);
+  // Filter content based on section toggles for preview
+  const filteredNotesContent = useMemo(() => {
+    const sectionVisibility = {
+      executiveSummary: docSettings.exec_summary_on,
+      actionList: docSettings.action_items_on,
+      openItems: docSettings.open_items_on,
+      keyPoints: true, // always show key points / discussion summary
+    };
+    return filterContentByVisibility(notesContent, sectionVisibility);
+  }, [notesContent, docSettings.exec_summary_on, docSettings.action_items_on, docSettings.open_items_on]);
+
+  const previewElements = useMemo(() => renderMeetingContent(filteredNotesContent), [filteredNotesContent]);
 
   // Word download
   const handleDownloadWord = useCallback(async () => {
