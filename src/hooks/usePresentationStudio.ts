@@ -737,7 +737,6 @@ export function usePresentationStudio() {
         slideCount: data.presentation?.slides?.length || settings.slideCount,
         downloadUrl: data.downloadUrl,
         pptxBase64: data.pptxBase64,
-        gammaUrl: data.gammaUrl,
         hasVoiceover,
         voiceoverPptxBase64: hasVoiceover ? voiceoverPptxBase64 : undefined,
         generatedAt: new Date(),

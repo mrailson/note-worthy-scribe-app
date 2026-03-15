@@ -19,7 +19,6 @@ export interface GeneratedPresentation {
   slideCount: number;
   presentationType: string;
   sourceFiles?: string[]; // Names of files used
-  gammaUrl?: string; // Link to view/edit in Gamma
 }
 
 export interface Message {

@@ -166,7 +166,6 @@ export interface GeneratedPresentation {
   slideCount: number;
   downloadUrl?: string;
   pptxBase64?: string;
-  gammaUrl?: string;
   hasVoiceover: boolean;
   // Separate voiceover version — Gamma PPTX stays in downloadUrl/pptxBase64
   voiceoverPptxBase64?: string;
