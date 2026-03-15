@@ -479,7 +479,9 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         mergedSections,
         docSettings.logo_on ? logoUrl : undefined,
         docSettings.logo_scale ?? 1.0,
-        docSettings.footer_on
+        docSettings.footer_on,
+        docSettings.meeting_details_on,
+        docSettings.attendees_on
       );
       toast.success('Word document downloaded');
     } catch (error) {
@@ -680,7 +682,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 )}
 
                 {/* Meeting Details Table */}
-                {(meetingDetails || attendees.length > 0) && (
+                {docSettings.meeting_details_on && (meetingDetails || (docSettings.attendees_on && attendees.length > 0)) && (
                   <div className="my-4 overflow-x-auto rounded-lg border" style={{ borderColor: COLORS.tableBorder }}>
                     <table className="w-full border-collapse text-sm">
                       <thead>
@@ -726,7 +728,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                             <td className="border-t px-4 py-2.5" style={{ borderColor: COLORS.tableBorder, color: COLORS.textGrey }}>{meetingLocation || meetingDetails?.location}</td>
                           </tr>
                         )}
-                        {attendees.length > 0 && (
+                        {docSettings.attendees_on && attendees.length > 0 && (
                           <tr>
                             <td className="border-t px-4 py-2.5 font-semibold align-top w-[180px]" style={{ borderColor: COLORS.tableBorder, color: COLORS.headingBlue }}>
                               <div className="flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /> Attendees</div>

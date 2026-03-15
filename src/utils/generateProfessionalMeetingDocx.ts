@@ -1609,7 +1609,9 @@ export const generateProfessionalWordFromContent = async (
   visibleSections?: VisibleSectionsInput,
   logoUrl?: string,
   logoScale?: number,
-  footerOn?: boolean
+  footerOn?: boolean,
+  meetingDetailsOn?: boolean,
+  attendeesOn?: boolean
 ): Promise<void> => {
   // Filter content based on visibility settings before processing
   const filteredContent = filterContentByVisibility(content, visibleSections);
@@ -1633,6 +1635,8 @@ export const generateProfessionalWordFromContent = async (
       logoUrl,
       logoScale,
       footerOn,
+      meetingDetailsOn,
+      attendeesOn,
     });
   } else {
     // Fallback to auto-parsing
@@ -1760,6 +1764,8 @@ interface GenerateWithParsedDataOptions {
   logoUrl?: string;
   logoScale?: number;
   footerOn?: boolean;
+  meetingDetailsOn?: boolean;
+  attendeesOn?: boolean;
 }
 
 export const generateProfessionalMeetingDocxWithParsedData = async (options: GenerateWithParsedDataOptions): Promise<void> => {
@@ -1802,9 +1808,11 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   const headerElements = await createHeaderBlock(metadata.title, generatedDate, options.logoUrl, options.logoScale);
   children.push(...headerElements);
   
-  // Meeting details box - only if we have valid details
-  if (metadata.date || metadata.time || metadata.location || metadata.attendees) {
-    const detailsElements = await createMeetingDetailsBox(metadata);
+  // Meeting details box - only if enabled and we have valid details
+  if (options.meetingDetailsOn !== false && (metadata.date || metadata.time || metadata.location || (options.attendeesOn !== false && metadata.attendees))) {
+    // If attendees are disabled, strip them from metadata for the details box
+    const detailsMetadata = options.attendeesOn === false ? { ...metadata, attendees: undefined } : metadata;
+    const detailsElements = await createMeetingDetailsBox(detailsMetadata);
     children.push(...detailsElements);
   }
   

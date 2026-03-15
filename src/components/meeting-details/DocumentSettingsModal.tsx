@@ -13,18 +13,22 @@ const TYPE_BADGE: Record<string, { bg: string; fg: string }> = {
 };
 
 const PILL_COLOURS: Record<string, { bg: string; fg: string }> = {
-  logo:         { bg: '#E6F1FB', fg: '#0C447C' },
-  footer:       { bg: '#EAF3DE', fg: '#27500A' },
-  exec_summary: { bg: '#EEEDFE', fg: '#3C3489' },
-  action_items: { bg: '#FAEEDA', fg: '#633806' },
-  open_items:   { bg: '#fcebeb', fg: '#A32D2D' },
+  logo:             { bg: '#E6F1FB', fg: '#0C447C' },
+  footer:           { bg: '#EAF3DE', fg: '#27500A' },
+  meeting_details:  { bg: '#E6F1FB', fg: '#0C447C' },
+  attendees:        { bg: '#FAEEDA', fg: '#633806' },
+  exec_summary:     { bg: '#EEEDFE', fg: '#3C3489' },
+  action_items:     { bg: '#FAEEDA', fg: '#633806' },
+  open_items:       { bg: '#fcebeb', fg: '#A32D2D' },
 };
 
 const TYPE_LABELS: Record<string, string> = {
   practice: 'Practice', pcn: 'PCN', neighbourhood: 'Neighbourhood', organisation: 'Organisation',
 };
 
-const SECTION_META: { key: keyof Pick<UserDocumentSettings, 'exec_summary_on' | 'action_items_on' | 'open_items_on'>; label: string; subtitle: string; pillKey: string }[] = [
+const SECTION_META: { key: keyof Pick<UserDocumentSettings, 'meeting_details_on' | 'attendees_on' | 'exec_summary_on' | 'action_items_on' | 'open_items_on'>; label: string; subtitle: string; pillKey: string }[] = [
+  { key: 'meeting_details_on', label: 'Meeting details', subtitle: 'Title, date, time, location table', pillKey: 'meeting_details' },
+  { key: 'attendees_on', label: 'Attendees', subtitle: 'List of meeting participants', pillKey: 'attendees' },
   { key: 'exec_summary_on', label: 'Executive summary', subtitle: 'Key findings and context', pillKey: 'exec_summary' },
   { key: 'action_items_on', label: 'Action items', subtitle: 'Tasks with owners and due dates', pillKey: 'action_items' },
   { key: 'open_items_on', label: 'Open items', subtitle: 'Unresolved items requiring follow-up', pillKey: 'open_items' },
@@ -121,6 +125,8 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
   const pills: { label: string; pillKey: string }[] = [];
   if (localSettings.logo_on) pills.push({ label: 'Logo', pillKey: 'logo' });
   if (localSettings.footer_on) pills.push({ label: 'Footer', pillKey: 'footer' });
+  if (localSettings.meeting_details_on) pills.push({ label: 'Meeting details', pillKey: 'meeting_details' });
+  if (localSettings.attendees_on) pills.push({ label: 'Attendees', pillKey: 'attendees' });
   if (localSettings.exec_summary_on) pills.push({ label: 'Executive summary', pillKey: 'exec_summary' });
   if (localSettings.action_items_on) pills.push({ label: 'Action items', pillKey: 'action_items' });
   if (localSettings.open_items_on) pills.push({ label: 'Open items', pillKey: 'open_items' });
