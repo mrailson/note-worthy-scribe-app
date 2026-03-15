@@ -49,7 +49,10 @@ import { generateProfessionalWordFromContent, filterContentByVisibility, ParsedM
 import { MeetingInfographicModal } from './MeetingInfographicModal';
 import { SlidesStylePicker, type SlidePickerConfig, type SlideGenerationResult } from './SlidesStylePicker';
 import { useMeetingPowerPoint } from '@/hooks/useMeetingPowerPoint';
+import { useMeetingInfographicHistory } from '@/hooks/useMeetingInfographicHistory';
 import { supabase } from '@/integrations/supabase/client';
+import { downloadFile } from '@/utils/downloadFile';
+import { Trash2, Eye } from 'lucide-react';
 
 interface MeetingDetails {
   title?: string;
