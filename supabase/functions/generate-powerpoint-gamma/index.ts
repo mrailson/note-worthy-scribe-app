@@ -284,11 +284,13 @@ serve(async (req) => {
         tone: 'professional',
         amount: 'medium',
       },
-      imageOptions: {
-        source: 'aiGenerated',
-        model: 'imagen-4-pro',
-        style: 'photorealistic',
-      },
+      imageOptions: effectiveImageSource === 'noImages'
+        ? { source: 'noImages' }
+        : {
+            source: effectiveImageSource,
+            model: effectiveImageSource === 'aiGenerated' ? 'imagen-4-pro' : undefined,
+            style: effectiveImageSource === 'aiGenerated' ? 'photorealistic' : undefined,
+          },
       cardOptions: {
         dimensions: '16x9',
       },
