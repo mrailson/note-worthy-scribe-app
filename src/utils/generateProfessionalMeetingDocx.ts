@@ -335,21 +335,26 @@ const fetchLogoForDocx = async (logoUrl: string): Promise<{ data: Uint8Array; ty
 };
 
 // Create professional header block with title and accent bar (no generated date)
-const createHeaderBlock = async (title: string, _generatedDate?: string, logoUrl?: string) => {
+const createHeaderBlock = async (title: string, _generatedDate?: string, logoUrl?: string, logoScale: number = 1.0) => {
   const { Paragraph, TextRun, BorderStyle, AlignmentType, ImageRun } = await import("docx");
   
   const cleanTitle = title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim().toUpperCase();
   const elements: any[] = [];
 
-  // Practice logo (if available)
+  // Practice logo (if available) — preserves aspect ratio, scales with user preference
   if (logoUrl) {
     const logoData = await fetchLogoForDocx(logoUrl);
     if (logoData) {
+      const BASE_HEIGHT = 70; // base height in points
+      const scaledHeight = Math.round(BASE_HEIGHT * logoScale);
+      const aspectRatio = logoData.naturalWidth / logoData.naturalHeight;
+      const scaledWidth = Math.round(scaledHeight * aspectRatio);
+
       elements.push(new Paragraph({
         children: [
           new ImageRun({
             data: logoData.data,
-            transformation: { width: 160, height: 70 },
+            transformation: { width: scaledWidth, height: scaledHeight },
             type: logoData.type,
           }),
         ],
