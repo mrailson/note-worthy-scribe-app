@@ -17,7 +17,6 @@ import {
   Sparkles,
   Download,
   Maximize2,
-  ExternalLink,
   X,
 } from 'lucide-react';
 import { ComplaintAudioOverviewPlayer } from '@/components/complaints/ComplaintAudioOverviewPlayer';
