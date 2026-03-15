@@ -600,7 +600,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
             <div 
               className="flex-1 flex flex-col min-w-0 min-h-0 mx-auto transition-all duration-200"
               style={{
-                maxWidth: chatViewSettings.containerSize === 'full' ? '100%' : chatViewSettings.containerSize === 'wide' ? '1400px' : '1100px',
+                maxWidth: chatViewSettings.containerSize === 'full' ? '100%' : chatViewSettings.containerSize === 'wide' ? '1200px' : '1100px',
                 width: '100%',
               }}
             >
