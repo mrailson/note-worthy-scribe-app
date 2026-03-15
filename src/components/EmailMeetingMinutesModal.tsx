@@ -787,8 +787,6 @@ export function EmailMeetingMinutesModal({
             html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; ${textDecoration}">${item.action}</td>\n`;
             html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; ${textDecoration}">${item.owner}</td>\n`;
             html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; ${textDecoration}">${item.deadline}</td>\n`;
-            html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; background-color: ${priorityBg}; color: ${priorityColor};">${item.priority}</span></td>\n`;
-            html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; background-color: ${statusBg}; color: ${statusColor};">${item.status}</span></td>\n`;
             html += '    </tr>\n';
           });
           
