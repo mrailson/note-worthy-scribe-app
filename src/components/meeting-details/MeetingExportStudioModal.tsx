@@ -912,11 +912,57 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
                   {selectedExport === 'infographic' && (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground">Generate visual infographic</p>
-                          <p className="text-xs text-muted-foreground">Visual summary of key decisions</p>
+                      {/* Top row: title + orientation slider + logo toggle + generate */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground">Generate infographic</p>
+                          </div>
+
+                          {/* Orientation slider */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedInfographicOrientation(prev => prev === 'landscape' ? 'portrait' : 'landscape')}
+                            className="flex items-center gap-1.5 shrink-0"
+                          >
+                            <span className={cn('text-[10px] font-medium', selectedInfographicOrientation === 'landscape' ? 'text-foreground' : 'text-muted-foreground')}>
+                              <Monitor className="h-3 w-3 inline mr-0.5" />L
+                            </span>
+                            <div className={cn(
+                              'relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                              'bg-[#003087]'
+                            )}>
+                              <span className={cn(
+                                'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition-transform',
+                                selectedInfographicOrientation === 'portrait' ? 'translate-x-4' : 'translate-x-0'
+                              )} />
+                            </div>
+                            <span className={cn('text-[10px] font-medium', selectedInfographicOrientation === 'portrait' ? 'text-foreground' : 'text-muted-foreground')}>
+                              <ImageIcon className="h-3 w-3 inline mr-0.5" />P
+                            </span>
+                          </button>
+
+                          {/* Logo toggle */}
+                          {logoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setIncludeLogoInInfographic(prev => !prev)}
+                              className="flex items-center gap-1.5 shrink-0"
+                            >
+                              <img src={logoUrl} alt="" className="h-5 w-auto max-w-[40px] object-contain rounded" />
+                              <div className={cn(
+                                'relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                                includeLogoInInfographic ? 'bg-[#003087]' : 'bg-muted'
+                              )}>
+                                <span className={cn(
+                                  'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition-transform',
+                                  includeLogoInInfographic ? 'translate-x-4' : 'translate-x-0'
+                                )} />
+                              </div>
+                            </button>
+                          )}
                         </div>
+
                         <Button
                           size="sm"
                           className="shrink-0 gap-1.5"
@@ -975,69 +1021,12 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                             <img
                               src={thumb}
                               alt={`${selectedInfographicStyle} style preview`}
-                              className="mt-2 rounded border border-border max-w-[25%] max-h-[60px] object-cover object-top"
+                              className="mt-2 rounded border border-border max-w-[40%] max-h-[90px] object-cover object-top"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                           ) : null;
                         })()}
                       </div>
-
-                      {/* Orientation selector */}
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1.5">Orientation</p>
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedInfographicOrientation('landscape')}
-                            className={cn(
-                              'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors',
-                              selectedInfographicOrientation === 'landscape'
-                                ? 'bg-[#003087] text-white'
-                                : 'bg-white border border-border text-foreground hover:bg-muted/50'
-                            )}
-                          >
-                            <Monitor className="h-3 w-3" /> Landscape
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedInfographicOrientation('portrait')}
-                            className={cn(
-                              'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors',
-                              selectedInfographicOrientation === 'portrait'
-                                ? 'bg-[#003087] text-white'
-                                : 'bg-white border border-border text-foreground hover:bg-muted/50'
-                            )}
-                          >
-                            <ImageIcon className="h-3 w-3" /> Portrait
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Practice logo toggle */}
-                      {logoUrl && (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <img src={logoUrl} alt="Practice logo" className="h-8 w-auto max-w-[80px] object-contain rounded" />
-                            <div>
-                              <p className="text-xs font-medium text-foreground">{practiceName || 'Practice Logo'}</p>
-                              <p className="text-[10px] text-muted-foreground">Include on infographic</p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setIncludeLogoInInfographic(prev => !prev)}
-                            className={cn(
-                              'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                              includeLogoInInfographic ? 'bg-[#003087]' : 'bg-muted'
-                            )}
-                          >
-                            <span className={cn(
-                              'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition-transform',
-                              includeLogoInInfographic ? 'translate-x-4' : 'translate-x-0'
-                            )} />
-                          </button>
-                        </div>
-                      )}
                     </div>
                   )}
 
