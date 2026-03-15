@@ -179,9 +179,94 @@ async function buildPptx({ content, scheme, practice, imageMode, logo }: {
   return pptx.writeFile({ fileName: `${(content.title || 'Presentation').replace(/[^a-z0-9]/gi, '_')}.pptx` });
 }
 
-async function callGammaStub({ title, slides }: { title: string; slides: number }) {
-  await new Promise(r => setTimeout(r, 1800));
-  return { gammaUrl: `https://gamma.app/docs/preview-${Math.random().toString(36).slice(2, 8)}`, slides };
+// ─── Gamma API (real) ─────────────────────────────────────────────────────────
+async function callGamma({ title, slides, pasteText, sourceFiles, imageSource }: {
+  title: string; slides: number; pasteText: string; sourceFiles: SourceFile[]; imageSource: string;
+}): Promise<{ gammaUrl?: string; downloadUrl?: string; title: string; slideCount: number }> {
+  // Build supporting content from source material
+  const textParts: string[] = [];
+  for (const f of sourceFiles) {
+    if (f.text) textParts.push(`[${f.name}]\n${f.text.slice(0, 8000)}`);
+  }
+  if (pasteText.trim()) textParts.push(pasteText.slice(0, 8000));
+  const supportingContent = textParts.join('\n\n');
+
+  // Phase 1: start generation
+  const { data: startData, error: startError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+    body: {
+      topic: title,
+      supportingContent,
+      slideCount: Math.min(30, Math.max(4, slides)),
+      presentationType: 'Professional Healthcare Presentation',
+      audience: 'healthcare professionals',
+      includeSpeakerNotes: true,
+      useStockLibraryImages: false,
+      imageSource,
+    },
+  });
+
+  if (startError) throw new Error(startError.message || 'Gamma edge function error');
+
+  // Direct result (legacy path)
+  if (startData?.success && (startData?.downloadUrl || startData?.pptxBase64)) {
+    return {
+      gammaUrl: startData.gammaUrl,
+      downloadUrl: startData.downloadUrl,
+      title: startData.title || title,
+      slideCount: slides,
+    };
+  }
+
+  // Polling path
+  if (!startData?.generationId) {
+    throw new Error(startData?.error || 'Failed to start Gamma generation');
+  }
+
+  const generationId = startData.generationId;
+  const maxPollDuration = slides > 10 ? 60_000 + slides * 10_000 : 180_000;
+  let currentInterval = 10_000;
+  const pollStart = Date.now();
+
+  while (Date.now() - pollStart < maxPollDuration) {
+    await new Promise(r => setTimeout(r, currentInterval * (0.9 + Math.random() * 0.2)));
+
+    const { data: pollData, error: pollError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+      body: { action: 'poll', generationId },
+    });
+
+    if (pollError) {
+      const msg = pollError.message || '';
+      if (msg.includes('429') || msg.includes('ThrottlerException')) {
+        currentInterval = Math.min(currentInterval * 2, 120_000);
+        continue;
+      }
+      continue;
+    }
+
+    if (pollData?.status === 'completed') {
+      // Auto-download if we got a URL
+      if (pollData.downloadUrl) {
+        const link = document.createElement('a');
+        link.href = pollData.downloadUrl;
+        link.download = `${title.replace(/[^a-z0-9]/gi, '_')}.pptx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      return {
+        gammaUrl: pollData.gammaUrl,
+        downloadUrl: pollData.downloadUrl,
+        title: pollData.title || title,
+        slideCount: slides,
+      };
+    }
+
+    if (pollData?.status === 'failed') {
+      throw new Error(pollData.error || 'Gamma generation failed');
+    }
+  }
+
+  throw new Error(`Gamma generation timed out after ${Math.round(maxPollDuration / 1000)}s`);
 }
 
 // ─── Shared style primitives ──────────────────────────────────────────────────
