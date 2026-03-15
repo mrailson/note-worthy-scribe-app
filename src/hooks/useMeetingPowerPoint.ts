@@ -34,7 +34,6 @@ interface PowerPointOptions {
   content: string;
   slideCount: number;
   imageMode?: string;
-  speakerNotes?: boolean;
   includeLogo?: boolean;
   logoData?: {
     name: string;
