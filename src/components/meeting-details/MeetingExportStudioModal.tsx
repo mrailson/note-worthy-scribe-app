@@ -1094,6 +1094,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                     </div>
                   )}
                 </div>
+                )}
 
                 {/* View infographic link */}
                 {infographicUrl && !isInfographicGenerating && (
