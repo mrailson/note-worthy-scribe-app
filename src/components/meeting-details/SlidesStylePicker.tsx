@@ -103,6 +103,7 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
   generationSubPhase,
 }) => {
   const [selectedTheme, setSelectedTheme] = useState<SlideTheme>(SLIDE_THEMES[0]);
+  const [themeExpanded, setThemeExpanded] = useState(false);
   const [slideCount, setSlideCount] = useState<SlideCount>('auto');
   const [textDensity, setTextDensity] = useState<TextDensity>('brief');
   const [imageMode, setImageMode] = useState<ImageMode>('noImages');
