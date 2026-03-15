@@ -44,7 +44,6 @@ interface ComplaintPowerPointData {
 interface GenerationResult {
   success: boolean;
   downloadUrl?: string;
-  gammaUrl?: string;
   error?: string;
 }
 
