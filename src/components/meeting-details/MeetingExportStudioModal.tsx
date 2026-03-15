@@ -533,7 +533,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     }, 1800);
 
     // Trigger actual generation
-    setPptOptions({ style: config.theme.key, content: config.textDensity, slideCount });
+    setPptOptions({ style: config.theme.key, content: config.textDensity, slideCount, imageMode: config.imageMode });
     setShowPptModal(true);
 
     // Clean up progress after modal opens
