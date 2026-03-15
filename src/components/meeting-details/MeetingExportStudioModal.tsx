@@ -954,6 +954,78 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
                   {selectedExport === 'infographic' && (
                     <div className="space-y-2">
+                      {/* Saved infographics gallery */}
+                      {savedInfographics.length > 0 && (
+                        <div>
+                          <p className="text-[11px] text-muted-foreground mb-1.5 font-medium">Saved Infographics ({savedCount})</p>
+                          <div className="flex gap-2 overflow-x-auto pb-1.5">
+                            {savedInfographics.map((item, idx) => {
+                              const styleLabel = item.style?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Custom';
+                              const dateStr = new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                              return (
+                                <div
+                                  key={item.id}
+                                  className="relative shrink-0 rounded-lg border border-border bg-white overflow-hidden group cursor-pointer"
+                                  style={{ width: 100 }}
+                                >
+                                  <img
+                                    src={item.image_url}
+                                    alt={`Infographic #${savedInfographics.length - idx}`}
+                                    className="w-full h-[68px] object-cover object-top"
+                                    onClick={() => { setInfographicUrl(item.image_url); setInfographicFullscreen(true); }}
+                                  />
+                                  <div className="px-1.5 py-1">
+                                    <p className="text-[9px] font-medium text-foreground truncate">#{savedInfographics.length - idx} {styleLabel}</p>
+                                    <p className="text-[8px] text-muted-foreground">{dateStr}</p>
+                                  </div>
+                                  {/* Actions overlay */}
+                                  <div className="absolute top-0.5 right-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      type="button"
+                                      className="p-1 rounded bg-background/80 hover:bg-background text-foreground"
+                                      title="View fullscreen"
+                                      onClick={(e) => { e.stopPropagation(); setInfographicUrl(item.image_url); setInfographicFullscreen(true); }}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="p-1 rounded bg-background/80 hover:bg-background text-foreground"
+                                      title="Download"
+                                      onClick={(e) => { e.stopPropagation(); downloadFile(item.image_url, `infographic_${savedInfographics.length - idx}.png`); }}
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="p-1 rounded bg-background/80 hover:bg-destructive/90 hover:text-white text-destructive"
+                                      title="Delete"
+                                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(item.id); }}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                  {/* Delete confirmation */}
+                                  {deleteConfirmId === item.id && (
+                                    <div className="absolute inset-0 bg-background/95 flex flex-col items-center justify-center gap-1 p-1">
+                                      <p className="text-[9px] font-medium text-destructive text-center">Delete this?</p>
+                                      <div className="flex gap-1">
+                                        <Button size="sm" variant="destructive" className="h-5 text-[9px] px-2" onClick={() => { deleteInfographic(item.id); setDeleteConfirmId(null); }}>
+                                          Yes
+                                        </Button>
+                                        <Button size="sm" variant="outline" className="h-5 text-[9px] px-2" onClick={() => setDeleteConfirmId(null)}>
+                                          No
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Row 1: Orientation + Logo sliders + Generate */}
                       <div className="flex items-center gap-3">
                         {/* Orientation slider */}
@@ -1033,10 +1105,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                                 type="button"
                                 onClick={() => {
                                   if (expandedInfographicThumb === key) {
-                                    // Already expanded — collapse
                                     setExpandedInfographicThumb(null);
                                   } else {
-                                    // Select + expand (works for both new and current selection)
                                     setSelectedInfographicStyle(key);
                                     setExpandedInfographicThumb(key);
                                   }
