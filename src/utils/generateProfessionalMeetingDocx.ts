@@ -1554,6 +1554,36 @@ const removeOpenItemsSection = (content: string): string => {
   return result.join('\n').replace(/\n{3,}/g, '\n\n');
 };
 
+// Helper to remove Attendees section from content
+const removeAttendeesSection = (content: string): string => {
+  const lines = content.split('\n');
+  const result: string[] = [];
+  let inAttendeesSection = false;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Detect Attendees section heading
+    if (/^#{1,3}\s*attendees?\s*:?\s*$/i.test(trimmed) || /^\*\*ATTENDEES?\*\*\s*$/i.test(trimmed) || /^ATTENDEES?\s*$/i.test(trimmed)) {
+      inAttendeesSection = true;
+      continue;
+    }
+    
+    // Detect end of attendees section (new main heading)
+    if (inAttendeesSection && /^#{1,2}\s+\S/.test(trimmed)) {
+      inAttendeesSection = false;
+    }
+    
+    if (inAttendeesSection) {
+      continue;
+    }
+    
+    result.push(line);
+  }
+  
+  return result.join('\n').replace(/\n{3,}/g, '\n\n');
+};
+
 // Filter content based on section visibility settings
 export const filterContentByVisibility = (content: string, visibleSections?: VisibleSectionsInput): string => {
   if (!visibleSections) return content;
@@ -1574,6 +1604,9 @@ export const filterContentByVisibility = (content: string, visibleSections?: Vis
   // but we also remove it from inline content if hidden
   if (visibleSections.actionList === false) {
     filtered = removeActionItemsSection(filtered);
+  }
+  if (visibleSections.attendees === false) {
+    filtered = removeAttendeesSection(filtered);
   }
   
   return filtered;
