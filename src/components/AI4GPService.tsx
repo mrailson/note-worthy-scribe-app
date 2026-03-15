@@ -846,7 +846,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                       "flex-1 overflow-y-auto",
                     isMobile ? "p-0 pb-36" : "p-1 sm:p-4 space-y-1 sm:space-y-3"
                   )} style={{ WebkitOverflowScrolling: 'touch' }}>
-                      <div className={cn("w-full mx-auto space-y-4", isBNFViewActive ? "max-w-5xl" : "max-w-2xl")}>
+                      <div className={cn("w-full mx-auto space-y-2 sm:space-y-4", isBNFViewActive ? "max-w-5xl" : "max-w-3xl")}>
                         {/* Mobile: Show quick picks inside the white bubble area */}
                         {isMobile ? (
                           <MobileRoleQuickPicks
