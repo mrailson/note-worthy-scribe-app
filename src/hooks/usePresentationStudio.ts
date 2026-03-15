@@ -191,7 +191,6 @@ const savePersistedHistory = (userId: string, history: PresentationHistoryItem[]
           title: item.result.title,
           slideCount: item.result.slideCount,
           downloadUrl: item.result.downloadUrl,
-          gammaUrl: item.result.gammaUrl,
           generatedAt: item.result.generatedAt,
         },
       }));
