@@ -299,7 +299,12 @@ serve(async (req) => {
       },
     };
 
-    // Stock Library Images: inject URLs and disable AI generation
+    // Add branding/logo if provided
+    if (branding?.logo?.src) {
+      requestPayload.branding = branding;
+      console.log('[Gamma] Branding logo included in payload');
+    }
+
     if (useStockLibraryImages) {
       try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
