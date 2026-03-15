@@ -251,14 +251,10 @@ serve(async (req) => {
     const fontInstruction = fontMap[fontStyle] || 'Prefer standard Office fonts such as Calibri or Arial';
     additionalInstructions += ` FONTS: ${fontInstruction}.`;
 
-    // Branding (condensed)
-    if (branding) {
-      if (branding.logoUrl) {
-        additionalInstructions += ` Logo at ${branding.logoPosition || 'top right'} on each slide.`;
-      }
-      if (branding.showCardNumbers !== false) {
-        additionalInstructions += ` Slide numbers at ${branding.cardNumberPosition || 'bottom right'}.`;
-      }
+    // Branding fallback: Gamma presentation endpoint rejects `branding` payload
+    if (branding?.logo?.src || branding?.logoUrl) {
+      additionalInstructions += ` Include the organisation logo on the title slide and footer of each slide.`;
+      console.log('[Gamma] Branding provided by client; using prompt fallback (no branding payload).');
     }
 
     // Hard safety cap at 4900 chars to stay under Gamma's 5000-char limit
