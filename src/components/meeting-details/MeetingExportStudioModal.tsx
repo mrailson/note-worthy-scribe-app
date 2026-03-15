@@ -52,6 +52,7 @@ import { useMeetingPowerPoint } from '@/hooks/useMeetingPowerPoint';
 import { useMeetingInfographicHistory } from '@/hooks/useMeetingInfographicHistory';
 import { supabase } from '@/integrations/supabase/client';
 import { downloadFile } from '@/utils/downloadFile';
+import { removeActionItemsSection } from '@/utils/meeting/cleanMeetingContent';
 import { Trash2, Eye } from 'lucide-react';
 
 interface MeetingDetails {
@@ -133,6 +134,9 @@ function renderMeetingContent(content: string): React.ReactNode[] {
     .replace(/<[^>]*>/g, '')
     .trim();
 
+  // Always remove Action/Completed text sections in this modal preview.
+  const withoutActionText = removeActionItemsSection(cleaned);
+
   // Strip out meeting details lines (Title:, Date:, Time:, Location:) since we show them in the table
   const detailsPatterns = [
     /^\s*[-•*]?\s*\*{0,2}(?:Meeting\s*)?(?:Title|Subject)\*{0,2}\s*[:\-–—].+$/im,
@@ -142,7 +146,7 @@ function renderMeetingContent(content: string): React.ReactNode[] {
     /^\s*#{1,6}\s*Meeting\s+Details\s*$/im,
   ];
 
-  let filtered = cleaned;
+  let filtered = withoutActionText;
   for (const pattern of detailsPatterns) {
     filtered = filtered.replace(pattern, '');
   }
@@ -425,7 +429,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
   const documentTitle = meetingDetails?.title || meetingTitle || 'Meeting Notes';
 
-  // Filter content based on section toggles for preview
+  // Filter content based on section toggles for preview, then always remove Action/Completed text blocks.
+  // The dedicated Action Items table below is the single source of truth in this modal.
   const filteredNotesContent = useMemo(() => {
     const sectionVisibility = {
       executiveSummary: docSettings.exec_summary_on,
@@ -434,7 +439,9 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
       attendees: docSettings.attendees_on,
       keyPoints: true, // always show key points / discussion summary
     };
-    return filterContentByVisibility(notesContent, sectionVisibility);
+
+    const visibilityFiltered = filterContentByVisibility(notesContent, sectionVisibility);
+    return removeActionItemsSection(visibilityFiltered).trim();
   }, [notesContent, docSettings.exec_summary_on, docSettings.action_items_on, docSettings.open_items_on, docSettings.attendees_on]);
 
   const previewElements = useMemo(() => renderMeetingContent(filteredNotesContent), [filteredNotesContent]);
