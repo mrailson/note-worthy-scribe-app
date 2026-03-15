@@ -304,8 +304,8 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   return runs;
 };
 
-// Fetch a logo URL and return as Uint8Array for docx ImageRun
-const fetchLogoForDocx = async (logoUrl: string): Promise<{ data: Uint8Array; type: 'png' | 'jpg' } | null> => {
+// Fetch a logo URL and return as Uint8Array for docx ImageRun, with natural dimensions
+const fetchLogoForDocx = async (logoUrl: string): Promise<{ data: Uint8Array; type: 'png' | 'jpg'; naturalWidth: number; naturalHeight: number } | null> => {
   if (!logoUrl) return null;
   try {
     const response = await fetch(logoUrl);
@@ -313,7 +313,21 @@ const fetchLogoForDocx = async (logoUrl: string): Promise<{ data: Uint8Array; ty
     const blob = await response.blob();
     const arrayBuffer = await blob.arrayBuffer();
     const type = logoUrl.toLowerCase().includes('.png') ? 'png' : 'jpg';
-    return { data: new Uint8Array(arrayBuffer), type };
+
+    // Detect natural image dimensions via an offscreen bitmap
+    let naturalWidth = 200;
+    let naturalHeight = 80;
+    try {
+      const imgBlob = new Blob([arrayBuffer], { type: blob.type || 'image/png' });
+      const bitmap = await createImageBitmap(imgBlob);
+      naturalWidth = bitmap.width;
+      naturalHeight = bitmap.height;
+      bitmap.close();
+    } catch {
+      // Fallback to defaults if bitmap detection fails
+    }
+
+    return { data: new Uint8Array(arrayBuffer), type, naturalWidth, naturalHeight };
   } catch (error) {
     console.warn('Failed to fetch logo for Word export:', error);
     return null;
