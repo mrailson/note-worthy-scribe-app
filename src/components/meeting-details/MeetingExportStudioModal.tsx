@@ -398,6 +398,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const [infographicOptions, setInfographicOptions] = useState<{ style: string; orientation?: 'portrait' | 'landscape' } | null>(null);
   const [selectedInfographicStyle, setSelectedInfographicStyle] = useState('practice-professional');
   const [selectedInfographicOrientation, setSelectedInfographicOrientation] = useState<'landscape' | 'portrait'>('landscape');
+  const [includeLogoInInfographic, setIncludeLogoInInfographic] = useState(true);
   const { generateInfographic, isGenerating: isInfographicGenerating, error: infographicError } = useMeetingInfographic();
   const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
   const [infographicProgress, setInfographicProgress] = useState(0);
