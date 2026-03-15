@@ -1760,6 +1760,8 @@ interface GenerateWithParsedDataOptions {
   logoUrl?: string;
   logoScale?: number;
   footerOn?: boolean;
+  meetingDetailsOn?: boolean;
+  attendeesOn?: boolean;
 }
 
 export const generateProfessionalMeetingDocxWithParsedData = async (options: GenerateWithParsedDataOptions): Promise<void> => {
