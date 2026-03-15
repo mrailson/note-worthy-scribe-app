@@ -225,12 +225,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showTranscriptFindReplace, setShowTranscriptFindReplace] = useState(false);
   const [showNotesFindReplace, setShowNotesFindReplace] = useState(false);
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
-  const [showPptModal, setShowPptModal] = useState(false);
-  const [pptOptions, setPptOptions] = useState<{
-    style: string;
-    content: string;
-    slideCount: number;
-  } | null>(null);
   const [showInfographicModal, setShowInfographicModal] = useState(false);
   const [infographicOptions, setInfographicOptions] = useState<{
     style: string;
