@@ -819,49 +819,6 @@ export function EmailMeetingMinutesModal({
         attendees: attendeeNames,
       }, emailActionItems);
 
-      // Check for audio overview and prepare attachment if available
-      let audioAttachment = null;
-      if (meetingId) {
-        try {
-          const { data: audioData } = await supabase
-            .from('meeting_overviews')
-            .select('audio_overview_url')
-            .eq('meeting_id', meetingId)
-            .maybeSingle();
-          
-          if (audioData?.audio_overview_url) {
-            console.log('🔊 Found audio overview, fetching for attachment...');
-            const audioResponse = await fetch(audioData.audio_overview_url);
-            if (audioResponse.ok) {
-              const audioBlob = await audioResponse.blob();
-              const audioReader = new FileReader();
-              const audioBase64Promise = new Promise<string>((resolve) => {
-                audioReader.onloadend = () => {
-                  const base64 = (audioReader.result as string).split(',')[1];
-                  resolve(base64);
-                };
-              });
-              audioReader.readAsDataURL(audioBlob);
-              const audioBase64 = await audioBase64Promise;
-              
-              const safeAudioFilename = meetingTitle
-                .replace(/[^a-zA-Z0-9\s]/g, '')
-                .replace(/\s+/g, '_')
-                .substring(0, 50);
-              
-              audioAttachment = {
-                content: audioBase64,
-                filename: `${safeAudioFilename}_Audio_Overview.mp3`,
-                type: 'audio/mpeg'
-              };
-              console.log('✅ Audio attachment prepared');
-            }
-          }
-        } catch (audioError) {
-          console.warn('Audio attachment fetch failed:', audioError);
-        }
-      }
-
       // Prepare email data for EmailJS service
       // Combine all recipient emails
       const allRecipients = [
