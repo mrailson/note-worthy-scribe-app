@@ -4044,6 +4044,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           meetingType={meetingType}
           meetingLocation={meetingLocation}
           visibleSections={notesViewSettings.settings.visibleSections}
+          onOpenAudioStudio={() => { setShowExportStudio(false); setShowAudioStudio(true); }}
         />
       )}
     </Dialog>

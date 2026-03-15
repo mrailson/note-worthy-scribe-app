@@ -81,7 +81,10 @@ interface MeetingExportStudioModalProps {
   meetingType?: 'teams' | 'f2f' | 'hybrid';
   meetingLocation?: string | null;
   visibleSections?: Record<string, boolean>;
+  onOpenAudioStudio?: () => void;
 }
+
+type ExportTab = 'word' | 'slides' | 'infographic' | 'audio';
 
 const COLORS = {
   nhsBlue: '#005EB8',
