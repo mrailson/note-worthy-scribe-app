@@ -373,8 +373,11 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 }) => {
   const { prefs, updatePref } = useDocumentPreviewPrefs();
   const { practiceContext } = usePracticeContext();
+  const { settings: docSettings, setSettings: setDocSettings } = useUserDocumentSettings();
+  const { activeLogo } = useUserLogos();
   const isMobile = useIsMobile();
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // PPT state
   const [showPptModal, setShowPptModal] = useState(false);
@@ -392,7 +395,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const [infographicTipIdx, setInfographicTipIdx] = useState(0);
   const [infographicFullscreen, setInfographicFullscreen] = useState(false);
 
-  const logoUrl = practiceContext?.logoUrl;
+  // Determine the logo URL to use: prefer user-managed active logo, fall back to practice context
+  const logoUrl = activeLogo?.image_url || practiceContext?.logoUrl;
   const practiceName = practiceContext?.practiceName;
   const practiceAddress = practiceContext?.practiceAddress;
 
@@ -401,7 +405,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     center: 'justify-center',
     centre: 'justify-center',
     right: 'justify-end',
-  }[prefs.logoPosition] || 'justify-start';
+  }[docSettings.logo_position] || 'justify-start';
 
   const documentTitle = meetingDetails?.title || meetingTitle || 'Meeting Notes';
 
