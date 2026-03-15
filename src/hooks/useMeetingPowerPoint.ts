@@ -34,6 +34,12 @@ interface PowerPointOptions {
   content: string;
   slideCount: number;
   imageMode?: string;
+  speakerNotes?: boolean;
+  includeLogo?: boolean;
+  logoData?: {
+    name: string;
+    imageBase64?: string | null;
+  } | null;
 }
 
 // Style prompt mappings
