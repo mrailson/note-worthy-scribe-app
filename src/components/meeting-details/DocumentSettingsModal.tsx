@@ -305,12 +305,6 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
             )}
           </div>
 
-          {/* Footer */}
-          <div style={{ background: '#f9fafb', borderRadius: 8, padding: '12px 14px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 14 }}>Footer</span>
-            <SpecToggle checked={localSettings.footer_on} onChange={v => updateLocal('footer_on', v)} />
-          </div>
-
           {/* SECTIONS */}
           <p style={{ fontSize: 11, fontWeight: 500, color: '#6b7280', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>SECTIONS</p>
 
