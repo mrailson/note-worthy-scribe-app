@@ -780,57 +780,138 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
             </div>
           </div>
 
-          {/* Bottom export bar */}
-          <div className="px-4 sm:px-6 py-3 border-t bg-muted/30 flex flex-wrap items-center gap-2 min-h-[56px]">
-            {/* Word */}
-            <Button onClick={handleDownloadWord} disabled={isDownloadingWord} className="gap-2 rounded-full px-5">
-              {isDownloadingWord ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              <span className="flex flex-col items-start leading-tight">
-                <span>Word</span>
-                <span className="text-[10px] text-primary-foreground/80 font-normal -mt-0.5">Download as document</span>
-              </span>
-            </Button>
+          {/* Export Studio */}
+          <div className="px-4 sm:px-6 py-3 border-t bg-background">
+            {/* 4-column tab grid */}
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {([
+                { key: 'word' as ExportTab, icon: FileText, label: 'Word', subtitle: 'Download' },
+                { key: 'slides' as ExportTab, icon: Presentation, label: 'Slides', subtitle: 'PowerPoint' },
+                { key: 'infographic' as ExportTab, icon: LayoutGrid, label: 'Infographic', subtitle: 'Visual summary' },
+                { key: 'audio' as ExportTab, icon: Headphones, label: 'Audio Studio', subtitle: 'Discussion' },
+              ]).map(({ key, icon: Icon, label, subtitle }) => {
+                const isActive = selectedExport === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedExport(key)}
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-center transition-colors cursor-pointer',
+                      isActive
+                        ? 'bg-[#003087] text-white'
+                        : 'bg-white border border-border text-foreground hover:bg-muted/50'
+                    )}
+                    style={!isActive ? { borderWidth: '0.5px' } : undefined}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="text-xs font-medium leading-tight">{label}</span>
+                    <span className={cn(
+                      'text-[10px] leading-tight',
+                      isActive ? 'text-white/70' : 'text-muted-foreground'
+                    )}>{subtitle}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-            {/* Presentation */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2 rounded-full px-5">
-                  <Presentation className="h-4 w-4" />
-                  <span className="flex flex-col items-start leading-tight">
-                    <span>Presentation</span>
-                    <span className="text-[10px] text-muted-foreground font-normal -mt-0.5">Create as PowerPoint</span>
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-36 p-2" align="start">
-                <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Slide count</p>
-                <div className="grid grid-cols-2 gap-1">
-                  {[5, 6, 8, 10, 12, 15].map(count => (
-                    <Button key={count} variant="ghost" size="sm" className="text-sm justify-center" onClick={() => handlePptGenerate(count)}>
-                      {count}
-                    </Button>
-                  ))}
+            {/* Action panel */}
+            <div className="rounded-lg p-[10px_12px] mb-3" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}>
+              {selectedExport === 'word' && (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">Download as Word document</p>
+                    <p className="text-xs text-muted-foreground">Includes selected sections with NHS branding</p>
+                  </div>
+                  <Button size="sm" className="shrink-0 gap-1.5" onClick={handleDownloadWord} disabled={isDownloadingWord}>
+                    {isDownloadingWord ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                    Download
+                  </Button>
                 </div>
-              </PopoverContent>
-            </Popover>
+              )}
 
-            {/* Infographic */}
-            <InfographicSelector
-              isGenerating={isInfographicGenerating}
-              onGenerate={handleGenerateInfographic}
-            />
+              {selectedExport === 'slides' && (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">Create as PowerPoint</p>
+                    <p className="text-xs text-muted-foreground">Generates NHS-branded slide deck</p>
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button size="sm" className="shrink-0 gap-1.5">
+                        <Presentation className="h-3.5 w-3.5" />
+                        Generate
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-36 p-2" align="end">
+                      <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Slide count</p>
+                      <div className="grid grid-cols-2 gap-1">
+                        {[5, 6, 8, 10, 12, 15].map(count => (
+                          <Button key={count} variant="ghost" size="sm" className="text-sm justify-center" onClick={() => handlePptGenerate(count)}>
+                            {count}
+                          </Button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
 
-            {/* View infographic */}
+              {selectedExport === 'infographic' && (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">Generate visual infographic</p>
+                    <p className="text-xs text-muted-foreground">Visual summary of key decisions</p>
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button size="sm" className="shrink-0 gap-1.5" disabled={isInfographicGenerating}>
+                        {isInfographicGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BarChart3 className="h-3.5 w-3.5" />}
+                        Generate
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-40 p-2" align="end">
+                      <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Orientation</p>
+                      <div className="flex flex-col gap-1">
+                        <Button variant="ghost" size="sm" className="justify-start gap-2 text-sm" onClick={() => handleGenerateInfographic('landscape')}>
+                          <Monitor className="h-3.5 w-3.5" /> Landscape
+                        </Button>
+                        <Button variant="ghost" size="sm" className="justify-start gap-2 text-sm" onClick={() => handleGenerateInfographic('portrait')}>
+                          <ImageIcon className="h-3.5 w-3.5" /> Portrait
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
+              {selectedExport === 'audio' && (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">Open Audio Studio</p>
+                    <p className="text-xs text-muted-foreground">Create podcast-style audio discussion from notes</p>
+                  </div>
+                  <Button size="sm" className="shrink-0 gap-1.5" onClick={onOpenAudioStudio}>
+                    <Headphones className="h-3.5 w-3.5" />
+                    Open Studio
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* View infographic link */}
             {infographicUrl && !isInfographicGenerating && (
-              <Button variant="outline" size="sm" className="gap-2 rounded-full" onClick={() => setInfographicFullscreen(true)}>
+              <Button variant="outline" size="sm" className="gap-2 rounded-full mb-3" onClick={() => setInfographicFullscreen(true)}>
                 <ImageIcon className="h-4 w-4" />
                 View Infographic
               </Button>
             )}
 
-            <Button variant="ghost" onClick={handleClose} className="ml-auto">
-              Cancel
-            </Button>
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" onClick={handleClose}>
+                Cancel
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
