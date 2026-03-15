@@ -361,8 +361,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             subject,
             html_content: htmlContent,
             from_name: senderName,
-            word_attachment: wordAttachment,
-            audio_attachment: audioAttachment
+            word_attachment: wordAttachment
           }
         });
         

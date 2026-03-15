@@ -846,8 +846,7 @@ export function EmailMeetingMinutesModal({
         subject: subject.trim(),
         html_content: htmlContent,
         from_name: 'Notewell AI - Meeting Notes',
-        word_attachment: wordAttachment,
-        audio_attachment: audioAttachment
+        word_attachment: wordAttachment
       };
 
       // Send email via Resend edge function
