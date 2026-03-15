@@ -1608,7 +1608,8 @@ export const generateProfessionalWordFromContent = async (
   parsedActionItems?: ParsedActionItemInput[],
   visibleSections?: VisibleSectionsInput,
   logoUrl?: string,
-  logoScale?: number
+  logoScale?: number,
+  footerOn?: boolean
 ): Promise<void> => {
   // Filter content based on visibility settings before processing
   const filteredContent = filterContentByVisibility(content, visibleSections);
