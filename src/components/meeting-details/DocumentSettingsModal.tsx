@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { X, Plus, Check, Upload } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useUserLogos, type LogoType } from '@/hooks/useUserLogos';
 import { useUserDocumentSettings, type UserDocumentSettings } from '@/hooks/useUserDocumentSettings';
 import { toast } from 'sonner';
@@ -80,36 +80,6 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
     if (!settingsLoading) setLocalSettings(savedSettings);
   }, [savedSettings, settingsLoading]);
 
-  // KEY FIX: Radix Dialog continuously sets pointer-events:none on document.body.
-  // Use a MutationObserver to persistently override it while our modal is open.
-  useEffect(() => {
-    if (!isOpen) return;
-    const body = document.body;
-    const force = () => {
-      if (body.style.pointerEvents === 'none') {
-        body.style.pointerEvents = 'auto';
-      }
-    };
-    force();
-    const observer = new MutationObserver(force);
-    observer.observe(body, { attributes: true, attributeFilter: ['style'] });
-    // Also use an interval as a fallback for inline style changes the observer may miss
-    const interval = setInterval(force, 100);
-    return () => {
-      observer.disconnect();
-      clearInterval(interval);
-    };
-  }, [isOpen]);
-
-  // Escape to close
-  useEffect(() => {
-    if (!isOpen) return;
-    const h = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); }
-    };
-    document.addEventListener('keydown', h, true);
-    return () => document.removeEventListener('keydown', h, true);
-  }, [isOpen, onClose]);
 
   const updateLocal = useCallback(<K extends keyof UserDocumentSettings>(key: K, value: UserDocumentSettings[K]) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
@@ -139,8 +109,6 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
     if (f && /\.(png|jpg|jpeg|svg|webp)$/i.test(f.name)) setNewFile(f);
   }, []);
 
-  if (!isOpen) return null;
-
   const pills: { label: string; pillKey: string }[] = [];
   if (localSettings.logo_on) pills.push({ label: 'Logo', pillKey: 'logo' });
   if (localSettings.footer_on) pills.push({ label: 'Footer', pillKey: 'footer' });
@@ -148,12 +116,10 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
   if (localSettings.action_items_on) pills.push({ label: 'Action items', pillKey: 'action_items' });
   if (localSettings.open_items_on) pills.push({ label: 'Open items', pillKey: 'open_items' });
 
-  return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 2147483646, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Backdrop */}
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)' }} onClick={onClose} />
-
-      {/* Modal */}
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-[420px] p-0 overflow-hidden border-none bg-transparent shadow-none [&>button:last-child]:hidden">
+        <DialogTitle className="sr-only">Document Settings</DialogTitle>
       <div style={{
         position: 'relative', width: '100%', maxWidth: 420,
         background: '#fff', borderRadius: 12, overflow: 'hidden',
@@ -303,7 +269,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
           <button type="button" onClick={handleApply} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: 'none', background: '#003087', color: '#fff', cursor: 'pointer' }}>Apply</button>
         </div>
       </div>
-    </div>,
-    document.body
+      </DialogContent>
+    </Dialog>
   );
 };
