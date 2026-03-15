@@ -210,6 +210,7 @@ export const removeActionItemsSection = (content: string): string => {
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
   return cleaned;
+};
 
 // Remove executive summary section from content (when rendering in separate box)
 export const removeExecutiveSummarySection = (content: string): string => {
