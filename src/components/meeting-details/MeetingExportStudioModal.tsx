@@ -1071,13 +1071,6 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         </DialogContent>
       </Dialog>
 
-      {/* PowerPoint Modal */}
-      <MeetingPowerPointModal
-        isOpen={showPptModal}
-        onClose={() => { setShowPptModal(false); setPptOptions(null); }}
-        meetingData={meetingData}
-        options={pptOptions || undefined}
-      />
 
       {/* Fullscreen infographic */}
       {infographicFullscreen && infographicUrl && createPortal(
