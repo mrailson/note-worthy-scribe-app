@@ -4046,6 +4046,22 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           onCorrectionApplied={() => {}}
         />
       )}
+      {/* Export Studio Modal */}
+      {meeting && (
+        <MeetingExportStudioModal
+          isOpen={showExportStudio}
+          onClose={() => setShowExportStudio(false)}
+          meetingId={meeting.id}
+          meetingTitle={meeting.title}
+          notesContent={notesContent || ''}
+          meetingDetails={meetingDetails}
+          attendees={attendees}
+          actionItems={actionItems}
+          meetingType={meetingType}
+          meetingLocation={meetingLocation}
+          visibleSections={notesViewSettings.settings.visibleSections}
+        />
+      )}
     </Dialog>
   );
 };
