@@ -905,30 +905,84 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                   )}
 
                   {selectedExport === 'infographic' && (
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground">Generate visual infographic</p>
-                        <p className="text-xs text-muted-foreground">Visual summary of key decisions</p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">Generate visual infographic</p>
+                          <p className="text-xs text-muted-foreground">Visual summary of key decisions</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="shrink-0 gap-1.5"
+                          disabled={isInfographicGenerating}
+                          onClick={() => handleGenerateInfographic(selectedInfographicStyle, selectedInfographicOrientation)}
+                        >
+                          {isInfographicGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BarChart3 className="h-3.5 w-3.5" />}
+                          Generate
+                        </Button>
                       </div>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button size="sm" className="shrink-0 gap-1.5" disabled={isInfographicGenerating}>
-                            {isInfographicGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BarChart3 className="h-3.5 w-3.5" />}
-                            Generate
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-40 p-2" align="end">
-                          <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Orientation</p>
-                          <div className="flex flex-col gap-1">
-                            <Button variant="ghost" size="sm" className="justify-start gap-2 text-sm" onClick={() => handleGenerateInfographic('landscape')}>
-                              <Monitor className="h-3.5 w-3.5" /> Landscape
-                            </Button>
-                            <Button variant="ghost" size="sm" className="justify-start gap-2 text-sm" onClick={() => handleGenerateInfographic('portrait')}>
-                              <ImageIcon className="h-3.5 w-3.5" /> Portrait
-                            </Button>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+
+                      {/* Style selector */}
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1.5">Style</p>
+                        <div className="flex flex-wrap gap-1">
+                          {[
+                            { key: 'practice-professional', label: 'Professional' },
+                            { key: 'clinical-governance', label: 'Governance' },
+                            { key: 'patient-safety', label: 'Patient Safety' },
+                            { key: 'team-engagement', label: 'Staff / Team' },
+                            { key: 'qof-targets', label: 'QOF & Targets' },
+                            { key: 'board-pack', label: 'Board Pack' },
+                            { key: 'icb-submission', label: 'ICB Submission' },
+                            { key: 'neighbourhood', label: 'Neighbourhood' },
+                          ].map(({ key, label }) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => setSelectedInfographicStyle(key)}
+                              className={cn(
+                                'px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
+                                selectedInfographicStyle === key
+                                  ? 'bg-[#003087] text-white'
+                                  : 'bg-white border border-border text-foreground hover:bg-muted/50'
+                              )}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Orientation selector */}
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1.5">Orientation</p>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedInfographicOrientation('landscape')}
+                            className={cn(
+                              'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                              selectedInfographicOrientation === 'landscape'
+                                ? 'bg-[#003087] text-white'
+                                : 'bg-white border border-border text-foreground hover:bg-muted/50'
+                            )}
+                          >
+                            <Monitor className="h-3 w-3" /> Landscape
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedInfographicOrientation('portrait')}
+                            className={cn(
+                              'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                              selectedInfographicOrientation === 'portrait'
+                                ? 'bg-[#003087] text-white'
+                                : 'bg-white border border-border text-foreground hover:bg-muted/50'
+                            )}
+                          >
+                            <ImageIcon className="h-3 w-3" /> Portrait
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
 
