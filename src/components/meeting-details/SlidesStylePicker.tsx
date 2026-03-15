@@ -37,13 +37,15 @@ export interface SlidePickerConfig {
   titleClosingSlide: boolean;
 }
 
+export interface SlideGenerationResult {
+  success: boolean;
+  downloadUrl?: string;
+  error?: string;
+}
+
 interface SlidesStylePickerProps {
   logoUrl?: string | null;
-  onGenerate: (config: SlidePickerConfig) => void;
-  isGenerating: boolean;
-  generationProgress: number;
-  generationPhase: string;
-  generationSubPhase: string;
+  onGenerate: (config: SlidePickerConfig) => Promise<SlideGenerationResult>;
 }
 
 // ─── Mini slide thumbnail (CSS only) ──────────────────────────
