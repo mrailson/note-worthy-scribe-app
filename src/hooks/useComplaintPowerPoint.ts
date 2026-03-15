@@ -49,7 +49,6 @@ interface GenerationResult {
 
 interface PersistedPowerPoint {
   downloadUrl: string;
-  gammaUrl?: string;
   thumbnailUrl?: string;
   slideCount?: number;
 }
