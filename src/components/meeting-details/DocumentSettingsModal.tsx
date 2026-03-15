@@ -109,8 +109,6 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
     if (f && /\.(png|jpg|jpeg|svg|webp)$/i.test(f.name)) setNewFile(f);
   }, []);
 
-  if (!isOpen) return null;
-
   const pills: { label: string; pillKey: string }[] = [];
   if (localSettings.logo_on) pills.push({ label: 'Logo', pillKey: 'logo' });
   if (localSettings.footer_on) pills.push({ label: 'Footer', pillKey: 'footer' });
@@ -118,12 +116,10 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
   if (localSettings.action_items_on) pills.push({ label: 'Action items', pillKey: 'action_items' });
   if (localSettings.open_items_on) pills.push({ label: 'Open items', pillKey: 'open_items' });
 
-  return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 2147483646, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Backdrop */}
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)' }} onClick={onClose} />
-
-      {/* Modal */}
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-[420px] p-0 overflow-hidden border-none bg-transparent shadow-none [&>button:last-child]:hidden">
+        <DialogTitle className="sr-only">Document Settings</DialogTitle>
       <div style={{
         position: 'relative', width: '100%', maxWidth: 420,
         background: '#fff', borderRadius: 12, overflow: 'hidden',
