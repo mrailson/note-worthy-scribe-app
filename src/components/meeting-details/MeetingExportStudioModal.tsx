@@ -637,8 +637,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
               <div className="flex items-center gap-3">
                 <p className="text-sm text-destructive flex-1">{infographicError}</p>
                 <div className="flex gap-2 shrink-0">
-                  <Button size="sm" variant="outline" onClick={() => handleGenerateInfographic('landscape')}>Retry Landscape</Button>
-                  <Button size="sm" variant="outline" onClick={() => handleGenerateInfographic('portrait')}>Retry Portrait</Button>
+                  <Button size="sm" variant="outline" onClick={() => handleGenerateInfographic(selectedInfographicStyle, 'landscape')}>Retry Landscape</Button>
+                  <Button size="sm" variant="outline" onClick={() => handleGenerateInfographic(selectedInfographicStyle, 'portrait')}>Retry Portrait</Button>
                 </div>
               </div>
             </div>
