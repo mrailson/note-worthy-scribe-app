@@ -21,6 +21,7 @@ interface PowerPointOptions {
   style: string;
   content: string;
   slideCount: number;
+  imageMode?: string;
 }
 
 interface MeetingPowerPointModalProps {

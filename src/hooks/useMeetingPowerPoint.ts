@@ -33,6 +33,7 @@ interface PowerPointOptions {
   style: string;
   content: string;
   slideCount: number;
+  imageMode?: string;
 }
 
 // Style prompt mappings
@@ -180,6 +181,10 @@ CONTENT FOCUS: ${contentPrompt}
 
 Create exactly ${slideCount} slides. Focus on key decisions, action items with owners, and next steps. Create a professional executive summary suitable for board presentation. Include metrics and outcomes where available. Keep slides concise and impactful. Use British English spelling throughout.`;
 
+      // Map imageMode to Gamma imageOptions — default to noImages
+      const imageSource = options?.imageMode || 'noImages';
+      console.log('[useMeetingPowerPoint] Image mode:', imageSource);
+
       const { data: startData, error: startError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
         body: {
           topic: `Executive Summary: ${data.meetingTitle}`,
@@ -190,7 +195,10 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
           supportingContent,
           customInstructions,
           audience: 'healthcare professionals and NHS executives',
-          useStockLibraryImages: false,
+          useStockLibraryImages: imageSource !== 'noImages',
+          imageOptions: {
+            source: imageSource,
+          },
         },
       });
 

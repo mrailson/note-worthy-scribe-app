@@ -125,6 +125,7 @@ serve(async (req) => {
       includeSpeakerNotes = true,
       pastedContent,
       useStockLibraryImages = false,
+      imageOptions: userImageOptions,
     } = requestBody;
 
     // Handle supportingContent
@@ -199,10 +200,15 @@ serve(async (req) => {
     // Build additional instructions — condensed to stay within Gamma's 5000-char limit
     let additionalInstructions = `British English spelling throughout. Audience: ${audience}. Professional design. Each slide: clear, actionable message.`;
 
-    // Image requirements — conditional on stock mode (set later if useStockLibraryImages)
-    if (!useStockLibraryImages) {
-      additionalInstructions += ` Every slide must include a high-quality photorealistic image relevant to the topic. No slide without a visual.`;
-    } else {
+    // Determine effective image source from user selection, default to noImages
+    const effectiveImageSource = userImageOptions?.source || 'noImages';
+    console.log(`[Gamma] Image source: ${effectiveImageSource}`);
+
+    // Image requirements — conditional on image mode
+    if (effectiveImageSource === 'noImages' && !useStockLibraryImages) {
+      additionalInstructions += ` Do not include any images. Focus on clean text-based slides.`;
+    } else if (!useStockLibraryImages && effectiveImageSource !== 'noImages') {
+      additionalInstructions += ` Every slide must include a high-quality image relevant to the topic. No slide without a visual.`;
       additionalInstructions += ` Use the provided stock library images where relevant. Place images as accent visuals alongside content — never let an image dominate or push text to the bottom. Not every slide needs an image.`;
     }
 
@@ -278,11 +284,13 @@ serve(async (req) => {
         tone: 'professional',
         amount: 'medium',
       },
-      imageOptions: {
-        source: 'aiGenerated',
-        model: 'imagen-4-pro',
-        style: 'photorealistic',
-      },
+      imageOptions: effectiveImageSource === 'noImages'
+        ? { source: 'noImages' }
+        : {
+            source: effectiveImageSource,
+            model: effectiveImageSource === 'aiGenerated' ? 'imagen-4-pro' : undefined,
+            style: effectiveImageSource === 'aiGenerated' ? 'photorealistic' : undefined,
+          },
       cardOptions: {
         dimensions: '16x9',
       },

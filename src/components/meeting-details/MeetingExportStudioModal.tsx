@@ -390,7 +390,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
   // PPT state
   const [showPptModal, setShowPptModal] = useState(false);
-  const [pptOptions, setPptOptions] = useState<{ style: string; content: string; slideCount: number } | null>(null);
+  const [pptOptions, setPptOptions] = useState<{ style: string; content: string; slideCount: number; imageMode?: string } | null>(null);
   const [pptxProgress, setPptxProgress] = useState(0);
   const [pptxTipIdx, setPptxTipIdx] = useState(0);
   const [isPptGenerating, setIsPptGenerating] = useState(false);
@@ -533,7 +533,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     }, 1800);
 
     // Trigger actual generation
-    setPptOptions({ style: config.theme.key, content: config.textDensity, slideCount });
+    setPptOptions({ style: config.theme.key, content: config.textDensity, slideCount, imageMode: config.imageMode });
     setShowPptModal(true);
 
     // Clean up progress after modal opens
