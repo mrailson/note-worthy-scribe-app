@@ -894,10 +894,6 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                   <SlidesStylePicker
                     logoUrl={logoUrl}
                     onGenerate={handleSlidePickerGenerate}
-                    isGenerating={isPptGenerating}
-                    generationProgress={pptxProgress}
-                    generationPhase={pptxPhase}
-                    generationSubPhase={pptxSubPhase}
                   />
                 ) : (
                 <div className="rounded-lg p-[10px_12px]" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}>
