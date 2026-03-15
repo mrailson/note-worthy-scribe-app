@@ -241,11 +241,11 @@ Deno.serve(async (req) => {
                   <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">⏱️ Duration: ${durationText}</p>
                   <p style="margin: 0; color: #6b7280; font-size: 14px;">📝 Words: ${(meeting.word_count || 0).toLocaleString()}</p>
                 </div>
-                ${notesContent ? `
+                ${cleanedNotesContent ? `
                   <div style="margin: 24px 0;">
                     <h2 style="color: #1f2937; font-size: 18px; margin: 0 0 12px;">Meeting Minutes</h2>
                     <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #374151;">
-${notesContent}
+${cleanedNotesContent}
                     </div>
                   </div>
                 ` : `
