@@ -924,6 +924,16 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 </div>
 
                 {/* Action panel */}
+                {selectedExport === 'slides' ? (
+                  <SlidesStylePicker
+                    logoUrl={logoUrl}
+                    onGenerate={handleSlidePickerGenerate}
+                    isGenerating={isPptGenerating}
+                    generationProgress={pptxProgress}
+                    generationPhase={pptxPhase}
+                    generationSubPhase={pptxSubPhase}
+                  />
+                ) : (
                 <div className="rounded-lg p-[10px_12px]" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}>
                   {selectedExport === 'word' && (
                     <div className="flex items-center justify-between gap-3">
@@ -935,33 +945,6 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                         {isDownloadingWord ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                         Download
                       </Button>
-                    </div>
-                  )}
-
-                  {selectedExport === 'slides' && (
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground">Create as PowerPoint</p>
-                        <p className="text-xs text-muted-foreground">Generates NHS-branded slide deck</p>
-                      </div>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button size="sm" className="shrink-0 gap-1.5">
-                            <Presentation className="h-3.5 w-3.5" />
-                            Generate
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-36 p-2" align="end">
-                          <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Slide count</p>
-                          <div className="grid grid-cols-2 gap-1">
-                            {[5, 6, 8, 10, 12, 15].map(count => (
-                              <Button key={count} variant="ghost" size="sm" className="text-sm justify-center" onClick={() => handlePptGenerate(count)}>
-                                {count}
-                              </Button>
-                            ))}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
                     </div>
                   )}
 
