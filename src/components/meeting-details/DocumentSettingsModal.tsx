@@ -13,11 +13,13 @@ const TYPE_BADGE: Record<string, { bg: string; fg: string }> = {
 };
 
 const PILL_COLOURS: Record<string, { bg: string; fg: string }> = {
-  logo:         { bg: '#E6F1FB', fg: '#0C447C' },
-  footer:       { bg: '#EAF3DE', fg: '#27500A' },
-  exec_summary: { bg: '#EEEDFE', fg: '#3C3489' },
-  action_items: { bg: '#FAEEDA', fg: '#633806' },
-  open_items:   { bg: '#fcebeb', fg: '#A32D2D' },
+  logo:             { bg: '#E6F1FB', fg: '#0C447C' },
+  footer:           { bg: '#EAF3DE', fg: '#27500A' },
+  meeting_details:  { bg: '#E6F1FB', fg: '#0C447C' },
+  attendees:        { bg: '#FAEEDA', fg: '#633806' },
+  exec_summary:     { bg: '#EEEDFE', fg: '#3C3489' },
+  action_items:     { bg: '#FAEEDA', fg: '#633806' },
+  open_items:       { bg: '#fcebeb', fg: '#A32D2D' },
 };
 
 const TYPE_LABELS: Record<string, string> = {
