@@ -1794,7 +1794,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   const children: any[] = [];
   
   // Header block
-  const headerElements = await createHeaderBlock(metadata.title, generatedDate, options.logoUrl);
+  const headerElements = await createHeaderBlock(metadata.title, generatedDate, options.logoUrl, options.logoScale);
   children.push(...headerElements);
   
   // Meeting details box - only if we have valid details
