@@ -1635,6 +1635,8 @@ export const generateProfessionalWordFromContent = async (
       logoUrl,
       logoScale,
       footerOn,
+      meetingDetailsOn,
+      attendeesOn,
     });
   } else {
     // Fallback to auto-parsing
