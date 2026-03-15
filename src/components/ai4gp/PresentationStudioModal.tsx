@@ -576,13 +576,6 @@ export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = (
     setStatus('generating'); setStep(0); setError(null);
     try {
       if (engine === 'pptxgenjs') {
-        // Wait for PptxGenJS to load (up to 10s)
-        if (!(window as any).PptxGenJS) {
-          await Promise.race([
-            ensurePptxScript(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('PptxGenJS failed to load — please check your internet connection and try again.')), 10000)),
-          ]);
-        }
         setStep(1);
         const content = await generateSlideContent({ ...form, sourceFiles, pasteText, brief: pasteText });
         setStep(2);
