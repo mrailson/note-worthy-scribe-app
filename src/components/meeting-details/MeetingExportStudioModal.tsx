@@ -469,7 +469,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         parsedDetails,
         docSettings.action_items_on ? parsedActionItems : [],
         mergedSections,
-        docSettings.logo_on ? logoUrl : undefined
+        docSettings.logo_on ? logoUrl : undefined,
+        docSettings.logo_scale ?? 1.0
       );
       toast.success('Word document downloaded');
     } catch (error) {
