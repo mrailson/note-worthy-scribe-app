@@ -881,16 +881,18 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   }, [isOpen, meeting?.id]);
 
   // Parse sections whenever content changes — use cleaned content (without action items)
-  // so that action items never appear in the section cards view
+  // so that action items never appear in the section cards view.
+  // We apply removeActionItemsSection inline here because the contentWithoutActionItems
+  // memo is declared later in the component.
   useEffect(() => {
-    if (contentWithoutActionItems) {
-      const parsed = parseNotesIntoSections(contentWithoutActionItems);
+    if (notesContent) {
+      const cleanedForParsing = removeActionItemsSection(notesContent);
+      const parsed = parseNotesIntoSections(cleanedForParsing);
       setSections(parsed);
     } else {
       setSections([]);
     }
-  }, [contentWithoutActionItems, parseNotesIntoSections]);
-
+  }, [notesContent, parseNotesIntoSections]);
   // Store meeting format from database
   const [meetingFormat, setMeetingFormat] = useState<string | null>(null);
   
