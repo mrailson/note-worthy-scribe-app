@@ -531,7 +531,6 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         new Promise(r => setTimeout(r, ms * (0.9 + Math.random() * 0.2)));
 
       let downloadUrl: string | undefined;
-      let gammaUrl: string | undefined;
 
       while (Date.now() - startTime < maxPollTime) {
         await sleepWithJitter(currentInterval);
