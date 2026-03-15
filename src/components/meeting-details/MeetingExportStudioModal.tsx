@@ -48,6 +48,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { generateProfessionalWordFromContent, filterContentByVisibility, ParsedMeetingDetailsInput, ParsedActionItemInput } from '@/utils/generateProfessionalMeetingDocx';
 import { MeetingPowerPointModal } from './MeetingPowerPointModal';
 import { MeetingInfographicModal } from './MeetingInfographicModal';
+import { SlidesStylePicker, type SlidePickerConfig } from './SlidesStylePicker';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MeetingDetails {
