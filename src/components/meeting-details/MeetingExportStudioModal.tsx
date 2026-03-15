@@ -377,7 +377,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const { prefs, updatePref } = useDocumentPreviewPrefs();
   const { practiceContext } = usePracticeContext();
   const { settings: docSettings, setSettings: setDocSettings } = useUserDocumentSettings();
-  const { activeLogo } = useUserLogos();
+  const { activeLogo, fetchLogos } = useUserLogos();
   const isMobile = useIsMobile();
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -938,7 +938,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
       <DocumentSettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
-        onApply={(s) => setDocSettings(s)}
+        onApply={(s) => { setDocSettings(s); fetchLogos(); }}
       />
     </>
   );
