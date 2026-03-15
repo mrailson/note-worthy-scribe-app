@@ -556,7 +556,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
       clearInterval(tipInterval);
       setInfographicProgress(0);
     }
-  }, [documentTitle, meetingDetails, attendees, notesContent, actionItems, generateInfographic, includeLogoInInfographic, logoUrl, practiceName]);
+  }, [documentTitle, meetingDetails, attendees, notesContent, actionItems, generateInfographic, includeLogoInInfographic, logoUrl, practiceName, saveInfographic]);
 
   const handleDownloadInfographic = useCallback(() => {
     if (!infographicUrl) return;
