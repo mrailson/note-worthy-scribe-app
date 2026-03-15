@@ -623,7 +623,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 style={{ fontFamily: 'Calibri, sans-serif', padding: isMobile ? '24px' : '40px', maxWidth: '210mm' }}
               >
                 {/* Logo */}
-                {prefs.showLogo && logoUrl && (
+                {docSettings.logo_on && logoUrl && (
                   <div className={cn('flex mb-6', logoAlignmentClass)}>
                     <img src={logoUrl} alt="Practice Logo" className="max-h-16 object-contain" />
                   </div>
