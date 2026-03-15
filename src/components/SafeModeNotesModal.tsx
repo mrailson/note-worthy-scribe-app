@@ -880,15 +880,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, meeting?.id]);
 
-  // Parse sections whenever notesContent changes
+  // Parse sections whenever content changes — use cleaned content (without action items)
+  // so that action items never appear in the section cards view
   useEffect(() => {
-    if (notesContent) {
-      const parsed = parseNotesIntoSections(notesContent);
+    if (contentWithoutActionItems) {
+      const parsed = parseNotesIntoSections(contentWithoutActionItems);
       setSections(parsed);
     } else {
       setSections([]);
     }
-  }, [notesContent, parseNotesIntoSections]);
+  }, [contentWithoutActionItems, parseNotesIntoSections]);
 
   // Store meeting format from database
   const [meetingFormat, setMeetingFormat] = useState<string | null>(null);
