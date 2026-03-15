@@ -992,11 +992,13 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                                 key={key}
                                 type="button"
                                 onClick={() => {
-                                  if (selectedInfographicStyle === key) {
-                                    setExpandedInfographicThumb(prev => prev === key ? null : key);
-                                  } else {
-                                    setSelectedInfographicStyle(key);
+                                  if (expandedInfographicThumb === key) {
+                                    // Already expanded — collapse
                                     setExpandedInfographicThumb(null);
+                                  } else {
+                                    // Select + expand (works for both new and current selection)
+                                    setSelectedInfographicStyle(key);
+                                    setExpandedInfographicThumb(key);
                                   }
                                 }}
                                 className={cn(
