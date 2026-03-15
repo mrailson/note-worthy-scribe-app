@@ -1607,12 +1607,14 @@ export const generateProfessionalWordFromContent = async (
       },
       content: filteredContent,
       actionItems: actionItemsToUse,
+      logoUrl,
     });
   } else {
     // Fallback to auto-parsing
     await generateProfessionalMeetingDocx({
       metadata: { title },
       content: filteredContent,
+      logoUrl,
     });
   }
 };
