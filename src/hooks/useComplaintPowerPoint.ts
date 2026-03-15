@@ -567,7 +567,6 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
 
         if (pollResponse?.status === 'completed') {
           downloadUrl = pollResponse.downloadUrl;
-          gammaUrl = pollResponse.gammaUrl;
           break;
         }
 
