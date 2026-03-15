@@ -426,7 +426,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
 
   const documentTitle = meetingDetails?.title || meetingTitle || 'Meeting Notes';
 
-  // Filter content based on section toggles for preview
+  // Filter content based on section toggles for preview, then always remove Action/Completed text blocks.
+  // The dedicated Action Items table below is the single source of truth in this modal.
   const filteredNotesContent = useMemo(() => {
     const sectionVisibility = {
       executiveSummary: docSettings.exec_summary_on,
@@ -435,7 +436,9 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
       attendees: docSettings.attendees_on,
       keyPoints: true, // always show key points / discussion summary
     };
-    return filterContentByVisibility(notesContent, sectionVisibility);
+
+    const visibilityFiltered = filterContentByVisibility(notesContent, sectionVisibility);
+    return removeActionItemsSection(visibilityFiltered).trim();
   }, [notesContent, docSettings.exec_summary_on, docSettings.action_items_on, docSettings.open_items_on, docSettings.attendees_on]);
 
   const previewElements = useMemo(() => renderMeetingContent(filteredNotesContent), [filteredNotesContent]);
