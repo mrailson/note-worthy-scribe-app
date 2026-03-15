@@ -11,6 +11,7 @@ export interface UserLogo {
   image_url: string | null;
   is_active: boolean;
   created_at: string;
+  is_practice_logo?: boolean; // true for the auto-fetched practice logo
 }
 
 export function useUserLogos() {
@@ -20,12 +21,49 @@ export function useUserLogos() {
   const fetchLogos = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    // Fetch user-managed logos
     const { data } = await supabase
       .from('user_logos')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true });
-    setLogos((data as UserLogo[] | null) || []);
+    
+    const userLogos = (data as UserLogo[] | null) || [];
+
+    // Fetch practice logo from practice_details
+    const { data: pd } = await supabase
+      .from('practice_details')
+      .select('id, practice_name, practice_logo_url, logo_url')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const practiceLogoUrl = pd?.practice_logo_url || pd?.logo_url;
+    
+    const allLogos: UserLogo[] = [];
+
+    // Add practice logo first if it exists
+    if (pd && practiceLogoUrl) {
+      const practiceLogoEntry: UserLogo = {
+        id: `practice-${pd.id}`,
+        user_id: user.id,
+        name: pd.practice_name || 'My Practice',
+        type: 'practice',
+        image_url: practiceLogoUrl,
+        is_active: userLogos.length === 0 || !userLogos.some(l => l.is_active),
+        created_at: '',
+        is_practice_logo: true,
+      };
+      // If any user logo is active, the practice logo should not be active
+      if (userLogos.some(l => l.is_active)) {
+        practiceLogoEntry.is_active = false;
+      }
+      allLogos.push(practiceLogoEntry);
+    }
+
+    allLogos.push(...userLogos);
+
+    setLogos(allLogos);
     setLoading(false);
   }, []);
 
@@ -34,10 +72,15 @@ export function useUserLogos() {
   const setActiveLogo = useCallback(async (logoId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    // Deactivate all
-    await supabase.from('user_logos').update({ is_active: false }).eq('user_id', user.id);
-    // Activate selected
-    await supabase.from('user_logos').update({ is_active: true }).eq('id', logoId);
+
+    // If selecting the practice logo (virtual entry), deactivate all user logos
+    if (logoId.startsWith('practice-')) {
+      await supabase.from('user_logos').update({ is_active: false }).eq('user_id', user.id);
+    } else {
+      // Deactivate all, then activate selected
+      await supabase.from('user_logos').update({ is_active: false }).eq('user_id', user.id);
+      await supabase.from('user_logos').update({ is_active: true }).eq('id', logoId);
+    }
     await fetchLogos();
   }, [fetchLogos]);
 
@@ -69,6 +112,8 @@ export function useUserLogos() {
   }, [fetchLogos]);
 
   const deleteLogo = useCallback(async (logoId: string) => {
+    // Don't allow deleting the practice logo
+    if (logoId.startsWith('practice-')) return;
     await supabase.from('user_logos').delete().eq('id', logoId);
     await fetchLogos();
   }, [fetchLogos]);
