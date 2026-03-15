@@ -1489,6 +1489,7 @@ export interface VisibleSectionsInput {
   keyPoints?: boolean;
   actionList?: boolean;
   openItems?: boolean;
+  attendees?: boolean;
 }
 
 // Helper to remove Key Points section from content
