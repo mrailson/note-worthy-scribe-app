@@ -2521,17 +2521,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   };
 
-  // Remove action items section from formatted content (we'll show it as a table) - ONLY if actionList toggle is OFF
+  // Remove action items section from content using robust line-based parser
+  // This is used in ALL display paths (plain, sections, fallback) to prevent
+  // Action Items text from appearing in the notes body — the InlineActionItemsTable
+  // component handles rendering them as a proper table instead.
   const contentWithoutActionItems = useMemo(() => {
     if (!notesContent) return '';
     
-    let cleaned = notesContent;
-    
-    // Always remove Action Items section from the notes text body
-    // When the actionList toggle is ON, the InlineActionItemsTable component renders them as a proper table below
-    // When OFF, they should not be shown at all
-    cleaned = cleaned.replace(/^#{0,6}\s*\*{0,2}Action\s+Items?\*{0,2}\s*\n[\s\S]*?(?=\n#{1,2}\s|\n[A-Z][A-Z\s&]{2,}\n|\n\*\*[A-Z]|$)/gim, '');
-    cleaned = cleaned.replace(/^#{0,6}\s*\*{0,2}Completed\s*(Items?)?\*{0,2}\s*\n[\s\S]*?(?=\n#{1,2}\s|\n[A-Z][A-Z\s&]{2,}\n|\n\*\*[A-Z]|$)/gim, '');
+    // Use the shared robust line-based parser that handles all heading variants
+    let cleaned = removeActionItemsSection(notesContent);
 
     // Remove meeting details section heading/label
     cleaned = cleaned.replace(/^#{1,6}\s*Meeting\s+Details\s*$/gim, '');
@@ -2557,7 +2555,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
     
     return cleaned;
-  }, [notesContent, notesViewSettings.settings.visibleSections.actionList]);
+  }, [notesContent]);
 
   // Enhanced markdown to HTML converter with proper list handling
   const basicFormat = (text: string): string => {
