@@ -1684,6 +1684,7 @@ export const generateProfessionalWordFromContent = async (
       footerOn,
       meetingDetailsOn,
       attendeesOn,
+      priorityColumnOn,
     });
   } else {
     // Fallback to auto-parsing
