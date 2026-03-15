@@ -34,6 +34,9 @@ import {
 } from 'lucide-react';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useUserDocumentSettings, type UserDocumentSettings } from '@/hooks/useUserDocumentSettings';
+import { useUserLogos } from '@/hooks/useUserLogos';
+import { DocumentSettingsModal } from './DocumentSettingsModal';
 import { useContentInfographic } from '@/hooks/useContentInfographic';
 import { useMeetingInfographic } from '@/hooks/useMeetingInfographic';
 import { cn } from '@/lib/utils';
