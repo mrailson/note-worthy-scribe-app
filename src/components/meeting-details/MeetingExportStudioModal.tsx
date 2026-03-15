@@ -52,6 +52,7 @@ import { useMeetingPowerPoint } from '@/hooks/useMeetingPowerPoint';
 import { useMeetingInfographicHistory } from '@/hooks/useMeetingInfographicHistory';
 import { supabase } from '@/integrations/supabase/client';
 import { downloadFile } from '@/utils/downloadFile';
+import { removeActionItemsSection } from '@/utils/meeting/cleanMeetingContent';
 import { Trash2, Eye } from 'lucide-react';
 
 interface MeetingDetails {
