@@ -248,7 +248,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   
   while ((match = markdownRegex.exec(cleanedText)) !== null) {
     if (match.index > currentIndex) {
-      const normalText = cleanedText.substring(currentIndex, match.index);
+      const normalText = cleanedText.substring(currentIndex, match.index).replace(/\*{1,2}/g, '');
       if (normalText) {
         runs.push(new TextRun({ 
           text: normalText, 
@@ -261,7 +261,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
     
     if (match[2]) {
       runs.push(new TextRun({ 
-        text: match[2], 
+        text: match[2].replace(/\*{1,2}/g, ''), 
         size: FONTS.size.body, 
         bold: true,
         color: NHS_COLORS.textGrey,
@@ -269,7 +269,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
       }));
     } else if (match[3]) {
       runs.push(new TextRun({ 
-        text: match[3], 
+        text: match[3].replace(/\*{1,2}/g, ''), 
         size: FONTS.size.body, 
         italics: true,
         color: NHS_COLORS.textGrey,
@@ -281,7 +281,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   }
   
   if (currentIndex < cleanedText.length) {
-    const remainingText = cleanedText.substring(currentIndex);
+    const remainingText = cleanedText.substring(currentIndex).replace(/\*{1,2}/g, '');
     if (remainingText) {
       runs.push(new TextRun({ 
         text: remainingText, 
