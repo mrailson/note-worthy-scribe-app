@@ -113,7 +113,7 @@ async function buildPptx({ content, scheme, practice, imageMode, logo }: {
   content: any; scheme: string; practice: string; imageMode: string; logo: boolean;
 }) {
   const col = SCHEMES[scheme] || SCHEMES['NHS Blue'];
-  const pptx = new (window as any).PptxGenJS();
+  const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE';
 
   // Title slide
