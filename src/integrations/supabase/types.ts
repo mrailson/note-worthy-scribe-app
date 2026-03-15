@@ -11276,6 +11276,7 @@ export type Database = {
           id: string
           logo_on: boolean | null
           logo_position: string | null
+          logo_scale: number | null
           open_items_on: boolean | null
           updated_at: string | null
           user_id: string
@@ -11287,6 +11288,7 @@ export type Database = {
           id?: string
           logo_on?: boolean | null
           logo_position?: string | null
+          logo_scale?: number | null
           open_items_on?: boolean | null
           updated_at?: string | null
           user_id: string
@@ -11298,6 +11300,7 @@ export type Database = {
           id?: string
           logo_on?: boolean | null
           logo_position?: string | null
+          logo_scale?: number | null
           open_items_on?: boolean | null
           updated_at?: string | null
           user_id?: string

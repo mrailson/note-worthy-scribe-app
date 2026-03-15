@@ -38,7 +38,7 @@ export function useUserDocumentSettings() {
         logo_on: data.logo_on ?? true,
         footer_on: data.footer_on ?? true,
         logo_position: data.logo_position ?? 'centre',
-        logo_scale: typeof data.logo_scale === 'number' ? data.logo_scale : 1.0,
+        logo_scale: typeof (data as any).logo_scale === 'number' ? (data as any).logo_scale : 1.0,
         exec_summary_on: data.exec_summary_on ?? true,
         action_items_on: data.action_items_on ?? true,
         open_items_on: data.open_items_on ?? true,
