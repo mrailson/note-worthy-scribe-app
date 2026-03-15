@@ -1607,7 +1607,8 @@ export const generateProfessionalWordFromContent = async (
   parsedDetails?: ParsedMeetingDetailsInput,
   parsedActionItems?: ParsedActionItemInput[],
   visibleSections?: VisibleSectionsInput,
-  logoUrl?: string
+  logoUrl?: string,
+  logoScale?: number
 ): Promise<void> => {
   // Filter content based on visibility settings before processing
   const filteredContent = filterContentByVisibility(content, visibleSections);
@@ -1629,6 +1630,7 @@ export const generateProfessionalWordFromContent = async (
       content: filteredContent,
       actionItems: actionItemsToUse,
       logoUrl,
+      logoScale,
     });
   } else {
     // Fallback to auto-parsing
