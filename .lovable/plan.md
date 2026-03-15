@@ -1,58 +1,45 @@
 
 
-## Problem Analysis
+## Plan: Redesign Export Studio Bottom Bar + Integrate Audio Studio + Expand Document Settings
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+### Overview
+Replace the current bottom export bar in `MeetingExportStudioModal.tsx` with a 4-button tab grid (Word, Slides, Infographic, Audio Studio) with contextual action panels. Remove the standalone "Generate Audio Summary" (Headphones) icon from the SafeModeNotesModal toolbar. Expand the Document Settings modal content (already has logo manager and section toggles — mostly in place).
 
-### Root causes by issue:
+### Changes
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+#### 1. Remove "Generate Audio Summary" toolbar icon (`SafeModeNotesModal.tsx`)
+- **Lines 3164-3177**: Delete the Quick Audio Summary tooltip/button block (Headphones icon that opens `setShowQuickAudioModal(true)`)
+- Keep the Audio Studio (Mic) button and the QuickAudioSummaryModal component — just remove the toolbar shortcut
 
-## Plan
+#### 2. Redesign bottom export bar (`MeetingExportStudioModal.tsx`)
+Replace lines 776-827 (the current bottom bar with Word/Presentation/Infographic/Cancel buttons) with:
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+- **State**: Add `selectedExport` state: `'word' | 'slides' | 'infographic' | 'audio'`, default `'word'`
+- **4-column button grid**: Equal-width buttons with icon + label + subtitle
+  - Word (FileText icon, subtitle "Download")
+  - Slides (Presentation icon, subtitle "PowerPoint")  
+  - Infographic (BarChart3/LayoutGrid icon, subtitle "Visual summary")
+  - Audio Studio (Headphones icon, subtitle "Discussion")
+  - Active: `bg-[#003087] text-white`, Inactive: `bg-white border-[0.5px] border-[#e5e7eb]`
+- **Action panel** below buttons: `bg-[#f9fafb] border-[0.5px] border-[#e5e7eb] rounded-lg p-[10px_12px]`
+  - Shows title, description, and action button based on `selectedExport`
+  - Word → calls `handleDownloadWord`
+  - Slides → opens slide count popover then `handlePptGenerate`
+  - Infographic → opens orientation choice then `handleGenerateInfographic`
+  - Audio Studio → toggles `showAudioStudio` (opens existing Audio Studio in parent)
+- **Cancel** text button below action panel
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+- Need to pass `onOpenAudioStudio` callback from `SafeModeNotesModal` into `MeetingExportStudioModal` so the Audio Studio button can open the existing panel
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+#### 3. Document Settings already complete
+The `DocumentSettingsModal.tsx` already contains the multi-logo manager, section toggles with subtitles, and preview strip — all matching the requested specs. No changes needed here.
 
-### 2. Raise Part 2b base tokens
+#### 4. Pass section toggles to generation functions
+- **Word**: Already done (lines 441-455 in MeetingExportStudioModal)
+- **PowerPoint**: Pass `docSettings` section toggles to `MeetingPowerPointModal` as a prop, filter content before generation
+- **Infographic**: Pass section toggle states to `generateInfographic` call, filter excluded sections from content
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
-
-### 3. Add anti-truncation instructions to all step prompts
-
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
-
-### 4. Update step labels and progress tracking
-
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
-
-### 5. Verify Version History enforcement
-
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
-
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+### Files Modified
+1. **`src/components/SafeModeNotesModal.tsx`** — Remove Headphones toolbar button (lines 3164-3177), add `onOpenAudioStudio` prop to MeetingExportStudioModal usage
+2. **`src/components/meeting-details/MeetingExportStudioModal.tsx`** — Replace bottom bar with 4-tab grid + action panel, add `onOpenAudioStudio` prop, pass section toggles to PPT/infographic
 
