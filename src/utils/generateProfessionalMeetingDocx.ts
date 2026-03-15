@@ -1608,7 +1608,8 @@ export const generateProfessionalWordFromContent = async (
   parsedActionItems?: ParsedActionItemInput[],
   visibleSections?: VisibleSectionsInput,
   logoUrl?: string,
-  logoScale?: number
+  logoScale?: number,
+  footerOn?: boolean
 ): Promise<void> => {
   // Filter content based on visibility settings before processing
   const filteredContent = filterContentByVisibility(content, visibleSections);
@@ -1631,6 +1632,7 @@ export const generateProfessionalWordFromContent = async (
       actionItems: actionItemsToUse,
       logoUrl,
       logoScale,
+      footerOn,
     });
   } else {
     // Fallback to auto-parsing
@@ -1757,6 +1759,7 @@ interface GenerateWithParsedDataOptions {
   filename?: string;
   logoUrl?: string;
   logoScale?: number;
+  footerOn?: boolean;
 }
 
 export const generateProfessionalMeetingDocxWithParsedData = async (options: GenerateWithParsedDataOptions): Promise<void> => {
@@ -1832,8 +1835,9 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
     children.push(...actionTableElements);
   }
   
-  // Create footer with meeting date/time
-  const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
+  // Create footer with meeting date/time (only if footerOn is not explicitly false)
+  const includeFooter = options.footerOn !== false;
+  const footer = includeFooter ? await createFooter(metadata.classification, metadata.date, metadata.time) : undefined;
   
   // Build and save document
   const doc = new Document({
@@ -1850,9 +1854,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
           },
         },
       },
-      footers: {
-        default: footer,
-      },
+      ...(footer ? { footers: { default: footer } } : {}),
       children,
     }],
   });
