@@ -755,8 +755,7 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
         const statusDisplay = getStatusDisplay(item.status, item.isCompleted);
         const rowBg = rowIndex % 2 === 0 ? undefined : "F8FAFC";
         
-        return new TableRow({
-          children: [
+        const cells = [
             // Action column
             new TableCell({
               children: [new Paragraph({
@@ -801,7 +800,11 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
               shading: rowBg ? { fill: rowBg } : undefined,
               margins: { top: 80, bottom: 80, left: 120, right: 120 },
             }),
-            // Priority column
+        ];
+
+        // Priority column (conditionally included)
+        if (priorityColumnOn) {
+          cells.push(
             new TableCell({
               children: [new Paragraph({
                 children: [new TextRun({ 
@@ -816,7 +819,11 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
               shading: { fill: priorityStyle.bg },
               margins: { top: 80, bottom: 80, left: 120, right: 120 },
             }),
-            // Status column
+          );
+        }
+
+        // Status column
+        cells.push(
             new TableCell({
               children: [new Paragraph({
                 children: [new TextRun({ 
@@ -831,8 +838,9 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
               shading: rowBg ? { fill: rowBg } : undefined,
               margins: { top: 80, bottom: 80, left: 120, right: 120 },
             }),
-          ],
-        });
+        );
+
+        return new TableRow({ children: cells });
       }),
     ],
   });
