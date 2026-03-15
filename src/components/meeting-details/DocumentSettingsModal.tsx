@@ -80,13 +80,25 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
     if (!settingsLoading) setLocalSettings(savedSettings);
   }, [savedSettings, settingsLoading]);
 
-  // KEY FIX: Radix Dialog sets pointer-events:none on document.body.
-  // Override it while our modal is open so all controls are interactive.
+  // KEY FIX: Radix Dialog continuously sets pointer-events:none on document.body.
+  // Use a MutationObserver to persistently override it while our modal is open.
   useEffect(() => {
     if (!isOpen) return;
-    const prev = document.body.style.pointerEvents;
-    document.body.style.pointerEvents = 'auto';
-    return () => { document.body.style.pointerEvents = prev; };
+    const body = document.body;
+    const force = () => {
+      if (body.style.pointerEvents === 'none') {
+        body.style.pointerEvents = 'auto';
+      }
+    };
+    force();
+    const observer = new MutationObserver(force);
+    observer.observe(body, { attributes: true, attributeFilter: ['style'] });
+    // Also use an interval as a fallback for inline style changes the observer may miss
+    const interval = setInterval(force, 100);
+    return () => {
+      observer.disconnect();
+      clearInterval(interval);
+    };
   }, [isOpen]);
 
   // Escape to close
