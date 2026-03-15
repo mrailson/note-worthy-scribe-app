@@ -201,8 +201,8 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
                             <span style={{ fontSize: 11, fontWeight: 500, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{truncateName(logo.name)}</span>
                             <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 20, background: b.bg, color: b.fg }}>{TYPE_LABELS[logo.type]}</span>
                           </button>
-                          {/* Delete button */}
-                          {isDeleting ? (
+                          {/* Delete button - not shown for practice logo */}
+                          {!logo.is_practice_logo && (isDeleting ? (
                             <div style={{
                               position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.95)', borderRadius: 8,
                               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, zIndex: 5,
@@ -236,7 +236,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
                             >
                               <Trash2 size={10} color="#dc2626" />
                             </button>
-                          )}
+                          ))}
                         </div>
                       );
                     })}
