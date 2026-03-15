@@ -460,9 +460,10 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       
       // Handle tables
       if (line.includes('|')) {
-        let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 16px 0; font-family: Arial, sans-serif;">\n';
-        let isFirstRow = true;
+        // Collect all table rows first to detect columns to exclude
+        const tableRows: string[][] = [];
         let inTable = true;
+        const tableStartI = i;
         
         while (i < lines.length && inTable) {
           const currentLine = lines[i].trim();
@@ -474,19 +475,8 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           
           if (currentLine.includes('|')) {
             const cells = currentLine.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
-            
             if (cells.length > 0) {
-              tableHTML += '  <tr>\n';
-              cells.forEach(cell => {
-                const cleanCell = stripInlineMarkdown(cell);
-                if (isFirstRow) {
-                  tableHTML += `    <th style="border: 1px solid #ddd; padding: 10px; background-color: #f5f5f5; text-align: left; font-weight: 600;">${cleanCell}</th>\n`;
-                } else {
-                  tableHTML += `    <td style="border: 1px solid #ddd; padding: 10px; text-align: left;">${cleanCell}</td>\n`;
-                }
-              });
-              tableHTML += '  </tr>\n';
-              isFirstRow = false;
+              tableRows.push(cells);
             }
             i++;
           } else {
@@ -494,8 +484,34 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           }
         }
         
-        tableHTML += '</table>\n';
-        html += tableHTML;
+        if (tableRows.length > 0) {
+          // Identify Priority and Status columns to exclude
+          const headerRow = tableRows[0];
+          const excludeIndices = new Set<number>();
+          headerRow.forEach((cell, idx) => {
+            const clean = stripInlineMarkdown(cell).toLowerCase();
+            if (clean === 'priority' || clean === 'status') {
+              excludeIndices.add(idx);
+            }
+          });
+          
+          let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 16px 0; font-family: Arial, sans-serif;">\n';
+          tableRows.forEach((cells, rowIdx) => {
+            const filteredCells = cells.filter((_, idx) => !excludeIndices.has(idx));
+            tableHTML += '  <tr>\n';
+            filteredCells.forEach(cell => {
+              const cleanCell = stripInlineMarkdown(cell);
+              if (rowIdx === 0) {
+                tableHTML += `    <th style="border: 1px solid #ddd; padding: 10px; background-color: #f5f5f5; text-align: left; font-weight: 600;">${cleanCell}</th>\n`;
+              } else {
+                tableHTML += `    <td style="border: 1px solid #ddd; padding: 10px; text-align: left;">${cleanCell}</td>\n`;
+              }
+            });
+            tableHTML += '  </tr>\n';
+          });
+          tableHTML += '</table>\n';
+          html += tableHTML;
+        }
         continue;
       }
       
