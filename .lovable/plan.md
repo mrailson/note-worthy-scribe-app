@@ -1,37 +1,58 @@
 
 
-## Problem
+## Problem Analysis
 
-On high-scaling laptops (e.g. 1280x720 effective resolution), the Ask AI home screen shows the category grid clipped — only ~2 rows visible before running into the input area. On normal/larger screens, all 4 rows display comfortably. The difference comes from the vertical space consumed by: page header, card header (with tabs), role toggle row, and the fixed input area at the bottom.
+The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
 
-The home screen area (`flex-1 overflow-y-auto`) should scroll, but the grid is inside a `max-w-2xl` container with padding, and on small viewports there isn't enough room. The key issue is that the welcome screen content area **does scroll** (`overflow-y-auto` on line 846), so all categories are technically accessible — but on cramped screens the user doesn't realize they can scroll, and the view looks broken.
+### Root causes by issue:
+
+| Issue | Cause |
+|-------|-------|
+| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
+| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
+| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
+| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
 
 ## Plan
 
-### 1. Make the category grid adapt to available height
+### 1. Split Part 3 into two steps to prevent token exhaustion
 
-In `GPHomeScreen.tsx`, change the main category grid from a fixed 3-column layout to one that responds to available vertical space:
+Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
+- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
+- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
 
-- Use **`grid-cols-3 sm:grid-cols-4 lg:grid-cols-5`** for the main category grid (line 219) so that on wider screens, categories fit in fewer rows (2 rows of 5 instead of 4 rows of 3).
-- Remove or reduce the `max-w-2xl` constraint on the grid wrapper (currently in `AI4GPService.tsx` line 849) — widen it to `max-w-3xl` or `max-w-4xl` to give the wider grid room.
+This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
 
-### 2. Compact the vertical spacing on small viewports
+### 2. Raise Part 2b base tokens
 
-In `AI4GPService.tsx`, the welcome screen wrapper (line 847) uses `space-y-2 sm:space-y-3` and `p-2 sm:p-4`. Tighten:
-- Reduce padding: `p-1 sm:p-4`
-- Reduce vertical gaps between role toggle and grid: `mb-1` → `mb-0` on the role toggle row (line 861), `gap-3` → `gap-2`.
+Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
 
-### 3. Reduce card height for compact screens
+### 3. Add anti-truncation instructions to all step prompts
 
-In `GPHomeScreen.tsx`, the cards use `min-h-[40px]` and `p-2`. For smaller viewports, reduce to `min-h-[36px]` and `p-1.5` using responsive classes, keeping the current size on larger screens.
+Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
 
-### 4. Add a subtle scroll indicator
+### 4. Update step labels and progress tracking
 
-When the home screen content overflows, add a small fade gradient at the bottom of the scrollable area (CSS pseudo-element or a conditional div) so users on cramped screens know there's more content below.
+Add `generate_part_3a` and `generate_part_3b` to:
+- The edge function step routing
+- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
+- Progress percentages adjusted for 5 generation steps
 
-## Files to modify
+### 5. Verify Version History enforcement
 
-- `src/components/ai4gp/GPHomeScreen.tsx` — wider grid columns, compact card sizing
-- `src/components/AI4GPService.tsx` — widen max-w constraint, tighten vertical spacing, add scroll fade indicator
-- Optionally `src/components/ai4gp/PMHomeScreen.tsx` — apply same grid changes for consistency
+The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
+
+### Files to change
+
+1. **`supabase/functions/generate-policy/index.ts`**:
+   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
+   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
+   - Add new `generate_part_3b` step with its own prompt and token budget
+   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
+   - Add anti-truncation instruction to Part 2b user prompt
+   - Deploy the updated function
+
+2. **`src/hooks/usePolicyJobs.ts`**:
+   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
+   - Update label text to reflect 5 generation steps
 

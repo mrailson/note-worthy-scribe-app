@@ -842,11 +842,12 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                 )}>
                   {messages.length === 0 && !showEmbeddedPMGenie ? (
                     /* Welcome Screen - Compact, mobile-optimized - Hidden when PM Genie is active */
+                    <div className="flex-1 relative min-h-0 flex flex-col">
                     <div className={cn(
                       "flex-1 overflow-y-auto",
-                    isMobile ? "p-0 pb-36" : "p-2 sm:p-4 space-y-2 sm:space-y-3"
+                    isMobile ? "p-0 pb-36" : "p-1 sm:p-4 space-y-1 sm:space-y-3"
                   )} style={{ WebkitOverflowScrolling: 'touch' }}>
-                      <div className={cn("w-full mx-auto space-y-4", isBNFViewActive ? "max-w-5xl" : "max-w-2xl")}>
+                      <div className={cn("w-full mx-auto space-y-2 sm:space-y-4", isBNFViewActive ? "max-w-5xl" : "max-w-3xl")}>
                         {/* Mobile: Show quick picks inside the white bubble area */}
                         {isMobile ? (
                           <MobileRoleQuickPicks
@@ -858,7 +859,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                           <>
                             
                             {/* Role Selection Toggle with Prompts Link */}
-                            <div className="flex items-center justify-center gap-3 mb-1">
+                            <div className="flex items-center justify-center gap-3 mb-0">
                               <RoleToggle
                                 selectedRole={selectedRole}
                                 onRoleChange={setSelectedRole}
@@ -909,6 +910,11 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         
                         {/* Show User Prompts - Messages start here */}
                        </div>
+                     </div>
+                     {/* Scroll fade indicator for cramped viewports */}
+                     {!isMobile && (
+                       <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent" />
+                     )}
                      </div>
                    ) : (
                    /* Messages Area */
