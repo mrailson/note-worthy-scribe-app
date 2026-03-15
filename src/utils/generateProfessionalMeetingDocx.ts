@@ -915,8 +915,21 @@ const parseContentToDocxElements = async (content: string) => {
             .map(cell => decodeHtmlEntities(cell.replace(/\*\*/g, '').replace(/\*/g, '')));
         };
         
-        const headerCells = parseCells(tableLines[0]);
-        const bodyRows = tableLines.slice(1).map(parseCells);
+        let headerCells = parseCells(tableLines[0]);
+        let bodyRows = tableLines.slice(1).map(parseCells);
+        
+        // Remove Priority and Status columns from action item tables
+        const excludeIndices = new Set<number>();
+        headerCells.forEach((h, idx) => {
+          const lower = h.toLowerCase().trim();
+          if (lower === 'priority' || lower === 'status') {
+            excludeIndices.add(idx);
+          }
+        });
+        if (excludeIndices.size > 0) {
+          headerCells = headerCells.filter((_, idx) => !excludeIndices.has(idx));
+          bodyRows = bodyRows.map(row => row.filter((_, idx) => !excludeIndices.has(idx)));
+        }
         
         // Check if this is an action items table
         const priorityColIndex = headerCells.findIndex(h => h.toLowerCase().includes('priority'));
