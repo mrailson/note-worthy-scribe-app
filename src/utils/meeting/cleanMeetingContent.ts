@@ -129,17 +129,26 @@ export const deduplicateActionItems = (content: string): string => {
 
 /**
  * Test whether a line is an Action Items or Completed Items heading.
+ * Extremely broad matching to prevent any variant from leaking through.
  * Supports: `## Action Items`, `# ACTION ITEMS:`, `**Action Items**`,
- * `**Action Items:**`, `Action Items`, `COMPLETED`, `## Completed Items`, etc.
+ * `Action Items`, `COMPLETED`, `## Completed Items`, with or without
+ * trailing punctuation, bold markers, numbering, etc.
  */
 const isActionOrCompletedHeading = (line: string): boolean => {
-  const t = line.trim();
-  // Markdown heading variants: # Action Items, ## Completed Items:
-  if (/^#{1,6}\s*\**\s*(?:action\s+items?|completed(?:\s+items?)?)\s*\**\s*:?\s*$/i.test(t)) return true;
-  // Bold heading variants: **Action Items**, **Completed Items:**
-  if (/^\*{2}\s*(?:action\s+items?|completed(?:\s+items?)?)\s*:?\s*\*{2}\s*$/i.test(t)) return true;
-  // Plain text heading variants: ACTION ITEMS, Completed Items:
-  if (/^(?:action\s+items?|completed(?:\s+items?)?)\s*:?\s*$/i.test(t)) return true;
+  // Strip \r, trim whitespace
+  const t = line.replace(/\r/g, '').trim();
+  if (!t) return false;
+  // Strip leading markdown heading markers and whitespace
+  const stripped = t
+    .replace(/^#{1,6}\s*/, '')   // remove leading # markers
+    .replace(/^\d+\.\s*/, '')    // remove leading numbering
+    .replace(/^\*{1,2}\s*/, '')  // remove leading bold/italic markers
+    .replace(/\s*\*{1,2}\s*$/, '') // remove trailing bold/italic markers
+    .replace(/\s*:?\s*$/, '')    // remove trailing colon and whitespace
+    .trim();
+  // Now check if what remains is "action items", "action item", "completed", "completed items"
+  if (/^action\s+items?$/i.test(stripped)) return true;
+  if (/^completed(?:\s+items?)?$/i.test(stripped)) return true;
   return false;
 };
 
@@ -149,17 +158,24 @@ const isActionOrCompletedHeading = (line: string): boolean => {
  * or ALLCAPS plain headings (3+ chars).
  */
 const isNonActionSectionHeading = (line: string): boolean => {
-  const t = line.trim();
+  const t = line.replace(/\r/g, '').trim();
+  if (!t) return false;
   // Markdown heading that is NOT action/completed
   if (/^#{1,6}\s+\S/.test(t) && !isActionOrCompletedHeading(line)) return true;
   // Bold heading that is NOT action/completed (e.g. **KEY DECISIONS**)
   if (/^\*{2}[A-Z][A-Z\s&]{2,}\*{2}\s*:?\s*$/.test(t) && !isActionOrCompletedHeading(line)) return true;
+  // Plain ALLCAPS heading (3+ uppercase chars, possibly with & and spaces)
+  if (/^[A-Z][A-Z\s&]{2,}$/.test(t) && !isActionOrCompletedHeading(line)) return true;
   return false;
 };
 
 // Remove action items & completed sections from content (line-based, robust)
 export const removeActionItemsSection = (content: string): string => {
-  const lines = content.split('\n');
+  if (!content) return content;
+  
+  // Normalise line endings
+  const normalised = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = normalised.split('\n');
   const result: string[] = [];
   let skipping = false;
   
@@ -180,7 +196,20 @@ export const removeActionItemsSection = (content: string): string => {
     }
   }
   
-  return result.join('\n').replace(/\n{3,}/g, '\n\n');
+  let cleaned = result.join('\n');
+  
+  // FALLBACK: aggressive regex pass to catch any remaining action items blocks
+  // that the line-based parser might have missed
+  // Matches "Action Items" heading (with any markdown/bold decoration) followed by
+  // content until the next section heading or end of string
+  cleaned = cleaned.replace(
+    /\n*(?:^|\n)(?:#{1,6}\s*)?(?:\*{0,2})(?:action\s+items?)(?:\*{0,2})\s*:?\s*\n[\s\S]*?(?=\n#{1,6}\s|\n[A-Z][A-Z\s&]{2,}\n|\n\*{2}[A-Z]|\s*$)/gi,
+    '\n'
+  );
+  
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  
+  return cleaned;
 };
 
 // Remove executive summary section from content (when rendering in separate box)
