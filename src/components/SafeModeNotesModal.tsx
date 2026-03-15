@@ -3141,16 +3141,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           </div>
 
           <div className="flex items-center gap-1">
-            {/* Copy button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopy}>
-                  {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{copied ? 'Copied!' : 'Copy to clipboard'}</TooltipContent>
-            </Tooltip>
-
             {/* Export Studio button — replaces Word/PPT/Infographic */}
             <Tooltip>
               <TooltipTrigger asChild>
