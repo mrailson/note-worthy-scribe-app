@@ -1,70 +1,58 @@
 
 
-## Plan: Mobile-Friendly Meeting Modal Toolbar
+## Problem Analysis
 
-### Problem
-The toolbar (line 2878) is a single horizontal flex row with ~12 icons/controls. On iPhone (402px wide), the right-side items (Export Studio, Email, Attendees) get clipped and are inaccessible.
+The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
 
-### Solution
-Restructure the toolbar into two rows on mobile:
-- **Row 1** (primary controls): Zoom -/+, font/detail label, view toggle, corrections, note type selector, meeting type selector
-- **Row 2** (actions): Attendees, Email, Export Studio — always visible
+### Root causes by issue:
 
-Additionally, on small screens, wrap the toolbar with `flex-wrap` so items flow naturally, and add a visible "Export" label next to the Download icon on mobile so it's discoverable.
+| Issue | Cause |
+|-------|-------|
+| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
+| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
+| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
+| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
 
-### Changes
+## Plan
 
-#### `src/components/SafeModeNotesModal.tsx`
+### 1. Split Part 3 into two steps to prevent token exhaustion
 
-1. **Line 2878** — Change the toolbar container from `flex items-center justify-between` to `flex flex-wrap items-center justify-between` so items wrap on narrow screens instead of overflowing hidden.
+Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
+- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
+- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
 
-2. **Lines 3059-3060, 3113-3114** — Hide the dividers before Meeting Type and before Attendees on mobile: add `hidden sm:block` class to the `w-px h-5 bg-border mx-1.5` dividers that are least essential.
+This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
 
-3. **Lines 3143-3156** — The right-side `div` containing Export Studio: change from `flex items-center gap-1` to include a mobile-specific styling. Add the Export button with a text label visible on small screens so users can find it even without tooltip hover.
+### 2. Raise Part 2b base tokens
 
-4. **Alternative approach (cleaner)**: Convert the toolbar to use an overflow menu (DropdownMenu with `MoreHorizontal` icon) on mobile for secondary actions (Attendees, Email, Export Studio, View toggle, Corrections). This keeps the toolbar compact.
+Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
 
-**Recommended approach**: Use a `DropdownMenu` overflow pattern:
-- On `sm:` and above — show all icons as currently
-- On mobile (`< sm`) — show only: zoom controls, note type, and a "⋯" overflow menu containing: View toggle, Corrections, Meeting Type, Attendees, Email, Export Studio
+### 3. Add anti-truncation instructions to all step prompts
 
-#### Implementation Detail
+Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
 
-```tsx
-// After the zoom controls + note type selector, add:
-<div className="sm:hidden">
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      <Button variant="ghost" size="icon" className="h-8 w-8">
-        <MoreHorizontal className="h-4 w-4" />
-      </Button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="end">
-      <DropdownMenuItem onClick={() => setViewMode(...)}>
-        <ToggleRight /> {viewMode === 'plain' ? 'Formatted' : 'Plain Text'}
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => setShowCorrections(true)}>
-        <BookOpen /> Name & Term Corrections
-      </DropdownMenuItem>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={() => setShowAttendeeModal(true)}>
-        <Users /> Manage Attendees
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => setShowEmailModal(true)}>
-        <Mail /> Email Notes
-      </DropdownMenuItem>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={() => setShowExportStudio(true)}>
-        <Download /> Export Studio
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
-</div>
-```
+### 4. Update step labels and progress tracking
 
-- Wrap existing individual buttons (view toggle, corrections, dividers, attendees, email, export) with `hidden sm:flex` or `hidden sm:block` so they only show on desktop
-- Import `MoreHorizontal` from lucide-react
+Add `generate_part_3a` and `generate_part_3b` to:
+- The edge function step routing
+- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
+- Progress percentages adjusted for 5 generation steps
 
-### Files Modified
-1. **`src/components/SafeModeNotesModal.tsx`** — Add overflow dropdown menu for mobile, hide secondary toolbar icons on small screens
+### 5. Verify Version History enforcement
+
+The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
+
+### Files to change
+
+1. **`supabase/functions/generate-policy/index.ts`**:
+   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
+   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
+   - Add new `generate_part_3b` step with its own prompt and token budget
+   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
+   - Add anti-truncation instruction to Part 2b user prompt
+   - Deploy the updated function
+
+2. **`src/hooks/usePolicyJobs.ts`**:
+   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
+   - Update label text to reflect 5 generation steps
 

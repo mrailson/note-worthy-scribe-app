@@ -99,7 +99,8 @@ import {
   BookOpen,
   Building2,
   Home,
-  Mic
+  Mic,
+  MoreHorizontal
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
@@ -2954,44 +2955,48 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </TooltipContent>
             </Tooltip>
 
-            {/* Divider */}
-            <div className="w-px h-5 bg-border mx-1.5" />
+            {/* Divider - hidden on mobile */}
+            <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
 
-            {/* View mode toggle */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={viewMode === 'formatted' ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setViewMode(viewMode === 'plain' ? 'formatted' : 'plain')}
-                >
-                  {viewMode === 'plain' ? (
-                    <ToggleLeft className="h-4 w-4" />
-                  ) : (
-                    <ToggleRight className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{viewMode === 'plain' ? 'Plain Text' : 'Formatted'}</TooltipContent>
-            </Tooltip>
+            {/* View mode toggle - hidden on mobile (in overflow menu) */}
+            <div className="hidden sm:flex">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={viewMode === 'formatted' ? 'secondary' : 'ghost'}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setViewMode(viewMode === 'plain' ? 'formatted' : 'plain')}
+                  >
+                    {viewMode === 'plain' ? (
+                      <ToggleLeft className="h-4 w-4" />
+                    ) : (
+                      <ToggleRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{viewMode === 'plain' ? 'Plain Text' : 'Formatted'}</TooltipContent>
+              </Tooltip>
+            </div>
 
-            {/* Name & Term Corrections */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => setShowCorrections(true)}
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                >
-                  <BookOpen className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Name & Term Corrections</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* Name & Term Corrections - hidden on mobile (in overflow menu) */}
+            <div className="hidden sm:flex">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => setShowCorrections(true)}
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Name & Term Corrections</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
 
             {/* Saving indicator */}
             {isSavingSections && (
@@ -3000,8 +3005,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </div>
             )}
 
-            {/* Divider */}
-            <div className="w-px h-5 bg-border mx-1.5" />
+            {/* Divider - hidden on mobile */}
+            <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
 
             {/* Note Type Selector */}
             <Select 
@@ -3056,92 +3061,155 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </SelectContent>
             </Select>
 
-            {/* Divider */}
-            <div className="w-px h-5 bg-border mx-1.5" />
+            {/* Divider - hidden on mobile */}
+            <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
 
-            {/* Meeting Type Selector */}
-            <Select 
-              value={meetingType} 
-              onValueChange={handleMeetingTypeChange}
-              disabled={isSavingMeetingType}
-            >
+            {/* Meeting Type Selector - hidden on mobile (in overflow menu) */}
+            <div className="hidden sm:flex">
+              <Select 
+                value={meetingType} 
+                onValueChange={handleMeetingTypeChange}
+                disabled={isSavingMeetingType}
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SelectTrigger className="w-auto h-8 gap-2 border-0 bg-transparent hover:bg-accent px-2">
+                      {isSavingMeetingType ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : meetingType === 'teams' ? (
+                        <Video className="h-4 w-4" />
+                      ) : meetingType === 'f2f' ? (
+                        <UserCheck className="h-4 w-4" />
+                      ) : (
+                        <div className="flex items-center">
+                          <Video className="h-4 w-4" />
+                          <UserCheck className="h-3.5 w-3.5 -ml-1" />
+                        </div>
+                      )}
+                      <span className="text-sm hidden sm:inline">
+                        {meetingType === 'teams' ? 'Teams' : meetingType === 'f2f' ? 'Face to Face' : 'Hybrid'}
+                      </span>
+                    </SelectTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Meeting Type</TooltipContent>
+                </Tooltip>
+                <SelectContent>
+                  <SelectItem value="teams">
+                    <div className="flex items-center gap-2">
+                      <Video className="h-4 w-4" />
+                      MS Teams
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="f2f">
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4" />
+                      Face to Face
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="hybrid">
+                    <div className="flex items-center gap-2">
+                      <Video className="h-4 w-4" />
+                      <UserCheck className="h-4 w-4 -ml-1" />
+                      Hybrid
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Divider - hidden on mobile */}
+            <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
+
+            {/* Manage Attendees - hidden on mobile (in overflow menu) */}
+            <div className="hidden sm:flex">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SelectTrigger className="w-auto h-8 gap-2 border-0 bg-transparent hover:bg-accent px-2">
-                    {isSavingMeetingType ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : meetingType === 'teams' ? (
-                      <Video className="h-4 w-4" />
-                    ) : meetingType === 'f2f' ? (
-                      <UserCheck className="h-4 w-4" />
-                    ) : (
-                      <div className="flex items-center">
-                        <Video className="h-4 w-4" />
-                        <UserCheck className="h-3.5 w-3.5 -ml-1" />
-                      </div>
-                    )}
-                    <span className="text-sm hidden sm:inline">
-                      {meetingType === 'teams' ? 'Teams' : meetingType === 'f2f' ? 'Face to Face' : 'Hybrid'}
-                    </span>
-                  </SelectTrigger>
+                  <Button
+                    variant={showAttendeeModal ? 'secondary' : 'ghost'}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setShowAttendeeModal(true)}
+                  >
+                    <Users className="h-4 w-4" />
+                  </Button>
                 </TooltipTrigger>
-                <TooltipContent>Meeting Type</TooltipContent>
+                <TooltipContent>Manage Attendees</TooltipContent>
               </Tooltip>
-              <SelectContent>
-                <SelectItem value="teams">
-                  <div className="flex items-center gap-2">
-                    <Video className="h-4 w-4" />
-                    MS Teams
-                  </div>
-                </SelectItem>
-                <SelectItem value="f2f">
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4" />
-                    Face to Face
-                  </div>
-                </SelectItem>
-                <SelectItem value="hybrid">
-                  <div className="flex items-center gap-2">
-                    <Video className="h-4 w-4" />
-                    <UserCheck className="h-4 w-4 -ml-1" />
-                    Hybrid
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            </div>
 
-            {/* Divider */}
-            <div className="w-px h-5 bg-border mx-1.5" />
+            {/* Email button - hidden on mobile (in overflow menu) */}
+            <div className="hidden sm:flex">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowEmailModal(true)}>
+                    <Mail className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Email Meeting Notes</TooltipContent>
+              </Tooltip>
+            </div>
 
-            {/* Manage Attendees */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={showAttendeeModal ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setShowAttendeeModal(true)}
-                >
-                  <Users className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Manage Attendees</TooltipContent>
-            </Tooltip>
-
-
-            {/* Email button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowEmailModal(true)}>
-                  <Mail className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Email Meeting Notes</TooltipContent>
-            </Tooltip>
+            {/* Mobile overflow menu */}
+            <div className="sm:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>View & Format</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setViewMode(viewMode === 'plain' ? 'formatted' : 'plain')}>
+                    {viewMode === 'plain' ? <ToggleLeft className="h-4 w-4 mr-2" /> : <ToggleRight className="h-4 w-4 mr-2" />}
+                    {viewMode === 'plain' ? 'Switch to Formatted' : 'Switch to Plain Text'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowCorrections(true)}>
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Name & Term Corrections
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Meeting</DropdownMenuLabel>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      {meetingType === 'teams' ? <Video className="h-4 w-4 mr-2" /> : meetingType === 'f2f' ? <UserCheck className="h-4 w-4 mr-2" /> : <Video className="h-4 w-4 mr-2" />}
+                      Meeting Type: {meetingType === 'teams' ? 'Teams' : meetingType === 'f2f' ? 'Face to Face' : 'Hybrid'}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => handleMeetingTypeChange('teams')}>
+                        <Video className="h-4 w-4 mr-2" />
+                        MS Teams
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleMeetingTypeChange('f2f')}>
+                        <UserCheck className="h-4 w-4 mr-2" />
+                        Face to Face
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleMeetingTypeChange('hybrid')}>
+                        <Video className="h-4 w-4 mr-2" />
+                        Hybrid
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuItem onClick={() => setShowAttendeeModal(true)}>
+                    <Users className="h-4 w-4 mr-2" />
+                    Manage Attendees
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Share & Export</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setShowEmailModal(true)}>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email Meeting Notes
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowExportStudio(true)}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Studio
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            {/* Export Studio button — replaces Word/PPT/Infographic */}
+          {/* Export Studio button - desktop only */}
+          <div className="hidden sm:flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowExportStudio(true)}>
@@ -3150,9 +3218,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </TooltipTrigger>
               <TooltipContent>Export Studio</TooltipContent>
             </Tooltip>
-
-
-
           </div>
         </div>
 
