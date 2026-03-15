@@ -3161,20 +3161,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TooltipContent>Export Studio</TooltipContent>
             </Tooltip>
 
-            {/* Quick Audio Summary button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8"
-                  onClick={() => setShowQuickAudioModal(true)}
-                >
-                  <Headphones className="h-5 w-5 text-primary" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Generate Audio Summary</TooltipContent>
-            </Tooltip>
 
             {/* Audio Studio button */}
             <Tooltip>
@@ -4058,6 +4044,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           meetingType={meetingType}
           meetingLocation={meetingLocation}
           visibleSections={notesViewSettings.settings.visibleSections}
+          onOpenAudioStudio={() => { setShowExportStudio(false); setShowAudioStudio(true); }}
         />
       )}
     </Dialog>
