@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Sparkles, X, Search, Star, Diamond } from 'lucide-react';
+import { Sparkles, X, Search, Star, Diamond, ChevronDown, ChevronUp } from 'lucide-react';
 
 // ─── Theme definitions ────────────────────────────────────────
 export interface SlideTheme {
@@ -103,6 +103,7 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
   generationSubPhase,
 }) => {
   const [selectedTheme, setSelectedTheme] = useState<SlideTheme>(SLIDE_THEMES[0]);
+  const [themeExpanded, setThemeExpanded] = useState(false);
   const [slideCount, setSlideCount] = useState<SlideCount>('auto');
   const [textDensity, setTextDensity] = useState<TextDensity>('brief');
   const [imageMode, setImageMode] = useState<ImageMode>('noImages');
@@ -167,7 +168,7 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
   });
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 max-h-[45vh] overflow-y-auto pr-1">
       {/* Header */}
       <div className="rounded-lg px-3 py-2" style={{ background: '#003087' }}>
         <p style={{ color: '#FFB81C', fontSize: 10, fontWeight: 500, letterSpacing: 2, textTransform: 'uppercase' as const }}>
@@ -176,37 +177,53 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
         <p style={{ color: '#ffffff', fontSize: 13, fontWeight: 500 }}>Create as PowerPoint</p>
       </div>
 
-      {/* SECTION 1 — Theme thumbnails */}
+      {/* SECTION 1 — Theme thumbnails (collapsible, collapsed by default) */}
       <div>
-        <p style={{ fontSize: 10, fontWeight: 500, color: '#6b7280', letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>
-          Theme — click to preview
-        </p>
-        <div className="grid grid-cols-4 gap-2">
-          {SLIDE_THEMES.map((theme) => (
-            <button
-              key={theme.key}
-              type="button"
-              onClick={() => setSelectedTheme(theme)}
-              className="flex flex-col items-center gap-1 transition-all"
-              style={{
-                border: selectedTheme.key === theme.key ? '2px solid #003087' : '2px solid transparent',
-                borderRadius: 6,
-                padding: 3,
-              }}
-              onMouseEnter={(e) => {
-                if (selectedTheme.key !== theme.key) e.currentTarget.style.borderColor = '#9ca3af';
-              }}
-              onMouseLeave={(e) => {
-                if (selectedTheme.key !== theme.key) e.currentTarget.style.borderColor = 'transparent';
-              }}
-            >
-              <ThemeThumbnail theme={theme} />
-              <span style={{ fontSize: 10, color: selectedTheme.key === theme.key ? '#003087' : '#6b7280' }}>
-                {theme.label}
-              </span>
-            </button>
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={() => setThemeExpanded(prev => !prev)}
+          className="flex items-center justify-between w-full"
+          style={{ marginBottom: themeExpanded ? 8 : 0 }}
+        >
+          <span style={{ fontSize: 10, fontWeight: 500, color: '#6b7280', letterSpacing: 1.5, textTransform: 'uppercase' as const }}>
+            Theme — {selectedTheme.label}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span
+              className="inline-block rounded-full"
+              style={{ width: 10, height: 10, background: selectedTheme.primary, border: '1px solid #e5e7eb' }}
+            />
+            {themeExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+          </div>
+        </button>
+        {themeExpanded && (
+          <div className="grid grid-cols-4 gap-2">
+            {SLIDE_THEMES.map((theme) => (
+              <button
+                key={theme.key}
+                type="button"
+                onClick={() => setSelectedTheme(theme)}
+                className="flex flex-col items-center gap-1 transition-all"
+                style={{
+                  border: selectedTheme.key === theme.key ? '2px solid #003087' : '2px solid transparent',
+                  borderRadius: 6,
+                  padding: 3,
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedTheme.key !== theme.key) e.currentTarget.style.borderColor = '#9ca3af';
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedTheme.key !== theme.key) e.currentTarget.style.borderColor = 'transparent';
+                }}
+              >
+                <ThemeThumbnail theme={theme} />
+                <span style={{ fontSize: 10, color: selectedTheme.key === theme.key ? '#003087' : '#6b7280' }}>
+                  {theme.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* SECTION 2 — Slide count + Text density */}
