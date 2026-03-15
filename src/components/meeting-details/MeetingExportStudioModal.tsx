@@ -153,7 +153,8 @@ function renderMeetingContent(content: string): React.ReactNode[] {
         }
         return <strong key={i}>{inner}</strong>;
       }
-      return p.replace(/\*([^*]+)\*/g, '$1');
+      // Strip any remaining markdown bold/italic markers
+      return p.replace(/\*{1,2}/g, '');
     });
   };
 
