@@ -30,6 +30,8 @@ import {
   Hash,
   CheckCircle2,
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
