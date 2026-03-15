@@ -99,7 +99,8 @@ import {
   BookOpen,
   Building2,
   Home,
-  Mic
+  Mic,
+  MoreHorizontal
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
