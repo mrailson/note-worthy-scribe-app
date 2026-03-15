@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Sparkles, X, Search, Star, Diamond } from 'lucide-react';
+import { Sparkles, X, Search, Star, Diamond, ChevronDown, ChevronUp } from 'lucide-react';
 
 // ─── Theme definitions ────────────────────────────────────────
 export interface SlideTheme {
