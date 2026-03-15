@@ -32,6 +32,7 @@ interface GenerateProfessionalMeetingOptions {
   metadata: MeetingMetadata;
   content: string;
   filename?: string;
+  logoUrl?: string;
 }
 
 // Extract meeting details from content
