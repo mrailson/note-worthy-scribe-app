@@ -26,7 +26,9 @@ const TYPE_LABELS: Record<string, string> = {
   practice: 'Practice', pcn: 'PCN', neighbourhood: 'Neighbourhood', organisation: 'Organisation',
 };
 
-const SECTION_META: { key: keyof Pick<UserDocumentSettings, 'exec_summary_on' | 'action_items_on' | 'open_items_on'>; label: string; subtitle: string; pillKey: string }[] = [
+const SECTION_META: { key: keyof Pick<UserDocumentSettings, 'meeting_details_on' | 'attendees_on' | 'exec_summary_on' | 'action_items_on' | 'open_items_on'>; label: string; subtitle: string; pillKey: string }[] = [
+  { key: 'meeting_details_on', label: 'Meeting details', subtitle: 'Title, date, time, location table', pillKey: 'meeting_details' },
+  { key: 'attendees_on', label: 'Attendees', subtitle: 'List of meeting participants', pillKey: 'attendees' },
   { key: 'exec_summary_on', label: 'Executive summary', subtitle: 'Key findings and context', pillKey: 'exec_summary' },
   { key: 'action_items_on', label: 'Action items', subtitle: 'Tasks with owners and due dates', pillKey: 'action_items' },
   { key: 'open_items_on', label: 'Open items', subtitle: 'Unresolved items requiring follow-up', pillKey: 'open_items' },
