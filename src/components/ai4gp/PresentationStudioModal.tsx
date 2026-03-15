@@ -7,15 +7,29 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 
 // ─── PptxGenJS loader ─────────────────────────────────────────────────────────
-function usePptxGen() {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    if ((window as any).PptxGenJS) { setReady(true); return; }
+// Eagerly load PptxGenJS on first import
+let pptxLoadPromise: Promise<void> | null = null;
+function ensurePptxScript(): Promise<void> {
+  if ((window as any).PptxGenJS) return Promise.resolve();
+  if (pptxLoadPromise) return pptxLoadPromise;
+  pptxLoadPromise = new Promise((resolve, reject) => {
     const s = document.createElement('script');
     s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js';
-    s.onload = () => setReady(true);
+    s.onload = () => resolve();
+    s.onerror = () => { pptxLoadPromise = null; reject(new Error('Failed to load PptxGenJS')); };
     document.head.appendChild(s);
-  }, []);
+  });
+  return pptxLoadPromise;
+}
+// Start loading immediately when this module is imported
+ensurePptxScript().catch(() => {});
+
+function usePptxGen() {
+  const [ready, setReady] = useState(!!(window as any).PptxGenJS);
+  useEffect(() => {
+    if (ready) return;
+    ensurePptxScript().then(() => setReady(true)).catch(() => {});
+  }, [ready]);
   return ready;
 }
 
