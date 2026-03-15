@@ -923,7 +923,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                           className="flex items-center gap-1.5 shrink-0"
                         >
                           <span className={cn('text-[10px] font-medium', selectedInfographicOrientation === 'landscape' ? 'text-foreground' : 'text-muted-foreground')}>
-                            <Monitor className="h-3 w-3 inline mr-0.5" />L
+                            <Monitor className="h-3 w-3 inline mr-0.5" />Landscape
                           </span>
                           <div className={cn(
                             'relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
