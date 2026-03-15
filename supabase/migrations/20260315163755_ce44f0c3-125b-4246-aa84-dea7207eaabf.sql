@@ -1,0 +1,1 @@
+ALTER TABLE public.user_document_settings ADD COLUMN IF NOT EXISTS priority_column_on boolean NOT NULL DEFAULT true;

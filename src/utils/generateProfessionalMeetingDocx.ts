@@ -671,7 +671,7 @@ const parseActionItems = (content: string): ParsedActionItem[] => {
 };
 
 // Create action items table
-const createActionItemsTable = async (items: ParsedActionItem[]) => {
+const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnOn: boolean = true) => {
   const { Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } = await import("docx");
   
   if (items.length === 0) {
@@ -707,10 +707,14 @@ const createActionItemsTable = async (items: ParsedActionItem[]) => {
     return { text: '○ Open', color: NHS_COLORS.textGrey };
   };
   
-  // Column widths
-  const columnWidths = [38, 14, 16, 12, 20]; // Action, Owner, Deadline, Priority, Status
+  // Column widths - adjust based on whether priority is shown
+  const columnWidths = priorityColumnOn 
+    ? [38, 14, 16, 12, 20] // Action, Owner, Deadline, Priority, Status
+    : [44, 16, 18, 22]; // Action, Owner, Deadline, Status (wider without Priority)
   
-  const headerCells = ['Action', 'Owner', 'Deadline', 'Priority', 'Status'];
+  const headerCells = priorityColumnOn 
+    ? ['Action', 'Owner', 'Deadline', 'Priority', 'Status']
+    : ['Action', 'Owner', 'Deadline', 'Status'];
   
   const table = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -751,8 +755,7 @@ const createActionItemsTable = async (items: ParsedActionItem[]) => {
         const statusDisplay = getStatusDisplay(item.status, item.isCompleted);
         const rowBg = rowIndex % 2 === 0 ? undefined : "F8FAFC";
         
-        return new TableRow({
-          children: [
+        const cells = [
             // Action column
             new TableCell({
               children: [new Paragraph({
@@ -797,7 +800,11 @@ const createActionItemsTable = async (items: ParsedActionItem[]) => {
               shading: rowBg ? { fill: rowBg } : undefined,
               margins: { top: 80, bottom: 80, left: 120, right: 120 },
             }),
-            // Priority column
+        ];
+
+        // Priority column (conditionally included)
+        if (priorityColumnOn) {
+          cells.push(
             new TableCell({
               children: [new Paragraph({
                 children: [new TextRun({ 
@@ -812,7 +819,11 @@ const createActionItemsTable = async (items: ParsedActionItem[]) => {
               shading: { fill: priorityStyle.bg },
               margins: { top: 80, bottom: 80, left: 120, right: 120 },
             }),
-            // Status column
+          );
+        }
+
+        // Status column
+        cells.push(
             new TableCell({
               children: [new Paragraph({
                 children: [new TextRun({ 
@@ -827,8 +838,9 @@ const createActionItemsTable = async (items: ParsedActionItem[]) => {
               shading: rowBg ? { fill: rowBg } : undefined,
               margins: { top: 80, bottom: 80, left: 120, right: 120 },
             }),
-          ],
-        });
+        );
+
+        return new TableRow({ children: cells });
       }),
     ],
   });
@@ -1645,7 +1657,8 @@ export const generateProfessionalWordFromContent = async (
   logoScale?: number,
   footerOn?: boolean,
   meetingDetailsOn?: boolean,
-  attendeesOn?: boolean
+  attendeesOn?: boolean,
+  priorityColumnOn?: boolean
 ): Promise<void> => {
   // Filter content based on visibility settings before processing
   const filteredContent = filterContentByVisibility(content, visibleSections);
@@ -1671,6 +1684,7 @@ export const generateProfessionalWordFromContent = async (
       footerOn,
       meetingDetailsOn,
       attendeesOn,
+      priorityColumnOn,
     });
   } else {
     // Fallback to auto-parsing
@@ -1800,6 +1814,7 @@ interface GenerateWithParsedDataOptions {
   footerOn?: boolean;
   meetingDetailsOn?: boolean;
   attendeesOn?: boolean;
+  priorityColumnOn?: boolean;
 }
 
 export const generateProfessionalMeetingDocxWithParsedData = async (options: GenerateWithParsedDataOptions): Promise<void> => {
@@ -1873,7 +1888,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
       spacing: { before: 0, after: 180 },
     }));
     
-    const actionTableElements = await createActionItemsTable(actionItems);
+    const actionTableElements = await createActionItemsTable(actionItems, options.priorityColumnOn !== false);
     children.push(...actionTableElements);
   }
   

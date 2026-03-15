@@ -310,13 +310,25 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
 
           <div style={{ background: '#f9fafb', borderRadius: 8, overflow: 'hidden' }}>
             {SECTION_META.map((sec, idx) => (
-              <div key={sec.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: idx < SECTION_META.length - 1 ? '0.5px solid #e5e7eb' : 'none' }}>
-                <div>
-                  <p style={{ fontSize: 14, margin: 0 }}>{sec.label}</p>
-                  <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>{sec.subtitle}</p>
+              <React.Fragment key={sec.key}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: (idx < SECTION_META.length - 1 || (sec.key === 'action_items_on' && localSettings.action_items_on)) ? '0.5px solid #e5e7eb' : 'none' }}>
+                  <div>
+                    <p style={{ fontSize: 14, margin: 0 }}>{sec.label}</p>
+                    <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>{sec.subtitle}</p>
+                  </div>
+                  <SpecToggle checked={localSettings[sec.key]} onChange={v => updateLocal(sec.key, v)} />
                 </div>
-                <SpecToggle checked={localSettings[sec.key]} onChange={v => updateLocal(sec.key, v)} />
-              </div>
+                {/* Priority column sub-slider under Action Items */}
+                {sec.key === 'action_items_on' && localSettings.action_items_on && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px 10px 32px', borderBottom: idx < SECTION_META.length - 1 ? '0.5px solid #e5e7eb' : 'none', background: '#f3f4f6' }}>
+                    <div>
+                      <p style={{ fontSize: 13, margin: 0, color: '#6b7280' }}>Priority column</p>
+                      <p style={{ fontSize: 10, color: '#9ca3af', margin: '1px 0 0' }}>Show High/Medium/Low priority</p>
+                    </div>
+                    <SpecToggle checked={localSettings.priority_column_on} onChange={v => updateLocal('priority_column_on', v)} />
+                  </div>
+                )}
+              </React.Fragment>
             ))}
           </div>
 
