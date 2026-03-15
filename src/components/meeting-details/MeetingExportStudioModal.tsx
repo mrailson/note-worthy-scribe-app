@@ -755,7 +755,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                 )}
 
                 {/* Footer */}
-                {prefs.showFooter && (
+                {docSettings.footer_on && (
                   <div className="mt-8 pt-4 border-t flex items-center justify-between text-xs" style={{ color: COLORS.lightGrey }}>
                     <div>
                       {practiceName && <p className="font-medium">{practiceName}</p>}
