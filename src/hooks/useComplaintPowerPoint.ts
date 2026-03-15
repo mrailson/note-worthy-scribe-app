@@ -239,7 +239,7 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
       const [overviewResult, complaintResult] = await Promise.all([
         supabase
           .from('complaint_audio_overviews')
-          .select('powerpoint_download_url, powerpoint_gamma_url, powerpoint_thumbnail_url, powerpoint_slide_count')
+          .select('powerpoint_download_url, powerpoint_thumbnail_url, powerpoint_slide_count')
           .eq('complaint_id', complaintId!)
           .maybeSingle(),
       supabase
