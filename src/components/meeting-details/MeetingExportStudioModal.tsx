@@ -460,7 +460,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     } finally {
       setIsDownloadingWord(false);
     }
-  }, [notesContent, documentTitle, meetingDetails, meetingType, meetingLocation, attendees, meetingId, visibleSections]);
+  }, [notesContent, documentTitle, meetingDetails, meetingType, meetingLocation, attendees, meetingId, visibleSections, docSettings, logoUrl]);
 
   // PPT slide count selection
   const handlePptGenerate = useCallback((slideCount: number) => {
