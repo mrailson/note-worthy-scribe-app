@@ -129,17 +129,26 @@ export const deduplicateActionItems = (content: string): string => {
 
 /**
  * Test whether a line is an Action Items or Completed Items heading.
+ * Extremely broad matching to prevent any variant from leaking through.
  * Supports: `## Action Items`, `# ACTION ITEMS:`, `**Action Items**`,
- * `**Action Items:**`, `Action Items`, `COMPLETED`, `## Completed Items`, etc.
+ * `Action Items`, `COMPLETED`, `## Completed Items`, with or without
+ * trailing punctuation, bold markers, numbering, etc.
  */
 const isActionOrCompletedHeading = (line: string): boolean => {
-  const t = line.trim();
-  // Markdown heading variants: # Action Items, ## Completed Items:
-  if (/^#{1,6}\s*\**\s*(?:action\s+items?|completed(?:\s+items?)?)\s*\**\s*:?\s*$/i.test(t)) return true;
-  // Bold heading variants: **Action Items**, **Completed Items:**
-  if (/^\*{2}\s*(?:action\s+items?|completed(?:\s+items?)?)\s*:?\s*\*{2}\s*$/i.test(t)) return true;
-  // Plain text heading variants: ACTION ITEMS, Completed Items:
-  if (/^(?:action\s+items?|completed(?:\s+items?)?)\s*:?\s*$/i.test(t)) return true;
+  // Strip \r, trim whitespace
+  const t = line.replace(/\r/g, '').trim();
+  if (!t) return false;
+  // Strip leading markdown heading markers and whitespace
+  const stripped = t
+    .replace(/^#{1,6}\s*/, '')   // remove leading # markers
+    .replace(/^\d+\.\s*/, '')    // remove leading numbering
+    .replace(/^\*{1,2}\s*/, '')  // remove leading bold/italic markers
+    .replace(/\s*\*{1,2}\s*$/, '') // remove trailing bold/italic markers
+    .replace(/\s*:?\s*$/, '')    // remove trailing colon and whitespace
+    .trim();
+  // Now check if what remains is "action items", "action item", "completed", "completed items"
+  if (/^action\s+items?$/i.test(stripped)) return true;
+  if (/^completed(?:\s+items?)?$/i.test(stripped)) return true;
   return false;
 };
 
