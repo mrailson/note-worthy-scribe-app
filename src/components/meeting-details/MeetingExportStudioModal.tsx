@@ -399,7 +399,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const [infographicOptions, setInfographicOptions] = useState<{ style: string; orientation?: 'portrait' | 'landscape' } | null>(null);
   const [selectedInfographicStyle, setSelectedInfographicStyle] = useState('practice-professional');
   const [selectedInfographicOrientation, setSelectedInfographicOrientation] = useState<'landscape' | 'portrait'>('landscape');
-  const [includeLogoInInfographic, setIncludeLogoInInfographic] = useState(true);
+  const [includeLogoInInfographic, setIncludeLogoInInfographic] = useState(false);
   const [expandedInfographicThumb, setExpandedInfographicThumb] = useState<string | null>(null);
   const { generateInfographic, isGenerating: isInfographicGenerating, error: infographicError } = useMeetingInfographic();
   const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
@@ -923,7 +923,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                           className="flex items-center gap-1.5 shrink-0"
                         >
                           <span className={cn('text-[10px] font-medium', selectedInfographicOrientation === 'landscape' ? 'text-foreground' : 'text-muted-foreground')}>
-                            <Monitor className="h-3 w-3 inline mr-0.5" />L
+                            <Monitor className="h-3 w-3 inline mr-0.5" />Landscape
                           </span>
                           <div className={cn(
                             'relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
@@ -935,7 +935,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                             )} />
                           </div>
                           <span className={cn('text-[10px] font-medium', selectedInfographicOrientation === 'portrait' ? 'text-foreground' : 'text-muted-foreground')}>
-                            <ImageIcon className="h-3 w-3 inline mr-0.5" />P
+                            <ImageIcon className="h-3 w-3 inline mr-0.5" />Portrait
                           </span>
                         </button>
 
