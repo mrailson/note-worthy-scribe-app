@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { dedupTranscriptText } from '@/lib/dedupTranscriptText';
-import wordIcon from '@/assets/word-icon.png';
+
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { SelectionFindReplacePopup } from '@/components/SelectionFindReplacePopup';
 import powerpointIcon from '@/assets/powerpoint-icon.png';
