@@ -1,0 +1,1 @@
+ALTER TABLE public.user_document_settings ADD COLUMN IF NOT EXISTS logo_scale numeric DEFAULT 1.0;

@@ -5,6 +5,7 @@ export interface UserDocumentSettings {
   logo_on: boolean;
   footer_on: boolean;
   logo_position: string;
+  logo_scale: number;
   exec_summary_on: boolean;
   action_items_on: boolean;
   open_items_on: boolean;
@@ -14,6 +15,7 @@ const DEFAULTS: UserDocumentSettings = {
   logo_on: true,
   footer_on: true,
   logo_position: 'centre',
+  logo_scale: 1.0,
   exec_summary_on: true,
   action_items_on: true,
   open_items_on: true,
@@ -36,6 +38,7 @@ export function useUserDocumentSettings() {
         logo_on: data.logo_on ?? true,
         footer_on: data.footer_on ?? true,
         logo_position: data.logo_position ?? 'centre',
+        logo_scale: typeof (data as any).logo_scale === 'number' ? (data as any).logo_scale : 1.0,
         exec_summary_on: data.exec_summary_on ?? true,
         action_items_on: data.action_items_on ?? true,
         open_items_on: data.open_items_on ?? true,

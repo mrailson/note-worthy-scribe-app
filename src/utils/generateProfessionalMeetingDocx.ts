@@ -33,6 +33,7 @@ interface GenerateProfessionalMeetingOptions {
   content: string;
   filename?: string;
   logoUrl?: string;
+  logoScale?: number;
 }
 
 // Extract meeting details from content
@@ -304,8 +305,8 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   return runs;
 };
 
-// Fetch a logo URL and return as Uint8Array for docx ImageRun
-const fetchLogoForDocx = async (logoUrl: string): Promise<{ data: Uint8Array; type: 'png' | 'jpg' } | null> => {
+// Fetch a logo URL and return as Uint8Array for docx ImageRun, with natural dimensions
+const fetchLogoForDocx = async (logoUrl: string): Promise<{ data: Uint8Array; type: 'png' | 'jpg'; naturalWidth: number; naturalHeight: number } | null> => {
   if (!logoUrl) return null;
   try {
     const response = await fetch(logoUrl);
@@ -313,7 +314,21 @@ const fetchLogoForDocx = async (logoUrl: string): Promise<{ data: Uint8Array; ty
     const blob = await response.blob();
     const arrayBuffer = await blob.arrayBuffer();
     const type = logoUrl.toLowerCase().includes('.png') ? 'png' : 'jpg';
-    return { data: new Uint8Array(arrayBuffer), type };
+
+    // Detect natural image dimensions via an offscreen bitmap
+    let naturalWidth = 200;
+    let naturalHeight = 80;
+    try {
+      const imgBlob = new Blob([arrayBuffer], { type: blob.type || 'image/png' });
+      const bitmap = await createImageBitmap(imgBlob);
+      naturalWidth = bitmap.width;
+      naturalHeight = bitmap.height;
+      bitmap.close();
+    } catch {
+      // Fallback to defaults if bitmap detection fails
+    }
+
+    return { data: new Uint8Array(arrayBuffer), type, naturalWidth, naturalHeight };
   } catch (error) {
     console.warn('Failed to fetch logo for Word export:', error);
     return null;
@@ -321,21 +336,26 @@ const fetchLogoForDocx = async (logoUrl: string): Promise<{ data: Uint8Array; ty
 };
 
 // Create professional header block with title and accent bar (no generated date)
-const createHeaderBlock = async (title: string, _generatedDate?: string, logoUrl?: string) => {
+const createHeaderBlock = async (title: string, _generatedDate?: string, logoUrl?: string, logoScale: number = 1.0) => {
   const { Paragraph, TextRun, BorderStyle, AlignmentType, ImageRun } = await import("docx");
   
   const cleanTitle = title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim().toUpperCase();
   const elements: any[] = [];
 
-  // Practice logo (if available)
+  // Practice logo (if available) — preserves aspect ratio, scales with user preference
   if (logoUrl) {
     const logoData = await fetchLogoForDocx(logoUrl);
     if (logoData) {
+      const BASE_HEIGHT = 70; // base height in points
+      const scaledHeight = Math.round(BASE_HEIGHT * logoScale);
+      const aspectRatio = logoData.naturalWidth / logoData.naturalHeight;
+      const scaledWidth = Math.round(scaledHeight * aspectRatio);
+
       elements.push(new Paragraph({
         children: [
           new ImageRun({
             data: logoData.data,
-            transformation: { width: 160, height: 70 },
+            transformation: { width: scaledWidth, height: scaledHeight },
             type: logoData.type,
           }),
         ],
@@ -1317,7 +1337,7 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   const children: any[] = [];
   
   // Header block
-  const headerElements = await createHeaderBlock(metadata.title, generatedDate, options.logoUrl);
+  const headerElements = await createHeaderBlock(metadata.title, generatedDate, options.logoUrl, options.logoScale);
   children.push(...headerElements);
   
   // Meeting details box
@@ -1587,7 +1607,8 @@ export const generateProfessionalWordFromContent = async (
   parsedDetails?: ParsedMeetingDetailsInput,
   parsedActionItems?: ParsedActionItemInput[],
   visibleSections?: VisibleSectionsInput,
-  logoUrl?: string
+  logoUrl?: string,
+  logoScale?: number
 ): Promise<void> => {
   // Filter content based on visibility settings before processing
   const filteredContent = filterContentByVisibility(content, visibleSections);
@@ -1609,6 +1630,7 @@ export const generateProfessionalWordFromContent = async (
       content: filteredContent,
       actionItems: actionItemsToUse,
       logoUrl,
+      logoScale,
     });
   } else {
     // Fallback to auto-parsing
@@ -1734,6 +1756,7 @@ interface GenerateWithParsedDataOptions {
   actionItems: ParsedActionItemInput[];
   filename?: string;
   logoUrl?: string;
+  logoScale?: number;
 }
 
 export const generateProfessionalMeetingDocxWithParsedData = async (options: GenerateWithParsedDataOptions): Promise<void> => {
@@ -1773,7 +1796,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   const children: any[] = [];
   
   // Header block
-  const headerElements = await createHeaderBlock(metadata.title, generatedDate, options.logoUrl);
+  const headerElements = await createHeaderBlock(metadata.title, generatedDate, options.logoUrl, options.logoScale);
   children.push(...headerElements);
   
   // Meeting details box - only if we have valid details
