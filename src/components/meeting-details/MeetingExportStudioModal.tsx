@@ -394,6 +394,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   const [pptxProgress, setPptxProgress] = useState(0);
   const [pptxTipIdx, setPptxTipIdx] = useState(0);
   const [isPptGenerating, setIsPptGenerating] = useState(false);
+  const [pptxPhase, setPptxPhase] = useState('');
+  const [pptxSubPhase, setPptxSubPhase] = useState('');
 
   // Infographic state
   const [showInfographicModal, setShowInfographicModal] = useState(false);
