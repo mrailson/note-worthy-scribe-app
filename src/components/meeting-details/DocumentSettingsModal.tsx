@@ -246,6 +246,27 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
                   </select>
                 </div>
 
+                {/* Logo Scale */}
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, color: '#9ca3af' }}>Size</span>
+                    <span style={{ fontSize: 11, color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>{Math.round((localSettings.logo_scale ?? 1) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={2.0}
+                    step={0.1}
+                    value={localSettings.logo_scale ?? 1}
+                    onChange={e => updateLocal('logo_scale', parseFloat(e.target.value))}
+                    style={{ width: '100%', accentColor: '#003087', cursor: 'pointer' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
+                    <span>50%</span>
+                    <span>200%</span>
+                  </div>
+                </div>
+
                 {/* Add logo */}
                 {!showAddForm ? (
                   <button type="button" onClick={() => setShowAddForm(true)} style={{ width: '100%', padding: 8, borderRadius: 8, border: '1.5px dashed #d1d5db', background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
