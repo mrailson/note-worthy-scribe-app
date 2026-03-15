@@ -146,7 +146,6 @@ const generateTitleSlideThumbnail = (
 const persistPowerPoint = async (
   complaintId: string,
   downloadUrl: string,
-  gammaUrl: string | undefined,
   slideCount: number,
   referenceNumber: string,
   category: string,
