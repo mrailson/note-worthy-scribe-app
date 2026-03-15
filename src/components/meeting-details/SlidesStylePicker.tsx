@@ -405,8 +405,43 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
         ))}
       </div>
 
-      {/* SECTION 6 — Generate button / Progress */}
-      {!isGenerating ? (
+      {/* SECTION 6 — Generate button / Progress / Error */}
+      {error && !isGenerating && (
+        <div className="space-y-2">
+          <div
+            style={{
+              background: '#fef2f2',
+              border: '0.5px solid #fecaca',
+              borderRadius: 8,
+              padding: '10px 12px',
+              fontSize: 12,
+              color: '#991b1b',
+            }}
+          >
+            {error}
+          </div>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            className="w-full flex items-center justify-center gap-2 transition-colors hover:opacity-90"
+            style={{
+              background: '#003087',
+              color: '#ffffff',
+              borderRadius: 8,
+              padding: 11,
+              fontSize: 13,
+              fontWeight: 500,
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <Sparkles className="h-4 w-4" />
+            Generate Presentation
+          </button>
+        </div>
+      )}
+
+      {!isGenerating && !error && (
         <button
           type="button"
           onClick={handleGenerate}
@@ -425,23 +460,25 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
           <Sparkles className="h-4 w-4" />
           Generate Presentation
         </button>
-      ) : (
+      )}
+
+      {isGenerating && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>{generationPhase}</span>
-            <span style={{ fontSize: 11, color: '#003087', fontWeight: 500 }}>{generationProgress}%</span>
+            <span style={{ fontSize: 11, color: '#9ca3af' }}>{phase}</span>
+            <span style={{ fontSize: 11, color: '#003087', fontWeight: 500 }}>{progress}%</span>
           </div>
           <div className="w-full overflow-hidden" style={{ height: 4, background: '#e5e7eb', borderRadius: 2 }}>
             <div
-              className="h-full transition-all duration-500"
+              className="h-full transition-all duration-700"
               style={{
-                width: `${generationProgress}%`,
+                width: `${progress}%`,
                 background: 'linear-gradient(90deg, #009639, #003087)',
                 borderRadius: 2,
               }}
             />
           </div>
-          <p style={{ fontSize: 10, color: '#9ca3af' }}>{generationSubPhase}</p>
+          <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 4 }}>{subPhase}</p>
         </div>
       )}
     </div>
