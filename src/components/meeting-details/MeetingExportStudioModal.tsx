@@ -134,6 +134,9 @@ function renderMeetingContent(content: string): React.ReactNode[] {
     .replace(/<[^>]*>/g, '')
     .trim();
 
+  // Always remove Action/Completed text sections in this modal preview.
+  const withoutActionText = removeActionItemsSection(cleaned);
+
   // Strip out meeting details lines (Title:, Date:, Time:, Location:) since we show them in the table
   const detailsPatterns = [
     /^\s*[-•*]?\s*\*{0,2}(?:Meeting\s*)?(?:Title|Subject)\*{0,2}\s*[:\-–—].+$/im,
@@ -143,7 +146,7 @@ function renderMeetingContent(content: string): React.ReactNode[] {
     /^\s*#{1,6}\s*Meeting\s+Details\s*$/im,
   ];
 
-  let filtered = cleaned;
+  let filtered = withoutActionText;
   for (const pattern of detailsPatterns) {
     filtered = filtered.replace(pattern, '');
   }
