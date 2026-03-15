@@ -33,6 +33,7 @@ interface GenerateProfessionalMeetingOptions {
   content: string;
   filename?: string;
   logoUrl?: string;
+  logoScale?: number;
 }
 
 // Extract meeting details from content
