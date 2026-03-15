@@ -593,7 +593,24 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
     })),
   }), [documentTitle, meetingDetails, attendees, notesContent, actionItems]);
 
-  return (
+  // PPT generation from style picker — returns result for inline progress
+  const handleSlidePickerGenerate = useCallback(async (config: SlidePickerConfig): Promise<SlideGenerationResult> => {
+    const slideCount = config.slideCount === 'auto' ? 8 : config.slideCount;
+
+    const result = await generatePowerPoint(meetingData, {
+      style: config.theme.key,
+      content: config.textDensity,
+      slideCount,
+      imageMode: config.imageMode,
+    });
+
+    return {
+      success: result.success,
+      downloadUrl: result.downloadUrl,
+      error: result.error,
+    };
+  }, [generatePowerPoint, meetingData]);
+
     <>
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !infographicFullscreen) handleClose(); }}>
         <DialogContent className={cn(
