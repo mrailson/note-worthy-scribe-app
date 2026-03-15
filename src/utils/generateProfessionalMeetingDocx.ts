@@ -1754,6 +1754,7 @@ interface GenerateWithParsedDataOptions {
   actionItems: ParsedActionItemInput[];
   filename?: string;
   logoUrl?: string;
+  logoScale?: number;
 }
 
 export const generateProfessionalMeetingDocxWithParsedData = async (options: GenerateWithParsedDataOptions): Promise<void> => {
