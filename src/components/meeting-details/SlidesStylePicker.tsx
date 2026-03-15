@@ -215,7 +215,7 @@ export const SlidesStylePicker: React.FC<SlidesStylePickerProps> = ({
     { label: textDensity.charAt(0).toUpperCase() + textDensity.slice(1), bg: '#EAF3DE', color: '#27500A' },
     { label: imageModeOptions.find(o => o.value === imageMode)?.label || 'None', bg: '#E6F1FB', color: '#0C447C' },
   ];
-  if (speakerNotes) pills.push({ label: 'Speaker notes', bg: '#FAEEDA', color: '#633806' });
+  
   if (includeLogo) pills.push({ label: 'Logo', bg: '#E6F1FB', color: '#0C447C' });
   if (titleClosingSlide) pills.push({ label: 'Title + closing', bg: '#EAF3DE', color: '#27500A' });
 
