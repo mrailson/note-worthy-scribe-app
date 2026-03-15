@@ -1017,7 +1017,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
                       {logoUrl && (
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <img src={logoUrl} alt="Practice logo" className="h-6 w-6 object-contain rounded" />
+                            <img src={logoUrl} alt="Practice logo" className="h-8 w-auto max-w-[80px] object-contain rounded" />
                             <div>
                               <p className="text-xs font-medium text-foreground">{practiceName || 'Practice Logo'}</p>
                               <p className="text-[10px] text-muted-foreground">Include on infographic</p>
