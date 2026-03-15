@@ -372,6 +372,7 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
   meetingType = 'teams',
   meetingLocation,
   visibleSections,
+  onOpenAudioStudio,
 }) => {
   const { prefs, updatePref } = useDocumentPreviewPrefs();
   const { practiceContext } = usePracticeContext();
