@@ -8012,6 +8012,17 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
+
+      {/* Name & Term Corrections Modal */}
+      {showCorrections && (
+        <CorrectionManager 
+          onClose={() => setShowCorrections(false)}
+          onCorrectionApplied={() => {}}
+          onCorrectionsChanged={() => {
+            loadMeetingHistory();
+          }}
+        />
+      )}
     </div>
     </TooltipProvider>
   );
