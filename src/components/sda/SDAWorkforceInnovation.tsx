@@ -200,6 +200,7 @@ export const SDAWorkforceInnovation = () => {
             </div>
           ))}
         </div>
+        <p className="text-xs text-slate-500 italic mt-3">Last updated: 16 March 2026</p>
       </CollapsibleCard>
 
       {/* Job Adverts for Board Approval */}
