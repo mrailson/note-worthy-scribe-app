@@ -50,10 +50,14 @@ function localId() { return `sig-${++_localId}-${Date.now()}`; }
 
 export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const {
-    uploadDocument, addSignatories, sendForApproval,
+    uploadDocument, addSignatories, sendForApproval, sendBatchForApproval,
     contacts, contactGroups, saveContact, deleteContact, updateContact, updateSignaturePlacement,
   } = useDocumentApproval();
   const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory();
+
+  // Send mode: single or batch
+  const [sendMode, setSendMode] = useState<'single' | 'batch'>('single');
+  const [batchSelections, setBatchSelections] = useState<PracticeSelection[]>([]);
 
   const [step, setStep] = useState<'upload' | 'stamp_position' | 'signatories' | 'review'>('upload');
   const [uploading, setUploading] = useState(false);
