@@ -162,7 +162,7 @@ export const SDADigitalIntegration = () => {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild>
-                  <a href="/documents/NRES_ICB_Metrics_Requirements_Report_v2.docx" download="NRES_ICB_Metrics_Requirements_Report_v2.docx">
+                  <a href="/documents/NRES_ICB_Metrics_Requirements_Report_v2_3.docx" download="NRES_ICB_Metrics_Requirements_Report_v2_3.docx">
                     <Download className="h-3.5 w-3.5 mr-1" />
                     Download Reporting Requirements Report
                   </a>
@@ -349,10 +349,10 @@ export const SDADigitalIntegration = () => {
             <FileText className="w-5 h-5 text-[#005EB8]" />
             <div className="flex-1">
               <h4 className="font-semibold text-slate-900">NRES SDA Reporting Requirements from Specification — Overview & Planning</h4>
-              <p className="text-sm text-slate-600">Version 1.6 | February 2026</p>
+              <p className="text-sm text-slate-600">Version 1.7.1 | March 2026</p>
             </div>
             <Button variant="outline" size="sm" asChild className="flex-shrink-0">
-              <a href="/documents/NRES_SDA_Reporting_Plan_v1_6.docx" download>
+              <a href="/documents/NRES_SDA_Reporting_Plan_v1_7_1.docx" download>
                 <Download className="h-4 w-4 mr-1" /> Word
               </a>
             </Button>
@@ -379,7 +379,7 @@ export const SDADigitalIntegration = () => {
                   <span className="bg-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-medium">4 High-Workload Reports</span>
                 </div>
                 <Button variant="outline" size="sm" asChild>
-                  <a href="/documents/NRES_Reporting_Resource_Analysis.docx" download>
+                  <a href="/documents/NRES_Reporting_Resource_Analysis_v2.docx" download>
                     <Download className="h-4 w-4 mr-1" /> Download Resource Projection (Word)
                   </a>
                 </Button>
@@ -461,7 +461,7 @@ export const SDADigitalIntegration = () => {
           </div>
 
           <p className="text-xs text-slate-500 italic">
-            Source: NRES_SDA_Pilot_Reporting_Plan.docx v1.4 | Last updated: 22 February 2026
+            Source: NRES_SDA_Reporting_Plan.docx v1.7.1 | Last updated: 16 March 2026
           </p>
         </div>
       </CollapsibleCard>
