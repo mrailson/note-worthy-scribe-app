@@ -2027,29 +2027,18 @@ const ComplaintsSystem = () => {
                                 </div>
                               </TooltipContent>
                             </Tooltip>
-                            <p className={cn(
-                              "text-xs font-medium mt-1 text-center",
-                              isClosed ? 
-                                (daysEarlyOrLate && daysEarlyOrLate > 0 ? 'text-green-600' : 'text-destructive') :
-                                daysRemaining === null ? 'text-muted-foreground' :
-                                daysRemaining < 0 ? 'text-destructive' : 
-                                daysRemaining <= 4 ? 'text-destructive' :
-                                daysRemaining <= 9 ? 'text-amber-600' : 'text-green-600'
-                            )}>
-                              {getDaysText()}
-                            </p>
                           </div>
-                          <div className="flex flex-col gap-2">
-                            <Badge className={getStatusColor(complaint.status)}>
+                          <div className="flex flex-col gap-1">
+                            <Badge className={getStatusColor(complaint.status)} style={{ fontSize: '11px', padding: '3px 8px' }}>
                               {complaint.status === 'under_review' && complaint.acknowledged_at ? (
-                                <Mail className="h-5 w-5 mr-1" />
+                                <Mail className="mr-1" style={{ width: '12px', height: '12px' }} />
                               ) : (
-                                getStatusIcon(complaint.status)
+                                <span className="mr-1 [&>svg]:w-3 [&>svg]:h-3">{getStatusIcon(complaint.status)}</span>
                               )}
-                              <span className="ml-1">{getStatusDisplayLabel(complaint)}</span>
+                              <span>{getStatusDisplayLabel(complaint)}</span>
                             </Badge>
                             {isOverdue(complaint) && (
-                              <Badge variant="destructive">Overdue</Badge>
+                              <Badge variant="destructive" style={{ fontSize: '11px', padding: '3px 8px' }}>Overdue</Badge>
                             )}
                           </div>
                           <Button
@@ -2070,8 +2059,9 @@ const ComplaintsSystem = () => {
                           disabled={complaint.status === 'submitted'}
                           className={complaint.status === 'submitted' ? 'opacity-50 cursor-not-allowed' : ''}
                           title={complaint.status === 'submitted' ? 'Generating acknowledgement letter - please wait' : 'View complaint details'}
+                          style={{ fontSize: '11px', padding: '4px 10px' }}
                         >
-                          <Eye className="h-4 w-4 mr-1" />
+                          <Eye className="mr-1" style={{ width: '12px', height: '12px' }} />
                           {complaint.status === 'submitted' ? 'Generating...' : 'View Details'}
                         </Button>
                       </div>
