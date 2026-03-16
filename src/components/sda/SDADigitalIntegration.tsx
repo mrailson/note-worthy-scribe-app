@@ -50,6 +50,7 @@ const excelTabs = [
 export const SDADigitalIntegration = () => {
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; title: string } | null>(null);
   const [tabExplorerOpen, setTabExplorerOpen] = useState(false);
+  const [reportingPreviewOpen, setReportingPreviewOpen] = useState(false);
   const [baselineFullscreen, setBaselineFullscreen] = useState(false);
 
   useEffect(() => {
