@@ -1969,23 +1969,45 @@ ${cleanedTranscript}`;
     }
 
     // Update meeting with completion status, word count, AI overview, and generated title
-    await supabase
+    const { error: statusUpdateError } = await supabase
       .from('meetings')
       .update({ 
         notes_generation_status: 'completed',
         word_count: wordCount,
-        overview: aiOverview,
+        overview: aiOverview || null,
         title: generatedTitle
       })
       .eq('id', meetingId);
 
+    if (statusUpdateError) {
+      console.error('❌ CRITICAL: Failed to update meeting status to completed:', statusUpdateError.message);
+      // Retry with minimal update to ensure status is set
+      const { error: retryError } = await supabase
+        .from('meetings')
+        .update({ notes_generation_status: 'completed' })
+        .eq('id', meetingId);
+      if (retryError) {
+        console.error('❌ CRITICAL: Retry also failed:', retryError.message);
+      } else {
+        console.log('✅ Retry succeeded - status set to completed (without overview/title)');
+        // Try updating overview and title separately
+        await supabase.from('meetings').update({ overview: aiOverview || null, title: generatedTitle }).eq('id', meetingId);
+      }
+    } else {
+      console.log('✅ Meeting status updated to completed');
+    }
+
     // Also save overview to meeting_overviews table for consistency
-    await supabase
-      .from('meeting_overviews')
-      .upsert({
-        meeting_id: meetingId,
-        overview: aiOverview
-      });
+    try {
+      await supabase
+        .from('meeting_overviews')
+        .upsert({
+          meeting_id: meetingId,
+          overview: aiOverview || ''
+        });
+    } catch (overviewSaveErr) {
+      console.warn('⚠️ Failed to save to meeting_overviews:', overviewSaveErr);
+    }
 
     // Update queue status if exists
     await supabase
