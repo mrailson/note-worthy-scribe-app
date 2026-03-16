@@ -162,9 +162,9 @@ export const SDADigitalIntegration = () => {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild>
-                  <a href="/reports/nres_baseline_iframe.html" download="nres_baseline_dashboard.html">
+                  <a href="/documents/NRES_ICB_Metrics_Requirements_Report_v2.docx" download="NRES_ICB_Metrics_Requirements_Report_v2.docx">
                     <Download className="h-3.5 w-3.5 mr-1" />
-                    Download HTML
+                    Download Reporting Requirements Report
                   </a>
                 </Button>
               </div>
