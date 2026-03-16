@@ -114,8 +114,9 @@ export function CorrectionManager({ onClose, onCorrectionApplied, onCorrectionsC
       const success = await medicalTermCorrector.deleteCorrection(incorrectTerm);
       
       if (success) {
-        await medicalTermCorrector.refreshCorrections();
+        await medicalTermCorrector.refreshCorrections(user?.id);
         await loadCorrections();
+        onCorrectionsChanged?.();
         
         toast({
           title: "Correction Deleted",
