@@ -349,10 +349,10 @@ export const SDADigitalIntegration = () => {
             <FileText className="w-5 h-5 text-[#005EB8]" />
             <div className="flex-1">
               <h4 className="font-semibold text-slate-900">NRES SDA Reporting Requirements from Specification — Overview & Planning</h4>
-              <p className="text-sm text-slate-600">Version 1.6 | February 2026</p>
+              <p className="text-sm text-slate-600">Version 1.7.1 | March 2026</p>
             </div>
             <Button variant="outline" size="sm" asChild className="flex-shrink-0">
-              <a href="/documents/NRES_SDA_Reporting_Plan_v1_6.docx" download>
+              <a href="/documents/NRES_SDA_Reporting_Plan_v1_7_1.docx" download>
                 <Download className="h-4 w-4 mr-1" /> Word
               </a>
             </Button>
