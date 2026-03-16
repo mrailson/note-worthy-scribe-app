@@ -2791,6 +2791,11 @@ const MeetingHistory = () => {
           <CorrectionManager 
             onClose={() => setShowCorrections(false)}
             onCorrectionApplied={() => {}}
+            onCorrectionsChanged={() => {
+              // Force meeting list to re-render with updated corrections
+              // by triggering a re-fetch of meetings
+              fetchMeetings();
+            }}
           />
         )}
 

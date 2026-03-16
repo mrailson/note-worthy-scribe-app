@@ -152,21 +152,23 @@ export class MedicalTermCorrector {
         throw new Error('User must be authenticated to delete corrections');
       }
 
+      // Use ilike for case-insensitive matching to ensure deletion works
       const { error } = await supabase
         .from('medical_term_corrections')
         .delete()
-        .match({
-          user_id: user.data.user.id,
-          incorrect_term: incorrectTerm.trim(),
-        });
+        .eq('user_id', user.data.user.id)
+        .ilike('incorrect_term', incorrectTerm.trim());
 
       if (error) {
         console.error('Error deleting medical term correction:', error);
         return false;
       }
 
-      // Update local cache
-      this.corrections.delete(incorrectTerm.toLowerCase().trim());
+      // Update local cache - remove all case variants
+      const keyLower = incorrectTerm.toLowerCase().trim();
+      this.corrections.delete(keyLower);
+      this.contextualCorrections.delete(keyLower);
+      this.usageStats.delete(keyLower);
       console.log(`🗑️ Deleted correction for: "${incorrectTerm}"`);
       return true;
     } catch (error) {

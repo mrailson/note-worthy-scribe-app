@@ -140,6 +140,7 @@ export function useApplyMeetingCorrections() {
     getCorrectionsForText,
     updateMeeting,
     updatingMeetings,
+    reloadCorrections,
     hasCorrections: correctionsLoaded && medicalTermCorrector.hasCorrections(),
   };
 }
