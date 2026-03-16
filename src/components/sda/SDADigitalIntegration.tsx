@@ -1,4 +1,5 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -50,6 +51,16 @@ export const SDADigitalIntegration = () => {
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; title: string } | null>(null);
   const [tabExplorerOpen, setTabExplorerOpen] = useState(false);
   const [reportingPreviewOpen, setReportingPreviewOpen] = useState(false);
+  const [baselineFullscreen, setBaselineFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data === 'openBaselineFullscreen') setBaselineFullscreen(true);
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
 
   const handleDownloadImage = () => {
     if (!lightboxImage) return;
@@ -963,6 +974,19 @@ export const SDADigitalIntegration = () => {
         </div>
       </CollapsibleCard>
     </div>
+
+      {/* Baseline Dashboard Fullscreen Modal */}
+      <Dialog open={baselineFullscreen} onOpenChange={setBaselineFullscreen}>
+        <DialogContent className="!max-w-none !w-screen !h-screen !max-h-screen !translate-x-[-50%] !translate-y-[-50%] !rounded-none p-0 overflow-hidden border-0 mx-0 my-0">
+          <DialogTitle className="sr-only">NRES Baseline Dashboard — Full Screen</DialogTitle>
+          <iframe
+            src="/reports/nres_baseline_iframe.html"
+            className="w-full h-full border-0"
+            title="NRES Baseline Dashboard Full Screen"
+            sandbox="allow-scripts allow-same-origin"
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
