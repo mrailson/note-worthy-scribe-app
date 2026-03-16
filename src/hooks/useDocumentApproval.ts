@@ -21,6 +21,7 @@ export interface ApprovalDocument {
   revoked_at: string | null;
   sender_name: string | null;
   sender_email: string | null;
+  batch_id: string | null;
 }
 
 export interface ApprovalSignatory {
