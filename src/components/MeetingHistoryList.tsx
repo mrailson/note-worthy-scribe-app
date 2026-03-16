@@ -2657,6 +2657,29 @@ export const MeetingHistoryList = ({
                 </div>
               </div>
 
+              {/* Name & Term Corrections Badge */}
+              {hasCorrections && (() => {
+                const corrections = getCorrectionsForText(meeting.title, meeting.overview);
+                if (corrections.length === 0) return null;
+                return (
+                  <div className="mb-2">
+                    <MeetingCorrectionsBadge
+                      corrections={corrections}
+                      isUpdating={updatingMeetings[meeting.id]}
+                      onUpdateMeeting={() => {
+                        updateMeeting(meeting.id, meeting.title, meeting.overview || null, (updates) => {
+                          setLocalMeetings(prev => prev.map(m =>
+                            m.id === meeting.id
+                              ? { ...m, ...(updates.title ? { title: updates.title } : {}), ...(updates.overview ? { overview: updates.overview } : {}) }
+                              : m
+                          ));
+                        });
+                      }}
+                    />
+                  </div>
+                );
+              })()}
+
               {/* Action Buttons - Mobile Optimized - All inline */}
               <div className="flex flex-wrap gap-2">
                 
