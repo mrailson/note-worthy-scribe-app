@@ -69,7 +69,7 @@ export function useApplyMeetingCorrections() {
       if (currentOverview) {
         const correctedOverview = medicalTermCorrector.applyCorrections(currentOverview);
         if (correctedOverview !== currentOverview) {
-          await supabase.from('meeting_overviews').update({ overview_text: correctedOverview }).eq('meeting_id', meetingId);
+          await supabase.from('meeting_overviews').update({ overview: correctedOverview }).eq('meeting_id', meetingId);
           totalReplacements++;
         }
       }
