@@ -13,14 +13,20 @@ export function useApplyMeetingCorrections() {
   const { user } = useAuth();
   const [correctionsLoaded, setCorrectionsLoaded] = useState(false);
   const [updatingMeetings, setUpdatingMeetings] = useState<Record<string, boolean>>({});
+  const [reloadToken, setReloadToken] = useState(0);
 
-  // Load corrections once
+  // Load corrections once (and reload when reloadToken changes)
   useEffect(() => {
     if (!user?.id) return;
+    setCorrectionsLoaded(false);
     medicalTermCorrector.loadCorrections(user.id).then(() => {
       setCorrectionsLoaded(true);
     });
-  }, [user?.id]);
+  }, [user?.id, reloadToken]);
+
+  const reloadCorrections = useCallback(() => {
+    setReloadToken(t => t + 1);
+  }, []);
 
   const applyText = useCallback((text: string | null | undefined): string => {
     if (!text || !correctionsLoaded) return text || '';
