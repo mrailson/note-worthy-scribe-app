@@ -959,6 +959,9 @@ export const SDADigitalIntegration = () => {
           </p>
         </div>
       </CollapsibleCard>
+
+        </div>
+      </CollapsibleCard>
     </div>
     </>
   );
