@@ -726,6 +726,8 @@ export function useDocumentApproval() {
     toggleContactFavourite,
     saveContactGroup,
     deleteContactGroup,
+    cloneDocumentForBatch,
+    sendBatchForApproval,
     refetch: fetchDocuments,
     refetchContacts: fetchContacts,
   };
