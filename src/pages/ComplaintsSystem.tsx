@@ -1861,20 +1861,20 @@ const ComplaintsSystem = () => {
               </CardHeader>
               <CardContent>
                 {/* Column headings */}
-                <div className="flex items-center justify-between border-b pb-2 mb-4">
+                <div className="flex items-center justify-between border-b pb-1.5 mb-2">
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-muted-foreground">Complaint</p>
+                    <p className="text-muted-foreground font-medium" style={{ fontSize: '11px' }}>Complaint</p>
                   </div>
                   <div className="hidden lg:grid items-center gap-2 grid-cols-[100px_1fr_90px_160px_auto] w-full">
-                    <div className="text-sm font-semibold text-muted-foreground text-center">Open Date</div>
-                    <div className="text-sm font-semibold text-muted-foreground text-center">Practice</div>
-                    <div className="text-sm font-semibold text-muted-foreground text-center">Deadline</div>
-                    <div className="text-sm font-semibold text-muted-foreground text-center">Status</div>
-                    <div className="text-sm font-semibold text-muted-foreground text-center">Actions</div>
+                    <div className="text-muted-foreground text-center font-medium" style={{ fontSize: '11px' }}>Open Date</div>
+                    <div className="text-muted-foreground text-center font-medium" style={{ fontSize: '11px' }}>Practice</div>
+                    <div className="text-muted-foreground text-center font-medium" style={{ fontSize: '11px' }}>Deadline</div>
+                    <div className="text-muted-foreground text-center font-medium" style={{ fontSize: '11px' }}>Status</div>
+                    <div className="text-muted-foreground text-center font-medium" style={{ fontSize: '11px' }}>Actions</div>
                   </div>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-0">
                   {(() => {
                     const complaintsToShow = dashboardFilter === "" ? complaints.slice(0, 5) : filteredComplaints;
                     const startIndex = (dashboardCurrentPage - 1) * dashboardItemsPerPage;
@@ -1925,55 +1925,58 @@ const ComplaintsSystem = () => {
                     const getIconOrNumber = () => {
                       if (isClosed) {
                         if (daysEarlyOrLate && daysEarlyOrLate > 0) {
-                          return <CheckCircle className="h-7 w-7 shrink-0" />;
+                          return <CheckCircle className="h-5 w-5 shrink-0" />;
                         }
                         if (daysEarlyOrLate && daysEarlyOrLate < 0) {
-                          return <XCircle className="h-7 w-7 shrink-0" />;
+                          return <XCircle className="h-5 w-5 shrink-0" />;
                         }
-                        return <CheckCircle className="h-7 w-7 shrink-0" />;
+                        return <CheckCircle className="h-5 w-5 shrink-0" />;
                       }
-                      if (daysRemaining === null) return <div className="text-2xl font-bold h-7 w-7 flex items-center justify-center shrink-0">?</div>;
-                      if (daysRemaining >= 0) return <div className="text-2xl font-bold h-7 w-7 flex items-center justify-center shrink-0">{daysRemaining}</div>;
-                      return <AlertCircle className="h-7 w-7 shrink-0" />;
+                      if (daysRemaining === null) return <div className="font-bold flex items-center justify-center shrink-0" style={{ fontSize: '12px' }}>?</div>;
+                      if (daysRemaining >= 0) return <div className="font-bold flex items-center justify-center shrink-0" style={{ fontSize: '12px' }}>{daysRemaining}</div>;
+                      return <AlertCircle className="h-5 w-5 shrink-0" />;
                     };
 
                     return (
-                      <div key={complaint.id} className="flex items-center justify-between border-b pb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-lg font-semibold">{complaint.reference_number}</p>
+                      <div key={complaint.id} className="flex items-center justify-between border-b" style={{ minHeight: '52px', maxHeight: '52px', padding: '8px 12px' }}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold whitespace-nowrap" style={{ fontSize: '13px' }}>{complaint.reference_number}</p>
                             {isSimulatedComplaint(complaint) && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700">
-                                <FlaskConical className="h-3 w-3 mr-1" />
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700 whitespace-nowrap" style={{ fontSize: '11px', padding: '2px 6px', lineHeight: '1.2' }}>
+                                <FlaskConical className="h-2.5 w-2.5 mr-0.5" />
                                 Simulated
                               </Badge>
                             )}
                           </div>
-                          <p className="text-base text-muted-foreground">{complaint.complaint_title}</p>
+                          <p className="text-muted-foreground truncate" style={{ fontSize: '12px', maxWidth: '220px' }}>{complaint.complaint_title}</p>
                         </div>
                         <div className="lg:grid items-center gap-2 grid-cols-[100px_1fr_90px_160px_auto] w-full hidden">
                           {/* Open Date */}
-                          <div className="text-sm text-muted-foreground text-center">
+                          <div className="text-muted-foreground text-center whitespace-nowrap" style={{ fontSize: '12px' }}>
                             {format(new Date(complaint.submitted_at || complaint.created_at), 'do MMM yyyy')}
                           </div>
                           {/* Practice Name */}
-                          <div className="text-sm text-muted-foreground text-center truncate px-2">
+                          <div className="text-muted-foreground text-center truncate px-2 whitespace-nowrap" style={{ fontSize: '12px' }}>
                             {complaint.resolved_practice_name || complaint.gp_practices?.name || 'N/A'}
                           </div>
                           {/* Days remaining indicator */}
-                          <div className="flex flex-col items-center w-[100px]">
+                          <div className="flex items-center justify-center w-[90px]">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className={cn(
-                                  "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold shadow-lg cursor-help",
+                                  "relative rounded-full flex items-center justify-center text-white font-bold shadow-md cursor-help",
                                   getDaysColor()
-                                )}>
+                                )} style={{ width: '36px', height: '36px' }}>
                                   {getIconOrNumber()}
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent side="left" align="center" className="p-4 max-w-xs z-50">
                                 <div className="space-y-2">
                                   <div className="font-semibold text-base border-b pb-2">
+                                    {getDaysText()}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mb-1">
                                     {isClosed ? 'Complaint Timeline' : 'Important Dates'}
                                   </div>
                                   <div className="space-y-2">
@@ -2027,29 +2030,18 @@ const ComplaintsSystem = () => {
                                 </div>
                               </TooltipContent>
                             </Tooltip>
-                            <p className={cn(
-                              "text-xs font-medium mt-1 text-center",
-                              isClosed ? 
-                                (daysEarlyOrLate && daysEarlyOrLate > 0 ? 'text-green-600' : 'text-destructive') :
-                                daysRemaining === null ? 'text-muted-foreground' :
-                                daysRemaining < 0 ? 'text-destructive' : 
-                                daysRemaining <= 4 ? 'text-destructive' :
-                                daysRemaining <= 9 ? 'text-amber-600' : 'text-green-600'
-                            )}>
-                              {getDaysText()}
-                            </p>
                           </div>
-                          <div className="flex flex-col gap-2">
-                            <Badge className={getStatusColor(complaint.status)}>
+                          <div className="flex flex-col gap-1">
+                            <Badge className={getStatusColor(complaint.status)} style={{ fontSize: '11px', padding: '3px 8px' }}>
                               {complaint.status === 'under_review' && complaint.acknowledged_at ? (
-                                <Mail className="h-5 w-5 mr-1" />
+                                <Mail className="mr-1" style={{ width: '12px', height: '12px' }} />
                               ) : (
-                                getStatusIcon(complaint.status)
+                                <span className="mr-1 [&>svg]:w-3 [&>svg]:h-3">{getStatusIcon(complaint.status)}</span>
                               )}
-                              <span className="ml-1">{getStatusDisplayLabel(complaint)}</span>
+                              <span>{getStatusDisplayLabel(complaint)}</span>
                             </Badge>
                             {isOverdue(complaint) && (
-                              <Badge variant="destructive">Overdue</Badge>
+                              <Badge variant="destructive" style={{ fontSize: '11px', padding: '3px 8px' }}>Overdue</Badge>
                             )}
                           </div>
                           <Button
@@ -2070,8 +2062,9 @@ const ComplaintsSystem = () => {
                           disabled={complaint.status === 'submitted'}
                           className={complaint.status === 'submitted' ? 'opacity-50 cursor-not-allowed' : ''}
                           title={complaint.status === 'submitted' ? 'Generating acknowledgement letter - please wait' : 'View complaint details'}
+                          style={{ fontSize: '11px', padding: '4px 10px' }}
                         >
-                          <Eye className="h-4 w-4 mr-1" />
+                          <Eye className="mr-1" style={{ width: '12px', height: '12px' }} />
                           {complaint.status === 'submitted' ? 'Generating...' : 'View Details'}
                         </Button>
                       </div>
