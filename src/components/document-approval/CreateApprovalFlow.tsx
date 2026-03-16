@@ -754,26 +754,56 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
             </Card>
 
             {/* Signatories list */}
-            <Card className="p-6 space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">
-                {validSignatories.length} Signator{validSignatories.length !== 1 ? 'ies' : 'y'}
-              </h3>
-              <div className="space-y-2">
-                {validSignatories.map((s, i) => (
-                  <div key={s.id} className="flex items-center gap-3 p-2 bg-muted/50 rounded text-sm">
-                    <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-medium text-foreground">{s.name}</span>
-                      <span className="text-muted-foreground ml-2">({s.email})</span>
-                      {s.role && <span className="text-xs text-muted-foreground ml-2">· {s.role}</span>}
-                      {s.organisation && <span className="text-xs text-muted-foreground ml-1">· {s.organisation}</span>}
+            {sendMode === 'batch' ? (
+              <Card className="p-6 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-primary" />
+                  Batch: {batchSelections.length} practice{batchSelections.length !== 1 ? 's' : ''}
+                </h3>
+                <div className="space-y-3">
+                  {batchSelections.map(sel => {
+                    const validSigs = sel.signatories.filter(s => s.name.trim() && s.email.trim());
+                    return (
+                      <div key={sel.practiceKey} className="border rounded-lg p-3 space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-sm font-medium text-foreground">{sel.practiceName}</span>
+                          <Badge variant="secondary" className="text-[10px]">{validSigs.length} signator{validSigs.length !== 1 ? 'ies' : 'y'}</Badge>
+                        </div>
+                        {validSigs.map((s, i) => (
+                          <div key={s.id} className="flex items-center gap-2 pl-5 text-sm">
+                            <span className="h-5 w-5 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-medium">{i + 1}</span>
+                            <span className="font-medium text-foreground">{s.name}</span>
+                            <span className="text-muted-foreground">({s.email})</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            ) : (
+              <Card className="p-6 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {validSignatories.length} Signator{validSignatories.length !== 1 ? 'ies' : 'y'}
+                </h3>
+                <div className="space-y-2">
+                  {validSignatories.map((s, i) => (
+                    <div key={s.id} className="flex items-center gap-3 p-2 bg-muted/50 rounded text-sm">
+                      <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium text-foreground">{s.name}</span>
+                        <span className="text-muted-foreground ml-2">({s.email})</span>
+                        {s.role && <span className="text-xs text-muted-foreground ml-2">· {s.role}</span>}
+                        {s.organisation && <span className="text-xs text-muted-foreground ml-1">· {s.organisation}</span>}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             {/* Email preview / editor */}
             <Card className="p-6 space-y-3">
