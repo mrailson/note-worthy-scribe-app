@@ -328,8 +328,29 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     if (!documentId) return;
     setSending(true);
     try {
-      await sendForApproval(documentId, customEmailBody || undefined);
-      toast.success('Document sent for approval! You can track progress in the dashboard.');
+      if (sendMode === 'batch') {
+        // Batch send
+        const practiceSignatories = batchSelections.map(s => ({
+          practiceName: s.practiceName,
+          signatories: s.signatories.filter(sig => sig.name.trim() && sig.email.trim()).map(sig => ({
+            name: sig.name, email: sig.email, role: sig.role || undefined,
+            organisation: sig.organisation || undefined, signatory_title: sig.signatory_title || undefined,
+            organisation_type: sig.organisation_type || undefined,
+          })),
+        })).filter(ps => ps.signatories.length > 0);
+
+        const { results } = await sendBatchForApproval(documentId, practiceSignatories, customEmailBody || undefined);
+        const successCount = results.filter(r => r.success).length;
+        const failCount = results.filter(r => !r.success).length;
+        if (failCount > 0) {
+          toast.warning(`Sent to ${successCount} practice${successCount !== 1 ? 's' : ''}. ${failCount} failed.`);
+        } else {
+          toast.success(`Document sent to ${successCount} practice${successCount !== 1 ? 's' : ''}! Track progress in the dashboard.`);
+        }
+      } else {
+        await sendForApproval(documentId, customEmailBody || undefined);
+        toast.success('Document sent for approval! You can track progress in the dashboard.');
+      }
       onBack();
     } catch (err) {
       console.error(err);
@@ -337,6 +358,17 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     } finally {
       setSending(false);
     }
+  };
+
+  // Batch continue to review
+  const handleBatchContinueToReview = () => {
+    const validBatch = batchSelections.filter(s => s.signatories.some(sig => sig.name.trim() && sig.email.trim()));
+    if (validBatch.length === 0) {
+      toast.error('Please add at least one signatory to at least one practice');
+      return;
+    }
+    // For batch mode, skip stamp positioning for now (stamp positions are complex per-practice)
+    setStep('review');
   };
 
   // ─── Render ──────────────────────────────────────────────────────
