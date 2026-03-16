@@ -99,6 +99,8 @@ import { AttendeeRoleBadge } from './meeting-history/AttendeeRoleBadge';
 import { NewMeetingBadge } from './meeting-history/NewMeetingBadge';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
 import { toast } from 'sonner';
+import { useApplyMeetingCorrections } from '@/hooks/useApplyMeetingCorrections';
+import { MeetingCorrectionsBadge } from '@/components/meeting-history/MeetingCorrectionsBadge';
 import { TranscriptRepairButton } from '@/components/admin/TranscriptRepairButton';
 import { useVoicePreference } from '@/hooks/useVoicePreference';
 import { useMeetingFolders } from '@/hooks/useMeetingFolders';
@@ -212,6 +214,7 @@ export const MeetingHistoryList = ({
   const { user, isSystemAdmin } = useAuth();
   const { voiceConfig } = useVoicePreference();
   const { folders, assignMeetingToFolder } = useMeetingFolders();
+  const { applyText, getCorrectionsForText, updateMeeting, updatingMeetings, hasCorrections } = useApplyMeetingCorrections();
   const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
   const isIOS = detectDevice().isIOS;
 
@@ -2232,7 +2235,7 @@ export const MeetingHistoryList = ({
                         </div>
                       ) : (
                         <>
-                          <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{meeting.title}</h3>
+                          <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{applyText(meeting.title)}</h3>
                           <NewMeetingBadge createdAt={meeting.created_at} />
                           <button
                             onClick={(e) => {
@@ -2653,6 +2656,29 @@ export const MeetingHistoryList = ({
                   </div>
                 </div>
               </div>
+
+              {/* Name & Term Corrections Badge */}
+              {hasCorrections && (() => {
+                const corrections = getCorrectionsForText(meeting.title, meeting.overview);
+                if (corrections.length === 0) return null;
+                return (
+                  <div className="mb-2">
+                    <MeetingCorrectionsBadge
+                      corrections={corrections}
+                      isUpdating={updatingMeetings[meeting.id]}
+                      onUpdateMeeting={() => {
+                        updateMeeting(meeting.id, meeting.title, meeting.overview || null, (updates) => {
+                          setLocalMeetings(prev => prev.map(m =>
+                            m.id === meeting.id
+                              ? { ...m, ...(updates.title ? { title: updates.title } : {}), ...(updates.overview ? { overview: updates.overview } : {}) }
+                              : m
+                          ));
+                        });
+                      }}
+                    />
+                  </div>
+                );
+              })()}
 
               {/* Action Buttons - Mobile Optimized - All inline */}
               <div className="flex flex-wrap gap-2">

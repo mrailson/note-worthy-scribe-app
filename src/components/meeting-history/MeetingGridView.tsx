@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { NewMeetingBadge } from "./NewMeetingBadge";
+import { MeetingCorrectionsBadge } from "./MeetingCorrectionsBadge";
+import { useApplyMeetingCorrections } from "@/hooks/useApplyMeetingCorrections";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,6 +93,8 @@ export const MeetingGridView = ({
   onDelete,
   loading = false
 }: MeetingGridViewProps) => {
+  const { applyText, getCorrectionsForText, hasCorrections } = useApplyMeetingCorrections();
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -183,17 +187,28 @@ export const MeetingGridView = ({
               </div>
 
               {/* Title */}
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold text-base line-clamp-2 group-hover:text-primary transition-colors">
-                  {meeting.title}
+                  {applyText(meeting.title)}
                 </h3>
                 <NewMeetingBadge createdAt={meeting.created_at} />
               </div>
 
+              {/* Corrections indicator */}
+              {hasCorrections && (() => {
+                const corrections = getCorrectionsForText(meeting.title, meeting.overview);
+                if (corrections.length === 0) return null;
+                return (
+                  <div className="mb-2">
+                    <MeetingCorrectionsBadge corrections={corrections} compact />
+                  </div>
+                );
+              })()}
+
               {/* Overview excerpt */}
               {meeting.overview && (
                 <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                  {meeting.overview}
+                  {applyText(meeting.overview)}
                 </p>
               )}
 
