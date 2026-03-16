@@ -1355,7 +1355,7 @@ export const SDAEstatesCapacity = () => {
         </Card>
       </div>
 
-
+      <TravelTimesSlideshow 
         isOpen={travelTimesModalOpen} 
         onClose={() => setTravelTimesModalOpen(false)} 
       />
