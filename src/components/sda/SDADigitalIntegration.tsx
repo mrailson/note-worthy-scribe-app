@@ -185,7 +185,7 @@ export const SDADigitalIntegration = () => {
             Interactive baseline dashboard for the NRES neighbourhood. Filters by individual practice,
             workforce role, and time period. Includes SDA metrics, 30+ minute appointment analysis
             (GP vs other roles for LTC baseline), and a detailed ICB metrics gap analysis with
-            proposed resolutions and risk register. Prepared for Michael Chapman's Information Schedule requirements.
+            proposed resolutions and risk register. Prepared for Michael Chapman's Information Schedule requirements (11 March 2026).
           </div>
 
           {/* Embedded Dashboard */}
