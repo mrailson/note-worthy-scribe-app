@@ -2235,7 +2235,7 @@ export const MeetingHistoryList = ({
                         </div>
                       ) : (
                         <>
-                          <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{meeting.title}</h3>
+                          <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{applyText(meeting.title)}</h3>
                           <NewMeetingBadge createdAt={meeting.created_at} />
                           <button
                             onClick={(e) => {
