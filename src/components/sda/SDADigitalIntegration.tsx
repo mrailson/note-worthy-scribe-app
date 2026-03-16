@@ -379,7 +379,7 @@ export const SDADigitalIntegration = () => {
                   <span className="bg-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-medium">4 High-Workload Reports</span>
                 </div>
                 <Button variant="outline" size="sm" asChild>
-                  <a href="/documents/NRES_Reporting_Resource_Analysis.docx" download>
+                  <a href="/documents/NRES_Reporting_Resource_Analysis_v2.docx" download>
                     <Download className="h-4 w-4 mr-1" /> Download Resource Projection (Word)
                   </a>
                 </Button>
