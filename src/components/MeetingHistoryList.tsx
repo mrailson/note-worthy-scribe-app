@@ -37,7 +37,8 @@ import {
   MonitorSpeaker,
   Drama,
   Folder,
-  FilePlus2
+  FilePlus2,
+  BookOpen
 } from "lucide-react";
 import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
 import { UploadedFile } from '@/types/ai4gp';
