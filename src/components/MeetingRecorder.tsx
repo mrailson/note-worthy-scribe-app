@@ -58,6 +58,7 @@ import { RecordingContextDialog, MeetingContext } from "@/components/meeting/Rec
 import { PostMeetingActionsModal } from "@/components/PostMeetingActionsModal";
 import { MeetingCoachModal } from "@/components/meeting-coach/MeetingCoachModal";
 import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFoldersManager";
+import { CorrectionManager } from "@/components/CorrectionManager";
 import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { TabAudioGuidanceDialog } from "@/components/meeting/TabAudioGuidanceDialog";
 import { AudioCaptureStatusIndicator } from "@/components/meeting/AudioCaptureStatusIndicator";
