@@ -518,6 +518,31 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               </RadioGroup>
             </div>
 
+            {/* Send Mode */}
+            <div>
+              <Label className="text-sm font-medium">Send mode</Label>
+              <RadioGroup value={sendMode} onValueChange={(v) => setSendMode(v as 'single' | 'batch')} className="mt-2 space-y-2">
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/50 transition-colors">
+                  <RadioGroupItem value="single" id="mode-single" className="mt-0.5" />
+                  <div>
+                    <label htmlFor="mode-single" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
+                      <Send className="h-4 w-4 text-primary" /> Single request
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Send to one set of signatories</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/50 transition-colors">
+                  <RadioGroupItem value="batch" id="mode-batch" className="mt-0.5" />
+                  <div>
+                    <label htmlFor="mode-batch" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-primary" /> Batch to practices
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Send the same document to multiple practices, each with their own signatories</p>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+
             <Button onClick={handleUploadAndContinue} disabled={uploading || !file || !title.trim()} className="w-full gap-2">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {uploading ? (uploadStatus || 'Processing…') : 'Upload & Continue'}
