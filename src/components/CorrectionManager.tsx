@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { medicalTermCorrector, type MedicalTermCorrection } from "@/utils/MedicalTermCorrector";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   Trash2, 
   Search, 
@@ -20,10 +22,12 @@ import {
 interface CorrectionManagerProps {
   onClose: () => void;
   onCorrectionApplied?: (find: string, replace: string) => void;
+  onCorrectionsChanged?: () => void;
 }
 
-export function CorrectionManager({ onClose, onCorrectionApplied }: CorrectionManagerProps) {
+export function CorrectionManager({ onClose, onCorrectionApplied, onCorrectionsChanged }: CorrectionManagerProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [corrections, setCorrections] = useState<MedicalTermCorrection[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [newIncorrect, setNewIncorrect] = useState("");
@@ -34,23 +38,30 @@ export function CorrectionManager({ onClose, onCorrectionApplied }: CorrectionMa
 
   useEffect(() => {
     loadCorrections();
-  }, []);
+  }, [user?.id]);
 
   const loadCorrections = async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
-      // This would be enhanced to load from the database
-      // For now, we'll get the in-memory corrections
-      const correctionMap = medicalTermCorrector.getCorrections();
-      const correctionsList: MedicalTermCorrection[] = Array.from(correctionMap.entries()).map(([incorrect, correct], index) => ({
-        id: `${index}`,
-        incorrect_term: incorrect,
-        correct_term: correct,
-        context_phrase: '',
-        usage_count: 0,
-        is_global: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      // Query directly from the database for accurate, up-to-date data
+      const { data, error } = await supabase
+        .from('medical_term_corrections')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('usage_count', { ascending: false });
+
+      if (error) throw error;
+
+      const correctionsList: MedicalTermCorrection[] = (data || []).map((row) => ({
+        id: row.id,
+        incorrect_term: row.incorrect_term,
+        correct_term: row.correct_term,
+        context_phrase: row.context_phrase || '',
+        usage_count: row.usage_count || 0,
+        is_global: row.is_global || false,
+        created_at: row.created_at,
+        updated_at: row.updated_at
       }));
       
       setCorrections(correctionsList);
@@ -76,8 +87,9 @@ export function CorrectionManager({ onClose, onCorrectionApplied }: CorrectionMa
       );
 
       if (success) {
-        await medicalTermCorrector.refreshCorrections();
+        await medicalTermCorrector.refreshCorrections(user?.id);
         await loadCorrections();
+        onCorrectionsChanged?.();
         
         setNewIncorrect("");
         setNewCorrect("");
@@ -102,8 +114,9 @@ export function CorrectionManager({ onClose, onCorrectionApplied }: CorrectionMa
       const success = await medicalTermCorrector.deleteCorrection(incorrectTerm);
       
       if (success) {
-        await medicalTermCorrector.refreshCorrections();
+        await medicalTermCorrector.refreshCorrections(user?.id);
         await loadCorrections();
+        onCorrectionsChanged?.();
         
         toast({
           title: "Correction Deleted",

@@ -25,8 +25,9 @@ export class MedicalTermCorrector {
 
       // Load user-specific corrections if user ID provided
       if (userId) {
-        // Load user's own + global + practice-level corrections
-        query = query.or(`user_id.eq.${userId},is_global.eq.true,practice_id.not.is.null`);
+        // Load user's own corrections + global corrections
+        // Practice-level sharing is handled by the user's own corrections having a practice_id
+        query = query.or(`user_id.eq.${userId},is_global.eq.true`);
       } else {
         // Load only global corrections for anonymous users
         query = query.eq('is_global', true);
@@ -151,21 +152,23 @@ export class MedicalTermCorrector {
         throw new Error('User must be authenticated to delete corrections');
       }
 
+      // Use ilike for case-insensitive matching to ensure deletion works
       const { error } = await supabase
         .from('medical_term_corrections')
         .delete()
-        .match({
-          user_id: user.data.user.id,
-          incorrect_term: incorrectTerm.trim(),
-        });
+        .eq('user_id', user.data.user.id)
+        .ilike('incorrect_term', incorrectTerm.trim());
 
       if (error) {
         console.error('Error deleting medical term correction:', error);
         return false;
       }
 
-      // Update local cache
-      this.corrections.delete(incorrectTerm.toLowerCase().trim());
+      // Update local cache - remove all case variants
+      const keyLower = incorrectTerm.toLowerCase().trim();
+      this.corrections.delete(keyLower);
+      this.contextualCorrections.delete(keyLower);
+      this.usageStats.delete(keyLower);
       console.log(`🗑️ Deleted correction for: "${incorrectTerm}"`);
       return true;
     } catch (error) {
