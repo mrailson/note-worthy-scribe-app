@@ -1938,36 +1938,36 @@ const ComplaintsSystem = () => {
                     };
 
                     return (
-                      <div key={complaint.id} className="flex items-center justify-between border-b pb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-lg font-semibold">{complaint.reference_number}</p>
+                      <div key={complaint.id} className="flex items-center justify-between border-b" style={{ minHeight: '52px', maxHeight: '52px', padding: '8px 12px' }}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold whitespace-nowrap" style={{ fontSize: '13px' }}>{complaint.reference_number}</p>
                             {isSimulatedComplaint(complaint) && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700">
-                                <FlaskConical className="h-3 w-3 mr-1" />
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700 whitespace-nowrap" style={{ fontSize: '11px', padding: '2px 6px', lineHeight: '1.2' }}>
+                                <FlaskConical className="h-2.5 w-2.5 mr-0.5" />
                                 Simulated
                               </Badge>
                             )}
                           </div>
-                          <p className="text-base text-muted-foreground">{complaint.complaint_title}</p>
+                          <p className="text-muted-foreground truncate" style={{ fontSize: '12px', maxWidth: '220px' }}>{complaint.complaint_title}</p>
                         </div>
                         <div className="lg:grid items-center gap-2 grid-cols-[100px_1fr_90px_160px_auto] w-full hidden">
                           {/* Open Date */}
-                          <div className="text-sm text-muted-foreground text-center">
+                          <div className="text-muted-foreground text-center whitespace-nowrap" style={{ fontSize: '12px' }}>
                             {format(new Date(complaint.submitted_at || complaint.created_at), 'do MMM yyyy')}
                           </div>
                           {/* Practice Name */}
-                          <div className="text-sm text-muted-foreground text-center truncate px-2">
+                          <div className="text-muted-foreground text-center truncate px-2 whitespace-nowrap" style={{ fontSize: '12px' }}>
                             {complaint.resolved_practice_name || complaint.gp_practices?.name || 'N/A'}
                           </div>
                           {/* Days remaining indicator */}
-                          <div className="flex flex-col items-center w-[100px]">
+                          <div className="flex items-center justify-center w-[90px]">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className={cn(
-                                  "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold shadow-lg cursor-help",
+                                  "relative rounded-full flex items-center justify-center text-white font-bold shadow-md cursor-help",
                                   getDaysColor()
-                                )}>
+                                )} style={{ width: '36px', height: '36px' }}>
                                   {getIconOrNumber()}
                                 </div>
                               </TooltipTrigger>
