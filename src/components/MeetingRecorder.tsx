@@ -7735,6 +7735,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                     showRecordingPlayback={false}
                     autoOpenSafeModeForMeetingId={autoOpenSafeModeForMeetingId}
                     onAutoOpenSafeModeProcessed={() => setAutoOpenSafeModeForMeetingId(null)}
+                    onOpenCorrectionManager={() => setShowCorrections(true)}
                   />
                 )}
                 
