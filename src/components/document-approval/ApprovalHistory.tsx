@@ -370,7 +370,7 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
                     <TableCell className="font-medium max-w-[240px] truncate">
                       <div className="flex items-center gap-1.5">
                         {doc.batch_id && (
-                          <Layers className="h-3 w-3 text-primary flex-shrink-0" title="Part of a batch" />
+                          <Layers className="h-3 w-3 text-primary flex-shrink-0" />
                         )}
                         {doc.title}
                       </div>
