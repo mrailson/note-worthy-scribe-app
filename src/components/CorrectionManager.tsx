@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { medicalTermCorrector, type MedicalTermCorrection } from "@/utils/MedicalTermCorrector";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   Trash2, 
   Search, 
@@ -20,6 +22,7 @@ import {
 interface CorrectionManagerProps {
   onClose: () => void;
   onCorrectionApplied?: (find: string, replace: string) => void;
+  onCorrectionsChanged?: () => void;
 }
 
 export function CorrectionManager({ onClose, onCorrectionApplied }: CorrectionManagerProps) {
