@@ -103,12 +103,12 @@ export const TextOverviewEditor = ({
         <div>
           {overview ? (
             <div 
-              className="prose prose-sm max-w-none text-muted-foreground mb-3"
+              className="prose prose-sm max-w-none text-muted-foreground"
               dangerouslySetInnerHTML={{ __html: renderMinutesMarkdown(overview) }}
             />
           ) : (
-            <p className="text-sm text-muted-foreground italic mb-3">
-              No overview available. Click Edit to add one.
+            <p className="text-sm text-muted-foreground italic">
+              No overview available. Click the edit icon to add one.
             </p>
           )}
           
@@ -116,11 +116,11 @@ export const TextOverviewEditor = ({
             <Button
               onClick={() => setIsEditing(true)}
               variant="ghost"
-              size="sm"
-              className="h-8 px-3"
+              size="icon"
+              className="h-7 w-7"
+              title="Edit overview"
             >
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
+              <Edit className="h-4 w-4" />
             </Button>
           </div>
         </div>
