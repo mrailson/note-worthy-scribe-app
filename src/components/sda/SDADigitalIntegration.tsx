@@ -461,7 +461,7 @@ export const SDADigitalIntegration = () => {
           </div>
 
           <p className="text-xs text-slate-500 italic">
-            Source: NRES_SDA_Pilot_Reporting_Plan.docx v1.4 | Last updated: 22 February 2026
+            Source: NRES_SDA_Reporting_Plan.docx v1.7.1 | Last updated: 16 March 2026
           </p>
         </div>
       </CollapsibleCard>
