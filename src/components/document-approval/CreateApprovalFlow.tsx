@@ -384,7 +384,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           <div>
             <h1 className="text-xl font-bold text-foreground">New Approval Request</h1>
             <p className="text-sm text-muted-foreground">
-              {step === 'upload' ? 'Step 1: Upload document' : step === 'signatories' ? 'Step 2: Add signatories' : step === 'stamp_position' ? 'Step 3: Position signatures' : 'Step 4: Review & send'}
+              {step === 'upload' ? 'Step 1: Upload document' : step === 'signatories' ? (sendMode === 'batch' ? 'Step 2: Select practices & signatories' : 'Step 2: Add signatories') : step === 'stamp_position' ? 'Step 3: Position signatures' : (sendMode === 'batch' ? 'Step 3: Review & send batch' : 'Step 4: Review & send')}
+            </p>
             </p>
           </div>
         </div>
