@@ -976,17 +976,24 @@ export const SDADigitalIntegration = () => {
     </div>
 
       {/* Baseline Dashboard Fullscreen Modal */}
-      <Dialog open={baselineFullscreen} onOpenChange={setBaselineFullscreen}>
-        <DialogContent className="!max-w-none !w-screen !h-screen !max-h-screen !translate-x-[-50%] !translate-y-[-50%] !rounded-none p-0 overflow-hidden border-0 mx-0 my-0">
-          <DialogTitle className="sr-only">NRES Baseline Dashboard — Full Screen</DialogTitle>
+      {baselineFullscreen && (
+        <div className="fixed inset-0 z-[9999] bg-black/80" onClick={() => setBaselineFullscreen(false)}>
+          <button
+            onClick={() => setBaselineFullscreen(false)}
+            className="absolute top-4 right-4 z-[10000] bg-white/90 hover:bg-white rounded-full p-2 shadow-lg transition-colors"
+            aria-label="Close fullscreen"
+          >
+            <X className="w-5 h-5 text-slate-700" />
+          </button>
           <iframe
             src="/reports/nres_baseline_iframe.html"
             className="w-full h-full border-0"
             title="NRES Baseline Dashboard Full Screen"
             sandbox="allow-scripts allow-same-origin"
+            onClick={(e) => e.stopPropagation()}
           />
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </>
   );
 };
