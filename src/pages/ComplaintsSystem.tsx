@@ -1861,16 +1861,16 @@ const ComplaintsSystem = () => {
               </CardHeader>
               <CardContent>
                 {/* Column headings */}
-                <div className="flex items-center justify-between border-b pb-2 mb-4">
+                <div className="flex items-center justify-between border-b pb-1.5 mb-2">
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-muted-foreground">Complaint</p>
+                    <p className="text-muted-foreground font-medium" style={{ fontSize: '11px' }}>Complaint</p>
                   </div>
                   <div className="hidden lg:grid items-center gap-2 grid-cols-[100px_1fr_90px_160px_auto] w-full">
-                    <div className="text-sm font-semibold text-muted-foreground text-center">Open Date</div>
-                    <div className="text-sm font-semibold text-muted-foreground text-center">Practice</div>
-                    <div className="text-sm font-semibold text-muted-foreground text-center">Deadline</div>
-                    <div className="text-sm font-semibold text-muted-foreground text-center">Status</div>
-                    <div className="text-sm font-semibold text-muted-foreground text-center">Actions</div>
+                    <div className="text-muted-foreground text-center font-medium" style={{ fontSize: '11px' }}>Open Date</div>
+                    <div className="text-muted-foreground text-center font-medium" style={{ fontSize: '11px' }}>Practice</div>
+                    <div className="text-muted-foreground text-center font-medium" style={{ fontSize: '11px' }}>Deadline</div>
+                    <div className="text-muted-foreground text-center font-medium" style={{ fontSize: '11px' }}>Status</div>
+                    <div className="text-muted-foreground text-center font-medium" style={{ fontSize: '11px' }}>Actions</div>
                   </div>
                 </div>
                 
