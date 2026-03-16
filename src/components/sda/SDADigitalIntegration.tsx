@@ -466,6 +466,14 @@ export const SDADigitalIntegration = () => {
         </div>
       </CollapsibleCard>
 
+      {/* Project Setup and Overview */}
+      <CollapsibleCard
+        title="Project Setup & Overview — Nov 2025 – Mar 2026"
+        icon={<Calendar className="w-5 h-5" />}
+        defaultOpen={false}
+      >
+        <div className="space-y-6">
+
       {/* Evidence Cards */}
       <CollapsibleCard
         title="GP Connect Technical Evidence"
