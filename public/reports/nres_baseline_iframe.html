@@ -154,8 +154,10 @@ function buildOverview(){
   const tot=s.reduce((a,w)=>a+w.t,0),avg=Math.round(tot/n);
   const sd=s.reduce((a,w)=>a+w.s,0),att=s.reduce((a,w)=>a+w.a,0),dna=s.reduce((a,w)=>a+w.d,0),f2f=s.reduce((a,w)=>a+w.f,0),lng=s.reduce((a,w)=>a+w.l,0);
   const pN=pL(p),rN=rL(r),mN=mL(m);
-  document.getElementById('kpi-overview').innerHTML=
-    kc('','Avg '+pN,fmt(avg),fmt(Math.min(...s.map(w=>w.t)))+' – '+fmt(Math.max(...s.map(w=>w.t))))+
+   const minW=Math.min(...s.map(w=>w.t)),maxW=Math.max(...s.map(w=>w.t));
+   const per1k=(avg/POP*1000).toFixed(1),per1kMin=(minW/POP*1000).toFixed(1),per1kMax=(maxW/POP*1000).toFixed(1);
+   document.getElementById('kpi-overview').innerHTML=
+    kc('','Avg '+pN,fmt(avg),fmt(minW)+' – '+fmt(maxW)+' · <span style="color:var(--D);font-weight:600">'+per1k+'</span> <span style="font-size:0.85em">per 1,000 pts ('+per1kMin+'–'+per1kMax+')</span>')+
     kc('p','Total',fmt(tot),n+' periods')+
     kc('q','Same Day',fmt(sd)+' ('+pct(sd,tot)+'%)',fmt(Math.round(sd/n))+' avg/'+pN.toLowerCase())+
     kc('g','DNA Rate',pct(dna,att+dna)+'%',fmt(Math.round(dna/n))+' avg DNAs')+
