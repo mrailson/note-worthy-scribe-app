@@ -175,6 +175,7 @@ const ComplaintsSystem = () => {
   const [selectedOutcome, setSelectedOutcome] = useState("all");
   const [dashboardFilter, setDashboardFilter] = useState("");
   const [showSummaryView, setShowSummaryView] = useState(false);
+  const [expandedComplaintId, setExpandedComplaintId] = useState<string | null>(null);
   
   // Compliment form states
   const [complimentSubmitting, setComplimentSubmitting] = useState(false);
@@ -1874,7 +1875,7 @@ const ComplaintsSystem = () => {
                   </div>
                 </div>
                 
-                <div className="space-y-0">
+                <div>
                   {(() => {
                     const complaintsToShow = dashboardFilter === "" ? complaints.slice(0, 5) : filteredComplaints;
                     const startIndex = (dashboardCurrentPage - 1) * dashboardItemsPerPage;
@@ -1886,8 +1887,8 @@ const ComplaintsSystem = () => {
                     return paginatedComplaints.map((complaint) => {
                     const startDate = complaint.submitted_at ?? complaint.created_at;
                     const daysRemaining = startDate ? calculateDaysUntilDeadline(startDate) : null;
+                    const isExpanded = expandedComplaintId === complaint.id;
                     
-                    // For closed complaints, calculate if they were early or late
                     const isClosed = complaint.status === 'closed';
                     let daysEarlyOrLate = null;
                     if (isClosed && complaint.closed_at && startDate) {
@@ -1898,9 +1899,7 @@ const ComplaintsSystem = () => {
                     }
                     
                     const getDaysColor = () => {
-                      if (isClosed) {
-                        return daysEarlyOrLate && daysEarlyOrLate > 0 ? 'bg-green-500' : 'bg-destructive';
-                      }
+                      if (isClosed) return daysEarlyOrLate && daysEarlyOrLate > 0 ? 'bg-green-500' : 'bg-destructive';
                       if (daysRemaining === null) return 'bg-muted';
                       if (daysRemaining < 0) return 'bg-destructive';
                       if (daysRemaining <= 4) return 'bg-destructive';
@@ -1924,153 +1923,148 @@ const ComplaintsSystem = () => {
                     
                     const getIconOrNumber = () => {
                       if (isClosed) {
-                        if (daysEarlyOrLate && daysEarlyOrLate > 0) {
-                          return <CheckCircle className="h-5 w-5 shrink-0" />;
-                        }
-                        if (daysEarlyOrLate && daysEarlyOrLate < 0) {
-                          return <XCircle className="h-5 w-5 shrink-0" />;
-                        }
-                        return <CheckCircle className="h-5 w-5 shrink-0" />;
+                        if (daysEarlyOrLate && daysEarlyOrLate > 0) return <CheckCircle className="h-4 w-4 shrink-0" />;
+                        if (daysEarlyOrLate && daysEarlyOrLate < 0) return <XCircle className="h-4 w-4 shrink-0" />;
+                        return <CheckCircle className="h-4 w-4 shrink-0" />;
                       }
-                      if (daysRemaining === null) return <div className="font-bold flex items-center justify-center shrink-0" style={{ fontSize: '12px' }}>?</div>;
-                      if (daysRemaining >= 0) return <div className="font-bold flex items-center justify-center shrink-0" style={{ fontSize: '12px' }}>{daysRemaining}</div>;
-                      return <AlertCircle className="h-5 w-5 shrink-0" />;
+                      if (daysRemaining === null) return <span style={{ fontSize: '11px', fontWeight: 700 }}>?</span>;
+                      if (daysRemaining >= 0) return <span style={{ fontSize: '11px', fontWeight: 700 }}>{daysRemaining}</span>;
+                      return <AlertCircle className="h-4 w-4 shrink-0" />;
                     };
 
+                    const daysOpen = startDate ? Math.floor((new Date().getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) : null;
+                    const resolutionDeadline = startDate ? addWorkingDays(new Date(startDate), 20) : null;
+
                     return (
-                      <div key={complaint.id} className="flex items-center border-b" style={{ height: '56px', maxHeight: '56px', overflow: 'hidden' }}>
-                        {/* Complaint cell */}
-                        <div className="flex-1 min-w-0" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2px', padding: '0 12px' }}>
-                          <div className="flex items-center gap-1.5" style={{ whiteSpace: 'nowrap' }}>
+                      <div key={complaint.id}>
+                        {/* Main row - 44px */}
+                        <div 
+                          className="flex items-center border-b cursor-pointer hover:bg-muted/30 transition-colors"
+                          style={{ height: '44px', maxHeight: '44px', overflow: 'hidden' }}
+                          onClick={() => setExpandedComplaintId(isExpanded ? null : complaint.id)}
+                        >
+                          <div className="flex items-center gap-1.5" style={{ width: '200px', padding: '0 12px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                             <span style={{ fontSize: '13px', fontWeight: 600 }}>{complaint.reference_number}</span>
                             {isSimulatedComplaint(complaint) && (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700" style={{ fontSize: '11px', padding: '2px 6px', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700" style={{ fontSize: '10px', padding: '1px 5px', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
                                 <FlaskConical className="h-2.5 w-2.5 mr-0.5" />
-                                Simulated
+                                Sim
                               </Badge>
                             )}
                           </div>
-                          <p style={{ fontSize: '11px', color: '#6b7280', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '1.3', margin: 0 }}>{complaint.complaint_title}</p>
-                        </div>
-                        <div className="lg:grid items-center gap-2 grid-cols-[100px_1fr_90px_160px_auto] w-full hidden" style={{ alignItems: 'center' }}>
-                          {/* Open Date */}
-                          <div className="text-muted-foreground text-center" style={{ fontSize: '12px', whiteSpace: 'nowrap', padding: '0 12px' }}>
-                            {format(new Date(complaint.submitted_at || complaint.created_at), 'do MMM yyyy')}
-                          </div>
-                          {/* Practice Name */}
-                          <div className="text-muted-foreground text-center" style={{ fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 12px' }}>
-                            {complaint.resolved_practice_name || complaint.gp_practices?.name || 'N/A'}
-                          </div>
-                          {/* Days remaining indicator */}
-                          <div className="flex items-center justify-center" style={{ padding: '0 12px' }}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className={cn(
-                                  "relative rounded-full flex items-center justify-center text-white font-bold shadow-md cursor-help",
-                                  getDaysColor()
-                                )} style={{ width: '36px', height: '36px', fontSize: '12px' }}>
-                                  {getIconOrNumber()}
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="left" align="center" className="p-4 max-w-xs z-50">
-                                <div className="space-y-2">
-                                  <div className="font-semibold text-base border-b pb-2">
-                                    {getDaysText()}
+                          <div className="hidden lg:grid items-center grid-cols-[100px_1fr_70px_140px_140px] flex-1">
+                            <div className="text-muted-foreground text-center" style={{ fontSize: '12px', whiteSpace: 'nowrap', padding: '0 8px' }}>
+                              {format(new Date(complaint.submitted_at || complaint.created_at), 'do MMM yyyy')}
+                            </div>
+                            <div className="text-center" style={{ fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 8px' }}>
+                              {complaint.resolved_practice_name || complaint.gp_practices?.name || 'N/A'}
+                            </div>
+                            <div className="flex items-center justify-center" style={{ padding: '0 8px' }}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div 
+                                    className={cn("rounded-full flex items-center justify-center text-white font-bold shadow-sm cursor-help", getDaysColor())} 
+                                    style={{ width: '32px', height: '32px' }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {getIconOrNumber()}
                                   </div>
-                                  <div className="text-xs text-muted-foreground mb-1">
-                                    {isClosed ? 'Complaint Timeline' : 'Important Dates'}
-                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" align="center" className="p-4 max-w-xs z-50">
                                   <div className="space-y-2">
-                                    <div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {isClosed ? 'Opened' : 'Complaint Opened'}
+                                    <div className="font-semibold text-base border-b pb-2">{getDaysText()}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">{isClosed ? 'Complaint Timeline' : 'Important Dates'}</div>
+                                    <div className="space-y-2">
+                                      <div>
+                                        <div className="text-xs text-muted-foreground">{isClosed ? 'Opened' : 'Complaint Opened'}</div>
+                                        <div className="font-medium">{format(new Date(startDate), 'do MMM yyyy')}</div>
                                       </div>
-                                      <div className="font-medium">{format(new Date(startDate), 'do MMM yyyy')}</div>
-                                    </div>
-                                    <div className="flex items-start gap-2">
-                                      <div className="flex-1">
-                                        <div className="text-xs text-muted-foreground">
-                                          {isClosed ? 'Acknowledgement Letter' : 'Acknowledgement Due'}
+                                      <div className="flex items-start gap-2">
+                                        <div className="flex-1">
+                                          <div className="text-xs text-muted-foreground">{isClosed ? 'Acknowledgement Letter' : 'Acknowledgement Due'}</div>
+                                          <div className="font-medium">{format(addWorkingDays(new Date(startDate), 3), 'do MMM yyyy')}</div>
                                         </div>
-                                        <div className="font-medium">{format(addWorkingDays(new Date(startDate), 3), 'do MMM yyyy')}</div>
+                                        {isClosed && complaint.acknowledged_at && (
+                                          <div className="mt-1">
+                                            {new Date(complaint.acknowledged_at) <= addWorkingDays(new Date(startDate), 3) ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-destructive" />}
+                                          </div>
+                                        )}
                                       </div>
-                                      {isClosed && complaint.acknowledged_at && (
-                                        <div className="mt-1">
-                                          {new Date(complaint.acknowledged_at) <= addWorkingDays(new Date(startDate), 3) ? (
-                                            <CheckCircle className="h-4 w-4 text-green-600" />
-                                          ) : (
-                                            <XCircle className="h-4 w-4 text-destructive" />
-                                          )}
+                                      <div className="flex items-start gap-2">
+                                        <div className="flex-1">
+                                          <div className="text-xs text-muted-foreground">{isClosed ? 'Outcome Letter' : 'Outcome Letter Due'}</div>
+                                          <div className="font-medium">{format(addWorkingDays(new Date(startDate), 20), 'do MMM yyyy')}</div>
                                         </div>
-                                      )}
-                                    </div>
-                                    <div className="flex items-start gap-2">
-                                      <div className="flex-1">
-                                        <div className="text-xs text-muted-foreground">
-                                          {isClosed ? 'Outcome Letter' : 'Outcome Letter Due'}
-                                        </div>
-                                        <div className="font-medium">{format(addWorkingDays(new Date(startDate), 20), 'do MMM yyyy')}</div>
+                                        {isClosed && complaint.closed_at && (
+                                          <div className="mt-1">
+                                            {new Date(complaint.closed_at) <= addWorkingDays(new Date(startDate), 20) ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-destructive" />}
+                                          </div>
+                                        )}
                                       </div>
                                       {isClosed && complaint.closed_at && (
-                                        <div className="mt-1">
-                                          {new Date(complaint.closed_at) <= addWorkingDays(new Date(startDate), 20) ? (
-                                            <CheckCircle className="h-4 w-4 text-green-600" />
-                                          ) : (
-                                            <XCircle className="h-4 w-4 text-destructive" />
-                                          )}
+                                        <div className="pt-2 border-t">
+                                          <div className="text-xs text-muted-foreground">Closed</div>
+                                          <div className="font-medium">{format(new Date(complaint.closed_at), 'do MMM yyyy')}</div>
                                         </div>
                                       )}
                                     </div>
-                                    {isClosed && complaint.closed_at && (
-                                      <div className="pt-2 border-t">
-                                        <div className="text-xs text-muted-foreground">Closed</div>
-                                        <div className="font-medium">{format(new Date(complaint.closed_at), 'do MMM yyyy')}</div>
-                                      </div>
-                                    )}
                                   </div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <div style={{ padding: '0 8px' }}>
+                              <Badge className={getStatusColor(complaint.status)} style={{ fontSize: '11px', padding: '3px 8px', maxWidth: '130px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-flex' }}>
+                                {complaint.status === 'under_review' && complaint.acknowledged_at ? (
+                                  <Mail className="mr-1 shrink-0" style={{ width: '12px', height: '12px' }} />
+                                ) : (
+                                  <span className="mr-1 shrink-0 [&>svg]:w-3 [&>svg]:h-3">{getStatusIcon(complaint.status)}</span>
+                                )}
+                                <span className="truncate">{getStatusDisplayLabel(complaint)}</span>
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 justify-end" style={{ padding: '0 12px' }}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (complaint.status === 'submitted') return;
+                                  try { await logComplaintViewWithMetadata(complaint.id, 'dashboard_recent_activity'); } catch (error) { console.error('Error logging complaint view:', error); }
+                                  navigate(`/complaints/${complaint.id}`);
+                                }}
+                                disabled={complaint.status === 'submitted'}
+                                className={complaint.status === 'submitted' ? 'opacity-50 cursor-not-allowed' : ''}
+                                title={complaint.status === 'submitted' ? 'Generating acknowledgement letter - please wait' : 'View complaint details'}
+                                style={{ fontSize: '11px', padding: '4px 8px' }}
+                              >
+                                <Eye className="mr-1" style={{ width: '12px', height: '12px' }} />
+                                View
+                              </Button>
+                              <ChevronRight 
+                                className="text-muted-foreground transition-transform duration-200 shrink-0"
+                                style={{ width: '16px', height: '16px', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                              />
+                            </div>
                           </div>
-                          {/* Status */}
-                          <div style={{ padding: '0 12px', whiteSpace: 'nowrap' }}>
-                            <Badge className={getStatusColor(complaint.status)} style={{ fontSize: '11px', padding: '3px 8px', maxWidth: '160px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-flex' }}>
-                              {complaint.status === 'under_review' && complaint.acknowledged_at ? (
-                                <Mail className="mr-1 shrink-0" style={{ width: '12px', height: '12px' }} />
-                              ) : (
-                                <span className="mr-1 shrink-0 [&>svg]:w-3 [&>svg]:h-3">{getStatusIcon(complaint.status)}</span>
-                              )}
-                              <span className="truncate">{getStatusDisplayLabel(complaint)}</span>
-                            </Badge>
-                            {isOverdue(complaint) && (
-                              <Badge variant="destructive" style={{ fontSize: '11px', padding: '3px 8px' }}>Overdue</Badge>
-                            )}
+                        </div>
+
+                        {/* Expanded detail strip */}
+                        {isExpanded && (
+                          <div style={{ background: '#f9fafb', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb', padding: '12px 16px' }}>
+                            <div style={{ fontSize: '12px', color: '#374151', marginBottom: '8px' }}>
+                              <span style={{ marginRight: '4px' }}>📋</span>
+                              {complaint.complaint_description || complaint.complaint_title || 'No description available'}
+                            </div>
+                            <div className="flex flex-wrap items-center" style={{ gap: '24px', fontSize: '12px' }}>
+                              <div><span style={{ color: '#9ca3af' }}>Owner: </span><span style={{ color: '#111827' }}>{complaint.patient_name || 'N/A'}</span></div>
+                              <div><span style={{ color: '#9ca3af' }}>Category: </span><span style={{ color: '#111827' }}>{getCategoryLabel(complaint.category)}</span></div>
+                              <div><span style={{ color: '#9ca3af' }}>Received: </span><span style={{ color: '#111827' }}>{format(new Date(complaint.submitted_at || complaint.created_at), 'do MMM yyyy')}</span></div>
+                              {resolutionDeadline && <div><span style={{ color: '#9ca3af' }}>Resolution deadline: </span><span style={{ color: '#111827' }}>{format(resolutionDeadline, 'do MMM yyyy')}</span></div>}
+                              {daysOpen !== null && <div><span style={{ color: '#9ca3af' }}>Days open: </span><span style={{ color: '#111827' }}>{daysOpen}</span></div>}
+                            </div>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={async () => {
-                            if (complaint.status === 'submitted') {
-                              console.log('Button clicked but complaint is still being processed');
-                              return;
-                            }
-                            try {
-                              await logComplaintViewWithMetadata(complaint.id, 'dashboard_recent_activity');
-                            } catch (error) {
-                              console.error('Error logging complaint view:', error);
-                            }
-                            navigate(`/complaints/${complaint.id}`);
-                          }}
-                          disabled={complaint.status === 'submitted'}
-                          className={complaint.status === 'submitted' ? 'opacity-50 cursor-not-allowed' : ''}
-                          title={complaint.status === 'submitted' ? 'Generating acknowledgement letter - please wait' : 'View complaint details'}
-                          style={{ fontSize: '11px', padding: '4px 10px' }}
-                        >
-                          <Eye className="mr-1" style={{ width: '12px', height: '12px' }} />
-                          {complaint.status === 'submitted' ? 'Generating...' : 'View Details'}
-                        </Button>
+                        )}
                       </div>
-                    </div>
                     );
                   })})()}
                 </div>
