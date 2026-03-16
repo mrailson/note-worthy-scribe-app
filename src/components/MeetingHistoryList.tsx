@@ -99,6 +99,8 @@ import { AttendeeRoleBadge } from './meeting-history/AttendeeRoleBadge';
 import { NewMeetingBadge } from './meeting-history/NewMeetingBadge';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
 import { toast } from 'sonner';
+import { useApplyMeetingCorrections } from '@/hooks/useApplyMeetingCorrections';
+import { MeetingCorrectionsBadge } from '@/components/meeting-history/MeetingCorrectionsBadge';
 import { TranscriptRepairButton } from '@/components/admin/TranscriptRepairButton';
 import { useVoicePreference } from '@/hooks/useVoicePreference';
 import { useMeetingFolders } from '@/hooks/useMeetingFolders';
