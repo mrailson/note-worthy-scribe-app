@@ -387,10 +387,34 @@ serve(async (req) => {
     searchPerformed = webSearchContext.length > 0;
   }
 
+  // Sanitise multimodal messages: convert invalid image_url entries (non-base64 text) to text parts
+  // This prevents 400 errors when plain text is accidentally sent as inline_data
+  function sanitiseMessages(msgs: any[]): any[] {
+    return msgs.map(msg => {
+      if (!Array.isArray(msg.content)) return msg;
+      
+      const sanitisedContent = msg.content.map((part: any) => {
+        if (part.type === 'image_url' && part.image_url?.url) {
+          const url = part.image_url.url;
+          // Valid: data URLs with base64 or remote URLs
+          if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
+            return part;
+          }
+          // Invalid: plain text mistakenly wrapped as image_url — convert to text
+          console.warn('[gpt5-fast-clinical] Converting invalid image_url to text (non-base64 content detected)');
+          return { type: 'text', text: url };
+        }
+        return part;
+      });
+      
+      return { ...msg, content: sanitisedContent };
+    });
+  }
+
   // Append web search results to system prompt if available
   const sys = (systemPrompt ?? SMALL_SYS) + webSearchContext;
 
-  const chatMessages = [{ role: "system", content: sys }, ...messages];
+  const chatMessages = [{ role: "system", content: sys }, ...sanitiseMessages(messages)];
 
   // Content type detection for dynamic token allocation
   function detectContentType(messages: any[]): { maxTokens: number; contentType: string } {
@@ -488,8 +512,10 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    // Timeout: 120s for Gemini 3.1 Pro (known latency issues), 60s for all others
-    const timeoutMs = gatewayModel === 'google/gemini-3.1-pro-preview' ? 120000 : 60000;
+    // Timeout: 120s for Pro models (known latency), 90s for Flash, 60s for others
+    const timeoutMs = 
+      gatewayModel === 'google/gemini-3.1-pro-preview' || gatewayModel === 'google/gemini-2.5-pro' ? 120000 :
+      gatewayModel.includes('flash') ? 90000 : 90000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.log(`Request timeout after ${Math.round(timeoutMs / 1000)}s for model ${gatewayModel}`);
@@ -516,14 +542,15 @@ serve(async (req) => {
     }
   };
 
-  // Fallback chain: primary model → retry once → fallback models
+  // Fallback chain: primary model → retry once → fallback models (deeper chain)
   const FALLBACK_CHAIN: Record<string, string[]> = {
-    'google/gemini-3.1-pro-preview': ['google/gemini-2.5-pro'],
-    'google/gemini-3-flash-preview': ['google/gemini-2.5-pro'],
-    'google/gemini-2.5-pro': ['openai/gpt-5'],
-    'openai/gpt-5': ['google/gemini-3-flash-preview'],
-    'openai/gpt-5.2': ['google/gemini-3-flash-preview'],
-    'openai/gpt-5-mini': ['google/gemini-3-flash-preview'],
+    'google/gemini-3.1-pro-preview': ['google/gemini-2.5-pro', 'openai/gpt-5'],
+    'google/gemini-3-flash-preview': ['google/gemini-2.5-flash', 'google/gemini-2.5-pro', 'openai/gpt-5'],
+    'google/gemini-2.5-pro': ['openai/gpt-5', 'google/gemini-2.5-flash'],
+    'google/gemini-2.5-flash': ['google/gemini-3-flash-preview', 'openai/gpt-5-mini'],
+    'openai/gpt-5': ['google/gemini-3-flash-preview', 'google/gemini-2.5-pro'],
+    'openai/gpt-5.2': ['google/gemini-3-flash-preview', 'openai/gpt-5'],
+    'openai/gpt-5-mini': ['google/gemini-3-flash-preview', 'google/gemini-2.5-flash'],
   };
 
   const MODEL_LABELS: Record<string, string> = {
