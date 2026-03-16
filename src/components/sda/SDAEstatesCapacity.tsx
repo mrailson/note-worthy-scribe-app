@@ -542,116 +542,9 @@ export const SDAEstatesCapacity = () => {
         </Card>
       </div>
 
-      {/* Session Availability Matrix */}
+      {/* Practice Estates, Capacity & Workforce Status */}
       <CollapsibleCard
-        title="Room Availability Matrix"
-        icon={<Calendar className="w-5 h-5" />}
-        badge={
-          <button
-            onClick={cycleBadgeMode}
-            className="cursor-pointer hover:opacity-80 transition-opacity"
-          >
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              <CheckCircle2 className="w-3 h-3 mr-1" />
-              {badgeDisplay.value} {badgeDisplay.label}
-            </Badge>
-          </button>
-        }
-      >
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-slate-500">Available clinical rooms by day and session</p>
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode("sessions")}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                viewMode === "sessions" 
-                  ? "bg-white text-slate-900 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Sessions
-            </button>
-            <button
-              onClick={() => setViewMode("appointments")}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                viewMode === "appointments" 
-                  ? "bg-white text-slate-900 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Appointments
-            </button>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="font-semibold">Session</TableHead>
-                <TableHead className="text-center font-semibold">
-                  <div>The Parks</div>
-                  <div className="text-xs font-normal text-slate-400">4 sites</div>
-                </TableHead>
-                <TableHead className="text-center font-semibold">Brackley</TableHead>
-                <TableHead className="text-center font-semibold">Springfield</TableHead>
-                <TableHead className="text-center font-semibold">Towcester</TableHead>
-                <TableHead className="text-center font-semibold">Bugbrooke</TableHead>
-                <TableHead className="text-center font-semibold">Brook</TableHead>
-                <TableHead className="text-center font-semibold">Denton</TableHead>
-                <TableHead className="text-center font-semibold bg-slate-100">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sessionDataWithTotals.map((row, index) => {
-                const mult = viewMode === "appointments" ? 12 : 1;
-                return (
-                  <TableRow key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                    <TableCell className="font-medium">{row.session}</TableCell>
-                    {PRACTICE_KEYS.map(key => (
-                      <TableCell key={key} className={`text-center font-semibold ${getCellColor(row[key])}`}>
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            min="0"
-                            value={row[key]}
-                            onChange={(e) => handleCellChange(index, key, e.target.value)}
-                            className="w-12 h-7 text-center rounded border border-slate-300 bg-white/80 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                        ) : (
-                          row[key] * mult
-                        )}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-center font-bold bg-slate-100">
-                      {isEditing ? row.total : row.total * mult}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              <TableRow className="bg-slate-100 font-bold">
-                <TableCell>Weekly Total</TableCell>
-                {PRACTICE_KEYS.map(key => (
-                  <TableCell key={key} className="text-center">
-                    {practiceColumnTotals[key] * (viewMode === "appointments" && !isEditing ? 12 : 1)}
-                  </TableCell>
-                ))}
-                <TableCell className="text-center bg-[#005EB8] text-white">
-                  {totalWeeklySessions * (viewMode === "appointments" && !isEditing ? 12 : 1)}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-        {updatedAt && (
-          <p className="text-xs text-slate-400 mt-2">
-            Last updated: {new Date(updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-          </p>
-        )}
-      </CollapsibleCard>
-
-      {/* Practice Summary */}
-      <CollapsibleCard
-        title="Practice Estates and Capacity Summary"
+        title="Practice Estates, Capacity & Workforce Status"
         icon={<Building2 className="w-5 h-5" />}
         badge={
           <div className="flex items-center gap-2">
@@ -900,6 +793,113 @@ export const SDAEstatesCapacity = () => {
             );
           })()}
         </div>
+      </CollapsibleCard>
+
+      {/* Session Availability Matrix */}
+      <CollapsibleCard
+        title="Room Availability Matrix"
+        icon={<Calendar className="w-5 h-5" />}
+        badge={
+          <button
+            onClick={cycleBadgeMode}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              {badgeDisplay.value} {badgeDisplay.label}
+            </Badge>
+          </button>
+        }
+      >
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-slate-500">Available clinical rooms by day and session</p>
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("sessions")}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "sessions" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Sessions
+            </button>
+            <button
+              onClick={() => setViewMode("appointments")}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "appointments" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Appointments
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="font-semibold">Session</TableHead>
+                <TableHead className="text-center font-semibold">
+                  <div>The Parks</div>
+                  <div className="text-xs font-normal text-slate-400">4 sites</div>
+                </TableHead>
+                <TableHead className="text-center font-semibold">Brackley</TableHead>
+                <TableHead className="text-center font-semibold">Springfield</TableHead>
+                <TableHead className="text-center font-semibold">Towcester</TableHead>
+                <TableHead className="text-center font-semibold">Bugbrooke</TableHead>
+                <TableHead className="text-center font-semibold">Brook</TableHead>
+                <TableHead className="text-center font-semibold">Denton</TableHead>
+                <TableHead className="text-center font-semibold bg-slate-100">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sessionDataWithTotals.map((row, index) => {
+                const mult = viewMode === "appointments" ? 12 : 1;
+                return (
+                  <TableRow key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                    <TableCell className="font-medium">{row.session}</TableCell>
+                    {PRACTICE_KEYS.map(key => (
+                      <TableCell key={key} className={`text-center font-semibold ${getCellColor(row[key])}`}>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            min="0"
+                            value={row[key]}
+                            onChange={(e) => handleCellChange(index, key, e.target.value)}
+                            className="w-12 h-7 text-center rounded border border-slate-300 bg-white/80 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        ) : (
+                          row[key] * mult
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center font-bold bg-slate-100">
+                      {isEditing ? row.total : row.total * mult}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              <TableRow className="bg-slate-100 font-bold">
+                <TableCell>Weekly Total</TableCell>
+                {PRACTICE_KEYS.map(key => (
+                  <TableCell key={key} className="text-center">
+                    {practiceColumnTotals[key] * (viewMode === "appointments" && !isEditing ? 12 : 1)}
+                  </TableCell>
+                ))}
+                <TableCell className="text-center bg-[#005EB8] text-white">
+                  {totalWeeklySessions * (viewMode === "appointments" && !isEditing ? 12 : 1)}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+        {updatedAt && (
+          <p className="text-xs text-slate-400 mt-2">
+            Last updated: {new Date(updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </p>
+        )}
       </CollapsibleCard>
 
       {/* Capacity Planning */}
