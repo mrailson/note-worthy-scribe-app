@@ -1,0 +1,1 @@
+ALTER TABLE public.approval_documents ADD COLUMN IF NOT EXISTS batch_id uuid DEFAULT NULL;
