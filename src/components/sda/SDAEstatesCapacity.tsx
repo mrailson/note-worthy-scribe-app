@@ -651,7 +651,7 @@ export const SDAEstatesCapacity = () => {
 
       {/* Practice Summary */}
       <CollapsibleCard
-        title="Practice Estates and Capacity Summary"
+        title="Practice Estates, Capacity & Workforce Status"
         icon={<Building2 className="w-5 h-5" />}
         badge={
           <div className="flex items-center gap-2">
