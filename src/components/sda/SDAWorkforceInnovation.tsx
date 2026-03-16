@@ -71,7 +71,7 @@ const proposedJobAdverts = [
 // Job description templates available
 const jobDescriptionTemplates = [
   { name: "GP Job Description - Brackley Medical Centre", type: "GP", status: "Ready", documentUrl: "/documents/NRES_GP_Job_Description_Brackley_Medical_Centre.docx" },
-  { name: "GP Job Description - Neighbourhood Template", type: "GP", status: "Ready", documentUrl: "/documents/GP_DESCRIPTION_for_Neighbourhood.docx" },
+  { name: "GP Job Description - Neighbourhood Template", type: "GP", status: "Ready", documentUrl: "/documents/GP_JOB_DESCRIPTION_for_Neighbourhood.docx" },
   { name: "ANP Job Description - Neighbourhood Template", type: "ANP", status: "Ready", documentUrl: "/documents/ANP_JOB_DESCRIPTION_for_Neighbourhood.docx" },
 ];
 
