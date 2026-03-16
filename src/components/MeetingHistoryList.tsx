@@ -2246,7 +2246,7 @@ export const MeetingHistoryList = ({
                               e.stopPropagation();
                               handleStartEdit(meeting.id, meeting.title);
                             }}
-                            className="text-muted-foreground hover:text-primary transition-colors p-1 rounded"
+                            className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors p-1 rounded"
                             title="Edit meeting name"
                           >
                             <Edit className="h-4 w-4" />
@@ -2257,7 +2257,7 @@ export const MeetingHistoryList = ({
                                 e.stopPropagation();
                                 onOpenCorrectionManager();
                               }}
-                              className="text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors p-1 rounded"
+                              className="flex-shrink-0 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors p-1 rounded"
                               title="Name & term corrections"
                             >
                               <BookOpen className="h-4 w-4" />
