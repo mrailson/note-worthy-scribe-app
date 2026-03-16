@@ -210,7 +210,8 @@ export const MeetingHistoryList = ({
   onRefresh,
   onFolderAssigned,
   autoOpenSafeModeForMeetingId,
-  onAutoOpenSafeModeProcessed
+  onAutoOpenSafeModeProcessed,
+  onOpenCorrectionManager
 }: MeetingHistoryListProps) => {
   const navigate = useNavigate();
   const { isRecording, isResourceOperationSafe, setRecordingState } = useRecording();
