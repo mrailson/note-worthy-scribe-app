@@ -87,8 +87,9 @@ export function CorrectionManager({ onClose, onCorrectionApplied, onCorrectionsC
       );
 
       if (success) {
-        await medicalTermCorrector.refreshCorrections();
+        await medicalTermCorrector.refreshCorrections(user?.id);
         await loadCorrections();
+        onCorrectionsChanged?.();
         
         setNewIncorrect("");
         setNewCorrect("");
