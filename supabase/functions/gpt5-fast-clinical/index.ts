@@ -387,10 +387,34 @@ serve(async (req) => {
     searchPerformed = webSearchContext.length > 0;
   }
 
+  // Sanitise multimodal messages: convert invalid image_url entries (non-base64 text) to text parts
+  // This prevents 400 errors when plain text is accidentally sent as inline_data
+  function sanitiseMessages(msgs: any[]): any[] {
+    return msgs.map(msg => {
+      if (!Array.isArray(msg.content)) return msg;
+      
+      const sanitisedContent = msg.content.map((part: any) => {
+        if (part.type === 'image_url' && part.image_url?.url) {
+          const url = part.image_url.url;
+          // Valid: data URLs with base64 or remote URLs
+          if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
+            return part;
+          }
+          // Invalid: plain text mistakenly wrapped as image_url — convert to text
+          console.warn('[gpt5-fast-clinical] Converting invalid image_url to text (non-base64 content detected)');
+          return { type: 'text', text: url };
+        }
+        return part;
+      });
+      
+      return { ...msg, content: sanitisedContent };
+    });
+  }
+
   // Append web search results to system prompt if available
   const sys = (systemPrompt ?? SMALL_SYS) + webSearchContext;
 
-  const chatMessages = [{ role: "system", content: sys }, ...messages];
+  const chatMessages = [{ role: "system", content: sys }, ...sanitiseMessages(messages)];
 
   // Content type detection for dynamic token allocation
   function detectContentType(messages: any[]): { maxTokens: number; contentType: string } {
