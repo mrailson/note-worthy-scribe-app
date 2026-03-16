@@ -974,6 +974,19 @@ export const SDADigitalIntegration = () => {
         </div>
       </CollapsibleCard>
     </div>
+
+      {/* Baseline Dashboard Fullscreen Modal */}
+      <Dialog open={baselineFullscreen} onOpenChange={setBaselineFullscreen}>
+        <DialogContent className="!max-w-none !w-screen !h-screen !max-h-screen !translate-x-[-50%] !translate-y-[-50%] !rounded-none p-0 overflow-hidden border-0 mx-0 my-0">
+          <DialogTitle className="sr-only">NRES Baseline Dashboard — Full Screen</DialogTitle>
+          <iframe
+            src="/reports/nres_baseline_iframe.html"
+            className="w-full h-full border-0"
+            title="NRES Baseline Dashboard Full Screen"
+            sandbox="allow-scripts allow-same-origin"
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
