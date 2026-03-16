@@ -1,56 +1,58 @@
 
 
-# Batch Approval: Send One Document to Multiple Practices
+## Problem Analysis
 
-## What this does
+The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
 
-You upload a single document once, then select multiple practices and pick specific signatories for each practice. The system creates independent approval requests per practice — each with its own tracking, status, and sign-off progress. This saves you from manually creating the same request 7 times.
+### Root causes by issue:
 
-## User flow
+| Issue | Cause |
+|-------|-------|
+| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
+| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
+| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
+| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
 
-1. **Upload document** (existing Step 1 — unchanged)
-2. **New Step: Choose send mode** — "Single request" (current behaviour) or "Batch to practices"
-3. **If Batch mode:**
-   - Show a practice picker (checkboxes) combining NRES practices + Notewell directory practices
-   - For each selected practice, expand a section to pick signatories from that practice's staff (from Notewell directory) or add manually
-   - Shared settings: signature method (stamp/append), deadline, custom email message — applied to all
-4. **Stamp positioning** (if stamp method) — position once, applied to all copies
-5. **Review & Send** — shows a summary table: Practice → Signatories → Status. One "Send All" button creates all requests.
+## Plan
 
-## Technical approach
+### 1. Split Part 3 into two steps to prevent token exhaustion
 
-### New component: `BatchPracticeSelector.tsx`
-- Practice list from NRES_PRACTICES + `useNotewellDirectory` practice groups
-- Checkbox multi-select for practices
-- Per-practice expandable panel to pick signatories (reusing the existing directory modal logic)
-- State: `Map<practiceKey, SignatoryRow[]>`
+Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
+- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
+- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
 
-### Modified: `CreateApprovalFlow.tsx`
-- Add a send mode toggle after upload: "Single Signatory Request" vs "Batch to Practices"
-- When batch mode is selected, replace the signatories step with the `BatchPracticeSelector`
-- On send, loop through selected practices and for each:
-  1. Clone the uploaded document record (new `approval_documents` row pointing to the same `file_url` and `file_hash`)
-  2. Add practice-specific signatories via `addSignatories()`
-  3. Call `sendForApproval()` for each
+This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
 
-### Modified: `useDocumentApproval.ts`
-- Add a `cloneDocumentForBatch()` function that inserts a new `approval_documents` row with the same file details but a unique ID, appending the practice name to the title (e.g. "DPIA — The Parks MC")
-- Add a `sendBatchForApproval()` function that orchestrates: clone → add signatories → send, for each practice
+### 2. Raise Part 2b base tokens
 
-### Database
-- No schema changes needed. Each batch item is a standard `approval_documents` row. We add an optional `batch_id` column (UUID, nullable) so batch requests can be grouped in the history view.
-- Migration: `ALTER TABLE approval_documents ADD COLUMN batch_id uuid DEFAULT NULL;`
+Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
 
-### History view enhancement
-- In `ApprovalHistory.tsx`, batch documents are visually grouped with a "Batch: [title]" header showing aggregate progress (e.g. "4/7 practices signed")
+### 3. Add anti-truncation instructions to all step prompts
 
-## Files to create/modify
+Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
 
-| File | Change |
-|------|--------|
-| `src/components/document-approval/BatchPracticeSelector.tsx` | New — practice picker + per-practice signatory selection |
-| `src/components/document-approval/CreateApprovalFlow.tsx` | Add batch mode toggle, integrate BatchPracticeSelector, batch send logic |
-| `src/hooks/useDocumentApproval.ts` | Add `cloneDocumentForBatch()` and `sendBatchForApproval()` |
-| `src/components/document-approval/ApprovalHistory.tsx` | Group batch documents visually |
-| Migration | Add `batch_id` column to `approval_documents` |
+### 4. Update step labels and progress tracking
+
+Add `generate_part_3a` and `generate_part_3b` to:
+- The edge function step routing
+- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
+- Progress percentages adjusted for 5 generation steps
+
+### 5. Verify Version History enforcement
+
+The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
+
+### Files to change
+
+1. **`supabase/functions/generate-policy/index.ts`**:
+   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
+   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
+   - Add new `generate_part_3b` step with its own prompt and token budget
+   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
+   - Add anti-truncation instruction to Part 2b user prompt
+   - Deploy the updated function
+
+2. **`src/hooks/usePolicyJobs.ts`**:
+   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
+   - Update label text to reflect 5 generation steps
 

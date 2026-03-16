@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   ArrowLeft, Upload, Plus, Trash2, Loader2, Send, UserPlus, Users, Building2,
   GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Stamp, FileSignature, Eye, ChevronDown, ChevronUp, Pencil, Search,
+  Layers,
 } from 'lucide-react';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
 import { useNotewellDirectory, NotewellUser } from '@/hooks/useNotewellDirectory';
@@ -20,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SignaturePositionPicker, StampPosition, PerSignatoryPositions } from './SignaturePositionPicker';
+import { BatchPracticeSelector, PracticeSelection } from './BatchPracticeSelector';
 
 const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof', 'Rev'];
 const ORG_TYPE_OPTIONS = ['', 'Practice', 'PCN', 'Federation', 'ICB', 'Other'];
@@ -48,10 +50,14 @@ function localId() { return `sig-${++_localId}-${Date.now()}`; }
 
 export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const {
-    uploadDocument, addSignatories, sendForApproval,
+    uploadDocument, addSignatories, sendForApproval, sendBatchForApproval,
     contacts, contactGroups, saveContact, deleteContact, updateContact, updateSignaturePlacement,
   } = useDocumentApproval();
   const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory();
+
+  // Send mode: single or batch
+  const [sendMode, setSendMode] = useState<'single' | 'batch'>('single');
+  const [batchSelections, setBatchSelections] = useState<PracticeSelection[]>([]);
 
   const [step, setStep] = useState<'upload' | 'stamp_position' | 'signatories' | 'review'>('upload');
   const [uploading, setUploading] = useState(false);
@@ -322,8 +328,29 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     if (!documentId) return;
     setSending(true);
     try {
-      await sendForApproval(documentId, customEmailBody || undefined);
-      toast.success('Document sent for approval! You can track progress in the dashboard.');
+      if (sendMode === 'batch') {
+        // Batch send
+        const practiceSignatories = batchSelections.map(s => ({
+          practiceName: s.practiceName,
+          signatories: s.signatories.filter(sig => sig.name.trim() && sig.email.trim()).map(sig => ({
+            name: sig.name, email: sig.email, role: sig.role || undefined,
+            organisation: sig.organisation || undefined, signatory_title: sig.signatory_title || undefined,
+            organisation_type: sig.organisation_type || undefined,
+          })),
+        })).filter(ps => ps.signatories.length > 0);
+
+        const { results } = await sendBatchForApproval(documentId, practiceSignatories, customEmailBody || undefined);
+        const successCount = results.filter(r => r.success).length;
+        const failCount = results.filter(r => !r.success).length;
+        if (failCount > 0) {
+          toast.warning(`Sent to ${successCount} practice${successCount !== 1 ? 's' : ''}. ${failCount} failed.`);
+        } else {
+          toast.success(`Document sent to ${successCount} practice${successCount !== 1 ? 's' : ''}! Track progress in the dashboard.`);
+        }
+      } else {
+        await sendForApproval(documentId, customEmailBody || undefined);
+        toast.success('Document sent for approval! You can track progress in the dashboard.');
+      }
       onBack();
     } catch (err) {
       console.error(err);
@@ -331,6 +358,17 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     } finally {
       setSending(false);
     }
+  };
+
+  // Batch continue to review
+  const handleBatchContinueToReview = () => {
+    const validBatch = batchSelections.filter(s => s.signatories.some(sig => sig.name.trim() && sig.email.trim()));
+    if (validBatch.length === 0) {
+      toast.error('Please add at least one signatory to at least one practice');
+      return;
+    }
+    // For batch mode, skip stamp positioning for now (stamp positions are complex per-practice)
+    setStep('review');
   };
 
   // ─── Render ──────────────────────────────────────────────────────
@@ -346,7 +384,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           <div>
             <h1 className="text-xl font-bold text-foreground">New Approval Request</h1>
             <p className="text-sm text-muted-foreground">
-              {step === 'upload' ? 'Step 1: Upload document' : step === 'signatories' ? 'Step 2: Add signatories' : step === 'stamp_position' ? 'Step 3: Position signatures' : 'Step 4: Review & send'}
+              {step === 'upload' ? 'Step 1: Upload document' : step === 'signatories' ? (sendMode === 'batch' ? 'Step 2: Select practices & signatories' : 'Step 2: Add signatories') : step === 'stamp_position' ? 'Step 3: Position signatures' : (sendMode === 'batch' ? 'Step 3: Review & send batch' : 'Step 4: Review & send')}
             </p>
           </div>
         </div>
@@ -480,6 +518,31 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               </RadioGroup>
             </div>
 
+            {/* Send Mode */}
+            <div>
+              <Label className="text-sm font-medium">Send mode</Label>
+              <RadioGroup value={sendMode} onValueChange={(v) => setSendMode(v as 'single' | 'batch')} className="mt-2 space-y-2">
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/50 transition-colors">
+                  <RadioGroupItem value="single" id="mode-single" className="mt-0.5" />
+                  <div>
+                    <label htmlFor="mode-single" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
+                      <Send className="h-4 w-4 text-primary" /> Single request
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Send to one set of signatories</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/50 transition-colors">
+                  <RadioGroupItem value="batch" id="mode-batch" className="mt-0.5" />
+                  <div>
+                    <label htmlFor="mode-batch" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-primary" /> Batch to practices
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Send the same document to multiple practices, each with their own signatories</p>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+
             <Button onClick={handleUploadAndContinue} disabled={uploading || !file || !title.trim()} className="w-full gap-2">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {uploading ? (uploadStatus || 'Processing…') : 'Upload & Continue'}
@@ -514,8 +577,29 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           </Card>
         )}
 
-        {/* ═══ STEP 3: Signatories ═══ */}
-        {step === 'signatories' && (
+        {/* ═══ STEP 2: Signatories ═══ */}
+        {step === 'signatories' && sendMode === 'batch' && (
+          <div className="space-y-5">
+            <BatchPracticeSelector
+              selections={batchSelections}
+              onChange={setBatchSelections}
+            />
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep('upload')} className="gap-1">
+                <ArrowLeft className="h-4 w-4" /> Back
+              </Button>
+              <Button
+                onClick={handleBatchContinueToReview}
+                disabled={batchSelections.length === 0 || !batchSelections.some(s => s.signatories.some(sig => sig.name.trim() && sig.email.trim()))}
+                className="flex-1 gap-2"
+              >
+                Continue to Review
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 'signatories' && sendMode === 'single' && (
           <Card className="p-6 space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
@@ -670,26 +754,56 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
             </Card>
 
             {/* Signatories list */}
-            <Card className="p-6 space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">
-                {validSignatories.length} Signator{validSignatories.length !== 1 ? 'ies' : 'y'}
-              </h3>
-              <div className="space-y-2">
-                {validSignatories.map((s, i) => (
-                  <div key={s.id} className="flex items-center gap-3 p-2 bg-muted/50 rounded text-sm">
-                    <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-medium text-foreground">{s.name}</span>
-                      <span className="text-muted-foreground ml-2">({s.email})</span>
-                      {s.role && <span className="text-xs text-muted-foreground ml-2">· {s.role}</span>}
-                      {s.organisation && <span className="text-xs text-muted-foreground ml-1">· {s.organisation}</span>}
+            {sendMode === 'batch' ? (
+              <Card className="p-6 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-primary" />
+                  Batch: {batchSelections.length} practice{batchSelections.length !== 1 ? 's' : ''}
+                </h3>
+                <div className="space-y-3">
+                  {batchSelections.map(sel => {
+                    const validSigs = sel.signatories.filter(s => s.name.trim() && s.email.trim());
+                    return (
+                      <div key={sel.practiceKey} className="border rounded-lg p-3 space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-sm font-medium text-foreground">{sel.practiceName}</span>
+                          <Badge variant="secondary" className="text-[10px]">{validSigs.length} signator{validSigs.length !== 1 ? 'ies' : 'y'}</Badge>
+                        </div>
+                        {validSigs.map((s, i) => (
+                          <div key={s.id} className="flex items-center gap-2 pl-5 text-sm">
+                            <span className="h-5 w-5 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-medium">{i + 1}</span>
+                            <span className="font-medium text-foreground">{s.name}</span>
+                            <span className="text-muted-foreground">({s.email})</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            ) : (
+              <Card className="p-6 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {validSignatories.length} Signator{validSignatories.length !== 1 ? 'ies' : 'y'}
+                </h3>
+                <div className="space-y-2">
+                  {validSignatories.map((s, i) => (
+                    <div key={s.id} className="flex items-center gap-3 p-2 bg-muted/50 rounded text-sm">
+                      <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium text-foreground">{s.name}</span>
+                        <span className="text-muted-foreground ml-2">({s.email})</span>
+                        {s.role && <span className="text-xs text-muted-foreground ml-2">· {s.role}</span>}
+                        {s.organisation && <span className="text-xs text-muted-foreground ml-1">· {s.organisation}</span>}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             {/* Email preview / editor */}
             <Card className="p-6 space-y-3">
@@ -772,12 +886,15 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
             </Card>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(signatureMethod === 'stamp' ? 'stamp_position' : 'signatories')} className="gap-1">
+              <Button variant="outline" onClick={() => setStep(sendMode === 'batch' ? 'signatories' : (signatureMethod === 'stamp' ? 'stamp_position' : 'signatories'))} className="gap-1">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
               <Button onClick={handleSend} disabled={sending} className="flex-1 gap-2">
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Send for Approval
+                {sendMode === 'batch'
+                  ? `Send to ${batchSelections.length} Practice${batchSelections.length !== 1 ? 's' : ''}`
+                  : 'Send for Approval'
+                }
               </Button>
             </div>
 

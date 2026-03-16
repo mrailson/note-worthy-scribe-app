@@ -21,6 +21,7 @@ export interface ApprovalDocument {
   revoked_at: string | null;
   sender_name: string | null;
   sender_email: string | null;
+  batch_id: string | null;
 }
 
 export interface ApprovalSignatory {
@@ -579,6 +580,96 @@ export function useDocumentApproval() {
     await fetchContactGroups();
   }, [fetchContactGroups]);
 
+  const cloneDocumentForBatch = useCallback(async (
+    sourceDocId: string,
+    practiceTitle: string,
+    batchId: string,
+  ) => {
+    if (!user) throw new Error('Not authenticated');
+
+    // Fetch the source document
+    const { data: source, error: srcErr } = await supabase
+      .from('approval_documents')
+      .select('*')
+      .eq('id', sourceDocId)
+      .single();
+
+    if (srcErr || !source) throw srcErr || new Error('Source document not found');
+
+    const insertData: Record<string, any> = {
+      sender_id: user.id,
+      sender_name: source.sender_name,
+      sender_email: source.sender_email,
+      title: `${source.title} — ${practiceTitle}`,
+      description: source.description,
+      category: source.category,
+      file_url: source.file_url,
+      file_hash: source.file_hash,
+      original_filename: source.original_filename,
+      file_size_bytes: source.file_size_bytes,
+      deadline: source.deadline,
+      status: 'draft',
+      message: source.message,
+      signature_placement: source.signature_placement,
+      batch_id: batchId,
+    };
+
+    const { data, error } = await supabase
+      .from('approval_documents')
+      .insert(insertData as any)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await supabase.from('approval_audit_log').insert({
+      document_id: data.id,
+      action: 'created',
+      actor_name: user.user_metadata?.full_name || user.email,
+      actor_email: user.email,
+      metadata: { batch_id: batchId, source_document_id: sourceDocId } as any,
+    });
+
+    return data as ApprovalDocument;
+  }, [user]);
+
+  const sendBatchForApproval = useCallback(async (
+    sourceDocId: string,
+    practiceSignatories: { practiceName: string; signatories: { name: string; email: string; role?: string; organisation?: string; signatory_title?: string; organisation_type?: string }[] }[],
+    customEmailBody?: string,
+  ) => {
+    const batchId = crypto.randomUUID();
+
+    // Also tag the source document with the batch_id
+    await supabase
+      .from('approval_documents')
+      .update({ batch_id: batchId } as any)
+      .eq('id', sourceDocId);
+
+    const results: { practiceName: string; documentId: string; success: boolean; error?: string }[] = [];
+
+    for (const ps of practiceSignatories) {
+      try {
+        // Clone the document for this practice
+        const cloned = await cloneDocumentForBatch(sourceDocId, ps.practiceName, batchId);
+
+        // Add signatories
+        await addSignatories(cloned.id, ps.signatories);
+
+        // Send for approval
+        await sendForApproval(cloned.id, customEmailBody);
+
+        results.push({ practiceName: ps.practiceName, documentId: cloned.id, success: true });
+      } catch (err) {
+        console.error(`Batch send failed for ${ps.practiceName}:`, err);
+        results.push({ practiceName: ps.practiceName, documentId: '', success: false, error: err instanceof Error ? err.message : 'Unknown error' });
+      }
+    }
+
+    await fetchDocuments();
+    return { batchId, results };
+  }, [cloneDocumentForBatch, addSignatories, sendForApproval, fetchDocuments]);
+
   const deleteDocument = useCallback(async (documentId: string) => {
     if (!user) throw new Error('Not authenticated');
 
@@ -636,6 +727,8 @@ export function useDocumentApproval() {
     toggleContactFavourite,
     saveContactGroup,
     deleteContactGroup,
+    cloneDocumentForBatch,
+    sendBatchForApproval,
     refetch: fetchDocuments,
     refetchContacts: fetchContacts,
   };

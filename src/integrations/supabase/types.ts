@@ -362,6 +362,7 @@ export type Database = {
       }
       approval_documents: {
         Row: {
+          batch_id: string | null
           category: string | null
           completed_at: string | null
           created_at: string | null
@@ -384,6 +385,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          batch_id?: string | null
           category?: string | null
           completed_at?: string | null
           created_at?: string | null
@@ -406,6 +408,7 @@ export type Database = {
           title: string
         }
         Update: {
+          batch_id?: string | null
           category?: string | null
           completed_at?: string | null
           created_at?: string | null
