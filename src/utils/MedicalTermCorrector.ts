@@ -246,6 +246,34 @@ export class MedicalTermCorrector {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
+  // Returns which corrections were applied to a given text
+  getAppliedCorrections(text: string): Array<{ from: string; to: string }> {
+    if (!this.isLoaded || !text) return [];
+
+    const applied: Array<{ from: string; to: string }> = [];
+    const seen = new Set<string>();
+
+    this.contextualCorrections.forEach((correctionData, incorrectTerm) => {
+      const regex = new RegExp(`\\b${this.escapeRegex(incorrectTerm)}\\b`, 'gi');
+      if (regex.test(text) && !seen.has(incorrectTerm)) {
+        seen.add(incorrectTerm);
+        applied.push({ from: incorrectTerm, to: correctionData.correction });
+      }
+    });
+
+    this.corrections.forEach((correctTerm, incorrectTerm) => {
+      if (!this.contextualCorrections.has(incorrectTerm)) {
+        const regex = new RegExp(`\\b${this.escapeRegex(incorrectTerm)}\\b`, 'gi');
+        if (regex.test(text) && !seen.has(incorrectTerm)) {
+          seen.add(incorrectTerm);
+          applied.push({ from: incorrectTerm, to: correctTerm });
+        }
+      }
+    });
+
+    return applied;
+  }
+
   getCorrections(): Map<string, string> {
     return new Map(this.corrections);
   }
