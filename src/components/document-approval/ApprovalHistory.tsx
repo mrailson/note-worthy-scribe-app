@@ -28,7 +28,7 @@ import {
   ArrowUpDown,
   CalendarIcon,
   Eye,
-} from 'lucide-react';
+import { Layers } from 'lucide-react';
 import { ApprovalDocumentWithSignatories } from '@/hooks/useDocumentApproval';
 import { format, isWithinInterval, parseISO } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
