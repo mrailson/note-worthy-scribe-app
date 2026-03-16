@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { FileText, FileDown, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FileText, FileDown, MessageCircle, Sparkles, Loader2 } from "lucide-react";
 import { TextOverviewEditor } from "./TextOverviewEditor";
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { MeetingQAPanel } from "./MeetingQAPanel";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface MeetingDetailsTabsProps {
   meetingId: string;
@@ -21,6 +23,8 @@ interface MeetingDetailsTabsProps {
   meetingAttendees?: string[];
   chairName?: string;
   className?: string;
+  wordCount?: number;
+  notesGenerationStatus?: string | null;
 }
 
 export const MeetingDetailsTabs = ({
@@ -29,9 +33,12 @@ export const MeetingDetailsTabs = ({
   currentOverview,
   onOverviewChange,
   onDocumentRemoved,
-  className = ""
+  className = "",
+  wordCount = 0,
+  notesGenerationStatus
 }: MeetingDetailsTabsProps) => {
   const [documentCount, setDocumentCount] = useState<number>(0);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Fetch document count
   useEffect(() => {
@@ -55,6 +62,47 @@ export const MeetingDetailsTabs = ({
 
     fetchDocumentCount();
   }, [meetingId, onDocumentRemoved]);
+
+  const handleGenerateNotes = async () => {
+    try {
+      setIsGenerating(true);
+
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .select('id, word_count')
+        .eq('id', meetingId)
+        .maybeSingle();
+
+      if (meetingError || !meeting) {
+        throw new Error('Meeting not found or you do not have access to it');
+      }
+
+      await supabase
+        .from('meetings')
+        .update({ notes_generation_status: 'queued' })
+        .eq('id', meetingId);
+
+      const { error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+        body: { meetingId, forceRegenerate: false }
+      });
+
+      if (error) throw error;
+
+      toast.success('Note generation started! This may take a few moments.');
+    } catch (error: any) {
+      console.error('Error generating notes:', error);
+      toast.error(`Failed to generate notes: ${error.message || 'Unknown error'}`);
+      await supabase
+        .from('meetings')
+        .update({ notes_generation_status: 'failed' })
+        .eq('id', meetingId);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const showGeneratePrompt = !currentOverview && wordCount >= 100 && notesGenerationStatus !== 'queued' && notesGenerationStatus !== 'generating';
+  const showGeneratingStatus = notesGenerationStatus === 'queued' || notesGenerationStatus === 'generating';
 
   return (
     <div className={`bg-card border border-border rounded-lg ${className}`}>
@@ -83,6 +131,45 @@ export const MeetingDetailsTabs = ({
         </TabsList>
 
         <TabsContent value="overview" className="p-4">
+          {showGeneratingStatus && (
+            <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-4 flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-primary shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Notes are being generated…</p>
+                <p className="text-xs text-muted-foreground mt-0.5">This usually takes a minute or two. The page will update automatically.</p>
+              </div>
+            </div>
+          )}
+
+          {showGeneratePrompt && (
+            <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+              <div className="flex items-start gap-3">
+                <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">
+                    Transcript available ({wordCount.toLocaleString()} words) but notes haven't been generated yet.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Generate an overview, summary, and key points from your transcript.
+                  </p>
+                  <Button
+                    onClick={handleGenerateNotes}
+                    disabled={isGenerating}
+                    size="sm"
+                    className="mt-3"
+                  >
+                    {isGenerating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    Generate Meeting Notes
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <TextOverviewEditor
             meetingId={meetingId}
             currentOverview={currentOverview}

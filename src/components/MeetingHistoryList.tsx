@@ -2953,7 +2953,7 @@ export const MeetingHistoryList = ({
           <CardContent className="pt-0">
             <div className="space-y-3">
               {/* Meeting Details Tabs */}
-              <MeetingDetailsTabs
+               <MeetingDetailsTabs
                 meetingId={meeting.id}
                 meetingTitle={meeting.title || "Meeting"}
                 currentOverview={meeting.overview || ""}
@@ -2963,6 +2963,8 @@ export const MeetingHistoryList = ({
                 meetingDurationMinutes={meeting.duration_minutes || undefined}
                 meetingAttendees={meetingAttendees[meeting.id]?.map((a: any) => a.name) || []}
                 chairName={meetingAttendees[meeting.id]?.find((a: any) => a.meeting_role === 'chair')?.name}
+                wordCount={meeting.word_count || 0}
+                notesGenerationStatus={meeting.notes_generation_status}
                 onOverviewChange={(newOverview) => {
                   setLocalMeetings(prev => prev.map(m => 
                     m.id === meeting.id ? { ...m, overview: newOverview } : m
@@ -2970,7 +2972,6 @@ export const MeetingHistoryList = ({
                   onRefresh?.();
                 }}
                 onRegenerateAudio={async () => {
-                  // Audio regeneration is now handled by MeetingAudioStudio component
                   onRefresh?.();
                 }}
                 onDocumentRemoved={() => {
@@ -2979,7 +2980,7 @@ export const MeetingHistoryList = ({
                 }}
                 className="mb-3"
               />
-              
+
               {/* Audio Recording Playback - Show if any recording URLs exist and showRecordingPlayback is true */}
               {showRecordingPlayback && (meeting.mixed_audio_url || meeting.left_audio_url || meeting.right_audio_url) && (
                 <Collapsible 
