@@ -1874,7 +1874,7 @@ const ComplaintsSystem = () => {
                   </div>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-0">
                   {(() => {
                     const complaintsToShow = dashboardFilter === "" ? complaints.slice(0, 5) : filteredComplaints;
                     const startIndex = (dashboardCurrentPage - 1) * dashboardItemsPerPage;
