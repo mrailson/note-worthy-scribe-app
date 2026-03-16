@@ -2470,6 +2470,7 @@ const MeetingHistory = () => {
             onFolderAssigned={handleFolderAssigned}
             autoOpenSafeModeForMeetingId={autoOpenSafeModeForMeetingId}
             onAutoOpenSafeModeProcessed={() => setAutoOpenSafeModeForMeetingId(null)}
+            onOpenCorrectionManager={() => setShowCorrections(true)}
           />
         )}
 

@@ -37,7 +37,8 @@ import {
   MonitorSpeaker,
   Drama,
   Folder,
-  FilePlus2
+  FilePlus2,
+  BookOpen
 } from "lucide-react";
 import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
 import { UploadedFile } from '@/types/ai4gp';
@@ -189,6 +190,8 @@ interface MeetingHistoryListProps {
   autoOpenSafeModeForMeetingId?: string | null;
   // Callback when auto-open has been processed
   onAutoOpenSafeModeProcessed?: () => void;
+  // Callback for opening the correction manager
+  onOpenCorrectionManager?: () => void;
 }
 
 export const MeetingHistoryList = ({ 
@@ -207,7 +210,8 @@ export const MeetingHistoryList = ({
   onRefresh,
   onFolderAssigned,
   autoOpenSafeModeForMeetingId,
-  onAutoOpenSafeModeProcessed
+  onAutoOpenSafeModeProcessed,
+  onOpenCorrectionManager
 }: MeetingHistoryListProps) => {
   const navigate = useNavigate();
   const { isRecording, isResourceOperationSafe, setRecordingState } = useRecording();
@@ -2247,6 +2251,18 @@ export const MeetingHistoryList = ({
                           >
                             <Edit className="h-4 w-4" />
                           </button>
+                          {onOpenCorrectionManager && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenCorrectionManager();
+                              }}
+                              className="text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors p-1 rounded"
+                              title="Name & term corrections"
+                            >
+                              <BookOpen className="h-4 w-4" />
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
