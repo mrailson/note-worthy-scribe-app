@@ -577,8 +577,29 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           </Card>
         )}
 
-        {/* ═══ STEP 3: Signatories ═══ */}
-        {step === 'signatories' && (
+        {/* ═══ STEP 2: Signatories ═══ */}
+        {step === 'signatories' && sendMode === 'batch' && (
+          <div className="space-y-5">
+            <BatchPracticeSelector
+              selections={batchSelections}
+              onChange={setBatchSelections}
+            />
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep('upload')} className="gap-1">
+                <ArrowLeft className="h-4 w-4" /> Back
+              </Button>
+              <Button
+                onClick={handleBatchContinueToReview}
+                disabled={batchSelections.length === 0 || !batchSelections.some(s => s.signatories.some(sig => sig.name.trim() && sig.email.trim()))}
+                className="flex-1 gap-2"
+              >
+                Continue to Review
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 'signatories' && sendMode === 'single' && (
           <Card className="p-6 space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
