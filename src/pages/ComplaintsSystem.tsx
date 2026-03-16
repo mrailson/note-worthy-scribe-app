@@ -1949,7 +1949,7 @@ const ComplaintsSystem = () => {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-muted-foreground truncate" style={{ fontSize: '12px', maxWidth: '220px' }}>{complaint.complaint_title}</p>
+                          <p style={{ fontSize: '11px', color: '#6b7280', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '1.3' }}>{complaint.complaint_title}</p>
                         </div>
                         <div className="lg:grid items-center gap-2 grid-cols-[100px_1fr_90px_160px_auto] w-full hidden">
                           {/* Open Date */}
