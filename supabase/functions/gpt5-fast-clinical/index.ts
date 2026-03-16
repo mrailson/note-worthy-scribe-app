@@ -518,14 +518,15 @@ serve(async (req) => {
     }
   };
 
-  // Fallback chain: primary model → retry once → fallback models
+  // Fallback chain: primary model → retry once → fallback models (deeper chain)
   const FALLBACK_CHAIN: Record<string, string[]> = {
-    'google/gemini-3.1-pro-preview': ['google/gemini-2.5-pro'],
-    'google/gemini-3-flash-preview': ['google/gemini-2.5-pro'],
-    'google/gemini-2.5-pro': ['openai/gpt-5'],
-    'openai/gpt-5': ['google/gemini-3-flash-preview'],
-    'openai/gpt-5.2': ['google/gemini-3-flash-preview'],
-    'openai/gpt-5-mini': ['google/gemini-3-flash-preview'],
+    'google/gemini-3.1-pro-preview': ['google/gemini-2.5-pro', 'openai/gpt-5'],
+    'google/gemini-3-flash-preview': ['google/gemini-2.5-flash', 'google/gemini-2.5-pro', 'openai/gpt-5'],
+    'google/gemini-2.5-pro': ['openai/gpt-5', 'google/gemini-2.5-flash'],
+    'google/gemini-2.5-flash': ['google/gemini-3-flash-preview', 'openai/gpt-5-mini'],
+    'openai/gpt-5': ['google/gemini-3-flash-preview', 'google/gemini-2.5-pro'],
+    'openai/gpt-5.2': ['google/gemini-3-flash-preview', 'openai/gpt-5'],
+    'openai/gpt-5-mini': ['google/gemini-3-flash-preview', 'google/gemini-2.5-flash'],
   };
 
   const MODEL_LABELS: Record<string, string> = {
