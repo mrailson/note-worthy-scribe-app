@@ -214,6 +214,7 @@ export const MeetingHistoryList = ({
   const { user, isSystemAdmin } = useAuth();
   const { voiceConfig } = useVoicePreference();
   const { folders, assignMeetingToFolder } = useMeetingFolders();
+  const { applyText, getCorrectionsForText, updateMeeting, updatingMeetings, hasCorrections } = useApplyMeetingCorrections();
   const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
   const isIOS = detectDevice().isIOS;
 
