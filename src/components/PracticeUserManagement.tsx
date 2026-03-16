@@ -710,6 +710,8 @@ export const PracticeUserManagement = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-64"
+                  autoComplete="off"
+                  name="user-search-filter"
                 />
               </div>
             </div>
