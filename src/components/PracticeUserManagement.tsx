@@ -578,6 +578,7 @@ export const PracticeUserManagement = () => {
     setPasswordError('');
     setEditingUserNRESAccess(false);
     setEditingUserPolicyAccess(false);
+    setSearchQuery('');
   };
 
   const filteredUsers = users.filter(user =>
