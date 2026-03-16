@@ -12,9 +12,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   ArrowLeft, Upload, Plus, Trash2, Loader2, Send, UserPlus, Users, Building2,
   GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Stamp, FileSignature, Eye, ChevronDown, ChevronUp, Pencil, Search,
+  Layers,
 } from 'lucide-react';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
 import { useNotewellDirectory, NotewellUser } from '@/hooks/useNotewellDirectory';
+import { hashFile } from '@/utils/fileHash';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { SignaturePositionPicker, StampPosition, PerSignatoryPositions } from './SignaturePositionPicker';
+import { BatchPracticeSelector, PracticeSelection } from './BatchPracticeSelector';
 import { hashFile } from '@/utils/fileHash';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
