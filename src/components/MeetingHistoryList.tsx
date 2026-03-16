@@ -3114,6 +3114,23 @@ export const MeetingHistoryList = ({
                     <div className="flex items-center gap-1 text-xs text-green-600">
                       <CheckCircle className="h-3 w-3 flex-shrink-0" />
                       <span>Summary available</span>
+                      {onOpenCorrectionManager && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenCorrectionManager();
+                              }}
+                              className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors p-0.5 rounded"
+                              aria-label="Open name and term corrections"
+                            >
+                              <BookOpen className="h-3.5 w-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Name & term corrections</TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
                   )}
                   
