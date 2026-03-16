@@ -71,7 +71,7 @@
 <div class="pt" data-master="overview"><button class="pb active" data-p="W">Weekly</button><button class="pb" data-p="M">Monthly</button><button class="pb" data-p="Q">Quarterly</button></div></div></div>
 <div class="kg" id="kpi-overview"></div>
 <div class="cg f"><div class="cc"><div class="ct">Appointment Volume</div><div class="cs" id="sub-vol"></div><div class="cw"><canvas id="ch-vol" height="90"></canvas></div></div></div>
-<div class="cg"><div class="cc"><div class="ct">Same Day vs Booked</div><div class="cs" id="sub-wait"></div><div class="cw"><canvas id="ch-wait" height="220"></canvas></div></div>
+<div class="cg"><div class="cc"><div class="ct">Same Day Access (Count & %)</div><div class="cs" id="sub-wait"></div><div class="cw"><canvas id="ch-wait" height="220"></canvas></div></div>
 <div class="cc"><div class="ct">DNA Trend</div><div class="cs" id="sub-dna0"></div><div class="cw"><canvas id="ch-dna0" height="220"></canvas></div></div></div></div>
 
 <div class="tc" id="tab-sda"><div class="tbar"><h2>Same Day Access</h2><div class="controls">
@@ -79,7 +79,7 @@
 <span class="clbl">Role:</span><div class="rf" data-role="sda"><button class="rb active" data-r="All">All</button><button class="rb" data-r="GP">GP</button><button class="rb" data-r="Nurses">Nurses</button><button class="rb" data-r="Other Direct Patient Care">Other DPC</button></div><span class="clbl">Mode:</span><div class="mf" data-mode="sda"><button class="mb active" data-m="All">All</button><button class="mb" data-m="Face-to-Face">F2F</button><button class="mb" data-m="Telephone">Phone</button><button class="mb" data-m="Video Conference/Online">Video</button></div>
 <div class="pt" data-master="sda"><button class="pb active" data-p="W">Weekly</button><button class="pb" data-p="M">Monthly</button><button class="pb" data-p="Q">Quarterly</button></div></div></div>
 <div class="kg" id="kpi-sda"></div>
-<div class="cg f"><div class="cc"><div class="ct">Same Day Rate (%)</div><div class="cs" id="sub-sda"></div><div class="cw"><canvas id="ch-sda" height="85"></canvas></div></div></div>
+<div class="cg f"><div class="cc"><div class="ct">Same Day Access (Count & %)</div><div class="cs" id="sub-sda"></div><div class="cw"><canvas id="ch-sda" height="85"></canvas></div></div></div>
 <div class="cg"><div class="cc"><div class="ct">DNA Rate (%)</div><div class="cs" id="sub-dna"></div><div class="cw"><canvas id="ch-dna" height="220"></canvas></div></div>
 <div class="cc"><div class="ct">Volume Trend</div><div class="cs" id="sub-vol2"></div><div class="cw"><canvas id="ch-vol2" height="220"></canvas></div></div></div></div>
 
@@ -153,7 +153,7 @@ function buildOverview(){
   document.getElementById('kpi-overview').innerHTML=
     kc('','Avg '+pN,fmt(avg),fmt(Math.min(...s.map(w=>w.t)))+' – '+fmt(Math.max(...s.map(w=>w.t))))+
     kc('p','Total',fmt(tot),n+' periods')+
-    kc('q','Same Day %',pct(sd,tot)+'%',fmt(Math.round(sd/n))+' avg/'+pN.toLowerCase())+
+    kc('q','Same Day',fmt(sd)+' ('+pct(sd,tot)+'%)',fmt(Math.round(sd/n))+' avg/'+pN.toLowerCase())+
     kc('g','DNA Rate',pct(dna,att+dna)+'%',fmt(Math.round(dna/n))+' avg DNAs')+
     kc('a','F2F %',m==='All'?pct(f2f,tot)+'%':'N/A (mode filtered)',m==='All'?fmt(Math.round(f2f/n))+' avg':mN+' selected')+
     kc('','30+ Min',fmt(lng),pct(lng,tot)+'% of contacts');
@@ -166,8 +166,9 @@ function buildOverview(){
   ]},options:{responsive:true,plugins:{legend:{position:'top'}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,ticks:{callback:v=>fmt(v)}}}}});
   kill('wait');document.getElementById('sub-wait').textContent=pN+' · '+pr+' · '+lbl;
   ch.wait=new Chart(document.getElementById('ch-wait'),{type:'bar',data:{labels:s.map(w=>w.p),datasets:[
-    {label:'Same Day %',data:s.map(w=>pct(w.s,w.t)),backgroundColor:C.A+'cc',borderRadius:3}
-  ]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{min:0,max:70,ticks:{callback:v=>v+'%'}}}}});
+    {label:'Same Day Count',data:s.map(w=>w.s),backgroundColor:C.A+'66',borderRadius:3,yAxisID:'y1',order:2},
+    {label:'Same Day %',data:s.map(w=>pct(w.s,w.t)),borderColor:C.A,backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2.5,type:'line',yAxisID:'y',order:1}
+  ]},options:{responsive:true,plugins:{legend:{position:'top'},tooltip:{callbacks:{label:function(ctx){if(ctx.dataset.yAxisID==='y1')return 'Same Day: '+ctx.raw.toLocaleString()+' appts';return 'Same Day: '+ctx.raw+'%'}}}},scales:{y:{position:'left',min:0,max:70,ticks:{callback:v=>v+'%'}},y1:{position:'right',beginAtZero:true,grid:{display:false},ticks:{callback:v=>v.toLocaleString()}},x:{grid:{display:false}}}}});
   kill('dna0');document.getElementById('sub-dna0').textContent=pN+' · '+pr+' · '+lbl;
   ch.dna0=new Chart(document.getElementById('ch-dna0'),{type:'line',data:{labels:s.map(w=>w.p),datasets:[
     {label:'DNA %',data:s.map(w=>pct(w.d,w.a+w.d)),borderColor:C.R,backgroundColor:C.R+'18',fill:true,tension:.3,pointRadius:3,borderWidth:2}
@@ -179,16 +180,17 @@ function buildSDA(){
   const pN=pL(p),rN=rL(r),mN=mL(m),lbl=rN+(m==='All'?'':' · '+mN);
   const rates=s.map(w=>pct(w.s,w.t));
   document.getElementById('kpi-sda').innerHTML=
-    kc('q','Avg '+pN+' Same Day',fmt(Math.round(sd/n)),pct(sd,tot)+'% overall')+
+    kc('q','Avg '+pN+' Same Day',fmt(Math.round(sd/n)),pct(sd,tot)+'% · '+fmt(sd)+' total')+
     kc('g','Best',Math.max(...rates)+'%','Highest SDA')+
     kc('a','Worst',Math.min(...rates)+'%','Lowest SDA')+
     kc('r','Avg '+pN+' DNAs',fmt(Math.round(dna/n)),pct(dna,att+dna)+'%')+
     kc('','Total Same Day',fmt(sd),pr+' · '+lbl);
   kill('sda');document.getElementById('sub-sda').textContent=pN+' · '+pr+' · '+lbl;
-  ch.sda=new Chart(document.getElementById('ch-sda'),{type:'line',data:{labels:s.map(w=>w.p),datasets:[
-    {label:'Same Day %',data:rates,borderColor:C.A,backgroundColor:C.A+'22',fill:true,tension:.3,pointRadius:3,borderWidth:2.5},
-    {label:'40% Target',data:s.map(()=>40),borderColor:C.R,borderDash:[8,4],borderWidth:2,pointRadius:0,fill:false}
-  ]},options:{responsive:true,plugins:{legend:{position:'top'}},scales:{y:{min:0,max:70,ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
+  ch.sda=new Chart(document.getElementById('ch-sda'),{type:'bar',data:{labels:s.map(w=>w.p),datasets:[
+    {label:'Same Day Count',data:s.map(w=>w.s),backgroundColor:C.A+'66',borderRadius:3,yAxisID:'y1',order:2},
+    {label:'Same Day %',data:rates,borderColor:C.A,backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2.5,type:'line',yAxisID:'y',order:1},
+    {label:'40% Target',data:s.map(()=>40),borderColor:C.R,borderDash:[8,4],borderWidth:2,pointRadius:0,fill:false,type:'line',yAxisID:'y',order:0}
+  ]},options:{responsive:true,plugins:{legend:{position:'top'},tooltip:{callbacks:{label:function(ctx){if(ctx.dataset.yAxisID==='y1')return ctx.dataset.label+': '+ctx.raw.toLocaleString()+' appts';if(ctx.dataset.label==='40% Target')return 'Target: 40%';return ctx.dataset.label+': '+ctx.raw+'%'}}}},scales:{y:{position:'left',min:0,max:70,ticks:{callback:v=>v+'%'}},y1:{position:'right',beginAtZero:true,grid:{display:false},ticks:{callback:v=>v.toLocaleString()}},x:{grid:{display:false}}}}});
   kill('dna');document.getElementById('sub-dna').textContent=pN+' · '+pr+' · '+lbl;
   ch.dna=new Chart(document.getElementById('ch-dna'),{type:'line',data:{labels:s.map(w=>w.p),datasets:[
     {label:'DNA %',data:s.map(w=>pct(w.d,w.a+w.d)),borderColor:C.R,backgroundColor:C.R+'18',fill:true,tension:.3,pointRadius:3,borderWidth:2}
