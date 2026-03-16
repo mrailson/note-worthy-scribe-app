@@ -191,7 +191,7 @@ export const SDADigitalIntegration = () => {
           {/* Embedded Dashboard */}
           <div className="w-full" style={{ height: "800px" }}>
             <iframe
-              src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/nres-reports/nres_baseline_iframe.html`}
+              src="/reports/nres_baseline_iframe.html"
               className="w-full h-full border-0"
               title="NRES Baseline Dashboard"
               sandbox="allow-scripts allow-same-origin"
