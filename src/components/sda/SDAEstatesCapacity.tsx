@@ -1308,7 +1308,54 @@ export const SDAEstatesCapacity = () => {
         </div>
       </CollapsibleCard>
 
-      <TravelTimesSlideshow 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card 
+          className="bg-gradient-to-br from-blue-50 to-blue-100 border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={cycleSitesMode}
+        >
+          <CardContent className="p-4 text-center">
+            <Building2 className="w-6 h-6 text-[#005EB8] mx-auto mb-2" />
+            <p className="text-3xl font-bold text-slate-900">{sitesDisplay.value}</p>
+            <p className="text-sm text-slate-600">{sitesDisplay.label}</p>
+          </CardContent>
+        </Card>
+        <Card 
+          className="bg-gradient-to-br from-green-50 to-green-100 border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={cycleSessionsMode}
+        >
+          <CardContent className="p-4 text-center">
+            <Calendar className="w-6 h-6 text-green-600 mx-auto mb-2" />
+            <p className="text-3xl font-bold text-slate-900">{sessionsDisplay.value}</p>
+            <p className="text-sm text-slate-600">{sessionsDisplay.label}</p>
+            {sessionsDisplay.sublabel && (
+              <p className="text-xs text-green-700 font-medium mt-1">{sessionsDisplay.sublabel}</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card 
+          className="bg-gradient-to-br from-purple-50 to-purple-100 border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={cycleDurationMode}
+        >
+          <CardContent className="p-4 text-center">
+            <Clock className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+            <p className="text-3xl font-bold text-slate-900">{durationDisplay.value}</p>
+            <p className="text-sm text-slate-600">{durationDisplay.label}</p>
+          </CardContent>
+        </Card>
+        <Card 
+          className="bg-gradient-to-br from-amber-50 to-amber-100 border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={cycleApptsMode}
+        >
+          <CardContent className="p-4 text-center">
+            <Users className="w-6 h-6 text-amber-600 mx-auto mb-2" />
+            <p className="text-3xl font-bold text-slate-900">{apptsDisplay.value}</p>
+            <p className="text-sm text-slate-600">{apptsDisplay.label}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+
         isOpen={travelTimesModalOpen} 
         onClose={() => setTravelTimesModalOpen(false)} 
       />
