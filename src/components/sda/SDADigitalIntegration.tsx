@@ -133,7 +133,79 @@ export const SDADigitalIntegration = () => {
           ))}
         </div>
 
-        {/* 3. Section Divider — PRIMARY OPERATIONS TOOL */}
+        {/* 3. Section Divider — GPAD BASELINE REPORTS */}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] uppercase font-bold tracking-wider whitespace-nowrap" style={{ color: "#10B981" }}>▸ GPAD BASELINE REPORTS</span>
+          <div className="flex-1 h-px bg-slate-200" />
+        </div>
+
+        {/* GPAD Baseline Dashboard Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          {/* Card Header */}
+          <div className="p-5 border-b border-slate-100">
+            <div className="flex items-start justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#005EB8] flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    NRES Appointment Baseline Dashboard
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                      ✓ Live
+                    </span>
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    Practice-level GPAD data · 7 practices · 48 weeks (Mar 2025 – Feb 2026) · 561,294 appointments
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <a href="/reports/nres_baseline_iframe.html" download="nres_baseline_dashboard.html">
+                    <Download className="h-3.5 w-3.5 mr-1" />
+                    Download HTML
+                  </a>
+                </Button>
+              </div>
+            </div>
+
+            {/* Feature tags */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <span className="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded-md">Practice Filter</span>
+              <span className="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded-md">Role Filter (GP / Nurses / DPC)</span>
+              <span className="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded-md">Weekly / Monthly / Quarterly</span>
+              <span className="px-2 py-1 bg-purple-50 text-purple-700 text-[10px] font-semibold rounded-md">30+ Min LTC Analysis</span>
+              <span className="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-semibold rounded-md">ICB Metrics Mapping</span>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs text-slate-600 leading-relaxed">
+            Interactive baseline dashboard for the NRES neighbourhood. Filters by individual practice,
+            workforce role, and time period. Includes SDA metrics, 30+ minute appointment analysis
+            (GP vs other roles for LTC baseline), and a detailed ICB metrics gap analysis with
+            proposed resolutions and risk register. Prepared for Michael Chapman's Information Schedule requirements.
+          </div>
+
+          {/* Embedded Dashboard */}
+          <div className="w-full" style={{ height: "800px" }}>
+            <iframe
+              src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/nres-reports/nres_baseline_iframe.html`}
+              className="w-full h-full border-0"
+              title="NRES Baseline Dashboard"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          </div>
+
+          {/* Card Footer */}
+          <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+            <span>Data source: GPAD Practice Exports · Brackley · Brook Health · Bugbrooke · Denton · Springfield · The Parks · Towcester</span>
+            <span>Last updated: March 2026</span>
+          </div>
+        </div>
+
+        {/* 3b. Section Divider — PRIMARY OPERATIONS TOOL */}
         <div className="flex items-center gap-3">
           <span className="text-[11px] uppercase font-bold tracking-wider whitespace-nowrap" style={{ color: "#10B981" }}>● PRIMARY OPERATIONS TOOL</span>
           <div className="flex-1 h-px bg-slate-200" />
