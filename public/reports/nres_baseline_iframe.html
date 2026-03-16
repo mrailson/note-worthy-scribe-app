@@ -139,7 +139,8 @@ const C={B:'#005EB8',D:'#003087',L:'#41B6E6',A:'#00A9CE',G:'#009639',W:'#ED8B00'
 Chart.defaults.font.family="'DM Sans',system-ui,sans-serif";Chart.defaults.font.size=10;
 Chart.defaults.plugins.legend.labels.usePointStyle=true;Chart.defaults.plugins.legend.labels.pointStyleWidth=7;
 const ch={};function kill(k){if(ch[k])ch[k].destroy()}
-function kc(cls,l,v,s){return`<div class="kc ${cls}"><div class="kl">${l}</div><div class="kv">${v}</div><div class="ks">${s}</div></div>`}
+ const POP=89584;
+ function kc(cls,l,v,s){return`<div class="kc ${cls}"><div class="kl">${l}</div><div class="kv">${v}</div><div class="ks">${s}</div></div>`}
 function pL(p){return p==='W'?'Weekly':p==='M'?'Monthly':'Quarterly'}
 function rL(r){return r==='Other Direct Patient Care'?'Other DPC':r}
 function mL(m){return m==='Video Conference/Online'?'Video':m==='Face-to-Face'?'F2F':m}
