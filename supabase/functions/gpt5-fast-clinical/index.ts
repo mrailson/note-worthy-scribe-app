@@ -488,8 +488,10 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    // Timeout: 120s for Gemini 3.1 Pro (known latency issues), 60s for all others
-    const timeoutMs = gatewayModel === 'google/gemini-3.1-pro-preview' ? 120000 : 60000;
+    // Timeout: 120s for Pro models (known latency), 90s for Flash, 60s for others
+    const timeoutMs = 
+      gatewayModel === 'google/gemini-3.1-pro-preview' || gatewayModel === 'google/gemini-2.5-pro' ? 120000 :
+      gatewayModel.includes('flash') ? 90000 : 90000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.log(`Request timeout after ${Math.round(timeoutMs / 1000)}s for model ${gatewayModel}`);
