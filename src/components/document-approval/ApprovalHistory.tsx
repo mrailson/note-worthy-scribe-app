@@ -367,7 +367,14 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => onSelectDoc(doc)}
                   >
-                    <TableCell className="font-medium max-w-[240px] truncate">{doc.title}</TableCell>
+                    <TableCell className="font-medium max-w-[240px] truncate">
+                      <div className="flex items-center gap-1.5">
+                        {doc.batch_id && (
+                          <Layers className="h-3 w-3 text-primary flex-shrink-0" title="Part of a batch" />
+                        )}
+                        {doc.title}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
                         {categoryLabels[doc.category] || doc.category}
