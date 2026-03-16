@@ -886,12 +886,15 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
             </Card>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(signatureMethod === 'stamp' ? 'stamp_position' : 'signatories')} className="gap-1">
+              <Button variant="outline" onClick={() => setStep(sendMode === 'batch' ? 'signatories' : (signatureMethod === 'stamp' ? 'stamp_position' : 'signatories'))} className="gap-1">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
               <Button onClick={handleSend} disabled={sending} className="flex-1 gap-2">
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Send for Approval
+                {sendMode === 'batch'
+                  ? `Send to ${batchSelections.length} Practice${batchSelections.length !== 1 ? 's' : ''}`
+                  : 'Send for Approval'
+                }
               </Button>
             </div>
 
