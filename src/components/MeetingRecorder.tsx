@@ -58,6 +58,7 @@ import { RecordingContextDialog, MeetingContext } from "@/components/meeting/Rec
 import { PostMeetingActionsModal } from "@/components/PostMeetingActionsModal";
 import { MeetingCoachModal } from "@/components/meeting-coach/MeetingCoachModal";
 import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFoldersManager";
+import { CorrectionManager } from "@/components/CorrectionManager";
 import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { TabAudioGuidanceDialog } from "@/components/meeting/TabAudioGuidanceDialog";
 import { AudioCaptureStatusIndicator } from "@/components/meeting/AudioCaptureStatusIndicator";
@@ -893,6 +894,7 @@ export const MeetingRecorder = ({
   
   // State for auto-opening SafeModeNotesModal when navigated from PostMeetingActionsModal
   const [autoOpenSafeModeForMeetingId, setAutoOpenSafeModeForMeetingId] = useState<string | null>(null);
+  const [showCorrections, setShowCorrections] = useState(false);
   
   // Handle navigation state for opening SafeModeNotesModal
   useEffect(() => {
@@ -7733,6 +7735,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                     showRecordingPlayback={false}
                     autoOpenSafeModeForMeetingId={autoOpenSafeModeForMeetingId}
                     onAutoOpenSafeModeProcessed={() => setAutoOpenSafeModeForMeetingId(null)}
+                    onOpenCorrectionManager={() => setShowCorrections(true)}
                   />
                 )}
                 
@@ -8009,6 +8012,17 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
+
+      {/* Name & Term Corrections Modal */}
+      {showCorrections && (
+        <CorrectionManager 
+          onClose={() => setShowCorrections(false)}
+          onCorrectionApplied={() => {}}
+          onCorrectionsChanged={() => {
+            loadMeetingHistory();
+          }}
+        />
+      )}
     </div>
     </TooltipProvider>
   );
