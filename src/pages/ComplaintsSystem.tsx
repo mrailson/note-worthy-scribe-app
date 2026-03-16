@@ -175,6 +175,7 @@ const ComplaintsSystem = () => {
   const [selectedOutcome, setSelectedOutcome] = useState("all");
   const [dashboardFilter, setDashboardFilter] = useState("");
   const [showSummaryView, setShowSummaryView] = useState(false);
+  const [expandedComplaintId, setExpandedComplaintId] = useState<string | null>(null);
   
   // Compliment form states
   const [complimentSubmitting, setComplimentSubmitting] = useState(false);
