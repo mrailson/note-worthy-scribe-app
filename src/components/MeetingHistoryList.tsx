@@ -190,6 +190,8 @@ interface MeetingHistoryListProps {
   autoOpenSafeModeForMeetingId?: string | null;
   // Callback when auto-open has been processed
   onAutoOpenSafeModeProcessed?: () => void;
+  // Callback for opening the correction manager
+  onOpenCorrectionManager?: () => void;
 }
 
 export const MeetingHistoryList = ({ 
