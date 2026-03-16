@@ -894,6 +894,7 @@ export const MeetingRecorder = ({
   
   // State for auto-opening SafeModeNotesModal when navigated from PostMeetingActionsModal
   const [autoOpenSafeModeForMeetingId, setAutoOpenSafeModeForMeetingId] = useState<string | null>(null);
+  const [showCorrections, setShowCorrections] = useState(false);
   
   // Handle navigation state for opening SafeModeNotesModal
   useEffect(() => {
