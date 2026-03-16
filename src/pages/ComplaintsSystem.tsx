@@ -1938,36 +1938,37 @@ const ComplaintsSystem = () => {
                     };
 
                     return (
-                      <div key={complaint.id} className="flex items-center justify-between border-b" style={{ minHeight: '52px', maxHeight: '52px', padding: '8px 12px' }}>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-bold whitespace-nowrap" style={{ fontSize: '13px' }}>{complaint.reference_number}</p>
+                      <div key={complaint.id} className="flex items-center border-b" style={{ height: '56px', maxHeight: '56px', overflow: 'hidden' }}>
+                        {/* Complaint cell */}
+                        <div className="flex-1 min-w-0" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2px', padding: '0 12px' }}>
+                          <div className="flex items-center gap-1.5" style={{ whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600 }}>{complaint.reference_number}</span>
                             {isSimulatedComplaint(complaint) && (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700 whitespace-nowrap" style={{ fontSize: '11px', padding: '2px 6px', lineHeight: '1.2' }}>
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700" style={{ fontSize: '11px', padding: '2px 6px', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
                                 <FlaskConical className="h-2.5 w-2.5 mr-0.5" />
                                 Simulated
                               </Badge>
                             )}
                           </div>
-                          <p style={{ fontSize: '11px', color: '#6b7280', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '1.3' }}>{complaint.complaint_title}</p>
+                          <p style={{ fontSize: '11px', color: '#6b7280', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '1.3', margin: 0 }}>{complaint.complaint_title}</p>
                         </div>
-                        <div className="lg:grid items-center gap-2 grid-cols-[100px_1fr_90px_160px_auto] w-full hidden">
+                        <div className="lg:grid items-center gap-2 grid-cols-[100px_1fr_90px_160px_auto] w-full hidden" style={{ alignItems: 'center' }}>
                           {/* Open Date */}
-                          <div className="text-muted-foreground text-center whitespace-nowrap" style={{ fontSize: '12px' }}>
+                          <div className="text-muted-foreground text-center" style={{ fontSize: '12px', whiteSpace: 'nowrap', padding: '0 12px' }}>
                             {format(new Date(complaint.submitted_at || complaint.created_at), 'do MMM yyyy')}
                           </div>
                           {/* Practice Name */}
-                          <div className="text-muted-foreground text-center truncate px-2 whitespace-nowrap" style={{ fontSize: '12px' }}>
+                          <div className="text-muted-foreground text-center" style={{ fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 12px' }}>
                             {complaint.resolved_practice_name || complaint.gp_practices?.name || 'N/A'}
                           </div>
                           {/* Days remaining indicator */}
-                          <div className="flex items-center justify-center w-[90px]">
+                          <div className="flex items-center justify-center" style={{ padding: '0 12px' }}>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className={cn(
                                   "relative rounded-full flex items-center justify-center text-white font-bold shadow-md cursor-help",
                                   getDaysColor()
-                                )} style={{ width: '36px', height: '36px' }}>
+                                )} style={{ width: '36px', height: '36px', fontSize: '12px' }}>
                                   {getIconOrNumber()}
                                 </div>
                               </TooltipTrigger>
@@ -2031,14 +2032,15 @@ const ComplaintsSystem = () => {
                               </TooltipContent>
                             </Tooltip>
                           </div>
-                          <div className="flex flex-col gap-1">
-                            <Badge className={getStatusColor(complaint.status)} style={{ fontSize: '11px', padding: '3px 8px' }}>
+                          {/* Status */}
+                          <div style={{ padding: '0 12px', whiteSpace: 'nowrap' }}>
+                            <Badge className={getStatusColor(complaint.status)} style={{ fontSize: '11px', padding: '3px 8px', maxWidth: '160px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-flex' }}>
                               {complaint.status === 'under_review' && complaint.acknowledged_at ? (
-                                <Mail className="mr-1" style={{ width: '12px', height: '12px' }} />
+                                <Mail className="mr-1 shrink-0" style={{ width: '12px', height: '12px' }} />
                               ) : (
-                                <span className="mr-1 [&>svg]:w-3 [&>svg]:h-3">{getStatusIcon(complaint.status)}</span>
+                                <span className="mr-1 shrink-0 [&>svg]:w-3 [&>svg]:h-3">{getStatusIcon(complaint.status)}</span>
                               )}
-                              <span>{getStatusDisplayLabel(complaint)}</span>
+                              <span className="truncate">{getStatusDisplayLabel(complaint)}</span>
                             </Badge>
                             {isOverdue(complaint) && (
                               <Badge variant="destructive" style={{ fontSize: '11px', padding: '3px 8px' }}>Overdue</Badge>
