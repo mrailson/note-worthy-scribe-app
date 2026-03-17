@@ -874,12 +874,20 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 </Popover>
               )}
 
-              {/* Infographic with inline orientation reveal */}
+              {/* Infographic — single button, uses default orientation from Document Settings */}
               {prefs.showInfographic && (
-                <InfographicSelector
-                  isGenerating={isInfographicGenerating}
-                  onGenerate={handleGenerateInfographic}
-                />
+                <Button
+                  variant="outline"
+                  className="gap-2 rounded-full px-5"
+                  disabled={isInfographicGenerating}
+                  onClick={() => handleGenerateInfographic(exportDefaults.defaultInfographicOrientation)}
+                >
+                  {isInfographicGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <BarChart3 className="h-4 w-4" />}
+                  <span className="flex flex-col items-start leading-tight">
+                    <span>Infographic</span>
+                    <span className="text-[10px] text-muted-foreground font-normal -mt-0.5">Generate visual summary</span>
+                  </span>
+                </Button>
               )}
 
               {/* View infographic button — shown when one has been generated */}
