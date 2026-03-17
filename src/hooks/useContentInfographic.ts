@@ -151,10 +151,18 @@ export const useContentInfographic = () => {
         userCorrectionsBlock = `\n\nMANDATORY USER SPELLING CORRECTIONS:\n${spellingCorrections.map(c => `- Always spell "${c.correct}" (NOT "${c.incorrect}")`).join('\n')}\n`;
       }
 
-      // 4. Practice name injection
-      let practiceNameBlock = '';
+      // 4. Build practice context for branding (matching Meeting Manager pattern)
+      const practiceCtx: Record<string, any> = {
+        brandingLevel: options.logoUrl ? 'logo-only' : 'none',
+      };
+      if (options.logoUrl) {
+        practiceCtx.logoUrl = options.logoUrl;
+        practiceCtx.includeLogo = true;
+        practiceCtx.logoPlacement = 'top-right';
+      }
       if (practiceName && practiceName.trim()) {
-        practiceNameBlock = `\nThis infographic is for ${practiceName}.\nInclude the practice name "${practiceName}" in the title or header area.\n`;
+        practiceCtx.practiceName = practiceName;
+        practiceCtx.brandingLevel = options.logoUrl ? 'name-and-logo' : 'name-only';
       }
       
       const orientationPrompt = orientation === 'portrait'
@@ -162,24 +170,39 @@ export const useContentInfographic = () => {
         : 'Landscape orientation (16:9 aspect ratio) suitable for presentations and widescreen displays';
 
       const imagePrompt = `Create a professional, visually compelling infographic that summarises the following content.
-${practiceNameBlock}
+
 VISUAL STYLE: ${stylePrompt}
 
 DETAIL LEVEL: ${detailPrompt}
+
+CRITICAL TEXT LENGTH RULES:
+- Every text block must be SHORT. Maximum 20 words per sentence. Maximum 2 sentences per section.
+- Use bullet points with 8-12 words each rather than full paragraphs
+- Headings should be 3-6 words maximum
+- Never render a sentence longer than 20 words
+- NEVER duplicate a section or repeat information
 
 CRITICAL REQUIREMENTS:
 - ${orientationPrompt}
 - Clear visual hierarchy with the main topic prominently displayed
 - Use icons and visual elements to represent key points
 - Organise information into logical sections with clear flow
-- Use British English spelling throughout
 - Include a clear title at the top
 - Use colour coding to group related information
 - Ensure text is readable and well-spaced
 - Make it suitable for professional presentations
-${userCorrectionsBlock}
-CONTENT TO VISUALISE:
-${documentContent}`;
+
+BRITISH ENGLISH SPELLING RULES (MANDATORY):
+- Use British English throughout: "organisation" not "organization", "summarise" not "summarize"
+- "colour" not "color", "programme" not "program", "centre" not "centre"
+- Date format: "11 March 2026" (never "March 11, 2026")
+- Any American English spelling in the output is a CRITICAL ERROR
+
+NEVER render prompt instructions, template variables, or formatting directives as visible text:
+- Never show "[Number]", "[Text]", or any square-bracket placeholders
+- Never show colour hex codes like "#EF4444" or "#005EB8"
+- Never show instruction-style labels or examples from the prompt
+${userCorrectionsBlock}`;
 
       setCurrentPhase('generating');
       
