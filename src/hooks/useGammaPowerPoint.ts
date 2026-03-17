@@ -167,12 +167,9 @@ export const useGammaPowerPoint = () => {
     try {
       const { topic, supportingContent } = prepareContentForGamma(content, title);
 
-      // Map imageMode to Gamma-compatible setting
+      // Pass raw imageMode values directly — edge function expects enum values
       const useStockLibraryImages = imageMode !== 'noImages';
-      const imageStyle = imageMode === 'noImages' ? 'none' 
-        : imageMode === 'icons' ? 'icons'
-        : imageMode === 'illustrations' ? 'illustrations'
-        : 'photos'; // 'webPhotos' → photos
+      const imageStyle = imageMode || 'noImages';
 
       const requestBody: Record<string, unknown> = {
         topic,
