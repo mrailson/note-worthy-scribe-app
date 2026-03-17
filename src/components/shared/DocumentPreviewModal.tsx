@@ -863,7 +863,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                           variant="ghost"
                           size="sm"
                           className="text-sm justify-center"
-                          onClick={() => onExportPowerPoint(activeContent, documentTitle, count)}
+                          onClick={() => onExportPowerPoint(activeContent, documentTitle, count, exportDefaults.defaultImageMode, exportDefaults.defaultTextDensity)}
                         >
                           {count}
                         </Button>
