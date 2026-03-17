@@ -1228,17 +1228,8 @@ Write 1 concise paragraph (3-4 sentences maximum) that captures the essence of t
 - [Name] - if organization is not known
 (List each attendee on a separate bullet point. Include their organization in parentheses only if it is provided in the authoritative context)
 
-SPEAKER ATTRIBUTION RULES:
-- If a speaker-labelled transcript is provided, use it to determine WHO made specific statements, decisions, and commitments
-- Map speaker labels (Speaker A, Speaker B, etc.) to real names by looking for context clues:
-  • Direct address: "Thanks Tom" or "What do you think, Claire?" after a speaker turn
-  • Self-identification: "As the CD, I think..." or "In my role as practice manager..."
-  • Role references: "Malcolm, can you update us on enhanced access?" followed by Speaker C responding
-- Once you have mapped a speaker label to a name, use that name consistently throughout the notes
-- In the DISCUSSION SUMMARY, attribute key statements and positions to named individuals where the speaker labels make this clear
-- In ACTION ITEMS, use the speaker attribution to identify who VOLUNTEERED or was ASKED to do something, rather than defaulting to TBC
-- If you cannot confidently map a speaker label to a name, use a role descriptor ("the Clinical Director", "a practice representative") — NEVER write "Speaker A" or "Speaker B" in the final notes
-- Do NOT fabricate attributions — only attribute statements where the speaker labels clearly support it
+
+
 
 # DISCUSSION SUMMARY
 
