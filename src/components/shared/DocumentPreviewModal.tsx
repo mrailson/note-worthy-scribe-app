@@ -10,6 +10,7 @@ import { AskAIDocumentSettingsModal } from '@/components/shared/AskAIDocumentSet
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
 import { useAskAIExportDefaults } from '@/hooks/useAskAIExportDefaults';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useUserLogos } from '@/hooks/useUserLogos';
 import { useContentInfographic } from '@/hooks/useContentInfographic';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/utils/toastWrapper';
