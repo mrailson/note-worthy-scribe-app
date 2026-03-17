@@ -621,10 +621,17 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         <Tooltip>
                         <TooltipTrigger asChild>
                             <button 
-                              onClick={() => {
+                            onClick={() => {
                                 handleNewSearch();
                                 setShowAIChat(false);
                                 setShowNews(false);
+                                setShowImageStudio(false);
+                                setShowDocumentStudio(false);
+                                setShowPresentationStudio(false);
+                                setShowAdminDictate(false);
+                                setShowTranslationService(false);
+                                setShowMeetingPreview(false);
+                                setShowPromptsModal(false);
                               }}
                               className={cn(
                                 "flex items-center hover:opacity-80 transition-opacity cursor-pointer group relative",
