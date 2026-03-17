@@ -537,9 +537,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     return () => { clearInterval(progressInterval); clearInterval(tipInterval); };
   }, [isPowerPointGenerating]);
 
-  // documentTitle already declared above with activeContent
-  const logoUrl = practiceContext?.logoUrl;
-  const practiceName = practiceContext?.practiceName;
+  // Use active logo from multi-logo system, falling back to practice context
+  const logoUrl = activeLogo?.image_url || practiceContext?.logoUrl;
+  const activeLogoName = activeLogo?.name;
+  const practiceName = activeLogoName || practiceContext?.practiceName;
   const practiceAddress = practiceContext?.practiceAddress;
 
   const today = new Date().toLocaleDateString('en-GB', {
