@@ -204,6 +204,8 @@ serve(async (req) => {
       pastedContent,
       useStockLibraryImages = false,
       imageOptions: userImageOptions,
+      imageStyle,
+      textDensity,
     } = requestBody;
 
     // Handle supportingContent
