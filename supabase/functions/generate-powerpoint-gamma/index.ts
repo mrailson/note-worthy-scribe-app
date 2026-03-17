@@ -283,16 +283,27 @@ serve(async (req) => {
     // Build additional instructions — condensed to stay within Gamma's 5000-char limit
     let additionalInstructions = `British English spelling throughout. Audience: ${audience}. Professional design. Each slide: clear, actionable message.`;
 
-    // Determine effective image source from user selection, default to noImages
-    const effectiveImageSource = userImageOptions?.source || 'noImages';
-    console.log(`[Gamma] Image source: ${effectiveImageSource}`);
+    // Determine effective image source: prefer imageStyle from Document Settings, fall back to legacy imageOptions
+    const effectiveImageSource = imageStyle || userImageOptions?.source || 'noImages';
+    console.log(`[Gamma] Image source: ${effectiveImageSource}, textDensity: ${textDensity || 'medium'}`);
 
     // Image requirements — conditional on image mode
-    if (effectiveImageSource === 'noImages' && !useStockLibraryImages) {
+    if (effectiveImageSource === 'none' || (effectiveImageSource === 'noImages' && !useStockLibraryImages)) {
       additionalInstructions += ` Do not include any images. Focus on clean text-based slides.`;
-    } else if (!useStockLibraryImages && effectiveImageSource !== 'noImages') {
-      additionalInstructions += ` Every slide must include a high-quality image relevant to the topic. No slide without a visual.`;
-      additionalInstructions += ` Use the provided stock library images where relevant. Place images as accent visuals alongside content — never let an image dominate or push text to the bottom. Not every slide needs an image.`;
+    } else if (effectiveImageSource === 'icons') {
+      additionalInstructions += ` Use simple, flat icons on each slide to illustrate key points. No photographs. Icons should be clean and professional.`;
+    } else if (effectiveImageSource === 'illustrations') {
+      additionalInstructions += ` Use rich, full illustrations on every slide. Each slide MUST include a detailed, colourful illustration relevant to the topic. Illustrations should be prominent and visually engaging.`;
+    } else if (effectiveImageSource === 'photos' || useStockLibraryImages) {
+      additionalInstructions += ` Every slide must include a high-quality stock photograph relevant to the topic. No slide without a visual.`;
+      additionalInstructions += ` Place images as accent visuals alongside content — never let an image dominate or push text to the bottom.`;
+    }
+
+    // Text density instructions
+    if (textDensity === 'brief') {
+      additionalInstructions += ` Keep text minimal — short punchy phrases, no paragraphs. Maximum 3-4 bullet points per slide.`;
+    } else if (textDensity === 'detailed') {
+      additionalInstructions += ` Include detailed explanatory text on each slide. Use full sentences and comprehensive descriptions. More content per slide is preferred.`;
     }
 
     // Speaker notes (condensed)
