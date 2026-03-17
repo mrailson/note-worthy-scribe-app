@@ -234,8 +234,6 @@ export const MeetingHistoryList = ({
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [folderSheetOpen, setFolderSheetOpen] = useState(false);
   const [selectedMeetingForFolder, setSelectedMeetingForFolder] = useState<Meeting | null>(null);
-  const [showContextDialog, setShowContextDialog] = useState(false);
-  const [selectedMeetingForContext, setSelectedMeetingForContext] = useState<Meeting | null>(null);
   
   // Sync localMeetings with meetings prop - database is source of truth
   useEffect(() => {
