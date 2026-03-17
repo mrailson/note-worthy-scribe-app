@@ -675,7 +675,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
       clearInterval(tipInterval);
       setInfographicProgress(0);
     }
-  }, [content, documentTitle, generateInfographic, imageGenerationModel, infographicPracticeName, infographicSpellingCorrections, practiceName]);
+  }, [content, activeContent, documentTitle, generateInfographic, imageGenerationModel, infographicPracticeName, infographicSpellingCorrections, practiceName, exportDefaults, logoUrl]);
 
   const handleDownloadInfographic = useCallback(() => {
     if (!infographicUrl) return;
