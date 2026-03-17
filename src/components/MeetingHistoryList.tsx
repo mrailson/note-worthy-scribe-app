@@ -2677,6 +2677,12 @@ export const MeetingHistoryList = ({
                               ? { ...m, ...(updates.title ? { title: updates.title } : {}), ...(updates.overview ? { overview: updates.overview } : {}) }
                               : m
                           ));
+
+                          if (updates.title && updates.title !== meeting.title) {
+                            onMeetingUpdate?.(meeting.id, updates.title);
+                          }
+
+                          onRefresh?.();
                         });
                       }}
                     />
