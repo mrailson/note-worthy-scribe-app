@@ -708,56 +708,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         {/* Settings gear — only for document view */}
         {(
           <div className="px-4 sm:px-6 py-2 border-b bg-muted/20 flex items-center">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground hover:text-foreground">
-                  <Settings2 className="h-4 w-4" />
-                  Document Settings
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-72 space-y-3 bg-popover">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Display</p>
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="doc-show-logo" className="text-sm cursor-pointer">Logo</Label>
-                    <Switch id="doc-show-logo" checked={prefs.showLogo} onCheckedChange={(v) => updatePref('showLogo', v)} />
-                  </div>
-                  {prefs.showLogo && (
-                    <div className="flex items-center justify-between pl-4">
-                      <Label className="text-xs text-muted-foreground">Position</Label>
-                      <Select value={prefs.logoPosition} onValueChange={(v) => updatePref('logoPosition', v as LogoPosition)}>
-                        <SelectTrigger className="h-7 w-24 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background">
-                          <SelectItem value="left">Left</SelectItem>
-                          <SelectItem value="centre">Centre</SelectItem>
-                          <SelectItem value="right">Right</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="doc-show-footer" className="text-sm cursor-pointer">Footer</Label>
-                    <Switch id="doc-show-footer" checked={prefs.showFooter} onCheckedChange={(v) => updatePref('showFooter', v)} />
-                  </div>
-                </div>
-
-                <div className="border-t pt-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Downloads</p>
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="doc-show-pdf" className="text-sm cursor-pointer">PDF Download</Label>
-                      <Switch id="doc-show-pdf" checked={prefs.showPdfDownload} onCheckedChange={(v) => updatePref('showPdfDownload', v)} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="doc-show-infographic" className="text-sm cursor-pointer">Infographic</Label>
-                      <Switch id="doc-show-infographic" checked={prefs.showInfographic} onCheckedChange={(v) => updatePref('showInfographic', v)} />
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowSettingsModal(true)}>
+              <Settings2 className="h-4 w-4" />
+              Document Settings
+            </Button>
           </div>
         )}
 
