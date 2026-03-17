@@ -1049,11 +1049,6 @@ export const MeetingHistoryList = ({
     setAttendeeModalOpen(true);
   };
 
-  // Handle add context click
-  const handleAddContextClick = (meeting: Meeting) => {
-    setSelectedMeetingForContext(meeting);
-    setShowContextDialog(true);
-  };
 
   // Handle adding context to meeting
   const handleAddContext = async (
