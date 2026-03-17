@@ -658,6 +658,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         imageModel: imageGenerationModel,
         practiceName: infographicPracticeName || practiceName || undefined,
         spellingCorrections: infographicSpellingCorrections,
+        logoUrl: exportDefaults.includeLogoInInfographic && logoUrl ? logoUrl : undefined,
       });
 
       clearInterval(progressInterval);
