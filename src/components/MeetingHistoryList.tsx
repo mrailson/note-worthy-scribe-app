@@ -37,13 +37,8 @@ import {
   MonitorSpeaker,
   Drama,
   Folder,
-  FilePlus2,
   BookOpen
 } from "lucide-react";
-import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
-import { UploadedFile } from '@/types/ai4gp';
-import { formatTranscriptContext, extractCleanContent } from '@/utils/meeting/formatTranscriptContext';
-import { parseAttendeesFromText } from '@/utils/meeting/parseAttendeesFromText';
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
 import { BackupBadge } from "@/components/offline/BackupBadge";
@@ -234,8 +229,6 @@ export const MeetingHistoryList = ({
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [folderSheetOpen, setFolderSheetOpen] = useState(false);
   const [selectedMeetingForFolder, setSelectedMeetingForFolder] = useState<Meeting | null>(null);
-  const [showContextDialog, setShowContextDialog] = useState(false);
-  const [selectedMeetingForContext, setSelectedMeetingForContext] = useState<Meeting | null>(null);
   
   // Sync localMeetings with meetings prop - database is source of truth
   useEffect(() => {
@@ -1051,188 +1044,7 @@ export const MeetingHistoryList = ({
     setAttendeeModalOpen(true);
   };
 
-  // Handle add context click
-  const handleAddContextClick = (meeting: Meeting) => {
-    setSelectedMeetingForContext(meeting);
-    setShowContextDialog(true);
-  };
 
-  // Handle adding context to meeting
-  const handleAddContext = async (
-    contextTypes: Array<'agenda' | 'attendees' | 'presentation' | 'other' | 'additional-transcript'>,
-    files: UploadedFile[],
-    customLabel?: string
-  ) => {
-    if (!selectedMeetingForContext) return;
-    
-    const meetingId = selectedMeetingForContext.id;
-    
-    try {
-      // Clean file content
-      const cleanedFiles = files.map(file => ({
-        ...file,
-        content: extractCleanContent(file.content || '')
-      }));
-      
-      // Check if any files have empty content after cleaning (e.g., failed OCR)
-      const emptyFiles = cleanedFiles.filter(f => !f.content || f.content.trim() === '');
-      if (emptyFiles.length > 0 && emptyFiles.length === cleanedFiles.length) {
-        toast.error('Could not extract text from the uploaded image(s). Please try a clearer image or paste the text directly.');
-        return;
-      } else if (emptyFiles.length > 0) {
-        toast.warning(`${emptyFiles.length} file(s) had no extractable text and were skipped.`);
-      }
-      
-      // Filter out empty files
-      const validFiles = cleanedFiles.filter(f => f.content && f.content.trim() !== '');
-      
-      if (validFiles.length === 0) {
-        toast.error('No text content could be extracted from the uploaded files.');
-        return;
-      }
-      
-      // If "attendees" is selected, parse and add attendees to the meeting's attendee list
-      if (contextTypes.includes('attendees')) {
-        const allContent = validFiles.map(f => f.content).join('\n');
-        const parsedAttendees = parseAttendeesFromText(allContent);
-        
-        if (parsedAttendees.length > 0) {
-          console.log('📋 Parsed attendees from context:', parsedAttendees);
-          
-          // Get user's practice ID
-          const { data: userData } = await supabase.auth.getUser();
-          if (userData?.user) {
-            const { data: userRoles } = await supabase
-              .rpc('get_user_roles', { _user_id: userData.user.id });
-            
-            const practiceId = userRoles?.[0]?.practice_id;
-            
-            // For each parsed attendee, create if not exists and link to meeting
-            for (const attendee of parsedAttendees) {
-              try {
-                // Check if attendee already exists for this user (by name)
-                const { data: existingAttendee } = await supabase
-                  .from('attendees')
-                  .select('id')
-                  .eq('user_id', userData.user.id)
-                  .ilike('name', attendee.name)
-                  .maybeSingle();
-                
-                let attendeeId: string;
-                
-                if (existingAttendee) {
-                  attendeeId = existingAttendee.id;
-                } else {
-                  // Create new attendee
-                  const { data: newAttendee, error: createError } = await supabase
-                    .from('attendees')
-                    .insert({
-                      user_id: userData.user.id,
-                      practice_id: practiceId,
-                      name: attendee.name,
-                      organization: attendee.organization || null,
-                      role: attendee.role || null,
-                    })
-                    .select('id')
-                    .single();
-                  
-                  if (createError) {
-                    console.warn('Failed to create attendee:', attendee.name, createError);
-                    continue;
-                  }
-                  attendeeId = newAttendee.id;
-                }
-                
-                // Check if already linked to this meeting
-                const { data: existingLink } = await supabase
-                  .from('meeting_attendees')
-                  .select('id')
-                  .eq('meeting_id', meetingId)
-                  .eq('attendee_id', attendeeId)
-                  .maybeSingle();
-                
-                if (!existingLink) {
-                  // Link attendee to meeting
-                  await supabase
-                    .from('meeting_attendees')
-                    .insert({
-                      meeting_id: meetingId,
-                      attendee_id: attendeeId
-                    });
-                }
-              } catch (attendeeError) {
-                console.warn('Error processing attendee:', attendee.name, attendeeError);
-              }
-            }
-            
-            toast.success(`Added ${parsedAttendees.length} attendee(s) to the meeting`);
-          }
-        } else {
-          toast.warning('No attendee names could be extracted from the content');
-        }
-      }
-      
-      // Format the context content
-      const formattedContext = contextTypes.includes('additional-transcript')
-        ? validFiles.map(f => f.content).join('\n\n')
-        : formatTranscriptContext(
-            contextTypes.filter(t => t !== 'additional-transcript') as Array<'agenda' | 'attendees' | 'presentation' | 'other'>,
-            validFiles,
-            customLabel
-          );
-      
-      // Fetch current meeting context and live transcript
-      const { data: meetingData, error: fetchError } = await supabase
-        .from('meetings')
-        .select('meeting_context, live_transcript_text')
-        .eq('id', meetingId)
-        .single();
-        
-      if (fetchError) throw fetchError;
-      
-      // Build update data
-      const updateData: Record<string, any> = {
-        notes_generation_status: 'queued',
-        updated_at: new Date().toISOString()
-      };
-      
-      if (contextTypes.includes('additional-transcript')) {
-        // Append to live transcript
-        const currentTranscript = meetingData?.live_transcript_text || '';
-        updateData.live_transcript_text = currentTranscript + '\n\n--- Additional Transcript ---\n\n' + formattedContext;
-      } else {
-        // Store context in meeting_context JSON field and prepend to transcript
-        const existingContext = (meetingData?.meeting_context as any) || {};
-        const newContext = {
-          ...existingContext,
-          addedAt: new Date().toISOString(),
-          contextTypes,
-          content: formattedContext
-        };
-        updateData.meeting_context = newContext;
-        
-        // Also prepend to live transcript for AI processing
-        const currentTranscript = meetingData?.live_transcript_text || '';
-        updateData.live_transcript_text = formattedContext + '\n\n' + currentTranscript;
-      }
-      
-      // Update meeting
-      const { error: updateError } = await supabase
-        .from('meetings')
-        .update(updateData)
-        .eq('id', meetingId);
-        
-      if (updateError) throw updateError;
-      
-      toast.success('Meeting context added - notes will regenerate');
-      onRefresh?.();
-      setShowContextDialog(false);
-      setSelectedMeetingForContext(null);
-    } catch (error) {
-      console.error('Error adding context:', error);
-      toast.error('Failed to add meeting context');
-    }
-  };
 
   const handleDownloadWord = async (meeting: Meeting) => {
     try {
@@ -2898,16 +2710,6 @@ export const MeetingHistoryList = ({
                         onSelect={(e) => {
                           e.preventDefault();
                           setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          handleAddContextClick(meeting);
-                        }}
-                      >
-                        <FilePlus2 className="h-4 w-4 mr-2" />
-                        Add Meeting Context
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
                           handleProcessClick(meeting);
                         }}
                         disabled={processingMeetings[meeting.id]?.isProcessing}
@@ -3428,18 +3230,6 @@ export const MeetingHistoryList = ({
           }
         }}
       />
-
-      {/* Add Meeting Context Dialog */}
-      {showContextDialog && selectedMeetingForContext && (
-        <TranscriptContextDialog
-          open={showContextDialog}
-          onOpenChange={(open) => {
-            setShowContextDialog(open);
-            if (!open) setSelectedMeetingForContext(null);
-          }}
-          onAddContext={handleAddContext}
-        />
-      )}
     </div>
     </TooltipProvider>
   );
