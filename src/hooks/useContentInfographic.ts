@@ -214,8 +214,10 @@ ${userCorrectionsBlock}`;
       const generationPromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
           prompt: imagePrompt,
+          documentContent: documentContent,
           requestType: 'infographic',
           imageModel,
+          practiceContext: practiceCtx,
         },
       });
       
