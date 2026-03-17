@@ -3418,18 +3418,6 @@ export const MeetingHistoryList = ({
           }
         }}
       />
-
-      {/* Add Meeting Context Dialog */}
-      {showContextDialog && selectedMeetingForContext && (
-        <TranscriptContextDialog
-          open={showContextDialog}
-          onOpenChange={(open) => {
-            setShowContextDialog(open);
-            if (!open) setSelectedMeetingForContext(null);
-          }}
-          onAddContext={handleAddContext}
-        />
-      )}
     </div>
     </TooltipProvider>
   );
