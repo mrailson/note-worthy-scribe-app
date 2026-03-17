@@ -37,13 +37,9 @@ import {
   MonitorSpeaker,
   Drama,
   Folder,
-  FilePlus2,
   BookOpen
 } from "lucide-react";
-import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
-import { UploadedFile } from '@/types/ai4gp';
-import { formatTranscriptContext, extractCleanContent } from '@/utils/meeting/formatTranscriptContext';
-import { parseAttendeesFromText } from '@/utils/meeting/parseAttendeesFromText';
+import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
 import { BackupBadge } from "@/components/offline/BackupBadge";
