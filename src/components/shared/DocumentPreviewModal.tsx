@@ -2,14 +2,13 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import { Download, FileText, X, Loader2, ImageIcon, Monitor, Settings2, Presentation, BarChart3 } from 'lucide-react';
 import { DocumentAIEditPanel } from '@/components/shared/DocumentAIEditPanel';
+import { AskAIDocumentSettingsModal } from '@/components/shared/AskAIDocumentSettingsModal';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
+import { useAskAIExportDefaults } from '@/hooks/useAskAIExportDefaults';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useContentInfographic } from '@/hooks/useContentInfographic';
 import { cn } from '@/lib/utils';
@@ -25,7 +24,7 @@ interface DocumentPreviewModalProps {
   infographicPracticeName?: string;
   infographicSpellingCorrections?: { incorrect: string; correct: string }[];
   onContentUpdated?: (newContent: string) => void;
-  onExportPowerPoint?: (content: string, title?: string, slideCount?: number) => void;
+  onExportPowerPoint?: (content: string, title?: string, slideCount?: number, imageMode?: string, textDensity?: string) => void;
   isPowerPointGenerating?: boolean;
 }
 
@@ -496,6 +495,8 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   isPowerPointGenerating = false,
 }) => {
   const { prefs, updatePref } = useDocumentPreviewPrefs();
+  const { defaults: exportDefaults } = useAskAIExportDefaults();
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { practiceContext } = usePracticeContext();
   const isMobile = useIsMobile();
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
@@ -650,6 +651,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     try {
       const result = await generateInfographic(activeContent, documentTitle, {
         orientation,
+        style: exportDefaults.defaultInfographicStyle,
         imageModel: imageGenerationModel,
         practiceName: infographicPracticeName || practiceName || undefined,
         spellingCorrections: infographicSpellingCorrections,
@@ -704,56 +706,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         {/* Settings gear — only for document view */}
         {(
           <div className="px-4 sm:px-6 py-2 border-b bg-muted/20 flex items-center">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground hover:text-foreground">
-                  <Settings2 className="h-4 w-4" />
-                  Document Settings
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-72 space-y-3 bg-popover">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Display</p>
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="doc-show-logo" className="text-sm cursor-pointer">Logo</Label>
-                    <Switch id="doc-show-logo" checked={prefs.showLogo} onCheckedChange={(v) => updatePref('showLogo', v)} />
-                  </div>
-                  {prefs.showLogo && (
-                    <div className="flex items-center justify-between pl-4">
-                      <Label className="text-xs text-muted-foreground">Position</Label>
-                      <Select value={prefs.logoPosition} onValueChange={(v) => updatePref('logoPosition', v as LogoPosition)}>
-                        <SelectTrigger className="h-7 w-24 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background">
-                          <SelectItem value="left">Left</SelectItem>
-                          <SelectItem value="centre">Centre</SelectItem>
-                          <SelectItem value="right">Right</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="doc-show-footer" className="text-sm cursor-pointer">Footer</Label>
-                    <Switch id="doc-show-footer" checked={prefs.showFooter} onCheckedChange={(v) => updatePref('showFooter', v)} />
-                  </div>
-                </div>
-
-                <div className="border-t pt-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Downloads</p>
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="doc-show-pdf" className="text-sm cursor-pointer">PDF Download</Label>
-                      <Switch id="doc-show-pdf" checked={prefs.showPdfDownload} onCheckedChange={(v) => updatePref('showPdfDownload', v)} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="doc-show-infographic" className="text-sm cursor-pointer">Infographic</Label>
-                      <Switch id="doc-show-infographic" checked={prefs.showInfographic} onCheckedChange={(v) => updatePref('showInfographic', v)} />
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowSettingsModal(true)}>
+              <Settings2 className="h-4 w-4" />
+              Document Settings
+            </Button>
           </div>
         )}
 
@@ -904,7 +860,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                           variant="ghost"
                           size="sm"
                           className="text-sm justify-center"
-                          onClick={() => onExportPowerPoint(activeContent, documentTitle, count)}
+                          onClick={() => onExportPowerPoint(activeContent, documentTitle, count, exportDefaults.defaultImageMode, exportDefaults.defaultTextDensity)}
                         >
                           {count}
                         </Button>
@@ -946,6 +902,12 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
       />,
       document.body
     )}
+
+    {/* Document Settings Modal */}
+    <AskAIDocumentSettingsModal
+      isOpen={showSettingsModal}
+      onClose={() => setShowSettingsModal(false)}
+    />
     </>
   );
 };

@@ -23,6 +23,15 @@ const STYLE_PROMPTS: Record<string, string> = {
   'nhs-clinical': 'NHS-branded clinical style using NHS blue (#005EB8) palette, healthcare iconography, medical professional aesthetic, and accessible design',
   'modern-gradient': 'Modern design with smooth gradients, rounded corners, subtle shadows, glass morphism effects, and contemporary colour transitions',
   'professional': 'Professional business design with balanced layout, clean typography, and appropriate use of colour to highlight key information',
+  // Meeting Manager / Export Studio infographic styles
+  'practice-professional': 'Professional GP practice style with NHS blue (#003087) accents, clean structured layout, formal headings, and practice branding area at top',
+  'clinical-governance': 'Clinical governance themed with structured audit-style layout, evidence-based design using greens and navy, compliance-focused iconography',
+  'patient-safety': 'Patient safety focused with red/amber alert colour palette, clear risk indicators, incident-reporting style layout with priority markers',
+  'team-engagement': 'Staff engagement and team-focused design with warm colours, collaborative imagery, people-centred layout with team achievement highlights',
+  'qof-targets': 'QOF and targets dashboard style with data visualisation elements, progress indicators, KPI-focused layout with green/amber/red status markers',
+  'board-pack': 'Board pack executive style with formal dark navy header, gold accents, structured governance layout suitable for board-level presentation',
+  'icb-submission': 'ICB submission format with NHS England branding palette, formal structured sections, commissioner-facing professional layout',
+  'neighbourhood': 'Neighbourhood team style with community-focused warm palette, collaborative design elements, PCN/neighbourhood branding with local identity',
 };
 
 const DETAIL_PROMPTS: Record<string, string> = {
