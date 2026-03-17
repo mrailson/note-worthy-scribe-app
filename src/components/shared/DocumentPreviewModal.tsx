@@ -538,7 +538,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   }, [isPowerPointGenerating]);
 
   // Use active logo from multi-logo system, falling back to practice context
-  const logoUrl = activeLogo?.image_url || practiceContext?.logoUrl;
+  const logoUrl = prefs.showLogo ? (activeLogo?.image_url || practiceContext?.logoUrl) : undefined;
   const activeLogoName = activeLogo?.name;
   const practiceName = activeLogoName || practiceContext?.practiceName;
   const practiceAddress = practiceContext?.practiceAddress;
