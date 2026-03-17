@@ -905,6 +905,12 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
       />,
       document.body
     )}
+
+    {/* Document Settings Modal */}
+    <AskAIDocumentSettingsModal
+      isOpen={showSettingsModal}
+      onClose={() => setShowSettingsModal(false)}
+    />
     </>
   );
 };
