@@ -10,6 +10,7 @@ import { AskAIDocumentSettingsModal } from '@/components/shared/AskAIDocumentSet
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
 import { useAskAIExportDefaults } from '@/hooks/useAskAIExportDefaults';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useUserLogos } from '@/hooks/useUserLogos';
 import { useContentInfographic } from '@/hooks/useContentInfographic';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/utils/toastWrapper';
@@ -498,6 +499,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const { defaults: exportDefaults } = useAskAIExportDefaults();
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { practiceContext } = usePracticeContext();
+  const { activeLogo } = useUserLogos();
   const isMobile = useIsMobile();
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
@@ -535,9 +537,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     return () => { clearInterval(progressInterval); clearInterval(tipInterval); };
   }, [isPowerPointGenerating]);
 
-  // documentTitle already declared above with activeContent
-  const logoUrl = practiceContext?.logoUrl;
-  const practiceName = practiceContext?.practiceName;
+  // Use active logo from multi-logo system, falling back to practice context
+  const logoUrl = activeLogo?.image_url || practiceContext?.logoUrl;
+  const activeLogoName = activeLogo?.name;
+  const practiceName = activeLogoName || practiceContext?.practiceName;
   const practiceAddress = practiceContext?.practiceAddress;
 
   const today = new Date().toLocaleDateString('en-GB', {
@@ -655,6 +658,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         imageModel: imageGenerationModel,
         practiceName: infographicPracticeName || practiceName || undefined,
         spellingCorrections: infographicSpellingCorrections,
+        logoUrl: exportDefaults.includeLogoInInfographic && logoUrl ? logoUrl : undefined,
       });
 
       clearInterval(progressInterval);
@@ -671,7 +675,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
       clearInterval(tipInterval);
       setInfographicProgress(0);
     }
-  }, [content, documentTitle, generateInfographic, imageGenerationModel, infographicPracticeName, infographicSpellingCorrections, practiceName]);
+  }, [content, activeContent, documentTitle, generateInfographic, imageGenerationModel, infographicPracticeName, infographicSpellingCorrections, practiceName, exportDefaults, logoUrl]);
 
   const handleDownloadInfographic = useCallback(() => {
     if (!infographicUrl) return;

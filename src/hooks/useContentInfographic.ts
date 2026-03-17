@@ -13,6 +13,7 @@ interface ContentInfographicOptions {
   orientation?: 'portrait' | 'landscape';
   practiceName?: string;
   spellingCorrections?: { incorrect: string; correct: string }[];
+  logoUrl?: string;
 }
 
 // Style prompt mappings
