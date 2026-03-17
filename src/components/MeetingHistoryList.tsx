@@ -2898,16 +2898,6 @@ export const MeetingHistoryList = ({
                         onSelect={(e) => {
                           e.preventDefault();
                           setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          handleAddContextClick(meeting);
-                        }}
-                      >
-                        <FilePlus2 className="h-4 w-4 mr-2" />
-                        Add Meeting Context
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
                           handleProcessClick(meeting);
                         }}
                         disabled={processingMeetings[meeting.id]?.isProcessing}
