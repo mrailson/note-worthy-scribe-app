@@ -131,18 +131,12 @@ serve(async (req) => {
       if (result.status === 'completed') {
         console.log('[AssemblyAI-URL] Transcription completed successfully');
         
-        // Format with speaker labels if available
-        const utterances = result.utterances || [];
-        const speakerText = utterances.length > 0 
-          ? utterances.map((u: { speaker: string; text: string }) => `[Speaker ${u.speaker}]: ${u.text}`).join('\n\n')
-          : result.text || '';
-        
         // Clean up the uploaded file
         await supabase.storage.from('audio-imports').remove([storagePath]);
         console.log('[AssemblyAI-URL] Cleaned up temporary file');
         
         return Response.json({
-          text: speakerText,
+          text: result.text || '',
           confidence: result.confidence || 0.9,
           duration: result.audio_duration,
           fileName,

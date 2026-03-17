@@ -183,14 +183,8 @@ serve(async (req) => {
       if (result.status === 'completed') {
         console.log('[AssemblyAI-Transcription] OTEWELL transcription completed successfully');
         
-        // OTEWELL: Include utterances with speaker labels if available
-        const utterances = result.utterances || [];
-        const speakerText = utterances.length > 0 
-          ? utterances.map((u: { speaker: string; text: string }) => `[Speaker ${u.speaker}]: ${u.text}`).join('\n')
-          : result.text || '';
-        
         return Response.json({
-          text: speakerText,
+          text: result.text || '',
           confidence: result.confidence || 0.9,
           chunkIndex,
           processingTime: attempts + 1,
