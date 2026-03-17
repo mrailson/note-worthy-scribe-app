@@ -9,7 +9,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Progress } from '@/components/ui/progress';
 import { Download, FileText, X, Loader2, ImageIcon, Monitor, Settings2, Presentation, BarChart3 } from 'lucide-react';
 import { DocumentAIEditPanel } from '@/components/shared/DocumentAIEditPanel';
+import { AskAIDocumentSettingsModal } from '@/components/shared/AskAIDocumentSettingsModal';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
+import { useAskAIExportDefaults } from '@/hooks/useAskAIExportDefaults';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useContentInfographic } from '@/hooks/useContentInfographic';
 import { cn } from '@/lib/utils';
