@@ -499,6 +499,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const { defaults: exportDefaults } = useAskAIExportDefaults();
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { practiceContext } = usePracticeContext();
+  const { activeLogo } = useUserLogos();
   const isMobile = useIsMobile();
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
