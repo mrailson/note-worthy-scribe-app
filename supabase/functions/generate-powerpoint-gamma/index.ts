@@ -288,13 +288,13 @@ serve(async (req) => {
     console.log(`[Gamma] Image source: ${effectiveImageSource}, textDensity: ${textDensity || 'medium'}`);
 
     // Image requirements — conditional on image mode
-    if (effectiveImageSource === 'none' || (effectiveImageSource === 'noImages' && !useStockLibraryImages)) {
+    if (effectiveImageSource === 'none' || effectiveImageSource === 'noImages') {
       additionalInstructions += ` Do not include any images. Focus on clean text-based slides.`;
-    } else if (effectiveImageSource === 'icons') {
+    } else if (effectiveImageSource === 'pictographic') {
       additionalInstructions += ` Use simple, flat icons on each slide to illustrate key points. No photographs. Icons should be clean and professional.`;
-    } else if (effectiveImageSource === 'illustrations') {
+    } else if (effectiveImageSource === 'aiGenerated') {
       additionalInstructions += ` Use rich, full illustrations on every slide. Each slide MUST include a detailed, colourful illustration relevant to the topic. Illustrations should be prominent and visually engaging.`;
-    } else if (effectiveImageSource === 'photos' || useStockLibraryImages) {
+    } else if (effectiveImageSource === 'webFreeToUseCommercially' || useStockLibraryImages) {
       additionalInstructions += ` Every slide must include a high-quality stock photograph relevant to the topic. No slide without a visual.`;
       additionalInstructions += ` Place images as accent visuals alongside content — never let an image dominate or push text to the bottom.`;
     }
