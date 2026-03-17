@@ -1395,34 +1395,8 @@ The transcript mishears these terms regularly — always use the corrected versi
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const formattedDate = `${dayOfWeek} ${day}${ordinalSuffix(day)} ${months[meetingDate.getMonth()]} ${meetingDate.getFullYear()}`;
 
-    // ============= SPEAKER ATTRIBUTION CONTEXT =============
-    // AssemblyAI captures speaker-labelled utterances. Pass these to the AI
-    // so it can attribute decisions, actions, and statements to specific speakers.
-    let speakerContext = '';
-    try {
-      const { data: speakerData } = await supabase
-        .from('meetings')
-        .select('assembly_transcript_text')
-        .eq('id', meetingId)
-        .single();
-      
-      const assemblyText = speakerData?.assembly_transcript_text || '';
-      
-      // Only use if it contains speaker labels (format: [Speaker A]: text)
-      if (assemblyText && /\[Speaker [A-Z]\]/i.test(assemblyText)) {
-        // Sample the speaker-labelled transcript: first 3K + last 3K
-        const speakerSample = assemblyText.length <= 6000
-          ? assemblyText
-          : assemblyText.substring(0, 3000) + '\n\n[... middle section omitted ...]\n\n' + assemblyText.substring(assemblyText.length - 3000);
-        
-        speakerContext = speakerSample;
-        console.log(`🎙️ Speaker-labelled transcript available: ${assemblyText.length} chars, ${(assemblyText.match(/\[Speaker [A-Z]\]/gi) || []).length} speaker tags found`);
-      } else {
-        console.log('🎙️ No speaker labels found in Assembly transcript');
-      }
-    } catch (speakerError) {
-      console.warn('⚠️ Could not fetch speaker-labelled transcript (non-fatal)');
-    }
+
+
 
     // Build authoritative context information from meeting metadata
     let locationContext = '';
