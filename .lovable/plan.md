@@ -1,58 +1,73 @@
 
 
-## Problem Analysis
+## Plan: Upgrade Ask AI Document Settings to Match Export Studio
 
-The token floor increase to 3000 helped but didn't fully resolve truncation because **Part 3 must generate 5 complete sections** (7-11) including a KPI table and references list within just 3000 output tokens. That's roughly 2,200 words — tight for 5 sections with markdown tables. The other truncations (6.3, section 9) suggest some steps are also borderline.
+### Summary
+Replace the simple popover-based "Document Settings" in the Ask AI `DocumentPreviewModal` with a full modal matching the Meeting Manager's `DocumentSettingsModal` design (NHS blue header, multi-logo grid, etc.), and add two new sections for setting **default Infographic** and **default Slides** preferences that wire through to generation.
 
-### Root causes by issue:
+### Current State
+- **Ask AI** (`DocumentPreviewModal.tsx`): Uses a basic `Popover` with simple switches (Logo on/off, Position dropdown, Footer, PDF Download, Infographic toggle). Uses `useDocumentPreviewPrefs` (localStorage only).
+- **Meeting Manager** (`DocumentSettingsModal.tsx`): Full modal with NHS blue header, multi-logo grid with type badges, logo position/size, section toggles, Cancel/Apply buttons. Uses `useUserLogos` + `useUserDocumentSettings` (Supabase-backed).
+- Infographic generation in Ask AI currently uses hardcoded `'professional'` style and only accepts orientation at generate time.
+- Slides generation in Ask AI is a simple slide-count popover with no image mode or text density options.
 
-| Issue | Cause |
-|-------|-------|
-| Section 10 (Appendices) missing | Part 3 runs out of tokens generating sections 7-9, never reaches 10 |
-| Section 6.3 truncated | Part 2b has 3000 tokens for one section but the compact prompt doesn't strongly enough instruct brevity for subsections |
-| Section 9 references cut off | Part 3 token ceiling hit mid-reference list |
-| Version History blank | `enforceSection11ExactTable` runs in `finalise` and correctly appends — but the uploaded doc was likely exported before the fix was deployed, OR the regex isn't matching. Need to verify. |
+### Changes
 
-## Plan
+#### 1. Create `AskAIDocumentSettingsModal` component
+**New file**: `src/components/shared/AskAIDocumentSettingsModal.tsx`
 
-### 1. Split Part 3 into two steps to prevent token exhaustion
+Reuse the same visual design as `DocumentSettingsModal` (NHS blue header, card layout, SpecToggle, logo grid from `useUserLogos`). Sections:
 
-Currently Part 3 generates sections 7-11 in one call with 3000 tokens (compact). Split into:
-- **Part 3a**: Sections 7-8 (Related Policies + Monitoring/KPIs) — `scaleTokens(4000)` → compact gets 3000
-- **Part 3b**: Sections 9-11 (References, Appendices, Version History) — `scaleTokens(3500)` → compact gets 3000
+- **DISPLAY** (existing): Logo toggle + multi-logo grid + position + size (identical to Export Studio)
+- **INFOGRAPHIC DEFAULTS** (new):
+  - Default style with thumbnail gallery (8 styles, same as `MeetingExportStudioModal` lines 1098-1141, using `/images/infographic-thumbnails/*.png`)
+  - Default orientation toggle (Landscape/Portrait)
+  - Logo in infographic toggle
+- **SLIDES DEFAULTS** (new):
+  - Image mode selector: None / Icons / Web Photos / Illustrations (same 4 options as `SlidesStylePicker` `imageModeOptions`)
+  - Text density: Brief / Medium / Detailed (same as `SlidesStylePicker`)
+- Footer toggle, PDF Download toggle (existing, moved into this modal)
 
-This doubles the available token budget for the final sections. Update the step chain: `generate_part_3` becomes `generate_part_3a`, a new `generate_part_3b` step is added, and the finalise/enhance routing adjusts accordingly.
+#### 2. Create persistence hook `useAskAIExportDefaults`
+**New file**: `src/hooks/useAskAIExportDefaults.ts`
 
-### 2. Raise Part 2b base tokens
+Store defaults in localStorage (key: `notewell-askai-export-defaults`):
+```ts
+interface AskAIExportDefaults {
+  // Infographic
+  defaultInfographicStyle: string; // e.g. 'practice-professional'
+  defaultInfographicOrientation: 'landscape' | 'portrait';
+  includeLogoInInfographic: boolean;
+  // Slides
+  defaultImageMode: ImageMode; // 'noImages' | 'pictographic' | 'webFreeToUseCommercially' | 'aiGenerated'
+  defaultTextDensity: TextDensity; // 'brief' | 'medium' | 'detailed'
+}
+```
 
-Change Part 2b base from `3000` to `4000` so compact gets `max(3000, 1400)` = 3000 — actually this is already 3000 so the issue is prompt quality. Add explicit anti-truncation instruction to Part 2b prompt: "You MUST complete ALL subsections of section 6 including 6.3 and any further subsections. Finish every sentence."
+#### 3. Update `DocumentPreviewModal.tsx`
+- Replace the `Popover` "Document Settings" trigger with a button that opens the new `AskAIDocumentSettingsModal`
+- Read defaults from `useAskAIExportDefaults`
+- Pass the saved default infographic style + orientation to `handleGenerateInfographic` (update the `InfographicSelector` to use defaults or allow override)
+- Pass default image mode + text density to the PowerPoint generation flow (update `onExportPowerPoint` callback signature or use a `SlidesStylePicker`-like popover)
 
-### 3. Add anti-truncation instructions to all step prompts
+#### 4. Wire infographic style through to `useContentInfographic`
+- Map the Meeting Manager style keys (e.g. `'practice-professional'`) to the `useContentInfographic` style prompts, or add the Meeting Manager `INFOGRAPHIC_STYLES` prompts to `useContentInfographic`
+- Pass the selected style from defaults into `generateInfographic()` options
 
-Append to every part's user prompt (not just the length instruction): "IMPORTANT: Complete every subsection. Never end mid-sentence. If space is limited, shorten content rather than omitting subsections."
+#### 5. Wire slides defaults through to PowerPoint generation
+- Update the Presentation popover in the bottom bar to include the saved image mode and text density as default selections
+- Pass these through to `onExportPowerPoint` (which flows to Gamma API)
 
-### 4. Update step labels and progress tracking
+### Files to Create
+1. `src/components/shared/AskAIDocumentSettingsModal.tsx` - New modal component
+2. `src/hooks/useAskAIExportDefaults.ts` - New persistence hook
 
-Add `generate_part_3a` and `generate_part_3b` to:
-- The edge function step routing
-- `STEP_LABELS` in `usePolicyJobs.ts` (update labels to show "part 4/5" and "part 5/5")
-- Progress percentages adjusted for 5 generation steps
+### Files to Modify
+1. `src/components/shared/DocumentPreviewModal.tsx` - Replace popover with modal trigger, wire defaults
+2. `src/hooks/useContentInfographic.ts` - Add Meeting Manager infographic style prompts
 
-### 5. Verify Version History enforcement
-
-The `enforceSection11ExactTable` function already handles this correctly — it either replaces the Section 11 heading content or appends a new Section 11 block. Since `finalise` always runs `sanitisePolicyOutput`, this should work. However, adding a log line to confirm it fires will help debugging.
-
-### Files to change
-
-1. **`supabase/functions/generate-policy/index.ts`**:
-   - Split `PART3_SYSTEM_ADDITION` into `PART3A_SYSTEM_ADDITION` (sections 7-8) and `PART3B_SYSTEM_ADDITION` (sections 9-11)
-   - Add new `generate_part_3a` step (replaces current `generate_part_3`)
-   - Add new `generate_part_3b` step with its own prompt and token budget
-   - Update step routing: `part_2b → part_3a → part_3b → enhance/finalise`
-   - Add anti-truncation instruction to Part 2b user prompt
-   - Deploy the updated function
-
-2. **`src/hooks/usePolicyJobs.ts`**:
-   - Add `generate_part_3a` and `generate_part_3b` to `STEP_LABELS`
-   - Update label text to reflect 5 generation steps
+### Design Notes
+- The modal will match the Export Studio aesthetic (NHS blue `#003087` header, gold `#FFB81C` accent, same toggle and card styling)
+- Infographic thumbnail images already exist at `/images/infographic-thumbnails/{key}.png`
+- The approach reuses existing hooks (`useUserLogos`, `useDocumentPreviewPrefs`) and adds a new one for export-specific defaults
 
