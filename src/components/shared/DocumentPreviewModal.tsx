@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
-import { Download, FileText, X, Loader2, ImageIcon, Monitor, Settings2, Presentation, BarChart3 } from 'lucide-react';
+import { Download, FileText, X, Loader2, ImageIcon, Settings2, Presentation, BarChart3 } from 'lucide-react';
 import { DocumentAIEditPanel } from '@/components/shared/DocumentAIEditPanel';
 import { AskAIDocumentSettingsModal } from '@/components/shared/AskAIDocumentSettingsModal';
 import { useDocumentPreviewPrefs, type LogoPosition } from '@/hooks/useDocumentPreviewPrefs';
@@ -424,64 +424,6 @@ const InfographicFullscreen: React.FC<{
     </>
   );
 };
-// Inline infographic selector with slide-reveal orientation options
-const InfographicSelector: React.FC<{
-  isGenerating: boolean;
-  onGenerate: (orientation: 'landscape' | 'portrait') => void;
-}> = ({ isGenerating, onGenerate }) => {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className="flex items-center gap-0">
-      <Button
-        variant={expanded ? 'secondary' : 'outline'}
-        className="gap-2 rounded-full px-5 relative z-10"
-        disabled={isGenerating}
-        onClick={() => setExpanded(prev => !prev)}
-      >
-        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <BarChart3 className="h-4 w-4" />}
-        <span className="flex flex-col items-start leading-tight">
-          <span>Infographic</span>
-          <span className="text-[10px] text-muted-foreground font-normal -mt-0.5">Generate visual summary</span>
-        </span>
-      </Button>
-
-      <div
-        className={cn(
-          'flex items-center gap-1 overflow-hidden transition-all duration-[250ms] ease-out',
-          expanded ? 'max-w-[220px] opacity-100 ml-1' : 'max-w-0 opacity-0 ml-0'
-        )}
-      >
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 rounded-full text-xs whitespace-nowrap"
-          disabled={isGenerating}
-          onClick={() => {
-            onGenerate('landscape');
-            setExpanded(false);
-          }}
-        >
-          <Monitor className="h-3.5 w-3.5" />
-          Landscape
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 rounded-full text-xs whitespace-nowrap"
-          disabled={isGenerating}
-          onClick={() => {
-            onGenerate('portrait');
-            setExpanded(false);
-          }}
-        >
-          <ImageIcon className="h-3.5 w-3.5" />
-          Portrait
-        </Button>
-      </div>
-    </div>
-  );
-};
 
 export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   content,
@@ -538,7 +480,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   }, [isPowerPointGenerating]);
 
   // Use active logo from multi-logo system, falling back to practice context
-  const logoUrl = activeLogo?.image_url || practiceContext?.logoUrl;
+  const logoUrl = prefs.showLogo ? (activeLogo?.image_url || practiceContext?.logoUrl) : undefined;
   const activeLogoName = activeLogo?.name;
   const practiceName = activeLogoName || practiceContext?.practiceName;
   const practiceAddress = practiceContext?.practiceAddress;
@@ -874,12 +816,20 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 </Popover>
               )}
 
-              {/* Infographic with inline orientation reveal */}
+              {/* Infographic — single button, uses default orientation from Document Settings */}
               {prefs.showInfographic && (
-                <InfographicSelector
-                  isGenerating={isInfographicGenerating}
-                  onGenerate={handleGenerateInfographic}
-                />
+                <Button
+                  variant="outline"
+                  className="gap-2 rounded-full px-5"
+                  disabled={isInfographicGenerating}
+                  onClick={() => handleGenerateInfographic(exportDefaults.defaultInfographicOrientation)}
+                >
+                  {isInfographicGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <BarChart3 className="h-4 w-4" />}
+                  <span className="flex flex-col items-start leading-tight">
+                    <span>Infographic</span>
+                    <span className="text-[10px] text-muted-foreground font-normal -mt-0.5">Generate visual summary</span>
+                  </span>
+                </Button>
               )}
 
               {/* View infographic button — shown when one has been generated */}
