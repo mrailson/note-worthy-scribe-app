@@ -40,7 +40,6 @@ import {
   BookOpen
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
-import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
 import { BackupBadge } from "@/components/offline/BackupBadge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
