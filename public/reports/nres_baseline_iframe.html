@@ -113,21 +113,294 @@
 <div class="cc"><div class="ct">LTC-Coded 30+ by Role</div><div class="cs" id="sub-wfltc"></div><div class="cw"><canvas id="ch-wfltc" height="220"></canvas></div></div></div></div>
 
 <div class="tc" id="tab-icb">
-<div style="font-size:14px;font-weight:700;color:var(--D);margin-bottom:10px">ICB Metrics Mapping</div>
-<p style="font-size:10px;color:var(--tx2);margin-bottom:10px"><strong style="color:var(--G)">&#10003; Available</strong> · <strong style="color:var(--W)">&#9888; Partial</strong> · <strong style="color:var(--R)">&#10007; N/A</strong> · See full report (DOCX) for detailed assessment, systems, timelines and risks.</p>
-<table class="mt"><thead><tr><th>Area</th><th>#</th><th>Indicator</th><th>Status</th><th>Baseline</th></tr></thead><tbody>
-<tr><td rowspan="7"><strong>SDA</strong></td><td>1</td><td>% same-day outside GP</td><td><span class="sp">&#9888;</span></td><td>43.9% — use practice+role+mode filters</td></tr>
-<tr><td>2</td><td>Urgent vs LTC</td><td><span class="sp">&#9888;</span></td><td>Category proxy</td></tr>
-<tr><td>3</td><td>Avg wait time</td><td><span class="sp">&#9888;</span></td><td>Bands only</td></tr>
-<tr><td>4</td><td>% proactive LTC</td><td><span class="sp">&#9888;</span></td><td>GP LTC 30+ coded — use 30+ tab</td></tr>
-<tr><td>5</td><td>Specialty referral</td><td><span class="sn">&#10007;</span></td><td>NARP + ICB BI</td></tr>
-<tr><td>6</td><td>Unplanned admissions</td><td><span class="sn">&#10007;</span></td><td>NARP + ICB BI</td></tr>
-<tr><td>7</td><td>Per 1,000/wk</td><td><span class="sy">&#10003;</span></td><td>129.4 — per practice available</td></tr>
-<tr><td><strong>Ops</strong></td><td>8-9</td><td>Integration / Winter</td><td><span class="sy">&#10003;</span></td><td>Volume data by practice</td></tr>
-<tr><td><strong>Out</strong></td><td>10-12</td><td>FFT / Community / A&E</td><td><span class="sn">&#10007;</span></td><td>External data needed</td></tr>
-<tr><td><strong>Fin</strong></td><td>13-14</td><td>Cost / Avoidance</td><td><span class="sp">&#9888;</span></td><td>Volume yes, cost no</td></tr>
-<tr><td><strong>LTC</strong></td><td>15-18</td><td>Contacts / Cohort</td><td><span class="sp">&#9888;</span></td><td>Proxy via 30+ filter + NARP</td></tr>
-</tbody></table></div>
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+<div><div style="font-size:16px;font-weight:700;color:var(--D)">ICB Key Metrics & Information Schedule</div>
+<div style="font-size:11px;color:var(--tx2);margin-top:2px">Michael Chapman's draft requirements mapped against NRES data availability · Last updated March 2026</div></div>
+</div>
+
+<div class="kg" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+<div class="kc g"><div class="kl">Available</div><div class="kv">3</div><div class="ks">Data in GPAD dashboard</div></div>
+<div class="kc a"><div class="kl">Partial / Proxy</div><div class="kv">7</div><div class="ks">Have related data</div></div>
+<div class="kc r"><div class="kl">Not Available</div><div class="kv">8</div><div class="ks">External data needed</div></div>
+<div class="kc q"><div class="kl">Low Difficulty</div><div class="kv">5</div><div class="ks">Quick to resolve</div></div>
+<div class="kc"><div class="kl">Medium Difficulty</div><div class="kv">7</div><div class="ks">Needs coordination</div></div>
+<div class="kc p"><div class="kl">High Difficulty</div><div class="kv">6</div><div class="ks">Significant effort</div></div>
+</div>
+
+<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+<div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--G)"></span> Available</div>
+<div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--W)"></span> Partial</div>
+<div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--R)"></span> Not Available</div>
+<div style="font-size:10px;margin-left:12px"><strong>Difficulty:</strong> &#9679; Low &#9679;&#9679; Medium &#9679;&#9679;&#9679; High</div>
+</div>
+
+<!-- SDA ACTIVITY METRICS -->
+<div style="font-size:13px;font-weight:700;color:var(--D);margin:18px 0 8px;padding:8px 14px;background:linear-gradient(90deg,var(--B)08,transparent);border-left:4px solid var(--B);border-radius:0 6px 6px 0">Neighbourhood Access Service — Activity Metrics</div>
+
+<table class="mt" style="font-size:10px">
+<thead><tr>
+<th style="width:30px">#</th>
+<th style="width:180px">ICB Indicator</th>
+<th style="width:70px">Status</th>
+<th style="width:55px">Difficulty</th>
+<th style="width:200px">Current Baseline / What We Have</th>
+<th style="width:200px">What's Missing / Gap</th>
+<th>Proposed Resolution & Data Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td>% of same-day demand managed outside core GP (via SDA service)</td>
+<td><span class="sp">&#9888; Partial</span></td>
+<td>&#9679; Low</td>
+<td>43.9% of all contacts are same-day. GPAD shows total same-day by role (GP vs Nurses vs DPC). Practice-level breakdown available.</td>
+<td>Cannot distinguish SDA <em>service</em> appointments from core GP same-day in GPAD — both coded as same-day. No "referred to SDA" flag.</td>
+<td><strong>NRES to resolve:</strong> Once NAS go-live (Apr 2026), SDA service appointments will be coded under a distinct service setting or slot type in SystmOne. Pre-pilot baseline = total same-day % per practice. Post-pilot = SDA-specific slot count vs GP same-day. <strong>Low effort.</strong></td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Referral breakdown: urgent care vs complex/LTC same-day access</td>
+<td><span class="sp">&#9888; Partial</span></td>
+<td>&#9679;&#9679; Med</td>
+<td>National Category gives proxy: Acute Consultation (59,240), Clinical Triage (84,306), Routine Consultation (131,459), Planned Clinics (57,600).</td>
+<td>"Routine" category conflates LTC reviews with genuinely routine same-day. No referral <em>reason</em> field in GPAD. Cannot isolate "came in for urgent" vs "came in for LTC review".</td>
+<td><strong>NRES + ICB:</strong> NAS triage pathway will categorise referrals at point of entry (urgent vs complex/LTC). Requires SystmOne template or triage tool to tag at booking. Michael's info schedule should capture this from go-live. <strong>Medium — needs template design.</strong></td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Average same-day wait time (booking to appointment)</td>
+<td><span class="sp">&#9888; Partial</span></td>
+<td>&#9679; Low</td>
+<td>Wait time bands available: Same Day (198,500), 1 Day (24,058), 2-7 Days (67,112), etc. 49.2% seen within 24 hours.</td>
+<td>Exact minutes/hours not available — only categorical bands. "Same Day" could be 15 min or 8 hours wait.</td>
+<td><strong>NRES to resolve:</strong> SystmOne records exact booking and appointment timestamps. A targeted report (booked time vs appointment time for same-day slots) can be extracted per practice. <strong>Low effort — report build only.</strong></td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>% of appointments for proactive complex care / LTC</td>
+<td><span class="sp">&#9888; Partial</span></td>
+<td>&#9679;&#9679;&#9679; High</td>
+<td>GP 30+ min appointments: 13,245 (2.9% of all). Explicitly LTC-coded (Planned Clinics, SMR, Care Home): only 482 GP appts. See 30+ Min tab for full breakdown.</td>
+<td><strong>Critical gap.</strong> GPAD national categories don't distinguish "proactive LTC" from reactive routine. The 30.7% coded as "Other Care Activity" in GP 30+ min is ambiguous. No cohort tagging for Pre-Diabetes, EoL, COPD etc.</td>
+<td><strong>ICB + NRES jointly:</strong> Requires (a) agreed LTC cohort definitions, (b) SystmOne recall/review templates tagged as "proactive", (c) clinical coding guidance to practices. This is foundational to the LTC service model — until cohorts are defined, this metric cannot be accurately measured. <strong>High effort — service design dependency.</strong></td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>Referral % for specialty/hospital vs referred for the hub</td>
+<td><span class="sn">&#10007; N/A</span></td>
+<td>&#9679;&#9679;&#9679; High</td>
+<td>No referral destination data in GPAD exports.</td>
+<td>GPAD captures appointment activity, not referral flows. No data on where patients are referred <em>to</em> (secondary care, community hub, etc.).</td>
+<td><strong>ICB BI team to supply:</strong> e-RS (Electronic Referral Service) data for the 7 practice ODS codes would show referral volumes by specialty. Community hub referrals will need a new pathway code once operational. Paul Birch flagged as BI contact. <strong>High — cross-system data linkage.</strong></td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>Unplanned hospital / A&E admissions and primary care contacts</td>
+<td><span class="sn">&#10007; N/A</span></td>
+<td>&#9679;&#9679;&#9679; High</td>
+<td>No secondary care data in GPAD.</td>
+<td>Requires linked SUS/HES/ECDS data for NRES registered patient population. Admission reasons need coding to assess whether primary care contact preceded admission.</td>
+<td><strong>ICB BI team (Paul Birch) to supply:</strong> Monthly A&E attendance and non-elective admission counts for patients registered at the 7 practices. Baseline = 12 months pre-pilot. Post-pilot comparison from Oct 2026 review. <strong>High — ICB data warehouse extract, IG approvals likely needed.</strong></td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>Appointments per 1,000 registered patients per week</td>
+<td><span class="sy">&#10003; Available</span></td>
+<td>&#9679; Low</td>
+<td><strong>129.4 per 1,000/week</strong> (all contacts, all roles, 89,584 patients). Available per practice. National GP target = 70 per 1,000.</td>
+<td>Registered patient list sizes per practice needed for accurate per-practice rate. Currently using PCN aggregate (89,584).</td>
+<td><strong>NRES to resolve:</strong> Individual practice list sizes from NHSD or practice returns. Already available — just needs adding to dashboard calculation. <strong>Very low effort.</strong></td>
+</tr>
+</tbody></table>
+
+<!-- OPERATIONAL & SYSTEM METRICS -->
+<div style="font-size:13px;font-weight:700;color:var(--D);margin:22px 0 8px;padding:8px 14px;background:linear-gradient(90deg,var(--B)08,transparent);border-left:4px solid var(--B);border-radius:0 6px 6px 0">Neighbourhood Access Service — Operational & System Metrics</div>
+
+<table class="mt" style="font-size:10px">
+<thead><tr><th style="width:30px">#</th><th style="width:180px">ICB Indicator</th><th style="width:70px">Status</th><th style="width:55px">Difficulty</th><th style="width:200px">Current Baseline</th><th style="width:200px">Gap</th><th>Resolution</th></tr></thead>
+<tbody>
+<tr>
+<td><strong>8</strong></td>
+<td>Degree of integration with community urgent care / shared workforce / VCSE</td>
+<td><span class="sn">&#10007; N/A</span></td>
+<td>&#9679;&#9679; Med</td>
+<td>No data on referrals to/from VCSEs, Local Authority services, or community partners.</td>
+<td>GPAD only captures GP practice activity. No visibility of cross-organisational referral flows, shared workforce utilisation, or integrated triage rates.</td>
+<td><strong>NRES + ICB jointly:</strong> Establish referral tracking for NAS → VCSE/LA pathways. Could use SystmOne task/referral codes or a simple shared tracker (e.g. monthly returns from VCSE partners). Workforce data (WTE, vacancies) via NRES quarterly HR return. <strong>Medium — needs partner engagement.</strong></td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td>Winter surge capacity maintained via the new model</td>
+<td><span class="sy">&#10003; Available</span></td>
+<td>&#9679; Low</td>
+<td><strong>Fully available.</strong> Oct-Dec 2025 shows sustained 12,000-15,000 appts/week across the 7 practices. Oct spike (15,356/wk peak) driven by flu clinics. Volume maintained through Dec despite holiday period.</td>
+<td>Minimal. Post-pilot comparison (Winter 2026/27) will show whether NAS model sustains or improves winter capacity.</td>
+<td><strong>Already captured:</strong> Dashboard weekly/monthly view shows seasonal patterns clearly. Practice-level view enables identification of individual practice surge resilience. <strong>No additional work needed.</strong></td>
+</tr>
+</tbody></table>
+
+<!-- OUTCOMES -->
+<div style="font-size:13px;font-weight:700;color:var(--D);margin:22px 0 8px;padding:8px 14px;background:linear-gradient(90deg,var(--B)08,transparent);border-left:4px solid var(--B);border-radius:0 6px 6px 0">Outcomes for Patients</div>
+
+<table class="mt" style="font-size:10px">
+<thead><tr><th style="width:30px">#</th><th style="width:180px">ICB Indicator</th><th style="width:70px">Status</th><th style="width:55px">Difficulty</th><th style="width:200px">Current Baseline</th><th style="width:200px">Gap</th><th>Resolution</th></tr></thead>
+<tbody>
+<tr>
+<td><strong>10</strong></td>
+<td>Patient satisfaction / Friends & Family Test for urgent care model</td>
+<td><span class="sn">&#10007; N/A</span></td>
+<td>&#9679;&#9679; Med</td>
+<td>No patient satisfaction data in GPAD. FFT not currently collected in a structured way for same-day access specifically.</td>
+<td>No baseline patient experience measure. Michael's note flags importance of collecting "real patient stories/outcomes" more frequently. Lucy Hibberd (Comms) currently developing questionnaire.</td>
+<td><strong>NRES (Lucy Hibberd / Comms) to establish:</strong> (a) FFT-style survey for NAS patients post-appointment (SMS/online), (b) quarterly patient story collection. Baseline survey should run pre-go-live (Mar 2026) then monthly post-launch. Consider using existing NHS FFT infrastructure. <strong>Medium — survey design and distribution logistics.</strong></td>
+</tr>
+<tr>
+<td><strong>11</strong></td>
+<td>Access rates for diagnostics / community service pathways</td>
+<td><span class="sn">&#10007; N/A</span></td>
+<td>&#9679;&#9679;&#9679; High</td>
+<td>No community services or diagnostics data in GPAD.</td>
+<td>Requires data from community diagnostic centres (CDCs), community services providers, and potentially NHSE diagnostic waiting times dataset. Cross-organisational data sharing needed.</td>
+<td><strong>ICB to supply:</strong> Community services activity data for NRES-registered patients (e.g. MSK physio, community cardiology, diagnostics referrals). May require BI team to extract from community provider systems. Consider as Phase 2 metric once core NAS reporting is established. <strong>High — multi-provider data linkage. Risk: data availability and IG barriers.</strong></td>
+</tr>
+<tr>
+<td><strong>12</strong></td>
+<td>A&E attendance and waiting time comparison (pre/post hub)</td>
+<td><span class="sn">&#10007; N/A</span></td>
+<td>&#9679;&#9679;&#9679; High</td>
+<td>No A&E data available. Linked to indicator #6.</td>
+<td>Requires ECDS (Emergency Care Data Set) for A&E attendances by patients registered at the 7 practices. Need specialty-level breakdown per Michael's note: "comparison of activity data related to key specialties selected during pre and post hub".</td>
+<td><strong>ICB BI team (Paul Birch) to supply:</strong> Same data request as #6 but with A&E wait time and specialty breakdown. 12-month pre-pilot baseline needed. Formal review at Oct 2026. <strong>Risk: 6-month lag in secondary care data availability. High effort. Recommend ICB commission this extract early (Apr 2026) to ensure baseline is captured.</strong></td>
+</tr>
+</tbody></table>
+
+<!-- FINANCIAL -->
+<div style="font-size:13px;font-weight:700;color:var(--D);margin:22px 0 8px;padding:8px 14px;background:linear-gradient(90deg,var(--B)08,transparent);border-left:4px solid var(--B);border-radius:0 6px 6px 0">Financial & Efficiency</div>
+
+<table class="mt" style="font-size:10px">
+<thead><tr><th style="width:30px">#</th><th style="width:180px">ICB Indicator</th><th style="width:70px">Status</th><th style="width:55px">Difficulty</th><th style="width:200px">Current Baseline</th><th style="width:200px">Gap</th><th>Resolution</th></tr></thead>
+<tbody>
+<tr>
+<td><strong>13</strong></td>
+<td>Cost per appointment: community urgent care model vs baseline GP provision</td>
+<td><span class="sp">&#9888; Partial</span></td>
+<td>&#9679;&#9679; Med</td>
+<td>Appointment volumes fully available by practice, role, mode, and duration. Can calculate appointments per session, per clinician type.</td>
+<td>No cost data in GPAD. Need: (a) NAS service staffing costs (NRES budget), (b) baseline GP cost per appointment, (c) locum vs substantive cost differential.</td>
+<td><strong>NRES Finance + ICB:</strong> NRES programme budget (£2.34M) provides NAS cost base. Divide by NAS appointment volume post-launch for cost/appt. Compare against national GP appointment cost benchmarks (PSSRU/Curtis & Burns). NRES Locum Services Agreement provides locum cost data. <strong>Medium — needs finance input from PCN Services Ltd.</strong></td>
+</tr>
+<tr>
+<td><strong>14</strong></td>
+<td>Estimated cost avoidance (A&E attendances avoided, reduced non-elective activity)</td>
+<td><span class="sn">&#10007; N/A</span></td>
+<td>&#9679;&#9679;&#9679; High</td>
+<td>No secondary care cost or activity data.</td>
+<td>Requires: (a) A&E attendance reduction estimate (from #6/#12), (b) non-elective admission reduction estimate, (c) national reference costs per A&E attendance and non-elective spell.</td>
+<td><strong>ICB BI + Finance:</strong> Apply NHS Reference Costs to avoided activity volumes (once measured via #6/#12). Standard methodology: A&E attendance cost ~£180, non-elective spell ~£2,500. Cannot be calculated until secondary care baseline is established. <strong>High — dependent on #6 and #12 being resolved first. Risk: attribution challenge — difficult to prove NAS caused the reduction vs other factors.</strong></td>
+</tr>
+</tbody></table>
+
+<!-- LTC / COMPLEX CARE -->
+<div style="font-size:13px;font-weight:700;color:var(--P);margin:22px 0 8px;padding:8px 14px;background:linear-gradient(90deg,var(--P)08,transparent);border-left:4px solid var(--P);border-radius:0 6px 6px 0">Complex Care / Long-Term Conditions Service</div>
+
+<div class="co warn" style="margin-bottom:14px"><h3>&#9888;&#65039; LTC Metrics — Service Model Dependency</h3>
+<p>Michael's note highlights: <em>"it would be helpful to develop a clearer understanding of the planned approach and what data will be monitored. We want to ensure equity across all patient groups is factored in from the outset, and that outcomes aren't disproportionately influenced by a small subset of patients."</em></p>
+<p style="margin-top:6px">The LTC indicators below are largely dependent on <strong>cohort definitions being agreed</strong> (Pre-Diabetes, End of Life, Post-Hospital Discharge, COPD with Remote Monitoring). Until these are defined and coded in clinical systems, most LTC metrics will remain proxies. The <strong>unique patient count</strong> requirement (increasing reach, not just volume) requires patient-level data not available in aggregated GPAD exports.</p></div>
+
+<table class="mt" style="font-size:10px">
+<thead><tr><th style="width:30px">#</th><th style="width:180px">ICB Indicator</th><th style="width:70px">Status</th><th style="width:55px">Difficulty</th><th style="width:200px">Current Baseline</th><th style="width:200px">Gap</th><th>Resolution</th></tr></thead>
+<tbody>
+<tr>
+<td><strong>15</strong></td>
+<td>First F2F contacts / Follow-up F2F / Non-F2F contacts / First-to-follow-up ratio</td>
+<td><span class="sp">&#9888; Partial</span></td>
+<td>&#9679;&#9679; Med</td>
+<td>Total F2F: 267,723. Total Telephone: 112,492. Total Video: 59,090. Available per practice and per role. GP F2F 30+ min: 8,332 (31-60 min) + 4,913 (61+ min).</td>
+<td><strong>No first vs follow-up distinction</strong> in GPAD. All contacts are counted equally — cannot calculate first-to-follow-up ratio without patient-level longitudinal data.</td>
+<td><strong>NRES to resolve:</strong> SystmOne consultation templates can distinguish "new problem" vs "follow-up" via clinical coding. Requires (a) agreed coding approach for LTC contacts, (b) SystmOne search to extract first/follow-up. Could also use appointment slot types (e.g. "LTC Review" vs "LTC Follow-up"). <strong>Medium — needs clinical coding agreement with practices.</strong></td>
+</tr>
+<tr>
+<td><strong>16</strong></td>
+<td>Proactive contacts breakdown (including proactive first-to-follow-up ratio)</td>
+<td><span class="sp">&#9888; Partial</span></td>
+<td>&#9679;&#9679;&#9679; High</td>
+<td>Proxy data: Planned Clinics (57,600), Planned Clinical Procedures (67,714), Structured Medication Reviews (1,264), Care Home contacts (2,981). GP 30+ min LTC-coded: 482.</td>
+<td><strong>"Proactive" is not explicitly tagged</strong> in GPAD. Planned Clinics <em>may</em> include proactive LTC work but also includes routine chronic disease clinics that aren't part of the new model. No way to separate without clinical template data.</td>
+<td><strong>NRES + ICB jointly:</strong> Define "proactive" operationally — e.g. contacts initiated by practice (recall/review) vs patient-initiated. Requires either: (a) distinct SystmOne slot types for proactive LTC, or (b) clinical code at consultation start. This is central to Michael's equity point — need to track unique patients, not just contact volumes. <strong>High — service design and clinical system configuration needed before data can flow. Risk: inconsistent coding across 7 practices.</strong></td>
+</tr>
+<tr>
+<td><strong>17</strong></td>
+<td>Unplanned hospital / A&E admissions for LTC patients specifically</td>
+<td><span class="sn">&#10007; N/A</span></td>
+<td>&#9679;&#9679;&#9679; High</td>
+<td>No secondary care data. No LTC patient cohort defined.</td>
+<td>Requires: (a) defined LTC cohort patient list from each practice, (b) linked SUS/HES data for those patients specifically, (c) admission reason coding to attribute to LTC conditions.</td>
+<td><strong>ICB BI team + NRES:</strong> Once LTC cohorts are defined (#4/#16), generate patient-level NHS numbers list. ICB BI to match against SUS/HES for admissions. Pre-pilot baseline = 12 months prior. <strong>High — dependent on cohort definition. Risk: IG/DPIA requirements for patient-level data sharing between NRES and ICB. Recommend early DPIA assessment (NRES DPIA v1.1 may need updating).</strong></td>
+</tr>
+<tr>
+<td><strong>18</strong></td>
+<td>Selected cohort activity: Pre-Diabetes, End of Life Care, Post-Hospital Discharge, COPD with Remote Monitoring</td>
+<td><span class="sn">&#10007; N/A</span></td>
+<td>&#9679;&#9679;&#9679; High</td>
+<td>No cohort-level data available. GPAD does not break down by clinical condition or patient group.</td>
+<td><strong>Foundational gap.</strong> No agreed cohort definitions, no patient registers, no condition-specific activity tracking. Michael specifically flags need for unique patient counts to ensure equity — "the number of unique patients are increasing rather than more work being done with the patients already being seen".</td>
+<td><strong>NRES + ICB + Clinical Directors to resolve:</strong> Priority actions: (1) Dr Simon Ellis / Dr Tom Howseman to agree clinical cohort definitions and inclusion criteria, (2) Practices to run QOF/clinical searches to generate baseline cohort sizes, (3) SystmOne templates for each cohort pathway, (4) Monthly extract of unique patient count + contact count per cohort. <strong>High — this is the largest single workstream. Risk: requires clinical leadership engagement and consistent implementation across all 7 practices. Recommend phased approach: start with 1-2 cohorts (e.g. Pre-Diabetes + COPD) rather than all four simultaneously.</strong></td>
+</tr>
+</tbody></table>
+
+<!-- POPULATION HEALTH -->
+<div style="font-size:13px;font-weight:700;color:var(--D);margin:22px 0 8px;padding:8px 14px;background:linear-gradient(90deg,var(--D)08,transparent);border-left:4px solid var(--D);border-radius:0 6px 6px 0">Population Health & Inequalities</div>
+
+<div class="co info"><h3>&#128203; Note on Equity & Population Health</h3>
+<p>Michael's schedule includes a "Population Health and Inequalities" section which is currently blank in the draft. However, his email explicitly raises equity: ensuring outcomes <em>"aren't disproportionately influenced by a small subset of patients"</em> and that <em>"unique patients are increasing"</em>. This cross-cuts all LTC metrics above.</p>
+<p style="margin-top:6px"><strong>Recommendation:</strong> NRES should propose to the ICB that all cohort-level reporting (#18) includes a deprivation breakdown (IMD quintile by patient postcode) and demographic split (age band, ethnicity where recorded). This can be extracted from SystmOne demographic data once cohorts are established. Low additional effort on top of cohort setup, but significant value for demonstrating equitable reach.</p></div>
+
+<!-- SUMMARY & NEXT STEPS -->
+<div style="font-size:13px;font-weight:700;color:var(--D);margin:22px 0 8px;padding:8px 14px;background:linear-gradient(90deg,var(--G)15,transparent);border-left:4px solid var(--G);border-radius:0 6px 6px 0">Recommended Priority Actions</div>
+
+<div style="background:var(--card);border-radius:10px;padding:16px;box-shadow:var(--sh);font-size:11px;line-height:1.8">
+<table style="width:100%;border-collapse:collapse;font-size:11px">
+<tr style="border-bottom:1px solid var(--bdr)">
+<td style="padding:6px 10px;font-weight:700;color:var(--G);width:70px">Priority 1</td>
+<td style="padding:6px 10px;width:120px"><strong>Pre Go-Live</strong><br>(Mar 2026)</td>
+<td style="padding:6px 10px"><strong>NRES actions:</strong> (a) Confirm practice list sizes for per-1,000 calculations (#7), (b) Design NAS appointment slot types in SystmOne for SDA tracking (#1), (c) Commission baseline patient satisfaction survey (#10), (d) Confirm SystmOne same-day timestamp report feasibility (#3)</td>
+</tr>
+<tr style="border-bottom:1px solid var(--bdr)">
+<td style="padding:6px 10px;font-weight:700;color:var(--W)">Priority 2</td>
+<td style="padding:6px 10px"><strong>Go-Live + 1 month</strong><br>(May 2026)</td>
+<td style="padding:6px 10px"><strong>NRES + ICB:</strong> (a) Agree LTC cohort definitions with Clinical Directors (#4/#16/#18), (b) ICB BI team to commission secondary care baseline extract (#6/#12), (c) Establish VCSE referral tracking mechanism (#8), (d) Agree NAS triage categorisation for urgent vs complex (#2)</td>
+</tr>
+<tr style="border-bottom:1px solid var(--bdr)">
+<td style="padding:6px 10px;font-weight:700;color:var(--W)">Priority 3</td>
+<td style="padding:6px 10px"><strong>Go-Live + 3 months</strong><br>(Jul 2026)</td>
+<td style="padding:6px 10px"><strong>NRES + ICB:</strong> (a) First LTC cohort reports (unique patients + contact volumes) (#18), (b) NAS cost per appointment calculation (#13), (c) First proactive contact tracking (#16), (d) Practice-level SDA performance comparison for Programme Board</td>
+</tr>
+<tr>
+<td style="padding:6px 10px;font-weight:700;color:var(--R)">Priority 4</td>
+<td style="padding:6px 10px"><strong>Formal Review</strong><br>(Oct 2026)</td>
+<td style="padding:6px 10px"><strong>Full metrics pack for ICB:</strong> (a) Complete pre/post comparison on all available metrics, (b) A&E/admission impact assessment (#6/#12/#14), (c) Cost avoidance estimate (#14), (d) Community pathway access data (#11), (e) Population health equity analysis. <strong>Note: Oct 2026 aligns with Notewell ICB DDaT Board review.</strong></td>
+</tr>
+</table>
+</div>
+
+<!-- KEY RISKS -->
+<div style="font-size:13px;font-weight:700;color:var(--R);margin:22px 0 8px;padding:8px 14px;background:linear-gradient(90deg,var(--R)08,transparent);border-left:4px solid var(--R);border-radius:0 6px 6px 0">Key Risks to Metrics Delivery</div>
+
+<table class="mt" style="font-size:10px">
+<thead><tr><th style="width:40px">Risk</th><th style="width:200px">Description</th><th style="width:60px">Impact</th><th style="width:60px">Likelihood</th><th>Mitigation</th></tr></thead>
+<tbody>
+<tr><td><strong>R1</strong></td><td>LTC cohort definitions not agreed in time, blocking metrics #4, #16, #17, #18</td><td style="color:var(--R);font-weight:600">High</td><td style="color:var(--W);font-weight:600">Medium</td><td>Escalate to Programme Board. Propose phased approach — start with Pre-Diabetes + COPD only. Dr Ellis / Dr Howseman to lead clinical definition by May 2026.</td></tr>
+<tr><td><strong>R2</strong></td><td>ICB BI team capacity to deliver secondary care extracts (#6, #12, #14) within timeline</td><td style="color:var(--R);font-weight:600">High</td><td style="color:var(--W);font-weight:600">Medium</td><td>Early engagement with Paul Birch. Formal data request submitted Apr 2026. Agree SLA for monthly data refresh.</td></tr>
+<tr><td><strong>R3</strong></td><td>Inconsistent clinical coding across 7 practices undermines data quality for LTC/proactive metrics</td><td style="color:var(--W);font-weight:600">Medium</td><td style="color:var(--R);font-weight:600">High</td><td>Standardised coding guidance in NRES SOP pack. Monthly data quality audit. Practice manager training session pre-go-live.</td></tr>
+<tr><td><strong>R4</strong></td><td>IG/DPIA barriers to patient-level data sharing for cohort tracking and secondary care linkage</td><td style="color:var(--W);font-weight:600">Medium</td><td style="color:var(--W);font-weight:600">Medium</td><td>NRES DPIA v1.1 and DSA v1.1 already in place. Review scope to confirm cohort-level patient data sharing is covered. Update if needed before go-live.</td></tr>
+<tr><td><strong>R5</strong></td><td>Patient satisfaction survey response rates too low for meaningful baseline</td><td style="color:var(--W);font-weight:600">Medium</td><td style="color:var(--W);font-weight:600">Medium</td><td>Use SMS-based FFT (higher response rate than paper). Target minimum 100 responses per practice in baseline period. Incentivise participation via practice comms.</td></tr>
+</tbody></table>
+
+</div></div>
+
+</div>
+<div style="height:16px"></div>
+<div style="height:16px"></div>
 
 </div>
 <div class="ft">NRES New Models · Baseline v8 · GPAD Practice Exports (Mar 25 – Feb 26) · 7 Practices<br>Brackley · Brook Health · Bugbrooke · Denton · Springfield · The Parks · Towcester</div>
