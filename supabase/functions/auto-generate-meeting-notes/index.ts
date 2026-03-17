@@ -1228,17 +1228,8 @@ Write 1 concise paragraph (3-4 sentences maximum) that captures the essence of t
 - [Name] - if organization is not known
 (List each attendee on a separate bullet point. Include their organization in parentheses only if it is provided in the authoritative context)
 
-SPEAKER ATTRIBUTION RULES:
-- If a speaker-labelled transcript is provided, use it to determine WHO made specific statements, decisions, and commitments
-- Map speaker labels (Speaker A, Speaker B, etc.) to real names by looking for context clues:
-  • Direct address: "Thanks Tom" or "What do you think, Claire?" after a speaker turn
-  • Self-identification: "As the CD, I think..." or "In my role as practice manager..."
-  • Role references: "Malcolm, can you update us on enhanced access?" followed by Speaker C responding
-- Once you have mapped a speaker label to a name, use that name consistently throughout the notes
-- In the DISCUSSION SUMMARY, attribute key statements and positions to named individuals where the speaker labels make this clear
-- In ACTION ITEMS, use the speaker attribution to identify who VOLUNTEERED or was ASKED to do something, rather than defaulting to TBC
-- If you cannot confidently map a speaker label to a name, use a role descriptor ("the Clinical Director", "a practice representative") — NEVER write "Speaker A" or "Speaker B" in the final notes
-- Do NOT fabricate attributions — only attribute statements where the speaker labels clearly support it
+
+
 
 # DISCUSSION SUMMARY
 
@@ -1404,34 +1395,8 @@ The transcript mishears these terms regularly — always use the corrected versi
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const formattedDate = `${dayOfWeek} ${day}${ordinalSuffix(day)} ${months[meetingDate.getMonth()]} ${meetingDate.getFullYear()}`;
 
-    // ============= SPEAKER ATTRIBUTION CONTEXT =============
-    // AssemblyAI captures speaker-labelled utterances. Pass these to the AI
-    // so it can attribute decisions, actions, and statements to specific speakers.
-    let speakerContext = '';
-    try {
-      const { data: speakerData } = await supabase
-        .from('meetings')
-        .select('assembly_transcript_text')
-        .eq('id', meetingId)
-        .single();
-      
-      const assemblyText = speakerData?.assembly_transcript_text || '';
-      
-      // Only use if it contains speaker labels (format: [Speaker A]: text)
-      if (assemblyText && /\[Speaker [A-Z]\]/i.test(assemblyText)) {
-        // Sample the speaker-labelled transcript: first 3K + last 3K
-        const speakerSample = assemblyText.length <= 6000
-          ? assemblyText
-          : assemblyText.substring(0, 3000) + '\n\n[... middle section omitted ...]\n\n' + assemblyText.substring(assemblyText.length - 3000);
-        
-        speakerContext = speakerSample;
-        console.log(`🎙️ Speaker-labelled transcript available: ${assemblyText.length} chars, ${(assemblyText.match(/\[Speaker [A-Z]\]/gi) || []).length} speaker tags found`);
-      } else {
-        console.log('🎙️ No speaker labels found in Assembly transcript');
-      }
-    } catch (speakerError) {
-      console.warn('⚠️ Could not fetch speaker-labelled transcript (non-fatal)');
-    }
+
+
 
     // Build authoritative context information from meeting metadata
     let locationContext = '';
@@ -1510,29 +1475,13 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
     const minutes = String(startTime.getUTCMinutes()).padStart(2, '0');
     const formattedStartTime = `${hours}:${minutes} GMT`;
 
-    const speakerSection = speakerContext ? `
-**SPEAKER-LABELLED TRANSCRIPT (USE FOR ATTRIBUTION ONLY):**
-The following transcript excerpt includes speaker labels from voice detection. Use these labels to:
-1. Identify WHO said what, WHO made each decision, and WHO was assigned each action
-2. Map speaker labels to real names using context clues (e.g., "Thanks Tom" after Speaker A speaks = Speaker A is Tom)
-3. Cross-reference with the attendees list above to confirm speaker identities
-4. Attribute specific statements, decisions, and commitments to named individuals in the notes
-
-If you cannot confidently identify a speaker, use their role (e.g., "the Clinical Director") rather than "Speaker A".
-Do NOT introduce the speaker labels themselves (Speaker A, Speaker B) into the final notes — always use real names or roles.
-
-${speakerContext}
-
----
-` : '';
-
     const userPrompt = `Meeting Title: ${generatedTitle}
 Meeting Date: ${formattedDate}
 Recording Start Time: ${formattedStartTime}
 Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 
 ${contextInfo}
-${speakerSection}
+
 Transcript:
 ${cleanedTranscript}`;
 

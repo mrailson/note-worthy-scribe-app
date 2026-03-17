@@ -131,9 +131,8 @@ serve(async (req) => {
         punctuate: false,
         format_text: false,
         
-        // OTEWELL: Enable speaker diarisation
-        speaker_labels: true,
-        speakers_expected: 3, // GP, Patient, possible companion
+        // OTEWELL: Speaker diarisation disabled — unreliable attribution caused mis-diarised notes
+        speaker_labels: false,
         
         // OTEWELL: Capture everything including profanity
         filter_profanity: false,
@@ -184,14 +183,8 @@ serve(async (req) => {
       if (result.status === 'completed') {
         console.log('[AssemblyAI-Transcription] OTEWELL transcription completed successfully');
         
-        // OTEWELL: Include utterances with speaker labels if available
-        const utterances = result.utterances || [];
-        const speakerText = utterances.length > 0 
-          ? utterances.map((u: { speaker: string; text: string }) => `[Speaker ${u.speaker}]: ${u.text}`).join('\n')
-          : result.text || '';
-        
         return Response.json({
-          text: speakerText,
+          text: result.text || '',
           confidence: result.confidence || 0.9,
           chunkIndex,
           processingTime: attempts + 1,
