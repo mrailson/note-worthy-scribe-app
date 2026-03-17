@@ -60,46 +60,61 @@ export function useApplyMeetingCorrections() {
   ) => {
     if (!correctionsLoaded) return;
 
+    const correctedTitle = medicalTermCorrector.applyCorrections(currentTitle);
+    const correctedOverview = currentOverview
+      ? medicalTermCorrector.applyCorrections(currentOverview)
+      : null;
+
     setUpdatingMeetings(prev => ({ ...prev, [meetingId]: true }));
     let totalReplacements = 0;
 
     try {
-      // 1. Update title
-      const correctedTitle = medicalTermCorrector.applyCorrections(currentTitle);
       if (correctedTitle !== currentTitle) {
-        await supabase.from('meetings').update({ title: correctedTitle }).eq('id', meetingId);
+        const { data: updatedMeeting, error: titleError } = await supabase
+          .from('meetings')
+          .update({ title: correctedTitle })
+          .eq('id', meetingId)
+          .select('id')
+          .maybeSingle();
+
+        if (titleError) throw titleError;
+        if (!updatedMeeting) throw new Error('Meeting title update was not persisted');
         totalReplacements++;
       }
 
-      // 2. Update overview
-      if (currentOverview) {
-        const correctedOverview = medicalTermCorrector.applyCorrections(currentOverview);
-        if (correctedOverview !== currentOverview) {
-          await supabase.from('meeting_overviews').update({ overview: correctedOverview }).eq('meeting_id', meetingId);
-          totalReplacements++;
-        }
+      if (currentOverview && correctedOverview !== currentOverview) {
+        const { data: updatedOverview, error: overviewError } = await supabase
+          .from('meeting_overviews')
+          .update({ overview: correctedOverview })
+          .eq('meeting_id', meetingId)
+          .select('id')
+          .maybeSingle();
+
+        if (overviewError) throw overviewError;
+        if (!updatedOverview) throw new Error('Meeting overview update was not persisted');
+        totalReplacements++;
       }
 
-      // 3. Update summaries (all note styles)
-      const { data: summaries } = await supabase
+      const { data: summaries, error: summariesError } = await supabase
         .from('meeting_summaries')
         .select('id, summary, key_points, action_items, decisions')
         .eq('meeting_id', meetingId);
 
+      if (summariesError) throw summariesError;
+
       if (summaries) {
         for (const s of summaries) {
           const updates: Record<string, any> = {};
-          
+
           if (s.summary) {
             const corrected = medicalTermCorrector.applyCorrections(s.summary);
             if (corrected !== s.summary) updates.summary = corrected;
           }
 
-          // Apply to JSON array fields
           for (const field of ['key_points', 'action_items', 'decisions'] as const) {
             const arr = s[field];
             if (Array.isArray(arr)) {
-              const corrected = arr.map((item: string) => 
+              const corrected = arr.map((item: string) =>
                 typeof item === 'string' ? medicalTermCorrector.applyCorrections(item) : item
               );
               if (JSON.stringify(corrected) !== JSON.stringify(arr)) {
@@ -109,19 +124,25 @@ export function useApplyMeetingCorrections() {
           }
 
           if (Object.keys(updates).length > 0) {
-            await supabase.from('meeting_summaries').update(updates).eq('id', s.id);
+            const { data: updatedSummary, error: summaryUpdateError } = await supabase
+              .from('meeting_summaries')
+              .update(updates)
+              .eq('id', s.id)
+              .select('id')
+              .maybeSingle();
+
+            if (summaryUpdateError) throw summaryUpdateError;
+            if (!updatedSummary) throw new Error('Meeting summary update was not persisted');
             totalReplacements += Object.keys(updates).length;
           }
         }
       }
 
-      // Update local state
-      onLocalUpdate?.({
-        title: correctedTitle,
-        overview: currentOverview ? medicalTermCorrector.applyCorrections(currentOverview) : undefined,
-      });
-
       if (totalReplacements > 0) {
+        onLocalUpdate?.({
+          ...(correctedTitle !== currentTitle ? { title: correctedTitle } : {}),
+          ...(correctedOverview && correctedOverview !== currentOverview ? { overview: correctedOverview } : {}),
+        });
         toast.success(`Meeting updated — ${totalReplacements} field${totalReplacements !== 1 ? 's' : ''} corrected`);
       } else {
         toast.info('No corrections needed for this meeting');
