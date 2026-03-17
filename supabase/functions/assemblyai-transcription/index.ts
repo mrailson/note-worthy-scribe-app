@@ -131,9 +131,8 @@ serve(async (req) => {
         punctuate: false,
         format_text: false,
         
-        // OTEWELL: Enable speaker diarisation
-        speaker_labels: true,
-        speakers_expected: 3, // GP, Patient, possible companion
+        // OTEWELL: Speaker diarisation disabled — unreliable attribution caused mis-diarised notes
+        speaker_labels: false,
         
         // OTEWELL: Capture everything including profanity
         filter_profanity: false,
