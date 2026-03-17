@@ -27,7 +27,7 @@ interface DocumentPreviewModalProps {
   infographicPracticeName?: string;
   infographicSpellingCorrections?: { incorrect: string; correct: string }[];
   onContentUpdated?: (newContent: string) => void;
-  onExportPowerPoint?: (content: string, title?: string, slideCount?: number) => void;
+  onExportPowerPoint?: (content: string, title?: string, slideCount?: number, imageMode?: string, textDensity?: string) => void;
   isPowerPointGenerating?: boolean;
 }
 
