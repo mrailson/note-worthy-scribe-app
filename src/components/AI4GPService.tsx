@@ -125,10 +125,10 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const { settings: chatViewSettings, updateSetting: updateChatViewSetting, resetToDefaults: resetChatViewSettings } = useChatViewSettings();
 
   // Wrapper functions for PowerPoint export that match expected signatures
-  const handleExportPowerPoint = (content: string, title?: string, slideCount?: number) => {
+  const handleExportPowerPoint = (content: string, title?: string, slideCount?: number, imageMode?: string, textDensity?: string) => {
     setPptComplete(false);
     setPptError(null);
-    generateWithGamma(content, title, true, slideCount || 4).catch((err) => {
+    generateWithGamma(content, title, true, slideCount || 4, imageMode || 'noImages', textDensity || 'medium').catch((err) => {
       setPptError(err?.message || 'Generation failed');
     });
   };
