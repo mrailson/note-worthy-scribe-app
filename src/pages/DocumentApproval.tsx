@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download, Send, History, ShieldAlert, RefreshCw, Users } from 'lucide-react';
+import { Plus, FileCheck, Clock, CheckCircle2, XCircle, Ban, ArrowLeft, Loader2, AlertTriangle, FileText, Eye, Mail, MoreHorizontal, Download, Send, History, ShieldAlert, RefreshCw, Users, Trash2 } from 'lucide-react';
 import { useDocumentApproval, ApprovalDocumentWithSignatories, ApprovalSignatory } from '@/hooks/useDocumentApproval';
 import { CreateApprovalFlow } from '@/components/document-approval/CreateApprovalFlow';
 import { ApprovalDocumentDetail } from '@/components/document-approval/ApprovalDocumentDetail';
@@ -66,7 +66,7 @@ function getSignatoryContext(sig: ApprovalSignatory, doc: ApprovalDocumentWithSi
 export default function DocumentApproval() {
   const navigate = useNavigate();
   const { hasModuleAccess, isSystemAdmin } = useAuth();
-  const { documents, contacts, loading, chaseSignatory, chaseAllPending, chaseAllOverdue, refetch, saveContact, updateContact, deleteContact, toggleContactFavourite } = useDocumentApproval();
+  const { documents, contacts, loading, chaseSignatory, chaseAllPending, chaseAllOverdue, refetch, saveContact, updateContact, deleteContact, toggleContactFavourite, deleteDocument } = useDocumentApproval();
   const [chasingDocId, setChasingDocId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<ApprovalDocumentWithSignatories | null>(null);
@@ -410,6 +410,14 @@ export default function DocumentApproval() {
                           }
                         }}
                         isChasing={chasingDocId === doc.id}
+                        onDelete={async () => {
+                          try {
+                            await deleteDocument(doc.id);
+                            toast.success('Document deleted');
+                          } catch (err) {
+                            toast.error('Failed to delete document');
+                          }
+                        }}
                       />
                     ))
                   )}
@@ -446,11 +454,12 @@ export default function DocumentApproval() {
 
 // ─── Document Card ──────────────────────────────────────────────────────
 
-function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
+function DocumentCard({ doc, onSelect, onChasePending, isChasing, onDelete }: {
   doc: ApprovalDocumentWithSignatories;
   onSelect: () => void;
   onChasePending: () => void;
   isChasing: boolean;
+  onDelete: () => void;
 }) {
   const sigs = doc.signatories;
   const approvedCount = sigs.filter(s => s.status === 'approved').length;
@@ -583,6 +592,16 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
               <Mail className="h-3 w-3" />
             )}
             Chase Pending ({pendingCount})
+          </Button>
+        )}
+        {doc.status === 'draft' && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-3 w-3" /> Delete
           </Button>
         )}
       </div>
