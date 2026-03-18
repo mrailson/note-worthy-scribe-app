@@ -648,7 +648,7 @@ function wbRenderCards(bandTotals,total,numWeeks){
   const cls=['g','q','','a','','r'];
   el.innerHTML=labels.map((l,i)=>{
     const pct=total?((bandTotals[i]/total)*100).toFixed(1):0;
-    return '<div class="kc '+cls[i]+'"><div class="kl">'+l+'</div><div class="kv">'+wbFmt(bandTotals[i])+'</div><div class="ks">'+pct+'% · '+Math.round(bandTotals[i]/numWeeks)+' avg/wk</div></div>';
+    return '<div class="kc '+cls[i]+'"><div class="kl">'+l+'</div><div class="kv">'+Math.round(bandTotals[i]/numWeeks)+' avg/wk</div><div class="ks">'+pct+'% · '+wbFmt(bandTotals[i])+' total</div></div>';
   }).join('');
 }
 
