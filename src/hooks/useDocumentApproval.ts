@@ -674,8 +674,12 @@ export function useDocumentApproval() {
   const deleteDocument = useCallback(async (documentId: string) => {
     if (!user) throw new Error('Not authenticated');
 
-    // If pending, revoke first so signatories can't approve a deleted doc
     const doc = documents.find(d => d.id === documentId);
+
+    // Optimistically remove from UI immediately
+    setDocuments(prev => prev.filter(d => d.id !== documentId));
+
+    // If pending, revoke first so signatories can't approve a deleted doc
     if (doc?.status === 'pending') {
       await supabase
         .from('approval_documents')

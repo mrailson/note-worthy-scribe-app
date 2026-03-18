@@ -413,7 +413,6 @@ export default function DocumentApproval() {
                         onDelete={async () => {
                           try {
                             await deleteDocument(doc.id);
-                            toast.success('Document deleted');
                           } catch (err) {
                             toast.error('Failed to delete document');
                           }
