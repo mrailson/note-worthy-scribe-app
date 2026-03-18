@@ -26,15 +26,31 @@ export interface SignatoryPosition {
   height: number;
 }
 
+export interface FieldPosition {
+  page: number;
+  x: number;
+  y: number;
+}
+
 export interface SignaturePlacement {
-  method: 'append' | 'stamp';
+  method: 'append' | 'stamp' | 'separated';
   page?: number;
   x?: number;
   y?: number;
   width?: number;
   height?: number;
-  /** Per-signatory positions keyed by signatory ID */
+  /** Per-signatory positions keyed by signatory ID (block/stamp mode) */
   positions?: Record<string, SignatoryPosition>;
+  /** Per-signatory field-level positions keyed by signatory ID (separated mode) */
+  fieldPositions?: Record<string, {
+    signature?: FieldPosition;
+    name?: FieldPosition;
+    role?: FieldPosition;
+    organisation?: FieldPosition;
+    date?: FieldPosition;
+  }>;
+  /** Font size for separated fields (default 14) */
+  separatedFontSize?: number;
 }
 
 export interface AuditLogEntry {
