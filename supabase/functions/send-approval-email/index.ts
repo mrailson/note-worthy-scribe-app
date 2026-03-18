@@ -225,9 +225,249 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const resend = new Resend(resendApiKey);
 
-    const { type, document_id, signatory_id, custom_body, signed_file_url }: EmailRequest = await req.json();
+    const { type, document_id, group_id, signatory_id, custom_body, signed_file_url }: EmailRequest = await req.json();
 
-    if (!type || !document_id) {
+    // ─── MULTI_REQUEST: one email per signatory for all docs in group ───
+    if (type === "multi_request") {
+      if (!group_id) {
+        return new Response(JSON.stringify({ error: "group_id is required for multi_request" }), {
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      // Fetch all documents in the group
+      const { data: groupDocs } = await supabase
+        .from("approval_documents")
+        .select("*")
+        .eq("multi_doc_group_id", group_id)
+        .order("created_at");
+
+      if (!groupDocs || groupDocs.length === 0) {
+        return new Response(JSON.stringify({ error: "No documents found for this group" }), {
+          status: 404, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      // Fetch all signatories for all docs in the group
+      const docIds = groupDocs.map(d => d.id);
+      const { data: allGroupSigs } = await supabase
+        .from("approval_signatories")
+        .select("*")
+        .in("document_id", docIds)
+        .order("sort_order");
+
+      // Group by email to find unique signatories and their group_token
+      const emailMap = new Map<string, { sigs: any[], group_token: string }>();
+      for (const sig of (allGroupSigs || [])) {
+        if (!emailMap.has(sig.email)) {
+          emailMap.set(sig.email, { sigs: [], group_token: sig.group_token });
+        }
+        emailMap.get(sig.email)!.sigs.push(sig);
+      }
+
+      // Look up sender info from first doc
+      const firstDoc = groupDocs[0];
+      let senderTitle: string | null = null;
+      if (firstDoc.sender_id) {
+        const { data: sp } = await supabase.from("profiles").select("title").eq("user_id", firstDoc.sender_id).single();
+        senderTitle = sp?.title || null;
+      }
+      const senderDisplayName = withTitle(firstDoc.sender_name || firstDoc.sender_email || "Unknown", senderTitle);
+
+      const results: Array<{ email: string; status: string; error?: string }> = [];
+
+      for (const [email, { sigs, group_token: gt }] of emailMap) {
+        const sigDisplayName = withTitle(sigs[0].name, sigs[0].signatory_title);
+        const approveUrl = `${APP_URL}/approve/group/${gt}`;
+
+        // Build document list rows
+        const docListRows = groupDocs.map((d, i) => 
+          `<tr>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${i + 1}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${d.title}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${d.category || "—"}</td>
+          </tr>`
+        ).join("");
+
+        const messageBlock = firstDoc.message
+          ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 16px 0;">
+              <tr><td style="border-left: 4px solid #005EB8; background-color: #f1f5f9; padding: 12px 16px; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; font-style: italic;">&ldquo;${firstDoc.message}&rdquo;</td></tr>
+            </table>`
+          : "";
+
+        const deadlineInfo = firstDoc.deadline
+          ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 8px 0;"><tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">Deadline: <strong>${formatDate(firstDoc.deadline)}</strong></td></tr></table>`
+          : "";
+
+        let html: string;
+        if (custom_body) {
+          const personalised = custom_body
+            .replace(/\[Signatory Name\]/gi, sigDisplayName)
+            .replace(/\n/g, "<br>");
+
+          html = emailWrapper(`
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Document Approval Requested</td></tr>
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; line-height: 1.6; padding-bottom: 16px;">${personalised}</td></tr>
+            </table>
+            ${signatoryTable(["#", "Document", "Category"], docListRows)}
+            ${primaryButton(approveUrl, "&#10003; Review &amp; Approve All Documents")}
+            ${fallbackLink(approveUrl)}
+          `);
+        } else {
+          html = emailWrapper(`
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 22px; font-weight: 700; color: #1a202c; padding-bottom: 16px;">Document Approval Requested</td></tr>
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 4px;">Hello ${sigDisplayName},</td></tr>
+              <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">${senderDisplayName} has sent you <strong>${groupDocs.length} documents</strong> for approval. Please review each document and approve below.</td></tr>
+            </table>
+            ${messageBlock}
+            ${signatoryTable(["#", "Document", "Category"], docListRows)}
+            ${deadlineInfo}
+            ${infoNote("Click the button below to review all documents and approve with a single action.")}
+            ${primaryButton(approveUrl, "&#10003; Review &amp; Approve All Documents")}
+            ${fallbackLink(approveUrl)}
+          `);
+        }
+
+        const { error: sendErr } = await resend.emails.send({
+          from: "Notewell AI <noreply@bluepcn.co.uk>",
+          to: [email],
+          subject: `Document Approval Requested: ${groupDocs.length} documents from ${senderDisplayName}`,
+          html,
+        });
+        results.push({ email, status: sendErr ? "failed" : "sent", error: sendErr?.message });
+
+        if (!sendErr) {
+          for (const did of docIds) {
+            await supabase.from("approval_audit_log").insert({
+              document_id: did,
+              action: "email_sent_multi_request",
+              actor_email: firstDoc.sender_email,
+              actor_name: firstDoc.sender_name,
+              metadata: { group_id, signatory_email: email },
+            });
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, results }), {
+        status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // ─── MULTI_SEND_COMPLETED: one email with all signed docs attached ───
+    if (type === "multi_send_completed") {
+      if (!group_id) {
+        return new Response(JSON.stringify({ error: "group_id is required for multi_send_completed" }), {
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      const { data: groupDocs } = await supabase
+        .from("approval_documents")
+        .select("*")
+        .eq("multi_doc_group_id", group_id);
+
+      if (!groupDocs || groupDocs.length === 0) {
+        return new Response(JSON.stringify({ error: "No documents found" }), {
+          status: 404, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      // Fetch all signatories across all docs
+      const docIds = groupDocs.map(d => d.id);
+      const { data: allSigs } = await supabase
+        .from("approval_signatories")
+        .select("*")
+        .in("document_id", docIds)
+        .order("sort_order");
+
+      // Download signed PDFs as attachments
+      const attachments: { filename: string; content: string }[] = [];
+      for (const gd of groupDocs) {
+        if (gd.signed_file_url) {
+          try {
+            const sp = gd.signed_file_url.replace(/^.*approval-documents\//, "");
+            const { data: fd, error: fe } = await supabase.storage.from("approval-documents").download(sp);
+            if (!fe && fd) {
+              const ab = await fd.arrayBuffer();
+              const bytes = new Uint8Array(ab);
+              attachments.push({
+                filename: `${(gd.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
+                content: encodeBase64(bytes),
+              });
+            }
+          } catch (e) {
+            console.warn("Could not download signed PDF for", gd.id, e);
+          }
+        }
+      }
+
+      // Build document table
+      const docRows = groupDocs.map(d => {
+        const docSigs = (allSigs || []).filter(s => s.document_id === d.id);
+        const sigNames = docSigs.map(s => withTitle(s.signed_name || s.name, s.signatory_title)).join(", ");
+        return `<tr>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #1a202c;">${d.title}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568;">${sigNames}</td>
+        </tr>`;
+      }).join("");
+
+      const html = emailWrapper(`
+        ${alertBanner("#f0fdf4", "#166534", "&#127881; All Documents Fully Signed")}
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">All ${groupDocs.length} documents have been approved by all signatories. The signed copies are attached to this email.</td></tr>
+        </table>
+        ${signatoryTable(["Document", "Signatories"], docRows)}
+        ${legalNotice("#f0fdf4", "#bbf7d0", "#166534", "These documents were electronically signed in accordance with UK law (Electronic Communications Act 2000). Each PDF contains a SHA-256 integrity hash and full audit trail.")}
+        ${primaryButton(`${APP_URL}/document-approval`, "View in Notewell")}
+      `);
+
+      // Collect all recipients (sender + all unique signatory emails)
+      const allRecipients: string[] = [];
+      const senderEmail = groupDocs[0].sender_email;
+      if (senderEmail) allRecipients.push(senderEmail);
+      for (const s of (allSigs || [])) {
+        if (s.email && !allRecipients.includes(s.email)) allRecipients.push(s.email);
+      }
+
+      const results: Array<{ email: string; status: string; error?: string }> = [];
+
+      for (const recipientEmail of allRecipients) {
+        const emailPayload: any = {
+          from: "Notewell AI <noreply@bluepcn.co.uk>",
+          to: [recipientEmail],
+          subject: `Completed Signed Documents: ${groupDocs.length} documents fully approved`,
+          html,
+        };
+        if (attachments.length > 0) {
+          emailPayload.attachments = attachments.map(a => ({
+            filename: a.filename,
+            content: a.content,
+            type: "application/pdf",
+          }));
+        }
+        const { error: sendErr } = await resend.emails.send(emailPayload);
+        results.push({ email: recipientEmail, status: sendErr ? "failed" : "sent", error: sendErr?.message });
+      }
+
+      // Audit log
+      for (const did of docIds) {
+        await supabase.from("approval_audit_log").insert({
+          document_id: did,
+          action: "email_sent_multi_completed",
+          actor_email: senderEmail,
+          metadata: { group_id, recipients: allRecipients, attachments_count: attachments.length },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, results }), {
+        status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (!document_id) {
       return new Response(JSON.stringify({ error: "type and document_id are required" }), {
         status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
       });
