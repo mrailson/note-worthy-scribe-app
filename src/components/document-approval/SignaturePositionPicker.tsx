@@ -136,9 +136,9 @@ export function SignaturePositionPicker({
 
   const [dragging, setDragging] = useState<string | null>(null); // sigId, `sigId:field`, or `text:idx`
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
-  const [suggestingPositions, setSuggestingPositions] = useState(false);
   const [newTextValue, setNewTextValue] = useState('');
   const [placingTextIdx, setPlacingTextIdx] = useState<number | null>(null);
+  const [customTextOpen, setCustomTextOpen] = useState(false);
 
   // Mouse helpers
   const getMousePercent = useCallback((e: React.MouseEvent, pageEl: HTMLElement) => {
