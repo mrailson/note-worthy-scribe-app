@@ -149,6 +149,24 @@ export function SignaturePositionPicker({
   // Click-to-place handler for PDF pages
   const handlePageClick = useCallback((e: React.MouseEvent, pageNum: number) => {
     if (dragging) return;
+
+    // Text annotation placement
+    if (placingTextIdx !== null) {
+      const pageEl = pageRefs.current.get(pageNum);
+      if (!pageEl) return;
+      const pos = getMousePercent(e, pageEl);
+      const updated = [...textAnnotations];
+      updated[placingTextIdx] = {
+        ...updated[placingTextIdx],
+        page: pageNum,
+        x: Math.round(pos.x * 10) / 10,
+        y: Math.round(pos.y * 10) / 10,
+      };
+      onTextAnnotationsChange(updated);
+      setPlacingTextIdx(null);
+      return;
+    }
+
     if (!activeSignatoryId) return;
 
     if (placementMode === 'block') {
@@ -184,6 +202,11 @@ export function SignaturePositionPicker({
             page: pageNum,
             x: Math.round(pos.x * 10) / 10,
             y: Math.round(pos.y * 10) / 10,
+          },
+        },
+      });
+    }
+  }, [activeSignatoryId, activeField, value, fieldPositions, dragging, onChange, onFieldPositionsChange, getMousePercent, placementMode, placingTextIdx, textAnnotations, onTextAnnotationsChange]);
           },
         },
       });
