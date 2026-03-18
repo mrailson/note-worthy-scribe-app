@@ -163,15 +163,7 @@ serve(async (req) => {
 
       // Send confirmation email to the signatory
       try {
-        const emailPayload: any = {
-          type: 'confirmation',
-          document_id: document.id,
-          signatory_id: signatory.id,
-        };
-        // Also notify sender if all completed
-        if (allApproved) {
-          emailPayload.type = 'completed';
-        }
+        // Always send individual confirmation to the signatory who just approved
         await fetch(
           `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-approval-email`,
           {
@@ -180,30 +172,33 @@ serve(async (req) => {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
             },
-            body: JSON.stringify(emailPayload),
+            body: JSON.stringify({
+              type: 'confirmation',
+              document_id: document.id,
+              signatory_id: signatory.id,
+            }),
           }
         );
-        // Also send individual confirmation if completed (completed email goes to sender)
+        console.log('Confirmation email triggered for signatory:', signatory.email);
+
+        // If all approved, generate signed PDF server-side and auto-send to all parties
         if (allApproved) {
+          console.log('All signatories approved — triggering server-side signed PDF generation');
           await fetch(
-            `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-approval-email`,
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-signed-pdf-server`,
             {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
               },
-              body: JSON.stringify({
-                type: 'confirmation',
-                document_id: document.id,
-                signatory_id: signatory.id,
-              }),
+              body: JSON.stringify({ document_id: document.id }),
             }
           );
+          console.log('Signed PDF generation + auto-send triggered for document:', document.id);
         }
-        console.log('Confirmation email triggered for signatory:', signatory.email);
       } catch (emailErr) {
-        console.error('Failed to send confirmation email (non-blocking):', emailErr);
+        console.error('Failed to send confirmation/generate signed PDF (non-blocking):', emailErr);
       }
 
       return new Response(JSON.stringify({
