@@ -111,6 +111,7 @@ export function SignaturePositionPicker({
   placementMode, onPlacementModeChange,
   fieldPositions, onFieldPositionsChange,
   separatedFontSize, onSeparatedFontSizeChange,
+  textAnnotations, onTextAnnotationsChange,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
