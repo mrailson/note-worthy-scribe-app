@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   ArrowLeft, Upload, Plus, Trash2, Loader2, Send, UserPlus, Users, Building2,
-  GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Stamp, FileSignature, Eye, ChevronDown, ChevronUp, Pencil, Search,
+  GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Eye, ChevronDown, ChevronUp, Pencil, Search,
   Layers,
 } from 'lucide-react';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
@@ -85,8 +85,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   // Stores the DB-returned signatories (with real IDs) after addSignatories
   const [dbSignatories, setDbSignatories] = useState<{ id: string; name: string; email: string }[]>([]);
 
-  // Signature placement
-  const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('stamp');
+  // Signature placement — always stamp
+  const signatureMethod = 'stamp' as const;
   const [stampPositions, setStampPositions] = useState<PerSignatoryPositions>({});
   const [placementMode, setPlacementMode] = useState<'block' | 'separated'>('block');
   const [fieldPositions, setFieldPositions] = useState<PerSignatoryFieldPositions>({});
@@ -147,9 +147,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
     setUploadStatus(null);
     const isDocx = file.name.toLowerCase().endsWith('.docx');
     try {
-      const placement = signatureMethod === 'stamp'
-        ? { method: 'stamp' as const, positions: stampPositions }
-        : { method: 'append' as const };
+      const placement = { method: 'stamp' as const, positions: stampPositions };
 
       const doc = await uploadDocument(file, {
         title, description, category,
@@ -314,12 +312,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
         }
       }
 
-      // If stamp method, go to position picker; otherwise go to review
-      if (signatureMethod === 'stamp') {
-        setStep('stamp_position');
-      } else {
-        setStep('review');
-      }
+      setStep('stamp_position');
     } catch (err) {
       console.error(err);
       toast.error('Failed to save signatories');
@@ -397,7 +390,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
         {/* Progress bar */}
         <div className="flex gap-2">
-          {(signatureMethod === 'stamp' ? ['upload', 'signatories', 'stamp_position', 'review'] : ['upload', 'signatories', 'review']).map((s, i, arr) => {
+          {['upload', 'signatories', 'stamp_position', 'review'].map((s, i, arr) => {
             const currentIdx = arr.indexOf(step);
             return (
               <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${
@@ -494,35 +487,6 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               <Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="mt-1.5" />
             </div>
 
-            {/* Signature Placement */}
-            <div>
-              <Label className="text-sm font-medium">Signature placement</Label>
-              <RadioGroup value={signatureMethod} onValueChange={(v) => setSignatureMethod(v as 'append' | 'stamp')} className="mt-2 space-y-2">
-                <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/50 transition-colors">
-                  <RadioGroupItem value="append" id="sig-append" className="mt-0.5" />
-                  <div>
-                    <label htmlFor="sig-append" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
-                      <FileSignature className="h-4 w-4 text-primary" /> Append signature page
-                    </label>
-                    <p className="text-xs text-muted-foreground mt-0.5">Adds a professional signature page as the final page of the document</p>
-                  </div>
-                </div>
-                <div className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                  !(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx')) ? 'border-border opacity-50' : 'border-border hover:border-primary/50'
-                }`}>
-                  <RadioGroupItem value="stamp" id="sig-stamp" className="mt-0.5" disabled={!(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx'))} />
-                  <div>
-                    <label htmlFor="sig-stamp" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
-                      <Stamp className="h-4 w-4 text-primary" /> Stamp signature block
-                    </label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Places signatures onto a specific page in the document
-                      {!(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx')) && ' (PDF or DOCX only)'}
-                    </p>
-                  </div>
-                </div>
-              </RadioGroup>
-            </div>
 
             {/* Send Mode */}
             <div>
