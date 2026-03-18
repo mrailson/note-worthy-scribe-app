@@ -1,36 +1,75 @@
-## Separated Signature Field Placement — IMPLEMENTED
 
-Added a second placement mode ("Separated") alongside the existing "Block" (stamp) mode. In Separated mode, each signatory gets 5 independently draggable elements on the PDF: Signature (cursive), Name, Role, Organisation, and Date. Font size is configurable (8–24pt, default 14). Block mode remains unchanged.
+
+## Unified Multi-Document Approval Flow
+
+### Problem
+Currently, multi-doc sends N separate emails (one per document) with N separate approval links. Each signatory must approve each document individually, and receives N separate completion emails. Users miss emails and the experience is fragmented.
+
+### Solution
+Consolidate to: **One email → One link → One approval → One completion email with all signed documents attached.**
+
+### Database Change
+
+Add `group_token` (UUID, nullable) to `approval_signatories`:
+
+```sql
+ALTER TABLE approval_signatories ADD COLUMN group_token uuid;
+CREATE INDEX idx_sig_group_token ON approval_signatories(group_token) WHERE group_token IS NOT NULL;
+```
+
+For multi-doc groups, all signatory rows for the same email across all documents in the group share the same `group_token`. Single-doc requests leave this NULL and work as before.
+
+### Changes
+
+#### 1. `useDocumentApproval.ts` — `sendMultiDocForApproval`
+Instead of calling `sendForApproval` per document (which sends N emails), do:
+- Tag all docs with `multi_doc_group_id`
+- Set all docs to `pending` status
+- For each unique signatory email across all docs, generate ONE `group_token` UUID and update all their signatory rows with it
+- Call `send-approval-email` ONCE with a new type `multi_request`, passing the `multi_doc_group_id` — this sends one consolidated email per signatory with a link like `/approve/group/{group_token}`
+
+#### 2. `send-approval-email` — New type: `multi_request`
+- Accept `group_id` instead of `document_id`
+- Fetch all documents in the group and all signatories
+- For each unique signatory email, look up their `group_token`
+- Send ONE email listing all document titles in a table, with ONE "Approve All Documents" button linking to `/approve/group/{group_token}`
+- Attach all PDFs (if combined size < 5MB)
+
+#### 3. `process-approval` — Handle group token
+- Add a new flow: when `action === 'get'` and a `group_token` is provided, fetch ALL signatory rows with that token, then fetch ALL their linked documents
+- Return an array of `{ signatory, document }` pairs
+- When `action === 'approve'` with `group_token`, approve ALL signatory rows sharing that token in one operation, then check each document for `allApproved` status
+- For multi-doc groups, only trigger the completion flow when ALL documents in the group are completed
+
+#### 4. `PublicApproval.tsx` — Tabbed multi-document view
+- Add route `/approve/group/:groupToken` (reuse the same component)
+- When a group token is detected, fetch all documents via process-approval
+- Show a tabbed interface: each tab shows one document's PDF viewer with its title
+- ONE approval form at the bottom — fills name/role/org once, approves all documents
+- Post-submit confirmation shows all document titles
+
+#### 5. Completion flow — One email, all attachments
+- In `process-approval`, after approving via group token, check if ALL documents in the `multi_doc_group_id` are now completed
+- If yes, call `generate-signed-pdf-server` for each document that doesn't yet have a signed PDF
+- Then call `send-approval-email` with a new type `multi_send_completed` passing the `group_id`
+- This sends ONE email to sender + all signatories with ALL signed PDFs attached
+
+#### 6. `send-approval-email` — New type: `multi_send_completed`
+- Fetch all docs in the group
+- Download all signed PDFs
+- Send ONE email with a table listing all documents and their signatories, with all signed PDFs attached
+
+#### 7. Route update in `App.tsx`
+- Add `/approve/group/:groupToken` route pointing to `PublicApproval`
 
 ### Files Changed
-- `src/utils/generateSignedPdf.ts` — Added `FieldPosition` type, extended `SignaturePlacement` with `fieldPositions` and `separatedFontSize`, added `drawSeparatedSignatures` function
-- `src/components/document-approval/SignaturePositionPicker.tsx` — Added Block/Separated mode toggle, per-field placement UI with draggable tags, font size slider
-- `src/components/document-approval/CreateApprovalFlow.tsx` — Added state for `placementMode`, `fieldPositions`, `separatedFontSize`; passes to picker and saves to DB
-- `src/pages/PublicApproval.tsx` — Renders per-field ghost indicators in separated mode
+- **Migration** — Add `group_token` column
+- `src/hooks/useDocumentApproval.ts` — Rewrite `sendMultiDocForApproval`
+- `supabase/functions/send-approval-email/index.ts` — Add `multi_request` and `multi_send_completed` types
+- `supabase/functions/process-approval/index.ts` — Handle group token get/approve/decline + group completion check
+- `src/pages/PublicApproval.tsx` — Tabbed multi-doc view with single approval form
+- `src/App.tsx` — Add group approval route
 
-## Auto-Send Signed Document on All-Party Completion — IMPLEMENTED
+### Backward Compatibility
+Single-document requests are unaffected — `group_token` is NULL, existing flow unchanged. The old per-document `approval_token` still works for single docs and reminders.
 
-When all signatories approve a document, the system now automatically generates the signed PDF server-side (with signatures, Electronic Signature Certificate, SHA-256 hash, QR code, and audit trail) and emails it to the sender and all signatories. No manual intervention required.
-
-### Files Changed
-- `supabase/functions/generate-signed-pdf-server/index.ts` — NEW: Server-side PDF generation using pdf-lib, replicating stamp/separated/text annotation drawing, certificate pages (navy/gold theme), and audit trail. Uploads to storage and triggers `send_completed` email.
-- `supabase/functions/process-approval/index.ts` — Modified `allApproved` block: sends individual confirmation email to the approving signatory, then calls `generate-signed-pdf-server` to auto-generate and distribute the signed PDF.
-- `supabase/config.toml` — Added `generate-signed-pdf-server` with `verify_jwt = false`.
-
-## Multi-Document Approval Request — IMPLEMENTED
-
-Users can now upload multiple PDF/DOCX files in a single approval request. All documents share the same signatories but have independent signature positioning per document. Documents are linked via `multi_doc_group_id` and sent with a single confirmation.
-
-### User Flow
-1. **Upload** — Drop/select multiple files, each with its own editable title
-2. **Signatories** — One set of signatories shared across all documents
-3. **Position Signatures** — Tab bar to switch between documents; each has independent stamp/separated/text positions
-4. **Review & Send** — Shows all documents in summary; single "Send All" button
-
-### Database Changes
-- `approval_documents.multi_doc_group_id` (UUID, nullable) — groups documents in the same multi-doc request
-
-### Files Changed
-- `src/components/document-approval/CreateApprovalFlow.tsx` — Refactored from single-file to multi-file: array of DocFile objects, per-document signature state maps, document tab bar in positioning step, multi-doc review display
-- `src/hooks/useDocumentApproval.ts` — Added `multi_doc_group_id` to `ApprovalDocument` interface; added `sendMultiDocForApproval()` function that assigns a shared group ID and sends each doc
-- `src/pages/DocumentApproval.tsx` — Added "Multi-doc" badge on DocumentCard for grouped documents
