@@ -2,14 +2,15 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
 import {
-  Loader2, Move, ZoomIn, ZoomOut, Sparkles, Check, User,
+  Loader2, Move, ZoomIn, ZoomOut, Sparkles, Check, User, Type,
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { FieldPosition } from '@/utils/generateSignedPdf';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -29,6 +30,18 @@ export interface PerSignatoryPositions {
   [signatoryId: string]: StampPosition;
 }
 
+export type FieldType = 'signature' | 'name' | 'role' | 'organisation' | 'date';
+
+export interface PerSignatoryFieldPositions {
+  [signatoryId: string]: {
+    signature?: FieldPosition;
+    name?: FieldPosition;
+    role?: FieldPosition;
+    organisation?: FieldPosition;
+    date?: FieldPosition;
+  };
+}
+
 interface SignatoryInfo {
   id: string;
   name: string;
@@ -37,8 +50,18 @@ interface SignatoryInfo {
 interface Props {
   fileUrl: string;
   signatories: SignatoryInfo[];
+  /** Block mode positions */
   value: PerSignatoryPositions;
   onChange: (positions: PerSignatoryPositions) => void;
+  /** Placement mode */
+  placementMode: 'block' | 'separated';
+  onPlacementModeChange: (mode: 'block' | 'separated') => void;
+  /** Separated mode field positions */
+  fieldPositions: PerSignatoryFieldPositions;
+  onFieldPositionsChange: (positions: PerSignatoryFieldPositions) => void;
+  /** Font size for separated mode */
+  separatedFontSize: number;
+  onSeparatedFontSizeChange: (size: number) => void;
 }
 
 const SIGNATORY_COLOURS = [
@@ -61,7 +84,30 @@ const SIGNATORY_BG_COLOURS = [
 
 const DEFAULT_STAMP: StampPosition = { page: 1, x: 10, y: 70, width: 14, height: 6 };
 
-export function SignaturePositionPicker({ fileUrl, signatories, value, onChange }: Props) {
+const FIELD_LABELS: Record<FieldType, string> = {
+  signature: 'Signature',
+  name: 'Name',
+  role: 'Role',
+  organisation: 'Organisation',
+  date: 'Date',
+};
+
+const FIELD_ICONS: Record<FieldType, string> = {
+  signature: '✍',
+  name: '👤',
+  role: '💼',
+  organisation: '🏢',
+  date: '📅',
+};
+
+const ALL_FIELDS: FieldType[] = ['signature', 'name', 'role', 'organisation', 'date'];
+
+export function SignaturePositionPicker({
+  fileUrl, signatories, value, onChange,
+  placementMode, onPlacementModeChange,
+  fieldPositions, onFieldPositionsChange,
+  separatedFontSize, onSeparatedFontSizeChange,
+}: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const canvasRefs = useRef<Map<number, HTMLCanvasElement>>(new Map());
@@ -77,7 +123,10 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
   const [activeSignatoryId, setActiveSignatoryId] = useState<string | null>(
     signatories[0]?.id || null
   );
-  const [dragging, setDragging] = useState<string | null>(null);
+  // For separated mode: which field is being placed
+  const [activeField, setActiveField] = useState<FieldType | null>(null);
+
+  const [dragging, setDragging] = useState<string | null>(null); // sigId or `sigId:field`
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const [suggestingPositions, setSuggestingPositions] = useState(false);
 
@@ -94,31 +143,49 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
   const handlePageClick = useCallback((e: React.MouseEvent, pageNum: number) => {
     if (dragging) return;
     if (!activeSignatoryId) return;
-    if (value[activeSignatoryId]) return;
 
-    const pageEl = pageRefs.current.get(pageNum);
-    if (!pageEl) return;
-
-    const pos = getMousePercent(e, pageEl);
-    const newX = Math.max(0, Math.min(100 - DEFAULT_STAMP.width, pos.x - DEFAULT_STAMP.width / 2));
-    const newY = Math.max(0, Math.min(100 - DEFAULT_STAMP.height, pos.y - DEFAULT_STAMP.height / 2));
-
-    onChange({
-      ...value,
-      [activeSignatoryId]: {
-        page: pageNum,
-        x: Math.round(newX * 10) / 10,
-        y: Math.round(newY * 10) / 10,
-        width: DEFAULT_STAMP.width,
-        height: DEFAULT_STAMP.height,
-      },
-    });
-  }, [activeSignatoryId, value, dragging, onChange, getMousePercent]);
+    if (placementMode === 'block') {
+      if (value[activeSignatoryId]) return;
+      const pageEl = pageRefs.current.get(pageNum);
+      if (!pageEl) return;
+      const pos = getMousePercent(e, pageEl);
+      const newX = Math.max(0, Math.min(100 - DEFAULT_STAMP.width, pos.x - DEFAULT_STAMP.width / 2));
+      const newY = Math.max(0, Math.min(100 - DEFAULT_STAMP.height, pos.y - DEFAULT_STAMP.height / 2));
+      onChange({
+        ...value,
+        [activeSignatoryId]: {
+          page: pageNum,
+          x: Math.round(newX * 10) / 10,
+          y: Math.round(newY * 10) / 10,
+          width: DEFAULT_STAMP.width,
+          height: DEFAULT_STAMP.height,
+        },
+      });
+    } else {
+      // Separated mode: place active field
+      if (!activeField) return;
+      const existingField = fieldPositions[activeSignatoryId]?.[activeField];
+      if (existingField) return; // already placed
+      const pageEl = pageRefs.current.get(pageNum);
+      if (!pageEl) return;
+      const pos = getMousePercent(e, pageEl);
+      onFieldPositionsChange({
+        ...fieldPositions,
+        [activeSignatoryId]: {
+          ...fieldPositions[activeSignatoryId],
+          [activeField]: {
+            page: pageNum,
+            x: Math.round(pos.x * 10) / 10,
+            y: Math.round(pos.y * 10) / 10,
+          },
+        },
+      });
+    }
+  }, [activeSignatoryId, activeField, value, fieldPositions, dragging, onChange, onFieldPositionsChange, getMousePercent, placementMode]);
 
   // Load PDF
   useEffect(() => {
     let cancelled = false;
-
     async function loadPdf() {
       setLoading(true);
       setError(null);
@@ -135,10 +202,8 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
           const res = await fetch(fileUrl);
           arrayBuffer = await res.arrayBuffer();
         }
-
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         if (cancelled) return;
-
         pdfDocRef.current = pdf;
         setTotalPages(pdf.numPages);
         setLoading(false);
@@ -150,7 +215,6 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
         }
       }
     }
-
     loadPdf();
     return () => { cancelled = true; };
   }, [fileUrl]);
@@ -165,11 +229,9 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
   const renderAllPages = async () => {
     const pdf = pdfDocRef.current;
     if (!pdf) return;
-
     for (let i = 1; i <= pdf.numPages; i++) {
       const canvas = canvasRefs.current.get(i);
       if (!canvas) continue;
-
       try {
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: scale * 1.5 });
@@ -187,7 +249,6 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
   // Intersection observer for current visible page
   useEffect(() => {
     if (!totalPages) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -200,29 +261,22 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
       },
       { threshold: 0.5 }
     );
-
     pageRefs.current.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [totalPages, loading]);
 
-  // Scroll to page
   const scrollToPage = (pageNum: number) => {
     const el = pageRefs.current.get(pageNum);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Mouse handlers for dragging signature blocks
-
+  // Mouse handlers for dragging — block mode
   const handleMouseDown = useCallback((e: React.MouseEvent, sigId: string, pageNum: number) => {
     const pageEl = pageRefs.current.get(pageNum);
     if (!pageEl) return;
-
     const pos = getMousePercent(e, pageEl);
     const stamp = value[sigId];
     if (!stamp) return;
-
     setDragging(sigId);
     setDragOffset({ x: pos.x - stamp.x, y: pos.y - stamp.y });
     setActiveSignatoryId(sigId);
@@ -230,42 +284,71 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
     e.stopPropagation();
   }, [value, getMousePercent]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent, pageNum: number) => {
-    if (!dragging || !dragOffset) return;
-
+  // Mouse handlers for dragging — separated field
+  const handleFieldMouseDown = useCallback((e: React.MouseEvent, sigId: string, field: FieldType, pageNum: number) => {
     const pageEl = pageRefs.current.get(pageNum);
     if (!pageEl) return;
-
     const pos = getMousePercent(e, pageEl);
-    const stamp = value[dragging];
-    if (!stamp) return;
+    const fp = fieldPositions[sigId]?.[field];
+    if (!fp) return;
+    setDragging(`${sigId}:${field}`);
+    setDragOffset({ x: pos.x - fp.x, y: pos.y - fp.y });
+    setActiveSignatoryId(sigId);
+    setActiveField(field);
+    e.preventDefault();
+    e.stopPropagation();
+  }, [fieldPositions, getMousePercent]);
 
-    const newX = Math.max(0, Math.min(100 - stamp.width, pos.x - dragOffset.x));
-    const newY = Math.max(0, Math.min(100 - stamp.height, pos.y - dragOffset.y));
+  const handleMouseMove = useCallback((e: React.MouseEvent, pageNum: number) => {
+    if (!dragging || !dragOffset) return;
+    const pageEl = pageRefs.current.get(pageNum);
+    if (!pageEl) return;
+    const pos = getMousePercent(e, pageEl);
 
-    onChange({
-      ...value,
-      [dragging]: {
-        ...stamp,
-        page: pageNum,
-        x: Math.round(newX * 10) / 10,
-        y: Math.round(newY * 10) / 10,
-      },
-    });
-  }, [dragging, dragOffset, value, onChange, getMousePercent]);
+    if (dragging.includes(':')) {
+      // Separated field dragging
+      const [sigId, field] = dragging.split(':') as [string, FieldType];
+      const newX = Math.max(0, Math.min(95, pos.x - dragOffset.x));
+      const newY = Math.max(0, Math.min(95, pos.y - dragOffset.y));
+      onFieldPositionsChange({
+        ...fieldPositions,
+        [sigId]: {
+          ...fieldPositions[sigId],
+          [field]: {
+            page: pageNum,
+            x: Math.round(newX * 10) / 10,
+            y: Math.round(newY * 10) / 10,
+          },
+        },
+      });
+    } else {
+      // Block dragging
+      const stamp = value[dragging];
+      if (!stamp) return;
+      const newX = Math.max(0, Math.min(100 - stamp.width, pos.x - dragOffset.x));
+      const newY = Math.max(0, Math.min(100 - stamp.height, pos.y - dragOffset.y));
+      onChange({
+        ...value,
+        [dragging]: {
+          ...stamp,
+          page: pageNum,
+          x: Math.round(newX * 10) / 10,
+          y: Math.round(newY * 10) / 10,
+        },
+      });
+    }
+  }, [dragging, dragOffset, value, fieldPositions, onChange, onFieldPositionsChange, getMousePercent]);
 
   const handleMouseUp = useCallback(() => {
     setDragging(null);
     setDragOffset(null);
   }, []);
 
-  // AI suggestion
+  // AI suggestion (block mode only)
   const handleSuggestPositions = async () => {
     if (!pdfDocRef.current) return;
     setSuggestingPositions(true);
-
     try {
-      // Extract text from all pages
       const pdf = pdfDocRef.current;
       let fullText = '';
       for (let i = 1; i <= pdf.numPages; i++) {
@@ -274,19 +357,11 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
         const pageText = textContent.items.map((item: any) => item.str).join(' ');
         fullText += `\n--- Page ${i} ---\n${pageText}`;
       }
-
       const signatoryNames = signatories.map(s => s.name);
-
       const { data, error: fnErr } = await supabase.functions.invoke('suggest-signature-positions', {
-        body: {
-          documentText: fullText,
-          signatoryNames,
-          totalPages: pdf.numPages,
-        },
+        body: { documentText: fullText, signatoryNames, totalPages: pdf.numPages },
       });
-
       if (fnErr) throw fnErr;
-
       if (data?.positions && Array.isArray(data.positions)) {
         const updated = { ...value };
         for (const suggestion of data.positions) {
@@ -303,8 +378,6 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
         }
         onChange(updated);
         toast.success('AI suggested positions — adjust if needed');
-
-        // Scroll to the first suggestion's page
         const firstPage = data.positions[0]?.page;
         if (firstPage) scrollToPage(firstPage);
       }
@@ -319,84 +392,228 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
   const getSignatoryColour = (idx: number) => SIGNATORY_COLOURS[idx % SIGNATORY_COLOURS.length];
   const getSignatoryBg = (idx: number) => SIGNATORY_BG_COLOURS[idx % SIGNATORY_BG_COLOURS.length];
 
+  const getPlacedFieldCount = (sigId: string) => {
+    const fp = fieldPositions[sigId];
+    if (!fp) return 0;
+    return ALL_FIELDS.filter(f => fp[f]).length;
+  };
+
   return (
     <div className="space-y-4">
+      {/* Mode toggle */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground">Placement Mode</h3>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onPlacementModeChange('block')}
+            className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+              placementMode === 'block'
+                ? 'border-primary bg-primary/5 text-foreground'
+                : 'border-border text-muted-foreground hover:border-primary/30'
+            }`}
+          >
+            Block (Stamp)
+          </button>
+          <button
+            onClick={() => onPlacementModeChange('separated')}
+            className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+              placementMode === 'separated'
+                ? 'border-primary bg-primary/5 text-foreground'
+                : 'border-border text-muted-foreground hover:border-primary/30'
+            }`}
+          >
+            Separated Fields
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {placementMode === 'block'
+            ? 'Places a single signature block per signatory containing all details.'
+            : 'Place Name, Role, Organisation, Date and Signature independently at different locations.'}
+        </p>
+      </Card>
+
       {/* Signatory selector panel */}
       <Card className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">Signatory Positions</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSuggestPositions}
-            disabled={suggestingPositions || loading}
-            className="gap-1.5 text-xs"
-          >
-            {suggestingPositions ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="h-3.5 w-3.5" />
-            )}
-            {suggestingPositions ? 'Analysing…' : 'AI Suggest Positions'}
-          </Button>
+          {placementMode === 'block' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSuggestPositions}
+              disabled={suggestingPositions || loading}
+              className="gap-1.5 text-xs"
+            >
+              {suggestingPositions ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              {suggestingPositions ? 'Analysing…' : 'AI Suggest Positions'}
+            </Button>
+          )}
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {signatories.map((sig, idx) => {
-            const isActive = activeSignatoryId === sig.id;
-            const hasPosition = !!value[sig.id];
-            const colour = getSignatoryColour(idx);
-
-            return (
-              <button
-                key={sig.id}
-                onClick={() => {
-                  if (isActive && hasPosition) {
-                    // Toggle off: remove placed block and deselect
-                    const newValue = { ...value };
-                    delete newValue[sig.id];
-                    onChange(newValue);
-                    setActiveSignatoryId(null);
-                  } else {
-                    // Select (or re-select) signatory
-                    setActiveSignatoryId(sig.id);
-                    const pos = value[sig.id];
-                    if (pos) scrollToPage(pos.page);
-                  }
-                }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm transition-all ${
-                  isActive
-                    ? 'border-primary bg-primary/5 shadow-sm'
-                    : 'border-border hover:border-primary/30 bg-background'
-                }`}
-              >
-                <div
-                  className="h-3 w-3 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: colour }}
-                />
-                <span className="font-medium text-foreground">{sig.name}</span>
-                {hasPosition ? (
-                  <span className="flex items-center gap-1">
-                    <Check className="h-3.5 w-3.5" style={{ color: 'hsl(150, 60%, 40%)' }} />
+        {placementMode === 'block' ? (
+          /* Block mode signatory buttons */
+          <div className="flex flex-wrap gap-2">
+            {signatories.map((sig, idx) => {
+              const isActive = activeSignatoryId === sig.id;
+              const hasPosition = !!value[sig.id];
+              const colour = getSignatoryColour(idx);
+              return (
+                <button
+                  key={sig.id}
+                  onClick={() => {
+                    if (isActive && hasPosition) {
+                      const newValue = { ...value };
+                      delete newValue[sig.id];
+                      onChange(newValue);
+                      setActiveSignatoryId(null);
+                    } else {
+                      setActiveSignatoryId(sig.id);
+                      const pos = value[sig.id];
+                      if (pos) scrollToPage(pos.page);
+                    }
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm transition-all ${
+                    isActive
+                      ? 'border-primary bg-primary/5 shadow-sm'
+                      : 'border-border hover:border-primary/30 bg-background'
+                  }`}
+                >
+                  <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: colour }} />
+                  <span className="font-medium text-foreground">{sig.name}</span>
+                  {hasPosition ? (
+                    <span className="flex items-center gap-1">
+                      <Check className="h-3.5 w-3.5" style={{ color: 'hsl(150, 60%, 40%)' }} />
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        p.{value[sig.id].page}
+                      </Badge>
+                    </span>
+                  ) : isActive ? (
+                    <span className="text-[10px] text-muted-foreground italic">Click to place</span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          /* Separated mode — signatory + field selector */
+          <div className="space-y-3">
+            {/* Signatory tabs */}
+            <div className="flex flex-wrap gap-2">
+              {signatories.map((sig, idx) => {
+                const isActive = activeSignatoryId === sig.id;
+                const colour = getSignatoryColour(idx);
+                const placedCount = getPlacedFieldCount(sig.id);
+                return (
+                  <button
+                    key={sig.id}
+                    onClick={() => {
+                      setActiveSignatoryId(sig.id);
+                      setActiveField(null);
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm transition-all ${
+                      isActive
+                        ? 'border-primary bg-primary/5 shadow-sm'
+                        : 'border-border hover:border-primary/30 bg-background'
+                    }`}
+                  >
+                    <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: colour }} />
+                    <span className="font-medium text-foreground">{sig.name}</span>
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                      p.{value[sig.id].page}
+                      {placedCount}/5
                     </Badge>
-                  </span>
-                ) : isActive ? (
-                  <span className="text-[10px] text-muted-foreground italic">Click to place</span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Field buttons for active signatory */}
+            {activeSignatoryId && (
+              <div className="flex flex-wrap gap-1.5">
+                {ALL_FIELDS.map(field => {
+                  const isFieldActive = activeField === field;
+                  const isPlaced = !!fieldPositions[activeSignatoryId]?.[field];
+                  const sigIdx = signatories.findIndex(s => s.id === activeSignatoryId);
+                  const colour = getSignatoryColour(sigIdx);
+                  return (
+                    <button
+                      key={field}
+                      onClick={() => {
+                        if (isFieldActive && isPlaced) {
+                          // Remove field
+                          const updated = { ...fieldPositions };
+                          if (updated[activeSignatoryId]) {
+                            const copy = { ...updated[activeSignatoryId] };
+                            delete copy[field];
+                            updated[activeSignatoryId] = copy;
+                            onFieldPositionsChange(updated);
+                          }
+                          setActiveField(null);
+                        } else {
+                          setActiveField(field);
+                          if (isPlaced) {
+                            const pos = fieldPositions[activeSignatoryId]![field]!;
+                            scrollToPage(pos.page);
+                          }
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all ${
+                        isFieldActive
+                          ? 'border-primary bg-primary/10 text-foreground shadow-sm'
+                          : isPlaced
+                            ? 'border-border bg-muted/50 text-foreground'
+                            : 'border-dashed border-border text-muted-foreground hover:border-primary/40'
+                      }`}
+                    >
+                      <span>{FIELD_ICONS[field]}</span>
+                      <span>{FIELD_LABELS[field]}</span>
+                      {isPlaced && <Check className="h-3 w-3" style={{ color: colour }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Font size slider */}
+            <div className="flex items-center gap-3 pt-1">
+              <Type className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">Font size</Label>
+              <div className="w-32">
+                <Slider
+                  value={[separatedFontSize]}
+                  min={8}
+                  max={24}
+                  step={1}
+                  onValueChange={([v]) => onSeparatedFontSizeChange(v)}
+                />
+              </div>
+              <span className="text-xs font-mono text-muted-foreground w-8">{separatedFontSize}pt</span>
+            </div>
+          </div>
+        )}
 
         <p className="text-xs text-muted-foreground">
           <User className="h-3 w-3 inline mr-1" />
-          {!activeSignatoryId
-            ? 'Select a signatory above, then click on the document to place their signature'
-            : value[activeSignatoryId]
-              ? `${signatories.find(s => s.id === activeSignatoryId)?.name}: page ${value[activeSignatoryId].page} — drag to reposition`
-              : `Click anywhere on the document to place ${signatories.find(s => s.id === activeSignatoryId)?.name}'s signature block`
+          {placementMode === 'block'
+            ? (!activeSignatoryId
+                ? 'Select a signatory above, then click on the document to place their signature'
+                : value[activeSignatoryId]
+                  ? `${signatories.find(s => s.id === activeSignatoryId)?.name}: page ${value[activeSignatoryId].page} — drag to reposition`
+                  : `Click anywhere on the document to place ${signatories.find(s => s.id === activeSignatoryId)?.name}'s signature block`
+              )
+            : (!activeSignatoryId
+                ? 'Select a signatory above'
+                : !activeField
+                  ? 'Select a field to place, then click on the document'
+                  : fieldPositions[activeSignatoryId]?.[activeField]
+                    ? `${FIELD_LABELS[activeField]} placed — drag to reposition or click to remove`
+                    : `Click on the document to place the ${FIELD_LABELS[activeField]} field`
+              )
           }
         </p>
       </Card>
@@ -427,40 +644,20 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setScale(s => Math.max(0.5, s - 0.25))}
-            disabled={scale <= 0.5}
-          >
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setScale(s => Math.max(0.5, s - 0.25))} disabled={scale <= 0.5}>
             <ZoomOut className="h-4 w-4" />
           </Button>
           <div className="w-24">
-            <Slider
-              value={[scale * 100]}
-              min={50}
-              max={200}
-              step={25}
-              onValueChange={([v]) => setScale(v / 100)}
-            />
+            <Slider value={[scale * 100]} min={50} max={200} step={25} onValueChange={([v]) => setScale(v / 100)} />
           </div>
-          <span className="text-xs text-muted-foreground w-10 text-center">
-            {Math.round(scale * 100)}%
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setScale(s => Math.min(2, s + 0.25))}
-            disabled={scale >= 2}
-          >
+          <span className="text-xs text-muted-foreground w-10 text-center">{Math.round(scale * 100)}%</span>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setScale(s => Math.min(2, s + 0.25))} disabled={scale >= 2}>
             <ZoomIn className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* PDF Viewer — all pages vertical scroll */}
+      {/* PDF Viewer */}
       <div
         className="bg-muted/30 rounded-xl border border-border overflow-auto"
         style={{ maxHeight: '65vh' }}
@@ -489,7 +686,12 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                 ref={el => { if (el) pageRefs.current.set(pageNum, el); }}
                 data-page={pageNum}
                 className="relative bg-white rounded-sm shadow-lg border border-border/50"
-                style={{ maxWidth: '100%', cursor: activeSignatoryId && !value[activeSignatoryId] ? 'crosshair' : undefined }}
+                style={{
+                  maxWidth: '100%',
+                  cursor: placementMode === 'block'
+                    ? (activeSignatoryId && !value[activeSignatoryId] ? 'crosshair' : undefined)
+                    : (activeField && activeSignatoryId && !fieldPositions[activeSignatoryId]?.[activeField] ? 'crosshair' : undefined),
+                }}
                 onMouseMove={(e) => handleMouseMove(e, pageNum)}
                 onMouseUp={handleMouseUp}
                 onClick={(e) => handlePageClick(e, pageNum)}
@@ -507,24 +709,20 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                   style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
                 />
 
-                {/* Signature block overlays — show all placed signatories */}
-                {signatories.map((sig, idx) => {
+                {/* Block mode overlays */}
+                {placementMode === 'block' && signatories.map((sig, idx) => {
                   const stamp = value[sig.id];
                   if (!stamp || stamp.page !== pageNum) return null;
-
                   const isActive = sig.id === activeSignatoryId;
                   const colour = getSignatoryColour(idx);
                   const bgColour = getSignatoryBg(idx);
-
                   return (
                     <div
                       key={sig.id}
                       className={`absolute rounded flex items-center justify-center ${isActive ? 'cursor-move shadow-lg ring-2 ring-offset-1' : ''}`}
                       style={{
-                        left: `${stamp.x}%`,
-                        top: `${stamp.y}%`,
-                        width: `${stamp.width}%`,
-                        height: `${stamp.height}%`,
+                        left: `${stamp.x}%`, top: `${stamp.y}%`,
+                        width: `${stamp.width}%`, height: `${stamp.height}%`,
                         border: `2px ${isActive ? 'solid' : 'dashed'} ${colour}`,
                         backgroundColor: bgColour,
                         ...(isActive ? { outline: `2px solid ${colour}`, outlineOffset: '2px' } : {}),
@@ -543,6 +741,44 @@ export function SignaturePositionPicker({ fileUrl, signatories, value, onChange 
                       </div>
                     </div>
                   );
+                })}
+
+                {/* Separated mode field overlays */}
+                {placementMode === 'separated' && signatories.map((sig, sigIdx) => {
+                  const sigFields = fieldPositions[sig.id];
+                  if (!sigFields) return null;
+                  const colour = getSignatoryColour(sigIdx);
+                  const bgColour = getSignatoryBg(sigIdx);
+
+                  return ALL_FIELDS.map(field => {
+                    const fp = sigFields[field];
+                    if (!fp || fp.page !== pageNum) return null;
+                    const isActive = sig.id === activeSignatoryId && activeField === field;
+                    return (
+                      <div
+                        key={`${sig.id}-${field}`}
+                        className={`absolute rounded-md flex items-center ${isActive ? 'cursor-move shadow-lg ring-1 ring-offset-1' : ''}`}
+                        style={{
+                          left: `${fp.x}%`,
+                          top: `${fp.y}%`,
+                          border: `1.5px ${isActive ? 'solid' : 'dashed'} ${colour}`,
+                          backgroundColor: bgColour,
+                          opacity: (sig.id === activeSignatoryId) ? 1 : 0.3,
+                          pointerEvents: (sig.id === activeSignatoryId) ? 'auto' : 'none',
+                          zIndex: isActive ? 30 : 20,
+                          padding: '2px 6px',
+                          whiteSpace: 'nowrap',
+                        }}
+                        onMouseDown={isActive ? (e) => handleFieldMouseDown(e, sig.id, field, pageNum) : undefined}
+                      >
+                        <span className="text-[9px] font-medium flex items-center gap-1" style={{ color: colour }}>
+                          {isActive && <Move className="h-2.5 w-2.5 flex-shrink-0" />}
+                          <span>{FIELD_ICONS[field]}</span>
+                          <span>{sig.name.split(' ')[0]} · {FIELD_LABELS[field]}</span>
+                        </span>
+                      </div>
+                    );
+                  });
                 })}
               </div>
             ))}
