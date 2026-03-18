@@ -748,6 +748,7 @@ export function SignaturePositionPicker({
             Click on the document to place "{textAnnotations[placingTextIdx]?.text}"
           </p>
         )}
+      </Card>
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
