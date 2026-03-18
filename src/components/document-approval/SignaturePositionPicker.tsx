@@ -207,11 +207,8 @@ export function SignaturePositionPicker({
       });
     }
   }, [activeSignatoryId, activeField, value, fieldPositions, dragging, onChange, onFieldPositionsChange, getMousePercent, placementMode, placingTextIdx, textAnnotations, onTextAnnotationsChange]);
-          },
-        },
-      });
-    }
-  }, [activeSignatoryId, activeField, value, fieldPositions, dragging, onChange, onFieldPositionsChange, getMousePercent, placementMode]);
+
+
 
   // Load PDF
   useEffect(() => {
