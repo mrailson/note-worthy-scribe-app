@@ -435,7 +435,115 @@ export function SignaturePositionPicker({
 
         <Separator />
 
-        {/* Signatory Positions */}
+        {/* Custom Text — collapsible, default closed */}
+        <Collapsible open={customTextOpen} onOpenChange={setCustomTextOpen}>
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors">
+              <span>Custom Text</span>
+              {customTextOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 pt-2">
+            <p className="text-xs text-muted-foreground">Add short labels or notes to place on the document.</p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter text…"
+                value={newTextValue}
+                onChange={e => setNewTextValue(e.target.value)}
+                className="text-sm"
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newTextValue.trim()) {
+                    onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
+                    setPlacingTextIdx(textAnnotations.length);
+                    setNewTextValue('');
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!newTextValue.trim()}
+                onClick={() => {
+                  if (!newTextValue.trim()) return;
+                  onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
+                  setPlacingTextIdx(textAnnotations.length);
+                  setNewTextValue('');
+                }}
+              >
+                Add
+              </Button>
+            </div>
+            {textAnnotations.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {textAnnotations.map((ann, idx) => {
+                  const isPlacing = placingTextIdx === idx;
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all ${
+                        isPlacing
+                          ? 'border-primary bg-primary/10 text-foreground shadow-sm'
+                          : 'border-border bg-muted/50 text-foreground'
+                      }`}
+                    >
+                      <button
+                        className="text-left truncate max-w-[120px]"
+                        onClick={() => {
+                          setPlacingTextIdx(isPlacing ? null : idx);
+                          scrollToPage(ann.page);
+                        }}
+                        title={ann.text}
+                      >
+                        📝 {ann.text}
+                      </button>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">p.{ann.page}</Badge>
+                      <button
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        onClick={() => {
+                          const updated = textAnnotations.filter((_, i) => i !== idx);
+                          onTextAnnotationsChange(updated);
+                          if (placingTextIdx === idx) setPlacingTextIdx(null);
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {placingTextIdx !== null && (
+              <p className="text-xs text-primary font-medium">
+                Click on the document to place "{textAnnotations[placingTextIdx]?.text}"
+              </p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Font size slider — separated mode only */}
+        {placementMode === 'separated' && (
+          <>
+            <Separator />
+            <div className="flex items-center gap-3">
+              <Type className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">Font size</Label>
+              <div className="w-32">
+                <Slider
+                  value={[separatedFontSize]}
+                  min={8}
+                  max={24}
+                  step={1}
+                  onValueChange={([v]) => onSeparatedFontSizeChange(v)}
+                />
+              </div>
+              <span className="text-xs font-mono text-muted-foreground w-8">{separatedFontSize}pt</span>
+            </div>
+          </>
+        )}
+
+        <Separator />
+
+        {/* Signatory Positions — at bottom for easy drag-drop */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground">Signatory Positions</h3>
 
@@ -556,21 +664,6 @@ export function SignaturePositionPicker({
                   })}
                 </div>
               )}
-
-              <div className="flex items-center gap-3 pt-1">
-                <Type className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <Label className="text-xs text-muted-foreground whitespace-nowrap">Font size</Label>
-                <div className="w-32">
-                  <Slider
-                    value={[separatedFontSize]}
-                    min={8}
-                    max={24}
-                    step={1}
-                    onValueChange={([v]) => onSeparatedFontSizeChange(v)}
-                  />
-                </div>
-                <span className="text-xs font-mono text-muted-foreground w-8">{separatedFontSize}pt</span>
-              </div>
             </div>
           )}
 
@@ -594,93 +687,6 @@ export function SignaturePositionPicker({
             }
           </p>
         </div>
-
-        <Separator />
-
-        {/* Custom Text — collapsible, default closed */}
-        <Collapsible open={customTextOpen} onOpenChange={setCustomTextOpen}>
-          <CollapsibleTrigger asChild>
-            <button className="w-full flex items-center justify-between text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors">
-              <span>Custom Text</span>
-              {customTextOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-3 pt-2">
-            <p className="text-xs text-muted-foreground">Add short labels or notes to place on the document.</p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter text…"
-                value={newTextValue}
-                onChange={e => setNewTextValue(e.target.value)}
-                className="text-sm"
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && newTextValue.trim()) {
-                    onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
-                    setPlacingTextIdx(textAnnotations.length);
-                    setNewTextValue('');
-                  }
-                }}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!newTextValue.trim()}
-                onClick={() => {
-                  if (!newTextValue.trim()) return;
-                  onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
-                  setPlacingTextIdx(textAnnotations.length);
-                  setNewTextValue('');
-                }}
-              >
-                Add
-              </Button>
-            </div>
-            {textAnnotations.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {textAnnotations.map((ann, idx) => {
-                  const isPlacing = placingTextIdx === idx;
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all ${
-                        isPlacing
-                          ? 'border-primary bg-primary/10 text-foreground shadow-sm'
-                          : 'border-border bg-muted/50 text-foreground'
-                      }`}
-                    >
-                      <button
-                        className="text-left truncate max-w-[120px]"
-                        onClick={() => {
-                          setPlacingTextIdx(isPlacing ? null : idx);
-                          scrollToPage(ann.page);
-                        }}
-                        title={ann.text}
-                      >
-                        📝 {ann.text}
-                      </button>
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">p.{ann.page}</Badge>
-                      <button
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                        onClick={() => {
-                          const updated = textAnnotations.filter((_, i) => i !== idx);
-                          onTextAnnotationsChange(updated);
-                          if (placingTextIdx === idx) setPlacingTextIdx(null);
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {placingTextIdx !== null && (
-              <p className="text-xs text-primary font-medium">
-                Click on the document to place "{textAnnotations[placingTextIdx]?.text}"
-              </p>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
       </Card>
 
       {/* Toolbar */}
