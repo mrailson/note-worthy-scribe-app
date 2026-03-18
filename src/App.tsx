@@ -412,6 +412,7 @@ const App = () => {
                 } />
                 
                 <Route path="/approve/:token" element={<PublicApproval />} />
+                <Route path="/approve/group/:groupToken" element={<PublicApproval />} />
                 
                 {/* Public Document Pages */}
                 <Route path="/privacy-notice" element={<PrivacyNotice />} />
