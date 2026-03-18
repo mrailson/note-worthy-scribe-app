@@ -373,6 +373,7 @@ export type Database = {
           file_url: string
           id: string
           message: string | null
+          multi_doc_group_id: string | null
           original_filename: string
           practice_id: string | null
           revoked_at: string | null
@@ -396,6 +397,7 @@ export type Database = {
           file_url: string
           id?: string
           message?: string | null
+          multi_doc_group_id?: string | null
           original_filename: string
           practice_id?: string | null
           revoked_at?: string | null
@@ -419,6 +421,7 @@ export type Database = {
           file_url?: string
           id?: string
           message?: string | null
+          multi_doc_group_id?: string | null
           original_filename?: string
           practice_id?: string | null
           revoked_at?: string | null
