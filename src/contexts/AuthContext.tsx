@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lg_capture_access: acc.lg_capture_access || roleRecord.lg_capture_access,
         bp_service_access: acc.bp_service_access || roleRecord.bp_service_access,
         survey_manager_access: acc.survey_manager_access || (roleRecord.survey_manager_access ?? false),
-        document_signoff_access: acc.document_signoff_access || (roleRecord.document_signoff_access ?? false),
+        document_signoff_access: acc.document_signoff_access || (roleRecord.document_signoff_access ?? false) || hasPracticeManagerRole,
       }), {
         meeting_notes_access: false,
         gp_scribe_access: false,
