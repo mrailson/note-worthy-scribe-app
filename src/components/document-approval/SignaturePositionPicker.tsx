@@ -10,7 +10,8 @@ import {
 import * as pdfjsLib from 'pdfjs-dist';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { FieldPosition } from '@/utils/generateSignedPdf';
+import type { FieldPosition, TextAnnotation } from '@/utils/generateSignedPdf';
+import { Input } from '@/components/ui/input';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
