@@ -517,7 +517,7 @@ const PublicApproval = () => {
                 </ul>
               </div>
             ) : (
-              <p><strong>Document:</strong> effectiveDocument.title</p>
+              <p><strong>Document:</strong> {effectiveDocument.title}</p>
             )}
             <p><strong>Name:</strong> {fullName}</p>
             {submittedAt && (
