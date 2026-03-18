@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  Loader2, Move, ZoomIn, ZoomOut, Sparkles, Check, User, Type,
+  Move, ZoomIn, ZoomOut, Check, User, Type, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { supabase } from '@/integrations/supabase/client';
@@ -133,9 +136,9 @@ export function SignaturePositionPicker({
 
   const [dragging, setDragging] = useState<string | null>(null); // sigId, `sigId:field`, or `text:idx`
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
-  const [suggestingPositions, setSuggestingPositions] = useState(false);
   const [newTextValue, setNewTextValue] = useState('');
   const [placingTextIdx, setPlacingTextIdx] = useState<number | null>(null);
+  const [customTextOpen, setCustomTextOpen] = useState(false);
 
   // Mouse helpers
   const getMousePercent = useCallback((e: React.MouseEvent, pageEl: HTMLElement) => {
@@ -398,50 +401,6 @@ export function SignaturePositionPicker({
     setDragOffset(null);
   }, []);
 
-  // AI suggestion (block mode only)
-  const handleSuggestPositions = async () => {
-    if (!pdfDocRef.current) return;
-    setSuggestingPositions(true);
-    try {
-      const pdf = pdfDocRef.current;
-      let fullText = '';
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        fullText += `\n--- Page ${i} ---\n${pageText}`;
-      }
-      const signatoryNames = signatories.map(s => s.name);
-      const { data, error: fnErr } = await supabase.functions.invoke('suggest-signature-positions', {
-        body: { documentText: fullText, signatoryNames, totalPages: pdf.numPages },
-      });
-      if (fnErr) throw fnErr;
-      if (data?.positions && Array.isArray(data.positions)) {
-        const updated = { ...value };
-        for (const suggestion of data.positions) {
-          const sig = signatories.find(s => s.name === suggestion.name);
-          if (sig) {
-            updated[sig.id] = {
-              page: Math.max(1, Math.min(pdf.numPages, suggestion.page || 1)),
-              x: Math.max(0, Math.min(80, suggestion.x || 10)),
-              y: Math.max(0, Math.min(85, suggestion.y || 70)),
-              width: DEFAULT_STAMP.width,
-              height: DEFAULT_STAMP.height,
-            };
-          }
-        }
-        onChange(updated);
-        toast.success('AI suggested positions — adjust if needed');
-        const firstPage = data.positions[0]?.page;
-        if (firstPage) scrollToPage(firstPage);
-      }
-    } catch (err) {
-      console.error('AI suggestion failed:', err);
-      toast.error('Could not suggest positions automatically');
-    } finally {
-      setSuggestingPositions(false);
-    }
-  };
 
   const getSignatoryColour = (idx: number) => SIGNATORY_COLOURS[idx % SIGNATORY_COLOURS.length];
   const getSignatoryBg = (idx: number) => SIGNATORY_BG_COLOURS[idx % SIGNATORY_BG_COLOURS.length];
@@ -454,121 +413,52 @@ export function SignaturePositionPicker({
 
   return (
     <div className="space-y-4">
-      {/* Mode toggle */}
+      {/* Unified controls card */}
       <Card className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
+        {/* Placement Mode toggle */}
+        <div className="space-y-2">
           <h3 className="text-sm font-semibold text-foreground">Placement Mode</h3>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onPlacementModeChange('block')}
-            className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-              placementMode === 'block'
-                ? 'border-primary bg-primary/5 text-foreground'
-                : 'border-border text-muted-foreground hover:border-primary/30'
-            }`}
-          >
-            Block (Stamp)
-          </button>
-          <button
-            onClick={() => onPlacementModeChange('separated')}
-            className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-              placementMode === 'separated'
-                ? 'border-primary bg-primary/5 text-foreground'
-                : 'border-border text-muted-foreground hover:border-primary/30'
-            }`}
-          >
-            Separated Fields
-          </button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {placementMode === 'block'
-            ? 'Places a single signature block per signatory containing all details.'
-            : 'Place Name, Role, Organisation, Date and Signature independently at different locations.'}
-        </p>
-      </Card>
-
-      {/* Signatory selector panel */}
-      <Card className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Signatory Positions</h3>
-          {placementMode === 'block' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSuggestPositions}
-              disabled={suggestingPositions || loading}
-              className="gap-1.5 text-xs"
-            >
-              {suggestingPositions ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              {suggestingPositions ? 'Analysing…' : 'AI Suggest Positions'}
-            </Button>
-          )}
-        </div>
-
-        {placementMode === 'block' ? (
-          /* Block mode signatory buttons */
-          <div className="flex flex-wrap gap-2">
-            {signatories.map((sig, idx) => {
-              const isActive = activeSignatoryId === sig.id;
-              const hasPosition = !!value[sig.id];
-              const colour = getSignatoryColour(idx);
-              return (
-                <button
-                  key={sig.id}
-                  onClick={() => {
-                    if (isActive && hasPosition) {
-                      const newValue = { ...value };
-                      delete newValue[sig.id];
-                      onChange(newValue);
-                      setActiveSignatoryId(null);
-                    } else {
-                      setActiveSignatoryId(sig.id);
-                      const pos = value[sig.id];
-                      if (pos) scrollToPage(pos.page);
-                    }
-                  }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm transition-all ${
-                    isActive
-                      ? 'border-primary bg-primary/5 shadow-sm'
-                      : 'border-border hover:border-primary/30 bg-background'
-                  }`}
-                >
-                  <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: colour }} />
-                  <span className="font-medium text-foreground">{sig.name}</span>
-                  {hasPosition ? (
-                    <span className="flex items-center gap-1">
-                      <Check className="h-3.5 w-3.5" style={{ color: 'hsl(150, 60%, 40%)' }} />
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                        p.{value[sig.id].page}
-                      </Badge>
-                    </span>
-                  ) : isActive ? (
-                    <span className="text-[10px] text-muted-foreground italic">Click to place</span>
-                  ) : null}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-3">
+            <span className={`text-sm ${placementMode === 'block' ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>Stamp</span>
+            <Switch
+              checked={placementMode === 'separated'}
+              onCheckedChange={(checked) => onPlacementModeChange(checked ? 'separated' : 'block')}
+            />
+            <span className={`text-sm ${placementMode === 'separated' ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>Separated</span>
           </div>
-        ) : (
-          /* Separated mode — signatory + field selector */
-          <div className="space-y-3">
-            {/* Signatory tabs */}
+          <p className="text-xs text-muted-foreground">
+            {placementMode === 'block'
+              ? 'Places a single signature block per signatory containing all details.'
+              : 'Place Name, Role, Organisation, Date and Signature independently at different locations.'}
+          </p>
+        </div>
+
+        <Separator />
+
+        {/* Signatory Positions */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Signatory Positions</h3>
+
+          {placementMode === 'block' ? (
             <div className="flex flex-wrap gap-2">
               {signatories.map((sig, idx) => {
                 const isActive = activeSignatoryId === sig.id;
+                const hasPosition = !!value[sig.id];
                 const colour = getSignatoryColour(idx);
-                const placedCount = getPlacedFieldCount(sig.id);
                 return (
                   <button
                     key={sig.id}
                     onClick={() => {
-                      setActiveSignatoryId(sig.id);
-                      setActiveField(null);
+                      if (isActive && hasPosition) {
+                        const newValue = { ...value };
+                        delete newValue[sig.id];
+                        onChange(newValue);
+                        setActiveSignatoryId(null);
+                      } else {
+                        setActiveSignatoryId(sig.id);
+                        const pos = value[sig.id];
+                        if (pos) scrollToPage(pos.page);
+                      }
                     }}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm transition-all ${
                       isActive
@@ -578,176 +468,219 @@ export function SignaturePositionPicker({
                   >
                     <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: colour }} />
                     <span className="font-medium text-foreground">{sig.name}</span>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                      {placedCount}/5
-                    </Badge>
+                    {hasPosition ? (
+                      <span className="flex items-center gap-1">
+                        <Check className="h-3.5 w-3.5" style={{ color: 'hsl(150, 60%, 40%)' }} />
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          p.{value[sig.id].page}
+                        </Badge>
+                      </span>
+                    ) : isActive ? (
+                      <span className="text-[10px] text-muted-foreground italic">Click to place</span>
+                    ) : null}
                   </button>
                 );
               })}
             </div>
-
-            {/* Field buttons for active signatory */}
-            {activeSignatoryId && (
-              <div className="flex flex-wrap gap-1.5">
-                {ALL_FIELDS.map(field => {
-                  const isFieldActive = activeField === field;
-                  const isPlaced = !!fieldPositions[activeSignatoryId]?.[field];
-                  const sigIdx = signatories.findIndex(s => s.id === activeSignatoryId);
-                  const colour = getSignatoryColour(sigIdx);
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {signatories.map((sig, idx) => {
+                  const isActive = activeSignatoryId === sig.id;
+                  const colour = getSignatoryColour(idx);
+                  const placedCount = getPlacedFieldCount(sig.id);
                   return (
                     <button
-                      key={field}
+                      key={sig.id}
                       onClick={() => {
-                        if (isFieldActive && isPlaced) {
-                          // Remove field
-                          const updated = { ...fieldPositions };
-                          if (updated[activeSignatoryId]) {
-                            const copy = { ...updated[activeSignatoryId] };
-                            delete copy[field];
-                            updated[activeSignatoryId] = copy;
-                            onFieldPositionsChange(updated);
-                          }
-                          setActiveField(null);
-                        } else {
-                          setActiveField(field);
-                          if (isPlaced) {
-                            const pos = fieldPositions[activeSignatoryId]![field]!;
-                            scrollToPage(pos.page);
-                          }
-                        }
+                        setActiveSignatoryId(sig.id);
+                        setActiveField(null);
                       }}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all ${
-                        isFieldActive
-                          ? 'border-primary bg-primary/10 text-foreground shadow-sm'
-                          : isPlaced
-                            ? 'border-border bg-muted/50 text-foreground'
-                            : 'border-dashed border-border text-muted-foreground hover:border-primary/40'
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm transition-all ${
+                        isActive
+                          ? 'border-primary bg-primary/5 shadow-sm'
+                          : 'border-border hover:border-primary/30 bg-background'
                       }`}
                     >
-                      <span>{FIELD_ICONS[field]}</span>
-                      <span>{FIELD_LABELS[field]}</span>
-                      {isPlaced && <Check className="h-3 w-3" style={{ color: colour }} />}
+                      <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: colour }} />
+                      <span className="font-medium text-foreground">{sig.name}</span>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        {placedCount}/5
+                      </Badge>
                     </button>
                   );
                 })}
               </div>
-            )}
 
-            {/* Font size slider */}
-            <div className="flex items-center gap-3 pt-1">
-              <Type className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <Label className="text-xs text-muted-foreground whitespace-nowrap">Font size</Label>
-              <div className="w-32">
-                <Slider
-                  value={[separatedFontSize]}
-                  min={8}
-                  max={24}
-                  step={1}
-                  onValueChange={([v]) => onSeparatedFontSizeChange(v)}
-                />
-              </div>
-              <span className="text-xs font-mono text-muted-foreground w-8">{separatedFontSize}pt</span>
-            </div>
-          </div>
-        )}
-
-        <p className="text-xs text-muted-foreground">
-          <User className="h-3 w-3 inline mr-1" />
-          {placementMode === 'block'
-            ? (!activeSignatoryId
-                ? 'Select a signatory above, then click on the document to place their signature'
-                : value[activeSignatoryId]
-                  ? `${signatories.find(s => s.id === activeSignatoryId)?.name}: page ${value[activeSignatoryId].page} — drag to reposition`
-                  : `Click anywhere on the document to place ${signatories.find(s => s.id === activeSignatoryId)?.name}'s signature block`
-              )
-            : (!activeSignatoryId
-                ? 'Select a signatory above'
-                : !activeField
-                  ? 'Select a field to place, then click on the document'
-                  : fieldPositions[activeSignatoryId]?.[activeField]
-                    ? `${FIELD_LABELS[activeField]} placed — drag to reposition or click to remove`
-                    : `Click on the document to place the ${FIELD_LABELS[activeField]} field`
-              )
-          }
-        </p>
-      </Card>
-
-      {/* Custom Text Annotations */}
-      <Card className="p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Custom Text</h3>
-        <p className="text-xs text-muted-foreground">Add short labels or notes to place on the document.</p>
-        <div className="flex gap-2">
-          <Input
-            placeholder="Enter text…"
-            value={newTextValue}
-            onChange={e => setNewTextValue(e.target.value)}
-            className="text-sm"
-            onKeyDown={e => {
-              if (e.key === 'Enter' && newTextValue.trim()) {
-                onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
-                setPlacingTextIdx(textAnnotations.length);
-                setNewTextValue('');
-              }
-            }}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!newTextValue.trim()}
-            onClick={() => {
-              if (!newTextValue.trim()) return;
-              onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
-              setPlacingTextIdx(textAnnotations.length);
-              setNewTextValue('');
-            }}
-          >
-            Add
-          </Button>
-        </div>
-        {textAnnotations.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {textAnnotations.map((ann, idx) => {
-              const isPlacing = placingTextIdx === idx;
-              return (
-                <div
-                  key={idx}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all ${
-                    isPlacing
-                      ? 'border-primary bg-primary/10 text-foreground shadow-sm'
-                      : 'border-border bg-muted/50 text-foreground'
-                  }`}
-                >
-                  <button
-                    className="text-left truncate max-w-[120px]"
-                    onClick={() => {
-                      setPlacingTextIdx(isPlacing ? null : idx);
-                      scrollToPage(ann.page);
-                    }}
-                    title={ann.text}
-                  >
-                    📝 {ann.text}
-                  </button>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">p.{ann.page}</Badge>
-                  <button
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                    onClick={() => {
-                      const updated = textAnnotations.filter((_, i) => i !== idx);
-                      onTextAnnotationsChange(updated);
-                      if (placingTextIdx === idx) setPlacingTextIdx(null);
-                    }}
-                  >
-                    ✕
-                  </button>
+              {activeSignatoryId && (
+                <div className="flex flex-wrap gap-1.5">
+                  {ALL_FIELDS.map(field => {
+                    const isFieldActive = activeField === field;
+                    const isPlaced = !!fieldPositions[activeSignatoryId]?.[field];
+                    const sigIdx = signatories.findIndex(s => s.id === activeSignatoryId);
+                    const colour = getSignatoryColour(sigIdx);
+                    return (
+                      <button
+                        key={field}
+                        onClick={() => {
+                          if (isFieldActive && isPlaced) {
+                            const updated = { ...fieldPositions };
+                            if (updated[activeSignatoryId]) {
+                              const copy = { ...updated[activeSignatoryId] };
+                              delete copy[field];
+                              updated[activeSignatoryId] = copy;
+                              onFieldPositionsChange(updated);
+                            }
+                            setActiveField(null);
+                          } else {
+                            setActiveField(field);
+                            if (isPlaced) {
+                              const pos = fieldPositions[activeSignatoryId]![field]!;
+                              scrollToPage(pos.page);
+                            }
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all ${
+                          isFieldActive
+                            ? 'border-primary bg-primary/10 text-foreground shadow-sm'
+                            : isPlaced
+                              ? 'border-border bg-muted/50 text-foreground'
+                              : 'border-dashed border-border text-muted-foreground hover:border-primary/40'
+                        }`}
+                      >
+                        <span>{FIELD_ICONS[field]}</span>
+                        <span>{FIELD_LABELS[field]}</span>
+                        {isPlaced && <Check className="h-3 w-3" style={{ color: colour }} />}
+                      </button>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        )}
-        {placingTextIdx !== null && (
-          <p className="text-xs text-primary font-medium">
-            Click on the document to place "{textAnnotations[placingTextIdx]?.text}"
+              )}
+
+              <div className="flex items-center gap-3 pt-1">
+                <Type className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Font size</Label>
+                <div className="w-32">
+                  <Slider
+                    value={[separatedFontSize]}
+                    min={8}
+                    max={24}
+                    step={1}
+                    onValueChange={([v]) => onSeparatedFontSizeChange(v)}
+                  />
+                </div>
+                <span className="text-xs font-mono text-muted-foreground w-8">{separatedFontSize}pt</span>
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            <User className="h-3 w-3 inline mr-1" />
+            {placementMode === 'block'
+              ? (!activeSignatoryId
+                  ? 'Select a signatory above, then click on the document to place their signature'
+                  : value[activeSignatoryId]
+                    ? `${signatories.find(s => s.id === activeSignatoryId)?.name}: page ${value[activeSignatoryId].page} — drag to reposition`
+                    : `Click anywhere on the document to place ${signatories.find(s => s.id === activeSignatoryId)?.name}'s signature block`
+                )
+              : (!activeSignatoryId
+                  ? 'Select a signatory above'
+                  : !activeField
+                    ? 'Select a field to place, then click on the document'
+                    : fieldPositions[activeSignatoryId]?.[activeField]
+                      ? `${FIELD_LABELS[activeField]} placed — drag to reposition or click to remove`
+                      : `Click on the document to place the ${FIELD_LABELS[activeField]} field`
+                )
+            }
           </p>
-        )}
+        </div>
+
+        <Separator />
+
+        {/* Custom Text — collapsible, default closed */}
+        <Collapsible open={customTextOpen} onOpenChange={setCustomTextOpen}>
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors">
+              <span>Custom Text</span>
+              {customTextOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 pt-2">
+            <p className="text-xs text-muted-foreground">Add short labels or notes to place on the document.</p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter text…"
+                value={newTextValue}
+                onChange={e => setNewTextValue(e.target.value)}
+                className="text-sm"
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newTextValue.trim()) {
+                    onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
+                    setPlacingTextIdx(textAnnotations.length);
+                    setNewTextValue('');
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!newTextValue.trim()}
+                onClick={() => {
+                  if (!newTextValue.trim()) return;
+                  onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
+                  setPlacingTextIdx(textAnnotations.length);
+                  setNewTextValue('');
+                }}
+              >
+                Add
+              </Button>
+            </div>
+            {textAnnotations.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {textAnnotations.map((ann, idx) => {
+                  const isPlacing = placingTextIdx === idx;
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all ${
+                        isPlacing
+                          ? 'border-primary bg-primary/10 text-foreground shadow-sm'
+                          : 'border-border bg-muted/50 text-foreground'
+                      }`}
+                    >
+                      <button
+                        className="text-left truncate max-w-[120px]"
+                        onClick={() => {
+                          setPlacingTextIdx(isPlacing ? null : idx);
+                          scrollToPage(ann.page);
+                        }}
+                        title={ann.text}
+                      >
+                        📝 {ann.text}
+                      </button>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">p.{ann.page}</Badge>
+                      <button
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        onClick={() => {
+                          const updated = textAnnotations.filter((_, i) => i !== idx);
+                          onTextAnnotationsChange(updated);
+                          if (placingTextIdx === idx) setPlacingTextIdx(null);
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {placingTextIdx !== null && (
+              <p className="text-xs text-primary font-medium">
+                Click on the document to place "{textAnnotations[placingTextIdx]?.text}"
+              </p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       {/* Toolbar */}
@@ -799,7 +732,7 @@ export function SignaturePositionPicker({
       >
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
             <span className="text-sm text-muted-foreground">Loading document…</span>
           </div>
         )}
