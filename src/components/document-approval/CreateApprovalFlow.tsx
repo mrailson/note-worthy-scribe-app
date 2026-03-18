@@ -181,7 +181,10 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const handleStampPositionContinue = async () => {
     if (!documentId) return;
     try {
-      await updateSignaturePlacement(documentId, { method: 'stamp', positions: stampPositions });
+      const placement = placementMode === 'separated'
+        ? { method: 'separated' as const, fieldPositions, separatedFontSize }
+        : { method: 'stamp' as const, positions: stampPositions };
+      await updateSignaturePlacement(documentId, placement);
       setStep('review');
     } catch (err) {
       console.error(err);
