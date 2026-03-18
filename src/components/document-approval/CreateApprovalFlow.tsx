@@ -571,6 +571,12 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               }
               value={stampPositions}
               onChange={setStampPositions}
+              placementMode={placementMode}
+              onPlacementModeChange={setPlacementMode}
+              fieldPositions={fieldPositions}
+              onFieldPositionsChange={setFieldPositions}
+              separatedFontSize={separatedFontSize}
+              onSeparatedFontSizeChange={setSeparatedFontSize}
             />
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setStep('signatories')} className="gap-2">
