@@ -61,6 +61,7 @@ interface DocumentData {
       date?: { page: number; x: number; y: number };
     }>;
     separatedFontSize?: number;
+    textAnnotations?: { text: string; page: number; x: number; y: number; fontSize?: number }[];
   } | null;
 }
 
