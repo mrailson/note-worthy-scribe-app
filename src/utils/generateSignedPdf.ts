@@ -32,6 +32,14 @@ export interface FieldPosition {
   y: number;
 }
 
+export interface TextAnnotation {
+  text: string;
+  page: number;
+  x: number;
+  y: number;
+  fontSize?: number;
+}
+
 export interface SignaturePlacement {
   method: 'append' | 'stamp' | 'separated';
   page?: number;
@@ -51,6 +59,8 @@ export interface SignaturePlacement {
   }>;
   /** Font size for separated fields (default 14) */
   separatedFontSize?: number;
+  /** Free-text annotations placed on the document */
+  textAnnotations?: TextAnnotation[];
 }
 
 export interface AuditLogEntry {
@@ -112,6 +122,11 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
     drawStampSignatures(pdfDoc, options, helvetica, helveticaBold, cursiveFont);
   } else if (placement.method === 'separated') {
     drawSeparatedSignatures(pdfDoc, options, helvetica, cursiveFont);
+  }
+
+  // Draw any text annotations
+  if (placement.textAnnotations && placement.textAnnotations.length > 0) {
+    drawTextAnnotations(pdfDoc, placement.textAnnotations, helvetica, placement.separatedFontSize || 14);
   }
 
   // Always append the full Electronic Signature Certificate
@@ -773,6 +788,34 @@ function drawSeparatedSignatures(
         });
       }
     }
+  }
+}
+
+// ─── Text Annotations — free-text placed on the document ─────────────
+function drawTextAnnotations(
+  pdfDoc: PDFDocument,
+  annotations: TextAnnotation[],
+  helvetica: PDFFont,
+  defaultFontSize: number,
+) {
+  const pages = pdfDoc.getPages();
+  const textColor = rgb(0.1, 0.1, 0.1);
+
+  for (const ann of annotations) {
+    const pageIdx = (ann.page || 1) - 1;
+    if (pageIdx < 0 || pageIdx >= pages.length) continue;
+
+    const page = pages[pageIdx];
+    const pw = page.getWidth();
+    const ph = page.getHeight();
+    const fontSize = ann.fontSize || defaultFontSize;
+
+    const drawX = (ann.x / 100) * pw;
+    const drawY = ph - ((ann.y / 100) * ph) - fontSize;
+
+    page.drawText(ann.text, {
+      x: drawX, y: drawY, size: fontSize, font: helvetica, color: textColor,
+    });
   }
 }
 

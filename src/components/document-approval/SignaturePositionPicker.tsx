@@ -10,7 +10,8 @@ import {
 import * as pdfjsLib from 'pdfjs-dist';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { FieldPosition } from '@/utils/generateSignedPdf';
+import type { FieldPosition, TextAnnotation } from '@/utils/generateSignedPdf';
+import { Input } from '@/components/ui/input';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -62,6 +63,9 @@ interface Props {
   /** Font size for separated mode */
   separatedFontSize: number;
   onSeparatedFontSizeChange: (size: number) => void;
+  /** Text annotations */
+  textAnnotations: TextAnnotation[];
+  onTextAnnotationsChange: (annotations: TextAnnotation[]) => void;
 }
 
 const SIGNATORY_COLOURS = [
@@ -107,6 +111,7 @@ export function SignaturePositionPicker({
   placementMode, onPlacementModeChange,
   fieldPositions, onFieldPositionsChange,
   separatedFontSize, onSeparatedFontSizeChange,
+  textAnnotations, onTextAnnotationsChange,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -126,9 +131,11 @@ export function SignaturePositionPicker({
   // For separated mode: which field is being placed
   const [activeField, setActiveField] = useState<FieldType | null>(null);
 
-  const [dragging, setDragging] = useState<string | null>(null); // sigId or `sigId:field`
+  const [dragging, setDragging] = useState<string | null>(null); // sigId, `sigId:field`, or `text:idx`
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const [suggestingPositions, setSuggestingPositions] = useState(false);
+  const [newTextValue, setNewTextValue] = useState('');
+  const [placingTextIdx, setPlacingTextIdx] = useState<number | null>(null);
 
   // Mouse helpers
   const getMousePercent = useCallback((e: React.MouseEvent, pageEl: HTMLElement) => {
@@ -142,6 +149,24 @@ export function SignaturePositionPicker({
   // Click-to-place handler for PDF pages
   const handlePageClick = useCallback((e: React.MouseEvent, pageNum: number) => {
     if (dragging) return;
+
+    // Text annotation placement
+    if (placingTextIdx !== null) {
+      const pageEl = pageRefs.current.get(pageNum);
+      if (!pageEl) return;
+      const pos = getMousePercent(e, pageEl);
+      const updated = [...textAnnotations];
+      updated[placingTextIdx] = {
+        ...updated[placingTextIdx],
+        page: pageNum,
+        x: Math.round(pos.x * 10) / 10,
+        y: Math.round(pos.y * 10) / 10,
+      };
+      onTextAnnotationsChange(updated);
+      setPlacingTextIdx(null);
+      return;
+    }
+
     if (!activeSignatoryId) return;
 
     if (placementMode === 'block') {
@@ -181,7 +206,9 @@ export function SignaturePositionPicker({
         },
       });
     }
-  }, [activeSignatoryId, activeField, value, fieldPositions, dragging, onChange, onFieldPositionsChange, getMousePercent, placementMode]);
+  }, [activeSignatoryId, activeField, value, fieldPositions, dragging, onChange, onFieldPositionsChange, getMousePercent, placementMode, placingTextIdx, textAnnotations, onTextAnnotationsChange]);
+
+
 
   // Load PDF
   useEffect(() => {
@@ -299,13 +326,40 @@ export function SignaturePositionPicker({
     e.stopPropagation();
   }, [fieldPositions, getMousePercent]);
 
+  // Mouse handler for dragging text annotations
+  const handleTextMouseDown = useCallback((e: React.MouseEvent, idx: number, pageNum: number) => {
+    const pageEl = pageRefs.current.get(pageNum);
+    if (!pageEl) return;
+    const pos = getMousePercent(e, pageEl);
+    const ann = textAnnotations[idx];
+    if (!ann) return;
+    setDragging(`text:${idx}`);
+    setDragOffset({ x: pos.x - ann.x, y: pos.y - ann.y });
+    setPlacingTextIdx(null);
+    e.preventDefault();
+    e.stopPropagation();
+  }, [textAnnotations, getMousePercent]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent, pageNum: number) => {
     if (!dragging || !dragOffset) return;
     const pageEl = pageRefs.current.get(pageNum);
     if (!pageEl) return;
     const pos = getMousePercent(e, pageEl);
 
-    if (dragging.includes(':')) {
+    if (dragging.startsWith('text:')) {
+      // Text annotation dragging
+      const idx = parseInt(dragging.split(':')[1]);
+      const newX = Math.max(0, Math.min(95, pos.x - dragOffset.x));
+      const newY = Math.max(0, Math.min(95, pos.y - dragOffset.y));
+      const updated = [...textAnnotations];
+      updated[idx] = {
+        ...updated[idx],
+        page: pageNum,
+        x: Math.round(newX * 10) / 10,
+        y: Math.round(newY * 10) / 10,
+      };
+      onTextAnnotationsChange(updated);
+    } else if (dragging.includes(':')) {
       // Separated field dragging
       const [sigId, field] = dragging.split(':') as [string, FieldType];
       const newX = Math.max(0, Math.min(95, pos.x - dragOffset.x));
@@ -337,7 +391,7 @@ export function SignaturePositionPicker({
         },
       });
     }
-  }, [dragging, dragOffset, value, fieldPositions, onChange, onFieldPositionsChange, getMousePercent]);
+  }, [dragging, dragOffset, value, fieldPositions, textAnnotations, onChange, onFieldPositionsChange, onTextAnnotationsChange, getMousePercent]);
 
   const handleMouseUp = useCallback(() => {
     setDragging(null);
@@ -618,6 +672,84 @@ export function SignaturePositionPicker({
         </p>
       </Card>
 
+      {/* Custom Text Annotations */}
+      <Card className="p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Custom Text</h3>
+        <p className="text-xs text-muted-foreground">Add short labels or notes to place on the document.</p>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Enter text…"
+            value={newTextValue}
+            onChange={e => setNewTextValue(e.target.value)}
+            className="text-sm"
+            onKeyDown={e => {
+              if (e.key === 'Enter' && newTextValue.trim()) {
+                onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
+                setPlacingTextIdx(textAnnotations.length);
+                setNewTextValue('');
+              }
+            }}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!newTextValue.trim()}
+            onClick={() => {
+              if (!newTextValue.trim()) return;
+              onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
+              setPlacingTextIdx(textAnnotations.length);
+              setNewTextValue('');
+            }}
+          >
+            Add
+          </Button>
+        </div>
+        {textAnnotations.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {textAnnotations.map((ann, idx) => {
+              const isPlacing = placingTextIdx === idx;
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all ${
+                    isPlacing
+                      ? 'border-primary bg-primary/10 text-foreground shadow-sm'
+                      : 'border-border bg-muted/50 text-foreground'
+                  }`}
+                >
+                  <button
+                    className="text-left truncate max-w-[120px]"
+                    onClick={() => {
+                      setPlacingTextIdx(isPlacing ? null : idx);
+                      scrollToPage(ann.page);
+                    }}
+                    title={ann.text}
+                  >
+                    📝 {ann.text}
+                  </button>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">p.{ann.page}</Badge>
+                  <button
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                    onClick={() => {
+                      const updated = textAnnotations.filter((_, i) => i !== idx);
+                      onTextAnnotationsChange(updated);
+                      if (placingTextIdx === idx) setPlacingTextIdx(null);
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {placingTextIdx !== null && (
+          <p className="text-xs text-primary font-medium">
+            Click on the document to place "{textAnnotations[placingTextIdx]?.text}"
+          </p>
+        )}
+      </Card>
+
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
@@ -779,6 +911,35 @@ export function SignaturePositionPicker({
                       </div>
                     );
                   });
+                })}
+
+                {/* Text annotation overlays */}
+                {textAnnotations.map((ann, idx) => {
+                  if (ann.page !== pageNum) return null;
+                  const isActive = placingTextIdx === idx || dragging === `text:${idx}`;
+                  return (
+                    <div
+                      key={`text-${idx}`}
+                      className={`absolute rounded-md flex items-center ${isActive ? 'cursor-move shadow-lg ring-1 ring-offset-1' : 'cursor-pointer'}`}
+                      style={{
+                        left: `${ann.x}%`,
+                        top: `${ann.y}%`,
+                        border: `1.5px ${isActive ? 'solid' : 'dashed'} hsl(var(--muted-foreground))`,
+                        backgroundColor: 'hsl(var(--muted) / 0.5)',
+                        opacity: isActive ? 1 : 0.7,
+                        zIndex: isActive ? 30 : 15,
+                        padding: '2px 6px',
+                        whiteSpace: 'nowrap',
+                      }}
+                      onMouseDown={(e) => handleTextMouseDown(e, idx, pageNum)}
+                    >
+                      <span className="text-[9px] font-medium flex items-center gap-1 text-muted-foreground">
+                        {isActive && <Move className="h-2.5 w-2.5 flex-shrink-0" />}
+                        <span>📝</span>
+                        <span className="truncate max-w-[100px]">{ann.text}</span>
+                      </span>
+                    </div>
+                  );
                 })}
               </div>
             ))}

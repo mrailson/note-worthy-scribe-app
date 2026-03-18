@@ -1,39 +1,9 @@
+## Separated Signature Field Placement — IMPLEMENTED
 
+Added a second placement mode ("Separated") alongside the existing "Block" (stamp) mode. In Separated mode, each signatory gets 5 independently draggable elements on the PDF: Signature (cursive), Name, Role, Organisation, and Date. Font size is configurable (8–24pt, default 14). Block mode remains unchanged.
 
-## Add Custom Text Box Placement
-
-Add a "Text" placeable element alongside the existing Block and Separated signature fields. Users can add one or more free-text annotations (short labels, notes, etc.) and position them on the PDF just like signature fields.
-
-### Changes
-
-#### 1. Extend Types (`generateSignedPdf.ts`)
-- Add `TextAnnotation` type: `{ text: string; page: number; x: number; y: number; fontSize?: number }`
-- Add `textAnnotations?: TextAnnotation[]` to `SignaturePlacement`
-- Add `drawTextAnnotations` function that renders each text annotation on the PDF using Helvetica at the configured font size
-
-#### 2. Update `SignaturePositionPicker.tsx`
-- Add a "Custom Text" section below the Block/Separated controls (always visible regardless of mode)
-- UI: A text input + "Add" button to create a new text annotation
-- Each added text appears as a draggable tag on the PDF (similar to separated field tags), with a delete button in the sidebar list
-- Text tags use a distinct colour (e.g. grey/neutral) to differentiate from signatory fields
-- Text annotations share the same click-to-place and drag behaviour as existing fields
-- Font size for text annotations uses the same `separatedFontSize` slider value
-
-#### 3. Update `CreateApprovalFlow.tsx`
-- Add `textAnnotations` state (`TextAnnotation[]`)
-- Pass to `SignaturePositionPicker` and include in the `signature_placement` JSON saved to the database
-
-#### 4. Update `PublicApproval.tsx`
-- Render ghost indicators for any text annotations (so signatories can see the text on the approval page)
-
-#### 5. PDF Generation (`generateSignedPdf.ts`)
-- `drawTextAnnotations`: iterate over `textAnnotations`, draw each text string at its position using Helvetica at the specified font size — no box or border, just clean text
-
-### Files to Modify
-| File | Change |
-|------|--------|
-| `src/utils/generateSignedPdf.ts` | Add `TextAnnotation` type, `drawTextAnnotations` function |
-| `src/components/document-approval/SignaturePositionPicker.tsx` | Add text input + placeable text tags |
-| `src/components/document-approval/CreateApprovalFlow.tsx` | Add `textAnnotations` state, pass through and save |
-| `src/pages/PublicApproval.tsx` | Render text annotation ghost indicators |
-
+### Files Changed
+- `src/utils/generateSignedPdf.ts` — Added `FieldPosition` type, extended `SignaturePlacement` with `fieldPositions` and `separatedFontSize`, added `drawSeparatedSignatures` function
+- `src/components/document-approval/SignaturePositionPicker.tsx` — Added Block/Separated mode toggle, per-field placement UI with draggable tags, font size slider
+- `src/components/document-approval/CreateApprovalFlow.tsx` — Added state for `placementMode`, `fieldPositions`, `separatedFontSize`; passes to picker and saves to DB
+- `src/pages/PublicApproval.tsx` — Renders per-field ghost indicators in separated mode
