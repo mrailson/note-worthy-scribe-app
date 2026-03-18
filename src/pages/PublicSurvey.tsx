@@ -133,9 +133,10 @@ const PublicSurvey = () => {
       }
 
       setIsSubmitted(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error submitting survey:', err);
-      setError('Failed to submit survey. Please try again.');
+      const detail = err?.message || err?.details || '';
+      setError(`Failed to submit survey. Please try again.${detail ? ` (${detail})` : ''}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -380,8 +381,20 @@ const PublicSurvey = () => {
 
         {/* Submit */}
         {error && (
-          <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-            {error}
+          <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm flex items-start gap-2">
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+            <div>
+              <p>{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Retrying...' : 'Retry Submission'}
+              </Button>
+            </div>
           </div>
         )}
 
