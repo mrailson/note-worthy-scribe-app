@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('user_roles')
-        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access, lg_capture_access, bp_service_access, survey_manager_access, document_signoff_access')
+        .select('role, meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access, lg_capture_access, bp_service_access, survey_manager_access, document_signoff_access')
         .eq('user_id', userId);
       
       if (error) {
@@ -63,6 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Cast data to expected type (types.ts may lag behind actual DB schema)
       const roleRecords = data as unknown as Array<{
+        role?: string;
         meeting_notes_access: boolean;
         gp_scribe_access: boolean;
         complaints_manager_access: boolean;
@@ -79,6 +80,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         survey_manager_access?: boolean;
         document_signoff_access?: boolean;
       }>;
+
+      // Check if any role record has practice_manager role — auto-grant document sign-off
+      const hasPracticeManagerRole = roleRecords.some(r => r.role === 'practice_manager');
       
       // Aggregate access flags across ALL role records using OR logic
       // If ANY role grants access to a module, the user gets access
@@ -97,7 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lg_capture_access: acc.lg_capture_access || roleRecord.lg_capture_access,
         bp_service_access: acc.bp_service_access || roleRecord.bp_service_access,
         survey_manager_access: acc.survey_manager_access || (roleRecord.survey_manager_access ?? false),
-        document_signoff_access: acc.document_signoff_access || (roleRecord.document_signoff_access ?? false),
+        document_signoff_access: acc.document_signoff_access || (roleRecord.document_signoff_access ?? false) || hasPracticeManagerRole,
       }), {
         meeting_notes_access: false,
         gp_scribe_access: false,

@@ -469,7 +469,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        </DropdownMenuItem>
                      )}
                       {/* Document Sign-Off - Only show if user has access or is system admin */}
-                      {(isSystemAdmin || hasModuleAccess('document_signoff_access')) && (
+                      {(isSystemAdmin || isPracticeManager || hasModuleAccess('document_signoff_access')) && (
                         <DropdownMenuItem 
                           onClick={() => navigate('/document-approval')}
                           className="cursor-pointer py-3"
