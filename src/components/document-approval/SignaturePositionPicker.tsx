@@ -911,6 +911,35 @@ export function SignaturePositionPicker({
                     );
                   });
                 })}
+
+                {/* Text annotation overlays */}
+                {textAnnotations.map((ann, idx) => {
+                  if (ann.page !== pageNum) return null;
+                  const isActive = placingTextIdx === idx || dragging === `text:${idx}`;
+                  return (
+                    <div
+                      key={`text-${idx}`}
+                      className={`absolute rounded-md flex items-center ${isActive ? 'cursor-move shadow-lg ring-1 ring-offset-1' : 'cursor-pointer'}`}
+                      style={{
+                        left: `${ann.x}%`,
+                        top: `${ann.y}%`,
+                        border: `1.5px ${isActive ? 'solid' : 'dashed'} hsl(var(--muted-foreground))`,
+                        backgroundColor: 'hsl(var(--muted) / 0.5)',
+                        opacity: isActive ? 1 : 0.7,
+                        zIndex: isActive ? 30 : 15,
+                        padding: '2px 6px',
+                        whiteSpace: 'nowrap',
+                      }}
+                      onMouseDown={(e) => handleTextMouseDown(e, idx, pageNum)}
+                    >
+                      <span className="text-[9px] font-medium flex items-center gap-1 text-muted-foreground">
+                        {isActive && <Move className="h-2.5 w-2.5 flex-shrink-0" />}
+                        <span>📝</span>
+                        <span className="truncate max-w-[100px]">{ann.text}</span>
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
