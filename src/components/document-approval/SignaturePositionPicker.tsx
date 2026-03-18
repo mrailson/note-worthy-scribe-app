@@ -401,50 +401,6 @@ export function SignaturePositionPicker({
     setDragOffset(null);
   }, []);
 
-  // AI suggestion (block mode only)
-  const handleSuggestPositions = async () => {
-    if (!pdfDocRef.current) return;
-    setSuggestingPositions(true);
-    try {
-      const pdf = pdfDocRef.current;
-      let fullText = '';
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        fullText += `\n--- Page ${i} ---\n${pageText}`;
-      }
-      const signatoryNames = signatories.map(s => s.name);
-      const { data, error: fnErr } = await supabase.functions.invoke('suggest-signature-positions', {
-        body: { documentText: fullText, signatoryNames, totalPages: pdf.numPages },
-      });
-      if (fnErr) throw fnErr;
-      if (data?.positions && Array.isArray(data.positions)) {
-        const updated = { ...value };
-        for (const suggestion of data.positions) {
-          const sig = signatories.find(s => s.name === suggestion.name);
-          if (sig) {
-            updated[sig.id] = {
-              page: Math.max(1, Math.min(pdf.numPages, suggestion.page || 1)),
-              x: Math.max(0, Math.min(80, suggestion.x || 10)),
-              y: Math.max(0, Math.min(85, suggestion.y || 70)),
-              width: DEFAULT_STAMP.width,
-              height: DEFAULT_STAMP.height,
-            };
-          }
-        }
-        onChange(updated);
-        toast.success('AI suggested positions — adjust if needed');
-        const firstPage = data.positions[0]?.page;
-        if (firstPage) scrollToPage(firstPage);
-      }
-    } catch (err) {
-      console.error('AI suggestion failed:', err);
-      toast.error('Could not suggest positions automatically');
-    } finally {
-      setSuggestingPositions(false);
-    }
-  };
 
   const getSignatoryColour = (idx: number) => SIGNATORY_COLOURS[idx % SIGNATORY_COLOURS.length];
   const getSignatoryBg = (idx: number) => SIGNATORY_BG_COLOURS[idx % SIGNATORY_BG_COLOURS.length];
