@@ -22,6 +22,7 @@ export interface ApprovalDocument {
   sender_name: string | null;
   sender_email: string | null;
   batch_id: string | null;
+  multi_doc_group_id: string | null;
 }
 
 export interface ApprovalSignatory {
@@ -705,6 +706,26 @@ export function useDocumentApproval() {
     toast.success('Document deleted');
   }, [user, documents, fetchDocuments]);
 
+  const sendMultiDocForApproval = useCallback(async (docIds: string[], customEmailBody?: string) => {
+    const groupId = crypto.randomUUID();
+
+    // Tag all docs with the group ID
+    for (const id of docIds) {
+      await supabase
+        .from('approval_documents')
+        .update({ multi_doc_group_id: groupId } as any)
+        .eq('id', id);
+    }
+
+    // Send each for approval
+    for (const id of docIds) {
+      await sendForApproval(id, customEmailBody);
+    }
+
+    await fetchDocuments();
+    return groupId;
+  }, [sendForApproval, fetchDocuments]);
+
   return {
     documents,
     contacts,
@@ -714,6 +735,7 @@ export function useDocumentApproval() {
     updateSignaturePlacement,
     addSignatories,
     sendForApproval,
+    sendMultiDocForApproval,
     revokeDocument,
     deleteDocument,
     chaseSignatory,
