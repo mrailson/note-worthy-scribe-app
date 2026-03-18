@@ -66,7 +66,7 @@ function getSignatoryContext(sig: ApprovalSignatory, doc: ApprovalDocumentWithSi
 export default function DocumentApproval() {
   const navigate = useNavigate();
   const { hasModuleAccess, isSystemAdmin } = useAuth();
-  const { documents, contacts, loading, chaseSignatory, chaseAllPending, chaseAllOverdue, refetch, saveContact, updateContact, deleteContact, toggleContactFavourite } = useDocumentApproval();
+  const { documents, contacts, loading, chaseSignatory, chaseAllPending, chaseAllOverdue, refetch, saveContact, updateContact, deleteContact, toggleContactFavourite, deleteDocument } = useDocumentApproval();
   const [chasingDocId, setChasingDocId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<ApprovalDocumentWithSignatories | null>(null);
