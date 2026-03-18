@@ -12590,6 +12590,7 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: boolean
       }
+      has_document_signoff_access: { Args: never; Returns: boolean }
       has_mock_inspection_access: {
         Args: { p_session_id: string; p_user_id: string }
         Returns: boolean
