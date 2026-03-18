@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  Loader2, Move, ZoomIn, ZoomOut, Sparkles, Check, User, Type,
+  Move, ZoomIn, ZoomOut, Check, User, Type, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { supabase } from '@/integrations/supabase/client';
