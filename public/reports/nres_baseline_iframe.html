@@ -438,6 +438,7 @@ Chart.defaults.font.family="'DM Sans',system-ui,sans-serif";Chart.defaults.font.
 Chart.defaults.plugins.legend.labels.usePointStyle=true;Chart.defaults.plugins.legend.labels.pointStyleWidth=7;
 const ch={};function kill(k){if(ch[k])ch[k].destroy()}
  const POP=89584;
+ const PRACTICE_POP={'All Practices':89584,'Brackley':14500,'Brook Health':7200,'Bugbrooke':6800,'Denton':3100,'Springfield':12500,'The Parks':35400,'Towcester':10100};
  function kc(cls,l,v,s){return`<div class="kc ${cls}"><div class="kl">${l}</div><div class="kv">${v}</div><div class="ks">${s}</div></div>`}
 function pL(p){return p==='W'?'Weekly':p==='M'?'Monthly':'Quarterly'}
 function rL(r){return r==='Other Direct Patient Care'?'Other DPC':r}
@@ -452,7 +453,7 @@ function buildOverview(){
   const tot=s.reduce((a,w)=>a+w.t,0),avg=Math.round(tot/n);
   const sd=s.reduce((a,w)=>a+w.s,0),att=s.reduce((a,w)=>a+w.a,0),dna=s.reduce((a,w)=>a+w.d,0),f2f=s.reduce((a,w)=>a+w.f,0),lng=s.reduce((a,w)=>a+w.l,0);
   const pN=pL(p),rN=rL(r),mN=mL(m);
-   const per1k=Math.round(avg/POP*1000);
+   const pop=PRACTICE_POP[pr]||POP;const per1k=Math.round(avg/pop*1000);
    document.getElementById('kpi-overview').innerHTML=
     kc('','Avg '+pN,fmt(avg),'<span style="color:var(--D);font-weight:600">'+per1k+'</span> per 1,000 patients')+
     kc('p','Total',fmt(tot),n+' periods')+
