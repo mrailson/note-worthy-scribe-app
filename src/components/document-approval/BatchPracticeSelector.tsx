@@ -51,19 +51,25 @@ export function BatchPracticeSelector({ selections, onChange }: BatchPracticeSel
   const availablePractices = useMemo(() => {
     const practices: { key: string; name: string; orgType: string; users: NotewellUser[] }[] = [];
 
-    // NRES practices — match directory groups by checking if the directory
-    // practice_name contains the full NRES display name (or vice-versa)
+    // Key words that uniquely identify each NRES practice in directory names
+    const NRES_MATCH_KEYWORDS: Record<NRESPracticeKey, string> = {
+      parks: 'parks',
+      brackley: 'brackley',
+      springfield: 'springfield',
+      towcester: 'towcester',
+      bugbrooke: 'bugbrooke',
+      brook: 'brook health',
+      denton: 'denton',
+    };
+
     const matchedDirectoryIndices = new Set<number>();
 
     for (const key of NRES_PRACTICE_KEYS) {
       const name = NRES_PRACTICES[key];
-      const nameLower = name.toLowerCase();
-      const dirIdx = practiceGroups.findIndex(g => {
-        const dirLower = g.practice_name.toLowerCase();
-        return dirLower === nameLower
-          || dirLower.includes(nameLower)
-          || nameLower.includes(dirLower);
-      });
+      const keyword = NRES_MATCH_KEYWORDS[key];
+      const dirIdx = practiceGroups.findIndex(g =>
+        g.practice_name.toLowerCase().includes(keyword)
+      );
       const matchingGroup = dirIdx >= 0 ? practiceGroups[dirIdx] : undefined;
       if (dirIdx >= 0) matchedDirectoryIndices.add(dirIdx);
       practices.push({
