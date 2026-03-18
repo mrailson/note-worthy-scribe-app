@@ -63,6 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Cast data to expected type (types.ts may lag behind actual DB schema)
       const roleRecords = data as unknown as Array<{
+        role?: string;
         meeting_notes_access: boolean;
         gp_scribe_access: boolean;
         complaints_manager_access: boolean;
@@ -79,6 +80,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         survey_manager_access?: boolean;
         document_signoff_access?: boolean;
       }>;
+
+      // Check if any role record has practice_manager role — auto-grant document sign-off
+      const hasPracticeManagerRole = roleRecords.some(r => r.role === 'practice_manager');
       
       // Aggregate access flags across ALL role records using OR logic
       // If ANY role grants access to a module, the user gets access
