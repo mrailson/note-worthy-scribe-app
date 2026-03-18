@@ -51,12 +51,21 @@ export function BatchPracticeSelector({ selections, onChange }: BatchPracticeSel
   const availablePractices = useMemo(() => {
     const practices: { key: string; name: string; orgType: string; users: NotewellUser[] }[] = [];
 
-    // NRES practices
+    // NRES practices — match directory groups by checking if the directory
+    // practice_name contains the full NRES display name (or vice-versa)
+    const matchedDirectoryIndices = new Set<number>();
+
     for (const key of NRES_PRACTICE_KEYS) {
       const name = NRES_PRACTICES[key];
-      const matchingGroup = practiceGroups.find(g =>
-        g.practice_name.toLowerCase().includes(name.toLowerCase().split(' ')[0].toLowerCase())
-      );
+      const nameLower = name.toLowerCase();
+      const dirIdx = practiceGroups.findIndex(g => {
+        const dirLower = g.practice_name.toLowerCase();
+        return dirLower === nameLower
+          || dirLower.includes(nameLower)
+          || nameLower.includes(dirLower);
+      });
+      const matchingGroup = dirIdx >= 0 ? practiceGroups[dirIdx] : undefined;
+      if (dirIdx >= 0) matchedDirectoryIndices.add(dirIdx);
       practices.push({
         key,
         name,
@@ -66,18 +75,15 @@ export function BatchPracticeSelector({ selections, onChange }: BatchPracticeSel
     }
 
     // Add non-NRES directory practices
-    for (const group of practiceGroups) {
-      const alreadyAdded = practices.some(p =>
-        group.practice_name.toLowerCase().includes(p.name.toLowerCase().split(' ')[0].toLowerCase())
-      );
-      if (!alreadyAdded) {
-        practices.push({
-          key: `dir-${group.practice_name}`,
-          name: group.practice_name,
-          orgType: group.organisation_type,
-          users: group.users,
-        });
-      }
+    for (let i = 0; i < practiceGroups.length; i++) {
+      if (matchedDirectoryIndices.has(i)) continue;
+      const group = practiceGroups[i];
+      practices.push({
+        key: `dir-${group.practice_name}`,
+        name: group.practice_name,
+        orgType: group.organisation_type,
+        users: group.users,
+      });
     }
 
     return practices;
