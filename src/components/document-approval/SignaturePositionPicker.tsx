@@ -732,7 +732,7 @@ export function SignaturePositionPicker({
       >
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
             <span className="text-sm text-muted-foreground">Loading document…</span>
           </div>
         )}
