@@ -34,3 +34,17 @@ Users can now upload multiple PDF/DOCX files in a single approval request. All d
 - `src/components/document-approval/CreateApprovalFlow.tsx` — Refactored from single-file to multi-file: array of DocFile objects, per-document signature state maps, document tab bar in positioning step, multi-doc review display
 - `src/hooks/useDocumentApproval.ts` — Added `multi_doc_group_id` to `ApprovalDocument` interface; added `sendMultiDocForApproval()` function that assigns a shared group ID and sends each doc
 - `src/pages/DocumentApproval.tsx` — Added "Multi-doc" badge on DocumentCard for grouped documents
+
+## Unified Multi-Document Approval Flow — IMPLEMENTED
+
+Consolidated multi-document approvals into a single-email, single-action experience: One email → One link → One approval → One completion email with all signed documents attached.
+
+### Database Changes
+- `approval_signatories.group_token` (UUID, nullable) — groups signatory rows for the same email across all documents in a multi-doc group
+
+### Changes
+- `src/hooks/useDocumentApproval.ts` — Rewrote `sendMultiDocForApproval` to generate one `group_token` per unique signatory email, set all docs to pending, and call `send-approval-email` once with `multi_request` type
+- `supabase/functions/process-approval/index.ts` — Added group_token flow: `get` returns all documents in the group, `approve` approves all signatory rows sharing the token, checks for multi-doc group completion, triggers PDF generation and consolidated completion email
+- `supabase/functions/send-approval-email/index.ts` — Added `multi_request` (sends one email listing all documents with single approve button) and `multi_send_completed` (sends one completion email with all signed PDFs attached)
+- `src/pages/PublicApproval.tsx` — Added tabbed multi-document view with single approval form for group tokens
+- `src/App.tsx` — Added `/approve/group/:groupToken` route
