@@ -91,6 +91,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [placementMode, setPlacementMode] = useState<'block' | 'separated'>('block');
   const [fieldPositions, setFieldPositions] = useState<PerSignatoryFieldPositions>({});
   const [separatedFontSize, setSeparatedFontSize] = useState(14);
+  const [textAnnotations, setTextAnnotations] = useState<import('@/utils/generateSignedPdf').TextAnnotation[]>([]);
 
   // ─── Step 2: Signatories ──────────────────────────────────────────
   const [signatories, setSignatories] = useState<SignatoryRow[]>([
