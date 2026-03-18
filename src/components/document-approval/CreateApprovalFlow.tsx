@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   ArrowLeft, Upload, Plus, Trash2, Loader2, Send, UserPlus, Users, Building2,
   GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Eye, ChevronDown, ChevronUp, Pencil, Search,
-  Layers,
+  Layers, ChevronRight, ChevronLeft,
 } from 'lucide-react';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
 import { useNotewellDirectory, NotewellUser } from '@/hooks/useNotewellDirectory';
@@ -40,6 +40,16 @@ interface CreateApprovalFlowProps {
   onBack: () => void;
 }
 
+interface DocFile {
+  localId: string;
+  file: File;
+  hash: string | null;
+  title: string;
+  url: string | null;
+  docId: string | null;
+  hashing: boolean;
+}
+
 const categoryLabels: Record<string, string> = {
   dpia: 'DPIA', dsa: 'DSA', mou: 'MOU', policy: 'Policy',
   contract: 'Contract', privacy_notice: 'Privacy Notice', other: 'Other',
@@ -47,10 +57,12 @@ const categoryLabels: Record<string, string> = {
 
 let _localId = 0;
 function localId() { return `sig-${++_localId}-${Date.now()}`; }
+let _fileLocalId = 0;
+function fileLocalId() { return `file-${++_fileLocalId}-${Date.now()}`; }
 
 export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const {
-    uploadDocument, addSignatories, sendForApproval, sendBatchForApproval,
+    uploadDocument, addSignatories, sendForApproval, sendMultiDocForApproval, sendBatchForApproval,
     contacts, contactGroups, saveContact, deleteContact, updateContact, updateSignaturePlacement,
   } = useDocumentApproval();
   const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory();
@@ -63,35 +75,33 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const [convertedToPdf, setConvertedToPdf] = useState(false);
   const [showDocPreview, setShowDocPreview] = useState(false);
   const [previewPages, setPreviewPages] = useState<string[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  // ─── Step 1: File & metadata ──────────────────────────────────────
-  const [file, setFile] = useState<File | null>(null);
-  const [fileHash, setFileHash] = useState<string | null>(null);
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [hashing, setHashing] = useState(false);
-  const [title, setTitle] = useState('');
+  // ─── Step 1: Files & metadata ──────────────────────────────────────
+  const [files, setFiles] = useState<DocFile[]>([]);
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('other');
   const [deadline, setDeadline] = useState('');
   const [message, setMessage] = useState('');
   const [editingEmail, setEditingEmail] = useState(false);
   const [customEmailBody, setCustomEmailBody] = useState('');
-  const [documentId, setDocumentId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Stores the DB-returned signatories (with real IDs) after addSignatories
-  const [dbSignatories, setDbSignatories] = useState<{ id: string; name: string; email: string }[]>([]);
 
-  // Signature placement — always stamp
+  // Per-document DB signatories (keyed by file localId)
+  const [perDocSignatories, setPerDocSignatories] = useState<Record<string, { id: string; name: string; email: string }[]>>({});
+
+  // Signature placement — per document (keyed by file localId)
   const signatureMethod = 'stamp' as const;
-  const [stampPositions, setStampPositions] = useState<PerSignatoryPositions>({});
-  const [placementMode, setPlacementMode] = useState<'block' | 'separated'>('block');
-  const [fieldPositions, setFieldPositions] = useState<PerSignatoryFieldPositions>({});
-  const [separatedFontSize, setSeparatedFontSize] = useState(14);
-  const [textAnnotations, setTextAnnotations] = useState<import('@/utils/generateSignedPdf').TextAnnotation[]>([]);
+  const [allStampPositions, setAllStampPositions] = useState<Record<string, PerSignatoryPositions>>({});
+  const [allPlacementModes, setAllPlacementModes] = useState<Record<string, 'block' | 'separated'>>({});
+  const [allFieldPositions, setAllFieldPositions] = useState<Record<string, PerSignatoryFieldPositions>>({});
+  const [allSeparatedFontSizes, setAllSeparatedFontSizes] = useState<Record<string, number>>({});
+  const [allTextAnnotations, setAllTextAnnotations] = useState<Record<string, import('@/utils/generateSignedPdf').TextAnnotation[]>>({});
+
+  // Active document in stamp positioning step
+  const [activeDocIndex, setActiveDocIndex] = useState(0);
 
   // ─── Step 2: Signatories ──────────────────────────────────────────
   const [signatories, setSignatories] = useState<SignatoryRow[]>([
@@ -108,66 +118,114 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [expandedPractices, setExpandedPractices] = useState<Set<string>>(new Set());
   const [directorySearch, setDirectorySearch] = useState('');
 
+  // Derived
+  const groupTitle = files.length === 1 ? files[0]?.title || '' : files.map(f => f.title).filter(Boolean).join(', ') || 'Untitled';
+  const activeFile = files[activeDocIndex] || null;
+
+  // Current doc's signature state helpers
+  const currentStampPositions = activeFile ? (allStampPositions[activeFile.localId] || {}) : {};
+  const currentPlacementMode = activeFile ? (allPlacementModes[activeFile.localId] || 'block') : 'block';
+  const currentFieldPositions = activeFile ? (allFieldPositions[activeFile.localId] || {}) : {};
+  const currentSeparatedFontSize = activeFile ? (allSeparatedFontSizes[activeFile.localId] || 14) : 14;
+  const currentTextAnnotations = activeFile ? (allTextAnnotations[activeFile.localId] || []) : [];
+  const currentDocSignatories = activeFile ? (perDocSignatories[activeFile.localId] || []) : [];
+
   // ─── File handling ────────────────────────────────────────────────
+
+  const processAndAddFiles = useCallback(async (newFiles: File[]) => {
+    const pdfOrDocFiles = newFiles.filter(f => /\.(pdf|docx?|doc)$/i.test(f.name));
+    if (pdfOrDocFiles.length === 0) {
+      toast.error('Please select PDF or Word documents');
+      return;
+    }
+
+    const newDocFiles: DocFile[] = pdfOrDocFiles.map(f => ({
+      localId: fileLocalId(),
+      file: f,
+      hash: null,
+      title: f.name.replace(/\.[^.]+$/, ''),
+      url: null,
+      docId: null,
+      hashing: true,
+    }));
+
+    setFiles(prev => [...prev, ...newDocFiles]);
+
+    // Hash each file in background
+    for (const df of newDocFiles) {
+      try {
+        const hash = await hashFile(df.file);
+        setFiles(prev => prev.map(f => f.localId === df.localId ? { ...f, hash, hashing: false } : f));
+      } catch {
+        setFiles(prev => prev.map(f => f.localId === df.localId ? { ...f, hashing: false } : f));
+      }
+    }
+  }, []);
 
   const handleFileDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const f = Array.from(e.dataTransfer.files).find(
-      f => /\.(pdf|docx?|doc)$/i.test(f.name)
-    );
-    if (f) processFile(f);
-    else toast.error('Please drop a PDF or Word document');
-  }, []);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    processAndAddFiles(droppedFiles);
+  }, [processAndAddFiles]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) processFile(f);
+    const selected = e.target.files;
+    if (selected && selected.length > 0) {
+      processAndAddFiles(Array.from(selected));
+    }
+    // Reset input so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const processFile = async (f: File) => {
-    setFile(f);
-    if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''));
-    setFileHash(null);
-    setHashing(true);
-    try {
-      const hash = await hashFile(f);
-      setFileHash(hash);
-    } catch {
-      toast.error('Failed to calculate file hash');
-    } finally {
-      setHashing(false);
-    }
+  const removeFile = (localId: string) => {
+    setFiles(prev => prev.filter(f => f.localId !== localId));
+    // Clean up per-doc state
+    setAllStampPositions(prev => { const copy = { ...prev }; delete copy[localId]; return copy; });
+    setAllPlacementModes(prev => { const copy = { ...prev }; delete copy[localId]; return copy; });
+    setAllFieldPositions(prev => { const copy = { ...prev }; delete copy[localId]; return copy; });
+    setAllSeparatedFontSizes(prev => { const copy = { ...prev }; delete copy[localId]; return copy; });
+    setAllTextAnnotations(prev => { const copy = { ...prev }; delete copy[localId]; return copy; });
+    setPerDocSignatories(prev => { const copy = { ...prev }; delete copy[localId]; return copy; });
+  };
+
+  const updateFileTitle = (localId: string, newTitle: string) => {
+    setFiles(prev => prev.map(f => f.localId === localId ? { ...f, title: newTitle } : f));
   };
 
   const handleUploadAndContinue = async () => {
-    if (!file || !title.trim()) {
-      toast.error('Please select a file and enter a title');
+    if (files.length === 0) {
+      toast.error('Please select at least one file');
       return;
     }
+    // Validate titles
+    const untitled = files.filter(f => !f.title.trim());
+    if (untitled.length > 0) {
+      toast.error('Please provide a title for each document');
+      return;
+    }
+
     setUploading(true);
     setUploadStatus(null);
-    const isDocx = file.name.toLowerCase().endsWith('.docx');
     try {
-      const placement = { method: 'stamp' as const, positions: stampPositions };
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        setUploadStatus(`Uploading ${i + 1}/${files.length}: ${f.file.name}…`);
+        const placement = { method: 'stamp' as const, positions: {} };
 
-      const doc = await uploadDocument(file, {
-        title, description, category,
-        deadline: deadline || undefined,
-        message: message || undefined,
-        signaturePlacement: placement,
-      }, (status) => setUploadStatus(status));
+        const doc = await uploadDocument(f.file, {
+          title: f.title,
+          description,
+          category,
+          deadline: deadline || undefined,
+          message: message || undefined,
+          signaturePlacement: placement,
+        }, (status) => setUploadStatus(`${i + 1}/${files.length}: ${status}`));
 
-      setDocumentId(doc.id);
-      setFileUrl(doc.file_url);
-
-      if (isDocx) {
-        setConvertedToPdf(true);
-        toast.success('Converted from Word to PDF successfully');
+        setFiles(prev => prev.map(pf => pf.localId === f.localId ? { ...pf, docId: doc.id, url: doc.file_url } : pf));
       }
 
-      // After upload, always go to signatories first (stamp positioning comes after)
       setStep('signatories');
-      toast.success('Document uploaded successfully');
+      toast.success(files.length === 1 ? 'Document uploaded successfully' : `${files.length} documents uploaded successfully`);
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : 'Failed to upload document');
@@ -178,12 +236,16 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   };
 
   const handleStampPositionContinue = async () => {
-    if (!documentId) return;
     try {
-      const placement = placementMode === 'separated'
-        ? { method: 'separated' as const, fieldPositions, separatedFontSize, textAnnotations }
-        : { method: 'stamp' as const, positions: stampPositions, textAnnotations };
-      await updateSignaturePlacement(documentId, placement);
+      // Save positions for all documents
+      for (const f of files) {
+        if (!f.docId) continue;
+        const mode = allPlacementModes[f.localId] || 'block';
+        const placement = mode === 'separated'
+          ? { method: 'separated' as const, fieldPositions: allFieldPositions[f.localId] || {}, separatedFontSize: allSeparatedFontSizes[f.localId] || 14, textAnnotations: allTextAnnotations[f.localId] || [] }
+          : { method: 'stamp' as const, positions: allStampPositions[f.localId] || {}, textAnnotations: allTextAnnotations[f.localId] || [] };
+        await updateSignaturePlacement(f.docId, placement);
+      }
       setStep('review');
     } catch (err) {
       console.error(err);
@@ -298,21 +360,27 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
       toast.error('Please add at least one signatory');
       return;
     }
-    if (!documentId) return;
 
     setSending(true);
     try {
-      const inserted = await addSignatories(documentId, validSignatories);
-      // Store DB signatories with real IDs for stamp positioning
-      if (inserted) {
-        setDbSignatories(inserted.map(s => ({ id: s.id, name: s.name, email: s.email })));
+      // Add signatories to ALL documents
+      const newPerDocSigs: Record<string, { id: string; name: string; email: string }[]> = {};
+      for (const f of files) {
+        if (!f.docId) continue;
+        const inserted = await addSignatories(f.docId, validSignatories);
+        if (inserted) {
+          newPerDocSigs[f.localId] = inserted.map(s => ({ id: s.id, name: s.name, email: s.email }));
+        }
       }
+      setPerDocSignatories(newPerDocSigs);
+
       if (saveNewContacts) {
         for (const s of validSignatories) {
           await saveContact({ name: s.name, email: s.email, role: s.role || undefined, organisation: s.organisation || undefined, title: s.signatory_title || undefined, organisation_type: s.organisation_type || undefined });
         }
       }
 
+      setActiveDocIndex(0);
       setStep('stamp_position');
     } catch (err) {
       console.error(err);
@@ -325,11 +393,12 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   // ─── Send ────────────────────────────────────────────────────────
 
   const handleSend = async () => {
-    if (!documentId) return;
+    const docIds = files.map(f => f.docId).filter(Boolean) as string[];
+    if (docIds.length === 0) return;
     setSending(true);
     try {
       if (sendMode === 'batch') {
-        // Batch send
+        // Batch send (uses first doc)
         const practiceSignatories = batchSelections.map(s => ({
           practiceName: s.practiceName,
           signatories: s.signatories.filter(sig => sig.name.trim() && sig.email.trim()).map(sig => ({
@@ -339,7 +408,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           })),
         })).filter(ps => ps.signatories.length > 0);
 
-        const { results } = await sendBatchForApproval(documentId, practiceSignatories, customEmailBody || undefined);
+        const { results } = await sendBatchForApproval(docIds[0], practiceSignatories, customEmailBody || undefined);
         const successCount = results.filter(r => r.success).length;
         const failCount = results.filter(r => !r.success).length;
         if (failCount > 0) {
@@ -347,9 +416,14 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
         } else {
           toast.success(`Document sent to ${successCount} practice${successCount !== 1 ? 's' : ''}! Track progress in the dashboard.`);
         }
-      } else {
-        await sendForApproval(documentId, customEmailBody || undefined);
+      } else if (docIds.length === 1) {
+        // Single document
+        await sendForApproval(docIds[0], customEmailBody || undefined);
         toast.success('Document sent for approval! You can track progress in the dashboard.');
+      } else {
+        // Multi-document
+        await sendMultiDocForApproval(docIds, customEmailBody || undefined);
+        toast.success(`${docIds.length} documents sent for approval! Track progress in the dashboard.`);
       }
       onBack();
     } catch (err) {
@@ -367,11 +441,15 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
       toast.error('Please add at least one signatory to at least one practice');
       return;
     }
-    // For batch mode, skip stamp positioning for now (stamp positions are complex per-practice)
     setStep('review');
   };
 
   // ─── Render ──────────────────────────────────────────────────────
+
+  const stepLabel = step === 'upload' ? 'Step 1: Upload documents'
+    : step === 'signatories' ? (sendMode === 'batch' ? 'Step 2: Select practices & signatories' : 'Step 2: Add signatories')
+    : step === 'stamp_position' ? `Step 3: Position signatures${files.length > 1 ? ` (${activeDocIndex + 1}/${files.length})` : ''}`
+    : (sendMode === 'batch' ? 'Step 3: Review & send batch' : 'Step 4: Review & send');
 
   return (
     <div className="min-h-screen bg-background">
@@ -383,9 +461,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           </Button>
           <div>
             <h1 className="text-xl font-bold text-foreground">New Approval Request</h1>
-            <p className="text-sm text-muted-foreground">
-              {step === 'upload' ? 'Step 1: Upload document' : step === 'signatories' ? (sendMode === 'batch' ? 'Step 2: Select practices & signatories' : 'Step 2: Add signatories') : step === 'stamp_position' ? 'Step 3: Position signatures' : (sendMode === 'batch' ? 'Step 3: Review & send batch' : 'Step 4: Review & send')}
-            </p>
+            <p className="text-sm text-muted-foreground">{stepLabel}</p>
           </div>
         </div>
 
@@ -406,56 +482,67 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           <Card className="p-6 space-y-5">
             {/* Drop zone */}
             <div>
-              <Label className="text-sm font-medium">Document File *</Label>
+              <Label className="text-sm font-medium">Document Files *</Label>
               <div
                 className="mt-2 border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
                 onClick={() => fileInputRef.current?.click()}
                 onDrop={handleFileDrop}
                 onDragOver={e => e.preventDefault()}
               >
-                {file ? (
-                  <div className="space-y-2">
-                    <FileText className="h-10 w-10 text-primary mx-auto" />
-                    <p className="text-sm font-medium text-foreground">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-
-                    {/* Hash display */}
-                    <div className="flex items-center justify-center gap-2 mt-2">
-                      <Hash className="h-3 w-3 text-muted-foreground" />
-                      {hashing ? (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Loader2 className="h-3 w-3 animate-spin" /> Calculating integrity hash…
-                        </span>
-                      ) : fileHash ? (
-                        <span className="text-xs font-mono text-muted-foreground break-all">
-                          SHA-256: {fileHash.substring(0, 16)}…{fileHash.substring(fileHash.length - 16)}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {/* DOCX notice */}
-                    {file.name.toLowerCase().endsWith('.docx') && (
-                      <p className="text-xs text-primary flex items-center justify-center gap-1 mt-1">
-                        <Shield className="h-3 w-3" /> Word document — will be automatically converted to PDF before sending
-                      </p>
-                    )}
-                  </div>
-                ) : (
+                {files.length === 0 ? (
                   <>
                     <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm font-medium text-foreground mb-1">Drop your document here</p>
-                    <p className="text-xs text-muted-foreground">or click to browse — PDF, DOCX, DOC accepted</p>
+                    <p className="text-sm font-medium text-foreground mb-1">Drop your documents here</p>
+                    <p className="text-xs text-muted-foreground">or click to browse — PDF, DOCX, DOC accepted. You can upload multiple files.</p>
                   </>
+                ) : (
+                  <div className="space-y-1">
+                    <Plus className="h-8 w-8 text-muted-foreground mx-auto" />
+                    <p className="text-sm text-muted-foreground">Drop or click to add more files</p>
+                  </div>
                 )}
               </div>
-              <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
+              <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleFileChange} multiple />
             </div>
 
-            {/* Title */}
-            <div>
-              <Label className="text-sm font-medium">Title *</Label>
-              <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Data Sharing Agreement v2.1" className="mt-1.5" />
-            </div>
+            {/* File list */}
+            {files.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">{files.length} document{files.length !== 1 ? 's' : ''}</Label>
+                {files.map((f, idx) => (
+                  <div key={f.localId} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border border-border">
+                    <FileText className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <Input
+                        value={f.title}
+                        onChange={e => updateFileTitle(f.localId, e.target.value)}
+                        placeholder="Document title"
+                        className="text-sm h-8"
+                      />
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>{f.file.name}</span>
+                        <span>{(f.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                        {f.hashing ? (
+                          <span className="flex items-center gap-1">
+                            <Loader2 className="h-3 w-3 animate-spin" /> Hashing…
+                          </span>
+                        ) : f.hash ? (
+                          <span className="font-mono">SHA-256: {f.hash.substring(0, 12)}…</span>
+                        ) : null}
+                      </div>
+                      {f.file.name.toLowerCase().endsWith('.docx') && (
+                        <p className="text-xs text-primary flex items-center gap-1">
+                          <Shield className="h-3 w-3" /> Will be converted to PDF
+                        </p>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => removeFile(f.localId)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Category */}
             <div>
@@ -488,7 +575,6 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               <Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="mt-1.5" />
             </div>
 
-
             {/* Send Mode */}
             <div>
               <Label className="text-sm font-medium">Send mode</Label>
@@ -514,49 +600,83 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               </RadioGroup>
             </div>
 
-            <Button onClick={handleUploadAndContinue} disabled={uploading || !file || !title.trim()} className="w-full gap-2">
+            <Button onClick={handleUploadAndContinue} disabled={uploading || files.length === 0 || files.some(f => !f.title.trim())} className="w-full gap-2">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {uploading ? (uploadStatus || 'Processing…') : 'Upload & Continue'}
+              {uploading ? (uploadStatus || 'Processing…') : `Upload${files.length > 1 ? ` ${files.length} Documents` : ''} & Continue`}
             </Button>
           </Card>
         )}
 
-        {/* ═══ STEP 1b: Stamp Position ═══ */}
-        {step === 'stamp_position' && fileUrl && (
+        {/* ═══ STEP 3: Stamp Position ═══ */}
+        {step === 'stamp_position' && activeFile?.url && (
           <Card className="p-6 space-y-5">
             <div>
               <h2 className="font-semibold text-foreground mb-1">Position Signature Block</h2>
               <p className="text-xs text-muted-foreground">Drag each signatory's block to position it on the document</p>
             </div>
+
+            {/* Document tab bar for multi-doc */}
+            {files.length > 1 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {files.map((f, idx) => (
+                  <Button
+                    key={f.localId}
+                    variant={activeDocIndex === idx ? 'default' : 'outline'}
+                    size="sm"
+                    className="text-xs gap-1.5 flex-shrink-0"
+                    onClick={() => setActiveDocIndex(idx)}
+                  >
+                    <FileText className="h-3 w-3" />
+                    <span className="max-w-[120px] truncate">{f.title || `Doc ${idx + 1}`}</span>
+                    {/* Show check if positions have been set */}
+                    {(() => {
+                      const mode = allPlacementModes[f.localId] || 'block';
+                      const hasPositions = mode === 'block'
+                        ? Object.keys(allStampPositions[f.localId] || {}).length > 0
+                        : Object.keys(allFieldPositions[f.localId] || {}).length > 0;
+                      return hasPositions ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--approval-approved))]" /> : null;
+                    })()}
+                  </Button>
+                ))}
+              </div>
+            )}
+
             <SignaturePositionPicker
-              fileUrl={fileUrl}
-              signatories={dbSignatories.length > 0
-                ? dbSignatories.map(s => ({ id: s.id, name: s.name }))
+              fileUrl={activeFile.url}
+              signatories={currentDocSignatories.length > 0
+                ? currentDocSignatories.map(s => ({ id: s.id, name: s.name }))
                 : validSignatories.map(s => ({ id: s.id, name: s.name }))
               }
-              value={stampPositions}
-              onChange={setStampPositions}
-              placementMode={placementMode}
-              onPlacementModeChange={setPlacementMode}
-              fieldPositions={fieldPositions}
-              onFieldPositionsChange={setFieldPositions}
-              separatedFontSize={separatedFontSize}
-              onSeparatedFontSizeChange={setSeparatedFontSize}
-              textAnnotations={textAnnotations}
-              onTextAnnotationsChange={setTextAnnotations}
+              value={currentStampPositions}
+              onChange={(positions) => setAllStampPositions(prev => ({ ...prev, [activeFile.localId]: positions }))}
+              placementMode={currentPlacementMode}
+              onPlacementModeChange={(mode) => setAllPlacementModes(prev => ({ ...prev, [activeFile.localId]: mode }))}
+              fieldPositions={currentFieldPositions}
+              onFieldPositionsChange={(positions) => setAllFieldPositions(prev => ({ ...prev, [activeFile.localId]: positions }))}
+              separatedFontSize={currentSeparatedFontSize}
+              onSeparatedFontSizeChange={(size) => setAllSeparatedFontSizes(prev => ({ ...prev, [activeFile.localId]: size }))}
+              textAnnotations={currentTextAnnotations}
+              onTextAnnotationsChange={(annotations) => setAllTextAnnotations(prev => ({ ...prev, [activeFile.localId]: annotations }))}
             />
+
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setStep('signatories')} className="gap-2">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
-              <Button onClick={handleStampPositionContinue} className="flex-1 gap-2">
-                Continue to Review
-              </Button>
+              {files.length > 1 && activeDocIndex < files.length - 1 ? (
+                <Button onClick={() => setActiveDocIndex(prev => prev + 1)} className="flex-1 gap-2">
+                  Next Document <ChevronRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button onClick={handleStampPositionContinue} className="flex-1 gap-2">
+                  Continue to Review
+                </Button>
+              )}
             </div>
           </Card>
         )}
 
-        {/* ═══ STEP 2: Signatories ═══ */}
+        {/* ═══ STEP 2: Signatories (Batch) ═══ */}
         {step === 'signatories' && sendMode === 'batch' && (
           <div className="space-y-5">
             <BatchPracticeSelector
@@ -578,6 +698,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           </div>
         )}
 
+        {/* ═══ STEP 2: Signatories (Single) ═══ */}
         {step === 'signatories' && sendMode === 'single' && (
           <Card className="p-6 space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -585,6 +706,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 <h2 className="font-semibold text-foreground">Signatories</h2>
                 <p className="text-xs text-muted-foreground">
                   {validSignatories.length} signator{validSignatories.length !== 1 ? 'ies' : 'y'} added
+                  {files.length > 1 && ` — shared across ${files.length} documents`}
                 </p>
               </div>
               <div className="flex gap-2 flex-wrap">
@@ -690,13 +812,13 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               </Button>
               <Button onClick={handleContinueToReview} disabled={sending || validSignatories.length === 0} className="flex-1 gap-2">
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Continue to Review
+                Continue to Position Signatures
               </Button>
             </div>
           </Card>
         )}
 
-        {/* ═══ STEP 3: Review & Send ═══ */}
+        {/* ═══ STEP 4: Review & Send ═══ */}
         {step === 'review' && (
           <div className="space-y-4">
             <Card className="p-6 space-y-4">
@@ -704,18 +826,24 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 <CheckCircle2 className="h-5 w-5 text-primary" /> Review & Send
               </h2>
 
+              {/* Documents list */}
+              <div className="space-y-2">
+                <span className="text-sm text-muted-foreground">
+                  {files.length === 1 ? 'Document:' : `${files.length} Documents:`}
+                </span>
+                {files.map((f, idx) => (
+                  <div key={f.localId} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-sm">
+                    <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="font-medium text-foreground flex-1 min-w-0 truncate">{f.title}</span>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">{f.file.name}</span>
+                  </div>
+                ))}
+              </div>
+
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Document:</span>{' '}
-                  <span className="font-medium text-foreground">{title}</span>
-                </div>
                 <div>
                   <span className="text-muted-foreground">Category:</span>{' '}
                   <Badge variant="outline" className="text-xs">{categoryLabels[category] || category}</Badge>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">File:</span>{' '}
-                  <span className="text-foreground">{file?.name}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Deadline:</span>{' '}
@@ -724,12 +852,6 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                   </span>
                 </div>
               </div>
-
-              {fileHash && (
-                <p className="text-xs text-muted-foreground font-mono break-all">
-                  SHA-256: {fileHash}
-                </p>
-              )}
             </Card>
 
             {/* Signatories list */}
@@ -795,11 +917,13 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                   size="sm"
                   onClick={() => {
                     if (!editingEmail) {
-                      // Initialise custom body with default text
                       const deadlineText = deadline ? `\nDeadline: ${format(new Date(deadline), 'dd MMMM yyyy')}` : '';
                       const descText = description ? `\n\n"${description}"` : '';
+                      const docList = files.length > 1
+                        ? `\n\nDocuments:\n${files.map((f, i) => `  ${i + 1}. ${f.title}`).join('\n')}`
+                        : '';
                       setCustomEmailBody(
-                        `Dear [Signatory Name],\n\nYou have been asked to review and approve the following document:\n\n${title}\nCategory: ${categoryLabels[category] || category}${deadlineText}${descText}\n\nPlease click the link below to review the document and record your approval:`
+                        `Dear [Signatory Name],\n\nYou have been asked to review and approve the following document${files.length > 1 ? 's' : ''}:\n\n${files[0]?.title || 'Untitled'}\nCategory: ${categoryLabels[category] || category}${deadlineText}${descText}${docList}\n\nPlease click the link below to review the document and record your approval:`
                       );
                     }
                     setEditingEmail(!editingEmail);
@@ -814,7 +938,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Subject:</p>
                   <p className="font-medium text-foreground text-sm">
-                    Document Approval Requested: {title}
+                    Document Approval Requested: {files[0]?.title || 'Untitled'}
+                    {files.length > 1 && ` (+${files.length - 1} more)`}
                   </p>
                   <hr className="border-border" />
                   <Textarea
@@ -832,7 +957,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2 border border-border">
                   <p className="text-xs text-muted-foreground">Subject:</p>
                   <p className="font-medium text-foreground">
-                    Document Approval Requested: {title}
+                    Document Approval Requested: {files[0]?.title || 'Untitled'}
+                    {files.length > 1 && ` (+${files.length - 1} more)`}
                   </p>
                   <hr className="border-border" />
                   {customEmailBody ? (
@@ -841,10 +967,12 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                     <>
                       <p className="text-muted-foreground">Dear <span className="italic">[Signatory Name]</span>,</p>
                       <p className="text-muted-foreground">
-                        You have been asked to review and approve the following document:
+                        You have been asked to review and approve the following document{files.length > 1 ? 's' : ''}:
                       </p>
                       <div className="pl-4 border-l-2 border-primary/30 space-y-1">
-                        <p className="text-foreground font-medium">{title}</p>
+                        {files.map((f, idx) => (
+                          <p key={f.localId} className="text-foreground font-medium">{f.title}</p>
+                        ))}
                         <p className="text-xs text-muted-foreground">Category: {categoryLabels[category] || category}</p>
                         {deadline && <p className="text-xs text-muted-foreground">Deadline: {format(new Date(deadline), 'dd MMMM yyyy')}</p>}
                       </div>
@@ -865,20 +993,22 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
             </Card>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(sendMode === 'batch' ? 'signatories' : (signatureMethod === 'stamp' ? 'stamp_position' : 'signatories'))} className="gap-1">
+              <Button variant="outline" onClick={() => setStep(sendMode === 'batch' ? 'signatories' : 'stamp_position')} className="gap-1">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
               <Button onClick={handleSend} disabled={sending} className="flex-1 gap-2">
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 {sendMode === 'batch'
                   ? `Send to ${batchSelections.length} Practice${batchSelections.length !== 1 ? 's' : ''}`
-                  : 'Send for Approval'
+                  : files.length > 1
+                    ? `Send ${files.length} Documents for Approval`
+                    : 'Send for Approval'
                 }
               </Button>
             </div>
 
             {/* ─── Collapsible Document Preview ─── */}
-            {fileUrl && (
+            {files.some(f => f.url) && (
               <div className="border rounded-lg overflow-hidden">
                 <button
                   type="button"
@@ -893,17 +1023,16 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                           'pdfjs-dist/build/pdf.worker.min.mjs',
                           import.meta.url
                         ).toString();
-                        
-                        // Extract storage path from public URL and download via SDK
+
+                        const firstFileUrl = files[0]?.url;
+                        if (!firstFileUrl) throw new Error('No file URL');
+
                         let arrayBuffer: ArrayBuffer;
-                        const pathMatch = fileUrl!.match(/approval-documents\/(.+)$/);
+                        const pathMatch = firstFileUrl.match(/approval-documents\/(.+)$/);
                         const storagePath = pathMatch?.[1];
-                        console.log('Preview: fileUrl=', fileUrl, 'storagePath=', storagePath);
                         if (storagePath) {
                           const { data, error } = await supabase.storage.from('approval-documents').download(storagePath);
                           if (error || !data) {
-                            console.error('SDK download failed, trying signed URL:', error);
-                            // Fallback: try signed URL
                             const { data: signedData } = await supabase.storage.from('approval-documents').createSignedUrl(storagePath, 300);
                             if (signedData?.signedUrl) {
                               const res = await fetch(signedData.signedUrl);
@@ -915,8 +1044,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                             arrayBuffer = await data.arrayBuffer();
                           }
                         } else {
-                          // Fallback: direct fetch (may be blocked)
-                          const res = await fetch(fileUrl!);
+                          const res = await fetch(firstFileUrl);
                           arrayBuffer = await res.arrayBuffer();
                         }
                         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -964,7 +1092,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                       <img key={i} src={src} alt={`Page ${i + 1}`} className="w-full rounded border bg-white shadow-sm" />
                     ))}
                     {previewPages.length > 0 && (
-                      <p className="text-xs text-muted-foreground text-centre">Showing first {previewPages.length} page(s)</p>
+                      <p className="text-xs text-muted-foreground text-center">Showing first {previewPages.length} page(s)</p>
                     )}
                   </div>
                 )}
