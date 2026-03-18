@@ -26,15 +26,31 @@ export interface SignatoryPosition {
   height: number;
 }
 
+export interface FieldPosition {
+  page: number;
+  x: number;
+  y: number;
+}
+
 export interface SignaturePlacement {
-  method: 'append' | 'stamp';
+  method: 'append' | 'stamp' | 'separated';
   page?: number;
   x?: number;
   y?: number;
   width?: number;
   height?: number;
-  /** Per-signatory positions keyed by signatory ID */
+  /** Per-signatory positions keyed by signatory ID (block/stamp mode) */
   positions?: Record<string, SignatoryPosition>;
+  /** Per-signatory field-level positions keyed by signatory ID (separated mode) */
+  fieldPositions?: Record<string, {
+    signature?: FieldPosition;
+    name?: FieldPosition;
+    role?: FieldPosition;
+    organisation?: FieldPosition;
+    date?: FieldPosition;
+  }>;
+  /** Font size for separated fields (default 14) */
+  separatedFontSize?: number;
 }
 
 export interface AuditLogEntry {
@@ -94,6 +110,8 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
   // For stamp method, draw individual signature blocks at their positions
   if (placement.method === 'stamp') {
     drawStampSignatures(pdfDoc, options, helvetica, helveticaBold, cursiveFont);
+  } else if (placement.method === 'separated') {
+    drawSeparatedSignatures(pdfDoc, options, helvetica, cursiveFont);
   }
 
   // Always append the full Electronic Signature Certificate
@@ -690,6 +708,72 @@ function drawStampSignatures(
     y: areaY + 4,
     size: 6, font: helvetica, color: rgb(0.78, 0.78, 0.78),
   });
+}
+
+// ─── Separated Mode — individual field placement ─────────────────────
+function drawSeparatedSignatures(
+  pdfDoc: PDFDocument,
+  options: GenerateSignedPdfOptions,
+  helvetica: PDFFont,
+  cursiveFont: PDFFont,
+) {
+  const { signatories, placement } = options;
+  const pages = pdfDoc.getPages();
+  const fieldPositions = placement.fieldPositions || {};
+  const fontSize = placement.separatedFontSize || 14;
+  const inkColor = rgb(0.05, 0.1, 0.45);
+  const textColor = rgb(0.1, 0.1, 0.1);
+
+  for (const sig of signatories) {
+    const sigFields = sig.id ? fieldPositions[sig.id] : null;
+    if (!sigFields) continue;
+
+    const name = sig.signed_name || sig.name;
+    const role = sig.signed_role || sig.role || '';
+    const org = sig.signed_organisation || sig.organisation || '';
+    const date = sig.signed_at ? format(new Date(sig.signed_at), 'dd MMM yyyy') : '';
+
+    // Draw each field at its position
+    const fields: { key: keyof typeof sigFields; text: string; useCursive?: boolean }[] = [
+      { key: 'signature', text: name, useCursive: true },
+      { key: 'name', text: (sig.signatory_title ? sig.signatory_title + ' ' : '') + name },
+      { key: 'role', text: role },
+      { key: 'organisation', text: org },
+      { key: 'date', text: date ? `${date}` : '' },
+    ];
+
+    for (const field of fields) {
+      const pos = sigFields[field.key];
+      if (!pos || !field.text) continue;
+
+      const pageIdx = (pos.page || 1) - 1;
+      if (pageIdx < 0 || pageIdx >= pages.length) continue;
+
+      const page = pages[pageIdx];
+      const pw = page.getWidth();
+      const ph = page.getHeight();
+
+      const drawX = (pos.x / 100) * pw;
+      const drawY = ph - ((pos.y / 100) * ph) - fontSize;
+
+      if (field.useCursive) {
+        page.drawText(field.text, {
+          x: drawX, y: drawY, size: fontSize, font: cursiveFont, color: inkColor,
+        });
+        // Underline
+        const tw = cursiveFont.widthOfTextAtSize(field.text, fontSize);
+        page.drawLine({
+          start: { x: drawX, y: drawY - 2 },
+          end: { x: drawX + tw, y: drawY - 2 },
+          thickness: 0.5, color: rgb(0.6, 0.6, 0.7),
+        });
+      } else {
+        page.drawText(field.text, {
+          x: drawX, y: drawY, size: fontSize, font: helvetica, color: textColor,
+        });
+      }
+    }
+  }
 }
 
 // ─── Text helpers ─────────────────────────────────────────────────────

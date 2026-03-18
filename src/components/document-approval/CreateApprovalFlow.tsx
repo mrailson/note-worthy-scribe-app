@@ -20,7 +20,7 @@ import { hashFile } from '@/utils/fileHash';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { SignaturePositionPicker, StampPosition, PerSignatoryPositions } from './SignaturePositionPicker';
+import { SignaturePositionPicker, StampPosition, PerSignatoryPositions, PerSignatoryFieldPositions } from './SignaturePositionPicker';
 import { BatchPracticeSelector, PracticeSelection } from './BatchPracticeSelector';
 
 const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof', 'Rev'];
@@ -88,6 +88,9 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   // Signature placement
   const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('stamp');
   const [stampPositions, setStampPositions] = useState<PerSignatoryPositions>({});
+  const [placementMode, setPlacementMode] = useState<'block' | 'separated'>('block');
+  const [fieldPositions, setFieldPositions] = useState<PerSignatoryFieldPositions>({});
+  const [separatedFontSize, setSeparatedFontSize] = useState(14);
 
   // ─── Step 2: Signatories ──────────────────────────────────────────
   const [signatories, setSignatories] = useState<SignatoryRow[]>([
@@ -178,7 +181,10 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const handleStampPositionContinue = async () => {
     if (!documentId) return;
     try {
-      await updateSignaturePlacement(documentId, { method: 'stamp', positions: stampPositions });
+      const placement = placementMode === 'separated'
+        ? { method: 'separated' as const, fieldPositions, separatedFontSize }
+        : { method: 'stamp' as const, positions: stampPositions };
+      await updateSignaturePlacement(documentId, placement);
       setStep('review');
     } catch (err) {
       console.error(err);
@@ -565,6 +571,12 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               }
               value={stampPositions}
               onChange={setStampPositions}
+              placementMode={placementMode}
+              onPlacementModeChange={setPlacementMode}
+              fieldPositions={fieldPositions}
+              onFieldPositionsChange={setFieldPositions}
+              separatedFontSize={separatedFontSize}
+              onSeparatedFontSizeChange={setSeparatedFontSize}
             />
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setStep('signatories')} className="gap-2">

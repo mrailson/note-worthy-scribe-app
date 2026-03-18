@@ -50,7 +50,18 @@ interface DocumentData {
   created_at: string;
   sender_name: string | null;
   sender_email: string | null;
-  signature_placement: { method: string; positions?: Record<string, { page: number; x: number; y: number }> } | null;
+  signature_placement: {
+    method: string;
+    positions?: Record<string, { page: number; x: number; y: number }>;
+    fieldPositions?: Record<string, {
+      signature?: { page: number; x: number; y: number };
+      name?: { page: number; x: number; y: number };
+      role?: { page: number; x: number; y: number };
+      organisation?: { page: number; x: number; y: number };
+      date?: { page: number; x: number; y: number };
+    }>;
+    separatedFontSize?: number;
+  } | null;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -61,11 +72,14 @@ const categoryLabels: Record<string, string> = {
 /* ─── Inline PDF Viewer ─────────────────────────────────────── */
 function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryName }: {
   fileUrl: string;
-  signaturePlacement?: { method: string; positions?: Record<string, { page: number; x: number; y: number }> } | null;
+  signaturePlacement?: DocumentData['signature_placement'];
   signatoryId?: string;
   signatoryName?: string;
 }) {
   const placement = signatoryId && signaturePlacement?.positions ? signaturePlacement.positions[signatoryId] : null;
+  const separatedFields = signatoryId && signaturePlacement?.method === 'separated' && signaturePlacement?.fieldPositions
+    ? signaturePlacement.fieldPositions[signatoryId]
+    : null;
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -280,6 +294,33 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
                   </span>
                 </div>
               )}
+              {/* Separated mode ghost indicators */}
+              {separatedFields && (['signature', 'name', 'role', 'organisation', 'date'] as const).map(field => {
+                const fp = separatedFields[field];
+                if (!fp || fp.page !== pageNum) return null;
+                const fieldLabels: Record<string, string> = {
+                  signature: '✍ Signature',
+                  name: '👤 Name',
+                  role: '💼 Role',
+                  organisation: '🏢 Organisation',
+                  date: '📅 Date',
+                };
+                return (
+                  <div
+                    key={field}
+                    className="absolute flex items-center px-2 py-1 border border-dashed border-primary/60 rounded bg-primary/5 pointer-events-none"
+                    style={{
+                      left: `${fp.x}%`,
+                      top: `${fp.y}%`,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <span className="text-[8px] sm:text-[10px] text-primary/80 font-medium">
+                      {fieldLabels[field]}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
