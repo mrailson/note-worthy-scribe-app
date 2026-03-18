@@ -791,6 +791,34 @@ function drawSeparatedSignatures(
   }
 }
 
+// ─── Text Annotations — free-text placed on the document ─────────────
+function drawTextAnnotations(
+  pdfDoc: PDFDocument,
+  annotations: TextAnnotation[],
+  helvetica: PDFFont,
+  defaultFontSize: number,
+) {
+  const pages = pdfDoc.getPages();
+  const textColor = rgb(0.1, 0.1, 0.1);
+
+  for (const ann of annotations) {
+    const pageIdx = (ann.page || 1) - 1;
+    if (pageIdx < 0 || pageIdx >= pages.length) continue;
+
+    const page = pages[pageIdx];
+    const pw = page.getWidth();
+    const ph = page.getHeight();
+    const fontSize = ann.fontSize || defaultFontSize;
+
+    const drawX = (ann.x / 100) * pw;
+    const drawY = ph - ((ann.y / 100) * ph) - fontSize;
+
+    page.drawText(ann.text, {
+      x: drawX, y: drawY, size: fontSize, font: helvetica, color: textColor,
+    });
+  }
+}
+
 // ─── Text helpers ─────────────────────────────────────────────────────
 function drawLabel(page: PDFPage, text: string, x: number, y: number, font: PDFFont) {
   page.drawText(text, { x, y, size: 8, font, color: GREY_TEXT });
