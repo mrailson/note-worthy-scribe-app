@@ -88,6 +88,9 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   // Signature placement
   const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('stamp');
   const [stampPositions, setStampPositions] = useState<PerSignatoryPositions>({});
+  const [placementMode, setPlacementMode] = useState<'block' | 'separated'>('block');
+  const [fieldPositions, setFieldPositions] = useState<PerSignatoryFieldPositions>({});
+  const [separatedFontSize, setSeparatedFontSize] = useState(14);
 
   // ─── Step 2: Signatories ──────────────────────────────────────────
   const [signatories, setSignatories] = useState<SignatoryRow[]>([
