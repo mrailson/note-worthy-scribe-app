@@ -20,7 +20,7 @@ import { hashFile } from '@/utils/fileHash';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { SignaturePositionPicker, StampPosition, PerSignatoryPositions } from './SignaturePositionPicker';
+import { SignaturePositionPicker, StampPosition, PerSignatoryPositions, PerSignatoryFieldPositions } from './SignaturePositionPicker';
 import { BatchPracticeSelector, PracticeSelection } from './BatchPracticeSelector';
 
 const TITLE_OPTIONS = ['', 'Dr', 'Mr', 'Mrs', 'Ms', 'Miss', 'Prof', 'Rev'];
