@@ -527,9 +527,9 @@ function buildActivity(){
   const pN=pL(p),rN=rL(r),mN=mL(m),lbl=rN+(m==='All'?'':' · '+mN);
   document.getElementById('kpi-act').innerHTML=
     kc('','Avg '+pN+' Total',fmt(Math.round(tot/n)),pr+' · '+lbl)+
-    kc('','F2F',fmt(f2f),pct(f2f,tot)+'%')+
-    kc('q','Telephone',fmt(tel),pct(tel,tot)+'%')+
-    kc('g','Video',fmt(vid),pct(vid,tot)+'%');
+    kc('','F2F',fmt(Math.round(f2f/n))+' avg/wk',pct(f2f,tot)+'% · '+fmt(f2f)+' total')+
+    kc('q','Telephone',fmt(Math.round(tel/n))+' avg/wk',pct(tel,tot)+'% · '+fmt(tel)+' total')+
+    kc('g','Video',fmt(Math.round(vid/n))+' avg/wk',pct(vid,tot)+'% · '+fmt(vid)+' total');
   kill('actm');document.getElementById('sub-actm').textContent=pN+' · '+pr+' · '+lbl;
   ch.actm=new Chart(document.getElementById('ch-actm'),{type:'bar',data:{labels:s.map(w=>w.p),datasets:[
     {label:'Total',data:s.map(w=>w.t),backgroundColor:C.B+'88',borderRadius:3}
