@@ -710,6 +710,72 @@ function drawStampSignatures(
   });
 }
 
+// ─── Separated Mode — individual field placement ─────────────────────
+function drawSeparatedSignatures(
+  pdfDoc: PDFDocument,
+  options: GenerateSignedPdfOptions,
+  helvetica: PDFFont,
+  cursiveFont: PDFFont,
+) {
+  const { signatories, placement } = options;
+  const pages = pdfDoc.getPages();
+  const fieldPositions = placement.fieldPositions || {};
+  const fontSize = placement.separatedFontSize || 14;
+  const inkColor = rgb(0.05, 0.1, 0.45);
+  const textColor = rgb(0.1, 0.1, 0.1);
+
+  for (const sig of signatories) {
+    const sigFields = sig.id ? fieldPositions[sig.id] : null;
+    if (!sigFields) continue;
+
+    const name = sig.signed_name || sig.name;
+    const role = sig.signed_role || sig.role || '';
+    const org = sig.signed_organisation || sig.organisation || '';
+    const date = sig.signed_at ? format(new Date(sig.signed_at), 'dd MMM yyyy') : '';
+
+    // Draw each field at its position
+    const fields: { key: keyof typeof sigFields; text: string; useCursive?: boolean }[] = [
+      { key: 'signature', text: name, useCursive: true },
+      { key: 'name', text: (sig.signatory_title ? sig.signatory_title + ' ' : '') + name },
+      { key: 'role', text: role },
+      { key: 'organisation', text: org },
+      { key: 'date', text: date ? `${date}` : '' },
+    ];
+
+    for (const field of fields) {
+      const pos = sigFields[field.key];
+      if (!pos || !field.text) continue;
+
+      const pageIdx = (pos.page || 1) - 1;
+      if (pageIdx < 0 || pageIdx >= pages.length) continue;
+
+      const page = pages[pageIdx];
+      const pw = page.getWidth();
+      const ph = page.getHeight();
+
+      const drawX = (pos.x / 100) * pw;
+      const drawY = ph - ((pos.y / 100) * ph) - fontSize;
+
+      if (field.useCursive) {
+        page.drawText(field.text, {
+          x: drawX, y: drawY, size: fontSize, font: cursiveFont, color: inkColor,
+        });
+        // Underline
+        const tw = cursiveFont.widthOfTextAtSize(field.text, fontSize);
+        page.drawLine({
+          start: { x: drawX, y: drawY - 2 },
+          end: { x: drawX + tw, y: drawY - 2 },
+          thickness: 0.5, color: rgb(0.6, 0.6, 0.7),
+        });
+      } else {
+        page.drawText(field.text, {
+          x: drawX, y: drawY, size: fontSize, font: helvetica, color: textColor,
+        });
+      }
+    }
+  }
+}
+
 // ─── Text helpers ─────────────────────────────────────────────────────
 function drawLabel(page: PDFPage, text: string, x: number, y: number, font: PDFFont) {
   page.drawText(text, { x, y, size: 8, font, color: GREY_TEXT });
