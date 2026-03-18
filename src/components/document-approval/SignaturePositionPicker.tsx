@@ -672,6 +672,83 @@ export function SignaturePositionPicker({
         </p>
       </Card>
 
+      {/* Custom Text Annotations */}
+      <Card className="p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Custom Text</h3>
+        <p className="text-xs text-muted-foreground">Add short labels or notes to place on the document.</p>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Enter text…"
+            value={newTextValue}
+            onChange={e => setNewTextValue(e.target.value)}
+            className="text-sm"
+            onKeyDown={e => {
+              if (e.key === 'Enter' && newTextValue.trim()) {
+                onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
+                setPlacingTextIdx(textAnnotations.length);
+                setNewTextValue('');
+              }
+            }}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!newTextValue.trim()}
+            onClick={() => {
+              if (!newTextValue.trim()) return;
+              onTextAnnotationsChange([...textAnnotations, { text: newTextValue.trim(), page: 1, x: 50, y: 50 }]);
+              setPlacingTextIdx(textAnnotations.length);
+              setNewTextValue('');
+            }}
+          >
+            Add
+          </Button>
+        </div>
+        {textAnnotations.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {textAnnotations.map((ann, idx) => {
+              const isPlacing = placingTextIdx === idx;
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all ${
+                    isPlacing
+                      ? 'border-primary bg-primary/10 text-foreground shadow-sm'
+                      : 'border-border bg-muted/50 text-foreground'
+                  }`}
+                >
+                  <button
+                    className="text-left truncate max-w-[120px]"
+                    onClick={() => {
+                      setPlacingTextIdx(isPlacing ? null : idx);
+                      scrollToPage(ann.page);
+                    }}
+                    title={ann.text}
+                  >
+                    📝 {ann.text}
+                  </button>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">p.{ann.page}</Badge>
+                  <button
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                    onClick={() => {
+                      const updated = textAnnotations.filter((_, i) => i !== idx);
+                      onTextAnnotationsChange(updated);
+                      if (placingTextIdx === idx) setPlacingTextIdx(null);
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {placingTextIdx !== null && (
+          <p className="text-xs text-primary font-medium">
+            Click on the document to place "{textAnnotations[placingTextIdx]?.text}"
+          </p>
+        )}
+
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
