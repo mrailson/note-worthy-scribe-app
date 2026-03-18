@@ -32,6 +32,14 @@ export interface FieldPosition {
   y: number;
 }
 
+export interface TextAnnotation {
+  text: string;
+  page: number;
+  x: number;
+  y: number;
+  fontSize?: number;
+}
+
 export interface SignaturePlacement {
   method: 'append' | 'stamp' | 'separated';
   page?: number;
@@ -51,6 +59,8 @@ export interface SignaturePlacement {
   }>;
   /** Font size for separated fields (default 14) */
   separatedFontSize?: number;
+  /** Free-text annotations placed on the document */
+  textAnnotations?: TextAnnotation[];
 }
 
 export interface AuditLogEntry {
