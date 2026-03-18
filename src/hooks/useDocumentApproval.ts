@@ -713,22 +713,79 @@ export function useDocumentApproval() {
   const sendMultiDocForApproval = useCallback(async (docIds: string[], customEmailBody?: string) => {
     const groupId = crypto.randomUUID();
 
-    // Tag all docs with the group ID
+    // Tag all docs with the group ID and set to pending
     for (const id of docIds) {
       await supabase
         .from('approval_documents')
-        .update({ multi_doc_group_id: groupId } as any)
+        .update({ multi_doc_group_id: groupId, status: 'pending' } as any)
         .eq('id', id);
+
+      await supabase.from('approval_audit_log').insert({
+        document_id: id,
+        action: 'sent',
+        actor_name: user?.user_metadata?.full_name || user?.email,
+        actor_email: user?.email,
+        metadata: { multi_doc_group_id: groupId } as any,
+      });
     }
 
-    // Send each for approval
-    for (const id of docIds) {
-      await sendForApproval(id, customEmailBody);
+    // Collect all signatories across all docs and group by email
+    const { data: allSigs } = await supabase
+      .from('approval_signatories')
+      .select('*')
+      .in('document_id', docIds);
+
+    // For each unique signatory email, generate ONE group_token
+    const emailToGroupToken = new Map<string, string>();
+    for (const sig of (allSigs || [])) {
+      if (!emailToGroupToken.has(sig.email)) {
+        emailToGroupToken.set(sig.email, crypto.randomUUID());
+      }
+    }
+
+    // Update all signatory rows with their group_token
+    for (const sig of (allSigs || [])) {
+      const gt = emailToGroupToken.get(sig.email);
+      if (gt) {
+        await supabase
+          .from('approval_signatories')
+          .update({ group_token: gt } as any)
+          .eq('id', sig.id);
+      }
+    }
+
+    // Send ONE consolidated email per signatory via the new multi_request type
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const body: Record<string, unknown> = {
+        type: 'multi_request',
+        group_id: groupId,
+      };
+      if (customEmailBody) {
+        body.custom_body = customEmailBody;
+      }
+
+      await fetch(
+        `https://${projectId}.supabase.co/functions/v1/send-approval-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${anonKey}`,
+          },
+          body: JSON.stringify(body),
+        }
+      );
+    } catch (emailError) {
+      console.error('Error sending multi-doc approval emails:', emailError);
     }
 
     await fetchDocuments();
+    toast.success('All documents sent for approval');
     return groupId;
-  }, [sendForApproval, fetchDocuments]);
+  }, [user, fetchDocuments]);
 
   return {
     documents,

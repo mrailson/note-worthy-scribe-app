@@ -442,6 +442,7 @@ export type Database = {
           decline_comment: string | null
           document_id: string
           email: string
+          group_token: string | null
           id: string
           last_reminder_at: string | null
           name: string
@@ -467,6 +468,7 @@ export type Database = {
           decline_comment?: string | null
           document_id: string
           email: string
+          group_token?: string | null
           id?: string
           last_reminder_at?: string | null
           name: string
@@ -492,6 +494,7 @@ export type Database = {
           decline_comment?: string | null
           document_id?: string
           email?: string
+          group_token?: string | null
           id?: string
           last_reminder_at?: string | null
           name?: string

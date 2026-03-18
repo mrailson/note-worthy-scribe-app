@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   FileText, Eye, Loader2, CheckCircle2, XCircle, AlertTriangle,
   Calendar, User, Mail, Shield, ZoomIn, ZoomOut, ArrowDown, ChevronDown,
@@ -65,6 +66,11 @@ interface DocumentData {
   } | null;
 }
 
+interface GroupItem {
+  signatory: SignatoryData;
+  document: DocumentData;
+}
+
 const categoryLabels: Record<string, string> = {
   dpia: 'DPIA', dsa: 'DSA', mou: 'MOU', policy: 'Policy',
   contract: 'Contract', privacy_notice: 'Privacy Notice', other: 'Other',
@@ -91,7 +97,6 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
   const scrollRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
 
-  // Load PDF
   useEffect(() => {
     let cancelled = false;
     const loadPdf = async () => {
@@ -115,7 +120,6 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
     return () => { cancelled = true; };
   }, [fileUrl]);
 
-  // Render pages
   useEffect(() => {
     if (!pdfDoc) return;
     const scale = zoom / 100;
@@ -137,7 +141,6 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
     renderAll();
   }, [pdfDoc, zoom]);
 
-  // IntersectionObserver for current page
   useEffect(() => {
     if (!totalPages || !scrollRef.current) return;
     const observer = new IntersectionObserver(
@@ -184,59 +187,32 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
 
   return (
     <div className="space-y-0">
-      {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 p-2 sm:p-3 bg-muted/60 border border-border rounded-t-lg flex-wrap">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <FileText className="h-4 w-4" />
           <span className="font-medium">Page {currentPage} of {totalPages}</span>
         </div>
-
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setZoom(z => Math.max(50, z - 10))}
-            disabled={zoom <= 50}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom(z => Math.max(50, z - 10))} disabled={zoom <= 50}>
             <ZoomOut className="h-4 w-4" />
           </Button>
           <div className="hidden sm:flex items-center w-24">
-            <Slider
-              value={[zoom]}
-              onValueChange={([v]) => setZoom(v)}
-              min={50}
-              max={200}
-              step={10}
-            />
+            <Slider value={[zoom]} onValueChange={([v]) => setZoom(v)} min={50} max={200} step={10} />
           </div>
           <span className="text-xs font-mono text-muted-foreground w-10 text-center">{zoom}%</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setZoom(z => Math.min(200, z + 10))}
-            disabled={zoom >= 200}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom(z => Math.min(200, z + 10))} disabled={zoom >= 200}>
             <ZoomIn className="h-4 w-4" />
           </Button>
         </div>
-
-        <Button
-          variant="default"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => {
-            const el = document.getElementById('approval-form');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
-        >
+        <Button variant="default" size="sm" className="gap-1.5" onClick={() => {
+          const el = document.getElementById('approval-form');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }}>
           <ArrowDown className="h-3.5 w-3.5" />
           Go to Signature
         </Button>
       </div>
 
-      {/* Page navigation pills */}
       {totalPages > 1 && (
         <div className="flex items-center gap-1 px-3 py-1.5 bg-muted/40 border-x border-border overflow-x-auto">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
@@ -244,9 +220,7 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
               key={pg}
               onClick={() => scrollToPage(pg)}
               className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
-                pg === currentPage
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted'
+                pg === currentPage ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
               }`}
             >
               {pg}
@@ -255,89 +229,34 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
         </div>
       )}
 
-      {/* Scrollable PDF area */}
-      <div
-        ref={scrollRef}
-        className="h-[65vh] overflow-y-auto bg-muted/30 border-x border-b border-border rounded-b-lg"
-      >
+      <div ref={scrollRef} className="h-[65vh] overflow-y-auto bg-muted/30 border-x border-b border-border rounded-b-lg">
         <div className="flex flex-col items-center gap-6 py-6 px-4">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
-            <div
-              key={pageNum}
-              data-page={pageNum}
-              ref={el => { pageRefs.current.set(pageNum, el); }}
-              className="bg-white shadow-lg rounded border border-border/50 relative"
-              style={{ maxWidth: '100%' }}
-            >
-              <canvas
-                ref={el => { canvasRefs.current.set(pageNum, el); }}
-                className="block max-w-full h-auto"
-              />
+            <div key={pageNum} data-page={pageNum} ref={el => { pageRefs.current.set(pageNum, el); }} className="bg-white shadow-lg rounded border border-border/50 relative" style={{ maxWidth: '100%' }}>
+              <canvas ref={el => { canvasRefs.current.set(pageNum, el); }} className="block max-w-full h-auto" />
               {placement && placement.page === pageNum && (
-                <div
-                  className="absolute flex flex-col items-center justify-center text-center p-2 border-2 border-dashed border-primary rounded-md bg-primary/10 pointer-events-none"
-                  style={{
-                    left: `${placement.x}%`,
-                    top: `${placement.y}%`,
-                    width: '14%',
-                    height: '6%',
-                  }}
-                >
-                  <span className="text-[8px] sm:text-[10px] font-semibold text-primary leading-tight truncate max-w-full">
-                    {signatoryName || 'Your signature'}
-                  </span>
-                  <span className="text-[6px] sm:text-[8px] text-primary/80 leading-tight mt-0.5">
-                    Your signature will appear here
-                  </span>
+                <div className="absolute flex flex-col items-center justify-center text-center p-2 border-2 border-dashed border-primary rounded-md bg-primary/10 pointer-events-none" style={{ left: `${placement.x}%`, top: `${placement.y}%`, width: '14%', height: '6%' }}>
+                  <span className="text-[8px] sm:text-[10px] font-semibold text-primary leading-tight truncate max-w-full">{signatoryName || 'Your signature'}</span>
+                  <span className="text-[6px] sm:text-[8px] text-primary/80 leading-tight mt-0.5">Your signature will appear here</span>
                   <ChevronDown className="h-2.5 w-2.5 text-primary/70 mt-0.5 animate-bounce" />
-                  <span className="text-[5px] sm:text-[7px] text-primary/70 leading-tight">
-                    Complete the declaration below
-                  </span>
+                  <span className="text-[5px] sm:text-[7px] text-primary/70 leading-tight">Complete the declaration below</span>
                 </div>
               )}
-              {/* Separated mode ghost indicators */}
               {separatedFields && (['signature', 'name', 'role', 'organisation', 'date'] as const).map(field => {
                 const fp = separatedFields[field];
                 if (!fp || fp.page !== pageNum) return null;
-                const fieldLabels: Record<string, string> = {
-                  signature: '✍ Signature',
-                  name: '👤 Name',
-                  role: '💼 Role',
-                  organisation: '🏢 Organisation',
-                  date: '📅 Date',
-                };
+                const fieldLabels: Record<string, string> = { signature: '✍ Signature', name: '👤 Name', role: '💼 Role', organisation: '🏢 Organisation', date: '📅 Date' };
                 return (
-                  <div
-                    key={field}
-                    className="absolute flex items-center px-2 py-1 border border-dashed border-primary/60 rounded bg-primary/5 pointer-events-none"
-                    style={{
-                      left: `${fp.x}%`,
-                      top: `${fp.y}%`,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <span className="text-[8px] sm:text-[10px] text-primary/80 font-medium">
-                      {fieldLabels[field]}
-                    </span>
+                  <div key={field} className="absolute flex items-center px-2 py-1 border border-dashed border-primary/60 rounded bg-primary/5 pointer-events-none" style={{ left: `${fp.x}%`, top: `${fp.y}%`, whiteSpace: 'nowrap' }}>
+                    <span className="text-[8px] sm:text-[10px] text-primary/80 font-medium">{fieldLabels[field]}</span>
                   </div>
                 );
               })}
-              {/* Text annotation ghost indicators */}
               {signaturePlacement?.textAnnotations?.map((ann, idx) => {
                 if (ann.page !== pageNum) return null;
                 return (
-                  <div
-                    key={`text-${idx}`}
-                    className="absolute flex items-center px-2 py-1 border border-dashed border-muted-foreground/40 rounded bg-muted/30 pointer-events-none"
-                    style={{
-                      left: `${ann.x}%`,
-                      top: `${ann.y}%`,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <span className="text-[8px] sm:text-[10px] text-muted-foreground font-medium">
-                      {ann.text}
-                    </span>
+                  <div key={`text-${idx}`} className="absolute flex items-center px-2 py-1 border border-dashed border-muted-foreground/40 rounded bg-muted/30 pointer-events-none" style={{ left: `${ann.x}%`, top: `${ann.y}%`, whiteSpace: 'nowrap' }}>
+                    <span className="text-[8px] sm:text-[10px] text-muted-foreground font-medium">{ann.text}</span>
                   </div>
                 );
               })}
@@ -351,11 +270,19 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
 
 /* ─── Main Component ────────────────────────────────────────── */
 const PublicApproval = () => {
-  const { token } = useParams<{ token: string }>();
+  const { token, groupToken } = useParams<{ token?: string; groupToken?: string }>();
+  const isGroupMode = !!groupToken;
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Single-doc state
   const [signatory, setSignatory] = useState<SignatoryData | null>(null);
   const [document, setDocument] = useState<DocumentData | null>(null);
+
+  // Multi-doc state
+  const [groupItems, setGroupItems] = useState<GroupItem[]>([]);
+  const [activeDocTab, setActiveDocTab] = useState<string>('');
 
   // Form state
   const [fullName, setFullName] = useState('');
@@ -369,25 +296,39 @@ const PublicApproval = () => {
   const [declineComment, setDeclineComment] = useState('');
 
   useEffect(() => {
-    if (!token) return;
+    if (!token && !groupToken) return;
     fetchData();
-  }, [token]);
+  }, [token, groupToken]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke('process-approval', {
-        body: { action: 'get', token },
-      });
+      const body: Record<string, unknown> = { action: 'get' };
+      if (isGroupMode) {
+        body.group_token = groupToken;
+      } else {
+        body.token = token;
+      }
 
+      const { data, error: fnErr } = await supabase.functions.invoke('process-approval', { body });
       if (fnErr) throw fnErr;
       if (data?.error) throw new Error(data.error);
 
-      setSignatory(data.signatory);
-      setDocument(data.document);
-      setFullName(data.signatory.name || '');
-      setRole(data.signatory.role || '');
-      setOrganisation(data.signatory.organisation || '');
+      if (data?.is_group && data?.items) {
+        setGroupItems(data.items);
+        if (data.items.length > 0) {
+          setActiveDocTab(data.items[0].document.id);
+          setFullName(data.items[0].signatory.name || '');
+          setRole(data.items[0].signatory.role || '');
+          setOrganisation(data.items[0].signatory.organisation || '');
+        }
+      } else {
+        setSignatory(data.signatory);
+        setDocument(data.document);
+        setFullName(data.signatory.name || '');
+        setRole(data.signatory.role || '');
+        setOrganisation(data.signatory.organisation || '');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load approval request');
     } finally {
@@ -399,14 +340,19 @@ const PublicApproval = () => {
     if (!fullName.trim() || !role.trim() || !organisation.trim() || !confirmApproval) return;
     setSubmitting(true);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke('process-approval', {
-        body: {
-          action: 'approve', token,
-          signed_name: fullName.trim(),
-          signed_role: role.trim(),
-          signed_organisation: organisation.trim(),
-        },
-      });
+      const body: Record<string, unknown> = {
+        action: 'approve',
+        signed_name: fullName.trim(),
+        signed_role: role.trim(),
+        signed_organisation: organisation.trim(),
+      };
+      if (isGroupMode) {
+        body.group_token = groupToken;
+      } else {
+        body.token = token;
+      }
+
+      const { data, error: fnErr } = await supabase.functions.invoke('process-approval', { body });
       if (fnErr) throw fnErr;
       if (data?.error) throw new Error(data.error);
       setSubmitted('approved');
@@ -422,15 +368,20 @@ const PublicApproval = () => {
     if (!fullName.trim() || !role.trim() || !organisation.trim() || !confirmApproval) return;
     setSubmitting(true);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke('process-approval', {
-        body: {
-          action: 'decline', token,
-          signed_name: fullName.trim(),
-          signed_role: role.trim(),
-          signed_organisation: organisation.trim(),
-          decline_comment: declineComment.trim() || null,
-        },
-      });
+      const body: Record<string, unknown> = {
+        action: 'decline',
+        signed_name: fullName.trim(),
+        signed_role: role.trim(),
+        signed_organisation: organisation.trim(),
+        decline_comment: declineComment.trim() || null,
+      };
+      if (isGroupMode) {
+        body.group_token = groupToken;
+      } else {
+        body.token = token;
+      }
+
+      const { data, error: fnErr } = await supabase.functions.invoke('process-approval', { body });
       if (fnErr) throw fnErr;
       if (data?.error) throw new Error(data.error);
       setSubmitted('declined');
@@ -444,7 +395,12 @@ const PublicApproval = () => {
 
   const formValid = fullName.trim() && role.trim() && organisation.trim() && confirmApproval;
 
-  // ─── Loading (skeleton) ───────────────────────────────────────
+  // Determine effective data for rendering
+  const effectiveSignatory = isGroupMode ? groupItems[0]?.signatory : signatory;
+  const effectiveDocument = isGroupMode ? groupItems[0]?.document : document;
+  const documentCount = isGroupMode ? groupItems.length : 1;
+
+  // ─── Loading ───
   if (loading) {
     return (
       <PageShell>
@@ -463,8 +419,8 @@ const PublicApproval = () => {
     );
   }
 
-  // ─── Error / Not found ───────────────────────────────────────
-  if (error || !signatory || !document) {
+  // ─── Error / Not found ───
+  if (error || !effectiveSignatory || !effectiveDocument) {
     return (
       <PageShell>
         <Card className="p-8 text-center space-y-4">
@@ -479,9 +435,9 @@ const PublicApproval = () => {
     );
   }
 
-  // ─── Already actioned ───────────────────────────────────────
-  const isInactive = document.status === 'revoked' || document.status === 'expired';
-  const alreadyActioned = signatory.status === 'approved' || signatory.status === 'declined';
+  // ─── Already actioned ───
+  const isInactive = effectiveDocument.status === 'revoked' || effectiveDocument.status === 'expired';
+  const alreadyActioned = effectiveSignatory.status === 'approved' || effectiveSignatory.status === 'declined';
 
   if (isInactive && !alreadyActioned) {
     return (
@@ -490,11 +446,11 @@ const PublicApproval = () => {
           <AlertTriangle className="h-12 w-12 text-[hsl(var(--warning))] mx-auto" />
           <h2 className="text-lg font-semibold text-foreground">Request No Longer Active</h2>
           <p className="text-sm text-muted-foreground">
-            This approval request has been {document.status}. No further action is required.
+            This approval request has been {effectiveDocument.status}. No further action is required.
           </p>
-          {document.sender_email && (
+          {effectiveDocument.sender_email && (
             <p className="text-xs text-muted-foreground">
-              Contact <span className="font-medium">{document.sender_name || document.sender_email}</span> if you have questions.
+              Contact <span className="font-medium">{effectiveDocument.sender_name || effectiveDocument.sender_email}</span> if you have questions.
             </p>
           )}
         </Card>
@@ -506,31 +462,32 @@ const PublicApproval = () => {
     return (
       <PageShell>
         <Card className="p-8 text-center space-y-4">
-          {signatory.status === 'approved' ? (
+          {effectiveSignatory.status === 'approved' ? (
             <CheckCircle2 className="h-12 w-12 text-[hsl(var(--approval-approved))] mx-auto" />
           ) : (
             <XCircle className="h-12 w-12 text-destructive mx-auto" />
           )}
           <h2 className="text-lg font-semibold text-foreground">
-            {signatory.status === 'approved'
-              ? `You already approved this document on ${signatory.signed_at ? format(new Date(signatory.signed_at), 'dd MMMM yyyy \'at\' HH:mm') : 'a previous date'}.`
-              : `You declined this document on ${signatory.signed_at ? format(new Date(signatory.signed_at), 'dd MMMM yyyy \'at\' HH:mm') : 'a previous date'}.`}
+            {effectiveSignatory.status === 'approved'
+              ? `You already approved ${isGroupMode ? 'these documents' : 'this document'} on ${effectiveSignatory.signed_at ? format(new Date(effectiveSignatory.signed_at), 'dd MMMM yyyy \'at\' HH:mm') : 'a previous date'}.`
+              : `You declined ${isGroupMode ? 'these documents' : 'this document'} on ${effectiveSignatory.signed_at ? format(new Date(effectiveSignatory.signed_at), 'dd MMMM yyyy \'at\' HH:mm') : 'a previous date'}.`}
           </h2>
           <div className="text-sm text-muted-foreground space-y-1">
-            <p><strong>Document:</strong> {document.title}</p>
-            <p><strong>Name:</strong> {signatory.signed_name || signatory.name}</p>
-            {signatory.signed_role && <p><strong>Role:</strong> {signatory.signed_role}</p>}
-            {signatory.signed_organisation && <p><strong>Organisation:</strong> {signatory.signed_organisation}</p>}
-            {signatory.status === 'declined' && signatory.decline_comment && (
-              <p><strong>Comment:</strong> {signatory.decline_comment}</p>
+            {isGroupMode ? (
+              <div>
+                <p className="font-medium mb-1">Documents:</p>
+                <ul className="list-disc list-inside">
+                  {groupItems.map(gi => <li key={gi.document.id}>{gi.document.title}</li>)}
+                </ul>
+              </div>
+            ) : (
+              <p><strong>Document:</strong> {effectiveDocument.title}</p>
             )}
+            <p><strong>Name:</strong> {effectiveSignatory.signed_name || effectiveSignatory.name}</p>
+            {effectiveSignatory.signed_role && <p><strong>Role:</strong> {effectiveSignatory.signed_role}</p>}
+            {effectiveSignatory.signed_organisation && <p><strong>Organisation:</strong> {effectiveSignatory.signed_organisation}</p>}
           </div>
-          <button
-            onClick={() => window.close()}
-            className="text-xs text-primary hover:underline cursor-pointer"
-          >
-            Close this page
-          </button>
+          <button onClick={() => window.close()} className="text-xs text-primary hover:underline cursor-pointer">Close this page</button>
         </Card>
       </PageShell>
     );
@@ -547,68 +504,112 @@ const PublicApproval = () => {
             <XCircle className="h-12 w-12 text-[hsl(var(--warning))] mx-auto" />
           )}
           <h2 className="text-lg font-semibold text-foreground">
-            {submitted === 'approved' ? 'Thank you. Your approval has been recorded.' : 'Your response has been recorded.'}
+            {submitted === 'approved'
+              ? `Thank you. Your approval has been recorded${isGroupMode ? ` for all ${documentCount} documents` : ''}.`
+              : 'Your response has been recorded.'}
           </h2>
           <div className="text-sm text-muted-foreground space-y-1">
-            <p><strong>Document:</strong> {document.title}</p>
+            {isGroupMode ? (
+              <div>
+                <p className="font-medium mb-1">Documents:</p>
+                <ul className="list-disc list-inside">
+                  {groupItems.map(gi => <li key={gi.document.id}>{gi.document.title}</li>)}
+                </ul>
+              </div>
+            ) : (
+              <p><strong>Document:</strong> {effectiveDocument.title}</p>
+            )}
             <p><strong>Name:</strong> {fullName}</p>
             {submittedAt && (
               <p><strong>Timestamp:</strong> {format(new Date(submittedAt), 'dd MMMM yyyy \'at\' HH:mm')}</p>
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            A confirmation email has been sent to <span className="font-medium">{signatory.email}</span>.
+            A confirmation email has been sent to <span className="font-medium">{effectiveSignatory.email}</span>.
           </p>
-          <button
-            onClick={() => window.close()}
-            className="text-xs text-primary hover:underline cursor-pointer"
-          >
-            Close this page
-          </button>
+          <button onClick={() => window.close()} className="text-xs text-primary hover:underline cursor-pointer">Close this page</button>
         </Card>
       </PageShell>
     );
   }
 
-  // ─── Main approval form with inline PDF viewer ──────────────
+  // ─── Main approval form ──────────────────────────────────────
   return (
     <PageShell wide>
-      {/* Compact header bar */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3 min-w-0">
           <FileText className="h-6 w-6 text-primary flex-shrink-0 mt-0.5" />
           <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">{document.title}</h1>
-            <p className="text-xs text-muted-foreground">
-              {categoryLabels[document.category] || document.category} · From {document.sender_name || 'Unknown'} · {format(new Date(document.created_at), 'dd MMM yyyy')}
-              {document.deadline && ` · Due ${format(new Date(document.deadline), 'dd MMM yyyy')}`}
-            </p>
+            {isGroupMode ? (
+              <>
+                <h1 className="text-lg sm:text-xl font-bold text-foreground">
+                  {documentCount} Documents for Approval
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  From {effectiveDocument.sender_name || 'Unknown'} · {format(new Date(effectiveDocument.created_at), 'dd MMM yyyy')}
+                  {effectiveDocument.deadline && ` · Due ${format(new Date(effectiveDocument.deadline), 'dd MMM yyyy')}`}
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">{effectiveDocument.title}</h1>
+                <p className="text-xs text-muted-foreground">
+                  {categoryLabels[effectiveDocument.category] || effectiveDocument.category} · From {effectiveDocument.sender_name || 'Unknown'} · {format(new Date(effectiveDocument.created_at), 'dd MMM yyyy')}
+                  {effectiveDocument.deadline && ` · Due ${format(new Date(effectiveDocument.deadline), 'dd MMM yyyy')}`}
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Message if any */}
-      {document.message && (
+      {/* Message */}
+      {effectiveDocument.message && (
         <div className="p-3 bg-muted/40 rounded-lg border border-border">
           <p className="text-xs text-muted-foreground mb-0.5">Message from sender:</p>
-          <p className="text-sm text-foreground italic">"{document.message}"</p>
+          <p className="text-sm text-foreground italic">"{effectiveDocument.message}"</p>
         </div>
       )}
 
-      {/* Inline PDF Viewer */}
-      <InlinePDFViewer
-        fileUrl={document.file_url}
-        signaturePlacement={document.signature_placement}
-        signatoryId={signatory.id}
-        signatoryName={signatory.name}
-      />
+      {/* Document viewer(s) */}
+      {isGroupMode && groupItems.length > 1 ? (
+        <Tabs value={activeDocTab} onValueChange={setActiveDocTab}>
+          <TabsList className="w-full justify-start">
+            {groupItems.map((gi, idx) => (
+              <TabsTrigger key={gi.document.id} value={gi.document.id} className="text-xs sm:text-sm">
+                {idx + 1}. {gi.document.title.length > 30 ? gi.document.title.slice(0, 30) + '…' : gi.document.title}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {groupItems.map(gi => (
+            <TabsContent key={gi.document.id} value={gi.document.id}>
+              <InlinePDFViewer
+                fileUrl={gi.document.file_url}
+                signaturePlacement={gi.document.signature_placement}
+                signatoryId={gi.signatory.id}
+                signatoryName={gi.signatory.name}
+              />
+            </TabsContent>
+          ))}
+        </Tabs>
+      ) : (
+        <InlinePDFViewer
+          fileUrl={effectiveDocument.file_url}
+          signaturePlacement={effectiveDocument.signature_placement}
+          signatoryId={effectiveSignatory.id}
+          signatoryName={effectiveSignatory.name}
+        />
+      )}
 
       {/* Approval form */}
       <Card className="p-5 sm:p-8 space-y-5" id="approval-form">
         <div className="space-y-1">
           <h2 className="font-semibold text-foreground">Confirm Your Details</h2>
           <p className="text-sm text-muted-foreground">
-            To approve this document, confirm your details and click Approve below.
+            {isGroupMode
+              ? `To approve all ${documentCount} documents, confirm your details and click Approve below.`
+              : 'To approve this document, confirm your details and click Approve below.'}
           </p>
         </div>
 
@@ -628,58 +629,41 @@ const PublicApproval = () => {
 
           <div className="space-y-3 pt-2">
             <div className="flex items-start gap-3">
-              <Checkbox
-                id="confirm-approval"
-                checked={confirmApproval}
-                onCheckedChange={v => setConfirmApproval(!!v)}
-                className="mt-0.5"
-              />
+              <Checkbox id="confirm-approval" checked={confirmApproval} onCheckedChange={v => setConfirmApproval(!!v)} className="mt-0.5" />
               <Label htmlFor="confirm-approval" className="text-sm text-foreground cursor-pointer leading-relaxed">
-                I confirm I have read the attached document, approve its contents, and understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)
+                {isGroupMode
+                  ? `I confirm I have read all ${documentCount} attached documents, approve their contents, and understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)`
+                  : 'I confirm I have read the attached document, approve its contents, and understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)'}
               </Label>
             </div>
           </div>
         </div>
 
-        {/* Decline textarea */}
         {showDecline && (
           <div className="space-y-2 p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
             <Label className="text-sm font-medium text-foreground">Reason for declining (optional)</Label>
             <Textarea
               value={declineComment}
               onChange={e => setDeclineComment(e.target.value)}
-              placeholder="Please provide a reason for declining this document…"
+              placeholder={isGroupMode ? 'Please provide a reason for declining these documents…' : 'Please provide a reason for declining this document…'}
               rows={3}
             />
           </div>
         )}
 
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
-          <Button
-            onClick={handleApprove}
-            disabled={!formValid || submitting}
-            className="flex-1 gap-2"
-          >
+          <Button onClick={handleApprove} disabled={!formValid || submitting} className="flex-1 gap-2">
             {submitting && !showDecline ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            Approve Document
+            {isGroupMode ? `Approve All ${documentCount} Documents` : 'Approve Document'}
           </Button>
           {!showDecline ? (
-            <Button
-              variant="outline"
-              onClick={() => setShowDecline(true)}
-              className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
-            >
+            <Button variant="outline" onClick={() => setShowDecline(true)} className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10">
               <XCircle className="h-4 w-4" /> Decline
             </Button>
           ) : (
-            <Button
-              variant="destructive"
-              onClick={handleDecline}
-              disabled={!formValid || submitting}
-              className="flex-1 gap-2"
-            >
+            <Button variant="destructive" onClick={handleDecline} disabled={!formValid || submitting} className="flex-1 gap-2">
               {submitting && showDecline ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-              Confirm Decline
+              {isGroupMode ? 'Confirm Decline All' : 'Confirm Decline'}
             </Button>
           )}
         </div>
@@ -697,7 +681,6 @@ function PageShell({ children, wide }: { children: React.ReactNode; wide?: boole
   return (
     <div className="min-h-screen bg-background">
       <div className={`${wide ? 'max-w-5xl' : 'max-w-2xl'} mx-auto px-4 py-6 sm:py-10 space-y-5`}>
-        {/* Logo */}
         <div className="flex justify-center">
           <img src={notewellLogo} alt="Notewell" className="h-10 sm:h-12" />
         </div>
