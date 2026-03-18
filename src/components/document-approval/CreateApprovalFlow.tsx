@@ -395,7 +395,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
 
         {/* Progress bar */}
         <div className="flex gap-2">
-          {(signatureMethod === 'stamp' ? ['upload', 'signatories', 'stamp_position', 'review'] : ['upload', 'signatories', 'review']).map((s, i, arr) => {
+          {['upload', 'signatories', 'stamp_position', 'review'].map((s, i, arr) => {
             const currentIdx = arr.indexOf(step);
             return (
               <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${
