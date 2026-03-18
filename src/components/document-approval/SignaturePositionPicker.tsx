@@ -326,13 +326,40 @@ export function SignaturePositionPicker({
     e.stopPropagation();
   }, [fieldPositions, getMousePercent]);
 
+  // Mouse handler for dragging text annotations
+  const handleTextMouseDown = useCallback((e: React.MouseEvent, idx: number, pageNum: number) => {
+    const pageEl = pageRefs.current.get(pageNum);
+    if (!pageEl) return;
+    const pos = getMousePercent(e, pageEl);
+    const ann = textAnnotations[idx];
+    if (!ann) return;
+    setDragging(`text:${idx}`);
+    setDragOffset({ x: pos.x - ann.x, y: pos.y - ann.y });
+    setPlacingTextIdx(null);
+    e.preventDefault();
+    e.stopPropagation();
+  }, [textAnnotations, getMousePercent]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent, pageNum: number) => {
     if (!dragging || !dragOffset) return;
     const pageEl = pageRefs.current.get(pageNum);
     if (!pageEl) return;
     const pos = getMousePercent(e, pageEl);
 
-    if (dragging.includes(':')) {
+    if (dragging.startsWith('text:')) {
+      // Text annotation dragging
+      const idx = parseInt(dragging.split(':')[1]);
+      const newX = Math.max(0, Math.min(95, pos.x - dragOffset.x));
+      const newY = Math.max(0, Math.min(95, pos.y - dragOffset.y));
+      const updated = [...textAnnotations];
+      updated[idx] = {
+        ...updated[idx],
+        page: pageNum,
+        x: Math.round(newX * 10) / 10,
+        y: Math.round(newY * 10) / 10,
+      };
+      onTextAnnotationsChange(updated);
+    } else if (dragging.includes(':')) {
       // Separated field dragging
       const [sigId, field] = dragging.split(':') as [string, FieldType];
       const newX = Math.max(0, Math.min(95, pos.x - dragOffset.x));
@@ -364,7 +391,7 @@ export function SignaturePositionPicker({
         },
       });
     }
-  }, [dragging, dragOffset, value, fieldPositions, onChange, onFieldPositionsChange, getMousePercent]);
+  }, [dragging, dragOffset, value, fieldPositions, textAnnotations, onChange, onFieldPositionsChange, onTextAnnotationsChange, getMousePercent]);
 
   const handleMouseUp = useCallback(() => {
     setDragging(null);
