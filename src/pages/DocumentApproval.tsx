@@ -594,6 +594,16 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing, onDelete }: {
             Chase Pending ({pendingCount})
           </Button>
         )}
+        {doc.status === 'draft' && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-3 w-3" /> Delete
+          </Button>
+        )}
       </div>
     </Card>
   );
