@@ -492,35 +492,6 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               <Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="mt-1.5" />
             </div>
 
-            {/* Signature Placement */}
-            <div>
-              <Label className="text-sm font-medium">Signature placement</Label>
-              <RadioGroup value={signatureMethod} onValueChange={(v) => setSignatureMethod(v as 'append' | 'stamp')} className="mt-2 space-y-2">
-                <div className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/50 transition-colors">
-                  <RadioGroupItem value="append" id="sig-append" className="mt-0.5" />
-                  <div>
-                    <label htmlFor="sig-append" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
-                      <FileSignature className="h-4 w-4 text-primary" /> Append signature page
-                    </label>
-                    <p className="text-xs text-muted-foreground mt-0.5">Adds a professional signature page as the final page of the document</p>
-                  </div>
-                </div>
-                <div className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                  !(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx')) ? 'border-border opacity-50' : 'border-border hover:border-primary/50'
-                }`}>
-                  <RadioGroupItem value="stamp" id="sig-stamp" className="mt-0.5" disabled={!(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx'))} />
-                  <div>
-                    <label htmlFor="sig-stamp" className="text-sm font-medium text-foreground cursor-pointer flex items-center gap-2">
-                      <Stamp className="h-4 w-4 text-primary" /> Stamp signature block
-                    </label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Places signatures onto a specific page in the document
-                      {!(file?.name.toLowerCase().endsWith('.pdf') || file?.name.toLowerCase().endsWith('.docx')) && ' (PDF or DOCX only)'}
-                    </p>
-                  </div>
-                </div>
-              </RadioGroup>
-            </div>
 
             {/* Send Mode */}
             <div>
