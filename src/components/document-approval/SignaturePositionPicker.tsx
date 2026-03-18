@@ -63,6 +63,9 @@ interface Props {
   /** Font size for separated mode */
   separatedFontSize: number;
   onSeparatedFontSizeChange: (size: number) => void;
+  /** Text annotations */
+  textAnnotations: TextAnnotation[];
+  onTextAnnotationsChange: (annotations: TextAnnotation[]) => void;
 }
 
 const SIGNATORY_COLOURS = [
