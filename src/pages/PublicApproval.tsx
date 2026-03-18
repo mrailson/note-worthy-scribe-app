@@ -322,6 +322,25 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
                   </div>
                 );
               })}
+              {/* Text annotation ghost indicators */}
+              {signaturePlacement?.textAnnotations?.map((ann, idx) => {
+                if (ann.page !== pageNum) return null;
+                return (
+                  <div
+                    key={`text-${idx}`}
+                    className="absolute flex items-center px-2 py-1 border border-dashed border-muted-foreground/40 rounded bg-muted/30 pointer-events-none"
+                    style={{
+                      left: `${ann.x}%`,
+                      top: `${ann.y}%`,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <span className="text-[8px] sm:text-[10px] text-muted-foreground font-medium">
+                      {ann.text}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
