@@ -12,8 +12,9 @@ const APP_URL = "https://gpnotewell.co.uk";
 const FONT_STACK = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
 
 interface EmailRequest {
-  type: "request" | "reminder" | "confirmation" | "completed" | "declined" | "send_completed";
-  document_id: string;
+  type: "request" | "reminder" | "confirmation" | "completed" | "declined" | "send_completed" | "multi_request" | "multi_send_completed";
+  document_id?: string;
+  group_id?: string;
   signatory_id?: string;
   custom_body?: string;
   signed_file_url?: string;
