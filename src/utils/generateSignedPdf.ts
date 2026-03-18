@@ -110,6 +110,8 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
   // For stamp method, draw individual signature blocks at their positions
   if (placement.method === 'stamp') {
     drawStampSignatures(pdfDoc, options, helvetica, helveticaBold, cursiveFont);
+  } else if (placement.method === 'separated') {
+    drawSeparatedSignatures(pdfDoc, options, helvetica, cursiveFont);
   }
 
   // Always append the full Electronic Signature Certificate
