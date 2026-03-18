@@ -479,6 +479,11 @@ function DocumentCard({ doc, onSelect, onChasePending, isChasing, onDelete }: {
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             <FileText className="h-4 w-4 text-primary flex-shrink-0" />
             <h3 className="font-semibold text-foreground">{doc.title}</h3>
+            {(doc as any).multi_doc_group_id && (
+              <Badge variant="outline" className="text-[10px] gap-1 border-primary/30 text-primary">
+                <Layers className="h-3 w-3" /> Multi-doc
+              </Badge>
+            )}
             {isCompleted && (
               <Badge className="bg-[hsl(var(--approval-completed-bg))] text-[hsl(var(--approval-approved))] border border-[hsl(var(--approval-completed-border))] text-xs gap-1">
                 <CheckCircle2 className="h-3 w-3" /> Completed
