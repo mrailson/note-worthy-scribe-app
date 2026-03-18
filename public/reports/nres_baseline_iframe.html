@@ -457,7 +457,7 @@ function buildOverview(){
    document.getElementById('kpi-overview').innerHTML=
     kc('','Avg '+pN,fmt(avg),'<span style="color:var(--D);font-weight:600">'+per1k+'</span> per 1,000 patients')+
     kc('p','Total',fmt(tot),n+' periods')+
-    kc('q','Same Day',fmt(sd)+' ('+pct(sd,tot)+'%)',fmt(Math.round(sd/n))+' avg/'+pN.toLowerCase())+
+    kc('q','Same Day',fmt(Math.round(sd/n))+' avg/'+pN.toLowerCase(),fmt(sd)+' total · '+pct(sd,tot)+'%')+
     kc('g','DNA Rate',pct(dna,att+dna)+'%',fmt(Math.round(dna/n))+' avg DNAs')+
     kc('a','F2F %',m==='All'?pct(f2f,tot)+'%':'N/A (mode filtered)',m==='All'?fmt(Math.round(f2f/n))+' avg':mN+' selected')+
     kc('','30+ Min',fmt(lng),pct(lng,tot)+'% of contacts');
