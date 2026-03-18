@@ -294,6 +294,33 @@ function InlinePDFViewer({ fileUrl, signaturePlacement, signatoryId, signatoryNa
                   </span>
                 </div>
               )}
+              {/* Separated mode ghost indicators */}
+              {separatedFields && (['signature', 'name', 'role', 'organisation', 'date'] as const).map(field => {
+                const fp = separatedFields[field];
+                if (!fp || fp.page !== pageNum) return null;
+                const fieldLabels: Record<string, string> = {
+                  signature: '✍ Signature',
+                  name: '👤 Name',
+                  role: '💼 Role',
+                  organisation: '🏢 Organisation',
+                  date: '📅 Date',
+                };
+                return (
+                  <div
+                    key={field}
+                    className="absolute flex items-center px-2 py-1 border border-dashed border-primary/60 rounded bg-primary/5 pointer-events-none"
+                    style={{
+                      left: `${fp.x}%`,
+                      top: `${fp.y}%`,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <span className="text-[8px] sm:text-[10px] text-primary/80 font-medium">
+                      {fieldLabels[field]}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
