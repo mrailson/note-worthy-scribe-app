@@ -124,6 +124,11 @@ export async function generateSignedPdf(options: GenerateSignedPdfOptions): Prom
     drawSeparatedSignatures(pdfDoc, options, helvetica, cursiveFont);
   }
 
+  // Draw any text annotations
+  if (placement.textAnnotations && placement.textAnnotations.length > 0) {
+    drawTextAnnotations(pdfDoc, placement.textAnnotations, helvetica, placement.separatedFontSize || 14);
+  }
+
   // Always append the full Electronic Signature Certificate
   await drawCertificatePages(pdfDoc, options, helvetica, helveticaBold, cursiveFont);
 
