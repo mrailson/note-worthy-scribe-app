@@ -50,7 +50,18 @@ interface DocumentData {
   created_at: string;
   sender_name: string | null;
   sender_email: string | null;
-  signature_placement: { method: string; positions?: Record<string, { page: number; x: number; y: number }> } | null;
+  signature_placement: {
+    method: string;
+    positions?: Record<string, { page: number; x: number; y: number }>;
+    fieldPositions?: Record<string, {
+      signature?: { page: number; x: number; y: number };
+      name?: { page: number; x: number; y: number };
+      role?: { page: number; x: number; y: number };
+      organisation?: { page: number; x: number; y: number };
+      date?: { page: number; x: number; y: number };
+    }>;
+    separatedFontSize?: number;
+  } | null;
 }
 
 const categoryLabels: Record<string, string> = {
