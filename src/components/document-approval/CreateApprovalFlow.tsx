@@ -85,8 +85,8 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   // Stores the DB-returned signatories (with real IDs) after addSignatories
   const [dbSignatories, setDbSignatories] = useState<{ id: string; name: string; email: string }[]>([]);
 
-  // Signature placement
-  const [signatureMethod, setSignatureMethod] = useState<'append' | 'stamp'>('stamp');
+  // Signature placement — always stamp
+  const signatureMethod = 'stamp' as const;
   const [stampPositions, setStampPositions] = useState<PerSignatoryPositions>({});
   const [placementMode, setPlacementMode] = useState<'block' | 'separated'>('block');
   const [fieldPositions, setFieldPositions] = useState<PerSignatoryFieldPositions>({});
