@@ -454,11 +454,12 @@ export default function DocumentApproval() {
 
 // ─── Document Card ──────────────────────────────────────────────────────
 
-function DocumentCard({ doc, onSelect, onChasePending, isChasing }: {
+function DocumentCard({ doc, onSelect, onChasePending, isChasing, onDelete }: {
   doc: ApprovalDocumentWithSignatories;
   onSelect: () => void;
   onChasePending: () => void;
   isChasing: boolean;
+  onDelete: () => void;
 }) {
   const sigs = doc.signatories;
   const approvedCount = sigs.filter(s => s.status === 'approved').length;
