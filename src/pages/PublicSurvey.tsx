@@ -133,9 +133,10 @@ const PublicSurvey = () => {
       }
 
       setIsSubmitted(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error submitting survey:', err);
-      setError('Failed to submit survey. Please try again.');
+      const detail = err?.message || err?.details || '';
+      setError(`Failed to submit survey. Please try again.${detail ? ` (${detail})` : ''}`);
     } finally {
       setIsSubmitting(false);
     }
