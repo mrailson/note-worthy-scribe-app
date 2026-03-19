@@ -1,6 +1,5 @@
 import RichTextEditor from "@/components/RichTextEditor";
-import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
-import { LlmModelBadge } from "@/components/meeting-history/LlmModelBadge";
+import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { sanitiseActionOwners } from "@/utils/sanitiseActionOwners";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
