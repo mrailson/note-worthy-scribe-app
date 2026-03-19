@@ -420,7 +420,7 @@ const handler = async (req: Request): Promise<Response> => {
               }
             } catch (e) {
               console.warn("Could not download signed PDF for", gd.id, e);
-              downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
+              downloadLinks.push({ title: gd.title, url: `${APP_URL}/document-approval` });
             }
           }
         }
