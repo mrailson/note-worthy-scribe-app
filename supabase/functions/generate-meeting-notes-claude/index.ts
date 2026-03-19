@@ -416,11 +416,125 @@ serve(async (req) => {
       hasTranscript: !!transcript,
       hasCustomPrompt: !!customPrompt,
       customPromptLength: customPrompt ? customPrompt.length : 0,
-      detailLevel: detailLevel
+      detailLevel: detailLevel,
+      modelOverride: modelOverride || 'default'
     });
 
     if (!transcript) {
       throw new Error('Transcript is required');
+    }
+
+    // Claude 4 Opus override path
+    if (modelOverride === 'claude-4-opus') {
+      console.log('🧠 Using Claude (claude-sonnet-4-20250514) via Anthropic API');
+      
+      if (!anthropicApiKey) {
+        throw new Error('ANTHROPIC_API_KEY is not configured');
+      }
+
+      const meetingDate2 = meetingDate || 'Date not recorded';
+      const meetingTime2 = meetingTime || 'Time not recorded';
+      const meetingTitle2 = meetingTitle || 'General Meeting';
+
+      const claudePrompt = `You are a professional NHS meeting secretary creating detailed, factual minutes in British English.
+
+PRE-FILTER RULES:
+- Discard informal, humorous, or anecdotal remarks.
+- Replace personal identifiers with correct professional roles.
+- Maintain a consistent, formal, neutral tone suitable for Board or ICB documentation.
+- Never reproduce off-topic or emotive language.
+
+STRICT RULES:
+- Use British English spellings and 24-hour time.
+- Use British date format with ordinals (e.g., 22nd October 2025).
+- Only include information actually present in the transcript.
+- Never use placeholders or square brackets.
+- If a section has no information, omit it entirely.
+- Always write "TBC" for attendees.
+- Write "Location not specified" if no venue is mentioned.
+
+OUTPUT STRUCTURE:
+
+# MEETING DETAILS
+- Meeting Title: ${meetingTitle2}
+- Date: ${meetingDate2}
+- Time: ${meetingTime2}
+- Location: [explicit or "Location not specified"]
+- Attendees: TBC
+
+# EXECUTIVE SUMMARY
+Write 2–3 concise paragraphs covering purpose, key decisions, and next steps.
+
+# DISCUSSION SUMMARY
+For each major topic:
+- Background: short context
+- Key Points: bullet points
+- Outcome: summarise conclusions
+
+# DECISIONS & RESOLUTIONS
+Numbered list (omit if none).
+
+# ACTION ITEMS
+| Action | Responsible Party | Deadline | Priority |
+|--------|------------------|----------|----------|
+
+Rules: Only include names/roles explicitly mentioned. Use "TBC" where not stated.
+
+# FOLLOW-UP REQUIREMENTS
+# OPEN ITEMS & RISKS
+# NEXT MEETING (only if explicitly mentioned)
+
+FINAL CHECK: Review tone and remove judgemental or critical phrases. Use diplomatic, governance-appropriate wording.
+DO NOT include a "Meeting Transcript for Reference" section.
+
+TRANSCRIPT:
+${transcript}`;
+
+      const claudeStartTime = Date.now();
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': anthropicApiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 8192,
+          system: SYSTEM_PROMPT_V2,
+          messages: [
+            { role: 'user', content: claudePrompt }
+          ]
+        }),
+      });
+
+      console.log(`⚡ Claude API response in: ${Date.now() - claudeStartTime}ms`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Claude API error:', response.status, errorData);
+        throw new Error(`Claude API error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      let generatedNotes = data.content?.[0]?.text || '';
+      
+      generatedNotes = sanitizeMeetingMinutes(generatedNotes);
+      generatedNotes = performProfessionalToneAudit(generatedNotes);
+      generatedNotes = sanitiseActionOwners(generatedNotes, transcript);
+
+      const totalTime = Date.now() - functionStartTime;
+      console.log(`✅ Claude meeting minutes generated in ${totalTime}ms`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        meetingMinutes: generatedNotes,
+        generatedNotes: generatedNotes,
+        modelUsed: 'claude-sonnet-4-20250514',
+        processingTimeMs: totalTime
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // If customPrompt is provided, use it directly with Gemini
