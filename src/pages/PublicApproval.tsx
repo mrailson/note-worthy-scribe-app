@@ -506,7 +506,7 @@ const PublicApproval = () => {
           )}
           <h2 className="text-lg font-semibold text-foreground">
             {submitted === 'approved'
-              ? `Thank you. Your approval has been recorded${isGroupMode ? ` for all ${documentCount} documents` : ''}.`
+              ? `Thank you. Your approval has been recorded for ${docsLabel}.`
               : 'Your response has been recorded.'}
           </h2>
           <div className="text-sm text-muted-foreground space-y-1">
