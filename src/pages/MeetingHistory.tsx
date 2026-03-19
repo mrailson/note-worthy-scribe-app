@@ -543,6 +543,9 @@ const MeetingHistory = () => {
       
       setMeetingSummary(data.meetingMinutes);
       
+      // Store which model was used for this meeting (shown in footer)
+      localStorage.setItem(`meeting-llm-used-${selectedMeeting.id}`, modelOverride);
+      
       // Show which model was used
       const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' :
         modelOverride === 'claude-opus-4-6' ? 'Claude Opus 4.6' : 'Gemini 3 Flash';
