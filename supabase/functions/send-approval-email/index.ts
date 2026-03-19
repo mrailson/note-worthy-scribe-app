@@ -404,7 +404,7 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (fileSize > MULTI_MAX_BYTES || fileSize === 0) {
             console.log(`multi_send_completed: ${gd.title} too large (${fileSize} bytes), providing download link`);
-            downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
+            downloadLinks.push({ title: gd.title, url: `${APP_URL}/document-approval` });
           } else {
             try {
               const { data: fd, error: fe } = await supabase.storage.from("approval-documents").download(sp);
