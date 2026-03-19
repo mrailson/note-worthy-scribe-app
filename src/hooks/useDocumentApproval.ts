@@ -23,6 +23,8 @@ export interface ApprovalDocument {
   sender_email: string | null;
   batch_id: string | null;
   multi_doc_group_id: string | null;
+  signed_file_url: string | null;
+  signature_placement: any;
 }
 
 export interface ApprovalSignatory {
