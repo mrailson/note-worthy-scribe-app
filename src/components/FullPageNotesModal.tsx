@@ -2192,10 +2192,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
 
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
       let data, error;
       try {
         // Start the generation with custom timeout
-        const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
         console.log('🧠 Regenerating with model:', modelOverride);
         const result = await supabase.functions.invoke('auto-generate-meeting-notes', {
           body: {
