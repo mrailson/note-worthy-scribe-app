@@ -1555,10 +1555,11 @@ export const MeetingHistoryList = ({
         if (currentType === 'standard') {
           
           try {
-            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId);
+            const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
+            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', modelOverride);
             const { data, error: standardError } = await supabase.functions.invoke(
               'auto-generate-meeting-notes',
-              { body: { meetingId, forceRegenerate: true } }
+              { body: { meetingId, forceRegenerate: true, modelOverride } }
             );
             
             console.log('📥 Response from auto-generate-meeting-notes:', { data, error: standardError });
