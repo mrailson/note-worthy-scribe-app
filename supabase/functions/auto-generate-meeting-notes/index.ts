@@ -224,8 +224,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { meetingId, forceRegenerate = false, detailLevel = 'standard', noteType = 'standard', transcriptSource } = await req.json();
-    console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType, 'using transcript source:', transcriptSource || 'auto');
+    const { meetingId, forceRegenerate = false, detailLevel = 'standard', noteType = 'standard', transcriptSource, modelOverride = 'gemini-3-flash' } = await req.json();
+    console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType, 'using transcript source:', transcriptSource || 'auto', 'and model:', modelOverride);
 
     if (!meetingId) {
       throw new Error('Meeting ID is required');
