@@ -787,8 +787,9 @@ const handler = async (req: Request): Promise<Response> => {
     // ─── TYPE: SEND_COMPLETED ────────────────────────────────────────
     if (type === "send_completed") {
 
-      // Download the signed PDF from storage (skip if >5MB)
+      // Download the signed PDF from storage
       let signedPdfAttachment: { filename: string; content: string } | null = null;
+      let signedPdfDownloadUrl: string | null = null;
       const fileUrlToDownload = signed_file_url || doc.signed_file_url;
       console.log("send_completed: fileUrlToDownload =", fileUrlToDownload);
 
