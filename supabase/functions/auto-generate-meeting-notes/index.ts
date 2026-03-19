@@ -1529,7 +1529,7 @@ ${cleanedTranscript}`;
             'anthropic-version': '2023-06-01',
           },
           body: JSON.stringify({
-            model: modelOverride,
+            model: anthropicModelId,
             max_tokens: 8000,
             system: systemPrompt,
             messages: [

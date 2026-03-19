@@ -516,7 +516,7 @@ ${transcript}`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: modelOverride,
+          model: anthropicModelId,
           max_tokens: 8192,
           system: SYSTEM_PROMPT_V2,
           messages: [
