@@ -1685,7 +1685,8 @@ ${cleanedTranscript}`;
         key_points: [],
         action_items: [],
         decisions: [],
-        next_steps: []
+        next_steps: [],
+        model_used: modelUsed
       });
 
     if (summaryError) {
