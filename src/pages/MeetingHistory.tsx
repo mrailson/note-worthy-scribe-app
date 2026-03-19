@@ -527,19 +527,26 @@ const MeetingHistory = () => {
     
     setIsGeneratingNotes(true);
     try {
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: meetingTranscript,
           meetingTitle: selectedMeeting.title,
           meetingDate: new Date(selectedMeeting.created_at).toISOString().split('T')[0],
           meetingTime: new Date(selectedMeeting.created_at).toLocaleTimeString(),
-          detailLevel: 'standard'
+          detailLevel: 'standard',
+          modelOverride
         }
       });
 
       if (error) throw error;
       
       setMeetingSummary(data.meetingMinutes);
+      
+      // Show which model was used
+      const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' :
+        modelOverride === 'claude-opus-4-6' ? 'Claude Opus 4.6' : 'Gemini 3 Flash';
+      showToast.success(`Notes regenerated using ${modelLabel}`);
       
       // Save to database
       await supabase

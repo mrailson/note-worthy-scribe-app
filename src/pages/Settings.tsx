@@ -860,7 +860,7 @@ export default function Settings() {
                     AI Model for Note Regeneration
                   </CardTitle>
                   <p className="text-muted-foreground">
-                    Choose which AI model to use when you manually regenerate meeting notes. This is for quality comparison testing only.
+                    Choose which AI model is used when you regenerate meeting notes. This is for quality comparison testing.
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -876,7 +876,8 @@ export default function Settings() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="gemini-3-flash">Gemini 3 Flash (Default — Fast)</SelectItem>
-                          <SelectItem value="claude-4-opus">Claude 4 Opus (Advanced — Quality Test)</SelectItem>
+                          <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6 (Quality Test)</SelectItem>
+                          <SelectItem value="claude-opus-4-6">Claude Opus 4.6 (Max Quality Test)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -884,7 +885,8 @@ export default function Settings() {
                       <p className="mb-2">
                         <strong>Current model:</strong> {
                           regenerateLlm === 'gemini-3-flash' ? 'Gemini 3 Flash (default)' :
-                          regenerateLlm === 'claude-4-opus' ? 'Claude 4 Opus (advanced)' : 'Gemini 3 Flash'
+                          regenerateLlm === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' :
+                          regenerateLlm === 'claude-opus-4-6' ? 'Claude Opus 4.6' : 'Gemini 3 Flash'
                         }
                       </p>
                       <p>

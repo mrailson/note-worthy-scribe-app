@@ -424,9 +424,9 @@ serve(async (req) => {
       throw new Error('Transcript is required');
     }
 
-    // Claude 4 Opus override path
-    if (modelOverride === 'claude-4-opus') {
-      console.log('🧠 Using Claude (claude-sonnet-4-20250514) via Anthropic API');
+    // Claude override path — routes by prefix so both claude-sonnet-4-6 and claude-opus-4-6 work
+    if (modelOverride && modelOverride.startsWith('claude-')) {
+      console.log(`🧠 Using Claude model: ${modelOverride} via Anthropic API`);
       
       if (!anthropicApiKey) {
         throw new Error('ANTHROPIC_API_KEY is not configured');
@@ -436,13 +436,18 @@ serve(async (req) => {
       const meetingTime2 = meetingTime || 'Time not recorded';
       const meetingTitle2 = meetingTitle || 'General Meeting';
 
-      const claudePrompt = `You are a professional NHS meeting secretary creating detailed, factual minutes in British English.
+      // Use the SAME prompt as the Gemini path for fair comparison
+      const userPrompt = `You are a professional NHS meeting secretary creating detailed, factual minutes in British English.
+
+Before producing the final minutes, analyse each transcript segment carefully.
 
 PRE-FILTER RULES:
-- Discard informal, humorous, or anecdotal remarks.
-- Replace personal identifiers with correct professional roles.
-- Maintain a consistent, formal, neutral tone suitable for Board or ICB documentation.
-- Never reproduce off-topic or emotive language.
+- Discard informal, humorous, or anecdotal remarks (e.g., jokes, metaphors, or personal asides such as "wolf ready to pounce").
+- Replace any personal identifiers with the correct professional role or neutral descriptor (e.g., use "SPLW candidate" instead of "Rich's mother-in-law").
+- When merging multiple segments, maintain a consistent, formal, and neutral tone suitable for circulation in Board or ICB documentation.
+- Never reproduce off-topic or emotive language, or anything that could appear unprofessional in circulated minutes.
+
+Then follow the full structure and rules below.
 
 STRICT RULES:
 - Use British English spellings and 24-hour time.
@@ -450,7 +455,7 @@ STRICT RULES:
 - Only include information actually present in the transcript.
 - Never use placeholders or square brackets.
 - If a section has no information, omit it entirely.
-- Always write "TBC" for attendees.
+- Always write "TBC" for attendees (attendees handled separately).
 - Write "Location not specified" if no venue is mentioned.
 
 OUTPUT STRUCTURE:
@@ -463,28 +468,38 @@ OUTPUT STRUCTURE:
 - Attendees: TBC
 
 # EXECUTIVE SUMMARY
-Write 2–3 concise paragraphs covering purpose, key decisions, and next steps.
+Write 2–3 concise paragraphs covering purpose, key decisions, and next steps. Keep tone factual and balanced.
 
 # DISCUSSION SUMMARY
 For each major topic:
 - Background: short context
-- Key Points: bullet points
-- Outcome: summarise conclusions
+- Key Points: bullet points with factual discussion points
+- Outcome: summarise conclusions reached
 
 # DECISIONS & RESOLUTIONS
-Numbered list (omit if none).
+Numbered list of decisions (omit section if none).
 
 # ACTION ITEMS
 | Action | Responsible Party | Deadline | Priority |
 |--------|------------------|----------|----------|
+| ... | ... | ... | ... |
 
-Rules: Only include names/roles explicitly mentioned. Use "TBC" where not stated.
+Rules:
+- Only include names/roles explicitly mentioned.
+- Use "TBC" where not stated.
 
 # FOLLOW-UP REQUIREMENTS
-# OPEN ITEMS & RISKS
-# NEXT MEETING (only if explicitly mentioned)
+Bullet points of follow-up items.
 
-FINAL CHECK: Review tone and remove judgemental or critical phrases. Use diplomatic, governance-appropriate wording.
+# OPEN ITEMS & RISKS
+Bullet points for unresolved matters.
+
+# NEXT MEETING
+Include only if explicitly mentioned.
+
+FINAL CHECK:
+Before output, review tone and remove any phrases that could appear judgemental or critical. Use diplomatic, governance-appropriate wording (e.g., "members discussed differing perspectives" instead of "members criticised").
+
 DO NOT include a "Meeting Transcript for Reference" section.
 
 TRANSCRIPT:
@@ -499,11 +514,11 @@ ${transcript}`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: modelOverride,
           max_tokens: 8192,
           system: SYSTEM_PROMPT_V2,
           messages: [
-            { role: 'user', content: claudePrompt }
+            { role: 'user', content: userPrompt }
           ]
         }),
       });
@@ -511,14 +526,18 @@ ${transcript}`;
       console.log(`⚡ Claude API response in: ${Date.now() - claudeStartTime}ms`);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Claude API error:', response.status, errorData);
-        throw new Error(`Claude API error: ${errorData.error?.message || response.statusText}`);
+        const errText = await response.text();
+        console.error('Claude API error:', response.status, errText);
+        throw new Error(`Anthropic API error: ${response.status} - ${errText}`);
       }
 
       const data = await response.json();
-      let generatedNotes = data.content?.[0]?.text || '';
+      let generatedNotes = data.content
+        .filter((block: any) => block.type === 'text')
+        .map((block: any) => block.text)
+        .join('\n');
       
+      // SAME post-processing as the Gemini path
       generatedNotes = sanitizeMeetingMinutes(generatedNotes);
       generatedNotes = performProfessionalToneAudit(generatedNotes);
       generatedNotes = sanitiseActionOwners(generatedNotes, transcript);
@@ -530,7 +549,7 @@ ${transcript}`;
         success: true,
         meetingMinutes: generatedNotes,
         generatedNotes: generatedNotes,
-        modelUsed: 'claude-sonnet-4-20250514',
+        modelUsed: modelOverride,
         processingTimeMs: totalTime
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
