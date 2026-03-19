@@ -655,7 +655,7 @@ const PublicApproval = () => {
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button onClick={handleApprove} disabled={!formValid || submitting} className="flex-1 gap-2">
             {submitting && !showDecline ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            {isGroupMode ? `Approve All ${documentCount} Documents` : 'Approve Document'}
+            {isGroupMode ? `Approve ${docsLabel.charAt(0).toUpperCase() + docsLabel.slice(1)}` : 'Approve Document'}
           </Button>
           {!showDecline ? (
             <Button variant="outline" onClick={() => setShowDecline(true)} className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10">
