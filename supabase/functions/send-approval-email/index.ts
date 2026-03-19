@@ -416,7 +416,7 @@ const handler = async (req: Request): Promise<Response> => {
                   content: encodeBase64(bytes),
                 });
               } else {
-                downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
+                downloadLinks.push({ title: gd.title, url: `${APP_URL}/document-approval` });
               }
             } catch (e) {
               console.warn("Could not download signed PDF for", gd.id, e);
