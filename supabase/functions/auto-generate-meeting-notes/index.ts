@@ -1485,7 +1485,7 @@ ${contextInfo}
 Transcript:
 ${cleanedTranscript}`;
 
-    console.log('🔧 Using Lovable AI with google/gemini-3-flash-preview');
+    console.log('🔧 Using selected model for manual regeneration:', modelOverride);
     console.log('📊 System prompt length:', systemPrompt.length, 'chars');
     console.log('📊 User prompt length:', userPrompt.length, 'chars');
     
@@ -1494,68 +1494,107 @@ ${cleanedTranscript}`;
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
     
     let generatedNotes = '';
+    let modelUsed = modelOverride;
     
     try {
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-3-flash-preview',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          max_completion_tokens: 8000,
-        }),
-        signal: controller.signal,
-      });
+      if (modelOverride.startsWith('claude-')) {
+        const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
+        if (!anthropicApiKey) {
+          throw new Error('ANTHROPIC_API_KEY not configured');
+        }
 
-      clearTimeout(timeoutId);
-      console.log('📡 Lovable AI response status:', response.status);
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicApiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: modelOverride,
+            max_tokens: 8000,
+            system: systemPrompt,
+            messages: [
+              { role: 'user', content: userPrompt }
+            ],
+          }),
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('❌ Lovable AI API error:', response.status, errorData);
+        clearTimeout(timeoutId);
+        console.log('📡 Anthropic response status:', response.status);
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('❌ Anthropic API error:', response.status, errorData);
+          throw new Error(`Anthropic API error: ${response.status} - ${errorData}`);
+        }
+
+        const data = await response.json();
+        generatedNotes = data.content
+          ?.filter((block: any) => block.type === 'text')
+          ?.map((block: any) => block.text)
+          ?.join('\n') || '';
+      } else {
+        modelUsed = 'gemini-3-flash';
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            max_completion_tokens: 8000,
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+        console.log('📡 Lovable AI response status:', response.status);
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('❌ Lovable AI API error:', response.status, errorData);
+          
+          if (response.status === 429) {
+            throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+          }
+          if (response.status === 402) {
+            throw new Error('Insufficient AI credits. Please add credits to your workspace.');
+          }
+          if (response.status === 413) {
+            throw new Error('Transcript too large. Please try cleaning the transcript first.');
+          }
+          
+          throw new Error(`Lovable AI API error: ${response.status} - ${errorData}`);
+        }
+
+        const responseText = await response.text();
+        if (!responseText || responseText.trim().length === 0) {
+          console.error('❌ Lovable AI returned empty response body');
+          throw new Error('Lovable AI returned an empty response. Please try again.');
+        }
         
-        // Handle specific error cases
-        if (response.status === 429) {
-          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('❌ Failed to parse Lovable AI response:', responseText.substring(0, 500));
+          throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`);
         }
-        if (response.status === 402) {
-          throw new Error('Insufficient AI credits. Please add credits to your workspace.');
-        }
-        if (response.status === 413) {
-          throw new Error('Transcript too large. Please try cleaning the transcript first.');
-        }
+        console.log('📦 Lovable AI response data:', JSON.stringify(data).substring(0, 500));
         
-        throw new Error(`Lovable AI API error: ${response.status} - ${errorData}`);
+        generatedNotes = data.choices?.[0]?.message?.content || '';
       }
 
-      // Safely parse response - handle empty or malformed JSON
-      const responseText = await response.text();
-      if (!responseText || responseText.trim().length === 0) {
-        console.error('❌ Lovable AI returned empty response body');
-        throw new Error('Lovable AI returned an empty response. Please try again.');
-      }
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('❌ Failed to parse Lovable AI response:', responseText.substring(0, 500));
-        throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`);
-      }
-      console.log('📦 Lovable AI response data:', JSON.stringify(data).substring(0, 500));
-      
-      generatedNotes = data.choices?.[0]?.message?.content || '';
-      
       if (!generatedNotes || generatedNotes.trim().length === 0) {
-        console.error('⚠️ Lovable AI returned empty content!');
-        console.error('Response structure:', JSON.stringify(data));
-        throw new Error('Lovable AI returned empty content. This may indicate an API configuration issue.');
+        console.error('⚠️ AI returned empty content!');
+        throw new Error('AI returned empty content. This may indicate an API configuration issue.');
       }
 
       console.log('✅ Generated notes length:', generatedNotes.length, 'chars');
