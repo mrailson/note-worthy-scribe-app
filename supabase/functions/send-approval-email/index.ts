@@ -848,7 +848,7 @@ const handler = async (req: Request): Promise<Response> => {
             const { data: fileData, error: fileErr } = await supabase.storage.from("approval-documents").download(storagePath);
             if (fileErr) {
               console.error("send_completed: storage download error:", fileErr);
-              signedPdfDownloadUrl = fileUrlToDownload;
+              signedPdfDownloadUrl = `${APP_URL}/document-approval`;
             } else if (fileData) {
               const arrayBuf = await fileData.arrayBuffer();
               const bytes = new Uint8Array(arrayBuf);
