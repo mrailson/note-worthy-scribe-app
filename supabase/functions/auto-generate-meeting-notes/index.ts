@@ -2042,8 +2042,6 @@ ${cleanedTranscript}`;
     
     // Try to update status to failed if we have meetingId
     try {
-      const requestClone = req.clone();
-      const { meetingId } = await requestClone.json().catch(() => ({}));
       if (meetingId) {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
