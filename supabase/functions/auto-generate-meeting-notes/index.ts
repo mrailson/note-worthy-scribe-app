@@ -437,8 +437,11 @@ serve(async (req) => {
               .upsert({
                 meeting_id: meetingId,
                 summary: consolidatedResult.content,
-                summary_type: 'consolidated',
-                model_used: 'gemini-3.1-flash-lite',
+                key_points: [],
+                action_items: [],
+                decisions: [],
+                next_steps: [],
+                ai_generated: true,
                 updated_at: new Date().toISOString()
               }, { onConflict: 'meeting_id' });
             
