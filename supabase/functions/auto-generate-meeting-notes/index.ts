@@ -1701,7 +1701,8 @@ ${cleanedTranscript}`;
         action_items: [],
         decisions: [],
         next_steps: [],
-        model_used: modelUsed
+        ai_generated: true,
+        updated_at: new Date().toISOString()
       });
 
     if (summaryError) {
