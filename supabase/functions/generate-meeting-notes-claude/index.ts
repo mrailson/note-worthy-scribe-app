@@ -646,7 +646,7 @@ ${processedTranscript}`;
       const sanitizeStartTime = Date.now();
       generatedNotes = sanitizeMeetingMinutes(generatedNotes);
       generatedNotes = performProfessionalToneAudit(generatedNotes);
-      generatedNotes = sanitiseActionOwners(generatedNotes, transcript);
+      generatedNotes = sanitiseActionOwners(generatedNotes, processedTranscript);
       console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
       
       console.log('✅ Custom prompt generated successfully');
