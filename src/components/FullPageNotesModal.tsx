@@ -2156,8 +2156,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         }
         
         // Show which model was used
-        const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' :
-          modelOverride === 'claude-opus-4-6' ? 'Claude Opus 4.6' : 'Gemini 3 Flash';
+        const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash';
         toast.success(`Notes regenerated using ${modelLabel}`);
       }
     } catch (error) {

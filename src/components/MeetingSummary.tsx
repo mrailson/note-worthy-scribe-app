@@ -365,7 +365,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
         setClaudeNotes(data.meetingMinutes);
         toast({
           title: "Success",
-          description: `Meeting minutes generated using ${data?.modelUsed === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : data?.modelUsed === 'claude-opus-4-6' ? 'Claude Opus 4.6' : 'Gemini 3 Flash'}!`,
+          description: `Meeting minutes generated using ${data?.modelUsed === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash'}!`,
         });
       } else {
         throw new Error(data?.error || 'Failed to generate meeting minutes');
