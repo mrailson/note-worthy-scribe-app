@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Updated to use Lovable AI with Gemini Flash (2M token context)
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 
 // Note: GPT-5 tone audit removed - Gemini prompt already includes governance rules
 // and performProfessionalToneAudit() handles pattern replacements locally without
