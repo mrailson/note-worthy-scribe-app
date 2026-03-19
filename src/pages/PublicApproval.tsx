@@ -399,6 +399,7 @@ const PublicApproval = () => {
   const effectiveSignatory = isGroupMode ? groupItems[0]?.signatory : signatory;
   const effectiveDocument = isGroupMode ? groupItems[0]?.document : document;
   const documentCount = isGroupMode ? groupItems.length : 1;
+  const docsLabel = documentCount === 2 ? 'both documents' : `all ${documentCount} documents`;
 
   // ─── Loading ───
   if (loading) {
