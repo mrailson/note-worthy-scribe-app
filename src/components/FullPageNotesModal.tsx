@@ -2241,52 +2241,26 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         return;
       }
 
-      console.log('⏳ Polling for completion...');
-      
-      // Poll for completion - check every 2 seconds for up to 60 seconds
-      const maxAttempts = 30;
-      let attempts = 0;
-      let generatedContent = null;
+      // Use the content directly from the edge function response — never poll the DB
+      // This eliminates stale-read issues where the DB returns old/cached content
+      let generatedContent = data?.content || null;
 
-      while (attempts < maxAttempts) {
-        attempts++;
-        
-        // Check meeting status
-        const { data: meetingData } = await supabase
-          .from('meetings')
-          .select('notes_generation_status')
-          .eq('id', meeting.id)
+      if (!generatedContent) {
+        // Fallback: if edge function didn't return content inline, fetch from DB once
+        console.log('⚠️ No inline content in response, fetching from meeting_summaries...');
+        const { data: summaryData } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meeting.id)
+          .order('updated_at', { ascending: false })
+          .limit(1)
           .single();
-        
-        console.log(`📊 Attempt ${attempts}: Status = ${meetingData?.notes_generation_status}`);
-        
-        if (meetingData?.notes_generation_status === 'completed') {
-          // Fetch the regenerated notes
-          const { data: summaryData, error: fetchError } = await supabase
-            .from('meeting_summaries')
-            .select('summary')
-            .eq('meeting_id', meeting.id)
-            .single();
-
-          if (fetchError) {
-            console.error('❌ Error fetching notes:', fetchError);
-            throw fetchError;
-          }
-
-          if (summaryData?.summary) {
-            generatedContent = summaryData.summary;
-            console.log('✅ Notes regenerated successfully, length:', generatedContent.length);
-            break;
-          }
-        } else if (meetingData?.notes_generation_status === 'failed') {
-          throw new Error('Note generation failed on server');
-        }
-        
-        // Wait 2 seconds before next check
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        generatedContent = summaryData?.summary || null;
       }
 
       if (generatedContent) {
+        console.log('✅ Notes regenerated successfully, length:', generatedContent.length);
+        
         // Sanitise action owners before saving (client-side safety net)
         const transcriptText = typeof transcript === 'string' ? transcript : '';
         const sanitised = sanitiseActionOwners(generatedContent, transcriptText);
@@ -2296,6 +2270,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         }
         
         setNotesStyle3(sanitised);
+        // Also update the parent's notes prop so the seeding useEffect doesn't overwrite
+        onNotesChange(sanitised);
         
         // Save to meetings table so it persists when returning to the meeting
         await saveNoteStyleToDatabase(3, sanitised);
@@ -2323,8 +2299,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         const modelLabel = modelOverride.startsWith('claude-') ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash';
         toast.success(`Notes regenerated using ${modelLabel}`);
       } else {
-        console.error('❌ Timeout waiting for notes generation');
-        toast.error('Note generation timed out. Please try again.');
+        console.error('❌ No content returned from edge function');
+        toast.error('Note generation returned no content. Please try again.');
       }
     } catch (error: any) {
       console.error('❌ Error generating Standard notes:', error);
