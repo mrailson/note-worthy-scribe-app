@@ -861,7 +861,7 @@ const handler = async (req: Request): Promise<Response> => {
             }
           } catch (e) {
             console.error("send_completed: Could not download signed PDF:", e);
-            signedPdfDownloadUrl = fileUrlToDownload;
+            signedPdfDownloadUrl = `${APP_URL}/document-approval`;
           }
         }
       } else {
