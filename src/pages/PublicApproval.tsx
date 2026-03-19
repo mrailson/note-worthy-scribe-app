@@ -633,7 +633,7 @@ const PublicApproval = () => {
               <Checkbox id="confirm-approval" checked={confirmApproval} onCheckedChange={v => setConfirmApproval(!!v)} className="mt-0.5" />
               <Label htmlFor="confirm-approval" className="text-sm text-foreground cursor-pointer leading-relaxed">
                 {isGroupMode
-                  ? `I confirm I have read all ${documentCount} attached documents, approve their contents, and understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)`
+                  ? `I confirm I have read ${docsLabel} attached, approve their contents, and understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)`
                   : 'I confirm I have read the attached document, approve its contents, and understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)'}
               </Label>
             </div>
