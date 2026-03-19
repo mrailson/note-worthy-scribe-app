@@ -837,14 +837,21 @@ const handler = async (req: Request): Promise<Response> => {
         </tr>`)
         .join("");
 
+      const attachmentNote = signedPdfAttachment
+        ? `The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> is attached to this email.`
+        : signedPdfDownloadUrl
+          ? `The signed version of <strong style="color: #1a202c;">${doc.title}</strong> is too large to attach. You can download it using the button below.`
+          : `The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> has been generated.`;
+
       const html = emailWrapper(`
         ${alertBanner("#f0fdf4", "#166534", "&#128196; Completed Signed Document")}
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
-          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 12px;">The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> is attached to this email.</td></tr>
-          <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; padding-bottom: 16px;">All ${(allSignatories || []).length} signator${(allSignatories || []).length !== 1 ? "ies" : "y"} have approved this document. The attached PDF includes the Electronic Signature Certificate with full audit trail.</td></tr>
+          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 12px;">${attachmentNote}</td></tr>
+          <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; padding-bottom: 16px;">All ${(allSignatories || []).length} signator${(allSignatories || []).length !== 1 ? "ies" : "y"} have approved this document. The PDF includes the Electronic Signature Certificate with full audit trail.</td></tr>
         </table>
         ${signatoryTable(["Name", "Role", "Organisation", "Signed"], sigRows)}
-        ${legalNotice("#f0fdf4", "#bbf7d0", "#166534", "This document was electronically signed in accordance with UK law (Electronic Communications Act 2000). The attached PDF contains a SHA-256 integrity hash and full audit trail.")}
+        ${signedPdfDownloadUrl ? primaryButton(signedPdfDownloadUrl, "Download Signed Document") : ""}
+        ${legalNotice("#f0fdf4", "#bbf7d0", "#166534", "This document was electronically signed in accordance with UK law (Electronic Communications Act 2000). The PDF contains a SHA-256 integrity hash and full audit trail.")}
       `);
 
       // Send to sender + all signatories
