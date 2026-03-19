@@ -1,6 +1,5 @@
 import RichTextEditor from "@/components/RichTextEditor";
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
-import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { sanitiseActionOwners } from "@/utils/sanitiseActionOwners";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
