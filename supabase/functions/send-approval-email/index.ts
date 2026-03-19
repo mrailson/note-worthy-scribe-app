@@ -842,7 +842,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (actualSize > MAX_ATTACHMENT_BYTES || actualSize === 0) {
           console.log(`send_completed: signed PDF too large or unknown size (${actualSize} bytes), providing download link`);
-          signedPdfDownloadUrl = fileUrlToDownload;
+          signedPdfDownloadUrl = `${APP_URL}/document-approval`;
         } else {
           try {
             const { data: fileData, error: fileErr } = await supabase.storage.from("approval-documents").download(storagePath);
