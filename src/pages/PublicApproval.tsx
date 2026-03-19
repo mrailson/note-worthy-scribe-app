@@ -399,6 +399,7 @@ const PublicApproval = () => {
   const effectiveSignatory = isGroupMode ? groupItems[0]?.signatory : signatory;
   const effectiveDocument = isGroupMode ? groupItems[0]?.document : document;
   const documentCount = isGroupMode ? groupItems.length : 1;
+  const docsLabel = documentCount === 2 ? 'both documents' : `all ${documentCount} documents`;
 
   // ─── Loading ───
   if (loading) {
@@ -505,7 +506,7 @@ const PublicApproval = () => {
           )}
           <h2 className="text-lg font-semibold text-foreground">
             {submitted === 'approved'
-              ? `Thank you. Your approval has been recorded${isGroupMode ? ` for all ${documentCount} documents` : ''}.`
+              ? `Thank you. Your approval has been recorded for ${docsLabel}.`
               : 'Your response has been recorded.'}
           </h2>
           <div className="text-sm text-muted-foreground space-y-1">
@@ -608,7 +609,7 @@ const PublicApproval = () => {
           <h2 className="font-semibold text-foreground">Confirm Your Details</h2>
           <p className="text-sm text-muted-foreground">
             {isGroupMode
-              ? `To approve all ${documentCount} documents, confirm your details and click Approve below.`
+              ? `To approve ${docsLabel}, confirm your details and click Approve below.`
               : 'To approve this document, confirm your details and click Approve below.'}
           </p>
         </div>
@@ -632,7 +633,7 @@ const PublicApproval = () => {
               <Checkbox id="confirm-approval" checked={confirmApproval} onCheckedChange={v => setConfirmApproval(!!v)} className="mt-0.5" />
               <Label htmlFor="confirm-approval" className="text-sm text-foreground cursor-pointer leading-relaxed">
                 {isGroupMode
-                  ? `I confirm I have read all ${documentCount} attached documents, approve their contents, and understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)`
+                  ? `I confirm I have read ${docsLabel} attached, approve their contents, and understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)`
                   : 'I confirm I have read the attached document, approve its contents, and understand this constitutes an electronic signature in accordance with UK law (Electronic Communications Act 2000)'}
               </Label>
             </div>
@@ -654,7 +655,7 @@ const PublicApproval = () => {
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button onClick={handleApprove} disabled={!formValid || submitting} className="flex-1 gap-2">
             {submitting && !showDecline ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            {isGroupMode ? `Approve All ${documentCount} Documents` : 'Approve Document'}
+            {isGroupMode ? `Approve ${docsLabel.charAt(0).toUpperCase() + docsLabel.slice(1)}` : 'Approve Document'}
           </Button>
           {!showDecline ? (
             <Button variant="outline" onClick={() => setShowDecline(true)} className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10">
