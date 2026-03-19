@@ -880,7 +880,7 @@ const handler = async (req: Request): Promise<Response> => {
       const attachmentNote = signedPdfAttachment
         ? `The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> is attached to this email.`
         : signedPdfDownloadUrl
-          ? `The signed version of <strong style="color: #1a202c;">${doc.title}</strong> is too large to attach. You can download it using the button below.`
+          ? `The signed version of <strong style="color: #1a202c;">${doc.title}</strong> is available to download from Notewell.`
           : `The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> has been generated.`;
 
       const html = emailWrapper(`
