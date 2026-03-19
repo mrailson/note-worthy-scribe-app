@@ -2159,6 +2159,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
       if (data?.meetingMinutes) {
         onNotesChange(data.meetingMinutes);
+        setNotesStyle3(data.meetingMinutes); // Sync Standard Minutes tab to prevent stale display
         saveSummaryToDatabase(data.meetingMinutes);
         
         // Generate and save meeting overview for the history view
