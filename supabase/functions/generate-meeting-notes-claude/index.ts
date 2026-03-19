@@ -673,7 +673,7 @@ ${processedTranscript}`;
     }
 
     // Handle large transcripts with chunking strategy
-    const processingResult = handleLargeTranscript(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
+    const processingResult = handleLargeTranscript(processedTranscript, meetingTitle, meetingDate, meetingTime, styleChoice);
     
     let meetingMinutes;
     
