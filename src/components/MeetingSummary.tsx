@@ -347,13 +347,15 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
     setIsClaudeGenerating(true);
     
     try {
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript,
           meetingTitle: meetingSettings?.title || "General Meeting",
-          meetingDate: new Date().toLocaleDateString(),
-          meetingTime: new Date().toLocaleTimeString(),
-          detailLevel: levelToUse
+          meetingDate: new Date().toLocaleDateString('en-GB'),
+          meetingTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+          detailLevel: levelToUse,
+          modelOverride
         }
       });
 
@@ -363,7 +365,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
         setClaudeNotes(data.meetingMinutes);
         toast({
           title: "Success",
-          description: "Claude AI meeting minutes generated successfully!",
+          description: `Meeting minutes generated using ${data?.modelUsed === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : data?.modelUsed === 'claude-opus-4-6' ? 'Claude Opus 4.6' : 'Gemini 3 Flash'}!`,
         });
       } else {
         throw new Error(data?.error || 'Failed to generate meeting minutes');
