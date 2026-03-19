@@ -692,11 +692,11 @@ ${processedTranscript}`;
       console.log('Consolidating chunk results');
       // Consolidate chunk results
       meetingMinutes = await consolidateChunkResults(chunkResults, meetingTitle, meetingDate, meetingTime, styleChoice);
-      meetingMinutes = sanitiseActionOwners(meetingMinutes, transcript);
+      meetingMinutes = sanitiseActionOwners(meetingMinutes, processedTranscript);
     } else {
       // Standard single processing
-      meetingMinutes = await processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
-      meetingMinutes = sanitiseActionOwners(meetingMinutes, transcript);
+      meetingMinutes = await processChunk(processedTranscript, meetingTitle, meetingDate, meetingTime, styleChoice);
+      meetingMinutes = sanitiseActionOwners(meetingMinutes, processedTranscript);
     }
 
     const totalTime = Date.now() - functionStartTime;
