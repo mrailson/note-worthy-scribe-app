@@ -3817,6 +3817,30 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_dictionary: {
+        Row: {
+          category: string
+          correct_term: string
+          created_at: string
+          id: string
+          wrong_term: string
+        }
+        Insert: {
+          category?: string
+          correct_term: string
+          created_at?: string
+          id?: string
+          wrong_term: string
+        }
+        Update: {
+          category?: string
+          correct_term?: string
+          created_at?: string
+          id?: string
+          wrong_term?: string
+        }
+        Relationships: []
+      }
       drug_synonyms: {
         Row: {
           created_at: string
