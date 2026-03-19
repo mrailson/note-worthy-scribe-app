@@ -388,8 +388,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       
       toast.info(`Regenerating notes from ${sourceLabel}...`);
       
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
       const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { 
+          modelOverride,
           meetingId: meeting.id,
           forceRegenerate: true,
           detailLevel: 'standard',
