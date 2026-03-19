@@ -1513,9 +1513,8 @@ ${cleanedTranscript}`;
     
     try {
       if (modelOverride.startsWith('claude-')) {
-        // Map friendly name to actual Anthropic model ID
-        const anthropicModelId = 'claude-sonnet-4-20250514';
-        console.log(`🧠 Using Claude model: ${anthropicModelId} (from ${modelOverride})`);
+        // Pass the model ID directly — claude-sonnet-4-6 is valid as-is
+        console.log(`🧠 Using Claude model: ${modelOverride}`);
         const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
         if (!anthropicApiKey) {
           throw new Error('ANTHROPIC_API_KEY not configured');
