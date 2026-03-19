@@ -808,43 +808,51 @@ const handler = async (req: Request): Promise<Response> => {
     // ─── TYPE: SEND_COMPLETED ────────────────────────────────────────
     if (type === "send_completed") {
 
-      // Download the signed PDF from storage
+      // Check signed PDF size and attach if small enough, otherwise provide download link
       let signedPdfAttachment: { filename: string; content: string } | null = null;
       let signedPdfDownloadUrl: string | null = null;
       const fileUrlToDownload = signed_file_url || doc.signed_file_url;
       console.log("send_completed: fileUrlToDownload =", fileUrlToDownload);
 
       if (fileUrlToDownload) {
+        const storagePath = fileUrlToDownload.replace(/^.*approval-documents\//, "");
+        // Check file size before downloading to avoid OOM
+        const pathParts = storagePath.split("/");
+        const fileName = pathParts.pop() || "";
+        const folder = pathParts.join("/");
+        let actualSize = 0;
         try {
-            const storagePath = fileUrlToDownload.replace(/^.*approval-documents\//, "");
-            console.log("send_completed: downloading storagePath =", storagePath);
-            const { data: fileData, error: fileErr } = await supabase.storage
-              .from("approval-documents")
-              .download(storagePath);
+          const { data: listData } = await supabase.storage.from("approval-documents").list(folder, { search: fileName, limit: 1 });
+          actualSize = listData?.[0]?.metadata?.size || 0;
+          console.log("send_completed: signed PDF size from metadata =", actualSize);
+        } catch (e) {
+          console.warn("send_completed: could not check file size, will provide download link");
+        }
 
+        if (actualSize > MAX_ATTACHMENT_BYTES || actualSize === 0) {
+          console.log(`send_completed: signed PDF too large or unknown size (${actualSize} bytes), providing download link`);
+          signedPdfDownloadUrl = fileUrlToDownload;
+        } else {
+          try {
+            const { data: fileData, error: fileErr } = await supabase.storage.from("approval-documents").download(storagePath);
             if (fileErr) {
               console.error("send_completed: storage download error:", fileErr);
-            }
-
-            if (!fileErr && fileData) {
+              signedPdfDownloadUrl = fileUrlToDownload;
+            } else if (fileData) {
               const arrayBuf = await fileData.arrayBuffer();
               const bytes = new Uint8Array(arrayBuf);
-              // Check actual downloaded size against limit
-              if (bytes.length > MAX_ATTACHMENT_BYTES) {
-                console.log(`send_completed: signed PDF too large (${bytes.length} bytes), will include download link instead`);
-                signedPdfDownloadUrl = fileUrlToDownload;
-              } else {
-                const base64Content = encodeBase64(bytes);
-                console.log("send_completed: attachment size =", bytes.length, "bytes, base64 length =", base64Content.length);
-                signedPdfAttachment = {
-                  filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
-                  content: base64Content,
-                };
-              }
+              const base64Content = encodeBase64(bytes);
+              console.log("send_completed: attachment size =", bytes.length, "bytes");
+              signedPdfAttachment = {
+                filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
+                content: base64Content,
+              };
             }
           } catch (e) {
-            console.error("send_completed: Could not download signed PDF attachment:", e);
+            console.error("send_completed: Could not download signed PDF:", e);
+            signedPdfDownloadUrl = fileUrlToDownload;
           }
+        }
       } else {
         console.warn("send_completed: No signed_file_url available");
       }
