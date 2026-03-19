@@ -2192,13 +2192,16 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
 
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
       let data, error;
       try {
         // Start the generation with custom timeout
+        console.log('🧠 Regenerating with model:', modelOverride);
         const result = await supabase.functions.invoke('auto-generate-meeting-notes', {
           body: {
             meetingId: meeting.id,
-            forceRegenerate: true
+            forceRegenerate: true,
+            modelOverride
           }
         });
         data = result.data;
@@ -2301,7 +2304,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           
         }
         
-        toast.success('Notes and overview regenerated successfully');
+        // Update the LLM badge
+        localStorage.setItem(`meeting-llm-used-${meeting.id}`, data?.modelUsed || modelOverride);
+        const modelLabel = modelOverride.startsWith('claude-') ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash';
+        toast.success(`Notes regenerated using ${modelLabel}`);
       } else {
         console.error('❌ Timeout waiting for notes generation');
         toast.error('Note generation timed out. Please try again.');
