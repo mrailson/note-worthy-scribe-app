@@ -213,6 +213,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let requestBody: Record<string, any> = {};
+  let meetingId: string | undefined;
+
   try {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -224,7 +227,16 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { meetingId, forceRegenerate = false, detailLevel = 'standard', noteType = 'standard', transcriptSource, modelOverride = 'gemini-3-flash' } = await req.json();
+    requestBody = await req.json();
+    const {
+      meetingId: parsedMeetingId,
+      forceRegenerate = false,
+      detailLevel = 'standard',
+      noteType = 'standard',
+      transcriptSource,
+      modelOverride = 'gemini-3-flash'
+    } = requestBody;
+    meetingId = parsedMeetingId;
     console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType, 'using transcript source:', transcriptSource || 'auto', 'and model:', modelOverride);
 
     if (!meetingId) {
@@ -425,8 +437,11 @@ serve(async (req) => {
               .upsert({
                 meeting_id: meetingId,
                 summary: consolidatedResult.content,
-                summary_type: 'consolidated',
-                model_used: 'gemini-3.1-flash-lite',
+                key_points: [],
+                action_items: [],
+                decisions: [],
+                next_steps: [],
+                ai_generated: true,
                 updated_at: new Date().toISOString()
               }, { onConflict: 'meeting_id' });
             
@@ -1686,7 +1701,8 @@ ${cleanedTranscript}`;
         action_items: [],
         decisions: [],
         next_steps: [],
-        model_used: modelUsed
+        ai_generated: true,
+        updated_at: new Date().toISOString()
       });
 
     if (summaryError) {
@@ -2026,8 +2042,6 @@ ${cleanedTranscript}`;
     
     // Try to update status to failed if we have meetingId
     try {
-      const requestClone = req.clone();
-      const { meetingId } = await requestClone.json().catch(() => ({}));
       if (meetingId) {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
