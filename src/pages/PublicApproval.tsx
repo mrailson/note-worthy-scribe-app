@@ -609,7 +609,7 @@ const PublicApproval = () => {
           <h2 className="font-semibold text-foreground">Confirm Your Details</h2>
           <p className="text-sm text-muted-foreground">
             {isGroupMode
-              ? `To approve all ${documentCount} documents, confirm your details and click Approve below.`
+              ? `To approve ${docsLabel}, confirm your details and click Approve below.`
               : 'To approve this document, confirm your details and click Approve below.'}
           </p>
         </div>
