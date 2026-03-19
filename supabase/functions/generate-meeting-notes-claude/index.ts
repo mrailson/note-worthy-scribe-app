@@ -6,6 +6,35 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 
+// --- Domain dictionary ASR correction ---
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+interface DictEntry { wrong_term: string; correct_term: string; }
+
+async function loadDomainDictionary(): Promise<DictEntry[]> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !serviceKey) return [];
+  const sb = createClient(supabaseUrl, serviceKey);
+  const { data, error } = await sb.from('domain_dictionary').select('wrong_term, correct_term');
+  if (error) { console.warn('⚠️ Could not load domain dictionary:', error.message); return []; }
+  return (data ?? []) as DictEntry[];
+}
+
+function applyDomainCorrections(text: string, entries: DictEntry[]): { text: string; count: number } {
+  if (!text || entries.length === 0) return { text, count: 0 };
+  let result = text;
+  let count = 0;
+  const sorted = [...entries].sort((a, b) => b.wrong_term.length - a.wrong_term.length);
+  for (const e of sorted) {
+    const re = new RegExp(`\\b${escapeRe(e.wrong_term)}\\b`, 'gi');
+    const before = result;
+    result = result.replace(re, e.correct_term);
+    if (result !== before) count++;
+  }
+  return { text: result, count };
+}
+
 // Note: GPT-5 tone audit removed - Gemini prompt already includes governance rules
 // and performProfessionalToneAudit() handles pattern replacements locally without
 // destroying markdown formatting or adding 75+ seconds of processing time
