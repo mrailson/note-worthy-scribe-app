@@ -383,8 +383,12 @@ const handler = async (req: Request): Promise<Response> => {
         .in("document_id", docIds)
         .order("sort_order");
 
-      // Download signed PDFs as attachments
+      // Download signed PDFs as attachments (track total size)
       const attachments: { filename: string; content: string }[] = [];
+      const downloadLinks: { title: string; url: string }[] = [];
+      let totalAttachmentBytes = 0;
+      const MULTI_MAX_BYTES = 25 * 1024 * 1024; // 25MB total for all attachments
+
       for (const gd of groupDocs) {
         if (gd.signed_file_url) {
           try {
@@ -393,13 +397,20 @@ const handler = async (req: Request): Promise<Response> => {
             if (!fe && fd) {
               const ab = await fd.arrayBuffer();
               const bytes = new Uint8Array(ab);
-              attachments.push({
-                filename: `${(gd.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
-                content: encodeBase64(bytes),
-              });
+              if (totalAttachmentBytes + bytes.length > MULTI_MAX_BYTES) {
+                console.log(`multi_send_completed: total attachment size would exceed limit, providing download link for ${gd.title}`);
+                downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
+              } else {
+                totalAttachmentBytes += bytes.length;
+                attachments.push({
+                  filename: `${(gd.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
+                  content: encodeBase64(bytes),
+                });
+              }
             }
           } catch (e) {
             console.warn("Could not download signed PDF for", gd.id, e);
+            downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
           }
         }
       }
@@ -414,12 +425,22 @@ const handler = async (req: Request): Promise<Response> => {
         </tr>`;
       }).join("");
 
+      const docsLabel = groupDocs.length === 2 ? "Both documents have" : `All ${groupDocs.length} documents have`;
+      const attachNote = attachments.length > 0
+        ? "The signed copies are attached to this email."
+        : "The signed documents are available for download below.";
+
+      const downloadLinksHtml = downloadLinks.length > 0
+        ? downloadLinks.map(dl => primaryButton(dl.url, `Download: ${dl.title}`)).join("")
+        : "";
+
       const html = emailWrapper(`
         ${alertBanner("#f0fdf4", "#166534", "&#127881; All Documents Fully Signed")}
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
-          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">All ${groupDocs.length} documents have been approved by all signatories. The signed copies are attached to this email.</td></tr>
+          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">${docsLabel} been approved by all signatories. ${attachNote}</td></tr>
         </table>
         ${signatoryTable(["Document", "Signatories"], docRows)}
+        ${downloadLinksHtml}
         ${legalNotice("#f0fdf4", "#bbf7d0", "#166534", "These documents were electronically signed in accordance with UK law (Electronic Communications Act 2000). Each PDF contains a SHA-256 integrity hash and full audit trail.")}
         ${primaryButton(`${APP_URL}/document-approval`, "View in Notewell")}
       `);
@@ -506,7 +527,7 @@ const handler = async (req: Request): Promise<Response> => {
     const senderDisplayName = withTitle(doc.sender_name || doc.sender_email || "Unknown", senderTitle);
 
     // Download the PDF attachment for request/reminder emails (skip if >5MB to avoid memory limits)
-    const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5MB
+    const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024; // 25MB — Resend supports up to 40MB
     let pdfAttachment: { filename: string; content: Uint8Array } | null = null;
     let pdfDownloadUrl: string | null = null;
     if (type === "request" || type === "reminder") {
@@ -787,18 +808,14 @@ const handler = async (req: Request): Promise<Response> => {
     // ─── TYPE: SEND_COMPLETED ────────────────────────────────────────
     if (type === "send_completed") {
 
-      // Download the signed PDF from storage (skip if >5MB)
+      // Download the signed PDF from storage
       let signedPdfAttachment: { filename: string; content: string } | null = null;
+      let signedPdfDownloadUrl: string | null = null;
       const fileUrlToDownload = signed_file_url || doc.signed_file_url;
       console.log("send_completed: fileUrlToDownload =", fileUrlToDownload);
 
       if (fileUrlToDownload) {
-        // Check file size first
-        const signedFileSize = doc.file_size_bytes || 0;
-        if (signedFileSize > MAX_ATTACHMENT_BYTES) {
-          console.log(`send_completed: signed PDF too large (${signedFileSize} bytes), skipping attachment`);
-        } else {
-          try {
+        try {
             const storagePath = fileUrlToDownload.replace(/^.*approval-documents\//, "");
             console.log("send_completed: downloading storagePath =", storagePath);
             const { data: fileData, error: fileErr } = await supabase.storage
@@ -812,17 +829,22 @@ const handler = async (req: Request): Promise<Response> => {
             if (!fileErr && fileData) {
               const arrayBuf = await fileData.arrayBuffer();
               const bytes = new Uint8Array(arrayBuf);
-              const base64Content = encodeBase64(bytes);
-              console.log("send_completed: attachment size =", bytes.length, "bytes, base64 length =", base64Content.length);
-              signedPdfAttachment = {
-                filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
-                content: base64Content,
-              };
+              // Check actual downloaded size against limit
+              if (bytes.length > MAX_ATTACHMENT_BYTES) {
+                console.log(`send_completed: signed PDF too large (${bytes.length} bytes), will include download link instead`);
+                signedPdfDownloadUrl = fileUrlToDownload;
+              } else {
+                const base64Content = encodeBase64(bytes);
+                console.log("send_completed: attachment size =", bytes.length, "bytes, base64 length =", base64Content.length);
+                signedPdfAttachment = {
+                  filename: `${(doc.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
+                  content: base64Content,
+                };
+              }
             }
           } catch (e) {
             console.error("send_completed: Could not download signed PDF attachment:", e);
           }
-        }
       } else {
         console.warn("send_completed: No signed_file_url available");
       }
@@ -836,14 +858,21 @@ const handler = async (req: Request): Promise<Response> => {
         </tr>`)
         .join("");
 
+      const attachmentNote = signedPdfAttachment
+        ? `The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> is attached to this email.`
+        : signedPdfDownloadUrl
+          ? `The signed version of <strong style="color: #1a202c;">${doc.title}</strong> is too large to attach. You can download it using the button below.`
+          : `The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> has been generated.`;
+
       const html = emailWrapper(`
         ${alertBanner("#f0fdf4", "#166534", "&#128196; Completed Signed Document")}
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
-          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 12px;">The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> is attached to this email.</td></tr>
-          <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; padding-bottom: 16px;">All ${(allSignatories || []).length} signator${(allSignatories || []).length !== 1 ? "ies" : "y"} have approved this document. The attached PDF includes the Electronic Signature Certificate with full audit trail.</td></tr>
+          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 12px;">${attachmentNote}</td></tr>
+          <tr><td style="font-family: ${FONT_STACK}; font-size: 14px; color: #4a5568; padding-bottom: 16px;">All ${(allSignatories || []).length} signator${(allSignatories || []).length !== 1 ? "ies" : "y"} have approved this document. The PDF includes the Electronic Signature Certificate with full audit trail.</td></tr>
         </table>
         ${signatoryTable(["Name", "Role", "Organisation", "Signed"], sigRows)}
-        ${legalNotice("#f0fdf4", "#bbf7d0", "#166534", "This document was electronically signed in accordance with UK law (Electronic Communications Act 2000). The attached PDF contains a SHA-256 integrity hash and full audit trail.")}
+        ${signedPdfDownloadUrl ? primaryButton(signedPdfDownloadUrl, "Download Signed Document") : ""}
+        ${legalNotice("#f0fdf4", "#bbf7d0", "#166534", "This document was electronically signed in accordance with UK law (Electronic Communications Act 2000). The PDF contains a SHA-256 integrity hash and full audit trail.")}
       `);
 
       // Send to sender + all signatories

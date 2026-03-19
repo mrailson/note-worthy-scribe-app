@@ -213,7 +213,7 @@ serve(async (req) => {
                       'Content-Type': 'application/json',
                       'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
                     },
-                    body: JSON.stringify({ document_id: gd.id }),
+                    body: JSON.stringify({ document_id: gd.id, skip_email: true }),
                   }
                 );
               } catch (e) {

@@ -511,7 +511,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { document_id } = await req.json();
+    const { document_id, skip_email } = await req.json();
     if (!document_id) {
       return new Response(JSON.stringify({ error: "document_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -619,21 +619,24 @@ Deno.serve(async (req) => {
       metadata: { trigger: "auto_all_approved", file_hash: fileHash },
     });
 
-    console.log("generate-signed-pdf-server: signed PDF uploaded, triggering send_completed email");
-
-    // 9. Trigger send_completed email
-    await fetch(`${supabaseUrl}/functions/v1/send-approval-email`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${serviceKey}`,
-      },
-      body: JSON.stringify({
-        type: "send_completed",
-        document_id,
-        signed_file_url: signedFileUrl,
-      }),
-    });
+    // 9. Trigger send_completed email (skip for multi-doc groups — handled by process-approval)
+    if (!skip_email) {
+      console.log("generate-signed-pdf-server: signed PDF uploaded, triggering send_completed email");
+      await fetch(`${supabaseUrl}/functions/v1/send-approval-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          type: "send_completed",
+          document_id,
+          signed_file_url: signedFileUrl,
+        }),
+      });
+    } else {
+      console.log("generate-signed-pdf-server: skip_email=true, skipping send_completed email");
+    }
 
     return new Response(JSON.stringify({
       success: true,
