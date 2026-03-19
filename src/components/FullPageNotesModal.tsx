@@ -2127,13 +2127,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
       });
 
+      // Read LLM preference from localStorage
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
+      
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: transcriptWithMetadata,
           meetingTitle: meeting.title,
           meetingDate: meetingDate,
           meetingTime: meetingTime,
-          detailLevel: 'standard'
+          detailLevel: 'standard',
+          modelOverride: modelOverride !== 'gemini-3-flash' ? modelOverride : undefined
         }
       });
 

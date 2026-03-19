@@ -852,6 +852,49 @@ export default function Settings() {
               </Card>
 
 
+              {/* AI Model for Note Regeneration */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    AI Model for Note Regeneration
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Choose which AI model to use when you manually regenerate meeting notes. This is for quality comparison testing only.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="regenerate-llm">AI Model</Label>
+                      <Select
+                        value={regenerateLlm}
+                        onValueChange={handleRegenerateLlmChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select AI model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gemini-3-flash">Gemini 3 Flash (Default — Fast)</SelectItem>
+                          <SelectItem value="claude-4-opus">Claude 4 Opus (Advanced — Quality Test)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <p className="mb-2">
+                        <strong>Current model:</strong> {
+                          regenerateLlm === 'gemini-3-flash' ? 'Gemini 3 Flash (default)' :
+                          regenerateLlm === 'claude-4-opus' ? 'Claude 4 Opus (advanced)' : 'Gemini 3 Flash'
+                        }
+                      </p>
+                      <p>
+                        This only affects manual "Regenerate Notes" actions. Auto-generated notes during recording are unaffected.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Usage Statistics Card */}
               <Card>
                 <CardHeader>

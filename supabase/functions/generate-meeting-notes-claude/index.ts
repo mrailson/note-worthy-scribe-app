@@ -410,7 +410,7 @@ serve(async (req) => {
   console.log('🚀 Function invoked at:', new Date().toISOString());
 
   try {
-    const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel, customPrompt } = await req.json();
+    const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel, customPrompt, modelOverride } = await req.json();
 
     console.log('🔍 Request details:', {
       hasTranscript: !!transcript,
