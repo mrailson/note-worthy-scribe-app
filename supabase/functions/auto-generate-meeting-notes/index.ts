@@ -2014,7 +2014,8 @@ ${cleanedTranscript}`;
         success: true, 
         message: 'Meeting notes generated successfully',
         notesLength: generatedNotes.length,
-        content: generatedNotes
+        content: generatedNotes,
+        modelUsed
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

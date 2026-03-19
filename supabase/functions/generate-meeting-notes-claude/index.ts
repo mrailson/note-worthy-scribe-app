@@ -668,6 +668,7 @@ ${transcript}`;
       success: true,
       meetingMinutes: meetingMinutes,
       generatedNotes: meetingMinutes,
+      modelUsed: 'gemini-3-flash',
       processingTimeMs: totalTime
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
