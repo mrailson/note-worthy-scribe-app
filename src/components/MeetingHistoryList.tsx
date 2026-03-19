@@ -1572,6 +1572,7 @@ export const MeetingHistoryList = ({
             console.log('⏳ Polling for note completion...');
             // Poll for completion in meeting_summaries table (not meetings.notes_style_3)
             await pollForNoteCompletion(meetingId, 'summary', 'meeting_summaries');
+            localStorage.setItem(`meeting-llm-used-${meetingId}`, data?.modelUsed || modelOverride);
             completedCount++;
           } catch (err: any) {
             console.error('💥 Standard notes generation error:', err);

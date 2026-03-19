@@ -544,6 +544,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
             hour: '2-digit', 
             minute: '2-digit' 
           }) : '';
+          const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
 
           result = await supabase.functions.invoke('generate-meeting-notes-claude', {
             body: {
@@ -551,7 +552,8 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
               meetingTitle: meeting.title,
               meetingDate: meetingDate,
               meetingTime: meetingTime,
-              detailLevel: 'standard'
+              detailLevel: 'standard',
+              modelOverride
             }
           });
           break;
