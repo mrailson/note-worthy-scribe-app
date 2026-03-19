@@ -118,6 +118,7 @@ import { useActionItemsCount } from "@/hooks/useActionItemsCount";
 import { supabase } from "@/integrations/supabase/client";
 import { BackupBadge } from "@/components/offline/BackupBadge";
 import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
+import { LlmModelBadge } from "@/components/meeting-history/LlmModelBadge";
 import { toast } from "sonner";
 import { generateProfessionalWordFromContent, ParsedMeetingDetailsInput, ParsedActionItemInput } from "@/utils/generateProfessionalMeetingDocx";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
@@ -3545,6 +3546,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     <div className="flex items-center gap-2">
                       {meeting?.id && <BackupBadge meetingId={meeting.id} />}
                       {meeting?.id && <RecordingDeviceBadge meetingId={meeting.id} />}
+                      {meeting?.id && <LlmModelBadge meetingId={meeting.id} />}
                     </div>
                     {/* Sub-tabs for Batch/Live/Deepgram with copy buttons */}
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">

@@ -1,4 +1,6 @@
 import RichTextEditor from "@/components/RichTextEditor";
+import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
+import { LlmModelBadge } from "@/components/meeting-history/LlmModelBadge";
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { sanitiseActionOwners } from "@/utils/sanitiseActionOwners";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
@@ -3707,6 +3709,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
               </TabsContent>
                
                <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0 bg-white">
+                <div className="flex flex-col h-full">
+                  {/* Badge toolbar */}
+                  <div className="flex items-center gap-2 px-4 pt-3 flex-shrink-0">
+                    {meeting?.id && <RecordingDeviceBadge meetingId={meeting.id} />}
+                    {meeting?.id && <LlmModelBadge meetingId={meeting.id} />}
+                  </div>
                 <Suspense fallback={
                   <div className="flex items-center justify-center h-full">
                     <div className="flex flex-col items-center gap-4">
@@ -3727,6 +3735,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                     onShowContextDialog={() => setShowContextDialog(true)}
                   />
                 </Suspense>
+                </div>
                 </TabsContent>
               </Tabs>
            </div>
