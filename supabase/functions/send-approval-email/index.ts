@@ -383,34 +383,45 @@ const handler = async (req: Request): Promise<Response> => {
         .in("document_id", docIds)
         .order("sort_order");
 
-      // Download signed PDFs as attachments (track total size)
+      // Check signed PDF sizes and attach if small, otherwise provide download links
       const attachments: { filename: string; content: string }[] = [];
       const downloadLinks: { title: string; url: string }[] = [];
-      let totalAttachmentBytes = 0;
-      const MULTI_MAX_BYTES = 25 * 1024 * 1024; // 25MB total for all attachments
+      const MULTI_MAX_BYTES = 5 * 1024 * 1024; // 5MB per file to avoid OOM
 
       for (const gd of groupDocs) {
         if (gd.signed_file_url) {
+          const sp = gd.signed_file_url.replace(/^.*approval-documents\//, "");
+          const pathParts = sp.split("/");
+          const fileName = pathParts.pop() || "";
+          const folder = pathParts.join("/");
+
+          // Check size before downloading
+          let fileSize = 0;
           try {
-            const sp = gd.signed_file_url.replace(/^.*approval-documents\//, "");
-            const { data: fd, error: fe } = await supabase.storage.from("approval-documents").download(sp);
-            if (!fe && fd) {
-              const ab = await fd.arrayBuffer();
-              const bytes = new Uint8Array(ab);
-              if (totalAttachmentBytes + bytes.length > MULTI_MAX_BYTES) {
-                console.log(`multi_send_completed: total attachment size would exceed limit, providing download link for ${gd.title}`);
-                downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
-              } else {
-                totalAttachmentBytes += bytes.length;
+            const { data: listData } = await supabase.storage.from("approval-documents").list(folder, { search: fileName, limit: 1 });
+            fileSize = listData?.[0]?.metadata?.size || 0;
+          } catch (_) {}
+
+          if (fileSize > MULTI_MAX_BYTES || fileSize === 0) {
+            console.log(`multi_send_completed: ${gd.title} too large (${fileSize} bytes), providing download link`);
+            downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
+          } else {
+            try {
+              const { data: fd, error: fe } = await supabase.storage.from("approval-documents").download(sp);
+              if (!fe && fd) {
+                const ab = await fd.arrayBuffer();
+                const bytes = new Uint8Array(ab);
                 attachments.push({
                   filename: `${(gd.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
                   content: encodeBase64(bytes),
                 });
+              } else {
+                downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
               }
+            } catch (e) {
+              console.warn("Could not download signed PDF for", gd.id, e);
+              downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
             }
-          } catch (e) {
-            console.warn("Could not download signed PDF for", gd.id, e);
-            downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
           }
         }
       }
