@@ -527,13 +527,15 @@ const MeetingHistory = () => {
     
     setIsGeneratingNotes(true);
     try {
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: meetingTranscript,
           meetingTitle: selectedMeeting.title,
           meetingDate: new Date(selectedMeeting.created_at).toISOString().split('T')[0],
           meetingTime: new Date(selectedMeeting.created_at).toLocaleTimeString(),
-          detailLevel: 'standard'
+          detailLevel: 'standard',
+          modelOverride
         }
       });
 
