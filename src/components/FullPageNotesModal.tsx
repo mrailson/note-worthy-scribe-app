@@ -2150,6 +2150,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         // Generate and save meeting overview for the history view
         await generateAndSaveOverview(data.meetingMinutes);
         
+        // Store which model was used for this meeting (shown in footer)
+        if (meeting?.id) {
+          localStorage.setItem(`meeting-llm-used-${meeting.id}`, modelOverride);
+        }
+        
         // Show which model was used
         const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' :
           modelOverride === 'claude-opus-4-6' ? 'Claude Opus 4.6' : 'Gemini 3 Flash';
