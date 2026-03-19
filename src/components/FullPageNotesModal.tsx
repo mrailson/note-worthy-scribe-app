@@ -3733,6 +3733,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                     onShowContextDialog={() => setShowContextDialog(true)}
                   />
                 </Suspense>
+                </div>
                 </TabsContent>
               </Tabs>
            </div>
