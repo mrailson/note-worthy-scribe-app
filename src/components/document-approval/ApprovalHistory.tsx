@@ -411,8 +411,16 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
                         <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => onSelectDoc(doc)}>
                           <Eye className="h-3 w-3" /> View
                         </Button>
-                        {doc.status === 'completed' && (
-                          <Button variant="ghost" size="sm" className="text-xs gap-1 h-7">
+                        {doc.status === 'completed' && doc.signed_file_url && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs gap-1 h-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(doc.signed_file_url!, '_blank');
+                            }}
+                          >
                             <Download className="h-3 w-3" /> Cert
                           </Button>
                         )}
