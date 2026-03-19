@@ -383,8 +383,12 @@ const handler = async (req: Request): Promise<Response> => {
         .in("document_id", docIds)
         .order("sort_order");
 
-      // Download signed PDFs as attachments
+      // Download signed PDFs as attachments (track total size)
       const attachments: { filename: string; content: string }[] = [];
+      const downloadLinks: { title: string; url: string }[] = [];
+      let totalAttachmentBytes = 0;
+      const MULTI_MAX_BYTES = 25 * 1024 * 1024; // 25MB total for all attachments
+
       for (const gd of groupDocs) {
         if (gd.signed_file_url) {
           try {
@@ -393,13 +397,20 @@ const handler = async (req: Request): Promise<Response> => {
             if (!fe && fd) {
               const ab = await fd.arrayBuffer();
               const bytes = new Uint8Array(ab);
-              attachments.push({
-                filename: `${(gd.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
-                content: encodeBase64(bytes),
-              });
+              if (totalAttachmentBytes + bytes.length > MULTI_MAX_BYTES) {
+                console.log(`multi_send_completed: total attachment size would exceed limit, providing download link for ${gd.title}`);
+                downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
+              } else {
+                totalAttachmentBytes += bytes.length;
+                attachments.push({
+                  filename: `${(gd.title || "document").replace(/[^a-zA-Z0-9-_ ]/g, "")}-signed.pdf`,
+                  content: encodeBase64(bytes),
+                });
+              }
             }
           } catch (e) {
             console.warn("Could not download signed PDF for", gd.id, e);
+            downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
           }
         }
       }
@@ -414,12 +425,22 @@ const handler = async (req: Request): Promise<Response> => {
         </tr>`;
       }).join("");
 
+      const docsLabel = groupDocs.length === 2 ? "Both documents have" : `All ${groupDocs.length} documents have`;
+      const attachNote = attachments.length > 0
+        ? "The signed copies are attached to this email."
+        : "The signed documents are available for download below.";
+
+      const downloadLinksHtml = downloadLinks.length > 0
+        ? downloadLinks.map(dl => primaryButton(dl.url, `Download: ${dl.title}`)).join("")
+        : "";
+
       const html = emailWrapper(`
         ${alertBanner("#f0fdf4", "#166534", "&#127881; All Documents Fully Signed")}
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
-          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">All ${groupDocs.length} documents have been approved by all signatories. The signed copies are attached to this email.</td></tr>
+          <tr><td style="font-family: ${FONT_STACK}; font-size: 15px; color: #4a5568; padding-bottom: 16px;">${docsLabel} been approved by all signatories. ${attachNote}</td></tr>
         </table>
         ${signatoryTable(["Document", "Signatories"], docRows)}
+        ${downloadLinksHtml}
         ${legalNotice("#f0fdf4", "#bbf7d0", "#166534", "These documents were electronically signed in accordance with UK law (Electronic Communications Act 2000). Each PDF contains a SHA-256 integrity hash and full audit trail.")}
         ${primaryButton(`${APP_URL}/document-approval`, "View in Notewell")}
       `);
