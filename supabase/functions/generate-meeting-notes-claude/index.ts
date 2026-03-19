@@ -453,6 +453,16 @@ serve(async (req) => {
       throw new Error('Transcript is required');
     }
 
+    // Apply domain dictionary ASR corrections before any processing
+    const dictEntries = await loadDomainDictionary();
+    const { text: correctedTranscript, count: correctionCount } = applyDomainCorrections(transcript, dictEntries);
+    if (correctionCount > 0) {
+      console.log(`📖 Domain dictionary: applied ${correctionCount} ASR correction(s)`);
+    }
+
+    // Use corrected transcript from here on
+    const processedTranscript = correctedTranscript;
+
     // Claude override path — routes by prefix so both claude-sonnet-4-6 and claude-opus-4-6 work
     if (modelOverride && modelOverride.startsWith('claude-')) {
       // Pass the model ID directly — claude-sonnet-4-6 is valid as-is
