@@ -21,9 +21,8 @@ const MODEL_LABELS: Record<string, { label: string; className: string }> = {
 };
 
 export const LlmModelBadge = ({ meetingId }: LlmModelBadgeProps) => {
-  const modelKey = localStorage.getItem(`meeting-llm-used-${meetingId}`);
-  if (!modelKey) return null;
-
+  // Show stored model, or default to Gemini (all existing meetings used Gemini)
+  const modelKey = localStorage.getItem(`meeting-llm-used-${meetingId}`) || 'gemini-3-flash';
   const model = MODEL_LABELS[modelKey] || { label: modelKey, className: 'bg-muted text-muted-foreground' };
 
   return (
