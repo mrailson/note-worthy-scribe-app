@@ -877,7 +877,6 @@ export default function Settings() {
                         <SelectContent>
                           <SelectItem value="gemini-3-flash">Gemini 3 Flash (Default — Fast)</SelectItem>
                           <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6 (Quality Test)</SelectItem>
-                          <SelectItem value="claude-opus-4-6">Claude Opus 4.6 (Max Quality Test)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
