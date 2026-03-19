@@ -543,7 +543,7 @@ Before output, review tone and remove any phrases that could appear judgemental 
 DO NOT include a "Meeting Transcript for Reference" section.
 
 TRANSCRIPT:
-${transcript}`;
+${processedTranscript}`;
 
       const claudeStartTime = Date.now();
       const response = await fetch('https://api.anthropic.com/v1/messages', {
