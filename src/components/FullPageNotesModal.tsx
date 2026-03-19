@@ -1974,32 +1974,46 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       // Enhance content with Meeting Coach assignments before saving
       const { enhanceMeetingNotesWithAssignments } = await import('@/utils/meetingCoachIntegration');
       const enhancedContent = enhanceMeetingNotesWithAssignments(content, meeting.id);
-      
-      const { error } = await supabase
-        .from('meeting_summaries')
-        .upsert({
-          meeting_id: meeting.id,
-          summary: enhancedContent,
-          key_points: [],
-          action_items: [],
-          decisions: [],
-          next_steps: []
-        }, {
-          onConflict: 'meeting_id'
-        });
 
-      if (error) throw error;
-    } catch (error) {
+      const [summaryResult, meetingResult] = await Promise.all([
+        supabase
+          .from('meeting_summaries')
+          .upsert({
+            meeting_id: meeting.id,
+            summary: enhancedContent,
+            key_points: [],
+            action_items: [],
+            decisions: [],
+            next_steps: []
+          }, {
+            onConflict: 'meeting_id'
+          }),
+        supabase
+          .from('meetings')
+          .update({ notes_style_3: enhancedContent })
+          .eq('id', meeting.id)
+      ]);
+
+      if (summaryResult.error) throw summaryResult.error;
+      if (meetingResult.error) throw meetingResult.error;
+    } catch (error: any) {
       console.error('Error saving summary:', error);
-      if (error.code === '23505') {
+      if (error?.code === '23505') {
         // Handle duplicate key error - try update instead
         try {
-          const { error: updateError } = await supabase
-            .from('meeting_summaries')
-            .update({ summary: content })
-            .eq('meeting_id', meeting.id);
+          const [summaryUpdateResult, meetingUpdateResult] = await Promise.all([
+            supabase
+              .from('meeting_summaries')
+              .update({ summary: content })
+              .eq('meeting_id', meeting.id),
+            supabase
+              .from('meetings')
+              .update({ notes_style_3: content })
+              .eq('id', meeting.id)
+          ]);
           
-          if (updateError) throw updateError;
+          if (summaryUpdateResult.error) throw summaryUpdateResult.error;
+          if (meetingUpdateResult.error) throw meetingUpdateResult.error;
         } catch (updateError) {
           console.error('Error updating summary:', updateError);
         }
