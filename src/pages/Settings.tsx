@@ -884,8 +884,7 @@ export default function Settings() {
                       <p className="mb-2">
                         <strong>Current model:</strong> {
                           regenerateLlm === 'gemini-3-flash' ? 'Gemini 3 Flash (default)' :
-                          regenerateLlm === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' :
-                          regenerateLlm === 'claude-opus-4-6' ? 'Claude Opus 4.6' : 'Gemini 3 Flash'
+                          regenerateLlm === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash'
                         }
                       </p>
                       <p>
