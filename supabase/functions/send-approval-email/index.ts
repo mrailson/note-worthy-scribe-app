@@ -527,7 +527,7 @@ const handler = async (req: Request): Promise<Response> => {
     const senderDisplayName = withTitle(doc.sender_name || doc.sender_email || "Unknown", senderTitle);
 
     // Download the PDF attachment for request/reminder emails (skip if >5MB to avoid memory limits)
-    const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5MB
+    const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024; // 25MB — Resend supports up to 40MB
     let pdfAttachment: { filename: string; content: Uint8Array } | null = null;
     let pdfDownloadUrl: string | null = null;
     if (type === "request" || type === "reminder") {
