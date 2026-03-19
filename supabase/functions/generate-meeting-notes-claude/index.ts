@@ -580,7 +580,7 @@ ${processedTranscript}`;
       // SAME post-processing as the Gemini path
       generatedNotes = sanitizeMeetingMinutes(generatedNotes);
       generatedNotes = performProfessionalToneAudit(generatedNotes);
-      generatedNotes = sanitiseActionOwners(generatedNotes, transcript);
+      generatedNotes = sanitiseActionOwners(generatedNotes, processedTranscript);
 
       const totalTime = Date.now() - functionStartTime;
       console.log(`✅ Claude meeting minutes generated in ${totalTime}ms`);
