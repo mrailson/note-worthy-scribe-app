@@ -426,9 +426,8 @@ serve(async (req) => {
 
     // Claude override path — routes by prefix so both claude-sonnet-4-6 and claude-opus-4-6 work
     if (modelOverride && modelOverride.startsWith('claude-')) {
-      // Map friendly name to actual Anthropic model ID
-      const anthropicModelId = 'claude-sonnet-4-20250514';
-      console.log(`🧠 Using Claude model: ${anthropicModelId} (from ${modelOverride})`);
+      // Pass the model ID directly — claude-sonnet-4-6 is valid as-is
+      console.log(`🧠 Using Claude model: ${modelOverride}`);
       
       if (!anthropicApiKey) {
         throw new Error('ANTHROPIC_API_KEY is not configured');
@@ -516,7 +515,7 @@ ${transcript}`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: anthropicModelId,
+          model: modelOverride,
           max_tokens: 8192,
           system: SYSTEM_PROMPT_V2,
           messages: [
