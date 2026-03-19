@@ -404,7 +404,7 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (fileSize > MULTI_MAX_BYTES || fileSize === 0) {
             console.log(`multi_send_completed: ${gd.title} too large (${fileSize} bytes), providing download link`);
-            downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
+            downloadLinks.push({ title: gd.title, url: `${APP_URL}/document-approval` });
           } else {
             try {
               const { data: fd, error: fe } = await supabase.storage.from("approval-documents").download(sp);
@@ -416,11 +416,11 @@ const handler = async (req: Request): Promise<Response> => {
                   content: encodeBase64(bytes),
                 });
               } else {
-                downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
+                downloadLinks.push({ title: gd.title, url: `${APP_URL}/document-approval` });
               }
             } catch (e) {
               console.warn("Could not download signed PDF for", gd.id, e);
-              downloadLinks.push({ title: gd.title, url: gd.signed_file_url });
+              downloadLinks.push({ title: gd.title, url: `${APP_URL}/document-approval` });
             }
           }
         }
@@ -842,13 +842,13 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (actualSize > MAX_ATTACHMENT_BYTES || actualSize === 0) {
           console.log(`send_completed: signed PDF too large or unknown size (${actualSize} bytes), providing download link`);
-          signedPdfDownloadUrl = fileUrlToDownload;
+          signedPdfDownloadUrl = `${APP_URL}/document-approval`;
         } else {
           try {
             const { data: fileData, error: fileErr } = await supabase.storage.from("approval-documents").download(storagePath);
             if (fileErr) {
               console.error("send_completed: storage download error:", fileErr);
-              signedPdfDownloadUrl = fileUrlToDownload;
+              signedPdfDownloadUrl = `${APP_URL}/document-approval`;
             } else if (fileData) {
               const arrayBuf = await fileData.arrayBuffer();
               const bytes = new Uint8Array(arrayBuf);
@@ -861,7 +861,7 @@ const handler = async (req: Request): Promise<Response> => {
             }
           } catch (e) {
             console.error("send_completed: Could not download signed PDF:", e);
-            signedPdfDownloadUrl = fileUrlToDownload;
+            signedPdfDownloadUrl = `${APP_URL}/document-approval`;
           }
         }
       } else {
@@ -880,7 +880,7 @@ const handler = async (req: Request): Promise<Response> => {
       const attachmentNote = signedPdfAttachment
         ? `The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> is attached to this email.`
         : signedPdfDownloadUrl
-          ? `The signed version of <strong style="color: #1a202c;">${doc.title}</strong> is too large to attach. You can download it using the button below.`
+          ? `The signed version of <strong style="color: #1a202c;">${doc.title}</strong> is available to download from Notewell.`
           : `The fully signed version of <strong style="color: #1a202c;">${doc.title}</strong> has been generated.`;
 
       const html = emailWrapper(`
