@@ -213,6 +213,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let requestBody: Record<string, any> = {};
+  let meetingId: string | undefined;
+
   try {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -224,7 +227,16 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { meetingId, forceRegenerate = false, detailLevel = 'standard', noteType = 'standard', transcriptSource, modelOverride = 'gemini-3-flash' } = await req.json();
+    requestBody = await req.json();
+    const {
+      meetingId: parsedMeetingId,
+      forceRegenerate = false,
+      detailLevel = 'standard',
+      noteType = 'standard',
+      transcriptSource,
+      modelOverride = 'gemini-3-flash'
+    } = requestBody;
+    meetingId = parsedMeetingId;
     console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType, 'using transcript source:', transcriptSource || 'auto', 'and model:', modelOverride);
 
     if (!meetingId) {
