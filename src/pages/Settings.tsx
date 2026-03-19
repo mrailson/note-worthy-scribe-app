@@ -106,6 +106,17 @@ export default function Settings() {
   const [retentionPolicy, setRetentionPolicy] = useState<string>('forever');
   const [retentionLoading, setRetentionLoading] = useState(false);
   
+  // LLM model preference for note regeneration
+  const [regenerateLlm, setRegenerateLlm] = useState<string>(() => {
+    return localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
+  });
+  
+  const handleRegenerateLlmChange = (value: string) => {
+    setRegenerateLlm(value);
+    localStorage.setItem('meeting-regenerate-llm', value);
+    toast({ title: "AI model preference updated" });
+  };
+  
   // Usage statistics state
   const [usageStats, setUsageStats] = useState({
     lastLogin: null as string | null,
