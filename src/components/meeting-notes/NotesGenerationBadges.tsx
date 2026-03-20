@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Brain, FileText, ShieldCheck, Scroll } from 'lucide-react';
 
 interface GenerationMetadata {
@@ -60,6 +60,7 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
   const isClaude = model?.includes('claude');
 
   return (
+    <TooltipProvider>
     <div className="flex flex-wrap items-center gap-1.5 py-2">
       {/* LLM Model Badge */}
       <Tooltip>
@@ -161,5 +162,6 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
         </TooltipContent>
       </Tooltip>
     </div>
+    </TooltipProvider>
   );
 };
