@@ -133,32 +133,9 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
       </Badge>
     );
 
-    // Failed state: popover with failed categories
-    if (qcStatus === 'failed' && failedCategories.length > 0) {
-      return (
-        <Popover>
-          <PopoverTrigger asChild>{badge}</PopoverTrigger>
-          <PopoverContent className="w-80 p-3" align="start">
-            <p className="text-xs font-medium text-destructive mb-2">
-              {qcFailedCount} {qcFailedCount === 1 ? 'category' : 'categories'} failed
-            </p>
-            <div className="space-y-2">
-              {failedCategories.map(([key, cat]) => (
-                <div key={key} className="text-xs">
-                  <div className="flex items-center gap-1.5 font-medium text-destructive">
-                    <XCircle className="h-3 w-3 shrink-0" />
-                    {QC_CATEGORY_LABELS[key] || key}
-                  </div>
-                  <p className="text-muted-foreground pl-[18px] mt-0.5 leading-snug">{cat.findings}</p>
-                </div>
-              ))}
-            </div>
-            {qc?.summary && (
-              <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">{qc.summary}</p>
-            )}
-          </PopoverContent>
-        </Popover>
-      );
+    // Failed/issues state: just show the badge, no popover
+    if (qcStatus === 'failed') {
+      return badge;
     }
 
     // Error state: tooltip with error message
