@@ -735,17 +735,22 @@ serve(async (req) => {
           .maybeSingle();
 
         const existingMeta = (existingRow?.generation_metadata as any) || {};
+        const updatedMeta = {
+          ...existingMeta,
+          model: modelLabel,
+          transcript_source: existingMeta.transcript_source || 'auto',
+          note_style: existingMeta.note_style || 'standard',
+          qc: qcResult,
+        };
+
         await sb.from('meeting_summaries')
-          .update({
-            generation_metadata: {
-              ...existingMeta,
-              model: modelLabel,
-              transcript_source: existingMeta.transcript_source || 'auto',
-              note_style: existingMeta.note_style || 'standard',
-              qc: qcResult,
-            }
-          })
-          .eq('meeting_id', meetingId);
+          .upsert({
+            meeting_id: meetingId,
+            summary: finalMinutes,
+            generation_metadata: updatedMeta,
+            ai_generated: true,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'meeting_id' });
         console.log('💾 QC results persisted to generation_metadata');
       } catch (persistErr) {
         console.warn('⚠️ Could not persist QC results:', persistErr);
