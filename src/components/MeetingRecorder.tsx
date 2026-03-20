@@ -4336,7 +4336,7 @@ export const MeetingRecorder = ({
             status: 'recording' as const,
             user_id: user.id,
             practice_id: meetingSettings.practiceId || null,
-            meeting_format: meetingSettings.format || 'face-to-face',
+            meeting_format: meetingSettings.format || 'teams',
             expected_attendees: attendeesList.length > 0 ? attendeesList : null,
           };
 
