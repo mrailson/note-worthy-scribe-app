@@ -1,10 +1,36 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+/**
+ * Detect MIME type from the first bytes of a binary buffer.
+ */
+function detectMimeType(buf: Uint8Array): string {
+  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x41 && buf[10] === 0x56 && buf[11] === 0x45) {
+    return 'audio/wav';
+  }
+  if (buf[0] === 0x66 && buf[1] === 0x4C && buf[2] === 0x61 && buf[3] === 0x43) {
+    return 'audio/flac';
+  }
+  if (buf[0] === 0x4F && buf[1] === 0x67 && buf[2] === 0x67 && buf[3] === 0x53) {
+    return 'audio/ogg';
+  }
+  if (buf[0] === 0x1A && buf[1] === 0x45 && buf[2] === 0xDF && buf[3] === 0xA3) {
+    return 'audio/webm';
+  }
+  if ((buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) ||
+      (buf[0] === 0xFF && (buf[1] & 0xE0) === 0xE0)) {
+    return 'audio/mpeg';
+  }
+  if (buf.length > 7 && buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70) {
+    return 'audio/mp4';
+  }
+  return 'audio/webm';
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -23,43 +49,85 @@ serve(async (req) => {
       throw new Error('No audio data provided');
     }
 
-    const resolvedMime = typeof mimeType === 'string' && mimeType.trim() ? mimeType : 'audio/webm';
-
-    console.log('Processing audio chunk with Deepgram, size:', audio.length, 'mime:', resolvedMime);
-
     // Convert base64 to binary
-    const binaryAudio = atob(audio);
-    const bytes = new Uint8Array(binaryAudio.length);
-    for (let i = 0; i < binaryAudio.length; i++) {
-      bytes[i] = binaryAudio.charCodeAt(i);
-    }
+    const binaryAudio = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
+    const fileSizeKB = (binaryAudio.length / 1024).toFixed(1);
 
-    console.log('Sending to Deepgram API...');
+    // Detect content type from magic bytes, with caller override
+    const detectedMime = detectMimeType(binaryAudio);
+    const contentType = (typeof mimeType === 'string' && mimeType.trim()) ? mimeType : detectedMime;
 
-    // Send to Deepgram API
-    const response = await fetch(
-      'https://api.deepgram.com/v1/listen?model=nova-3&language=en-GB&smart_format=true&diarize=true&punctuate=true',
-      {
+    console.log(`[Standalone-Deepgram] Audio: ${fileSizeKB}KB, detected=${detectedMime}, using=${contentType}`);
+
+    // Build Deepgram URL
+    const dgParams = new URLSearchParams({
+      model: 'nova-3',
+      language: 'en-GB',
+      smart_format: 'true',
+      diarize: 'true',
+      punctuate: 'true',
+    });
+    const dgUrl = `https://api.deepgram.com/v1/listen?${dgParams.toString()}`;
+
+    // 120-second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120_000);
+    const startMs = Date.now();
+
+    let response: Response;
+    try {
+      response = await fetch(dgUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${deepgramApiKey}`,
-          'Content-Type': resolvedMime,
+          'Content-Type': contentType,
         },
-        body: bytes,
+        body: binaryAudio,
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === 'AbortError') {
+        console.error(`❌ Deepgram API timed out after 120s (${fileSizeKB}KB)`);
+        throw new Error(`Deepgram API timeout (${fileSizeKB}KB) exceeded 120s`);
       }
-    );
+      throw fetchErr;
+    }
+    clearTimeout(timeoutId);
+
+    const elapsedMs = Date.now() - startMs;
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Deepgram API error:', response.status, errorText);
+      console.error(`❌ Deepgram API error: ${response.status} - ${errorText}`);
       throw new Error(`Deepgram API error: ${response.status} ${errorText}`);
     }
 
     const result = await response.json();
+
+    // === DIAGNOSTIC LOGGING ===
+    const dgMeta = result.metadata;
+    const dgDuration = dgMeta?.duration || 0;
+    const dgRequestId = dgMeta?.request_id || 'n/a';
+    const dgWarnings = result.metadata?.warnings || result.warnings;
+
+    console.log(`📊 DEEPGRAM DIAGNOSTICS: request_id=${dgRequestId}, duration=${dgDuration.toFixed(2)}s, latency=${elapsedMs}ms, size=${fileSizeKB}KB, content-type=${contentType}`);
+
+    if (dgWarnings) {
+      console.warn(`⚠️ Deepgram warnings: ${JSON.stringify(dgWarnings)}`);
+    }
+
     const alt = result?.results?.channels?.[0]?.alternatives?.[0];
     const rawTranscript = alt?.transcript || '';
     const confidence = typeof alt?.confidence === 'number' ? alt.confidence : 0;
     const words = alt?.words || [];
+
+    console.log(`📊 Raw transcript: ${rawTranscript.length} chars, ${words.length} words`);
+
+    // Warn on suspiciously low word count
+    if (dgDuration > 60 && words.length < dgDuration * 0.5) {
+      console.warn(`⚠️ POSSIBLE TRUNCATION: ${words.length} words for ${dgDuration.toFixed(0)}s (~${(words.length / dgDuration * 60).toFixed(0)} wpm — expected 100-180)`);
+    }
 
     // Build speaker-labelled transcript from word-level speaker data
     let transcript = rawTranscript;
@@ -87,19 +155,26 @@ serve(async (req) => {
       console.log(`[Standalone-Deepgram] Built speaker-labelled transcript with ${segments.length} segments`);
     }
 
-    console.log('Deepgram transcription result:', (transcript || '[empty]').slice(0, 100) + '...');
+    const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+    console.log(`✅ Standalone-Deepgram: ${wordCount} words, confidence=${confidence.toFixed(3)}, duration=${dgDuration.toFixed(1)}s`);
 
     return new Response(
       JSON.stringify({ 
         text: transcript,
         service: 'deepgram',
-        confidence
+        confidence,
+        diagnostics: {
+          duration_s: dgDuration,
+          word_count: wordCount,
+          file_size_kb: parseFloat(fileSizeKB),
+          content_type: contentType,
+          api_latency_ms: elapsedMs,
+          request_id: dgRequestId,
+          warnings: dgWarnings || null,
+        },
       }),
       { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
 
@@ -113,10 +188,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
