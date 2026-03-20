@@ -469,6 +469,7 @@ serve(async (req) => {
       meetingId: reqMeetingId,
       qcOnly,
       existingNotes,
+      expectedAttendees: reqExpectedAttendees,
     } = await req.json();
 
     // ── QC-only mode: skip note generation, just run QC ──────────────
