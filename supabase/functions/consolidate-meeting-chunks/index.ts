@@ -1427,6 +1427,7 @@ serve(async (req) => {
         finalDedupWordCount: mergedWordCount,
         finalEqualsWhisperClean: mergeResult.transcript.trim() === whisperCleanText.trim(),
         hallucinationRepair: hallucinationRepairLog,
+        speakerInjection: speakerInjectionLog,
         generatedAt: new Date().toISOString()
       }
     };
