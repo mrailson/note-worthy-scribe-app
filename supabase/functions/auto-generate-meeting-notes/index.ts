@@ -960,7 +960,7 @@ Additional NHS Formal rules:
 - Suitable for ICB circulation, CQC review, Board packs
 - Use passive voice: "The meeting noted...", "It was resolved that...", "Members agreed..."
 - Include explicit risk statements
-- Structure with clear governance headers: DECISIONS, RISKS, ESCALATIONS
+- Structure with clear governance headers: DECISIONS (using RESOLVED/AGREED/NOTED labels), RISKS, ESCALATIONS
 - Add "For Information", "For Decision", "For Approval" markers where appropriate
 - Include quorum confirmation if attendance suggests it
 - Keep action items formal with clear ownership
