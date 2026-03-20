@@ -1,50 +1,66 @@
-## Separated Signature Field Placement — IMPLEMENTED
 
-Added a second placement mode ("Separated") alongside the existing "Block" (stamp) mode. In Separated mode, each signatory gets 5 independently draggable elements on the PDF: Signature (cursive), Name, Role, Organisation, and Date. Font size is configurable (8–24pt, default 14). Block mode remains unchanged.
 
-### Files Changed
-- `src/utils/generateSignedPdf.ts` — Added `FieldPosition` type, extended `SignaturePlacement` with `fieldPositions` and `separatedFontSize`, added `drawSeparatedSignatures` function
-- `src/components/document-approval/SignaturePositionPicker.tsx` — Added Block/Separated mode toggle, per-field placement UI with draggable tags, font size slider
-- `src/components/document-approval/CreateApprovalFlow.tsx` — Added state for `placementMode`, `fieldPositions`, `separatedFontSize`; passes to picker and saves to DB
-- `src/pages/PublicApproval.tsx` — Renders per-field ghost indicators in separated mode
+## Problem: Recording Stops When Navigating Away From Home Page
 
-## Auto-Send Signed Document on All-Party Completion — IMPLEMENTED
+### Root Cause
 
-When all signatories approve a document, the system now automatically generates the signed PDF server-side (with signatures, Electronic Signature Certificate, SHA-256 hash, QR code, and audit trail) and emails it to the sender and all signatories. No manual intervention required.
+The `MeetingRecorder` component is rendered **only** inside `Index.tsx`, which is mounted on the `/` route. When Amanda navigates to any other section of NoteWell (e.g., Ask AI at `/ai4gp`, Settings at `/settings`, NRES at `/nres`, Meeting History at `/meetings`), React Router unmounts the `Index` page — and with it the entire `MeetingRecorder`. The component's cleanup effects then stop the MediaRecorder, close audio streams, and terminate transcription.
 
-### Files Changed
-- `supabase/functions/generate-signed-pdf-server/index.ts` — NEW: Server-side PDF generation using pdf-lib, replicating stamp/separated/text annotation drawing, certificate pages (navy/gold theme), and audit trail. Uploads to storage and triggers `send_completed` email.
-- `supabase/functions/process-approval/index.ts` — Modified `allApproved` block: sends individual confirmation email to the approving signatory, then calls `generate-signed-pdf-server` to auto-generate and distribute the signed PDF.
-- `supabase/config.toml` — Added `generate-signed-pdf-server` with `verify_jwt = false`.
+The `RecordingContext` exists at the app level, but it only tracks **state** (a boolean flag and an AudioContext). The actual recording machinery — MediaRecorder, audio streams, transcribers — all live inside `MeetingRecorder` and are destroyed on unmount.
 
-## Multi-Document Approval Request — IMPLEMENTED
+### Fix Strategy
 
-Users can now upload multiple PDF/DOCX files in a single approval request. All documents share the same signatories but have independent signature positioning per document. Documents are linked via `multi_doc_group_id` and sent with a single confirmation.
+**Lift the recording engine out of MeetingRecorder and into a persistent, app-level layer that survives route changes.**
 
-### User Flow
-1. **Upload** — Drop/select multiple files, each with its own editable title
-2. **Signatories** — One set of signatories shared across all documents
-3. **Position Signatures** — Tab bar to switch between documents; each has independent stamp/separated/text positions
-4. **Review & Send** — Shows all documents in summary; single "Send All" button
+### Implementation Steps
 
-### Database Changes
-- `approval_documents.multi_doc_group_id` (UUID, nullable) — groups documents in the same multi-doc request
+1. **Create `RecordingEngine` singleton service** (`src/services/RecordingEngine.ts`)
+   - Holds MediaRecorder, audio streams, transcriber references, and backup recorder
+   - Provides `start()`, `stop()`, `pause()`, `resume()` methods
+   - Stores transcript accumulation, duration timer, and word count
+   - Emits events (or exposes a subscription) for UI updates
+   - Lives outside React — not destroyed by route changes
 
-### Files Changed
-- `src/components/document-approval/CreateApprovalFlow.tsx` — Refactored from single-file to multi-file: array of DocFile objects, per-document signature state maps, document tab bar in positioning step, multi-doc review display
-- `src/hooks/useDocumentApproval.ts` — Added `multi_doc_group_id` to `ApprovalDocument` interface; added `sendMultiDocForApproval()` function that assigns a shared group ID and sends each doc
-- `src/pages/DocumentApproval.tsx` — Added "Multi-doc" badge on DocumentCard for grouped documents
+2. **Create `PersistentRecordingBanner` component** (`src/components/PersistentRecordingBanner.tsx`)
+   - Rendered in `App.tsx` **above** `<Routes>`, so it persists across all pages
+   - When a recording is active, shows a compact floating banner: "Recording in progress — 12:34 — 847 words — [Return] [Stop]"
+   - "Return" navigates back to `/` to see the full recorder UI
+   - "Stop" triggers stop with the existing confirmation flow
+   - Only visible when `isRecording === true` and current route is **not** `/`
 
-## Unified Multi-Document Approval Flow — IMPLEMENTED
+3. **Enhance `RecordingContext`** to bridge the engine and UI
+   - Add references to the singleton engine
+   - Expose transcript, duration, word count as reactive state
+   - `MeetingRecorder` reads from and writes to the engine instead of owning the resources directly
 
-Consolidated multi-document approvals into a single-email, single-action experience: One email → One link → One approval → One completion email with all signed documents attached.
+4. **Add navigation guard**
+   - When recording is active and user clicks a nav link, show a warning: "Recording will continue in the background. You can return to the home page to see the full view."
+   - This replaces the current silent kill behaviour
 
-### Database Changes
-- `approval_signatories.group_token` (UUID, nullable) — groups signatory rows for the same email across all documents in a multi-doc group
+5. **Prevent unmount cleanup during active recording**
+   - As a safety net, the `MeetingRecorder` cleanup effects should check `RecordingEngine.isActive` and skip teardown if recording is ongoing — the engine owns the resources now
 
-### Changes
-- `src/hooks/useDocumentApproval.ts` — Rewrote `sendMultiDocForApproval` to generate one `group_token` per unique signatory email, set all docs to pending, and call `send-approval-email` once with `multi_request` type
-- `supabase/functions/process-approval/index.ts` — Added group_token flow: `get` returns all documents in the group, `approve` approves all signatory rows sharing the token, checks for multi-doc group completion, triggers PDF generation and consolidated completion email
-- `supabase/functions/send-approval-email/index.ts` — Added `multi_request` (sends one email listing all documents with single approve button) and `multi_send_completed` (sends one completion email with all signed PDFs attached)
-- `src/pages/PublicApproval.tsx` — Added tabbed multi-document view with single approval form for group tokens
-- `src/App.tsx` — Added `/approve/group/:groupToken` route
+### Scope and Risk
+
+This is a significant architectural change. The `MeetingRecorder` component is ~8,000 lines and deeply couples UI with recording logic. A full extraction is high-risk for a single iteration.
+
+**Recommended phased approach:**
+
+- **Phase 1 (quick win)**: Add a navigation blocker that prevents leaving `/` while recording, with a confirmation dialog. This immediately stops the accidental-stop problem.
+- **Phase 2 (full fix)**: Extract recording engine into a persistent service for true background recording across routes.
+
+### Technical Details
+
+**Phase 1 — Navigation Blocker (recommended to ship first)**
+
+- Use React Router's `useBlocker` or `usePrompt` (v6) / `<Prompt>` to intercept navigation while `isRecording` is true
+- Show a dialog: "You have an active recording. Leaving this page will stop the recording. Stay on page / Leave and stop"
+- Modify `MeetingRecorder.tsx` to add the blocker near the existing `beforeunload` handler
+- Optionally add a small red recording indicator dot to the `Header` component so users see recording state from any page
+
+**Phase 2 — Persistent Recording Engine (follow-up)**
+
+- Extract `MediaRecorder`, stream management, and transcription into `RecordingEngine.ts`
+- Wire `PersistentRecordingBanner` into `App.tsx`
+- Refactor `MeetingRecorder` to delegate to the engine
+
