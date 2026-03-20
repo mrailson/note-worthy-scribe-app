@@ -44,12 +44,12 @@ export const ManualNoteGenerationButton = ({
       if (!transcriptText || transcriptText.trim().length === 0) {
         const { data: chunks } = await supabase
           .from('meeting_transcription_chunks')
-          .select('cleaned_text, raw_text')
+          .select('cleaned_text')
           .eq('meeting_id', meetingId)
           .order('chunk_number', { ascending: true });
 
         if (chunks && chunks.length > 0) {
-          transcriptText = chunks.map(c => c.cleaned_text || c.raw_text || '').join('\n\n');
+          transcriptText = chunks.map(c => c.cleaned_text || '').join('\n\n');
         }
       }
 
