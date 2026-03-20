@@ -28,5 +28,5 @@ export const SECTION_HEADING_PATTERNS: Record<keyof NotesViewSettings['visibleSe
   executiveSummary: /executive\s*summary/i,
   keyPoints: /(key\s*(points|discussion|discussion\s*points|highlights|takeaways))|(discussion\s*summary)/i,
   actionList: /action\s*(list|items?)/i,
-  openItems: /open\s*(items?|issues?)/i,
+  openItems: /open\s*(items?|issues?)(\s*&\s*risks?)?/i,
 };
