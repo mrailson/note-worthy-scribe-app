@@ -328,7 +328,7 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
     ${html}
   </div>`;
 
-  console.log('🔍 MINUTES RENDERER OUTPUT (first 500 chars):', html.substring(0, 500));
+  
 
   // Sanitize the HTML - added SVG support for icons and CSP-compliant flags
   return DOMPurify.sanitize(html, {
