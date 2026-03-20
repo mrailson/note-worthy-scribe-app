@@ -2234,36 +2234,55 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       return;
     }
     try {
-      console.log('🚀 Calling auto-generate-meeting-notes with forceRegenerate...');
+      console.log('NOTE GENERATION: Calling generate-meeting-notes-claude from FullPageNotesModal.generateNotesStyle3');
 
-      // Create abort controller with 2 minute timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000);
+      // Ensure transcript is loaded before regenerating
+      let transcriptToUse = transcript;
+      if (!transcriptToUse || transcriptToUse.trim().length === 0) {
+        console.log('📋 Transcript not loaded yet, fetching before regeneration...');
+        toast.info('Loading transcript...', { duration: 2000 });
+        transcriptToUse = await fetchTranscriptData();
+        
+        if (!transcriptToUse || transcriptToUse.trim().length === 0) {
+          toast.error('No transcript available to generate notes from');
+          isRegeneratingStyle3Ref.current = false;
+          setIsGeneratingStyle3(false);
+          return;
+        }
+      }
+
+      const meetingDate = meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : '';
+      const meetingTime = meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }) : '';
+
+      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcriptToUse, {
+        startTime: meeting.start_time,
+        endTime: meeting.end_time || undefined,
+        duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
+      });
 
       const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
         ? 'claude-sonnet-4-6'
         : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
       let data, error;
       try {
-        // Start the generation with custom timeout
         console.log('🧠 Regenerating with model:', modelOverride);
-        const result = await supabase.functions.invoke('auto-generate-meeting-notes', {
+        const result = await supabase.functions.invoke('generate-meeting-notes-claude', {
           body: {
-            meetingId: meeting.id,
-            forceRegenerate: true,
-            modelOverride
+            transcript: transcriptWithMetadata,
+            meetingTitle: meeting.title,
+            meetingDate: meetingDate,
+            meetingTime: meetingTime,
+            detailLevel: 'standard',
+            modelOverride,
+            meetingId: meeting.id
           }
         });
         data = result.data;
         error = result.error;
-        clearTimeout(timeoutId);
       } catch (invokeError: any) {
-        clearTimeout(timeoutId);
-        if (invokeError.name === 'AbortError') {
-          console.error('⏱️ Function call timed out after 2 minutes');
-          toast.error('Notes generation timed out. Please try again with a shorter transcript.');
-          return;
-        }
         throw invokeError;
       }
 
