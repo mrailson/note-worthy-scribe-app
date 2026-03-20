@@ -475,7 +475,7 @@ serve(async (req) => {
         const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document following the same output format. Merge duplicate topics, unify the action log, and deduplicate decisions. Maintain ALL specific details, names, dates, figures. Use British English throughout.\n\nCHUNK RESULTS:\n${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
         
         meetingMinutes = isClaudeModel
-          ? await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, consolidationPrompt)
+          ? await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, consolidationPrompt)
           : await callGemini(NOTEWELL_SYSTEM_PROMPT, consolidationPrompt);
       } else {
         const userPrompt = buildUserPrompt(promptParams);
