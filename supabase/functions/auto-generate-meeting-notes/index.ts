@@ -1760,7 +1760,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2000,
+          max_tokens: 4096,
           system: QC_SYSTEM_PROMPT,
           temperature: 0.1,
           messages: [{ role: 'user', content: qcUserPrompt }],
@@ -1776,13 +1776,41 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       }
 
       const qcData = await qcResponse.json();
+
+      if (qcData.stop_reason === 'max_tokens') {
+        console.warn('⚠️ QC response was truncated (max_tokens reached)');
+      }
+
       const qcText = qcData.content
         .filter((block: any) => block.type === 'text')
         .map((block: any) => block.text)
         .join('');
 
-      const cleanedQcText = qcText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
-      const parsed = JSON.parse(cleanedQcText);
+      let cleanedQcText = qcText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(cleanedQcText);
+      } catch (_parseErr) {
+        console.warn('⚠️ QC JSON parse failed, attempting repair…');
+        let opens = 0, openBrackets = 0;
+        let inString = false, escaped = false;
+        for (const ch of cleanedQcText) {
+          if (escaped) { escaped = false; continue; }
+          if (ch === '\\') { escaped = true; continue; }
+          if (ch === '"') { inString = !inString; continue; }
+          if (inString) continue;
+          if (ch === '{') opens++;
+          else if (ch === '}') opens--;
+          else if (ch === '[') openBrackets++;
+          else if (ch === ']') openBrackets--;
+        }
+        if (inString) cleanedQcText += '"';
+        cleanedQcText += ']'.repeat(Math.max(0, openBrackets));
+        cleanedQcText += '}'.repeat(Math.max(0, opens));
+        parsed = JSON.parse(cleanedQcText);
+        console.log('✅ QC JSON repaired successfully');
+      }
 
       qcResult = {
         status: parsed.overall === 'pass' ? 'passed' : 'failed',
