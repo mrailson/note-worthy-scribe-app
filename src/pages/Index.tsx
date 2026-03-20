@@ -614,6 +614,7 @@ const Index = () => {
   return <div className="min-h-[100dvh] bg-gradient-background">
       <SEO title="NoteWell AI | AI-Powered GP Documentation & Practice Management" description="Transform your GP practice with AI-powered meeting notes, consultation transcription, and comprehensive practice management tools designed for NHS primary care." canonical="https://www.gpnotewell.co.uk/" keywords="GP practices, AI meeting notes, NHS primary care, clinical documentation, practice management, GP surgery software, medical recording" />
       <Header onNewMeeting={handleNewMeeting} />
+      <NavigationBlockerDialog open={showBlockerDialog} onStay={cancelLeave} onLeave={confirmLeave} />
       
         <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">
           <MaintenanceBanner />
