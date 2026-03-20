@@ -175,8 +175,14 @@ export const MeetingRecorder = ({
   forceRecorderTab = false,
   onContinuationComplete
 }: MeetingRecorderProps) => {
-  const [isRecording, setIsRecording] = useState(false);
-  const { isResourceOperationSafe } = useRecording();
+  const [isRecording, setIsRecordingRaw] = useState(false);
+  const { isResourceOperationSafe, setRecordingState } = useRecording();
+
+  // Wrap setIsRecording to also update the global RecordingContext
+  const setIsRecording = useCallback((value: boolean) => {
+    setIsRecordingRaw(value);
+    setRecordingState(value);
+  }, [setRecordingState]);
   const isIOS = detectDevice().isIOS;
   const isMobile = useIsMobile();
   

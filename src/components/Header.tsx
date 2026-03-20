@@ -11,8 +11,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard, ClipboardList, TrendingUp, ClipboardCheck, Video, FileSignature } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard, ClipboardList, TrendingUp, ClipboardCheck, Video, FileSignature, Circle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRecording } from "@/contexts/RecordingContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useServiceVisibility } from "@/hooks/useServiceVisibility";
 import { useMockInspectionAccess } from "@/hooks/useMockInspectionAccess";
@@ -30,6 +31,7 @@ interface HeaderProps {
 
 export const Header = ({ onNewMeeting }: HeaderProps) => {
   const { user, signOut, hasModuleAccess, refreshUserModules, isSystemAdmin } = useAuth();
+  const { isRecording: isGlobalRecording } = useRecording();
   const { hasServiceAccess } = useServiceActivation();
   const { isServiceVisible, refresh: refreshVisibility } = useServiceVisibility();
   const { hasMockInspectionAccess } = useMockInspectionAccess();
@@ -142,6 +144,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             <span className="text-sm sm:text-xl font-bold text-white flex items-center">
               Notewell AI
               <Stars className="h-4 w-4 sm:h-5 sm:w-5 ml-2 text-white" />
+              {isGlobalRecording && (
+                <span className="ml-2 flex items-center gap-1 text-xs font-medium bg-destructive/80 text-white px-2 py-0.5 rounded-full animate-pulse">
+                  <Circle className="h-2 w-2 fill-current" />
+                  <span className="hidden sm:inline">REC</span>
+                </span>
+              )}
             </span>
           </div>
 
