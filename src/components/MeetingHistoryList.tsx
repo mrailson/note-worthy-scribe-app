@@ -2343,12 +2343,6 @@ export const MeetingHistoryList = ({
                       )}
                       
                       {(() => {
-                        console.log('🗂 Folder badge check', {
-                          meetingId: meeting.id,
-                          folderId: meeting.folder_id,
-                          foldersCount: folders.length,
-                          folders
-                        });
 
                         if (!meeting.folder_id) return null;
                         const folder = folders.find(f => f.id === meeting.folder_id);
