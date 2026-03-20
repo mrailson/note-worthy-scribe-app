@@ -464,6 +464,14 @@ serve(async (req) => {
   const { maxTokens: detectedMaxTokens } = detectContentType(messages);
   const finalMaxTokens = max_tokens || detectedMaxTokens;
 
+  // Map Anthropic model IDs to actual API model strings
+  const ANTHROPIC_MODEL_MAP: Record<string, string> = {
+    'anthropic/claude-haiku-4-5': 'claude-haiku-4-5-20251001',
+    'anthropic/claude-sonnet-4-6': 'claude-sonnet-4-6-20250627',
+  };
+
+  const isAnthropicModel = (m: string): boolean => m.startsWith('anthropic/');
+
   const resolveGatewayModel = (m?: string): string => {
     // SPEED-OPTIMISED: Use Gemini 3 Flash as default
     const input = (m || '').trim();
@@ -486,15 +494,125 @@ serve(async (req) => {
 
     if (input === 'gpt-5-nano') return 'openai/gpt-5-nano';
 
-    // Already a gateway model - pass through
-    if (input.startsWith('openai/') || input.startsWith('google/')) return input;
+    // Already a gateway or anthropic model - pass through
+    if (input.startsWith('openai/') || input.startsWith('google/') || input.startsWith('anthropic/')) return input;
 
     // Safe fast default
     return 'google/gemini-3-flash-preview';
   };
 
+  // Call Anthropic API directly (not through Lovable gateway)
+  const tryAnthropicModel = async (modelId: string, stream: boolean): Promise<Response> => {
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY is not configured');
+    }
+    const apiModel = ANTHROPIC_MODEL_MAP[modelId] || modelId.replace('anthropic/', '');
+    
+    // Convert OpenAI-style messages to Anthropic format
+    const systemContent = chatMessages
+      .filter((m: any) => m.role === 'system')
+      .map((m: any) => typeof m.content === 'string' ? m.content : m.content?.map((p: any) => p.text || '').join('\n'))
+      .join('\n\n');
+    
+    const anthropicMessages = chatMessages
+      .filter((m: any) => m.role !== 'system')
+      .map((m: any) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: typeof m.content === 'string' ? m.content : m.content?.map((p: any) => {
+          if (p.type === 'text') return { type: 'text', text: p.text };
+          if (p.type === 'image_url') return { type: 'image', source: { type: 'url', url: p.image_url?.url } };
+          return { type: 'text', text: p.text || '' };
+        }),
+      }));
+
+    const requestBody: Record<string, any> = {
+      model: apiModel,
+      max_tokens: finalMaxTokens,
+      messages: anthropicMessages,
+      stream,
+    };
+    if (systemContent) {
+      requestBody.system = systemContent;
+    }
+
+    const timeoutMs = modelId.includes('sonnet') ? 120000 : 90000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log(`Anthropic request timeout after ${Math.round(timeoutMs / 1000)}s for ${modelId}`);
+      controller.abort();
+    }, timeoutMs);
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error?.name === 'AbortError') {
+        throw new Error(`Anthropic request timed out after ${Math.round(timeoutMs / 1000)}s`);
+      }
+      throw error;
+    }
+  };
+
+  // Convert Anthropic SSE stream to OpenAI-compatible SSE stream
+  const convertAnthropicStream = (anthropicBody: ReadableStream): ReadableStream => {
+    const reader = anthropicBody.getReader();
+    const decoder = new TextDecoder();
+    const encoder = new TextEncoder();
+    let buffer = '';
+
+    return new ReadableStream({
+      async pull(controller) {
+        try {
+          const { done, value } = await reader.read();
+          if (done) {
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            controller.close();
+            return;
+          }
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const jsonStr = line.slice(6).trim();
+            if (!jsonStr || jsonStr === '[DONE]') continue;
+            try {
+              const event = JSON.parse(jsonStr);
+              if (event.type === 'content_block_delta' && event.delta?.text) {
+                const openaiChunk = {
+                  choices: [{ delta: { content: event.delta.text }, index: 0 }],
+                };
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiChunk)}\n\n`));
+              }
+            } catch { /* skip malformed lines */ }
+          }
+        } catch (err) {
+          controller.error(err);
+        }
+      },
+    });
+  };
+
   const tryModel = async (m: string, stream: boolean) => {
     const gatewayModel = resolveGatewayModel(m);
+
+    // Route Anthropic models to direct API
+    if (isAnthropicModel(gatewayModel)) {
+      return tryAnthropicModel(gatewayModel, stream);
+    }
+
     const requestBody: Record<string, any> = {
       model: gatewayModel,
       messages: chatMessages,
@@ -552,6 +670,8 @@ serve(async (req) => {
     'openai/gpt-5': ['google/gemini-3-flash-preview', 'google/gemini-2.5-pro'],
     'openai/gpt-5.2': ['google/gemini-3-flash-preview', 'openai/gpt-5'],
     'openai/gpt-5-mini': ['google/gemini-3-flash-preview', 'google/gemini-2.5-flash'],
+    'anthropic/claude-haiku-4-5': ['anthropic/claude-sonnet-4-6', 'google/gemini-3-flash-preview'],
+    'anthropic/claude-sonnet-4-6': ['anthropic/claude-haiku-4-5', 'google/gemini-3.1-pro-preview'],
   };
 
   const MODEL_LABELS: Record<string, string> = {
@@ -561,6 +681,8 @@ serve(async (req) => {
     'openai/gpt-5': 'GPT-5',
     'openai/gpt-5.2': 'GPT-5.2',
     'openai/gpt-5-mini': 'GPT-5 Mini',
+    'anthropic/claude-haiku-4-5': 'Claude Haiku 4.5',
+    'anthropic/claude-sonnet-4-6': 'Claude Sonnet 4.6',
   };
 
   try {
