@@ -60,6 +60,7 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
   const isClaude = model?.includes('claude');
 
   return (
+    <TooltipProvider>
     <div className="flex flex-wrap items-center gap-1.5 py-2">
       {/* LLM Model Badge */}
       <Tooltip>
