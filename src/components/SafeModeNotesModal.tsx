@@ -3293,6 +3293,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     </div>
                   ) : notesContent ? (
                     <>
+                      {/* Generation Pipeline Badges */}
+                      <NotesGenerationBadges metadata={generationMetadata} />
                       {/* Meeting Details Table - show if we have details or attendees */}
                       {viewMode === 'formatted' && (meetingDetails || attendees.length > 0) && (
                         <div className="rounded-lg border overflow-hidden">
