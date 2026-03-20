@@ -65,3 +65,26 @@ Prevents recordings from being silently killed when users navigate away from the
 
 ### Phase 2 (future)
 Extract recording engine into a persistent singleton service so recordings survive route changes (true background recording).
+
+## Notewell AI Governance-Grade Minutes Prompt — IMPLEMENTED
+
+Replaced the legacy meeting minutes system prompt with a comprehensive, model-agnostic governance-grade prompt designed for NHS primary care. The new prompt enforces exhaustive topic extraction (15–40 topics), exact figure reproduction, risk categorisation, and frank political-context capture without sanitisation.
+
+### Changes
+- `supabase/functions/generate-meeting-notes-claude/index.ts` — Complete rewrite:
+  - New `NOTEWELL_SYSTEM_PROMPT` replaces `SYSTEM_PROMPT_V2` — MHRA Class I registered, exhaustive extraction rules, NHS governance output format
+  - New `buildUserPrompt()` function injects meeting context (organisation, meeting type, duration, speaker count) and the full output template (Discussion Summary, Decisions Register, Open Items & Risks, Action Log)
+  - Removed `performProfessionalToneAudit()` — conflicted with "do not sanitise" instruction; the prompt now handles tone directly
+  - Unified `callGemini()` and `callClaude()` helpers with `temperature: 0.15` and `max_tokens: 8192`
+  - Both chunked and single paths use the same prompt for consistency
+  - Fixed `npm:` import for supabase-js per edge function standards
+- `src/pages/Settings.tsx` — Added Claude Haiku 4.5 as a third model option
+- `src/components/meeting-history/LlmModelBadge.tsx` — Added full Haiku model string mapping
+- `src/components/FullPageNotesModal.tsx` — Updated model label toast to include Haiku
+
+### Model Options
+| Setting value | Model | Notes |
+|---|---|---|
+| `gemini-3-flash` | Google Gemini 3 Flash | Default, fast |
+| `claude-haiku-4-5-20251001` | Claude Haiku 4.5 | Fast, beta |
+| `claude-sonnet-4-6` | Claude Sonnet 4.6 | Premium, beta |
