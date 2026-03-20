@@ -624,12 +624,7 @@ serve(async (req) => {
     // ── Save notes to DB immediately (so they're available even if QC fails) ──
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    let meetingId: string | null = null;
-
-    try {
-      const { meetingId: reqMeetingId } = await req.clone().json().catch(() => ({}));
-      meetingId = reqMeetingId || null;
-    } catch { /* ignore */ }
+    const meetingId: string | null = reqMeetingId || null;
 
     // Save generation_metadata baseline
     if (supabaseUrl && serviceKey && meetingId) {
