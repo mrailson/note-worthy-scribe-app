@@ -144,6 +144,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             <span className="text-sm sm:text-xl font-bold text-white flex items-center">
               Notewell AI
               <Stars className="h-4 w-4 sm:h-5 sm:w-5 ml-2 text-white" />
+              {isGlobalRecording && (
+                <span className="ml-2 flex items-center gap-1 text-xs font-medium bg-destructive/80 text-white px-2 py-0.5 rounded-full animate-pulse">
+                  <Circle className="h-2 w-2 fill-current" />
+                  <span className="hidden sm:inline">REC</span>
+                </span>
+              )}
             </span>
           </div>
 
