@@ -3649,13 +3649,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <TabsContent value="transcript" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card">
                 <div className="p-6 space-y-4">
-                  {/* Toolbar: Quality Summary + Find & Replace + Backup Badge */}
+                  {/* Meeting QC Badges */}
                   <div className="flex flex-wrap justify-between items-center gap-2 min-h-[36px]">
                     <div className="flex items-center gap-2">
-                      {meeting?.id && <BackupBadge meetingId={meeting.id} />}
-                      {meeting?.id && <RecordingDeviceBadge meetingId={meeting.id} />}
-                      {meeting?.id && <LlmModelBadge meetingId={meeting.id} />}
-                      {meeting?.id && <QualityGateBadge meetingId={meeting.id} />}
+                      <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
+                      <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
                     </div>
                     {/* Sub-tabs for Batch/Live/Deepgram with copy buttons */}
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">

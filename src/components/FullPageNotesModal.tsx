@@ -3820,6 +3820,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                     </div>
                   </div>
                 }>
+                  <div className="px-3 pt-2 flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
+                    <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
+                  </div>
                   <TranscriptTabContent
                     meetingId={meeting?.id || ''}
                     transcript={transcript}
