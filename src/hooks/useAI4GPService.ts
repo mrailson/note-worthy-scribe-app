@@ -626,10 +626,22 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     
     // Use the provided model, but auto-upgrade for clinical queries
     const isClinicalUpgrade = isClinicalRef.current || verificationLevel === 'clinical';
-    const modelToUse = isClinicalUpgrade ? 'google/gemini-3.1-pro-preview' : selectedModel;
-    if (isClinicalUpgrade && selectedModel !== 'google/gemini-3.1-pro-preview') {
-      console.log('🔬 Clinical mode — using Gemini 3.1 Pro');
-      toast.info('🔬 Clinical mode — using Gemini 3.1 Pro');
+    let modelToUse = selectedModel;
+    if (isClinicalUpgrade) {
+      // Route clinical upgrades to the appropriate premium model per provider
+      if (selectedModel.startsWith('anthropic/')) {
+        modelToUse = 'anthropic/claude-sonnet-4-6';
+        if (selectedModel !== 'anthropic/claude-sonnet-4-6') {
+          console.log('🔬 Clinical mode — upgrading to Claude Sonnet 4.6');
+          toast.info('🔬 Clinical mode — using Claude Sonnet 4.6');
+        }
+      } else {
+        modelToUse = 'google/gemini-3.1-pro-preview';
+        if (selectedModel !== 'google/gemini-3.1-pro-preview') {
+          console.log('🔬 Clinical mode — using Gemini 3.1 Pro');
+          toast.info('🔬 Clinical mode — using Gemini 3.1 Pro');
+        }
+      }
     }
     console.log('🤖 Model selection:', { selectedModel, modelToUse, clinicalUpgrade: isClinicalUpgrade });
     

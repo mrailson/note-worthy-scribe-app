@@ -474,7 +474,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     onModelChange={onModelChange}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Clinical queries automatically upgrade to Gemini 3.1 Pro regardless of selection
+                    Clinical queries automatically upgrade to Gemini 3.1 Pro or Claude Sonnet 4.6 depending on provider
                   </p>
                 </div>
               </div>
