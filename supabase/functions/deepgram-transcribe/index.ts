@@ -75,9 +75,36 @@ serve(async (req) => {
     console.log('📊 Deepgram result structure:', JSON.stringify(deepgramResult, null, 2).substring(0, 500));
     
     // Extract transcript and confidence
-    const transcript = deepgramResult.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
-    const confidence = deepgramResult.results?.channels?.[0]?.alternatives?.[0]?.confidence || 0;
-    const words = deepgramResult.results?.channels?.[0]?.alternatives?.[0]?.words || [];
+    const alt = deepgramResult.results?.channels?.[0]?.alternatives?.[0];
+    const rawTranscript = alt?.transcript || '';
+    const confidence = alt?.confidence || 0;
+    const words = alt?.words || [];
+
+    // Build speaker-labelled transcript from word-level speaker data
+    let transcript = rawTranscript;
+    if (words.length > 0 && words.some((w: any) => w.speaker !== undefined)) {
+      const segments: string[] = [];
+      let currentSpeaker = -1;
+      let currentWords: string[] = [];
+      
+      for (const w of words) {
+        const speaker = w.speaker ?? 0;
+        if (speaker !== currentSpeaker) {
+          if (currentWords.length > 0) {
+            segments.push(`[Speaker ${currentSpeaker + 1}]: ${currentWords.join(' ')}`);
+          }
+          currentSpeaker = speaker;
+          currentWords = [w.punctuated_word || w.word];
+        } else {
+          currentWords.push(w.punctuated_word || w.word);
+        }
+      }
+      if (currentWords.length > 0) {
+        segments.push(`[Speaker ${currentSpeaker + 1}]: ${currentWords.join(' ')}`);
+      }
+      transcript = segments.join('\n');
+      console.log(`[Deepgram] Built speaker-labelled transcript with ${segments.length} segments`);
+    }
 
     console.log(`✅ Deepgram transcription: "${transcript.substring(0, 100)}..." (confidence: ${confidence}, words: ${words.length})`);
 
