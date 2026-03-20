@@ -3551,6 +3551,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                       {meeting?.id && <BackupBadge meetingId={meeting.id} />}
                       {meeting?.id && <RecordingDeviceBadge meetingId={meeting.id} />}
                       {meeting?.id && <LlmModelBadge meetingId={meeting.id} />}
+                      {meeting?.id && <QualityGateBadge meetingId={meeting.id} />}
                     </div>
                     {/* Sub-tabs for Batch/Live/Deepgram with copy buttons */}
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
