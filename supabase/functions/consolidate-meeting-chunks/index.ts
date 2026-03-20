@@ -936,6 +936,7 @@ serve(async (req) => {
   }
 
   try {
+    const pipelineStart = Date.now();
     const { meetingId, liveTranscript } = await req.json();
     
     if (!meetingId) {
