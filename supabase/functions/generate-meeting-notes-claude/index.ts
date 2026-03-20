@@ -403,11 +403,15 @@ serve(async (req) => {
       practiceContext,
     } = await req.json();
 
+    const effectiveModelOverride = !modelOverride || modelOverride === 'gemini-3-flash'
+      ? 'claude-sonnet-4-6'
+      : modelOverride;
+
     console.log('🔍 Request details:', {
       hasTranscript: !!transcript,
       hasCustomPrompt: !!customPrompt,
       transcriptLength: transcript?.length,
-      modelOverride: modelOverride || 'gemini-3-flash',
+      modelOverride: effectiveModelOverride,
     });
 
     if (!transcript) throw new Error('Transcript is required');
@@ -419,8 +423,8 @@ serve(async (req) => {
       console.log(`📖 Domain dictionary: applied ${correctionCount} ASR correction(s)`);
     }
 
-    const isClaudeModel = modelOverride && modelOverride.startsWith('claude-');
-    const modelLabel = isClaudeModel ? modelOverride : 'gemini-3-flash';
+    const isClaudeModel = effectiveModelOverride.startsWith('claude-');
+    const modelLabel = isClaudeModel ? effectiveModelOverride : 'claude-sonnet-4-6';
     console.log(`🧠 Using model: ${modelLabel}`);
 
     let meetingMinutes: string;
