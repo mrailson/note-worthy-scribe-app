@@ -20,12 +20,12 @@ export const ManualNoteGenerationButton = ({
   const handleManualGeneration = async () => {
     try {
       setIsGenerating(true);
-      console.log('🔄 Manually triggering note generation for:', meetingId);
+      console.log('NOTE GENERATION: Calling generate-meeting-notes-claude from ManualNoteGenerationButton');
 
-      // First verify the meeting exists and user has access
+      // Fetch the meeting data including transcript
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
-        .select('id, user_id, word_count')
+        .select('id, user_id, word_count, title, start_time, end_time, duration_minutes, live_transcript_text, whisper_transcript_text, best_of_all_transcript')
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -37,42 +37,54 @@ export const ManualNoteGenerationButton = ({
         throw new Error('Meeting not found or you do not have access to it');
       }
 
-      if (!meeting.word_count || meeting.word_count === 0) {
+      // Get the best available transcript
+      let transcriptText = meeting.best_of_all_transcript || meeting.whisper_transcript_text || meeting.live_transcript_text || '';
+
+      // If no transcript in meeting row, try chunks table
+      if (!transcriptText || transcriptText.trim().length === 0) {
+        const { data: chunks } = await supabase
+          .from('meeting_transcription_chunks')
+          .select('cleaned_text')
+          .eq('meeting_id', meetingId)
+          .order('chunk_number', { ascending: true });
+
+        if (chunks && chunks.length > 0) {
+          transcriptText = chunks.map(c => c.cleaned_text || '').join('\n\n');
+        }
+      }
+
+      if (!transcriptText || transcriptText.trim().length === 0) {
         throw new Error('This meeting has no transcript content to generate notes from');
       }
 
-      // Update meeting status to indicate manual generation
-      const { error: updateError } = await supabase
-        .from('meetings')
-        .update({ notes_generation_status: 'queued' })
-        .eq('id', meetingId);
+      const meetingDate = meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : '';
+      const meetingTime = meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }) : '';
 
-      if (updateError) {
-        throw new Error(`Failed to update meeting status: ${updateError.message}`);
-      }
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
+        ? 'claude-sonnet-4-6'
+        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
 
-      // Call the auto-generate function
-      console.log('📤 Invoking auto-generate-meeting-notes for:', meetingId);
-      const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: { 
-          meetingId,
-          forceRegenerate: hasExistingNotes 
+          transcript: transcriptText,
+          meetingTitle: meeting.title || 'Meeting Notes',
+          meetingDate,
+          meetingTime,
+          detailLevel: 'standard',
+          modelOverride,
+          meetingId
         }
       });
 
-      console.log('📥 Function response:', { data, error });
-
       if (error) {
-        console.error('❌ Function invocation error:', {
-          message: error.message,
-          name: error.name,
-          stack: error.stack,
-          ...error
-        });
+        console.error('❌ Function invocation error:', error);
         throw error;
       }
 
-      toast.success('Note generation started! This may take a few moments.', {
+      toast.success('Meeting notes generated successfully!', {
         duration: 5000
       });
 
