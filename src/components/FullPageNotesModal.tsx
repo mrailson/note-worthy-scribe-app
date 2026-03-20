@@ -2371,6 +2371,27 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           
         }
         
+        // Update generation metadata badges from edge function response
+        if (data?.qc || data?.modelUsed) {
+          const freshMeta: any = {
+            model: data.modelUsed || modelOverride,
+            transcript_source: 'auto',
+            note_style: 'standard',
+          };
+          if (data.qc) freshMeta.qc = data.qc;
+          setGenerationMetadata(freshMeta);
+        } else {
+          // Fallback: re-fetch from DB
+          const { data: metaRow } = await supabase
+            .from('meeting_summaries')
+            .select('generation_metadata')
+            .eq('meeting_id', meeting.id)
+            .maybeSingle();
+          if (metaRow?.generation_metadata) {
+            setGenerationMetadata(metaRow.generation_metadata as any);
+          }
+        }
+
         // Update the LLM badge
         localStorage.setItem(`meeting-llm-used-${meeting.id}`, data?.modelUsed || modelOverride);
         const modelLabel = modelOverride.startsWith('claude-') ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash';
