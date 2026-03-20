@@ -9,6 +9,7 @@ import { useMinutesFormatter } from "@/hooks/useMinutesFormatter";
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
+import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
 import { QualityReportSection } from "@/components/meeting-notes/QualityReportSection";
 import React, { useState, useEffect, useRef, Suspense, lazy, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
