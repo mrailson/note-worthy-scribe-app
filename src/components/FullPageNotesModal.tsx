@@ -8,6 +8,7 @@ import { useMinutesFormatter } from "@/hooks/useMinutesFormatter";
 
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
+import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
 import React, { useState, useEffect, useRef, Suspense, lazy, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -177,6 +178,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [initialTab, isOpen]);
   const [notesStyle3, setNotesStyle3] = useState("");
+  const [generationMetadata, setGenerationMetadata] = useState<any>(null);
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
   
   // Ref to prevent multiple simultaneous regeneration calls
@@ -771,26 +773,38 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
              setNotesStyle3(meetingData.notes_style_3);
            }
            // Mark note styles as loaded after applying data
-           setNoteStylesLoaded(true);
-         }
+            setNoteStylesLoaded(true);
+          }
 
-         // Fallback: if Standard notes not stored on meetings table yet, pull latest from meeting_summaries
-         if (!meetingData?.notes_style_3) {
-           const { data: summaryRow, error: summaryErr } = await supabase
-             .from('meeting_summaries')
-             .select('summary')
-             .eq('meeting_id', currentMeetingId)
-             .order('updated_at', { ascending: false })
-             .maybeSingle();
+          // Always fetch generation metadata from meeting_summaries
+          {
+            const { data: metaRow } = await supabase
+              .from('meeting_summaries')
+              .select('generation_metadata')
+              .eq('meeting_id', currentMeetingId)
+              .order('updated_at', { ascending: false })
+              .maybeSingle();
+            if (metaRow?.generation_metadata) {
+              setGenerationMetadata(metaRow.generation_metadata as any);
+            }
+          }
 
-           if (!summaryErr && summaryRow?.summary) {
-             setNotesStyle3(summaryRow.summary);
-             // Persist for next time to keep UI consistent
-             void saveNoteStyleToDatabase(3, summaryRow.summary);
-             console.log('✅ Loaded Standard notes from meeting_summaries fallback');
-             setNoteStylesLoaded(true);
-           }
-         }
+          // Fallback: if Standard notes not stored on meetings table yet, pull latest from meeting_summaries
+          if (!meetingData?.notes_style_3) {
+            const { data: summaryRow, error: summaryErr } = await supabase
+              .from('meeting_summaries')
+              .select('summary')
+              .eq('meeting_id', currentMeetingId)
+              .order('updated_at', { ascending: false })
+              .maybeSingle();
+
+            if (!summaryErr && summaryRow?.summary) {
+              setNotesStyle3(summaryRow.summary);
+              void saveNoteStyleToDatabase(3, summaryRow.summary);
+              console.log('✅ Loaded Standard notes from meeting_summaries fallback');
+              setNoteStylesLoaded(true);
+            }
+          }
 
         console.log('✅ Loaded existing note styles for meeting:', currentMeetingId);
         setNoteStylesLoaded(true);
@@ -3037,6 +3051,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
               
               <TabsContent value="notes" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
+                  {/* Generation Pipeline Badges */}
+                  <div className="px-3 pt-2">
+                    <NotesGenerationBadges metadata={generationMetadata} />
+                  </div>
                   {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
                   <div className="flex-1 overflow-auto px-3 pt-4">
                        <Tabs value={activeNotesStyleTab} onValueChange={(value) => {

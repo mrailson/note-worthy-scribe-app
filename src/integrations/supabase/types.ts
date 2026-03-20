@@ -6300,6 +6300,7 @@ export type Database = {
           ai_generated: boolean
           created_at: string
           decisions: string[] | null
+          generation_metadata: Json | null
           id: string
           key_points: string[] | null
           meeting_id: string
@@ -6312,6 +6313,7 @@ export type Database = {
           ai_generated?: boolean
           created_at?: string
           decisions?: string[] | null
+          generation_metadata?: Json | null
           id?: string
           key_points?: string[] | null
           meeting_id: string
@@ -6324,6 +6326,7 @@ export type Database = {
           ai_generated?: boolean
           created_at?: string
           decisions?: string[] | null
+          generation_metadata?: Json | null
           id?: string
           key_points?: string[] | null
           meeting_id?: string

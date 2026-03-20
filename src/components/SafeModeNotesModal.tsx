@@ -127,6 +127,7 @@ import EditableSection, { Section } from "@/components/scribe/EditableSection";
 import InteractiveNotesContent from "@/components/meeting-notes/InteractiveNotesContent";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
+import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
 import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 import { useNotesViewSettings } from "@/hooks/useNotesViewSettings";
@@ -194,6 +195,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   }, [isOpen, meeting?.id]);
   const [notesContent, setNotesContent] = useState(notes);
+  const [generationMetadata, setGenerationMetadata] = useState<any>(null);
   const [transcript, setTranscript] = useState('');
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
@@ -939,14 +941,18 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           return;
         }
 
-        // Fallback to meeting_summaries
+        // Always fetch generation_metadata from meeting_summaries
         const { data: summaryData } = await supabase
           .from('meeting_summaries')
-          .select('summary')
+          .select('summary, generation_metadata')
           .eq('meeting_id', meeting.id)
           .maybeSingle();
 
-        if (summaryData?.summary) {
+        if (summaryData?.generation_metadata) {
+          setGenerationMetadata(summaryData.generation_metadata as any);
+        }
+
+        if (!meetingData?.notes_style_3 && summaryData?.summary) {
           setNotesContent(sanitiseMeetingNotes(summaryData.summary));
         }
       } catch (error) {
@@ -3287,6 +3293,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     </div>
                   ) : notesContent ? (
                     <>
+                      {/* Generation Pipeline Badges */}
+                      <NotesGenerationBadges metadata={generationMetadata} />
                       {/* Meeting Details Table - show if we have details or attendees */}
                       {viewMode === 'formatted' && (meetingDetails || attendees.length > 0) && (
                         <div className="rounded-lg border overflow-hidden">
