@@ -2168,11 +2168,27 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         // Store which model was used for this meeting (shown in footer)
         if (meeting?.id) {
           localStorage.setItem(`meeting-llm-used-${meeting.id}`, modelOverride);
+          
+          // Store quality gate results
+          if (data.qualityGate) {
+            localStorage.setItem(`meeting-qg-status-${meeting.id}`, data.qualityGate.status);
+            localStorage.setItem(`meeting-qg-issues-${meeting.id}`, String(
+              (data.qualityGate.accuracyIssueCount || 0) + (data.qualityGate.missingTopicCount || 0) + (data.qualityGate.missingActionCount || 0)
+            ));
+            localStorage.setItem(`meeting-qg-corrected-${meeting.id}`, String(
+              (data.qualityGate.accuracyIssueCount || 0) + (data.qualityGate.missingTopicCount || 0) + (data.qualityGate.missingActionCount || 0)
+            ));
+          }
         }
         
-        // Show which model was used
+        // Show which model was used + quality gate status
         const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : modelOverride === 'claude-haiku-4-5-20251001' ? 'Claude Haiku 4.5' : 'Gemini 3 Flash';
-        toast.success(`Notes regenerated using ${modelLabel}`);
+        const qgStatus = data.qualityGate?.status;
+        const qgSuffix = qgStatus === 'CLEAN' ? ' ✅ Verified' 
+          : qgStatus === 'AUTO_CORRECTED' ? ` ⚠️ ${data.qualityGate.accuracyIssueCount + data.qualityGate.missingTopicCount + data.qualityGate.missingActionCount} items auto-corrected`
+          : qgStatus === 'REVIEW_RECOMMENDED' ? ' 🔍 Review recommended'
+          : '';
+        toast.success(`Notes regenerated using ${modelLabel}${qgSuffix}`);
       }
     } catch (error) {
       console.error('Error regenerating meeting notes:', error);
