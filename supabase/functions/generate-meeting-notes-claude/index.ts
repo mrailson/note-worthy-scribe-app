@@ -752,6 +752,7 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           }, { onConflict: 'meeting_id' });
         console.log('💾 QC results persisted to generation_metadata');
+        console.log('METADATA WRITTEN:', JSON.stringify(updatedMeta));
       } catch (persistErr) {
         console.warn('⚠️ Could not persist QC results:', persistErr);
       }

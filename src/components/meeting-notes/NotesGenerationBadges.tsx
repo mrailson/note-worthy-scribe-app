@@ -83,8 +83,9 @@ const noteStyleLabel = (style?: string): string => {
 };
 
 export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ metadata }) => {
-  const isLegacy = !metadata;
+  console.log('NotesGenerationBadges metadata:', metadata);
 
+  const isLegacy = !metadata;
   const model = metadata?.model_used || metadata?.model;
   const source = metadata?.transcript_source;
   const noteStyle = metadata?.note_style;
