@@ -162,5 +162,6 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
         </TooltipContent>
       </Tooltip>
     </div>
+    </TooltipProvider>
   );
 };
