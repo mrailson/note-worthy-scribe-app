@@ -25,7 +25,7 @@ export const ManualNoteGenerationButton = ({
       // Fetch the meeting data including transcript
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
-        .select('id, user_id, word_count, title, start_time, end_time, duration_minutes, duration, live_transcript_text, whisper_transcript_text, best_of_all_transcript')
+        .select('id, user_id, word_count, title, start_time, end_time, duration_minutes, live_transcript_text, whisper_transcript_text, best_of_all_transcript')
         .eq('id', meetingId)
         .maybeSingle();
 
