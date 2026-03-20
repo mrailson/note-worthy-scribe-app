@@ -466,7 +466,7 @@ serve(async (req) => {
           const chunkPrompt = buildUserPrompt({ ...promptParams, transcript: chunks[i] });
 
           const result = isClaudeModel
-            ? await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, chunkPrompt)
+            ? await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, chunkPrompt)
             : await callGemini(NOTEWELL_SYSTEM_PROMPT, chunkPrompt);
           chunkResults.push(result);
         }
