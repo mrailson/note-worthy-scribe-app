@@ -1307,6 +1307,7 @@ serve(async (req) => {
     }
 
     // ============= HALLUCINATION DETECTION & REPAIR (BoT cleanup) =============
+    const hallucinationRepairStart = Date.now();
     let hallucinationRepairLog: any = null;
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL');
