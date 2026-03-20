@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Brain, FileText, ShieldCheck, Scroll, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Brain, FileText, ShieldCheck, Scroll, XCircle, Download } from 'lucide-react';
+import { downloadQcReport } from '@/utils/qcReportExport';
 
 interface QcCategory {
   status: 'pass' | 'fail';
@@ -39,6 +41,7 @@ interface GenerationMetadata {
 
 interface NotesGenerationBadgesProps {
   metadata: GenerationMetadata | null | undefined;
+  meetingTitle?: string;
 }
 
 const QC_CATEGORY_LABELS: Record<string, string> = {
@@ -82,7 +85,7 @@ const noteStyleLabel = (style?: string): string => {
   }
 };
 
-export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ metadata }) => {
+export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ metadata, meetingTitle }) => {
   console.log('NotesGenerationBadges metadata:', metadata);
 
   const isLegacy = !metadata;
@@ -153,6 +156,18 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
             {qc?.summary && (
               <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">{qc.summary}</p>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 w-full text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (qc) downloadQcReport(qc, meetingTitle);
+              }}
+            >
+              <Download className="h-3 w-3 mr-1.5" />
+              Export QC Report
+            </Button>
           </PopoverContent>
         </Popover>
       );
