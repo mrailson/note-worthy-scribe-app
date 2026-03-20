@@ -111,7 +111,7 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
   const qcBadgeContent = () => {
     if (isLegacy) return 'QC Unknown';
     if (qcStatus === 'passed') return `QC Passed${qcScore != null ? ` ${qcScore}` : ''}`;
-    if (qcStatus === 'failed') return `QC Failed${qcFailedCount != null ? ` (${qcFailedCount})` : ''}`;
+    if (qcStatus === 'failed') return `QC Issues${qcFailedCount != null ? ` (${qcFailedCount})` : ''}`;
     if (qcStatus === 'error') return 'QC Error';
     return 'QC Skipped';
   };
@@ -119,7 +119,7 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
   const qcBadgeClass = () => {
     if (isLegacy) return 'bg-muted/50 text-muted-foreground border-muted';
     if (qcStatus === 'passed') return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800';
-    if (qcStatus === 'failed') return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800';
+    if (qcStatus === 'failed') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800';
     if (qcStatus === 'error') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800';
     return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800';
   };
@@ -133,32 +133,9 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
       </Badge>
     );
 
-    // Failed state: popover with failed categories
-    if (qcStatus === 'failed' && failedCategories.length > 0) {
-      return (
-        <Popover>
-          <PopoverTrigger asChild>{badge}</PopoverTrigger>
-          <PopoverContent className="w-80 p-3" align="start">
-            <p className="text-xs font-medium text-destructive mb-2">
-              {qcFailedCount} {qcFailedCount === 1 ? 'category' : 'categories'} failed
-            </p>
-            <div className="space-y-2">
-              {failedCategories.map(([key, cat]) => (
-                <div key={key} className="text-xs">
-                  <div className="flex items-center gap-1.5 font-medium text-destructive">
-                    <XCircle className="h-3 w-3 shrink-0" />
-                    {QC_CATEGORY_LABELS[key] || key}
-                  </div>
-                  <p className="text-muted-foreground pl-[18px] mt-0.5 leading-snug">{cat.findings}</p>
-                </div>
-              ))}
-            </div>
-            {qc?.summary && (
-              <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">{qc.summary}</p>
-            )}
-          </PopoverContent>
-        </Popover>
-      );
+    // Failed/issues state: just show the badge, no popover
+    if (qcStatus === 'failed') {
+      return badge;
     }
 
     // Error state: tooltip with error message
