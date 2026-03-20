@@ -178,7 +178,7 @@ function buildUserPrompt(params: {
   return `## MEETING CONTEXT (auto-populated by Notewell)
 
 ${contextLines}
-
+${attendeesSection}
 ## OUTPUT FORMAT
 
 Use the following structure. Every section is mandatory. If a section has no content, write "None identified" — do not omit the section.
