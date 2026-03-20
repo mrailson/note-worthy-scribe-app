@@ -1,9 +1,8 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Brain, FileText, ShieldCheck, Scroll, XCircle, Download } from 'lucide-react';
+import { Brain, FileText, ShieldCheck, Scroll, Download, Timer } from 'lucide-react';
 import { downloadQcReport } from '@/utils/qcReportExport';
 
 interface QcCategory {
