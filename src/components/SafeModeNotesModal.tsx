@@ -2890,6 +2890,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
         className="max-w-5xl h-[90vh] h-[90dvh] flex flex-col p-0 gap-0 bg-background [&>button:last-child]:hidden overflow-hidden"
+        aria-describedby={undefined}
         style={{
           paddingBottom: 'env(safe-area-inset-bottom)',
           paddingTop: 'env(safe-area-inset-top)',

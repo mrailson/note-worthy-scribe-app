@@ -255,7 +255,7 @@ Format each entry as:
 
 [Date, time, and any agenda items referenced for that meeting]
 
-**ACTION LOG**
+**ACTION ITEMS**
 
 | Action | Owner | Deadline |
 |--------|-------|----------|
