@@ -124,6 +124,7 @@ import InteractiveNotesContent from "@/components/meeting-notes/InteractiveNotes
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
+import { ProcessingTimeBadges } from "@/components/meeting-notes/ProcessingTimeBadges";
 import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
 import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
