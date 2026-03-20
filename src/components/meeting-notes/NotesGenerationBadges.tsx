@@ -27,6 +27,12 @@ interface QcResult {
   summary?: string;
 }
 
+interface TimingData {
+  notes_generation_seconds?: number;
+  qc_audit_seconds?: number;
+  total_pipeline_seconds?: number;
+}
+
 interface GenerationMetadata {
   model_used?: string;
   model?: string;
@@ -36,6 +42,7 @@ interface GenerationMetadata {
   note_style?: string;
   generated_at?: string;
   qc?: QcResult;
+  timing?: TimingData;
 }
 
 interface NotesGenerationBadgesProps {
