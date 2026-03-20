@@ -1150,6 +1150,7 @@ serve(async (req) => {
         finalRawWordCount: countWords(postProcessTranscript(mergeResult.kept.map(k => k.text).join(' '))),
         finalDedupWordCount: mergedWordCount,
         finalEqualsWhisperClean: mergeResult.transcript.trim() === whisperCleanText.trim(),
+        hallucinationRepair: hallucinationRepairLog,
         generatedAt: new Date().toISOString()
       }
     };
