@@ -3671,7 +3671,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                   <div className="flex flex-wrap justify-between items-center gap-2 min-h-[36px]">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
-                      <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} consolidationTiming={consolidationTiming} />
+                      <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
                       {meeting?.id && (
                         <>
                           <span className="text-xs font-medium text-muted-foreground ml-1">Recorded on:</span>
@@ -3679,6 +3679,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         </>
                       )}
                     </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Render Times:</span>
+                    <ProcessingTimeBadges noteTiming={generationMetadata?.timing} consolidationTiming={consolidationTiming} />
+                  </div>
                     {/* Sub-tabs for Batch/Live/Deepgram with copy buttons */}
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
                       <div className="flex items-center">
