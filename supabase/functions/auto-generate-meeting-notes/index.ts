@@ -1694,6 +1694,17 @@ ${cleanedTranscript}`;
         .eq('meeting_id', meetingId);
     }
 
+    // Build generation metadata for pipeline badges
+    const generationMetadata = {
+      model_used: modelUsed,
+      transcript_source: actualTranscriptSource || transcriptSource || 'auto',
+      qc_status: 'skipped', // No QC layer currently runs
+      qc_details: null as string | null,
+      note_style: noteType || 'standard',
+      generated_at: new Date().toISOString(),
+    };
+    console.log('📋 Generation metadata:', JSON.stringify(generationMetadata));
+
     const { error: summaryError } = await supabase
       .from('meeting_summaries')
       .insert({
@@ -1704,7 +1715,8 @@ ${cleanedTranscript}`;
         decisions: [],
         next_steps: [],
         ai_generated: true,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        generation_metadata: generationMetadata,
       });
 
     if (summaryError) {
