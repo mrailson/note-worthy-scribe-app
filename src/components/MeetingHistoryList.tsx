@@ -361,32 +361,45 @@ export const MeetingHistoryList = ({
 
   // Word counts now come from meeting.word_count (populated by parent) — no separate fetch needed
 
-  // Real-time subscription for automatic refresh when meetings are updated
-  // MEMORY FIX: Use debounced refresh and properly track timeouts
+  const onRefreshRef = useRef(onRefresh);
   useEffect(() => {
-    if (!onRefresh || !user?.id) return;
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
+
+  const meetingFoldersById = useMemo(() => {
+    const folderMap = new Map<string, (typeof folders)[number]>();
+    folders.forEach((folder) => {
+      folderMap.set(folder.id, folder);
+    });
+    return folderMap;
+  }, [folders]);
+
+  // Real-time subscription for automatic refresh when meetings are updated
+  // MEMORY FIX: Keep subscription stable even if parent recreates onRefresh
+  useEffect(() => {
+    if (!user?.id) return;
 
     console.log('🔄 Setting up real-time subscription for meeting updates');
-    
-    // Track pending timeouts for cleanup
+
     const pendingTimeouts: NodeJS.Timeout[] = [];
     let lastRefreshTime = 0;
-    const DEBOUNCE_MS = 5000; // Increased debounce — parent handles meetings table
+    const DEBOUNCE_MS = 5000;
 
     const debouncedRefresh = () => {
+      const refreshHandler = onRefreshRef.current;
+      if (!refreshHandler) return;
+
       const now = Date.now();
       if (now - lastRefreshTime < DEBOUNCE_MS) {
-        return; // Skip if refreshed recently
+        return;
       }
       if (safeModeModalOpenRef.current) {
-        return; // Skip if modal is open
+        return;
       }
       lastRefreshTime = now;
-      onRefresh();
+      refreshHandler();
     };
 
-    // Create a channel for real-time updates
-    // NOTE: meetings table listener REMOVED — parent (MeetingRecorder) handles it
     const channel = supabase
       .channel(`meeting-updates-${user.id}`)
       .on(
@@ -415,13 +428,12 @@ export const MeetingHistoryList = ({
       )
       .subscribe();
 
-    // Cleanup subscription and pending timeouts on unmount
     return () => {
       console.log('🔌 Cleaning up real-time subscription and timeouts');
       pendingTimeouts.forEach(id => clearTimeout(id));
       supabase.removeChannel(channel);
     };
-  }, [onRefresh, user?.id]);
+  }, [user?.id]);
   
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
