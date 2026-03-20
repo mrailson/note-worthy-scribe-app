@@ -140,13 +140,16 @@ export const useMeetingImporter = () => {
       setCurrentStep('Triggering note generation...');
       setProgress(90);
 
-      // Step 4: Trigger background note generation
+      // Step 4: Trigger background note generation with user's preferred model
       try {
+        const storedModel = localStorage.getItem('meeting-regenerate-llm');
+        const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
         await supabase.functions.invoke('auto-generate-meeting-notes', {
           body: { 
             meetingId: meeting.id,
             source: 'import',
-            config: data
+            config: data,
+            modelOverride,
           }
         });
       } catch (functionError) {
