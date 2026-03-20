@@ -1046,6 +1046,19 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           setGenerationMetadata(summaryData.generation_metadata as any);
         }
 
+        // Fetch consolidation timing from meetings.merge_decision_log
+        const { data: mergeLogRow } = await supabase
+          .from('meetings')
+          .select('merge_decision_log')
+          .eq('id', meeting.id)
+          .maybeSingle();
+        if (mergeLogRow?.merge_decision_log) {
+          const log = mergeLogRow.merge_decision_log as any;
+          if (log?.timing) {
+            setConsolidationTiming(log.timing);
+          }
+        }
+
         if (meetingData?.notes_style_3) {
           setNotesContent(sanitiseMeetingNotes(meetingData.notes_style_3));
           setIsLoadingNotes(false);
