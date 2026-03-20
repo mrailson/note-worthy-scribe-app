@@ -409,7 +409,75 @@ serve(async (req) => {
       organisationName,
       meetingType,
       practiceContext,
+      meetingId: reqMeetingId,
+      qcOnly,
+      existingNotes,
     } = await req.json();
+
+    // ── QC-only mode: skip note generation, just run QC ──────────────
+    if (qcOnly && existingNotes && transcript) {
+      console.log('🔍 QC-only mode — running audit on existing notes');
+      let qcResult: any = null;
+      try {
+        if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+
+        const qcController = new AbortController();
+        const qcTimeout = setTimeout(() => qcController.abort(), 30000);
+
+        const qcResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': anthropicApiKey,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 2000,
+            system: QC_SYSTEM_PROMPT,
+            temperature: 0.1,
+            messages: [{ role: 'user', content: `SOURCE TRANSCRIPT:\n${transcript}\n\nGENERATED MEETING NOTES:\n${existingNotes}` }],
+          }),
+          signal: qcController.signal,
+        });
+        clearTimeout(qcTimeout);
+
+        if (!qcResponse.ok) throw new Error(`Anthropic QC API error: ${qcResponse.status}`);
+        const qcData = await qcResponse.json();
+        const qcText = qcData.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('');
+        const cleanedText = qcText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+        const parsed = JSON.parse(cleanedText);
+        qcResult = {
+          status: parsed.overall === 'pass' ? 'passed' : 'failed',
+          score: parsed.score,
+          failed_count: parsed.failed_count,
+          categories: parsed.categories,
+          summary: parsed.summary,
+          model_used: 'claude-haiku-4-5',
+          ran_at: new Date().toISOString(),
+        };
+      } catch (e: any) {
+        qcResult = { status: 'error', error_message: e.message, model_used: 'claude-haiku-4-5', ran_at: new Date().toISOString() };
+      }
+
+      // Persist to DB
+      if (reqMeetingId) {
+        try {
+          const supabaseUrl = Deno.env.get('SUPABASE_URL');
+          const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+          if (supabaseUrl && serviceKey) {
+            const sb = createClient(supabaseUrl, serviceKey);
+            const { data: row } = await sb.from('meeting_summaries').select('generation_metadata').eq('meeting_id', reqMeetingId).maybeSingle();
+            const meta = (row?.generation_metadata as any) || {};
+            await sb.from('meeting_summaries').update({ generation_metadata: { ...meta, qc: qcResult } }).eq('meeting_id', reqMeetingId);
+          }
+        } catch { /* non-blocking */ }
+      }
+
+      return new Response(JSON.stringify({ success: true, qc: qcResult }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const effectiveModelOverride = !modelOverride || modelOverride === 'gemini-3-flash'
       ? 'claude-sonnet-4-6'
