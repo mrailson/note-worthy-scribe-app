@@ -31,6 +31,7 @@ interface HeaderProps {
 
 export const Header = ({ onNewMeeting }: HeaderProps) => {
   const { user, signOut, hasModuleAccess, refreshUserModules, isSystemAdmin } = useAuth();
+  const { isRecording: isGlobalRecording } = useRecording();
   const { hasServiceAccess } = useServiceActivation();
   const { isServiceVisible, refresh: refreshVisibility } = useServiceVisibility();
   const { hasMockInspectionAccess } = useMockInspectionAccess();
