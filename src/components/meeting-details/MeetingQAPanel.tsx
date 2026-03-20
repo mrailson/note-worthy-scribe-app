@@ -268,7 +268,7 @@ export const MeetingQAPanel = memo(({ meetingId, meetingTitle }: MeetingQAPanelP
                                        prose-ul:my-2 prose-li:my-1
                                        prose-headings:mb-3 prose-headings:mt-4"
                             dangerouslySetInnerHTML={{ 
-                              __html: renderNHSMarkdown(msg.content, { enableNHSStyling: true }) 
+                              __html: renderedAssistantMessages[idx] 
                             }}
                           />
                         )}
