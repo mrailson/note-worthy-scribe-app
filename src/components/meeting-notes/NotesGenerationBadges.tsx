@@ -1,9 +1,8 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Brain, FileText, ShieldCheck, Scroll, XCircle, Download } from 'lucide-react';
+import { Brain, FileText, ShieldCheck, Scroll, Download, Timer } from 'lucide-react';
 import { downloadQcReport } from '@/utils/qcReportExport';
 
 interface QcCategory {
@@ -28,6 +27,12 @@ interface QcResult {
   summary?: string;
 }
 
+interface TimingData {
+  notes_generation_seconds?: number;
+  qc_audit_seconds?: number;
+  total_pipeline_seconds?: number;
+}
+
 interface GenerationMetadata {
   model_used?: string;
   model?: string;
@@ -37,6 +42,7 @@ interface GenerationMetadata {
   note_style?: string;
   generated_at?: string;
   qc?: QcResult;
+  timing?: TimingData;
 }
 
 interface NotesGenerationBadgesProps {
@@ -92,6 +98,7 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
   const model = metadata?.model_used || metadata?.model;
   const source = metadata?.transcript_source;
   const noteStyle = metadata?.note_style;
+  const timing = metadata?.timing;
 
   // Use new qc object if available, fall back to legacy flat fields
   const qc = metadata?.qc;
@@ -251,6 +258,26 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
           <p className="text-xs">Note format/style used for generation</p>
         </TooltipContent>
       </Tooltip>
+
+      {/* Pipeline Timing Badge */}
+      {timing?.total_pipeline_seconds != null && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge
+              variant="outline"
+              className="bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700"
+            >
+              <Timer className="h-3 w-3 mr-1" />
+              {timing.total_pipeline_seconds.toFixed(1)}s
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">
+              Notes: {timing.notes_generation_seconds?.toFixed(1) ?? '?'}s | QC: {timing.qc_audit_seconds?.toFixed(1) ?? '?'}s | Total: {timing.total_pipeline_seconds.toFixed(1)}s
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      )}
     </div>
     </TooltipProvider>
   );

@@ -85,7 +85,25 @@ Respond ONLY with a valid JSON object. No markdown backticks, no preamble, no ex
   "summary": "One sentence overall assessment"
 }
 
-Set overall to "fail" if ANY category fails. Score is your estimate of overall note quality from 0 to 100.`;
+Set overall to "fail" if ANY category fails. But calibrate your score to reflect actual severity, not the count of failed categories.
+
+SCORING RULES:
+
+Your score should reflect the overall quality of the notes as a governance record. Use this framework:
+
+90-100: Minor issues only (e.g. one speaker referred to by title instead of name, slight tone formalisation). The notes are governance-ready.
+75-89: Notable issues that a reviewer should check but the notes are usable (e.g. one currency error, one action with unclear ownership, attendee list missing 1-2 people).
+50-74: Significant issues that require correction before filing (e.g. fabricated decisions, multiple wrong attributions, attendee list completely empty).
+Below 50: Critical failures — fabricated content, systematic errors, or notes that misrepresent what happened.
+
+IMPORTANT CALIBRATION RULES:
+- Do NOT penalise the same root cause across multiple categories. If the attendee list is TBC because the transcript has no speaker labels, that is ONE problem (Attendee Completeness), not four problems (also failing Speaker Attribution, Action Traceability, and Decision Accuracy). Score it as a data quality limitation, not a cascade of failures.
+- Do NOT fail Decision Accuracy if decisions are correctly categorised. If you confirm RESOLVED items have voting language and NOTED items are information received, that is a PASS even if you have minor observations about clarity.
+- Do NOT fail Currency Detection if the notes are internally consistent in the correct currency. Only fail if the wrong currency is used (e.g. £ in a NZ context) or if the same value appears in two different currencies within the notes.
+- Tone fidelity: meeting notes are EXPECTED to be more formal than speech. Only fail if the notes materially misrepresent what was said or add meaning that wasn't present. Converting informal speech to professional minutes language is correct behaviour, not a failure.
+- Speaker Attribution: if speakers are named in the attendee list AND named in the decisions register, do not fail just because the discussion summary uses "the Chair" instead of the name. Using titles in the body text is standard minutes practice.
+
+Before setting your score, ask yourself: "Would a professional minute-taker consider these notes acceptable for filing?" If yes, your score should be 75+. If they'd file them with minor corrections, score 80-90. If they'd file them as-is, score 90+.`;
 
 // ─── Notewell AI Governance-Grade System Prompt ───────────────────────────
 const NOTEWELL_SYSTEM_PROMPT = `You are Notewell AI, an MHRA Class I registered medical device for NHS primary care. You generate governance-grade meeting minutes from transcribed audio recordings of NHS meetings.
@@ -696,9 +714,10 @@ serve(async (req) => {
     // ── 7-Category QC Audit (inline, non-blocking) ────────────────────
     let qcResult: any = null;
     const finalMinutes = meetingMinutes;
+    const qcStartTime = Date.now();
 
     try {
-      console.log('🔍 Running 7-category QC audit via Claude Haiku 4.5...');
+      console.log(`[QC] Starting quality audit at ${new Date(qcStartTime).toISOString()}`);
 
       if (!anthropicApiKey) {
         throw new Error('ANTHROPIC_API_KEY not configured — skipping QC');
@@ -788,6 +807,12 @@ serve(async (req) => {
         ran_at: new Date().toISOString(),
       };
 
+      const qcEndTime = Date.now();
+      const qcDurationMs = qcEndTime - qcStartTime;
+      const qcDurationSec = (qcDurationMs / 1000).toFixed(1);
+      console.log(`[QC] Audit complete in ${qcDurationSec}s`);
+      qcResult.duration_seconds = parseFloat(qcDurationSec);
+
       console.log(`✅ QC audit complete: ${qcResult.status} (score: ${qcResult.score}, failed: ${qcResult.failed_count})`);
 
     } catch (qcError: any) {
@@ -800,7 +825,19 @@ serve(async (req) => {
       };
     }
 
-    // ── Persist QC results to generation_metadata only (QC is advisory) ──
+    // ── Persist QC results + timing to generation_metadata ──
+    const qcEndFinal = Date.now();
+    const qcDurationSecFinal = ((qcEndFinal - qcStartTime) / 1000).toFixed(1);
+    const noteGenDurationSec = ((qcStartTime - functionStartTime) / 1000).toFixed(1);
+    const totalDurationSec = ((qcEndFinal - functionStartTime) / 1000).toFixed(1);
+    console.log(`[PIPELINE] Notes: ${noteGenDurationSec}s | QC: ${qcDurationSecFinal}s | Total: ${totalDurationSec}s`);
+
+    const timingData = {
+      notes_generation_seconds: parseFloat(noteGenDurationSec),
+      qc_audit_seconds: parseFloat(qcDurationSecFinal),
+      total_pipeline_seconds: parseFloat(totalDurationSec),
+    };
+
     if (supabaseUrl && serviceKey && meetingId) {
       try {
         const sb = createClient(supabaseUrl, serviceKey);
@@ -817,6 +854,7 @@ serve(async (req) => {
           transcript_source: existingMeta.transcript_source || 'auto',
           note_style: existingMeta.note_style || 'standard',
           qc: qcResult,
+          timing: timingData,
         };
 
         const { error: qcPersistError } = await sb.from('meeting_summaries')
@@ -830,7 +868,7 @@ serve(async (req) => {
           throw qcPersistError;
         }
 
-        console.log('💾 QC results persisted to generation_metadata only; summary left unchanged');
+        console.log('💾 QC + timing persisted to generation_metadata; summary left unchanged');
         console.log('METADATA WRITTEN:', JSON.stringify(updatedMeta));
       } catch (persistErr) {
         console.warn('⚠️ Could not persist QC results:', persistErr);
@@ -838,7 +876,7 @@ serve(async (req) => {
     }
 
     const totalTime = Date.now() - functionStartTime;
-    console.log(`✅ Full pipeline complete in ${totalTime}ms (generation: ${genTime}ms, QC: ${totalTime - genTime}ms)`);
+    console.log(`✅ Full pipeline complete in ${totalTime}ms`);
 
     return new Response(JSON.stringify({
       success: true,
