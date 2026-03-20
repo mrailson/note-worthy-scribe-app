@@ -86,7 +86,7 @@ serve(async (req) => {
         speech_model: 'best',
         punctuate: true,
         format_text: true,
-        speaker_labels: false,
+        speaker_labels: true,
         filter_profanity: false,
         word_boost: nhsGovernanceTerms,
         boost_param: 'high',

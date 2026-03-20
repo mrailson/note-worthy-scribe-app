@@ -72,6 +72,7 @@ Deno.serve(async (req: Request) => {
             vad_events: 'true',
             punctuate: 'true',
             profanity_filter: 'false',
+            diarize: 'true',
             encoding: 'linear16',
             // Must match the client-side PCM stream sample rate (see src/lib/audio/pcm16.ts)
             sample_rate: '16000',

@@ -131,8 +131,8 @@ serve(async (req) => {
         punctuate: false,
         format_text: false,
         
-        // OTEWELL: Speaker diarisation disabled — unreliable attribution caused mis-diarised notes
-        speaker_labels: false,
+        // Speaker diarisation enabled for attendee mapping in meeting notes
+        speaker_labels: true,
         
         // OTEWELL: Capture everything including profanity
         filter_profanity: false,

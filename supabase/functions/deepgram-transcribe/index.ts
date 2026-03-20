@@ -54,7 +54,7 @@ serve(async (req) => {
     
     // Send to Deepgram API
     console.log('🌐 Sending to Deepgram API...');
-    const deepgramResponse = await fetch('https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&punctuate=true&diarize=false', {
+    const deepgramResponse = await fetch('https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&punctuate=true&diarize=true', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${DEEPGRAM_API_KEY}`,
