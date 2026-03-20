@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 
-// v6: Route all LLM calls through Lovable AI Gateway (no OPENAI_API_KEY required)
+// v7: Route LLM calls through Lovable AI Gateway (Google/OpenAI) or direct Anthropic API
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
 
 const cors = {
