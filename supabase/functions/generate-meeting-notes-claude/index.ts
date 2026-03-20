@@ -627,20 +627,23 @@ serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const meetingId: string | null = reqMeetingId || null;
 
-    // Save generation_metadata baseline
+    // Save generation_metadata baseline (upsert to ensure row exists for QC step)
     if (supabaseUrl && serviceKey && meetingId) {
       try {
         const sb = createClient(supabaseUrl, serviceKey);
         await sb.from('meeting_summaries')
-          .update({
+          .upsert({
+            meeting_id: meetingId,
+            summary: meetingMinutes,
             generation_metadata: {
               model: modelLabel,
               transcript_source: 'auto',
               note_style: 'standard',
-            }
-          })
-          .eq('meeting_id', meetingId);
-        console.log('💾 Baseline generation_metadata saved');
+            },
+            ai_generated: true,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'meeting_id' });
+        console.log('💾 Baseline generation_metadata saved (upsert)');
       } catch (metaErr) {
         console.warn('⚠️ Could not save baseline metadata:', metaErr);
       }
@@ -732,17 +735,22 @@ serve(async (req) => {
           .maybeSingle();
 
         const existingMeta = (existingRow?.generation_metadata as any) || {};
+        const updatedMeta = {
+          ...existingMeta,
+          model: modelLabel,
+          transcript_source: existingMeta.transcript_source || 'auto',
+          note_style: existingMeta.note_style || 'standard',
+          qc: qcResult,
+        };
+
         await sb.from('meeting_summaries')
-          .update({
-            generation_metadata: {
-              ...existingMeta,
-              model: modelLabel,
-              transcript_source: existingMeta.transcript_source || 'auto',
-              note_style: existingMeta.note_style || 'standard',
-              qc: qcResult,
-            }
-          })
-          .eq('meeting_id', meetingId);
+          .upsert({
+            meeting_id: meetingId,
+            summary: finalMinutes,
+            generation_metadata: updatedMeta,
+            ai_generated: true,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'meeting_id' });
         console.log('💾 QC results persisted to generation_metadata');
       } catch (persistErr) {
         console.warn('⚠️ Could not persist QC results:', persistErr);

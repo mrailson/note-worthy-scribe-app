@@ -310,7 +310,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
 
           <div style={{ background: '#f9fafb', borderRadius: 8, overflow: 'hidden' }}>
             {SECTION_META.map((sec, idx) => (
-              <React.Fragment key={sec.key}>
+              <div key={sec.key}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: (idx < SECTION_META.length - 1 || (sec.key === 'action_items_on' && localSettings.action_items_on)) ? '0.5px solid #e5e7eb' : 'none' }}>
                   <div>
                     <p style={{ fontSize: 14, margin: 0 }}>{sec.label}</p>
@@ -328,7 +328,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
                     <SpecToggle checked={localSettings.priority_column_on} onChange={v => updateLocal('priority_column_on', v)} />
                   </div>
                 )}
-              </React.Fragment>
+              </div>
             ))}
           </div>
 
