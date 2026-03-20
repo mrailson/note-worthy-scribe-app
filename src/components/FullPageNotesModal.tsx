@@ -345,6 +345,35 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [isLongMeeting, meeting?.duration_minutes, meeting?.id]);
 
+  const renderedMinutesHtml = useMemo(() => {
+    if (activeNotesStyleTab !== 'style1') return '';
+    if (selectedFormatVariation === 'standard') return minutesHtml || '';
+
+    const variationSource = formatVariationContent || notesStyle3;
+
+    switch (selectedFormatVariation) {
+      case 'no_actions':
+        return renderMinutesNoActions(variationSource, fontSizeStyle1);
+      case 'black_white':
+        return renderMinutesBlackWhite(variationSource, fontSizeStyle1);
+      case 'concise':
+        return renderMinutesConcise(variationSource, fontSizeStyle1);
+      case 'detailed':
+        return renderMinutesDetailed(variationSource, fontSizeStyle1);
+      case 'executive_brief':
+        return renderMinutesExecutiveBrief(variationSource, fontSizeStyle1);
+      default:
+        return minutesHtml || '';
+    }
+  }, [
+    activeNotesStyleTab,
+    selectedFormatVariation,
+    formatVariationContent,
+    notesStyle3,
+    fontSizeStyle1,
+    minutesHtml,
+  ]);
+
   // Generate Minutes (Standard) HTML lazily - ONLY when user explicitly selects formatted view
   // This prevents expensive main-thread rendering from blocking the UI
   useEffect(() => {
