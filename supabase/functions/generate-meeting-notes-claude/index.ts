@@ -157,6 +157,7 @@ function buildUserPrompt(params: {
   organisationName?: string;
   meetingType?: string;
   practiceContext?: string;
+  expectedAttendees?: string[];
 }): string {
   const contextLines = [
     `- Organisation: ${params.organisationName || 'Not specified'}`,
@@ -166,6 +167,13 @@ function buildUserPrompt(params: {
     params.speakerCount ? `- Number of speakers detected: ${params.speakerCount}` : null,
     params.practiceContext ? `- Practice/PCN context: ${params.practiceContext}` : null,
   ].filter(Boolean).join('\n');
+
+  // Build expected attendees section if provided
+  let attendeesSection = '';
+  if (params.expectedAttendees && params.expectedAttendees.length > 0) {
+    const attendeeList = params.expectedAttendees.map(a => `- ${a}`).join('\n');
+    attendeesSection = `\n\n## EXPECTED ATTENDEES (provided before the meeting)\n\nThe following people are expected to be in this meeting:\n${attendeeList}\n\nWhere the transcript uses speaker labels (e.g. [Speaker 1], [Speaker 2], [Speaker A], [Speaker B]), use context clues to map speakers to these names. For example, if a speaker discusses topics related to their known role, map them accordingly. List all identified speakers in the Attendees section. If a speaker cannot be confidently mapped to a name, list them as "Unidentified Speaker (N)". Never leave the attendee list as TBC if speaker labels are present in the transcript.`;
+  }
 
   return `## MEETING CONTEXT (auto-populated by Notewell)
 
