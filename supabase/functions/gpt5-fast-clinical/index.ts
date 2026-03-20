@@ -749,7 +749,7 @@ serve(async (req) => {
     if (Object.keys(metaInfo).length > 0) {
       const metaMessage = `data: ${JSON.stringify({ _meta: metaInfo })}\n\n`;
       
-      const originalBody = resp.body;
+      const originalBody = responseBody;
       const newStream = new ReadableStream({
         async start(controller) {
           controller.enqueue(new TextEncoder().encode(metaMessage));
@@ -772,7 +772,7 @@ serve(async (req) => {
     }
     
     // Return the streaming response directly
-    return new Response(resp.body, {
+    return new Response(responseBody, {
       headers: { ...cors, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" }
     });
 
