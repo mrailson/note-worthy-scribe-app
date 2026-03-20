@@ -1352,8 +1352,10 @@ serve(async (req) => {
     } catch (repairErr: any) {
       console.warn(`[HallucinationRepair] Non-blocking error: ${repairErr.message}`);
     }
+    const hallucinationRepairDurationMs = Date.now() - hallucinationRepairStart;
 
     // ============= POST-MERGE SPEAKER INJECTION (Diarisation Overlay) =============
+    const speakerInjectionStart = Date.now();
     let speakerInjectionLog: any = null;
     try {
       // Build speaker timeline from AssemblyAI (primary) and Deepgram (fallback)
