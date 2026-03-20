@@ -193,6 +193,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   }, [isOpen, meeting?.id]);
   const [notesContent, setNotesContent] = useState(notes);
   const [generationMetadata, setGenerationMetadata] = useState<any>(null);
+  const [consolidationTiming, setConsolidationTiming] = useState<any>(null);
   const [transcript, setTranscript] = useState('');
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
