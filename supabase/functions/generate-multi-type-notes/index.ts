@@ -27,10 +27,11 @@ Format:
 • **Healthcare Focus:** [Key clinical/operational areas discussed]
 
 ## Key Healthcare Decisions Made
-• **[Clinical Service Decision]** - Direct impact on patient care delivery and practice capacity
-• **[Operational Decision]** - Effect on practice workflow, staff resources, and service efficiency  
-• **[Financial Decision]** - Practice revenue implications and cost-benefit for patient services
-• **[Partnership Decision]** - PCN collaboration affecting service delivery or shared resources
+Label each decision as **[RESOLVED]** (formal vote), **[AGREED]** (clear consensus), or **[NOTED]** (presented/reported, no group agreement). If in doubt between AGREED and NOTED, use NOTED.
+• **[RESOLVED/AGREED/NOTED]** **[Clinical Service Decision]** - Direct impact on patient care delivery and practice capacity
+• **[RESOLVED/AGREED/NOTED]** **[Operational Decision]** - Effect on practice workflow, staff resources, and service efficiency  
+• **[RESOLVED/AGREED/NOTED]** **[Financial Decision]** - Practice revenue implications and cost-benefit for patient services
+• **[RESOLVED/AGREED/NOTED]** **[Partnership Decision]** - PCN collaboration affecting service delivery or shared resources
 
 ## Practice Impact Summary
 • **Patient Care:** [How decisions improve patient experience, access, or clinical outcomes]
