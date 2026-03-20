@@ -2167,7 +2167,8 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         message: 'Meeting notes generated successfully',
         notesLength: generatedNotes.length,
         content: generatedNotes,
-        modelUsed
+        modelUsed,
+        qc: qcResult,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
