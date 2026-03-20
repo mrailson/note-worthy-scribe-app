@@ -135,11 +135,24 @@ serve(async (req) => {
         await supabase.storage.from('audio-imports').remove([storagePath]);
         console.log('[AssemblyAI-URL] Cleaned up temporary file');
         
+        // Build speaker-labelled text from utterances if available
+        const utterances = result.utterances || [];
+        let speakerLabelledText = result.text || '';
+        if (utterances.length > 0) {
+          speakerLabelledText = utterances.map((u: any) => {
+            const label = `[Speaker ${String.fromCharCode(65 + (u.speaker || 0))}]`;
+            return `${label}: ${u.text}`;
+          }).join('\n');
+          console.log(`[AssemblyAI-URL] Built speaker-labelled text from ${utterances.length} utterances`);
+        }
+        
         return Response.json({
-          text: result.text || '',
+          text: speakerLabelledText,
+          text_raw: result.text || '',
           confidence: result.confidence || 0.9,
           duration: result.audio_duration,
           fileName,
+          utterances,
         }, { headers: corsHeaders });
       }
 
