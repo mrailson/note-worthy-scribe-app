@@ -724,7 +724,7 @@ serve(async (req) => {
       };
     }
 
-    // ── Persist QC results to generation_metadata ─────────────────────
+    // ── Persist QC results to generation_metadata only (QC is advisory) ──
     if (supabaseUrl && serviceKey && meetingId) {
       try {
         const sb = createClient(supabaseUrl, serviceKey);
@@ -743,15 +743,18 @@ serve(async (req) => {
           qc: qcResult,
         };
 
-        await sb.from('meeting_summaries')
-          .upsert({
-            meeting_id: meetingId,
-            summary: finalMinutes,
+        const { error: qcPersistError } = await sb.from('meeting_summaries')
+          .update({
             generation_metadata: updatedMeta,
-            ai_generated: true,
             updated_at: new Date().toISOString(),
-          }, { onConflict: 'meeting_id' });
-        console.log('💾 QC results persisted to generation_metadata');
+          })
+          .eq('meeting_id', meetingId);
+
+        if (qcPersistError) {
+          throw qcPersistError;
+        }
+
+        console.log('💾 QC results persisted to generation_metadata only; summary left unchanged');
         console.log('METADATA WRITTEN:', JSON.stringify(updatedMeta));
       } catch (persistErr) {
         console.warn('⚠️ Could not persist QC results:', persistErr);
