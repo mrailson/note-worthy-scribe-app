@@ -2156,7 +2156,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       });
 
       // Read LLM preference from localStorage
-      const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
+        ? 'claude-sonnet-4-6'
+        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
       
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
