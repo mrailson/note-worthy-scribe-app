@@ -759,15 +759,36 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
      // OPTIMISATION: Use note styles already in meeting object if available (from handleViewMeetingSummary)
      // This avoids redundant DB calls for data we already have
      const hasPreloadedStyles = meeting.notes_style_3;
-     
-     if (hasPreloadedStyles) {
-       console.log('✅ Using preloaded note styles from meeting object');
-       if (meeting.notes_style_3) setNotesStyle3(meeting.notes_style_3);
-       setNoteStylesLoaded(true);
-       return;
-     }
 
      try {
+       const { data: metaRow, error: metaError } = await supabase
+         .from('meeting_summaries')
+         .select('generation_metadata')
+         .eq('meeting_id', currentMeetingId)
+         .order('updated_at', { ascending: false })
+         .maybeSingle();
+
+       if (metaError) {
+         console.error('❌ Error loading generation metadata:', metaError);
+       } else {
+         console.log('🧾 FullPage generation metadata:', {
+           meetingId: currentMeetingId,
+           hasPreloadedStyles: !!hasPreloadedStyles,
+           generation_metadata: metaRow?.generation_metadata ?? null,
+         });
+
+         if (metaRow?.generation_metadata) {
+           setGenerationMetadata(metaRow.generation_metadata as any);
+         }
+       }
+
+       if (hasPreloadedStyles) {
+         console.log('✅ Using preloaded note styles from meeting object');
+         if (meeting.notes_style_3) setNotesStyle3(meeting.notes_style_3);
+         setNoteStylesLoaded(true);
+         return;
+       }
+
        // Run queries in parallel for faster loading - skip access check for speed (RLS handles security)
        const [meetingDataResult, multiNotesResult] = await Promise.all([
          supabase
@@ -792,32 +813,19 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
          return;
        }
 
-        // Validate we're still on the same meeting before updating state
-        if (meeting?.id !== currentMeetingId) {
-          console.warn('⚠️ Meeting changed during note styles loading, discarding results');
-          return;
-        }
+       // Validate we're still on the same meeting before updating state
+       if (meeting?.id !== currentMeetingId) {
+         console.warn('⚠️ Meeting changed during note styles loading, discarding results');
+         return;
+       }
 
-         if (meetingData) {
-           if (meetingData.notes_style_3) {
-             setNotesStyle3(meetingData.notes_style_3);
-           }
-           // Mark note styles as loaded after applying data
-            setNoteStylesLoaded(true);
-          }
-
-          // Always fetch generation metadata from meeting_summaries
-          {
-            const { data: metaRow } = await supabase
-              .from('meeting_summaries')
-              .select('generation_metadata')
-              .eq('meeting_id', currentMeetingId)
-              .order('updated_at', { ascending: false })
-              .maybeSingle();
-            if (metaRow?.generation_metadata) {
-              setGenerationMetadata(metaRow.generation_metadata as any);
-            }
-          }
+       if (meetingData) {
+         if (meetingData.notes_style_3) {
+           setNotesStyle3(meetingData.notes_style_3);
+         }
+         // Mark note styles as loaded after applying data
+         setNoteStylesLoaded(true);
+       }
 
           // Fallback: if Standard notes not stored on meetings table yet, pull latest from meeting_summaries
           if (!meetingData?.notes_style_3) {
