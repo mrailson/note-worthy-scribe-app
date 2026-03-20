@@ -990,7 +990,7 @@ IMPORTANT: Drastically reduce narrative. This should be the shortest note type.
 
 Structure:
 1. QUICK REFERENCE box at the top: "X decisions made | Y actions assigned | Z deadlines this month"
-2. DECISIONS — bullet list of every decision, one line each, bold the outcome
+2. DECISIONS — bullet list of every decision, one line each, prefixed with **[RESOLVED]**, **[AGREED]**, or **[NOTED]** label, bold the outcome
 3. ACTION ITEMS — the full action table with owners, deadlines, and priority (this is the PRIMARY content)
 4. KEY CONTEXT — only 2-3 sentences of background, maximum, for each major topic. Only include context that is essential to understand the actions.
 5. RISKS — bullet list only if there are genuine risks or blockers
