@@ -787,28 +787,24 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             if (metaRow?.generation_metadata) {
               setGenerationMetadata(metaRow.generation_metadata as any);
             }
+          }
 
-         // Fallback: if Standard notes not stored on meetings table yet, pull latest from meeting_summaries
-         if (!meetingData?.notes_style_3) {
+          // Fallback: if Standard notes not stored on meetings table yet, pull latest from meeting_summaries
+          if (!meetingData?.notes_style_3) {
             const { data: summaryRow, error: summaryErr } = await supabase
               .from('meeting_summaries')
-              .select('summary, generation_metadata')
+              .select('summary')
               .eq('meeting_id', currentMeetingId)
               .order('updated_at', { ascending: false })
               .maybeSingle();
 
-            if (!summaryErr && summaryRow?.generation_metadata) {
-              setGenerationMetadata(summaryRow.generation_metadata as any);
+            if (!summaryErr && summaryRow?.summary) {
+              setNotesStyle3(summaryRow.summary);
+              void saveNoteStyleToDatabase(3, summaryRow.summary);
+              console.log('✅ Loaded Standard notes from meeting_summaries fallback');
+              setNoteStylesLoaded(true);
             }
-
-           if (!summaryErr && summaryRow?.summary) {
-             setNotesStyle3(summaryRow.summary);
-             // Persist for next time to keep UI consistent
-             void saveNoteStyleToDatabase(3, summaryRow.summary);
-             console.log('✅ Loaded Standard notes from meeting_summaries fallback');
-             setNoteStylesLoaded(true);
-           }
-         }
+          }
 
         console.log('✅ Loaded existing note styles for meeting:', currentMeetingId);
         setNoteStylesLoaded(true);
