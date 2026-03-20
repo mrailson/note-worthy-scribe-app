@@ -489,16 +489,68 @@ serve(async (req) => {
     meetingMinutes = sanitizeMeetingMinutes(meetingMinutes);
     meetingMinutes = sanitiseActionOwners(meetingMinutes, processedTranscript);
 
-    const totalTime = Date.now() - functionStartTime;
-    console.log(`✅ Meeting minutes generated (${modelLabel}) in ${totalTime}ms`);
+    const genTime = Date.now() - functionStartTime;
+    console.log(`✅ Meeting minutes generated (${modelLabel}) in ${genTime}ms`);
     console.log('📝 Preview:', meetingMinutes.substring(0, 500));
+
+    // ── Quality Gate ──────────────────────────────────────────────────
+    let qualityGateResult: any = null;
+    let finalMinutes = meetingMinutes;
+
+    try {
+      console.log('🔍 Running Quality Gate verification...');
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+      if (supabaseUrl && serviceKey) {
+        const gateResponse = await fetch(`${supabaseUrl}/functions/v1/meeting-notes-quality-gate`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transcript: processedTranscript,
+            draftMinutes: meetingMinutes,
+          }),
+        });
+
+        if (gateResponse.ok) {
+          qualityGateResult = await gateResponse.json();
+          console.log(`🏁 Quality Gate result: ${qualityGateResult.status} (${qualityGateResult.totalTimeMs}ms)`);
+
+          // Use corrected minutes if auto-fix was applied
+          if (qualityGateResult.status === 'AUTO_CORRECTED' && qualityGateResult.correctedMinutes) {
+            finalMinutes = qualityGateResult.correctedMinutes;
+            console.log(`🔧 Using auto-corrected minutes (${qualityGateResult.accuracyIssueCount} accuracy, ${qualityGateResult.missingTopicCount} coverage, ${qualityGateResult.missingActionCount} action issues resolved)`);
+          }
+        } else {
+          console.warn('⚠️ Quality Gate returned non-OK status:', gateResponse.status);
+        }
+      }
+    } catch (gateError) {
+      console.warn('⚠️ Quality Gate failed (non-blocking):', gateError.message);
+    }
+
+    const totalTime = Date.now() - functionStartTime;
+    console.log(`✅ Full pipeline complete in ${totalTime}ms (generation: ${genTime}ms, gate: ${totalTime - genTime}ms)`);
 
     return new Response(JSON.stringify({
       success: true,
-      meetingMinutes,
-      generatedNotes: meetingMinutes,
+      meetingMinutes: finalMinutes,
+      generatedNotes: finalMinutes,
       modelUsed: modelLabel,
       processingTimeMs: totalTime,
+      qualityGate: qualityGateResult ? {
+        status: qualityGateResult.status,
+        accuracyIssueCount: qualityGateResult.accuracyIssueCount || 0,
+        missingTopicCount: qualityGateResult.missingTopicCount || 0,
+        missingActionCount: qualityGateResult.missingActionCount || 0,
+        highSeverityCount: qualityGateResult.highSeverityCount || 0,
+        pipelineSteps: qualityGateResult.pipelineSteps || [],
+        totalTimeMs: qualityGateResult.totalTimeMs || 0,
+        summary: qualityGateResult.verificationReport?.summary || null,
+      } : null,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
