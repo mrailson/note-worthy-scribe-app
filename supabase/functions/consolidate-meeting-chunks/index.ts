@@ -936,6 +936,7 @@ serve(async (req) => {
   }
 
   try {
+    const pipelineStart = Date.now();
     const { meetingId, liveTranscript } = await req.json();
     
     if (!meetingId) {
@@ -1192,7 +1193,9 @@ serve(async (req) => {
     }
 
     // ============= PERFORM BEST-OF-ALL 3-ENGINE MERGE =============
+    const mergeStart = Date.now();
     const mergeResult = mergeBestOfAll(whisperGoldChunks, assemblyRaw, deepgramRaw, DEFAULT_MERGE_CONFIG);
+    const mergeDurationMs = Date.now() - mergeStart;
     
     console.log(`🔀 Best-of-All merge complete:`);
     console.log(`   Whisper (gold): ${whisperGoldChunks.length} chunk(s), Assembly: ${mergeResult.stats.assemblyChunks}, Deepgram: ${mergeResult.stats.deepgramChunks}`);
@@ -1304,6 +1307,7 @@ serve(async (req) => {
     }
 
     // ============= HALLUCINATION DETECTION & REPAIR (BoT cleanup) =============
+    const hallucinationRepairStart = Date.now();
     let hallucinationRepairLog: any = null;
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -1348,8 +1352,10 @@ serve(async (req) => {
     } catch (repairErr: any) {
       console.warn(`[HallucinationRepair] Non-blocking error: ${repairErr.message}`);
     }
+    const hallucinationRepairDurationMs = Date.now() - hallucinationRepairStart;
 
     // ============= POST-MERGE SPEAKER INJECTION (Diarisation Overlay) =============
+    const speakerInjectionStart = Date.now();
     let speakerInjectionLog: any = null;
     try {
       // Build speaker timeline from AssemblyAI (primary) and Deepgram (fallback)
@@ -1399,6 +1405,17 @@ serve(async (req) => {
       console.warn(`[SpeakerInjection] Non-blocking error: ${speakerErr.message}`);
       speakerInjectionLog = { error: speakerErr.message };
     }
+    const speakerInjectionDurationMs = Date.now() - speakerInjectionStart;
+    const totalPipelineDurationMs = Date.now() - pipelineStart;
+
+    // Build consolidation timing data
+    const consolidationTiming = {
+      merge_seconds: parseFloat((mergeDurationMs / 1000).toFixed(2)),
+      hallucination_repair_seconds: parseFloat((hallucinationRepairDurationMs / 1000).toFixed(2)),
+      speaker_injection_seconds: parseFloat((speakerInjectionDurationMs / 1000).toFixed(2)),
+      total_consolidation_seconds: parseFloat((totalPipelineDurationMs / 1000).toFixed(2)),
+    };
+    console.log(`[TIMING] Merge: ${consolidationTiming.merge_seconds}s | Repair: ${consolidationTiming.hallucination_repair_seconds}s | Speakers: ${consolidationTiming.speaker_injection_seconds}s | Total: ${consolidationTiming.total_consolidation_seconds}s`);
 
     // Update the meeting with the best transcript AND per-source transcripts
     const updatePayload: Record<string, any> = {
@@ -1428,6 +1445,7 @@ serve(async (req) => {
         finalEqualsWhisperClean: mergeResult.transcript.trim() === whisperCleanText.trim(),
         hallucinationRepair: hallucinationRepairLog,
         speakerInjection: speakerInjectionLog,
+        timing: consolidationTiming,
         generatedAt: new Date().toISOString()
       }
     };

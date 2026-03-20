@@ -181,6 +181,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   }, [initialTab, isOpen]);
   const [notesStyle3, setNotesStyle3] = useState("");
   const [generationMetadata, setGenerationMetadata] = useState<any>(null);
+  const [consolidationTiming, setConsolidationTiming] = useState<any>(null);
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
   
   // Ref to prevent multiple simultaneous regeneration calls
@@ -778,10 +779,23 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
            generation_metadata: metaRow?.generation_metadata ?? null,
          });
 
-         if (metaRow?.generation_metadata) {
-           setGenerationMetadata(metaRow.generation_metadata as any);
-         }
-       }
+          if (metaRow?.generation_metadata) {
+            setGenerationMetadata(metaRow.generation_metadata as any);
+          }
+
+          // Fetch consolidation timing from meetings.merge_decision_log
+          const { data: mergeLogRow } = await supabase
+            .from('meetings')
+            .select('merge_decision_log')
+            .eq('id', currentMeetingId)
+            .maybeSingle();
+          if (mergeLogRow?.merge_decision_log) {
+            const log = mergeLogRow.merge_decision_log as any;
+            if (log?.timing) {
+              setConsolidationTiming(log.timing);
+            }
+          }
+        }
 
        if (hasPreloadedStyles) {
          console.log('✅ Using preloaded note styles from meeting object');
@@ -3823,7 +3837,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                 }>
                   <div className="px-3 pt-2 flex items-center gap-2">
                     <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
-                    <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
+                    <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} consolidationTiming={consolidationTiming} />
                     {meeting?.id && (
                       <>
                         <span className="text-xs font-medium text-muted-foreground ml-1">Recorded on:</span>

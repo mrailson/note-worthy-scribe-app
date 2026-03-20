@@ -193,6 +193,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   }, [isOpen, meeting?.id]);
   const [notesContent, setNotesContent] = useState(notes);
   const [generationMetadata, setGenerationMetadata] = useState<any>(null);
+  const [consolidationTiming, setConsolidationTiming] = useState<any>(null);
   const [transcript, setTranscript] = useState('');
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
@@ -1043,6 +1044,19 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
         if (summaryData?.generation_metadata) {
           setGenerationMetadata(summaryData.generation_metadata as any);
+        }
+
+        // Fetch consolidation timing from meetings.merge_decision_log
+        const { data: mergeLogRow } = await supabase
+          .from('meetings')
+          .select('merge_decision_log')
+          .eq('id', meeting.id)
+          .maybeSingle();
+        if (mergeLogRow?.merge_decision_log) {
+          const log = mergeLogRow.merge_decision_log as any;
+          if (log?.timing) {
+            setConsolidationTiming(log.timing);
+          }
         }
 
         if (meetingData?.notes_style_3) {
@@ -3657,7 +3671,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                   <div className="flex flex-wrap justify-between items-center gap-2 min-h-[36px]">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
-                      <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
+                      <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} consolidationTiming={consolidationTiming} />
                       {meeting?.id && (
                         <>
                           <span className="text-xs font-medium text-muted-foreground ml-1">Recorded on:</span>
