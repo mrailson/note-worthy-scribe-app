@@ -456,7 +456,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         : notesTranscriptSource === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)';
       toast.info(`Regenerating ${typeConfig?.label || 'Standard'} notes at ${levelLabel} detail level using ${sourceLabel}...`);
       
-      const modelOverrideLvl = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
+      const modelOverrideLvl = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
+        ? 'claude-sonnet-4-6'
+        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
       const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { 
           modelOverride: modelOverrideLvl,

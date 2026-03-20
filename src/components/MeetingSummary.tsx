@@ -347,7 +347,9 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
     setIsClaudeGenerating(true);
     
     try {
-      const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
+        ? 'claude-sonnet-4-6'
+        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript,

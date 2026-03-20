@@ -2239,7 +2239,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
 
-      const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
+      const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
+        ? 'claude-sonnet-4-6'
+        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
       let data, error;
       try {
         // Start the generation with custom timeout

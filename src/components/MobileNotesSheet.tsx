@@ -544,7 +544,9 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
             hour: '2-digit', 
             minute: '2-digit' 
           }) : '';
-          const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
+          const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
+            ? 'claude-sonnet-4-6'
+            : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
 
           result = await supabase.functions.invoke('generate-meeting-notes-claude', {
             body: {
