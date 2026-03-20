@@ -48,3 +48,20 @@ Consolidated multi-document approvals into a single-email, single-action experie
 - `supabase/functions/send-approval-email/index.ts` — Added `multi_request` (sends one email listing all documents with single approve button) and `multi_send_completed` (sends one completion email with all signed PDFs attached)
 - `src/pages/PublicApproval.tsx` — Added tabbed multi-document view with single approval form for group tokens
 - `src/App.tsx` — Added `/approve/group/:groupToken` route
+
+## Recording Navigation Protection — Phase 1 IMPLEMENTED
+
+Prevents recordings from being silently killed when users navigate away from the home page during an active meeting recording.
+
+### Root Cause
+`MeetingRecorder` was rendered only inside `Index.tsx` (the `/` route). Navigating to any other page unmounted the component, destroying MediaRecorder, audio streams, and transcription.
+
+### Changes
+- `src/components/MeetingRecorder.tsx` — Wrapped `setIsRecording` to also call `setRecordingState()` from `RecordingContext`, broadcasting recording status globally
+- `src/hooks/useNavigationBlocker.ts` — NEW: Intercepts navigation (popstate/back button) while recording is active on `/`, shows confirmation dialog
+- `src/components/NavigationBlockerDialog.tsx` — NEW: Alert dialog warning user that leaving will stop the recording
+- `src/pages/Index.tsx` — Wired up navigation blocker and dialog
+- `src/components/Header.tsx` — Added red pulsing "REC" indicator badge next to the app title when a recording is active, visible from any page
+
+### Phase 2 (future)
+Extract recording engine into a persistent singleton service so recordings survive route changes (true background recording).
