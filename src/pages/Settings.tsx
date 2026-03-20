@@ -106,9 +106,16 @@ export default function Settings() {
   const [retentionPolicy, setRetentionPolicy] = useState<string>('forever');
   const [retentionLoading, setRetentionLoading] = useState(false);
   
+  const DEFAULT_MEETING_LLM = 'claude-sonnet-4-6';
+
   // LLM model preference for note regeneration
   const [regenerateLlm, setRegenerateLlm] = useState<string>(() => {
-    return localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
+    const stored = localStorage.getItem('meeting-regenerate-llm');
+    if (!stored || stored === 'gemini-3-flash') {
+      localStorage.setItem('meeting-regenerate-llm', DEFAULT_MEETING_LLM);
+      return DEFAULT_MEETING_LLM;
+    }
+    return stored;
   });
   
   const handleRegenerateLlmChange = (value: string) => {
