@@ -162,9 +162,9 @@ function renderMeetingContent(content: string): React.ReactNode[] {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((p, i) => {
       if (p.startsWith('**') && p.endsWith('**')) {
-        // Highlight "Agreed" lines in red bold
+        // Highlight "Resolved" lines in red bold
         const inner = p.slice(2, -2);
-        if (/^Agreed/i.test(inner)) {
+        if (/^Resolved/i.test(inner)) {
           return <strong key={i} style={{ color: COLORS.agreedRed }}>{inner}</strong>;
         }
         return <strong key={i}>{inner}</strong>;
