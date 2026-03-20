@@ -3576,7 +3576,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                                              {plainTextPreview || notesStyle3 || "No standard notes are available for this meeting."}
                                            </pre>
                                          </ScrollArea>
-                                       )}
+                                        )}
                                     </div>
                                  )}
                              </div>
