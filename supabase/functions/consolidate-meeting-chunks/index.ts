@@ -1405,6 +1405,17 @@ serve(async (req) => {
       console.warn(`[SpeakerInjection] Non-blocking error: ${speakerErr.message}`);
       speakerInjectionLog = { error: speakerErr.message };
     }
+    const speakerInjectionDurationMs = Date.now() - speakerInjectionStart;
+    const totalPipelineDurationMs = Date.now() - pipelineStart;
+
+    // Build consolidation timing data
+    const consolidationTiming = {
+      merge_seconds: parseFloat((mergeDurationMs / 1000).toFixed(2)),
+      hallucination_repair_seconds: parseFloat((hallucinationRepairDurationMs / 1000).toFixed(2)),
+      speaker_injection_seconds: parseFloat((speakerInjectionDurationMs / 1000).toFixed(2)),
+      total_consolidation_seconds: parseFloat((totalPipelineDurationMs / 1000).toFixed(2)),
+    };
+    console.log(`[TIMING] Merge: ${consolidationTiming.merge_seconds}s | Repair: ${consolidationTiming.hallucination_repair_seconds}s | Speakers: ${consolidationTiming.speaker_injection_seconds}s | Total: ${consolidationTiming.total_consolidation_seconds}s`);
 
     // Update the meeting with the best transcript AND per-source transcripts
     const updatePayload: Record<string, any> = {
