@@ -215,18 +215,12 @@ export const usePracticeContext = () => {
     }
   };
 
+  const userId = user?.id;
   useEffect(() => {
-    let cancelled = false;
-    
-    if (user) {
-      const load = async () => {
-        await loadPracticeContext();
-      };
-      load();
+    if (userId) {
+      loadPracticeContext();
     }
-    
-    return () => { cancelled = true; };
-  }, [user]);
+  }, [userId]);
 
   return {
     practiceContext,
