@@ -627,20 +627,23 @@ serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const meetingId: string | null = reqMeetingId || null;
 
-    // Save generation_metadata baseline
+    // Save generation_metadata baseline (upsert to ensure row exists for QC step)
     if (supabaseUrl && serviceKey && meetingId) {
       try {
         const sb = createClient(supabaseUrl, serviceKey);
         await sb.from('meeting_summaries')
-          .update({
+          .upsert({
+            meeting_id: meetingId,
+            summary: meetingMinutes,
             generation_metadata: {
               model: modelLabel,
               transcript_source: 'auto',
               note_style: 'standard',
-            }
-          })
-          .eq('meeting_id', meetingId);
-        console.log('💾 Baseline generation_metadata saved');
+            },
+            ai_generated: true,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'meeting_id' });
+        console.log('💾 Baseline generation_metadata saved (upsert)');
       } catch (metaErr) {
         console.warn('⚠️ Could not save baseline metadata:', metaErr);
       }
