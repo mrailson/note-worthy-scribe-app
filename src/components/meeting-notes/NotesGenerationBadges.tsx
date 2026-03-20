@@ -119,7 +119,7 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
   const qcBadgeClass = () => {
     if (isLegacy) return 'bg-muted/50 text-muted-foreground border-muted';
     if (qcStatus === 'passed') return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800';
-    if (qcStatus === 'failed') return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800';
+    if (qcStatus === 'failed') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800';
     if (qcStatus === 'error') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800';
     return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800';
   };
