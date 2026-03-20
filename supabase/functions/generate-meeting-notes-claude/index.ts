@@ -482,7 +482,7 @@ serve(async (req) => {
         const apiStart = Date.now();
 
         meetingMinutes = isClaudeModel
-          ? await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, userPrompt)
+          ? await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, userPrompt)
           : await callGemini(NOTEWELL_SYSTEM_PROMPT, userPrompt);
 
         console.log(`⚡ API response: ${Date.now() - apiStart}ms`);
