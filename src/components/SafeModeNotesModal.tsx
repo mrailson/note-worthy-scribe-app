@@ -127,6 +127,7 @@ import EditableSection, { Section } from "@/components/scribe/EditableSection";
 import InteractiveNotesContent from "@/components/meeting-notes/InteractiveNotesContent";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
+import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
 import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 import { useNotesViewSettings } from "@/hooks/useNotesViewSettings";
