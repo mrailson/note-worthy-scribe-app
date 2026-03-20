@@ -3658,6 +3658,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
                       <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
+                      {meeting?.id && <RecordingDeviceBadge meetingId={meeting.id} />}
                     </div>
                     {/* Sub-tabs for Batch/Live/Deepgram with copy buttons */}
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
