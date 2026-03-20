@@ -374,6 +374,19 @@ export const MeetingHistoryList = ({
     return folderMap;
   }, [folders]);
 
+  const meetingFolderBadges = useMemo(() => {
+    const badgeMap = new Map<string, (typeof folders)[number] | null>();
+    localMeetings.forEach((meeting) => {
+      if (!meeting.folder_id) {
+        badgeMap.set(meeting.id, null);
+        return;
+      }
+
+      badgeMap.set(meeting.id, meetingFoldersById.get(meeting.folder_id) ?? null);
+    });
+    return badgeMap;
+  }, [localMeetings, meetingFoldersById]);
+
   // Real-time subscription for automatic refresh when meetings are updated
   // MEMORY FIX: Keep subscription stable even if parent recreates onRefresh
   useEffect(() => {
