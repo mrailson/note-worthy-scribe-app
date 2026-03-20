@@ -116,10 +116,6 @@ import { MeetingAudioStudio } from "@/components/meeting-details/MeetingAudioStu
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { useActionItemsCount } from "@/hooks/useActionItemsCount";
 import { supabase } from "@/integrations/supabase/client";
-import { BackupBadge } from "@/components/offline/BackupBadge";
-import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
-import { LlmModelBadge } from "@/components/meeting-history/LlmModelBadge";
-import { QualityGateBadge } from "@/components/meeting-history/QualityGateBadge";
 import { toast } from "sonner";
 import { generateProfessionalWordFromContent, ParsedMeetingDetailsInput, ParsedActionItemInput } from "@/utils/generateProfessionalMeetingDocx";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
