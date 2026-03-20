@@ -3576,11 +3576,18 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                                            </pre>
                                          </ScrollArea>
                                        )}
-                                   </div>
-                                )}
-                            </div>
-                          )}
-                       </TabsContent>
+                                    </div>
+                                 )}
+                             </div>
+
+                             {/* Quality Report Section */}
+                             <QualityReportSection
+                               qc={generationMetadata?.qc}
+                               meetingId={meeting?.id}
+                               onQcUpdated={(newMeta) => setGenerationMetadata(newMeta)}
+                             />
+                           )}
+                        </TabsContent>
                       
                        <TabsContent value="style2" className="flex-1 overflow-auto pb-6">
                          {isEditing && editingTab === "notes-style2" ? (
