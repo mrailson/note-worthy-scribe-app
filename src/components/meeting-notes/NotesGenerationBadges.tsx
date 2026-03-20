@@ -156,18 +156,6 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
             {qc?.summary && (
               <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">{qc.summary}</p>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2 w-full text-xs"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (qc) downloadQcReport(qc, meetingTitle);
-              }}
-            >
-              <Download className="h-3 w-3 mr-1.5" />
-              Export QC Report
-            </Button>
           </PopoverContent>
         </Popover>
       );
@@ -249,6 +237,23 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
 
       {/* Quality Check Badge */}
       {renderQcBadge()}
+
+      {/* QC Export — inline next to badge when failed/passed */}
+      {qc && qcStatus && qcStatus !== 'error' && !isLegacy && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => downloadQcReport(qc, meetingTitle)}
+              className="inline-flex items-center justify-center h-6 w-6 rounded-md border border-border bg-background hover:bg-muted transition-colors"
+            >
+              <Download className="h-3 w-3 text-muted-foreground" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">Export QC report as Word</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Note Style Badge */}
       <Tooltip>
