@@ -1349,6 +1349,57 @@ serve(async (req) => {
       console.warn(`[HallucinationRepair] Non-blocking error: ${repairErr.message}`);
     }
 
+    // ============= POST-MERGE SPEAKER INJECTION (Diarisation Overlay) =============
+    let speakerInjectionLog: any = null;
+    try {
+      // Build speaker timeline from AssemblyAI (primary) and Deepgram (fallback)
+      const speakerTimeline = buildSpeakerTimeline(assemblyRaw, deepgramRaw, DEFAULT_MERGE_CONFIG);
+
+      if (speakerTimeline.length > 0) {
+        // Estimate total duration from all chunks
+        const allEndSecs = [
+          ...assemblyRaw.map(c => c.endSec || ((c.idx + 1) * DEFAULT_MERGE_CONFIG.chunkDurationSec)),
+          ...deepgramRaw.map(c => c.endSec || ((c.idx + 1) * DEFAULT_MERGE_CONFIG.chunkDurationSec)),
+          ...whisperRaw.map(c => c.endSec || ((c.idx + 1) * DEFAULT_MERGE_CONFIG.chunkDurationSec)),
+        ];
+        const totalDurationSec = allEndSecs.length > 0 ? Math.max(...allEndSecs) : 0;
+
+        if (totalDurationSec > 0) {
+          // Inject into bestOfAllText
+          const boaResult = injectSpeakerLabels(bestOfAllText, speakerTimeline, totalDurationSec);
+          if (boaResult.injectedLabels > 0) {
+            bestOfAllText = boaResult.text;
+            console.log(`🎙️ Speaker injection (best_of_all): ${boaResult.injectedLabels} labels, ${boaResult.speakerCount} speakers`);
+          }
+
+          // Inject into bestTranscript (if it's the consolidated/best_of_all version)
+          if (bestSource === 'consolidated' || bestSource === 'best_of_all') {
+            const btResult = injectSpeakerLabels(bestTranscript, speakerTimeline, totalDurationSec);
+            if (btResult.injectedLabels > 0) {
+              bestTranscript = btResult.text;
+              bestWordCount = bestTranscript.split(/\s+/).filter(w => w.length > 0).length;
+              console.log(`🎙️ Speaker injection (bestTranscript): ${btResult.injectedLabels} labels, ${btResult.speakerCount} speakers`);
+            }
+          }
+
+          speakerInjectionLog = {
+            timelineSegments: speakerTimeline.length,
+            assemblySpeakers: new Set(speakerTimeline.filter(s => s.source === 'assembly').map(s => s.speaker)).size,
+            deepgramSpeakers: new Set(speakerTimeline.filter(s => s.source === 'deepgram').map(s => s.speaker)).size,
+            totalDurationSec: Math.round(totalDurationSec),
+            injectedLabels: boaResult.injectedLabels,
+            speakerCount: boaResult.speakerCount,
+          };
+        }
+      } else {
+        console.log('🎙️ No speaker labels found in AssemblyAI or Deepgram — skipping diarisation overlay');
+        speakerInjectionLog = { skipped: true, reason: 'no_speaker_labels_in_sources' };
+      }
+    } catch (speakerErr: any) {
+      console.warn(`[SpeakerInjection] Non-blocking error: ${speakerErr.message}`);
+      speakerInjectionLog = { error: speakerErr.message };
+    }
+
     // Update the meeting with the best transcript AND per-source transcripts
     const updatePayload: Record<string, any> = {
       live_transcript_text: bestTranscript,
