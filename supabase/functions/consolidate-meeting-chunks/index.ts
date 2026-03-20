@@ -703,6 +703,231 @@ function isTextHallucinated(text: string): boolean {
   return false;
 }
 
+// ============= POST-MERGE SPEAKER INJECTION (Diarisation Overlay) =============
+
+interface SpeakerSegment {
+  speaker: string;
+  startSec: number;
+  endSec: number;
+  source: 'assembly' | 'deepgram';
+}
+
+interface SpeakerInjectionConfig {
+  toleranceMs: number;       // Alignment tolerance (default 500ms)
+  unknownLabel: string;      // Label when no speaker found
+}
+
+const DEFAULT_SPEAKER_CONFIG: SpeakerInjectionConfig = {
+  toleranceMs: 500,
+  unknownLabel: 'Unknown Speaker',
+};
+
+/**
+ * Parse [Speaker X]: labels from a chunk's text and map them to time spans
+ * within that chunk's start/end window.
+ */
+function parseSpeakerSegmentsFromText(
+  text: string,
+  chunkStartSec: number,
+  chunkEndSec: number,
+  source: 'assembly' | 'deepgram'
+): SpeakerSegment[] {
+  const segments: SpeakerSegment[] = [];
+  const regex = /\[Speaker\s+([A-Za-z0-9]+)\]\s*:\s*/gi;
+  const matches: { speaker: string; charOffset: number }[] = [];
+
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(text)) !== null) {
+    matches.push({ speaker: m[1], charOffset: m.index });
+  }
+
+  if (matches.length === 0) {
+    // No speaker labels — treat entire chunk as one segment with no label
+    return [];
+  }
+
+  const totalChars = text.length;
+  const chunkDuration = chunkEndSec - chunkStartSec;
+
+  for (let i = 0; i < matches.length; i++) {
+    const startFrac = matches[i].charOffset / totalChars;
+    const endFrac = i + 1 < matches.length ? matches[i + 1].charOffset / totalChars : 1.0;
+
+    segments.push({
+      speaker: matches[i].speaker,
+      startSec: chunkStartSec + startFrac * chunkDuration,
+      endSec: chunkStartSec + endFrac * chunkDuration,
+      source,
+    });
+  }
+
+  return segments;
+}
+
+/**
+ * Build a unified speaker timeline from AssemblyAI (primary) and Deepgram (fallback) chunks.
+ * AssemblyAI segments take priority; Deepgram fills gaps.
+ */
+function buildSpeakerTimeline(
+  assemblyChunks: RawChunk[],
+  deepgramChunks: RawChunk[],
+  cfg: MergeConfig
+): SpeakerSegment[] {
+  const assemblySegments: SpeakerSegment[] = [];
+  const deepgramSegments: SpeakerSegment[] = [];
+
+  // Parse AssemblyAI speaker segments
+  for (const chunk of assemblyChunks) {
+    const startSec = chunk.startSec ?? (chunk.idx * cfg.chunkDurationSec);
+    const endSec = chunk.endSec ?? (startSec + cfg.chunkDurationSec);
+    const segs = parseSpeakerSegmentsFromText(chunk.text, startSec, endSec, 'assembly');
+    assemblySegments.push(...segs);
+  }
+
+  // Parse Deepgram speaker segments
+  for (const chunk of deepgramChunks) {
+    const startSec = chunk.startSec ?? (chunk.idx * cfg.chunkDurationSec);
+    const endSec = chunk.endSec ?? (startSec + cfg.chunkDurationSec);
+    const segs = parseSpeakerSegmentsFromText(chunk.text, startSec, endSec, 'deepgram');
+    deepgramSegments.push(...segs);
+  }
+
+  // Sort both by start time
+  assemblySegments.sort((a, b) => a.startSec - b.startSec);
+  deepgramSegments.sort((a, b) => a.startSec - b.startSec);
+
+  if (assemblySegments.length === 0 && deepgramSegments.length === 0) {
+    return [];
+  }
+
+  if (assemblySegments.length === 0) return deepgramSegments;
+  if (deepgramSegments.length === 0) return assemblySegments;
+
+  // Merge: AssemblyAI is primary, Deepgram fills gaps
+  const timeline: SpeakerSegment[] = [...assemblySegments];
+
+  for (const dg of deepgramSegments) {
+    // Check if AssemblyAI already covers this time window
+    const covered = assemblySegments.some(
+      a => a.startSec <= dg.startSec + 0.5 && a.endSec >= dg.endSec - 0.5
+    );
+    if (!covered) {
+      // Check for partial overlap — only add if there's a genuine gap
+      const overlaps = assemblySegments.some(
+        a => !(a.endSec <= dg.startSec || a.startSec >= dg.endSec)
+      );
+      if (!overlaps) {
+        timeline.push(dg);
+      }
+    }
+  }
+
+  timeline.sort((a, b) => a.startSec - b.startSec);
+  return timeline;
+}
+
+/**
+ * Look up the speaker at a given time position using the speaker timeline.
+ * Returns the speaker label or null if none found within tolerance.
+ */
+function lookupSpeaker(
+  timeSec: number,
+  timeline: SpeakerSegment[],
+  toleranceSec: number
+): string | null {
+  // Exact match first
+  for (const seg of timeline) {
+    if (timeSec >= seg.startSec - toleranceSec && timeSec <= seg.endSec + toleranceSec) {
+      return seg.speaker;
+    }
+  }
+  // Nearest neighbour within tolerance
+  let nearest: SpeakerSegment | null = null;
+  let bestDist = Infinity;
+  for (const seg of timeline) {
+    const midpoint = (seg.startSec + seg.endSec) / 2;
+    const dist = Math.abs(timeSec - midpoint);
+    if (dist < bestDist) {
+      bestDist = dist;
+      nearest = seg;
+    }
+  }
+  if (nearest && bestDist <= toleranceSec * 2) {
+    return nearest.speaker;
+  }
+  return null;
+}
+
+/**
+ * Inject speaker labels into the merged transcript at speaker change boundaries.
+ * Uses timestamp-proportional mapping to align words with the speaker timeline.
+ */
+function injectSpeakerLabels(
+  mergedText: string,
+  timeline: SpeakerSegment[],
+  totalDurationSec: number,
+  config: SpeakerInjectionConfig = DEFAULT_SPEAKER_CONFIG
+): { text: string; speakerCount: number; injectedLabels: number } {
+  if (!mergedText?.trim() || timeline.length === 0 || totalDurationSec <= 0) {
+    return { text: mergedText, speakerCount: 0, injectedLabels: 0 };
+  }
+
+  const toleranceSec = config.toleranceMs / 1000;
+
+  // Split into sentences for granular speaker assignment
+  const sentences = mergedText
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
+  if (sentences.length === 0) {
+    return { text: mergedText, speakerCount: 0, injectedLabels: 0 };
+  }
+
+  // Calculate cumulative character offsets for proportional time mapping
+  const totalChars = mergedText.length;
+  let charOffset = 0;
+  const sentenceTimings: { sentence: string; timeSec: number }[] = [];
+
+  for (const sentence of sentences) {
+    const sentenceMidChar = charOffset + sentence.length / 2;
+    const timeSec = (sentenceMidChar / totalChars) * totalDurationSec;
+    sentenceTimings.push({ sentence, timeSec });
+    charOffset += sentence.length + 1; // +1 for the space between sentences
+  }
+
+  // Assign speakers to sentences
+  const speakerSet = new Set<string>();
+  let lastSpeaker: string | null = null;
+  let injectedLabels = 0;
+  const outputParts: string[] = [];
+
+  for (const { sentence, timeSec } of sentenceTimings) {
+    const speaker = lookupSpeaker(timeSec, timeline, toleranceSec) || config.unknownLabel;
+    speakerSet.add(speaker);
+
+    if (speaker !== lastSpeaker) {
+      // Speaker change — inject label
+      outputParts.push(`\n[Speaker ${speaker}]: ${sentence}`);
+      lastSpeaker = speaker;
+      injectedLabels++;
+    } else {
+      outputParts.push(sentence);
+    }
+  }
+
+  let result = outputParts.join(' ')
+    .replace(/\n\s+/g, '\n')   // Clean up extra spaces after newlines
+    .replace(/^\n/, '')         // Remove leading newline
+    .trim();
+
+  return {
+    text: result,
+    speakerCount: speakerSet.size,
+    injectedLabels,
+  };
+}
+
 // ============= MAIN HANDLER =============
 
 serve(async (req) => {
