@@ -9,6 +9,7 @@ import { useMinutesFormatter } from "@/hooks/useMinutesFormatter";
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
+import { ProcessingTimeBadges } from "@/components/meeting-notes/ProcessingTimeBadges";
 import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
 import { QualityReportSection } from "@/components/meeting-notes/QualityReportSection";
 import React, { useState, useEffect, useRef, Suspense, lazy, useCallback, useMemo } from "react";
@@ -3837,13 +3838,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                 }>
                   <div className="px-3 pt-2 flex items-center gap-2">
                     <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
-                    <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} consolidationTiming={consolidationTiming} />
+                    <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
                     {meeting?.id && (
                       <>
                         <span className="text-xs font-medium text-muted-foreground ml-1">Recorded on:</span>
                         <RecordingDeviceBadge meetingId={meeting.id} />
                       </>
                     )}
+                  </div>
+                  <div className="px-3 pt-1 flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Render Times:</span>
+                    <ProcessingTimeBadges noteTiming={generationMetadata?.timing} consolidationTiming={consolidationTiming} />
                   </div>
                   <TranscriptTabContent
                     meetingId={meeting?.id || ''}

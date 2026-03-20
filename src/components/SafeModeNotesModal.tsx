@@ -124,6 +124,7 @@ import InteractiveNotesContent from "@/components/meeting-notes/InteractiveNotes
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
+import { ProcessingTimeBadges } from "@/components/meeting-notes/ProcessingTimeBadges";
 import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
 import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
@@ -3668,17 +3669,21 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <ScrollArea className="h-full rounded-lg border bg-card">
                 <div className="p-6 space-y-4">
                   {/* Meeting QC Badges */}
+                  <div className="flex flex-wrap items-center gap-2 min-h-[36px]">
+                    <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
+                    <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
+                    {meeting?.id && (
+                      <>
+                        <span className="text-xs font-medium text-muted-foreground ml-1">Recorded on:</span>
+                        <RecordingDeviceBadge meetingId={meeting.id} />
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Render Times:</span>
+                    <ProcessingTimeBadges noteTiming={generationMetadata?.timing} consolidationTiming={consolidationTiming} />
+                  </div>
                   <div className="flex flex-wrap justify-between items-center gap-2 min-h-[36px]">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
-                      <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} consolidationTiming={consolidationTiming} />
-                      {meeting?.id && (
-                        <>
-                          <span className="text-xs font-medium text-muted-foreground ml-1">Recorded on:</span>
-                          <RecordingDeviceBadge meetingId={meeting.id} />
-                        </>
-                      )}
-                    </div>
                     {/* Sub-tabs for Batch/Live/Deepgram with copy buttons */}
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
                       <div className="flex items-center">
