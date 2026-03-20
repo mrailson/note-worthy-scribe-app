@@ -578,6 +578,25 @@ serve(async (req) => {
     }
     // ── Standard generation path ────────────────────────────────────────
     else {
+      // Fetch expected attendees from DB if not provided in request
+      let expectedAttendees: string[] = reqExpectedAttendees || [];
+      if (expectedAttendees.length === 0 && reqMeetingId) {
+        try {
+          const supabaseUrl = Deno.env.get('SUPABASE_URL');
+          const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+          if (supabaseUrl && serviceKey) {
+            const sb = createClient(supabaseUrl, serviceKey);
+            const { data: mtg } = await sb.from('meetings').select('expected_attendees').eq('id', reqMeetingId).maybeSingle();
+            if (mtg?.expected_attendees && Array.isArray(mtg.expected_attendees) && mtg.expected_attendees.length > 0) {
+              expectedAttendees = mtg.expected_attendees;
+              console.log(`👥 Loaded ${expectedAttendees.length} expected attendees from meeting record`);
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ Could not fetch expected attendees:', e);
+        }
+      }
+
       const promptParams = {
         transcript: processedTranscript,
         meetingTitle: meetingTitle || 'General Meeting',
@@ -588,6 +607,7 @@ serve(async (req) => {
         organisationName,
         meetingType,
         practiceContext,
+        expectedAttendees,
       };
 
       if (shouldChunk(processedTranscript)) {
