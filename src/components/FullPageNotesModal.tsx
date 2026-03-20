@@ -2290,15 +2290,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
       if (error) throw error;
 
-      if (data?.skipped) {
-        console.log('⚠️ Notes generation was skipped:', data.message);
-        toast.info(data.message || 'Notes regeneration skipped');
-        return;
-      }
-
-      // Use the content directly from the edge function response — never poll the DB
-      // This eliminates stale-read issues where the DB returns old/cached content
-      let generatedContent = data?.content || null;
+      // Use meetingMinutes from generate-meeting-notes-claude response
+      let generatedContent = data?.meetingMinutes || data?.generatedNotes || data?.content || null;
 
       if (!generatedContent) {
         // Fallback: if edge function didn't return content inline, fetch from DB once

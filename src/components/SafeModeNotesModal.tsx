@@ -469,6 +469,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
     
     setIsRegeneratingNotes(true);
+    console.log('NOTE GENERATION: Calling generate-meeting-notes-claude from SafeModeNotesModal.triggerRegeneration');
     
     try {
       const levelConfig = MEETING_DETAIL_LEVELS.find(l => l.value === newLevel);
@@ -481,27 +482,52 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         : notesTranscriptSource === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)';
       toast.info(`Regenerating ${typeConfig?.label || 'Standard'} notes at ${levelLabel} detail level using ${sourceLabel}...`);
       
+      // Select the right transcript based on the source preference
+      let transcriptToUse = notesTranscriptSource === 'best_of_all'
+        ? bestOfAllTranscript
+        : notesTranscriptSource === 'consolidated'
+          ? consolidatedTranscript
+          : notesTranscriptSource === 'batch'
+            ? batchTranscript
+            : liveTranscript;
+      
+      if (!transcriptToUse || transcriptToUse.trim().length === 0) {
+        transcriptToUse = transcript || batchTranscript || liveTranscript || bestOfAllTranscript || '';
+      }
+      
+      if (!transcriptToUse || transcriptToUse.trim().length === 0) {
+        toast.error('No transcript available to generate notes from');
+        setIsRegeneratingNotes(false);
+        return;
+      }
+      
+      const meetingDate = meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : '';
+      const meetingTime = meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }) : '';
+      
       const modelOverrideLvl = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
         ? 'claude-sonnet-4-6'
         : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
-      const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: { 
-          modelOverride: modelOverrideLvl,
-          meetingId: meeting.id,
-          forceRegenerate: true,
+          transcript: transcriptToUse,
+          meetingTitle: meeting.title,
+          meetingDate,
+          meetingTime,
           detailLevel: levelLabel.toLowerCase(),
-          noteType: typeToUse,
-          transcriptSource: notesTranscriptSource === 'consolidated' 
-            ? 'consolidated' 
-            : notesTranscriptSource === 'batch' ? 'whisper' : 'assembly'
+          modelOverride: modelOverrideLvl,
+          meetingId: meeting.id
         }
       });
       
       if (error) throw error;
       
       // Update local notes content with regenerated notes
-      if (data?.content) {
-        setNotesContent(data.content);
+      const generatedContent = data?.meetingMinutes || data?.generatedNotes || data?.content;
+      if (generatedContent) {
+        setNotesContent(generatedContent);
         toast.success(`${typeConfig?.label || 'Standard'} notes regenerated`);
       } else {
         // Fetch the updated notes from the database
@@ -524,7 +550,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     } finally {
       setIsRegeneratingNotes(false);
     }
-  }, [meeting?.id, noteType, notesTranscriptSource]);
+  }, [meeting?.id, noteType, notesTranscriptSource, transcript, batchTranscript, liveTranscript, bestOfAllTranscript, consolidatedTranscript]);
 
   // Convert DB meeting_format to local meetingType
   const mapFormatToType = (format: string | null): 'teams' | 'f2f' | 'hybrid' => {
