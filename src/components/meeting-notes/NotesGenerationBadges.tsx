@@ -111,7 +111,7 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
   const qcBadgeContent = () => {
     if (isLegacy) return 'QC Unknown';
     if (qcStatus === 'passed') return `QC Passed${qcScore != null ? ` ${qcScore}` : ''}`;
-    if (qcStatus === 'failed') return `QC Failed${qcFailedCount != null ? ` (${qcFailedCount})` : ''}`;
+    if (qcStatus === 'failed') return `QC Issues${qcFailedCount != null ? ` (${qcFailedCount})` : ''}`;
     if (qcStatus === 'error') return 'QC Error';
     return 'QC Skipped';
   };
