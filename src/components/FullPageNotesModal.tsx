@@ -773,8 +773,20 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
              setNotesStyle3(meetingData.notes_style_3);
            }
            // Mark note styles as loaded after applying data
-           setNoteStylesLoaded(true);
-         }
+            setNoteStylesLoaded(true);
+          }
+
+          // Always fetch generation metadata from meeting_summaries
+          {
+            const { data: metaRow } = await supabase
+              .from('meeting_summaries')
+              .select('generation_metadata')
+              .eq('meeting_id', currentMeetingId)
+              .order('updated_at', { ascending: false })
+              .maybeSingle();
+            if (metaRow?.generation_metadata) {
+              setGenerationMetadata(metaRow.generation_metadata as any);
+            }
 
          // Fallback: if Standard notes not stored on meetings table yet, pull latest from meeting_summaries
          if (!meetingData?.notes_style_3) {
