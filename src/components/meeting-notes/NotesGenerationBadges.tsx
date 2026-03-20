@@ -1,8 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
-import { Brain, FileText, ShieldCheck, Scroll, Download, Timer } from 'lucide-react';
+import { Brain, FileText, ShieldCheck, Download, Timer, Clock } from 'lucide-react';
 import { downloadQcReport } from '@/utils/qcReportExport';
 
 interface QcCategory {
@@ -33,6 +32,13 @@ interface TimingData {
   total_pipeline_seconds?: number;
 }
 
+interface ConsolidationTimingData {
+  merge_seconds?: number;
+  hallucination_repair_seconds?: number;
+  speaker_injection_seconds?: number;
+  total_consolidation_seconds?: number;
+}
+
 interface GenerationMetadata {
   model_used?: string;
   model?: string;
@@ -48,6 +54,7 @@ interface GenerationMetadata {
 interface NotesGenerationBadgesProps {
   metadata: GenerationMetadata | null | undefined;
   meetingTitle?: string;
+  consolidationTiming?: ConsolidationTimingData | null;
 }
 
 const QC_CATEGORY_LABELS: Record<string, string> = {
@@ -80,24 +87,17 @@ const transcriptSourceLabel = (source?: string): string => {
   }
 };
 
-const noteStyleLabel = (style?: string): string => {
-  if (!style) return 'Unknown';
-  switch (style) {
-    case 'standard': return 'Standard';
-    case '__structured__': return 'Headlines';
-    case 'detailed': return 'Detailed';
-    case 'brief': return 'Brief';
-    default: return style;
-  }
+const formatSec = (sec?: number): string => {
+  if (sec == null) return '—';
+  return `${sec.toFixed(1)}s`;
 };
 
-export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ metadata, meetingTitle }) => {
+export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ metadata, meetingTitle, consolidationTiming }) => {
   console.log('NotesGenerationBadges metadata:', metadata);
 
   const isLegacy = !metadata;
   const model = metadata?.model_used || metadata?.model;
   const source = metadata?.transcript_source;
-  const noteStyle = metadata?.note_style;
   const timing = metadata?.timing;
 
   // Use new qc object if available, fall back to legacy flat fields
@@ -109,11 +109,6 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
 
   const isGemini = model?.includes('gemini') || (!model && !isLegacy);
   const isClaude = model?.includes('claude');
-
-  // Get failed categories for popover
-  const failedCategories = qc?.categories
-    ? Object.entries(qc.categories).filter(([, cat]) => cat?.status === 'fail')
-    : [];
 
   const qcBadgeContent = () => {
     if (isLegacy) return 'QC Unknown';
@@ -131,7 +126,6 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
     return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800';
   };
 
-  // QC badge — use Popover for failed (shows category breakdown), Tooltip for everything else
   const renderQcBadge = () => {
     const badge = (
       <Badge variant="outline" className={`cursor-default ${qcBadgeClass()}`}>
@@ -140,12 +134,8 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
       </Badge>
     );
 
-    // Failed/issues state: just show the badge, no popover
-    if (qcStatus === 'failed') {
-      return badge;
-    }
+    if (qcStatus === 'failed') return badge;
 
-    // Error state: tooltip with error message
     if (qcStatus === 'error') {
       return (
         <Tooltip>
@@ -157,7 +147,6 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
       );
     }
 
-    // Passed / skipped / legacy: simple tooltip
     return (
       <Tooltip>
         <TooltipTrigger asChild>{badge}</TooltipTrigger>
@@ -173,6 +162,14 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
       </Tooltip>
     );
   };
+
+  // Check if we have any timing data at all
+  const hasNoteTiming = timing?.total_pipeline_seconds != null;
+  const hasMergeTiming = consolidationTiming?.total_consolidation_seconds != null;
+  const hasAnyTiming = hasNoteTiming || hasMergeTiming;
+
+  // Calculate grand total
+  const grandTotal = (consolidationTiming?.total_consolidation_seconds || 0) + (timing?.total_pipeline_seconds || 0);
 
   return (
     <TooltipProvider>
@@ -222,7 +219,7 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
       {/* Quality Check Badge */}
       {renderQcBadge()}
 
-      {/* QC Export — inline next to badge when failed/passed */}
+      {/* QC Export */}
       {qc && qcStatus && qcStatus !== 'error' && !isLegacy && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -239,9 +236,8 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
         </Tooltip>
       )}
 
-
-      {/* Pipeline Timing Badge */}
-      {timing?.total_pipeline_seconds != null && (
+      {/* Pipeline Timing Badge — shows grand total with full breakdown in tooltip */}
+      {hasAnyTiming && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge
@@ -249,13 +245,54 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
               className="bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700"
             >
               <Timer className="h-3 w-3 mr-1" />
-              {timing.total_pipeline_seconds.toFixed(1)}s
+              {grandTotal.toFixed(1)}s
             </Badge>
           </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs">
-              Notes: {timing.notes_generation_seconds?.toFixed(1) ?? '?'}s | QC: {timing.qc_audit_seconds?.toFixed(1) ?? '?'}s | Total: {timing.total_pipeline_seconds.toFixed(1)}s
-            </p>
+          <TooltipContent className="max-w-xs">
+            <div className="text-xs space-y-1">
+              <p className="font-semibold border-b border-border pb-1 mb-1">Processing Time Breakdown</p>
+              {hasMergeTiming && (
+                <>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">STT Merge</span>
+                    <span className="font-mono">{formatSec(consolidationTiming?.merge_seconds)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Hallucination Repair</span>
+                    <span className="font-mono">{formatSec(consolidationTiming?.hallucination_repair_seconds)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Speaker Injection</span>
+                    <span className="font-mono">{formatSec(consolidationTiming?.speaker_injection_seconds)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4 font-medium">
+                    <span>Consolidation Total</span>
+                    <span className="font-mono">{formatSec(consolidationTiming?.total_consolidation_seconds)}</span>
+                  </div>
+                </>
+              )}
+              {hasNoteTiming && (
+                <>
+                  {hasMergeTiming && <div className="border-t border-border my-1" />}
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Notes Generation</span>
+                    <span className="font-mono">{formatSec(timing?.notes_generation_seconds)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">QC Audit</span>
+                    <span className="font-mono">{formatSec(timing?.qc_audit_seconds)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4 font-medium">
+                    <span>Notes Pipeline Total</span>
+                    <span className="font-mono">{formatSec(timing?.total_pipeline_seconds)}</span>
+                  </div>
+                </>
+              )}
+              <div className="border-t border-border mt-1 pt-1 flex justify-between gap-4 font-semibold">
+                <span>Grand Total</span>
+                <span className="font-mono">{grandTotal.toFixed(1)}s</span>
+              </div>
+            </div>
           </TooltipContent>
         </Tooltip>
       )}

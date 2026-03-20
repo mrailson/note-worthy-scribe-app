@@ -1445,6 +1445,7 @@ serve(async (req) => {
         finalEqualsWhisperClean: mergeResult.transcript.trim() === whisperCleanText.trim(),
         hallucinationRepair: hallucinationRepairLog,
         speakerInjection: speakerInjectionLog,
+        timing: consolidationTiming,
         generatedAt: new Date().toISOString()
       }
     };
