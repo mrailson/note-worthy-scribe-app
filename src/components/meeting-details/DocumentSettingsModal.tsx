@@ -328,7 +328,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
                     <SpecToggle checked={localSettings.priority_column_on} onChange={v => updateLocal('priority_column_on', v)} />
                   </div>
                 )}
-              </React.Fragment>
+              </div>
             ))}
           </div>
 
