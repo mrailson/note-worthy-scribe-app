@@ -33,6 +33,7 @@ interface EmailMeetingMinutesModalProps {
     executiveSummary: boolean;
     discussionSummary: boolean;
     keyPoints: boolean;
+    decisionsRegister: boolean;
     actionList: boolean;
     openItems: boolean;
   };
