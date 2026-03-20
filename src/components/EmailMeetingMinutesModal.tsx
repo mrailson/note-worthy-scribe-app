@@ -31,6 +31,7 @@ interface EmailMeetingMinutesModalProps {
   meetingNotes: string;
   sectionVisibility?: {
     executiveSummary: boolean;
+    discussionSummary: boolean;
     keyPoints: boolean;
     actionList: boolean;
     openItems: boolean;
