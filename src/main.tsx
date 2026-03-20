@@ -39,7 +39,6 @@ import "./index.css";
 
 const queryClient = new QueryClient();
 
-// Render application
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ChunkLoadErrorBoundary>
