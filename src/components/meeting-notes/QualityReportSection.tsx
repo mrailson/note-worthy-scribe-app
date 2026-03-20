@@ -69,12 +69,15 @@ export const QualityReportSection: React.FC<QualityReportSectionProps> = ({
 
     try {
       // Fetch the transcript and notes for this meeting
+      // Fetch transcript via RPC (handles chunk consolidation) and notes from summaries
       const [transcriptResult, summaryResult] = await Promise.all([
-        supabase.from('meetings').select('full_transcript').eq('id', meetingId).maybeSingle(),
+        supabase.rpc('get_meeting_full_transcript', { p_meeting_id: meetingId }),
         supabase.from('meeting_summaries').select('summary, generation_metadata').eq('meeting_id', meetingId).order('updated_at', { ascending: false }).maybeSingle(),
       ]);
 
-      const transcript = transcriptResult.data?.full_transcript;
+      const transcript = Array.isArray(transcriptResult.data)
+        ? transcriptResult.data.map((r: any) => r.transcript_text).join(' ')
+        : (transcriptResult.data as any)?.transcript_text || '';
       const notes = summaryResult.data?.summary;
 
       if (!transcript || !notes) {
