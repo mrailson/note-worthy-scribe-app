@@ -435,7 +435,7 @@ serve(async (req) => {
       const apiStart = Date.now();
 
       if (isClaudeModel) {
-        meetingMinutes = await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, customPrompt);
+        meetingMinutes = await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, customPrompt);
       } else {
         meetingMinutes = await callGemini(NOTEWELL_SYSTEM_PROMPT, customPrompt);
       }
