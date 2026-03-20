@@ -178,8 +178,16 @@ Topic clusters to watch for (not exhaustive):
 
 **DECISIONS REGISTER**
 
-- Each decision as a bullet point, starting with what was decided
-- Include the rationale if it was stated
+Categorise every decision using one of these three labels:
+
+- **RESOLVED** — A formal vote took place (moved, seconded, carried/defeated). Use ONLY when the transcript contains explicit voting language.
+- **AGREED** — A clear consensus was reached. The test: (1) someone stated a specific course of action or conclusion, AND (2) either others explicitly endorsed it, or the chair summarised it as the position and discussion moved on without objection. Informal agreement counts.
+- **NOTED** — A matter was presented, discussed, or reported on, but no specific action or position was agreed by the group. Also use when an officer is informing the committee of a decision already taken elsewhere rather than seeking the committee's agreement.
+
+If in doubt between AGREED and NOTED, use NOTED. Never infer agreement from the absence of disagreement alone — there must be a positive signal.
+
+Format each entry as:
+- **[RESOLVED/AGREED/NOTED]** [What was decided/noted — one line, specific, with rationale if stated]
 - If a decision was conditional (e.g., "subject to rate confirmation"), note the condition
 
 **OPEN ITEMS & RISKS**
@@ -472,7 +480,7 @@ serve(async (req) => {
         }
 
         // Consolidate chunks
-        const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document following the same output format. Merge duplicate topics, unify the action log, and deduplicate decisions. Maintain ALL specific details, names, dates, figures. Use British English throughout.\n\nCHUNK RESULTS:\n${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
+        const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document following the same output format. Merge duplicate topics, unify the action log, and deduplicate decisions. In the DECISIONS REGISTER, label every entry as **[RESOLVED]**, **[AGREED]**, or **[NOTED]**. Maintain ALL specific details, names, dates, figures. Use British English throughout.\n\nCHUNK RESULTS:\n${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
         
         meetingMinutes = isClaudeModel
           ? await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, consolidationPrompt)

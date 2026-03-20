@@ -960,7 +960,7 @@ Additional NHS Formal rules:
 - Suitable for ICB circulation, CQC review, Board packs
 - Use passive voice: "The meeting noted...", "It was resolved that...", "Members agreed..."
 - Include explicit risk statements
-- Structure with clear governance headers: DECISIONS, RISKS, ESCALATIONS
+- Structure with clear governance headers: DECISIONS (using RESOLVED/AGREED/NOTED labels), RISKS, ESCALATIONS
 - Add "For Information", "For Decision", "For Approval" markers where appropriate
 - Include quorum confirmation if attendance suggests it
 - Keep action items formal with clear ownership
@@ -990,7 +990,7 @@ IMPORTANT: Drastically reduce narrative. This should be the shortest note type.
 
 Structure:
 1. QUICK REFERENCE box at the top: "X decisions made | Y actions assigned | Z deadlines this month"
-2. DECISIONS — bullet list of every decision, one line each, bold the outcome
+2. DECISIONS — bullet list of every decision, one line each, prefixed with **[RESOLVED]**, **[AGREED]**, or **[NOTED]** label, bold the outcome
 3. ACTION ITEMS — the full action table with owners, deadlines, and priority (this is the PRIMARY content)
 4. KEY CONTEXT — only 2-3 sentences of background, maximum, for each major topic. Only include context that is essential to understand the actions.
 5. RISKS — bullet list only if there are genuine risks or blockers
@@ -1170,7 +1170,7 @@ DISCUSSION POINT QUALITY RULES:
 ═══ FINAL OUTPUT CHECKLIST — VERIFY BEFORE RESPONDING ═══
 Before returning your response, check:
 1. Does EVERY key point under DISCUSSION SUMMARY have bold **Context:**, **Discussion:**, **Agreed:**, and **Implication:** sub-headings? If not, fix it now.
-2. Is there a # DECISIONS REGISTER section with a bullet list of every decision? If not, add it now.
+2. Is there a # DECISIONS REGISTER section with every entry labelled **[RESOLVED]**, **[AGREED]**, or **[NOTED]**? If not, add it now.
 3. Does the EXECUTIVE SUMMARY contain BOTH a paragraph AND bullet points? If no bullets, add 3-5 now.
 4. Are action items specific deliverables with clear end points (not monitoring tasks or ongoing responsibilities)?
 If any check fails, fix it before returning.
@@ -1258,13 +1258,18 @@ ${formatCheckBlock}
 
 # DECISIONS REGISTER
 
-A quick-scan list of every decision made in this meeting:
-- [Decision 1 — one line, specific, with who/what/when if known]
-- [Decision 2]
-- [Continue for all decisions]
-(If no decisions were made: "No formal decisions were recorded in this meeting")
+Categorise every decision using one of these three labels:
 
-This section must ONLY contain decisions that were explicitly agreed during the meeting — not ongoing positions or general sentiments.
+- **RESOLVED** — A formal vote took place (moved, seconded, carried/defeated). Use ONLY when the transcript contains explicit voting language.
+- **AGREED** — A clear consensus was reached. The test: (1) someone stated a specific course of action or conclusion, AND (2) either others explicitly endorsed it, or the chair summarised it as the position and discussion moved on without objection. Informal agreement counts.
+- **NOTED** — A matter was presented, discussed, or reported on, but no specific action or position was agreed by the group. Also use when an officer is informing the committee of a decision already taken elsewhere (e.g. by the executive team or Council) rather than seeking the committee's agreement.
+
+If in doubt between AGREED and NOTED, use NOTED. Never infer agreement from the absence of disagreement alone — there must be a positive signal (a summary statement, explicit endorsement, or the chair confirming the position).
+
+Format each entry as:
+- **[RESOLVED/AGREED/NOTED]** [What was decided/noted — one line, specific, with who/what/when if known]
+
+(If no decisions were made: "No formal decisions were recorded in this meeting")
 
 # ACTION ITEMS
 | Action | Responsible Party | Deadline | Priority |
