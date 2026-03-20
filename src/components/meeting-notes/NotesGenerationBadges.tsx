@@ -258,6 +258,26 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
           <p className="text-xs">Note format/style used for generation</p>
         </TooltipContent>
       </Tooltip>
+
+      {/* Pipeline Timing Badge */}
+      {timing?.total_pipeline_seconds != null && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge
+              variant="outline"
+              className="bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700"
+            >
+              <Timer className="h-3 w-3 mr-1" />
+              {timing.total_pipeline_seconds.toFixed(1)}s
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">
+              Notes: {timing.notes_generation_seconds?.toFixed(1) ?? '?'}s | QC: {timing.qc_audit_seconds?.toFixed(1) ?? '?'}s | Total: {timing.total_pipeline_seconds.toFixed(1)}s
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      )}
     </div>
     </TooltipProvider>
   );

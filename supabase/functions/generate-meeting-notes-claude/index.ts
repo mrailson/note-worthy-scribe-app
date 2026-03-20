@@ -825,7 +825,19 @@ serve(async (req) => {
       };
     }
 
-    // ── Persist QC results to generation_metadata only (QC is advisory) ──
+    // ── Persist QC results + timing to generation_metadata ──
+    const qcEndFinal = Date.now();
+    const qcDurationSecFinal = ((qcEndFinal - qcStartTime) / 1000).toFixed(1);
+    const noteGenDurationSec = ((qcStartTime - functionStartTime) / 1000).toFixed(1);
+    const totalDurationSec = ((qcEndFinal - functionStartTime) / 1000).toFixed(1);
+    console.log(`[PIPELINE] Notes: ${noteGenDurationSec}s | QC: ${qcDurationSecFinal}s | Total: ${totalDurationSec}s`);
+
+    const timingData = {
+      notes_generation_seconds: parseFloat(noteGenDurationSec),
+      qc_audit_seconds: parseFloat(qcDurationSecFinal),
+      total_pipeline_seconds: parseFloat(totalDurationSec),
+    };
+
     if (supabaseUrl && serviceKey && meetingId) {
       try {
         const sb = createClient(supabaseUrl, serviceKey);
@@ -842,6 +854,7 @@ serve(async (req) => {
           transcript_source: existingMeta.transcript_source || 'auto',
           note_style: existingMeta.note_style || 'standard',
           qc: qcResult,
+          timing: timingData,
         };
 
         const { error: qcPersistError } = await sb.from('meeting_summaries')
@@ -855,7 +868,7 @@ serve(async (req) => {
           throw qcPersistError;
         }
 
-        console.log('💾 QC results persisted to generation_metadata only; summary left unchanged');
+        console.log('💾 QC + timing persisted to generation_metadata; summary left unchanged');
         console.log('METADATA WRITTEN:', JSON.stringify(updatedMeta));
       } catch (persistErr) {
         console.warn('⚠️ Could not persist QC results:', persistErr);
@@ -863,7 +876,7 @@ serve(async (req) => {
     }
 
     const totalTime = Date.now() - functionStartTime;
-    console.log(`✅ Full pipeline complete in ${totalTime}ms (generation: ${genTime}ms, QC: ${totalTime - genTime}ms)`);
+    console.log(`✅ Full pipeline complete in ${totalTime}ms`);
 
     return new Response(JSON.stringify({
       success: true,
