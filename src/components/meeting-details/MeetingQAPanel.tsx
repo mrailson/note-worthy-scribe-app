@@ -154,6 +154,15 @@ export const MeetingQAPanel = memo(({ meetingId, meetingTitle }: MeetingQAPanelP
     "Who was responsible for what?"
   ];
 
+  const renderedAssistantMessages = useMemo(
+    () => messages.map((msg) =>
+      msg.role === 'assistant'
+        ? renderNHSMarkdown(msg.content, { enableNHSStyling: true })
+        : msg.content
+    ),
+    [messages]
+  );
+
   return (
     <div className="space-y-4">
       <Card>
