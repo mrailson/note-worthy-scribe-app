@@ -3051,6 +3051,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
               
               <TabsContent value="notes" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
+                  {/* Generation Pipeline Badges */}
+                  <div className="px-3 pt-2">
+                    <NotesGenerationBadges metadata={generationMetadata} />
+                  </div>
                   {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
                   <div className="flex-1 overflow-auto px-3 pt-4">
                        <Tabs value={activeNotesStyleTab} onValueChange={(value) => {
