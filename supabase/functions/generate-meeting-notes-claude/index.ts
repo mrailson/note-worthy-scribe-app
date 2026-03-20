@@ -714,9 +714,10 @@ serve(async (req) => {
     // ── 7-Category QC Audit (inline, non-blocking) ────────────────────
     let qcResult: any = null;
     const finalMinutes = meetingMinutes;
+    const qcStartTime = Date.now();
 
     try {
-      console.log('🔍 Running 7-category QC audit via Claude Haiku 4.5...');
+      console.log(`[QC] Starting quality audit at ${new Date(qcStartTime).toISOString()}`);
 
       if (!anthropicApiKey) {
         throw new Error('ANTHROPIC_API_KEY not configured — skipping QC');
