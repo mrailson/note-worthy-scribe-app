@@ -679,7 +679,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 2000,
-          system: qcSystemPrompt,
+          system: QC_SYSTEM_PROMPT,
           temperature: 0.1,
           messages: [{ role: 'user', content: qcUserPrompt }],
         }),
