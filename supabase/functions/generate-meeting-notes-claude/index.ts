@@ -235,13 +235,28 @@ Topic clusters to watch for (not exhaustive):
 
 **DECISIONS REGISTER**
 
-Categorise every decision using one of these three labels:
+DECISIONS REGISTER RULES (apply these exactly):
 
-- **RESOLVED** — A formal vote took place (moved, seconded, carried/defeated). Use ONLY when the transcript contains explicit voting language.
-- **AGREED** — A clear consensus was reached. The test: (1) someone stated a specific course of action or conclusion, AND (2) either others explicitly endorsed it, or the chair summarised it as the position and discussion moved on without objection. Informal agreement counts.
-- **NOTED** — A matter was presented, discussed, or reported on, but no specific action or position was agreed by the group. Also use when an officer is informing the committee of a decision already taken elsewhere rather than seeking the committee's agreement.
+1. **RESOLVED** — Use ONLY when the transcript contains explicit voting language:
+   - "moved" AND "seconded" AND ("carried" OR "aye" OR "agreed" OR "unanimous")
+   - Always name the mover and seconder: "(Moved by [name], seconded by [name]; carried)"
+   - If you cannot identify who moved or seconded, write "(moved and seconded; carried)"
+   - If there is no voting language, do NOT use RESOLVED — use AGREED or NOTED instead
 
-If in doubt between AGREED and NOTED, use NOTED. Never infer agreement from the absence of disagreement alone — there must be a positive signal.
+2. **AGREED** — Use when there is a clear positive consensus WITHOUT a formal vote:
+   - Someone proposes something AND others explicitly endorse it ("yes", "agreed", "happy with that", "let's do that")
+   - The Chair confirms a course of action and no one objects
+   - Do NOT use AGREED for information that was merely presented or discussed
+
+3. **NOTED** — Use for everything else:
+   - Information was presented to the group
+   - A topic was discussed but no position was taken
+   - A report or update was received
+   - If in doubt between AGREED and NOTED, use NOTED
+
+These three categories are the ONLY permitted labels. Never use "ACCEPTED", "APPROVED", "DECIDED", "CONFIRMED" or any other label.
+
+Every item in the decisions register MUST start with one of: "RESOLVED —", "AGREED —", or "NOTED —"
 
 Format each entry as:
 - **[RESOLVED/AGREED/NOTED]** [What was decided/noted — one line, specific, with rationale if stated]
