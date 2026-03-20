@@ -69,7 +69,7 @@ import {
 import { format, isToday } from "date-fns";
 import { MeetingDetailsTabs } from "@/components/meeting-details/MeetingDetailsTabs";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import {
@@ -214,7 +214,7 @@ export const MeetingHistoryList = ({
   const { voiceConfig } = useVoicePreference();
   const { folders, assignMeetingToFolder } = useMeetingFolders();
   const { applyText, getCorrectionsForText, updateMeeting, updatingMeetings, hasCorrections } = useApplyMeetingCorrections();
-  const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
+  const userFullNameLower = useMemo(() => (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase(), [user?.user_metadata?.full_name, user?.user_metadata?.name]);
   const isIOS = detectDevice().isIOS;
 
   
@@ -361,32 +361,58 @@ export const MeetingHistoryList = ({
 
   // Word counts now come from meeting.word_count (populated by parent) — no separate fetch needed
 
-  // Real-time subscription for automatic refresh when meetings are updated
-  // MEMORY FIX: Use debounced refresh and properly track timeouts
+  const onRefreshRef = useRef(onRefresh);
   useEffect(() => {
-    if (!onRefresh || !user?.id) return;
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
+
+  const meetingFoldersById = useMemo(() => {
+    const folderMap = new Map<string, (typeof folders)[number]>();
+    folders.forEach((folder) => {
+      folderMap.set(folder.id, folder);
+    });
+    return folderMap;
+  }, [folders]);
+
+  const meetingFolderBadges = useMemo(() => {
+    const badgeMap = new Map<string, (typeof folders)[number] | null>();
+    localMeetings.forEach((meeting) => {
+      if (!meeting.folder_id) {
+        badgeMap.set(meeting.id, null);
+        return;
+      }
+
+      badgeMap.set(meeting.id, meetingFoldersById.get(meeting.folder_id) ?? null);
+    });
+    return badgeMap;
+  }, [localMeetings, meetingFoldersById]);
+
+  // Real-time subscription for automatic refresh when meetings are updated
+  // MEMORY FIX: Keep subscription stable even if parent recreates onRefresh
+  useEffect(() => {
+    if (!user?.id) return;
 
     console.log('🔄 Setting up real-time subscription for meeting updates');
-    
-    // Track pending timeouts for cleanup
+
     const pendingTimeouts: NodeJS.Timeout[] = [];
     let lastRefreshTime = 0;
-    const DEBOUNCE_MS = 5000; // Increased debounce — parent handles meetings table
+    const DEBOUNCE_MS = 5000;
 
     const debouncedRefresh = () => {
+      const refreshHandler = onRefreshRef.current;
+      if (!refreshHandler) return;
+
       const now = Date.now();
       if (now - lastRefreshTime < DEBOUNCE_MS) {
-        return; // Skip if refreshed recently
+        return;
       }
       if (safeModeModalOpenRef.current) {
-        return; // Skip if modal is open
+        return;
       }
       lastRefreshTime = now;
-      onRefresh();
+      refreshHandler();
     };
 
-    // Create a channel for real-time updates
-    // NOTE: meetings table listener REMOVED — parent (MeetingRecorder) handles it
     const channel = supabase
       .channel(`meeting-updates-${user.id}`)
       .on(
@@ -415,13 +441,12 @@ export const MeetingHistoryList = ({
       )
       .subscribe();
 
-    // Cleanup subscription and pending timeouts on unmount
     return () => {
       console.log('🔌 Cleaning up real-time subscription and timeouts');
       pendingTimeouts.forEach(id => clearTimeout(id));
       supabase.removeChannel(channel);
     };
-  }, [onRefresh, user?.id]);
+  }, [user?.id]);
   
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
@@ -2342,14 +2367,9 @@ export const MeetingHistoryList = ({
                         </Badge>
                       )}
                       
-                      {(() => {
+                      {meeting.folder_id ? (() => {
+                        const folder = meetingFolderBadges.get(meeting.id);
 
-                        if (!meeting.folder_id) return null;
-                        const folder = folders.find(f => f.id === meeting.folder_id);
-                        
-                        // If we can't resolve the folder from the cached list,
-                        // still show a generic "In folder" badge so the assignment
-                        // persists visually after refresh.
                         if (!folder) {
                           return (
                             <Badge variant="outline" className="text-xs">
@@ -2365,7 +2385,7 @@ export const MeetingHistoryList = ({
                             folderColour={folder.colour}
                           />
                         );
-                      })()}
+                      })() : null}
                     </div>
 
                     {/* Display Attendees */}

@@ -525,7 +525,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
     };
   // IMPORTANT: Do NOT add cleanedTranscript to dependencies - it causes subscription loop
   // The effect updates cleanedTranscript, so including it would cause infinite re-subscriptions
-  }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings]);
+  }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings?.practiceId, meetingSettings?.meetingFormat, meetingSettings?.transcriberService, meetingSettings?.transcriberThresholds?.whisper, meetingSettings?.transcriberThresholds?.deepgram]);
 
   // Subscribe to live meeting notes updates
   useEffect(() => {

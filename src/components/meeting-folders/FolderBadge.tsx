@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Folder } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -7,7 +8,7 @@ interface FolderBadgeProps {
   onClick?: () => void;
 }
 
-export const FolderBadge = ({ folderName, folderColour, onClick }: FolderBadgeProps) => {
+export const FolderBadge = memo(({ folderName, folderColour, onClick }: FolderBadgeProps) => {
   return (
     <Badge
       variant="outline"
@@ -25,4 +26,6 @@ export const FolderBadge = ({ folderName, folderColour, onClick }: FolderBadgePr
       {folderName}
     </Badge>
   );
-};
+});
+
+FolderBadge.displayName = "FolderBadge";

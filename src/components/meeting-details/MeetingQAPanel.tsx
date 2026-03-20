@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { memo, useState, useRef, useEffect, useMemo } from 'react';
 import { Send, Loader2, Bot, User, MessageCircle, Download, Save, History, Trash2, ChevronDown, ChevronUp, X, Mail } from 'lucide-react';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +24,7 @@ interface MeetingQAPanelProps {
   meetingTitle: string;
 }
 
-export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps) => {
+export const MeetingQAPanel = memo(({ meetingId, meetingTitle }: MeetingQAPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -154,6 +154,15 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
     "Who was responsible for what?"
   ];
 
+  const renderedAssistantMessages = useMemo(
+    () => messages.map((msg) =>
+      msg.role === 'assistant'
+        ? renderNHSMarkdown(msg.content, { enableNHSStyling: true })
+        : msg.content
+    ),
+    [messages]
+  );
+
   return (
     <div className="space-y-4">
       <Card>
@@ -259,7 +268,7 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
                                        prose-ul:my-2 prose-li:my-1
                                        prose-headings:mb-3 prose-headings:mt-4"
                             dangerouslySetInnerHTML={{ 
-                              __html: renderNHSMarkdown(msg.content, { enableNHSStyling: true }) 
+                              __html: renderedAssistantMessages[idx] 
                             }}
                           />
                         )}
@@ -431,4 +440,6 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
       </Card>
     </div>
   );
-};
+});
+
+MeetingQAPanel.displayName = 'MeetingQAPanel';

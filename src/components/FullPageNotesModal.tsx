@@ -10,7 +10,7 @@ import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotes
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
 import { QualityReportSection } from "@/components/meeting-notes/QualityReportSection";
-import React, { useState, useEffect, useRef, Suspense, lazy, useCallback } from "react";
+import React, { useState, useEffect, useRef, Suspense, lazy, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -344,6 +344,35 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       console.log("⏱ isLongMeeting:", isLongMeeting, "duration_minutes:", meeting.duration_minutes);
     }
   }, [isLongMeeting, meeting?.duration_minutes, meeting?.id]);
+
+  const renderedMinutesHtml = useMemo(() => {
+    if (activeNotesStyleTab !== 'style1') return '';
+    if (selectedFormatVariation === 'standard') return minutesHtml || '';
+
+    const variationSource = formatVariationContent || notesStyle3;
+
+    switch (selectedFormatVariation) {
+      case 'no_actions':
+        return renderMinutesNoActions(variationSource, fontSizeStyle1);
+      case 'black_white':
+        return renderMinutesBlackWhite(variationSource, fontSizeStyle1);
+      case 'concise':
+        return renderMinutesConcise(variationSource, fontSizeStyle1);
+      case 'detailed':
+        return renderMinutesDetailed(variationSource, fontSizeStyle1);
+      case 'executive_brief':
+        return renderMinutesExecutiveBrief(variationSource, fontSizeStyle1);
+      default:
+        return minutesHtml || '';
+    }
+  }, [
+    activeNotesStyleTab,
+    selectedFormatVariation,
+    formatVariationContent,
+    notesStyle3,
+    fontSizeStyle1,
+    minutesHtml,
+  ]);
 
   // Generate Minutes (Standard) HTML lazily - ONLY when user explicitly selects formatted view
   // This prevents expensive main-thread rendering from blocking the UI
@@ -3564,16 +3593,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                                                 </style>
                                                  <div 
                                                    ref={minutesContainerRef}
-                                                   dangerouslySetInnerHTML={{ 
-                                                     __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
-                                                       selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                       selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                       selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                       selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                       selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                       (minutesHtml || '')
-                                                     )) : ''
-                                                   }}
+                                                    dangerouslySetInnerHTML={{ 
+                                                      __html: renderedMinutesHtml
+                                                    }}
                                                  />
                                               </div>
                                              </>
