@@ -621,23 +621,47 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
 
             {/* Meeting Attendees */}
             <div className="space-y-2">
-              <Label htmlFor="attendees">Meeting Attendees</Label>
+              <Label htmlFor="attendees">Meeting Attendees (optional)</Label>
+              <p className="text-xs text-muted-foreground">Enter one name per line, or comma-separated. These will be used to identify speakers in the notes.</p>
               <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                <Button variant="outline" size="sm" className="flex-1 text-xs sm:text-sm">
-                  <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  Import from File
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 text-xs sm:text-sm">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 text-xs sm:text-sm"
+                  onClick={async () => {
+                    if (!user) return;
+                    try {
+                      const { data: lastMeeting } = await supabase
+                        .from('meetings')
+                        .select('expected_attendees')
+                        .eq('user_id', user.id)
+                        .not('expected_attendees', 'is', null)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+                      
+                      if (lastMeeting?.expected_attendees && Array.isArray(lastMeeting.expected_attendees) && lastMeeting.expected_attendees.length > 0) {
+                        updateSetting('attendees', lastMeeting.expected_attendees.join('\n'));
+                        toast.success(`Loaded ${lastMeeting.expected_attendees.length} attendees from previous meeting`);
+                      } else {
+                        toast.info('No previous attendee list found');
+                      }
+                    } catch (err) {
+                      console.error('Failed to load previous attendees:', err);
+                      toast.error('Failed to load previous attendees');
+                    }
+                  }}
+                >
                   <ClipboardPaste className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  Paste from Clipboard
+                  Paste from Previous
                 </Button>
               </div>
               <Textarea
                 id="attendees"
-                placeholder="Example: Dr. Smith, Nurse Johnson, Admin Manager Brown"
+                placeholder={"Malcolm Railson (Neighbourhood Manager)\nAmanda Palin (Operations Manager)\nManny (Practice Manager, Brackley)\nMel (Practice Manager)\nSimon (GP)"}
                 value={settings.attendees}
                 onChange={(e) => updateSetting('attendees', e.target.value)}
-                rows={3}
+                rows={4}
               />
             </div>
 

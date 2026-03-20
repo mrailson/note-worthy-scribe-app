@@ -157,6 +157,7 @@ function buildUserPrompt(params: {
   organisationName?: string;
   meetingType?: string;
   practiceContext?: string;
+  expectedAttendees?: string[];
 }): string {
   const contextLines = [
     `- Organisation: ${params.organisationName || 'Not specified'}`,
@@ -167,10 +168,17 @@ function buildUserPrompt(params: {
     params.practiceContext ? `- Practice/PCN context: ${params.practiceContext}` : null,
   ].filter(Boolean).join('\n');
 
+  // Build expected attendees section if provided
+  let attendeesSection = '';
+  if (params.expectedAttendees && params.expectedAttendees.length > 0) {
+    const attendeeList = params.expectedAttendees.map(a => `- ${a}`).join('\n');
+    attendeesSection = `\n\n## EXPECTED ATTENDEES (provided before the meeting)\n\nThe following people are expected to be in this meeting:\n${attendeeList}\n\nWhere the transcript uses speaker labels (e.g. [Speaker 1], [Speaker 2], [Speaker A], [Speaker B]), use context clues to map speakers to these names. For example, if a speaker discusses topics related to their known role, map them accordingly. List all identified speakers in the Attendees section. If a speaker cannot be confidently mapped to a name, list them as "Unidentified Speaker (N)". Never leave the attendee list as TBC if speaker labels are present in the transcript.`;
+  }
+
   return `## MEETING CONTEXT (auto-populated by Notewell)
 
 ${contextLines}
-
+${attendeesSection}
 ## OUTPUT FORMAT
 
 Use the following structure. Every section is mandatory. If a section has no content, write "None identified" — do not omit the section.
@@ -461,6 +469,7 @@ serve(async (req) => {
       meetingId: reqMeetingId,
       qcOnly,
       existingNotes,
+      expectedAttendees: reqExpectedAttendees,
     } = await req.json();
 
     // ── QC-only mode: skip note generation, just run QC ──────────────
@@ -569,6 +578,25 @@ serve(async (req) => {
     }
     // ── Standard generation path ────────────────────────────────────────
     else {
+      // Fetch expected attendees from DB if not provided in request
+      let expectedAttendees: string[] = reqExpectedAttendees || [];
+      if (expectedAttendees.length === 0 && reqMeetingId) {
+        try {
+          const supabaseUrl = Deno.env.get('SUPABASE_URL');
+          const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+          if (supabaseUrl && serviceKey) {
+            const sb = createClient(supabaseUrl, serviceKey);
+            const { data: mtg } = await sb.from('meetings').select('expected_attendees').eq('id', reqMeetingId).maybeSingle();
+            if (mtg?.expected_attendees && Array.isArray(mtg.expected_attendees) && mtg.expected_attendees.length > 0) {
+              expectedAttendees = mtg.expected_attendees;
+              console.log(`👥 Loaded ${expectedAttendees.length} expected attendees from meeting record`);
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ Could not fetch expected attendees:', e);
+        }
+      }
+
       const promptParams = {
         transcript: processedTranscript,
         meetingTitle: meetingTitle || 'General Meeting',
@@ -579,6 +607,7 @@ serve(async (req) => {
         organisationName,
         meetingType,
         practiceContext,
+        expectedAttendees,
       };
 
       if (shouldChunk(processedTranscript)) {

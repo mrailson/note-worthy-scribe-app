@@ -131,8 +131,8 @@ serve(async (req) => {
         punctuate: false,
         format_text: false,
         
-        // OTEWELL: Speaker diarisation disabled — unreliable attribution caused mis-diarised notes
-        speaker_labels: false,
+        // Speaker diarisation enabled for attendee mapping in meeting notes
+        speaker_labels: true,
         
         // OTEWELL: Capture everything including profanity
         filter_profanity: false,
@@ -183,8 +183,20 @@ serve(async (req) => {
       if (result.status === 'completed') {
         console.log('[AssemblyAI-Transcription] OTEWELL transcription completed successfully');
         
+        // Build speaker-labelled text from utterances if available
+        const utterances = result.utterances || [];
+        let speakerLabelledText = result.text || '';
+        if (utterances.length > 0) {
+          speakerLabelledText = utterances.map((u: any) => {
+            const label = `[Speaker ${String.fromCharCode(65 + (u.speaker || 0))}]`;
+            return `${label}: ${u.text}`;
+          }).join('\n');
+          console.log(`[AssemblyAI-Transcription] Built speaker-labelled text from ${utterances.length} utterances`);
+        }
+        
         return Response.json({
-          text: result.text || '',
+          text: speakerLabelledText,
+          text_raw: result.text || '',
           confidence: result.confidence || 0.9,
           chunkIndex,
           processingTime: attempts + 1,

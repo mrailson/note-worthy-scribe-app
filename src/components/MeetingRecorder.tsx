@@ -4324,6 +4324,10 @@ export const MeetingRecorder = ({
           console.log(`✅ Continuing meeting record: ${realMeetingId}`);
         } else {
           // NORMAL MODE: Create new meeting
+          const attendeesList = meetingSettings.attendees
+            ? meetingSettings.attendees.split(/[,\n]/).map((a: string) => a.trim()).filter(Boolean)
+            : [];
+
           const meetingData = {
             title: meetingSettings.title || 'General Meeting',
             duration_minutes: 0, // Will be updated when stopped
@@ -4332,7 +4336,8 @@ export const MeetingRecorder = ({
             status: 'recording' as const,
             user_id: user.id,
             practice_id: meetingSettings.practiceId || null,
-            meeting_format: meetingSettings.format || 'face-to-face'
+            meeting_format: meetingSettings.format || 'face-to-face',
+            expected_attendees: attendeesList.length > 0 ? attendeesList : null,
           };
 
           const { data: savedMeeting, error: saveError } = await supabase

@@ -1,6 +1,8 @@
 import React from 'react';
 import { EnhancedTranscriptionPanel } from "@/components/meeting/EnhancedTranscriptionPanel";
 import { PaginatedTranscriptViewer } from "@/components/standalone/PaginatedTranscriptViewer";
+import { SpeakerLabelledTranscript, hasSpeakerLabels } from "@/components/meeting/SpeakerLabelledTranscript";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Meeting {
   id: string;
@@ -29,9 +31,15 @@ export const TranscriptTabContent: React.FC<TranscriptTabContentProps> = ({
   onTranscriptChange,
   onShowContextDialog,
 }) => {
+  const showSpeakerLabels = hasSpeakerLabels(transcript);
+
   return (
     <div className="flex-1 overflow-hidden mt-0 bg-white h-full">
-      {isLargeTranscript ? (
+      {showSpeakerLabels ? (
+        <ScrollArea className="h-full p-6">
+          <SpeakerLabelledTranscript transcript={transcript} />
+        </ScrollArea>
+      ) : isLargeTranscript ? (
         <div className="flex flex-col h-full p-6">
           <PaginatedTranscriptViewer
             transcript={transcript}

@@ -283,7 +283,9 @@ function normaliseText(s: string): string {
 }
 
 function tokenise(s: string): string[] {
-  return normaliseText(s).toLowerCase().replace(/[^a-z0-9\s']/g, ' ').split(/\s+/).filter(Boolean);
+  // Strip speaker labels before tokenising so they don't affect similarity comparisons
+  const stripped = normaliseText(s).replace(/\[speaker\s+[a-z0-9]+\]:\s*/gi, '');
+  return stripped.toLowerCase().replace(/[^a-z0-9\s']/g, ' ').split(/\s+/).filter(Boolean);
 }
 
 function jaccardSim(aTokens: string[], bTokens: string[]): number {
@@ -376,11 +378,16 @@ function chooseWinner(a: NormChunk, b: NormChunk, cfg: MergeConfig): NormChunk {
 }
 
 function postProcessTranscript(s: string): string {
-  let out = (s || '').replace(/\s+/g, ' ').trim();
+  // Preserve speaker label line breaks: temporarily replace \n[Speaker with a placeholder
+  let out = (s || '');
+  out = out.replace(/\n(\[Speaker\s)/g, '§SPKBREAK§$1');
+  out = out.replace(/\s+/g, ' ').trim();
   out = out.replace(/([.!?])\s+([a-z])/g, (_, p1, p2) => `${p1} ${p2.toUpperCase()}`);
   out = out.replace(/\b(the|a|an|and|but|so|we|i|you|is|are|was|were|to|of|in|on|for|it)\s+\1\b/gi, '$1');
   out = out.replace(/\s+,/g, ',').replace(/\s+\./g, '.');
   out = out.replace(/\.{3,}\s*/g, '... ').trim();
+  // Restore speaker label line breaks
+  out = out.replace(/§SPKBREAK§/g, '\n');
   return out;
 }
 

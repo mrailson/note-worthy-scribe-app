@@ -32,7 +32,7 @@ serve(async (req) => {
         punctuate: 'true',
         profanity_filter: 'false',
         redact: 'false',
-        diarize: 'false',
+        diarize: 'true',
         multichannel: 'false',
         alternatives: '1',
         numerals: 'true',

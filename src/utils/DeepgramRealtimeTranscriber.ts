@@ -90,10 +90,18 @@ export class DeepgramRealtimeTranscriber {
                 const transcript = bestAlt.transcript?.trim();
                 
                 if (transcript) {
+                  // Extract speaker from word-level data if available
+                  const words = bestAlt.words || [];
+                  let speakerLabel: string | undefined;
+                  if (words.length > 0 && words[0]?.speaker !== undefined) {
+                    speakerLabel = `Speaker ${words[0].speaker + 1}`;
+                  }
+                  
                   const transcriptData: TranscriptData = {
                     text: transcript,
                     is_final: data.is_final || data.speech_final || false,
                     confidence: bestAlt.confidence || 0.9,
+                    speaker: speakerLabel,
                     words: bestAlt.words?.map((w: any) => ({
                       word: w.word,
                       start: w.start,
@@ -103,7 +111,7 @@ export class DeepgramRealtimeTranscriber {
                     }))
                   };
                   
-                  console.log(`📝 ${transcriptData.is_final ? 'Final' : 'Partial'} Deepgram transcript:`, transcript.substring(0, 50));
+                  console.log(`📝 ${transcriptData.is_final ? 'Final' : 'Partial'} Deepgram transcript${speakerLabel ? ` [${speakerLabel}]` : ''}:`, transcript.substring(0, 50));
                   this.onTranscription(transcriptData);
                 }
               }
