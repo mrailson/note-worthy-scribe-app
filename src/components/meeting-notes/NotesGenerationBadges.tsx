@@ -239,25 +239,6 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
         </Tooltip>
       )}
 
-      {/* Note Style Badge */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge
-            variant="outline"
-            className={
-              isLegacy
-                ? 'bg-muted/50 text-muted-foreground border-muted'
-                : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700'
-            }
-          >
-            <Scroll className="h-3 w-3 mr-1" />
-            {isLegacy ? 'Style Unknown' : noteStyleLabel(noteStyle)}
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="text-xs">Note format/style used for generation</p>
-        </TooltipContent>
-      </Tooltip>
 
       {/* Pipeline Timing Badge */}
       {timing?.total_pipeline_seconds != null && (
