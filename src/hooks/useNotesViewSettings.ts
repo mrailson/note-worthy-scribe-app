@@ -91,7 +91,7 @@ export const useNotesViewSettings = () => {
     if (/action\s*(list|items?)/i.test(heading)) {
       return settings.visibleSections.actionList;
     }
-    if (/open\s*(items?|issues?)/i.test(heading)) {
+    if (/open\s*(items?|issues?)(\s*&\s*risks?)?/i.test(heading)) {
       return settings.visibleSections.openItems;
     }
     
