@@ -10,6 +10,8 @@ import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
 import { ServiceOverview } from "@/components/ServiceOverview";
 import { PodcastPlayer } from "@/components/PodcastPlayer";
+import { useNavigationBlocker } from "@/hooks/useNavigationBlocker";
+import { NavigationBlockerDialog } from "@/components/NavigationBlockerDialog";
 
 import { DemoVideoSection } from "@/components/DemoVideoSection";
 import { useAuth } from "@/contexts/AuthContext";
