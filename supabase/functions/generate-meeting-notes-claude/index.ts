@@ -403,11 +403,15 @@ serve(async (req) => {
       practiceContext,
     } = await req.json();
 
+    const effectiveModelOverride = !modelOverride || modelOverride === 'gemini-3-flash'
+      ? 'claude-sonnet-4-6'
+      : modelOverride;
+
     console.log('🔍 Request details:', {
       hasTranscript: !!transcript,
       hasCustomPrompt: !!customPrompt,
       transcriptLength: transcript?.length,
-      modelOverride: modelOverride || 'gemini-3-flash',
+      modelOverride: effectiveModelOverride,
     });
 
     if (!transcript) throw new Error('Transcript is required');
@@ -419,8 +423,8 @@ serve(async (req) => {
       console.log(`📖 Domain dictionary: applied ${correctionCount} ASR correction(s)`);
     }
 
-    const isClaudeModel = modelOverride && modelOverride.startsWith('claude-');
-    const modelLabel = isClaudeModel ? modelOverride : 'gemini-3-flash';
+    const isClaudeModel = effectiveModelOverride.startsWith('claude-');
+    const modelLabel = isClaudeModel ? effectiveModelOverride : 'claude-sonnet-4-6';
     console.log(`🧠 Using model: ${modelLabel}`);
 
     let meetingMinutes: string;
@@ -431,7 +435,7 @@ serve(async (req) => {
       const apiStart = Date.now();
 
       if (isClaudeModel) {
-        meetingMinutes = await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, customPrompt);
+        meetingMinutes = await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, customPrompt);
       } else {
         meetingMinutes = await callGemini(NOTEWELL_SYSTEM_PROMPT, customPrompt);
       }
@@ -462,7 +466,7 @@ serve(async (req) => {
           const chunkPrompt = buildUserPrompt({ ...promptParams, transcript: chunks[i] });
 
           const result = isClaudeModel
-            ? await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, chunkPrompt)
+            ? await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, chunkPrompt)
             : await callGemini(NOTEWELL_SYSTEM_PROMPT, chunkPrompt);
           chunkResults.push(result);
         }
@@ -471,14 +475,14 @@ serve(async (req) => {
         const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document following the same output format. Merge duplicate topics, unify the action log, and deduplicate decisions. Maintain ALL specific details, names, dates, figures. Use British English throughout.\n\nCHUNK RESULTS:\n${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
         
         meetingMinutes = isClaudeModel
-          ? await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, consolidationPrompt)
+          ? await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, consolidationPrompt)
           : await callGemini(NOTEWELL_SYSTEM_PROMPT, consolidationPrompt);
       } else {
         const userPrompt = buildUserPrompt(promptParams);
         const apiStart = Date.now();
 
         meetingMinutes = isClaudeModel
-          ? await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, userPrompt)
+          ? await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, userPrompt)
           : await callGemini(NOTEWELL_SYSTEM_PROMPT, userPrompt);
 
         console.log(`⚡ API response: ${Date.now() - apiStart}ms`);

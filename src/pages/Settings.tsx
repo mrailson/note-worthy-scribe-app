@@ -106,9 +106,16 @@ export default function Settings() {
   const [retentionPolicy, setRetentionPolicy] = useState<string>('forever');
   const [retentionLoading, setRetentionLoading] = useState(false);
   
+  const DEFAULT_MEETING_LLM = 'claude-sonnet-4-6';
+
   // LLM model preference for note regeneration
   const [regenerateLlm, setRegenerateLlm] = useState<string>(() => {
-    return localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
+    const stored = localStorage.getItem('meeting-regenerate-llm');
+    if (!stored || stored === 'gemini-3-flash') {
+      localStorage.setItem('meeting-regenerate-llm', DEFAULT_MEETING_LLM);
+      return DEFAULT_MEETING_LLM;
+    }
+    return stored;
   });
   
   const handleRegenerateLlmChange = (value: string) => {
@@ -875,18 +882,18 @@ export default function Settings() {
                           <SelectValue placeholder="Select AI model" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="gemini-3-flash">Gemini 3 Flash (Default — Fast)</SelectItem>
+                          <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6 (Default — Premium)</SelectItem>
                           <SelectItem value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast — Beta)</SelectItem>
-                          <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6 (Premium — Beta)</SelectItem>
+                          <SelectItem value="gemini-3-flash">Gemini 3 Flash</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="text-sm text-muted-foreground">
                       <p className="mb-2">
                         <strong>Current model:</strong> {
-                          regenerateLlm === 'gemini-3-flash' ? 'Gemini 3 Flash (default)' :
+                          regenerateLlm === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6 (default)' :
                           regenerateLlm === 'claude-haiku-4-5-20251001' ? 'Claude Haiku 4.5' :
-                          regenerateLlm === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash'
+                          regenerateLlm === 'gemini-3-flash' ? 'Gemini 3 Flash' : 'Claude Sonnet 4.6'
                         }
                       </p>
                       <p>

@@ -5574,7 +5574,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
           const storedModel = localStorage.getItem('meeting-regenerate-llm');
           console.log('🧠 localStorage meeting-regenerate-llm value:', storedModel);
-          const modelOverride = storedModel || 'gemini-3-flash';
+          const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
           console.log('🧠 Using model for initial generation:', modelOverride);
           const functionResult = await supabase.functions
             .invoke('auto-generate-meeting-notes', {
