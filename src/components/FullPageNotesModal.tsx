@@ -178,6 +178,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [initialTab, isOpen]);
   const [notesStyle3, setNotesStyle3] = useState("");
+  const [generationMetadata, setGenerationMetadata] = useState<any>(null);
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
   
   // Ref to prevent multiple simultaneous regeneration calls
