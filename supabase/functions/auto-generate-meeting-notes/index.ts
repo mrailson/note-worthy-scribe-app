@@ -1690,6 +1690,122 @@ ${cleanedTranscript}`;
     const overviewMatch = generatedNotes.match(/(?:\*\*EXECUTIVE SUMMARY\*\*|# EXECUTIVE SUMMARY)\s*\n(.*?)(?=\n(?:#|\*\*)|$)/s);
     const overview = overviewMatch ? overviewMatch[1].trim() : 'Overview not available';
 
+    // ── 7-Category QC Audit (inline, non-blocking) ────────────────────
+    let qcResult: any = null;
+    try {
+      console.log('🔍 Running 7-category QC audit via Claude Haiku 4.5...');
+      const anthropicQcKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
+      if (!anthropicQcKey) {
+        throw new Error('ANTHROPIC_API_KEY not configured — skipping QC');
+      }
+
+      const QC_SYSTEM_PROMPT = `You are a meeting notes quality auditor for an NHS governance platform. You receive a source transcript and AI-generated meeting notes. Your job is to check for specific categories of error by comparing the notes against the transcript.
+
+Check each category and return your findings as JSON.
+
+CATEGORIES:
+
+1. FABRICATED_DECISIONS
+Check the decisions register. For every item marked RESOLVED, verify that the transcript contains explicit voting language (moved, seconded, carried, aye). For every item marked AGREED, verify that the transcript shows a positive signal — someone stating a conclusion AND others explicitly endorsing it or the chair confirming the position. For every item marked NOTED, verify the information was actually presented in the transcript. Flag any decision that cannot be traced to specific transcript content. Flag any item categorised as RESOLVED or AGREED that should be NOTED.
+
+2. FABRICATED_ACTIONS
+Check each action item. Verify that every action is traceable to something actually said in the transcript. Flag any action where the task, owner, or deadline does not appear in the source. Flag actions that convert conditional statements into unconditional commitments. Flag any action with a named owner where the transcript does not explicitly assign that person.
+
+3. MISSING_SPEAKERS
+Check whether speakers who are named in the transcript have been anonymised to "a member", "members", or "it was noted" in the notes. If a person is named in the transcript and their specific contribution appears in the notes, they should be named in the notes. List each instance where attribution was lost.
+
+4. CURRENCY_DETECTION
+If the transcript references New Zealand-specific entities (New Zealand, Waipa, Waikato, RMA, Te Waka, NZ alert levels, council/district council in NZ context), monetary values should use $ or NZD. If the transcript references NHS, PCN, ICB, or UK-specific entities, monetary values should use £ or GBP. Flag any currency mismatch between the detected context and the values used in the notes.
+
+5. ATTENDEE_GAPS
+Compare speaker names that appear in the transcript against the attendee list in the notes. Flag any person who speaks or is directly addressed by name in the transcript but is not listed as an attendee. Do not flag people who are merely referenced or mentioned in passing without being present.
+
+6. PROMPT_LEAK
+Check for any text in the notes that appears to be internal system instructions, template markers, or formatting directives. Examples include: "FORMAT NOTE", "NOTE TYPE", "Do NOT use", "Follow the NOTE TYPE format", "SKILL.md", or any text that reads as instructions to an AI rather than meeting content. Flag if found.
+
+7. TONE_ESCALATION
+Identify up to 3 instances where the notes use significantly more formal or corporate language than what was actually said in the transcript. For each instance, provide the approximate transcript wording and the notes wording side by side so the difference is clear.
+
+Respond ONLY with a valid JSON object. No markdown backticks, no preamble, no explanation outside the JSON:
+
+{
+  "overall": "pass" or "fail",
+  "score": <number 0-100>,
+  "failed_count": <number of categories that failed>,
+  "categories": {
+    "fabricated_decisions": {"status": "pass" or "fail", "findings": "..."},
+    "fabricated_actions": {"status": "pass" or "fail", "findings": "..."},
+    "missing_speakers": {"status": "pass" or "fail", "findings": "..."},
+    "currency_detection": {"status": "pass" or "fail", "findings": "..."},
+    "attendee_gaps": {"status": "pass" or "fail", "findings": "..."},
+    "prompt_leak": {"status": "pass" or "fail", "findings": "..."},
+    "tone_escalation": {"status": "pass" or "fail", "findings": "..."}
+  },
+  "summary": "One sentence overall assessment"
+}
+
+Set overall to "fail" if ANY category fails. Score is your estimate of overall note quality from 0 to 100.`;
+
+      const qcUserPrompt = `SOURCE TRANSCRIPT:\n${fullTranscript.substring(0, 80000)}\n\nGENERATED MEETING NOTES:\n${generatedNotes}`;
+
+      const qcController = new AbortController();
+      const qcTimeout = setTimeout(() => qcController.abort(), 30000);
+
+      const qcResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': anthropicQcKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2000,
+          system: QC_SYSTEM_PROMPT,
+          temperature: 0.1,
+          messages: [{ role: 'user', content: qcUserPrompt }],
+        }),
+        signal: qcController.signal,
+      });
+
+      clearTimeout(qcTimeout);
+
+      if (!qcResponse.ok) {
+        const errText = await qcResponse.text();
+        throw new Error(`Anthropic QC API error: ${qcResponse.status} - ${errText}`);
+      }
+
+      const qcData = await qcResponse.json();
+      const qcText = qcData.content
+        .filter((block: any) => block.type === 'text')
+        .map((block: any) => block.text)
+        .join('');
+
+      const cleanedQcText = qcText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+      const parsed = JSON.parse(cleanedQcText);
+
+      qcResult = {
+        status: parsed.overall === 'pass' ? 'passed' : 'failed',
+        score: parsed.score,
+        failed_count: parsed.failed_count,
+        categories: parsed.categories,
+        summary: parsed.summary,
+        model_used: 'claude-haiku-4-5',
+        ran_at: new Date().toISOString(),
+      };
+
+      console.log(`✅ QC audit complete: ${qcResult.status} (score: ${qcResult.score}, failed: ${qcResult.failed_count})`);
+
+    } catch (qcError: any) {
+      console.warn('⚠️ QC audit failed (non-blocking):', qcError.message);
+      qcResult = {
+        status: 'error',
+        error_message: qcError.message || 'Unknown QC error',
+        model_used: 'claude-haiku-4-5',
+        ran_at: new Date().toISOString(),
+      };
+    }
+
     // Save or update notes in database - handle forceRegenerate properly
     if (forceRegenerate) {
       // Delete existing record first, then insert new one
@@ -1703,8 +1819,9 @@ ${cleanedTranscript}`;
     const generationMetadata = {
       model_used: modelUsed,
       transcript_source: actualTranscriptSource || transcriptSource || 'auto',
-      qc_status: 'skipped', // No QC layer currently runs
-      qc_details: null as string | null,
+      qc_status: qcResult?.status || 'skipped',
+      qc_details: qcResult?.summary || null,
+      qc: qcResult,
       note_style: noteType || 'standard',
       generated_at: new Date().toISOString(),
     };
@@ -2050,7 +2167,8 @@ ${cleanedTranscript}`;
         message: 'Meeting notes generated successfully',
         notesLength: generatedNotes.length,
         content: generatedNotes,
-        modelUsed
+        modelUsed,
+        qc: qcResult,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
