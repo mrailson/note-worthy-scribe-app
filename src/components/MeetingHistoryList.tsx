@@ -214,7 +214,7 @@ export const MeetingHistoryList = ({
   const { voiceConfig } = useVoicePreference();
   const { folders, assignMeetingToFolder } = useMeetingFolders();
   const { applyText, getCorrectionsForText, updateMeeting, updatingMeetings, hasCorrections } = useApplyMeetingCorrections();
-  const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
+  const userFullNameLower = useMemo(() => (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase(), [user?.user_metadata?.full_name, user?.user_metadata?.name]);
   const isIOS = detectDevice().isIOS;
 
   
