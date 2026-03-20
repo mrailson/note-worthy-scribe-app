@@ -24,7 +24,7 @@ interface MeetingQAPanelProps {
   meetingTitle: string;
 }
 
-export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps) => {
+export const MeetingQAPanel = memo(({ meetingId, meetingTitle }: MeetingQAPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
