@@ -363,10 +363,22 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
       
       if (data?.success && data?.meetingMinutes) {
         setClaudeNotes(data.meetingMinutes);
-        toast({
-          title: "Success",
-          description: `Meeting minutes generated using ${data?.modelUsed === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash'}!`,
-        });
+        
+        // Store quality gate results
+        if (data.qualityGate) {
+          const qgSuffix = data.qualityGate.status === 'CLEAN' ? ' — verified ✅' 
+            : data.qualityGate.status === 'AUTO_CORRECTED' ? ` — ${data.qualityGate.accuracyIssueCount + data.qualityGate.missingTopicCount + data.qualityGate.missingActionCount} items auto-corrected ⚠️`
+            : '';
+          toast({
+            title: "Success",
+            description: `Meeting minutes generated using ${data?.modelUsed === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash'}${qgSuffix}`,
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: `Meeting minutes generated using ${data?.modelUsed === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash'}!`,
+          });
+        }
       } else {
         throw new Error(data?.error || 'Failed to generate meeting minutes');
       }
