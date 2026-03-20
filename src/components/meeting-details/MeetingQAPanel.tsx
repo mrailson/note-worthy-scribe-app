@@ -440,4 +440,6 @@ export const MeetingQAPanel = memo(({ meetingId, meetingTitle }: MeetingQAPanelP
       </Card>
     </div>
   );
-};
+});
+
+MeetingQAPanel.displayName = 'MeetingQAPanel';
