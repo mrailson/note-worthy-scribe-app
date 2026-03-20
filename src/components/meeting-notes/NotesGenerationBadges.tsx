@@ -98,6 +98,7 @@ export const NotesGenerationBadges: React.FC<NotesGenerationBadgesProps> = ({ me
   const model = metadata?.model_used || metadata?.model;
   const source = metadata?.transcript_source;
   const noteStyle = metadata?.note_style;
+  const timing = metadata?.timing;
 
   // Use new qc object if available, fall back to legacy flat fields
   const qc = metadata?.qc;
