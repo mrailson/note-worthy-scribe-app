@@ -779,10 +779,23 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
            generation_metadata: metaRow?.generation_metadata ?? null,
          });
 
-         if (metaRow?.generation_metadata) {
-           setGenerationMetadata(metaRow.generation_metadata as any);
-         }
-       }
+          if (metaRow?.generation_metadata) {
+            setGenerationMetadata(metaRow.generation_metadata as any);
+          }
+
+          // Fetch consolidation timing from meetings.merge_decision_log
+          const { data: mergeLogRow } = await supabase
+            .from('meetings')
+            .select('merge_decision_log')
+            .eq('id', currentMeetingId)
+            .maybeSingle();
+          if (mergeLogRow?.merge_decision_log) {
+            const log = mergeLogRow.merge_decision_log as any;
+            if (log?.timing) {
+              setConsolidationTiming(log.timing);
+            }
+          }
+        }
 
        if (hasPreloadedStyles) {
          console.log('✅ Using preloaded note styles from meeting object');
