@@ -1,8 +1,6 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 
-// Updated to use Lovable AI with Gemini Flash (2M token context)
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 
@@ -35,133 +33,199 @@ function applyDomainCorrections(text: string, entries: DictEntry[]): { text: str
   return { text: result, count };
 }
 
-// Note: GPT-5 tone audit removed - Gemini prompt already includes governance rules
-// and performProfessionalToneAudit() handles pattern replacements locally without
-// destroying markdown formatting or adding 75+ seconds of processing time
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// V2 Amanda-compliant system prompt for NHS governance
-const SYSTEM_PROMPT_V2 = `You are an expert NHS meeting secretary. You create professional, factual, and neutral minutes suitable for board and governance distribution.
-Use British English and adhere strictly to NHS and UK healthcare documentation standards.
+// ─── Notewell AI Governance-Grade System Prompt ───────────────────────────
+const NOTEWELL_SYSTEM_PROMPT = `You are Notewell AI, an MHRA Class I registered medical device for NHS primary care. You generate governance-grade meeting minutes from transcribed audio recordings of NHS meetings.
 
-Additional Behavioural Rules:
-- Never include jokes, humour, idioms, or personal remarks (e.g. "wolf ready to pounce").
-- Filter out gossip, personal anecdotes, or informal exchanges — only retain professional, factual, or decision-relevant dialogue.
-- Replace informal references (e.g. "Rich's mother-in-law") with the person's correct role or designation if known (e.g. "SPLW candidate"). If uncertain, use a neutral descriptor like "a candidate for the SPLW post".
-- Where tone in a section may sound critical, rephrase diplomatically (e.g. "members discussed differing perspectives on autonomy" rather than "the federation was criticised").
-- Maintain balance: represent differing views fairly, but without attributing emotional tone.
-- Prioritise clarity, professionalism, and governance readability over verbatim fidelity.
-- NEVER use placeholder text in square brackets like [Insert X].`;
+## YOUR TASK
 
-// Handle large transcripts with Gemini's 2M token context
-function handleLargeTranscript(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
-  console.log('🔧 Using Lovable AI with google/gemini-3-flash-preview');
-  
-  // Gemini can handle ~2M tokens (~500K characters) - much larger than GPT-5-nano
-  if (transcript.length > 500000) {
-    console.log('⚠️ Transcript exceeds 500K chars, using chunked processing');
-    return processInChunks(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
-  } else {
-    // Use standard single API call
-    return processSingle(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
-  }
+You will receive a meeting transcript. Produce structured, comprehensive meeting minutes in the format specified below. The transcript may be noisy, repetitive, fragmented, or contain crosstalk — this is normal for real meetings. Your job is to extract every substantive topic, decision, figure, risk, and action from the chaos.
+
+## CRITICAL RULES
+
+### Accuracy is non-negotiable
+- ONLY use information that appears in the transcript. Never invent, estimate, or round figures.
+- If a specific number is stated (e.g., "5,188 appointments", "£305,000", "130 per thousand"), reproduce it exactly.
+- If a name is mentioned, use it. If a name is unclear, write [Name — unclear from recording].
+- If something is discussed but the detail is ambiguous, say what was discussed and note the ambiguity. Do not fill gaps with plausible-sounding fabrications.
+- Never generate statistics, benchmarks, targets, or financial figures that are not explicitly spoken in the transcript.
+
+### Exhaustive topic extraction
+- A typical NHS operational meeting covers 15–40 distinct topics. You must capture ALL of them, not just the 5–8 biggest themes.
+- Scan the entire transcript before writing. Topics discussed briefly or in passing still need to be recorded if they involve a decision, action, risk, figure, or named individual.
+- Pay special attention to:
+  - Financial figures: budgets, rates, caps, on-costs, percentages, claim values, overhead allocations
+  - Staffing detail: names, roles, session counts, start dates, contract types (locum/permanent/fixed-term), daily rates
+  - Governance and political context: who said what about whom, power dynamics between organisations (e.g., practice vs SNO/PML vs ICB), public statements later contradicted, strategic positioning
+  - Compliance matters: IR35, CEST, redundancy liability, employment law, data sharing, recording consent
+  - Risks expressed as concerns: "my biggest worry is...", "what happens if...", "the problem is..."
+  - Technical/operational detail: system names (GPAD, TPP, System Connect, Surgery Connect, Power BI), data quality issues, reporting limitations, workarounds being developed
+  - Estates/facilities: room availability, equipment, phone systems, access permissions
+  - Forward references: "on Tuesday", "by June", "in three months" — these often indicate deadlines or dependencies
+
+### Capture nuance and reasoning
+- When someone explains WHY a decision was made or WHY a policy exists, include the reasoning — not just the decision.
+- When concerns are raised about another organisation's behaviour, capture the substance factually.
+- When a workaround or creative solution is described, capture both the problem and the solution.
+
+### Do not sanitise the meeting
+- NHS meetings involve frank, sometimes blunt discussion about organisational politics, staffing concerns, and financial pressures. The minutes should reflect what was discussed, not a diplomatically smoothed version.
+- If attendees expressed frustration, concern, or disagreement, the minutes should note this (e.g., "Concerns were expressed regarding...", "Members noted tension between...").
+- If recruitment occurred without proper consultation, or if an organisation's behaviour was questioned, this should appear in the minutes as a governance matter.
+
+## TONE AND STYLE
+
+- Write in formal third person ("The group discussed...", "It was noted that...", "Members agreed...")
+- Use NHS terminology correctly (GPAD, DPC, SDA, LTC, GMS, LES, SNO, PCN, ICB, BMA)
+- Use British English throughout, with British date format (e.g., 22nd March 2026) and 24-hour time.
+- Be precise with financial language (on-costs, maximum reclaimable, buyback, overhead allocation)
+- Do not use hedging language unless the transcript itself was hedging — if someone said "we will do X", write "It was confirmed that X would be done"
+- Keep paragraphs tight — 3–5 sentences per topic section. Density over length.
+
+## WHAT NOT TO DO
+
+- Do not summarise the transcript — extract structured intelligence from it
+- Do not group multiple topics into one vague section like "General Discussion"
+- Do not omit a topic because it was discussed briefly
+- Do not omit a topic because it involves organisational politics
+- Do not invent attendee names if they are not clearly identifiable
+- Do not generate placeholder text or template content (no [Insert X])
+- Do not add commentary or recommendations — report what was said
+- Do not include a "Meeting Transcript for Reference" section`;
+
+// ─── Build the user prompt with meeting context and output format ──────
+function buildUserPrompt(params: {
+  transcript: string;
+  meetingTitle: string;
+  meetingDate: string;
+  meetingTime: string;
+  meetingDuration?: string;
+  speakerCount?: number;
+  organisationName?: string;
+  meetingType?: string;
+  practiceContext?: string;
+}): string {
+  const contextLines = [
+    `- Organisation: ${params.organisationName || 'Not specified'}`,
+    `- Meeting type: ${params.meetingType || 'General Meeting'}`,
+    `- Recording date: ${params.meetingDate}`,
+    params.meetingDuration ? `- Recording duration: ${params.meetingDuration}` : null,
+    params.speakerCount ? `- Number of speakers detected: ${params.speakerCount}` : null,
+    params.practiceContext ? `- Practice/PCN context: ${params.practiceContext}` : null,
+  ].filter(Boolean).join('\n');
+
+  return `## MEETING CONTEXT (auto-populated by Notewell)
+
+${contextLines}
+
+## OUTPUT FORMAT
+
+Use the following structure. Every section is mandatory. If a section has no content, write "None identified" — do not omit the section.
+
+---
+
+**[MEETING TITLE — derive from the primary topic of discussion, or use: ${params.meetingTitle || 'General Meeting'}]**
+
+**MEETING DETAILS**
+
+| Field | Value |
+|-------|-------|
+| Date | ${params.meetingDate || '[Extract from transcript]'} |
+| Time | ${params.meetingTime || 'Not recorded'} |
+| Location | [Extract from transcript or "Location not specified"] |
+
+**ATTENDEES**
+
+- [Name] ([Role/Organisation]) — for each person identifiable from the transcript
+- If names are unclear, use [Attendee — role if identifiable]
+
+**DISCUSSION SUMMARY**
+
+> **Meeting Purpose:** [One sentence summarising the overall purpose]
+
+Then produce numbered sections for EVERY distinct topic cluster discussed. Aim for 8–15 sections in a typical meeting. Each section should:
+- Have a clear descriptive heading
+- Open with what was discussed
+- Include ALL specific figures, names, dates, session counts, and rates mentioned
+- Include the reasoning behind decisions where stated
+- Note who raised points where identifiable
+- Note any disagreement, concern, or unresolved tension
+
+Topic clusters to watch for (not exhaustive):
+- Data/reporting and baselining
+- Triage and uncaptured activity
+- Long-term condition data and external system limitations
+- Workforce: each staff member should get specific detail (name, role, sessions, start date, rate, contract type)
+- Budget and resource mix options
+- Estates and room capacity
+- Financial claims process (buyback mechanism, Part A/Part B, evidence requirements)
+- Redundancy and employment liability
+- Funding model (LES vs GMS, Part B sensitivity)
+- IR35/CEST compliance
+- Contract terms and scope of duties
+- Organisational governance (SNO/PML relationship, management fees, overhead allocation)
+- Neighbourhood incorporation or structural change
+- Cash flow and unspent funds
+- Sustainability and pilot cliff-edge risk
+- Recruitment governance (who authorises, who recruits, consultation requirements)
+- Clinical safety and results monitoring (hub doctor, dashboards)
+- Induction and onboarding
+- Patient-facing innovation (ICB expectations, hard-to-reach patients)
+
+**DECISIONS REGISTER**
+
+- Each decision as a bullet point, starting with what was decided
+- Include the rationale if it was stated
+- If a decision was conditional (e.g., "subject to rate confirmation"), note the condition
+
+**OPEN ITEMS & RISKS**
+
+- Each risk or unresolved item as a bullet point
+- Distinguish between:
+  - Operational risks (data quality, system limitations)
+  - Financial risks (unspent funds, overhead transparency, redundancy exposure)
+  - Compliance risks (IR35, retrospective liability, contract gaps)
+  - Strategic risks (pilot sustainability, patient expectation management, organisational dependency)
+  - Governance risks (recruitment without consultation, management fee opacity)
+- If a risk was raised but no mitigation was identified, say so explicitly
+- If a risk has retrospective implications (e.g., existing arrangements that may already be non-compliant), flag this
+
+**NEXT MEETING**
+
+[Date, time, and any agenda items referenced for that meeting]
+
+**ACTION LOG**
+
+| Action | Owner | Deadline |
+|--------|-------|----------|
+| [Specific action] | [Named person or TBC] | [Date or TBC] |
+
+Extract EVERY action committed to in the transcript, including informal ones ("I'll do that by Tuesday", "Amanda, can you check..."). If no owner was named, write "TBC". If no deadline was stated, write "TBC".
+
+---
+
+## TRANSCRIPT
+
+${params.transcript}`;
 }
 
-function processInChunks(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
-  const words = transcript.split(' ');
-  const chunkSize = 100000; // Words per chunk (increased for Gemini)
-  const overlap = 5000; // Word overlap between chunks
-  const chunks = [];
-  
-  for (let i = 0; i < words.length; i += chunkSize - overlap) {
-    const chunk = words.slice(i, i + chunkSize).join(' ');
-    chunks.push(chunk);
-  }
-  
-  return { chunks, strategy: 'chunked' };
-}
+// ─── Post-processing ──────────────────────────────────────────────────────
 
-function processSingle(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
-  return { transcript, strategy: 'single' };
-}
-
-// Sanitize output to remove placeholders
 function sanitizeMeetingMinutes(content: string): string {
   return content
-    // Remove [Insert X] patterns
     .replace(/\[Insert[^\]]*\]/gi, '')
-    // Remove Location: [Insert Location]
     .replace(/Location:\s*\[Insert[^\]]*\]/gi, 'Location: Location not specified')
-    // Remove Attendees: [Insert...]
     .replace(/Attendees:\s*\[Insert[^\]]*\]/gi, 'Attendees: TBC')
-    // Remove Apologies: [Insert...]
     .replace(/Apologies:\s*\[Insert[^\]]*\]/gi, '')
-    // Remove Owner: [Insert Owner Name]
-    .replace(/Owner:\s*\[Insert[^\]]*\]/gi, 'Owner: Team member')
-    // Clean up multiple blank lines
+    .replace(/Owner:\s*\[Insert[^\]]*\]/gi, 'Owner: TBC')
     .replace(/\n\s*\n\s*\n/g, '\n\n')
     .trim();
 }
 
-// Professional-tone audit post-processing (v2)
-function performProfessionalToneAudit(content: string): string {
-  if (!content) return content;
-  
-  let audited = content;
-  
-  // Remove judgemental or sarcastic phrases
-  const judgemEntalPatterns = [
-    { pattern: /complained about/gi, replacement: 'raised concerns regarding' },
-    { pattern: /was criticised/gi, replacement: 'received feedback on' },
-    { pattern: /criticised the/gi, replacement: 'expressed concerns about the' },
-    { pattern: /attacked the/gi, replacement: 'questioned the' },
-    { pattern: /blamed\s+(\w+)\s+for/gi, replacement: 'attributed responsibility to $1 for' },
-    { pattern: /failed to/gi, replacement: 'did not' },
-    { pattern: /refused to/gi, replacement: 'declined to' },
-    { pattern: /angrily stated/gi, replacement: 'stated firmly' },
-    { pattern: /frustrated by/gi, replacement: 'noted challenges with' },
-    { pattern: /annoyed at/gi, replacement: 'expressed concerns about' },
-    { pattern: /demanded that/gi, replacement: 'requested that' },
-    { pattern: /insisted on/gi, replacement: 'emphasised the need for' },
-    { pattern: /members complained/gi, replacement: 'members raised concerns' },
-    { pattern: /staff complained/gi, replacement: 'staff raised concerns' },
-    { pattern: /the federation was criticised/gi, replacement: 'members discussed differing perspectives on federation governance' },
-    { pattern: /wolf ready to pounce/gi, replacement: '' },
-    { pattern: /like a wolf/gi, replacement: '' },
-  ];
-  
-  for (const { pattern, replacement } of judgemEntalPatterns) {
-    audited = audited.replace(pattern, replacement);
-  }
-  
-  // Remove informal/personal remarks
-  const informalPatterns = [
-    /\b(lol|haha|lmao)\b/gi,
-    /\(laughs\)/gi,
-    /\(laughter\)/gi,
-    /mother-in-law/gi,
-    /father-in-law/gi,
-    /my wife|my husband|my partner/gi,
-  ];
-  
-  for (const pattern of informalPatterns) {
-    audited = audited.replace(pattern, '');
-  }
-  
-  // Clean up any double spaces or excessive punctuation
-  audited = audited
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\n\s*\n\s*\n/g, '\n\n')
-    .trim();
-  
-  return audited;
-}
-
-// Sanitise action item owners to prevent hallucinations
 function sanitiseActionOwners(notes: string, transcript: string): string {
   if (!notes || !transcript) return notes;
   
@@ -192,12 +256,12 @@ function sanitiseActionOwners(notes: string, transcript: string): string {
   };
   
   try {
-    const actionHeaderMatch = notes.match(/(?:^|\n)(?:#{1,6}\s*|\d+\.\s*)ACTION ITEMS\b[\s\S]*/i);
+    const actionHeaderMatch = notes.match(/(?:^|\n)(?:#{1,6}\s*|\d+\.\s*|\*\*\s*)ACTION (?:ITEMS|LOG)\b[\s\S]*/i);
     if (!actionHeaderMatch) return notes;
     
     const afterHeader = actionHeaderMatch[0];
     const headerIdx = notes.indexOf(afterHeader);
-    const tableMatch = afterHeader.match(/\n\|.*\|\n\|[-:\s|]+\|\n([\s\S]*?)(?:\n(?:#{1,6}\s|\d+\.\s|$))/);
+    const tableMatch = afterHeader.match(/\n\|.*\|\n\|[-:\s|]+\|\n([\s\S]*?)(?:\n(?:#{1,6}\s|\d+\.\s|\*\*|$))/);
     if (!tableMatch) return notes;
     
     const tableHeader = afterHeader.substring(0, tableMatch.index! + tableMatch[0].indexOf('\n', tableMatch[0].indexOf('\n') + 1));
@@ -226,7 +290,7 @@ function sanitiseActionOwners(notes: string, transcript: string): string {
     const reconstructed = beforeTable + tableStart + rebuiltRows.join('\n') + '\n' + afterTable;
     
     if (sanitisedCount > 0) {
-      console.log(`✅ Sanitiser (claude): set ${sanitisedCount} owner(s) to TBC`);
+      console.log(`✅ Sanitiser: set ${sanitisedCount} owner(s) to TBC`);
     }
     return reconstructed;
   } catch (error) {
@@ -235,27 +299,24 @@ function sanitiseActionOwners(notes: string, transcript: string): string {
   }
 }
 
-async function consolidateChunkResults(chunkResults, meetingTitle, meetingDate, meetingTime, styleChoice) {
-  const startTime = Date.now();
-  console.log('⏱️ Starting chunk consolidation...');
-  
-  const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document. Use British English throughout.
+// ─── Chunking for very large transcripts ──────────────────────────────────
 
-CRITICAL RULES:
-- Never use placeholder text like [Insert X] or [Not specified]
-- If information is not available, omit the field entirely
-- Use "TBC" for unknown attendees (attendees should be managed separately)
-- Use "Location not specified" if location unknown
-- Merge all agenda items chronologically
-- Remove duplicate action items and decisions
-- Maintain all specific details, names, dates
-- Filter out any informal banter, personal anecdotes, humour, or off-topic remarks
-- Ensure every paragraph could safely appear in a circulated Board pack
+function shouldChunk(transcript: string): boolean {
+  return transcript.length > 500000;
+}
 
-CHUNK RESULTS TO CONSOLIDATE:
-${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
+function chunkTranscript(transcript: string): string[] {
+  const words = transcript.split(' ');
+  const chunkSize = 100000;
+  const overlap = 5000;
+  const chunks: string[] = [];
+  for (let i = 0; i < words.length; i += chunkSize - overlap) {
+    chunks.push(words.slice(i, i + chunkSize).join(' '));
+  }
+  return chunks;
+}
 
-  const apiStartTime = Date.now();
+async function callGemini(systemPrompt: string, userPrompt: string, maxTokens = 8192): Promise<string> {
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -265,172 +326,60 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
     body: JSON.stringify({
       model: 'google/gemini-3-flash-preview',
       messages: [
-        { 
-          role: 'system', 
-          content: SYSTEM_PROMPT_V2
-        },
-        { 
-          role: 'user', 
-          content: consolidationPrompt 
-        }
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
       ],
-      max_completion_tokens: 2000
+      max_completion_tokens: maxTokens,
+      temperature: 0.15,
     }),
   });
 
-  const apiEndTime = Date.now();
-  console.log(`⚡ Lovable AI consolidation took: ${apiEndTime - apiStartTime}ms`);
-
   if (!response.ok) {
-    if (response.status === 429) {
-      throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-    }
-    if (response.status === 402) {
-      throw new Error('Insufficient Lovable AI credits. Please contact support.');
-    }
+    if (response.status === 429) throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+    if (response.status === 402) throw new Error('Insufficient Lovable AI credits. Please contact support.');
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(`AI service error during consolidation: ${errorData.error?.message || 'Unknown error'}`);
+    throw new Error(`AI service error: ${errorData.error?.message || response.status}`);
   }
 
   const data = await response.json();
-  const content = data.choices[0].message.content;
-  
-  const sanitizeStartTime = Date.now();
-  let sanitized = sanitizeMeetingMinutes(content);
-  sanitized = performProfessionalToneAudit(sanitized);
-  console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
-  console.log(`⏱️ Total consolidation time: ${Date.now() - startTime}ms`);
-  
-  return sanitized;
+  return data.choices[0].message.content;
 }
 
-async function processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
-  const startTime = Date.now();
-  console.log('🎯 Processing chunk with Gemini Flash - V2 Amanda-compliant');
-  console.log(`📊 Transcript length: ${transcript.length} characters`);
-  
-  const meetingNotesPrompt = `You are a professional NHS meeting secretary creating detailed, factual minutes in British English.
+async function callClaude(model: string, systemPrompt: string, userPrompt: string, maxTokens = 8192): Promise<string> {
+  if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
-Before producing the final minutes, analyse each transcript segment carefully.
-
-PRE-FILTER RULES:
-- Discard informal, humorous, or anecdotal remarks (e.g., jokes, metaphors, or personal asides such as "wolf ready to pounce").
-- Replace any personal identifiers with the correct professional role or neutral descriptor (e.g., use "SPLW candidate" instead of "Rich's mother-in-law").
-- When merging multiple segments, maintain a consistent, formal, and neutral tone suitable for circulation in Board or ICB documentation.
-- Never reproduce off-topic or emotive language, or anything that could appear unprofessional in circulated minutes.
-
-Then follow the full structure and rules below.
-
-STRICT RULES:
-- Use British English spellings and 24-hour time.
-- Use British date format with ordinals (e.g., 22nd October 2025).
-- Only include information actually present in the transcript.
-- Never use placeholders or square brackets.
-- If a section has no information, omit it entirely.
-- Always write "TBC" for attendees (attendees handled separately).
-- Write "Location not specified" if no venue is mentioned.
-
-OUTPUT STRUCTURE:
-
-# MEETING DETAILS
-- Meeting Title: ${meetingTitle || 'General Meeting'}
-- Date: ${meetingDate || 'Date not recorded'}
-- Time: ${meetingTime || 'Time not recorded'}
-- Location: [explicit or "Location not specified"]
-- Attendees: TBC
-
-# EXECUTIVE SUMMARY
-Write 2–3 concise paragraphs covering purpose, key decisions, and next steps. Keep tone factual and balanced.
-
-# DISCUSSION SUMMARY
-For each major topic:
-- Background: short context
-- Key Points: bullet points with factual discussion points
-- Outcome: summarise conclusions reached
-
-# DECISIONS & RESOLUTIONS
-Numbered list of decisions (omit section if none).
-
-# ACTION ITEMS
-| Action | Responsible Party | Deadline | Priority |
-|--------|------------------|----------|----------|
-| ... | ... | ... | ... |
-
-Rules:
-- Only include names/roles explicitly mentioned.
-- Use "TBC" where not stated.
-
-# FOLLOW-UP REQUIREMENTS
-Bullet points of follow-up items.
-
-# OPEN ITEMS & RISKS
-Bullet points for unresolved matters.
-
-# NEXT MEETING
-Include only if explicitly mentioned.
-
-FINAL CHECK:
-Before output, review tone and remove any phrases that could appear judgemental or critical. Use diplomatic, governance-appropriate wording (e.g., "members discussed differing perspectives" instead of "members criticised").
-
-DO NOT include a "Meeting Transcript for Reference" section.
-
-TRANSCRIPT:
-${transcript}`;
-
-  console.log('📤 Sending request to Lovable AI (Gemini Flash)...');
-  const apiStartTime = Date.now();
-
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
+      'x-api-key': anthropicApiKey,
+      'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        { 
-          role: 'system', 
-          content: SYSTEM_PROMPT_V2
-        },
-        { 
-          role: 'user', 
-          content: meetingNotesPrompt 
-        }
-      ],
-      max_completion_tokens: 2000
+      model,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      temperature: 0.15,
+      messages: [{ role: 'user', content: userPrompt }]
     }),
   });
 
-  const apiEndTime = Date.now();
-  console.log(`⚡ Lovable AI response received in: ${apiEndTime - apiStartTime}ms`);
-
   if (!response.ok) {
-    if (response.status === 429) {
-      throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-    }
-    if (response.status === 402) {
-      throw new Error('Insufficient Lovable AI credits. Please contact support.');
-    }
-    const errorData = await response.json().catch(() => ({}));
-    console.error('Lovable AI error:', response.status, errorData);
-    throw new Error(`AI service error: ${errorData.error?.message || 'Unknown error'}`);
+    const errText = await response.text();
+    console.error('Claude API error:', response.status, errText);
+    throw new Error(`Anthropic API error: ${response.status} - ${errText}`);
   }
 
   const data = await response.json();
-  const content = data.choices[0].message.content;
-  
-  const sanitizeStartTime = Date.now();
-  let sanitized = sanitizeMeetingMinutes(content);
-  sanitized = performProfessionalToneAudit(sanitized);
-  console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
-  console.log(`⏱️ Total chunk processing time: ${Date.now() - startTime}ms`);
-  
-  return sanitized;
+  return data.content
+    .filter((block: any) => block.type === 'text')
+    .map((block: any) => block.text)
+    .join('\n');
 }
+
+// ─── Main handler ─────────────────────────────────────────────────────────
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -439,286 +388,126 @@ serve(async (req) => {
   console.log('🚀 Function invoked at:', new Date().toISOString());
 
   try {
-    const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel, customPrompt, modelOverride } = await req.json();
+    const {
+      transcript,
+      meetingTitle,
+      meetingDate,
+      meetingTime,
+      detailLevel,
+      customPrompt,
+      modelOverride,
+      meetingDuration,
+      speakerCount,
+      organisationName,
+      meetingType,
+      practiceContext,
+    } = await req.json();
 
     console.log('🔍 Request details:', {
       hasTranscript: !!transcript,
       hasCustomPrompt: !!customPrompt,
-      customPromptLength: customPrompt ? customPrompt.length : 0,
-      detailLevel: detailLevel,
-      modelOverride: modelOverride || 'default'
+      transcriptLength: transcript?.length,
+      modelOverride: modelOverride || 'gemini-3-flash',
     });
 
-    if (!transcript) {
-      throw new Error('Transcript is required');
-    }
+    if (!transcript) throw new Error('Transcript is required');
 
-    // Apply domain dictionary ASR corrections before any processing
+    // Apply domain dictionary ASR corrections
     const dictEntries = await loadDomainDictionary();
-    const { text: correctedTranscript, count: correctionCount } = applyDomainCorrections(transcript, dictEntries);
+    const { text: processedTranscript, count: correctionCount } = applyDomainCorrections(transcript, dictEntries);
     if (correctionCount > 0) {
       console.log(`📖 Domain dictionary: applied ${correctionCount} ASR correction(s)`);
     }
 
-    // Use corrected transcript from here on
-    const processedTranscript = correctedTranscript;
+    const isClaudeModel = modelOverride && modelOverride.startsWith('claude-');
+    const modelLabel = isClaudeModel ? modelOverride : 'gemini-3-flash';
+    console.log(`🧠 Using model: ${modelLabel}`);
 
-    // Claude override path — routes by prefix so both claude-sonnet-4-6 and claude-opus-4-6 work
-    if (modelOverride && modelOverride.startsWith('claude-')) {
-      // Pass the model ID directly — claude-sonnet-4-6 is valid as-is
-      console.log(`🧠 Using Claude model: ${modelOverride}`);
-      
-      if (!anthropicApiKey) {
-        throw new Error('ANTHROPIC_API_KEY is not configured');
-      }
+    let meetingMinutes: string;
 
-      const meetingDate2 = meetingDate || 'Date not recorded';
-      const meetingTime2 = meetingTime || 'Time not recorded';
-      const meetingTitle2 = meetingTitle || 'General Meeting';
-
-      // Use the SAME prompt as the Gemini path for fair comparison
-      const userPrompt = `You are a professional NHS meeting secretary creating detailed, factual minutes in British English.
-
-Before producing the final minutes, analyse each transcript segment carefully.
-
-PRE-FILTER RULES:
-- Discard informal, humorous, or anecdotal remarks (e.g., jokes, metaphors, or personal asides such as "wolf ready to pounce").
-- Replace any personal identifiers with the correct professional role or neutral descriptor (e.g., use "SPLW candidate" instead of "Rich's mother-in-law").
-- When merging multiple segments, maintain a consistent, formal, and neutral tone suitable for circulation in Board or ICB documentation.
-- Never reproduce off-topic or emotive language, or anything that could appear unprofessional in circulated minutes.
-
-Then follow the full structure and rules below.
-
-STRICT RULES:
-- Use British English spellings and 24-hour time.
-- Use British date format with ordinals (e.g., 22nd October 2025).
-- Only include information actually present in the transcript.
-- Never use placeholders or square brackets.
-- If a section has no information, omit it entirely.
-- Always write "TBC" for attendees (attendees handled separately).
-- Write "Location not specified" if no venue is mentioned.
-
-OUTPUT STRUCTURE:
-
-# MEETING DETAILS
-- Meeting Title: ${meetingTitle2}
-- Date: ${meetingDate2}
-- Time: ${meetingTime2}
-- Location: [explicit or "Location not specified"]
-- Attendees: TBC
-
-# EXECUTIVE SUMMARY
-Write 2–3 concise paragraphs covering purpose, key decisions, and next steps. Keep tone factual and balanced.
-
-# DISCUSSION SUMMARY
-For each major topic:
-- Background: short context
-- Key Points: bullet points with factual discussion points
-- Outcome: summarise conclusions reached
-
-# DECISIONS & RESOLUTIONS
-Numbered list of decisions (omit section if none).
-
-# ACTION ITEMS
-| Action | Responsible Party | Deadline | Priority |
-|--------|------------------|----------|----------|
-| ... | ... | ... | ... |
-
-Rules:
-- Only include names/roles explicitly mentioned.
-- Use "TBC" where not stated.
-
-# FOLLOW-UP REQUIREMENTS
-Bullet points of follow-up items.
-
-# OPEN ITEMS & RISKS
-Bullet points for unresolved matters.
-
-# NEXT MEETING
-Include only if explicitly mentioned.
-
-FINAL CHECK:
-Before output, review tone and remove any phrases that could appear judgemental or critical. Use diplomatic, governance-appropriate wording (e.g., "members discussed differing perspectives" instead of "members criticised").
-
-DO NOT include a "Meeting Transcript for Reference" section.
-
-TRANSCRIPT:
-${processedTranscript}`;
-
-      const claudeStartTime = Date.now();
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': anthropicApiKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: modelOverride,
-          max_tokens: 8192,
-          system: SYSTEM_PROMPT_V2,
-          messages: [
-            { role: 'user', content: userPrompt }
-          ]
-        }),
-      });
-
-      console.log(`⚡ Claude API response in: ${Date.now() - claudeStartTime}ms`);
-
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error('Claude API error:', response.status, errText);
-        throw new Error(`Anthropic API error: ${response.status} - ${errText}`);
-      }
-
-      const data = await response.json();
-      let generatedNotes = data.content
-        .filter((block: any) => block.type === 'text')
-        .map((block: any) => block.text)
-        .join('\n');
-      
-      // SAME post-processing as the Gemini path
-      generatedNotes = sanitizeMeetingMinutes(generatedNotes);
-      generatedNotes = performProfessionalToneAudit(generatedNotes);
-      generatedNotes = sanitiseActionOwners(generatedNotes, processedTranscript);
-
-      const totalTime = Date.now() - functionStartTime;
-      console.log(`✅ Claude meeting minutes generated in ${totalTime}ms`);
-
-      return new Response(JSON.stringify({
-        success: true,
-        meetingMinutes: generatedNotes,
-        generatedNotes: generatedNotes,
-        modelUsed: modelOverride,
-        processingTimeMs: totalTime
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // If customPrompt is provided, use it directly with Gemini
+    // ── Custom prompt path (legacy — uses old prompt verbatim) ──────────
     if (customPrompt) {
-      console.log('🎨 Using custom prompt for generation');
-      console.log('📝 Custom prompt preview:', customPrompt.substring(0, 200) + '...');
-      
-      const customApiStartTime = Date.now();
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-3-flash-preview',
-          messages: [
-            { 
-              role: 'system', 
-              content: SYSTEM_PROMPT_V2
-            },
-            { 
-              role: 'user', 
-              content: customPrompt
-            }
-          ],
-          max_completion_tokens: 2000
-        }),
-      });
+      console.log('🎨 Using custom prompt');
+      const apiStart = Date.now();
 
-      const customApiEndTime = Date.now();
-      console.log(`⚡ Custom prompt API call took: ${customApiEndTime - customApiStartTime}ms`);
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-        }
-        if (response.status === 402) {
-          throw new Error('Insufficient Lovable AI credits. Please contact support.');
-        }
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Lovable AI error:', response.status, errorData);
-        throw new Error(`AI service error: ${errorData.error?.message || 'Unknown error'}`);
+      if (isClaudeModel) {
+        meetingMinutes = await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, customPrompt);
+      } else {
+        meetingMinutes = await callGemini(NOTEWELL_SYSTEM_PROMPT, customPrompt);
       }
 
-      const data = await response.json();
-      let generatedNotes = data.choices[0].message.content;
-      
-      // Sanitize output
-      const sanitizeStartTime = Date.now();
-      generatedNotes = sanitizeMeetingMinutes(generatedNotes);
-      generatedNotes = performProfessionalToneAudit(generatedNotes);
-      generatedNotes = sanitiseActionOwners(generatedNotes, processedTranscript);
-      console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
-      
-      console.log('✅ Custom prompt generated successfully');
-      console.log('📝 Generated preview:', generatedNotes.substring(0, 300));
-      console.log(`⏱️ Total custom prompt processing: ${Date.now() - functionStartTime}ms`);
-
-      return new Response(JSON.stringify({
-        meetingMinutes: generatedNotes,
-        generatedNotes: generatedNotes,
-        success: true
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.log(`⚡ Custom prompt API call: ${Date.now() - apiStart}ms`);
     }
+    // ── Standard generation path ────────────────────────────────────────
+    else {
+      const promptParams = {
+        transcript: processedTranscript,
+        meetingTitle: meetingTitle || 'General Meeting',
+        meetingDate: meetingDate || 'Date not recorded',
+        meetingTime: meetingTime || 'Time not recorded',
+        meetingDuration,
+        speakerCount,
+        organisationName,
+        meetingType,
+        practiceContext,
+      };
 
-    const level = (detailLevel || 'standard').toString().toLowerCase();
-    
-    // Determine style based on detailLevel
-    let styleChoice = 1; // Default to Professional Business
-    if (level === 'informal' || level === 'original') {
-      styleChoice = 2; // Original Informal
-    } else if (level === 'nhs' || level === 'formal') {
-      styleChoice = 3; // NHS Formal
-    }
+      if (shouldChunk(processedTranscript)) {
+        const chunks = chunkTranscript(processedTranscript);
+        console.log(`📦 Large transcript — processing ${chunks.length} chunks`);
 
-    // Handle large transcripts with chunking strategy
-    const processingResult = handleLargeTranscript(processedTranscript, meetingTitle, meetingDate, meetingTime, styleChoice);
-    
-    let meetingMinutes;
-    
-    if (processingResult.strategy === 'chunked') {
-      console.log(`Processing large transcript with ${processingResult.chunks.length} chunks`);
-      
-      // Process chunks and consolidate results
-      const chunkResults = [];
-      
-      for (let i = 0; i < processingResult.chunks.length; i++) {
-        console.log(`Processing chunk ${i + 1}/${processingResult.chunks.length}`);
-        const chunkMinutes = await processChunk(processingResult.chunks[i], meetingTitle, meetingDate, meetingTime, styleChoice);
-        chunkResults.push(chunkMinutes);
+        const chunkResults: string[] = [];
+        for (let i = 0; i < chunks.length; i++) {
+          console.log(`Processing chunk ${i + 1}/${chunks.length}`);
+          const chunkPrompt = buildUserPrompt({ ...promptParams, transcript: chunks[i] });
+
+          const result = isClaudeModel
+            ? await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, chunkPrompt)
+            : await callGemini(NOTEWELL_SYSTEM_PROMPT, chunkPrompt);
+          chunkResults.push(result);
+        }
+
+        // Consolidate chunks
+        const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document following the same output format. Merge duplicate topics, unify the action log, and deduplicate decisions. Maintain ALL specific details, names, dates, figures. Use British English throughout.\n\nCHUNK RESULTS:\n${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
+        
+        meetingMinutes = isClaudeModel
+          ? await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, consolidationPrompt)
+          : await callGemini(NOTEWELL_SYSTEM_PROMPT, consolidationPrompt);
+      } else {
+        const userPrompt = buildUserPrompt(promptParams);
+        const apiStart = Date.now();
+
+        meetingMinutes = isClaudeModel
+          ? await callClaude(modelOverride, NOTEWELL_SYSTEM_PROMPT, userPrompt)
+          : await callGemini(NOTEWELL_SYSTEM_PROMPT, userPrompt);
+
+        console.log(`⚡ API response: ${Date.now() - apiStart}ms`);
       }
-      
-      console.log('Consolidating chunk results');
-      // Consolidate chunk results
-      meetingMinutes = await consolidateChunkResults(chunkResults, meetingTitle, meetingDate, meetingTime, styleChoice);
-      meetingMinutes = sanitiseActionOwners(meetingMinutes, processedTranscript);
-    } else {
-      // Standard single processing
-      meetingMinutes = await processChunk(processedTranscript, meetingTitle, meetingDate, meetingTime, styleChoice);
-      meetingMinutes = sanitiseActionOwners(meetingMinutes, processedTranscript);
     }
+
+    // Post-processing
+    meetingMinutes = sanitizeMeetingMinutes(meetingMinutes);
+    meetingMinutes = sanitiseActionOwners(meetingMinutes, processedTranscript);
 
     const totalTime = Date.now() - functionStartTime;
-    console.log('✅ Lovable AI meeting minutes generated successfully');
-    console.log('📝 Generated minutes preview:', meetingMinutes.substring(0, 500));
-    console.log(`⏱️ Total function execution time: ${totalTime}ms`);
+    console.log(`✅ Meeting minutes generated (${modelLabel}) in ${totalTime}ms`);
+    console.log('📝 Preview:', meetingMinutes.substring(0, 500));
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       success: true,
-      meetingMinutes: meetingMinutes,
+      meetingMinutes,
       generatedNotes: meetingMinutes,
-      modelUsed: 'gemini-3-flash',
-      processingTimeMs: totalTime
+      modelUsed: modelLabel,
+      processingTimeMs: totalTime,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in generate-meeting-notes-claude function:', error);
-    return new Response(JSON.stringify({ 
+    console.error('Error in generate-meeting-notes-claude:', error);
+    return new Response(JSON.stringify({
       success: false,
-      error: error.message 
+      error: error.message,
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

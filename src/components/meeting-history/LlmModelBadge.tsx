@@ -18,6 +18,10 @@ const MODEL_LABELS: Record<string, { label: string; className: string }> = {
     label: 'Claude Haiku 4.5',
     className: 'bg-indigo-600 hover:bg-indigo-600 text-white',
   },
+  'claude-haiku-4-5-20251001': {
+    label: 'Claude Haiku 4.5',
+    className: 'bg-indigo-600 hover:bg-indigo-600 text-white',
+  },
 };
 
 export const LlmModelBadge = ({ meetingId }: LlmModelBadgeProps) => {
