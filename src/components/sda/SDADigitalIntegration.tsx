@@ -189,7 +189,34 @@ export const SDADigitalIntegration = () => {
           </div>
         </div>
 
-        {/* 3b. Section Divider — PRIMARY OPERATIONS TOOL */}
+        {/* ICB Contractual Section Header */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <h2 className="text-xl font-bold text-[#003087]">NRES New Models — ICB Contractual & Reporting Requirements Overview</h2>
+              <p className="text-sm text-slate-500">Operational tools and reference documents</p>
+            </div>
+            <p className="text-xs text-slate-400">Last updated: 22 February 2026</p>
+          </div>
+        </div>
+
+        {/* Status Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { border: "#10B981", label: "OPERATIONS TOOL", value: "Excel V3.1 ✓ Ready", subtitle: "No additional funding required" },
+            { border: "#F59E0B", label: "SERVICE GO-LIVE", value: "1 April 2026", subtitle: "39 days — operational from day one" },
+            { border: "#7C3AED", label: "MANAGED BY", value: "Managerial Lead", subtitle: "Practice Managers to supply data not easily accessible via reports" },
+            { border: "#2563EB", label: "PRACTICE BURDEN", value: "Medium", subtitle: "Resource funding TBC" },
+          ].map((card, i) => (
+            <div key={i} className="bg-white rounded-lg border border-slate-200 p-3" style={{ borderLeft: `4px solid ${card.border}` }}>
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">{card.label}</p>
+              <p className="text-base font-bold" style={{ color: card.border }}>{card.value}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{card.subtitle}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Section Divider — PRIMARY OPERATIONS TOOL */}
         <div className="flex items-center gap-3">
           <span className="text-[11px] uppercase font-bold tracking-wider whitespace-nowrap" style={{ color: "#10B981" }}>● PRIMARY OPERATIONS TOOL</span>
           <div className="flex-1 h-px bg-slate-200" />
