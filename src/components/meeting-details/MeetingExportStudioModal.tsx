@@ -162,9 +162,9 @@ function renderMeetingContent(content: string): React.ReactNode[] {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((p, i) => {
       if (p.startsWith('**') && p.endsWith('**')) {
-        // Highlight "Agreed" lines in red bold
+        // Highlight "Resolved" lines in red bold
         const inner = p.slice(2, -2);
-        if (/^Agreed/i.test(inner)) {
+        if (/^Resolved/i.test(inner)) {
           return <strong key={i} style={{ color: COLORS.agreedRed }}>{inner}</strong>;
         }
         return <strong key={i}>{inner}</strong>;
@@ -244,15 +244,15 @@ function renderMeetingContent(content: string): React.ReactNode[] {
     }
 
     // Sub-heading labels (Context:, Discussion:, Agreed:, Implication:)
-    const subHeadingMatch = trimmed.match(/^(Context|Discussion|Agreed|Implication|Outcome|Decision|Action):\s*(.*)/i);
+    const subHeadingMatch = trimmed.match(/^(Context|Discussion|Agreed|Resolved|Noted|Implication|Outcome|Decision|Action):\s*(.*)/i);
     if (subHeadingMatch) {
       flushList();
       const label = subHeadingMatch[1];
       const rest = subHeadingMatch[2];
-      const isAgreed = /^agreed/i.test(label);
+      const isResolved = /^resolved/i.test(label);
       elements.push(
         <p key={`sub-${keyIndex++}`} className="text-sm leading-relaxed mb-2 pl-4" style={{ color: COLORS.textGrey }}>
-          <strong style={{ color: isAgreed ? COLORS.agreedRed : COLORS.subHeadingBlue }}>{label}:</strong>{' '}
+          <strong style={{ color: isResolved ? COLORS.agreedRed : COLORS.textGrey }}>{label}:</strong>{' '}
           {formatInline(rest)}
         </p>
       );

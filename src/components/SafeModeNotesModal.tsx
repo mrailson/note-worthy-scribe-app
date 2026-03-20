@@ -2782,8 +2782,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         const label = subHeadingMatch[1].trim();
         const bodyText = (subHeadingMatch[2] || '').replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
         const isAgreed = label.toLowerCase() === 'agreed';
-        const labelClass = isAgreed ? 'text-red-600 font-bold' : 'text-blue-600 font-semibold';
-        const bodyClass = isAgreed ? 'font-bold text-red-700' : 'text-muted-foreground';
+        const isResolved = label.toLowerCase() === 'resolved';
+        const labelClass = isResolved ? 'text-red-600 font-bold' : 'font-bold text-foreground';
+        const bodyClass = isResolved ? 'font-bold text-red-700' : 'text-foreground';
         const topMargin = label.toLowerCase() === 'context' ? 'mt-4' : 'mt-2';
         result.push(`<div class="${topMargin} pl-4"><span class="${labelClass}">${label}:</span> <span class="${bodyClass}">${applyInlineFormatting(bodyText)}</span></div>`);
         continue;
