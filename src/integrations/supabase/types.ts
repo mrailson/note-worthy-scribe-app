@@ -6531,6 +6531,7 @@ export type Database = {
           device_user_agent: string | null
           duration_minutes: number | null
           end_time: string | null
+          expected_attendees: string[] | null
           folder_id: string | null
           format: string | null
           id: string
@@ -6595,6 +6596,7 @@ export type Database = {
           device_user_agent?: string | null
           duration_minutes?: number | null
           end_time?: string | null
+          expected_attendees?: string[] | null
           folder_id?: string | null
           format?: string | null
           id?: string
@@ -6659,6 +6661,7 @@ export type Database = {
           device_user_agent?: string | null
           duration_minutes?: number | null
           end_time?: string | null
+          expected_attendees?: string[] | null
           folder_id?: string | null
           format?: string | null
           id?: string
