@@ -807,6 +807,12 @@ serve(async (req) => {
         ran_at: new Date().toISOString(),
       };
 
+      const qcEndTime = Date.now();
+      const qcDurationMs = qcEndTime - qcStartTime;
+      const qcDurationSec = (qcDurationMs / 1000).toFixed(1);
+      console.log(`[QC] Audit complete in ${qcDurationSec}s`);
+      qcResult.duration_seconds = parseFloat(qcDurationSec);
+
       console.log(`✅ QC audit complete: ${qcResult.status} (score: ${qcResult.score}, failed: ${qcResult.failed_count})`);
 
     } catch (qcError: any) {
