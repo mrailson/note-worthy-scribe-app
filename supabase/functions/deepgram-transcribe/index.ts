@@ -6,6 +6,40 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Detect MIME type from the first bytes of a binary buffer.
+ * Falls back to audio/webm if unrecognised.
+ */
+function detectMimeType(buf: Uint8Array): string {
+  // RIFF....WAVE → audio/wav
+  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x41 && buf[10] === 0x56 && buf[11] === 0x45) {
+    return 'audio/wav';
+  }
+  // fLaC → audio/flac
+  if (buf[0] === 0x66 && buf[1] === 0x4C && buf[2] === 0x61 && buf[3] === 0x43) {
+    return 'audio/flac';
+  }
+  // OggS → audio/ogg
+  if (buf[0] === 0x4F && buf[1] === 0x67 && buf[2] === 0x67 && buf[3] === 0x53) {
+    return 'audio/ogg';
+  }
+  // 1A 45 DF A3 → WebM/Matroska (EBML header)
+  if (buf[0] === 0x1A && buf[1] === 0x45 && buf[2] === 0xDF && buf[3] === 0xA3) {
+    return 'audio/webm';
+  }
+  // MP3: ID3 tag or MPEG sync word
+  if ((buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) ||
+      (buf[0] === 0xFF && (buf[1] & 0xE0) === 0xE0)) {
+    return 'audio/mpeg';
+  }
+  // MP4/M4A: ftyp box
+  if (buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70) {
+    return 'audio/mp4';
+  }
+  return 'audio/webm'; // default fallback
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -14,9 +48,9 @@ serve(async (req) => {
   try {
     console.log('🎤 Deepgram transcription request received');
     
-    const { audio, meetingId, sessionId, chunkNumber } = await req.json();
+    const { audio, meetingId, sessionId, chunkNumber, mimeType } = await req.json();
     
-    console.log(`📦 Request details: meetingId=${meetingId}, sessionId=${sessionId}, chunk=${chunkNumber}, audioLength=${audio?.length || 0}`);
+    console.log(`📦 Request details: meetingId=${meetingId}, sessionId=${sessionId}, chunk=${chunkNumber}, audioBase64Length=${audio?.length || 0}`);
     
     if (!audio) {
       throw new Error('No audio data provided');
@@ -28,14 +62,12 @@ serve(async (req) => {
       throw new Error('DEEPGRAM_API_KEY not configured');
     }
 
-    console.log(`✅ Deepgram API key found (length: ${DEEPGRAM_API_KEY.length})`);
-
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user ID from authorization header
+    // Authenticate
     const authHeader = req.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
@@ -46,39 +78,97 @@ serve(async (req) => {
     }
 
     console.log(`✅ User authenticated: ${user.id}`);
-    console.log(`📦 Processing chunk ${chunkNumber} for meeting ${meetingId}`);
 
     // Convert base64 to binary
     const binaryAudio = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
-    console.log(`📦 Converted audio to binary: ${binaryAudio.length} bytes`);
+    const fileSizeKB = (binaryAudio.length / 1024).toFixed(1);
     
-    // Send to Deepgram API
-    console.log('🌐 Sending to Deepgram API...');
-    const deepgramResponse = await fetch('https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&punctuate=true&diarize=true', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${DEEPGRAM_API_KEY}`,
-        'Content-Type': 'audio/webm',
-      },
-      body: binaryAudio,
-    });
+    // Detect actual content type from magic bytes
+    const detectedMime = detectMimeType(binaryAudio);
+    const contentType = (typeof mimeType === 'string' && mimeType.trim()) ? mimeType : detectedMime;
+    
+    console.log(`📦 Audio binary: ${fileSizeKB}KB, detected=${detectedMime}, using=${contentType}`);
 
-    console.log(`📡 Deepgram API response status: ${deepgramResponse.status}`);
+    // Build Deepgram URL with parameters
+    const dgParams = new URLSearchParams({
+      model: 'nova-3',
+      smart_format: 'true',
+      punctuate: 'true',
+      diarize: 'true',
+      language: 'en-GB',
+    });
+    const dgUrl = `https://api.deepgram.com/v1/listen?${dgParams.toString()}`;
+
+    // Use AbortController for a 120-second timeout to prevent silent truncation
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+    console.log(`🌐 Sending ${fileSizeKB}KB to Deepgram API (timeout: 120s)...`);
+    const startMs = Date.now();
+
+    let deepgramResponse: Response;
+    try {
+      deepgramResponse = await fetch(dgUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${DEEPGRAM_API_KEY}`,
+          'Content-Type': contentType,
+        },
+        body: binaryAudio,
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === 'AbortError') {
+        console.error(`❌ Deepgram API timed out after 120s for chunk ${chunkNumber} (${fileSizeKB}KB)`);
+        throw new Error(`Deepgram API timeout: chunk ${chunkNumber} (${fileSizeKB}KB) exceeded 120s`);
+      }
+      throw fetchErr;
+    }
+    clearTimeout(timeoutId);
+
+    const elapsedMs = Date.now() - startMs;
+    console.log(`📡 Deepgram response: status=${deepgramResponse.status}, took=${elapsedMs}ms`);
 
     if (!deepgramResponse.ok) {
       const errorText = await deepgramResponse.text();
-      console.error('❌ Deepgram API error:', deepgramResponse.status, errorText);
+      console.error(`❌ Deepgram API error: ${deepgramResponse.status} - ${errorText}`);
       throw new Error(`Deepgram API error: ${deepgramResponse.status} - ${errorText}`);
     }
 
     const deepgramResult = await deepgramResponse.json();
-    console.log('📊 Deepgram result structure:', JSON.stringify(deepgramResult, null, 2).substring(0, 500));
-    
+
+    // === DIAGNOSTIC LOGGING ===
+    const dgMeta = deepgramResult.metadata;
+    const dgDuration = dgMeta?.duration || 0;
+    const dgChannels = dgMeta?.channels || 0;
+    const dgModelInfo = dgMeta?.model_info ? JSON.stringify(dgMeta.model_info) : 'n/a';
+    const dgRequestId = dgMeta?.request_id || 'n/a';
+    const dgWarnings = deepgramResult.metadata?.warnings || deepgramResult.warnings;
+
+    console.log(`📊 DEEPGRAM DIAGNOSTICS: request_id=${dgRequestId}`);
+    console.log(`📊   Duration reported: ${dgDuration.toFixed(2)}s`);
+    console.log(`📊   Channels: ${dgChannels}`);
+    console.log(`📊   Model: ${dgModelInfo}`);
+    console.log(`📊   API latency: ${elapsedMs}ms`);
+    console.log(`📊   File size: ${fileSizeKB}KB, content-type: ${contentType}`);
+
+    if (dgWarnings) {
+      console.warn(`⚠️ Deepgram warnings: ${JSON.stringify(dgWarnings)}`);
+    }
+
     // Extract transcript and confidence
     const alt = deepgramResult.results?.channels?.[0]?.alternatives?.[0];
     const rawTranscript = alt?.transcript || '';
     const confidence = alt?.confidence || 0;
     const words = alt?.words || [];
+
+    console.log(`📊   Raw transcript length: ${rawTranscript.length} chars, word count: ${words.length}`);
+
+    // Warn if word count seems suspiciously low relative to duration
+    if (dgDuration > 60 && words.length < dgDuration * 0.5) {
+      console.warn(`⚠️ POSSIBLE TRUNCATION: ${words.length} words for ${dgDuration.toFixed(0)}s of audio (~${(words.length / dgDuration * 60).toFixed(0)} words/min — expected 100-180)`);
+    }
 
     // Build speaker-labelled transcript from word-level speaker data
     let transcript = rawTranscript;
@@ -106,10 +196,10 @@ serve(async (req) => {
       console.log(`[Deepgram] Built speaker-labelled transcript with ${segments.length} segments`);
     }
 
-    console.log(`✅ Deepgram transcription: "${transcript.substring(0, 100)}..." (confidence: ${confidence}, words: ${words.length})`);
+    const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+    console.log(`✅ Deepgram chunk ${chunkNumber}: ${wordCount} words, confidence=${confidence.toFixed(3)}, duration=${dgDuration.toFixed(1)}s`);
 
     // Save to database
-    console.log('💾 Saving to database...');
     const { error: dbError } = await supabase
       .from('deepgram_transcriptions')
       .insert({
@@ -120,7 +210,7 @@ serve(async (req) => {
         transcription_text: transcript,
         confidence: confidence,
         is_final: true,
-        word_count: transcript.trim().split(/\s+/).length
+        word_count: wordCount
       });
 
     if (dbError) {
@@ -133,8 +223,18 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         text: transcript,
-        confidence: confidence,
-        words: words,
+        confidence,
+        words,
+        duration: dgDuration,
+        diagnostics: {
+          duration_s: dgDuration,
+          word_count: wordCount,
+          file_size_kb: parseFloat(fileSizeKB),
+          content_type: contentType,
+          api_latency_ms: elapsedMs,
+          request_id: dgRequestId,
+          warnings: dgWarnings || null,
+        },
         success: true
       }),
       {
