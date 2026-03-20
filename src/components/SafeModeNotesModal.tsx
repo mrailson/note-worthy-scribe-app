@@ -1031,12 +1031,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         // Note: notesTranscriptSource is auto-selected in a separate useEffect 
         // based on transcript availability (Best of Both → Batch → Live)
 
-        if (meetingData?.notes_style_3) {
-          setNotesContent(sanitiseMeetingNotes(meetingData.notes_style_3));
-          setIsLoadingNotes(false);
-          return;
-        }
-
         // Always fetch generation_metadata from meeting_summaries
         const { data: summaryData } = await supabase
           .from('meeting_summaries')
@@ -1048,7 +1042,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           setGenerationMetadata(summaryData.generation_metadata as any);
         }
 
-        if (!meetingData?.notes_style_3 && summaryData?.summary) {
+        if (meetingData?.notes_style_3) {
+          setNotesContent(sanitiseMeetingNotes(meetingData.notes_style_3));
+          setIsLoadingNotes(false);
+          return;
+        }
+
+        if (summaryData?.summary) {
           setNotesContent(sanitiseMeetingNotes(summaryData.summary));
         }
       } catch (error) {
