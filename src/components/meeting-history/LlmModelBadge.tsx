@@ -14,6 +14,10 @@ const MODEL_LABELS: Record<string, { label: string; className: string }> = {
     label: 'Claude Sonnet 4.6',
     className: 'bg-amber-600 hover:bg-amber-600 text-white',
   },
+  'claude-haiku-4-5': {
+    label: 'Claude Haiku 4.5',
+    className: 'bg-indigo-600 hover:bg-indigo-600 text-white',
+  },
 };
 
 export const LlmModelBadge = ({ meetingId }: LlmModelBadgeProps) => {

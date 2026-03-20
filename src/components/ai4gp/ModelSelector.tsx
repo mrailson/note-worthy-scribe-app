@@ -8,8 +8,8 @@ export interface ModelOption {
   id: string;
   label: string;
   description: string;
-  tier: 'premium' | 'standard' | 'stable' | 'openai';
-  provider: 'google' | 'openai';
+  tier: 'premium' | 'standard' | 'stable' | 'openai' | 'anthropic';
+  provider: 'google' | 'openai' | 'anthropic';
   badge?: string;
   badgeClass?: string;
   infoNote?: string;
@@ -45,6 +45,25 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     badgeClass: 'bg-muted text-muted-foreground border-border',
   },
   {
+    id: 'anthropic/claude-haiku-4-5',
+    label: 'Claude Haiku 4.5',
+    description: 'Fastest Anthropic model, ideal for quick clinical queries',
+    tier: 'standard',
+    provider: 'anthropic',
+    badge: 'Recommended',
+    badgeClass: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 border-green-200 dark:border-green-800',
+  },
+  {
+    id: 'anthropic/claude-sonnet-4-6',
+    label: 'Claude Sonnet 4.6',
+    description: 'Most capable fast model. Best balance of speed and intelligence.',
+    tier: 'premium',
+    provider: 'anthropic',
+    badge: 'Premium',
+    badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400 border-purple-200 dark:border-purple-800',
+    infoNote: 'Most capable fast model. Best balance of speed and intelligence.',
+  },
+  {
     id: 'openai/gpt-5.2',
     label: 'GPT-5.2',
     description: 'Latest OpenAI model',
@@ -72,6 +91,11 @@ interface ModelSelectorProps {
   compact?: boolean;
 }
 
+// Anthropic brand icon component
+const AnthropicIcon = ({ className }: { className?: string }) => (
+  <Sparkles className={className} />
+);
+
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
   selectedModel,
   onModelChange,
@@ -81,9 +105,15 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   const displayLabel = currentModel?.label || 'Select model';
 
   const googleModels = AVAILABLE_MODELS.filter(m => m.provider === 'google');
+  const anthropicModels = AVAILABLE_MODELS.filter(m => m.provider === 'anthropic');
   const openaiModels = AVAILABLE_MODELS.filter(m => m.provider === 'openai');
 
   const getTierIcon = (model: ModelOption) => {
+    if (model.provider === 'anthropic') {
+      return model.tier === 'premium' 
+        ? <Sparkles className="h-3 w-3 text-indigo-500" />
+        : <Zap className="h-3 w-3 text-indigo-500" />;
+    }
     if (model.tier === 'premium') return <Sparkles className="h-3 w-3 text-purple-500" />;
     if (model.tier === 'stable') return <Shield className="h-3 w-3 text-muted-foreground" />;
     if (model.tier === 'openai') return <Brain className="h-3 w-3 text-blue-500" />;
@@ -134,6 +164,33 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               </SelectItem>
             ))}
           </SelectGroup>
+          {anthropicModels.length > 0 && (
+            <SelectGroup>
+              <SelectLabel className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+                <Sparkles className="h-3 w-3" /> Anthropic
+              </SelectLabel>
+              {anthropicModels.map(m => (
+                <SelectItem key={m.id} value={m.id}>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                      {getTierIcon(m)}
+                      <span>{m.label}</span>
+                      {m.badge && (
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 border ${m.badgeClass}`}>
+                          {m.badge}
+                        </Badge>
+                      )}
+                    </div>
+                    {m.infoNote && (
+                      <span className="text-[10px] text-muted-foreground ml-5 leading-tight">
+                        {m.infoNote}
+                      </span>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          )}
           {openaiModels.length > 0 && (
             <SelectGroup>
               <SelectLabel className="flex items-center gap-1.5 text-blue-500">
