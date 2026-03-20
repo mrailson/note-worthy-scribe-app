@@ -9,6 +9,7 @@ import { useMinutesFormatter } from "@/hooks/useMinutesFormatter";
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
+import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
 import { QualityReportSection } from "@/components/meeting-notes/QualityReportSection";
 import React, { useState, useEffect, useRef, Suspense, lazy, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -3823,6 +3824,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                   <div className="px-3 pt-2 flex items-center gap-2">
                     <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
                     <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
+                    {meeting?.id && <RecordingDeviceBadge meetingId={meeting.id} />}
                   </div>
                   <TranscriptTabContent
                     meetingId={meeting?.id || ''}
