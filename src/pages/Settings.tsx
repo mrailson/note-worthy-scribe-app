@@ -890,7 +890,7 @@ export default function Settings() {
                         }
                       </p>
                       <p>
-                        This affects "Regenerate Notes" actions. Claude models use a governance-grade prompt optimised for exhaustive topic extraction and risk identification.
+                        This model is used for both initial note generation (after stopping a recording) and manual "Regenerate Notes" actions. Claude models use a governance-grade prompt optimised for exhaustive topic extraction and risk identification.
                       </p>
                     </div>
                   </div>

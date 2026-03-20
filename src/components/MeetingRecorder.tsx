@@ -5572,11 +5572,13 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             console.warn('Failed to load note type preference, using standard:', err);
           }
 
+          const modelOverride = localStorage.getItem('meeting-regenerate-llm') || 'gemini-3-flash';
           const functionResult = await supabase.functions
             .invoke('auto-generate-meeting-notes', {
               body: { 
                 meetingId: savedMeeting.id,
                 noteType: preferredNoteType,
+                modelOverride,
               }
             });
           

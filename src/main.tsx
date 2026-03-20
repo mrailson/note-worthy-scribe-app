@@ -21,7 +21,6 @@ import "./index.css";
   try {
     if (typeof window !== 'undefined') {
       const guard = (e: any) => {
-        // Determine element under pointer for reliable detection
         const doc = window.document;
         const el = (e.clientX != null && e.clientY != null)
           ? doc.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
@@ -48,7 +47,7 @@ createRoot(document.getElementById("root")!).render(
           <AuthProvider>
             <RecordingProvider>
               <Toaster />
-              <SonnerToaster 
+              <SonnerToaster
                 position="top-right"
                 icons={{
                   success: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
