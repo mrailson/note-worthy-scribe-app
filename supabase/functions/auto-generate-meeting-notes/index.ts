@@ -1170,7 +1170,7 @@ DISCUSSION POINT QUALITY RULES:
 ═══ FINAL OUTPUT CHECKLIST — VERIFY BEFORE RESPONDING ═══
 Before returning your response, check:
 1. Does EVERY key point under DISCUSSION SUMMARY have bold **Context:**, **Discussion:**, **Agreed:**, and **Implication:** sub-headings? If not, fix it now.
-2. Is there a # DECISIONS REGISTER section with a bullet list of every decision? If not, add it now.
+2. Is there a # DECISIONS REGISTER section with every entry labelled **[RESOLVED]**, **[AGREED]**, or **[NOTED]**? If not, add it now.
 3. Does the EXECUTIVE SUMMARY contain BOTH a paragraph AND bullet points? If no bullets, add 3-5 now.
 4. Are action items specific deliverables with clear end points (not monitoring tasks or ongoing responsibilities)?
 If any check fails, fix it before returning.
