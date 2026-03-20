@@ -939,14 +939,18 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           return;
         }
 
-        // Fallback to meeting_summaries
+        // Always fetch generation_metadata from meeting_summaries
         const { data: summaryData } = await supabase
           .from('meeting_summaries')
-          .select('summary')
+          .select('summary, generation_metadata')
           .eq('meeting_id', meeting.id)
           .maybeSingle();
 
-        if (summaryData?.summary) {
+        if (summaryData?.generation_metadata) {
+          setGenerationMetadata(summaryData.generation_metadata as any);
+        }
+
+        if (!meetingData?.notes_style_3 && summaryData?.summary) {
           setNotesContent(sanitiseMeetingNotes(summaryData.summary));
         }
       } catch (error) {
