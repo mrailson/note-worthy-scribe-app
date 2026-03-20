@@ -83,7 +83,8 @@ Format:
 [2-3 sentences: Meeting type, date, primary strategic purpose]
 
 # ⚡ CRITICAL DECISIONS (3-4 maximum)
-• **[Decision name]** - Strategic impact: [Why this matters to practice viability/compliance/competitiveness] | Impact: [Financial/operational/patient care consequence]
+Label each as **[RESOLVED]** (formal vote), **[AGREED]** (clear consensus), or **[NOTED]** (presented/reported).
+• **[RESOLVED/AGREED/NOTED]** **[Decision name]** - Strategic impact: [Why this matters to practice viability/compliance/competitiveness] | Impact: [Financial/operational/patient care consequence]
 
 # 👥 LEADERSHIP ACTION REQUIRED (2-3 maximum)
 • **[Action]** - Owner: [Partner name/role] | Deadline: [Specific date] | **Why critical:** [Consequence of delay/non-action]

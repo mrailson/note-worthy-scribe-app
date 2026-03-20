@@ -55,7 +55,7 @@ TEMPLATE CONTENT REQUIREMENTS (derive from transcript/settings/context):
 - Action Notes: ordered list of Key Points & explicit ACTIONS with Owner + Due (if known).
 - Headline Summary: 6–10 bullets max, no fluff, strongest signals first, one deadline bullet.
 - Narrative Newsletter: 3–6 short paragraphs; neutral, informative; suitable for a staff bulletin.
-- Decision Log (table): columns: Agenda Item | Key Discussion | Decision/Consensus | Risks/Concerns | Actions/Owners.
+- Decision Log (table): columns: Agenda Item | Key Discussion | Category (RESOLVED/AGREED/NOTED) | Decision/Consensus | Risks/Concerns | Actions/Owners. Use RESOLVED only for formal votes, AGREED for clear consensus, NOTED for items presented without group agreement.
 - Annotated Summary: bullets grouped as Background, Positions, Concerns, Alternatives, Tone, Outcome, Next steps; add brief bracketed annotations like [capacity], [contract], [equity] where helpful.
 - Mind Map: hierarchical structure using markdown format with indented bullets; main topics at top level, subtopics indented beneath; use symbols like ► for main branches, ▸ for sub-branches, • for details; organize by: central topic (meeting title), main themes as primary branches, key points/decisions/actions as secondary branches, specific details as tertiary items; maximum 3 levels deep for clarity.
 
