@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CheckCircle2, XCircle, ChevronDown, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { downloadQcReport } from '@/utils/qcReportExport';
 
 interface QcCategory {
   status: 'pass' | 'fail';
@@ -53,12 +55,14 @@ interface QualityReportSectionProps {
   qc: QcResult | null | undefined;
   meetingId: string | undefined;
   onQcUpdated: (newMetadata: any) => void;
+  meetingTitle?: string;
 }
 
 export const QualityReportSection: React.FC<QualityReportSectionProps> = ({
   qc,
   meetingId,
   onQcUpdated,
+  meetingTitle,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isRerunning, setIsRerunning] = useState(false);
@@ -195,17 +199,28 @@ export const QualityReportSection: React.FC<QualityReportSectionProps> = ({
           </>
         )}
 
-        {/* Re-run button */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3"
-          onClick={handleRerunQc}
-          disabled={isRerunning || !meetingId}
-        >
-          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRerunning ? 'animate-spin' : ''}`} />
-          {isRerunning ? 'Running QC…' : 'Re-run QC'}
-        </Button>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 mt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRerunQc}
+            disabled={isRerunning || !meetingId}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRerunning ? 'animate-spin' : ''}`} />
+            {isRerunning ? 'Running QC…' : 'Re-run QC'}
+          </Button>
+          {qc && qc.status !== 'error' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => downloadQcReport(qc, meetingTitle)}
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Export Report
+            </Button>
+          )}
+        </div>
       </CollapsibleContent>
     </Collapsible>
   );
