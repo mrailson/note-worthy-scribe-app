@@ -3671,7 +3671,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                   <div className="flex flex-wrap justify-between items-center gap-2 min-h-[36px]">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
-                      <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
+                      <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} consolidationTiming={consolidationTiming} />
                       {meeting?.id && (
                         <>
                           <span className="text-xs font-medium text-muted-foreground ml-1">Recorded on:</span>
