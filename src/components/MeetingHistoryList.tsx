@@ -69,7 +69,7 @@ import {
 import { format, isToday } from "date-fns";
 import { MeetingDetailsTabs } from "@/components/meeting-details/MeetingDetailsTabs";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import {
