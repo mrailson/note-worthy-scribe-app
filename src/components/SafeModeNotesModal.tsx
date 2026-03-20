@@ -565,6 +565,26 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           toast.success('Notes regenerated - refresh to see updates');
         }
       }
+
+      // Refresh generation metadata badges from edge function response or DB
+      if (data?.qc || data?.modelUsed) {
+        const freshMeta: any = {
+          model: data.modelUsed || modelOverrideLvl,
+          transcript_source: 'auto',
+          note_style: 'standard',
+        };
+        if (data.qc) freshMeta.qc = data.qc;
+        setGenerationMetadata(freshMeta);
+      } else {
+        const { data: metaRow } = await supabase
+          .from('meeting_summaries')
+          .select('generation_metadata')
+          .eq('meeting_id', meeting.id)
+          .maybeSingle();
+        if (metaRow?.generation_metadata) {
+          setGenerationMetadata(metaRow.generation_metadata as any);
+        }
+      }
     } catch (error) {
       console.error('Failed to regenerate notes:', error);
       toast.error('Failed to regenerate notes');
