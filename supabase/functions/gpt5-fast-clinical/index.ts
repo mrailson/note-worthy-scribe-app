@@ -731,7 +731,11 @@ serve(async (req) => {
       return sseError(`AI API error: ${errorText}`, resp?.status || 500);
     }
 
-    console.log(`Successfully got response from AI gateway using ${usedModel}`);
+    console.log(`Successfully got response using ${usedModel}`);
+    
+    // For Anthropic models, convert the stream to OpenAI-compatible SSE
+    const isAnthropicResponse = isAnthropicModel(usedModel);
+    const responseBody = isAnthropicResponse && resp.body ? convertAnthropicStream(resp.body) : resp.body;
     
     // Build meta message with fallback info and/or web search info
     const metaInfo: Record<string, any> = {};
