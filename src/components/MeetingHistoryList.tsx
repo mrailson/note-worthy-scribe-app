@@ -2367,9 +2367,8 @@ export const MeetingHistoryList = ({
                         </Badge>
                       )}
                       
-                      {(() => {
-                        if (!meeting.folder_id) return null;
-                        const folder = meetingFoldersById.get(meeting.folder_id);
+                      {meeting.folder_id ? (() => {
+                        const folder = meetingFolderBadges.get(meeting.id);
 
                         if (!folder) {
                           return (
@@ -2386,7 +2385,7 @@ export const MeetingHistoryList = ({
                             folderColour={folder.colour}
                           />
                         );
-                      })()}
+                      })() : null}
                     </div>
 
                     {/* Display Attendees */}

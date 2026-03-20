@@ -3564,16 +3564,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                                                 </style>
                                                  <div 
                                                    ref={minutesContainerRef}
-                                                   dangerouslySetInnerHTML={{ 
-                                                     __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
-                                                       selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                       selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                       selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                       selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                       selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                       (minutesHtml || '')
-                                                     )) : ''
-                                                   }}
+                                                    dangerouslySetInnerHTML={{ 
+                                                      __html: renderedMinutesHtml
+                                                    }}
                                                  />
                                               </div>
                                              </>
