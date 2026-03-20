@@ -116,10 +116,6 @@ import { MeetingAudioStudio } from "@/components/meeting-details/MeetingAudioStu
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { useActionItemsCount } from "@/hooks/useActionItemsCount";
 import { supabase } from "@/integrations/supabase/client";
-import { BackupBadge } from "@/components/offline/BackupBadge";
-import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
-import { LlmModelBadge } from "@/components/meeting-history/LlmModelBadge";
-import { QualityGateBadge } from "@/components/meeting-history/QualityGateBadge";
 import { toast } from "sonner";
 import { generateProfessionalWordFromContent, ParsedMeetingDetailsInput, ParsedActionItemInput } from "@/utils/generateProfessionalMeetingDocx";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
@@ -3390,8 +3386,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     </div>
                   ) : notesContent ? (
                     <>
-                      {/* Generation Pipeline Badges */}
-                      <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
                       {/* Meeting Details Table - show if we have details or attendees */}
                       {viewMode === 'formatted' && (meetingDetails || attendees.length > 0) && (
                         <div className="rounded-lg border overflow-hidden">
@@ -3651,13 +3645,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <TabsContent value="transcript" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card">
                 <div className="p-6 space-y-4">
-                  {/* Toolbar: Quality Summary + Find & Replace + Backup Badge */}
+                  {/* Meeting QC Badges */}
                   <div className="flex flex-wrap justify-between items-center gap-2 min-h-[36px]">
                     <div className="flex items-center gap-2">
-                      {meeting?.id && <BackupBadge meetingId={meeting.id} />}
-                      {meeting?.id && <RecordingDeviceBadge meetingId={meeting.id} />}
-                      {meeting?.id && <LlmModelBadge meetingId={meeting.id} />}
-                      {meeting?.id && <QualityGateBadge meetingId={meeting.id} />}
+                      <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
+                      <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
                     </div>
                     {/* Sub-tabs for Batch/Live/Deepgram with copy buttons */}
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
