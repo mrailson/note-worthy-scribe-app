@@ -1,6 +1,7 @@
 export interface NotesViewSettings {
   visibleSections: {
     executiveSummary: boolean;
+    discussionSummary: boolean;
     keyPoints: boolean;
     actionList: boolean;
     openItems: boolean;
@@ -10,6 +11,7 @@ export interface NotesViewSettings {
 export const DEFAULT_NOTES_VIEW_SETTINGS: NotesViewSettings = {
   visibleSections: {
     executiveSummary: true,
+    discussionSummary: true,
     keyPoints: true,
     actionList: true,
     openItems: true,
@@ -18,6 +20,7 @@ export const DEFAULT_NOTES_VIEW_SETTINGS: NotesViewSettings = {
 
 export const SECTION_LABELS: Record<keyof NotesViewSettings['visibleSections'], string> = {
   executiveSummary: 'Executive Summary',
+  discussionSummary: 'Discussion Summary',
   keyPoints: 'Key Points',
   actionList: 'Action Items',
   openItems: 'Open Items',
@@ -26,7 +29,8 @@ export const SECTION_LABELS: Record<keyof NotesViewSettings['visibleSections'], 
 // Maps section keys to patterns that match section headings in the notes
 export const SECTION_HEADING_PATTERNS: Record<keyof NotesViewSettings['visibleSections'], RegExp> = {
   executiveSummary: /executive\s*summary/i,
-  keyPoints: /(key\s*(points|discussion|discussion\s*points|highlights|takeaways))|(discussion\s*summary)/i,
+  discussionSummary: /discussion\s*summary/i,
+  keyPoints: /key\s*(points|discussion|discussion\s*points|highlights|takeaways)/i,
   actionList: /action\s*(list|items?)/i,
   openItems: /open\s*(items?|issues?)(\s*&\s*risks?)?/i,
 };
