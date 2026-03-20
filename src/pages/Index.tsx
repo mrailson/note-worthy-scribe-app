@@ -29,6 +29,7 @@ const Index = () => {
   } = useAuth();
   const isMobile = useIsMobile();
   const isIPhone = useIsIPhone();
+  const { showBlockerDialog, confirmLeave, cancelLeave } = useNavigationBlocker();
 
   // Enable meeting auto-close service (runs every 5 minutes)
   useMeetingAutoClose({
