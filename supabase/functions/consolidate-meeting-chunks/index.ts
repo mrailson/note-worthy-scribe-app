@@ -1078,6 +1078,52 @@ serve(async (req) => {
       }
     }
 
+    // ============= HALLUCINATION DETECTION & REPAIR (BoT cleanup) =============
+    let hallucinationRepairLog: any = null;
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (supabaseUrl && supabaseServiceKey) {
+        console.log(`[HallucinationRepair] Running repair on best_of_all transcript (${bestOfAllText.length} chars)...`);
+        
+        const repairResponse = await fetch(`${supabaseUrl}/functions/v1/repair-transcript-hallucinations`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transcript: bestOfAllText,
+            meetingId,
+          }),
+        });
+
+        if (repairResponse.ok) {
+          const repairResult = await repairResponse.json();
+          hallucinationRepairLog = repairResult.stats || { skipped: repairResult.skipped, reason: repairResult.reason };
+
+          if (!repairResult.skipped && repairResult.cleaned_transcript && repairResult.repair_log?.length > 0) {
+            const repairedWordCount = repairResult.cleaned_transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
+            console.log(`[HallucinationRepair] Applied ${repairResult.repair_log.length} repair(s): ${bestWordCount} → ${repairedWordCount} words`);
+            
+            // Update both bestOfAll and bestTranscript
+            bestOfAllText = repairResult.cleaned_transcript;
+            if (bestSource === 'best_of_all' || bestSource === 'consolidated') {
+              bestTranscript = repairResult.cleaned_transcript;
+              bestWordCount = repairedWordCount;
+            }
+          } else {
+            console.log(`[HallucinationRepair] Skipped: ${repairResult.reason || 'no artefacts found'}`);
+          }
+        } else {
+          const errText = await repairResponse.text();
+          console.warn(`[HallucinationRepair] Edge function error ${repairResponse.status}: ${errText}`);
+        }
+      }
+    } catch (repairErr: any) {
+      console.warn(`[HallucinationRepair] Non-blocking error: ${repairErr.message}`);
+    }
+
     // Update the meeting with the best transcript AND per-source transcripts
     const updatePayload: Record<string, any> = {
       live_transcript_text: bestTranscript,
