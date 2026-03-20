@@ -283,7 +283,9 @@ function normaliseText(s: string): string {
 }
 
 function tokenise(s: string): string[] {
-  return normaliseText(s).toLowerCase().replace(/[^a-z0-9\s']/g, ' ').split(/\s+/).filter(Boolean);
+  // Strip speaker labels before tokenising so they don't affect similarity comparisons
+  const stripped = normaliseText(s).replace(/\[speaker\s+[a-z0-9]+\]:\s*/gi, '');
+  return stripped.toLowerCase().replace(/[^a-z0-9\s']/g, ' ').split(/\s+/).filter(Boolean);
 }
 
 function jaccardSim(aTokens: string[], bTokens: string[]): number {
