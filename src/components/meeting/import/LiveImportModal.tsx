@@ -224,12 +224,6 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
                 />
               </TabsContent>
               
-              <TabsContent value="actions" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
-                <ActionsImportTab 
-                  onImport={handleImportContent}
-                  isImporting={isImporting}
-                />
-              </TabsContent>
               
               <TabsContent value="agenda" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
                 <AgendaImportTab 
