@@ -3883,6 +3883,11 @@ export const MeetingRecorder = ({
         if (event.data.size > 0) {
           audioChunks.push(event.data);
           addDebugLog(`📦 Audio chunk captured: ${(event.data.size / 1024).toFixed(1)}KB`);
+          // Persist to IndexedDB for crash recovery
+          const sid = sessionStorage.getItem('currentMeetingId');
+          if (sid) {
+            saveAudioChunk(sid, event.data).catch(() => {});
+          }
         } else {
           addDebugLog(`⚠️ Empty audio chunk received`);
         }
