@@ -956,6 +956,9 @@ export const MeetingRecorder = ({
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const autoCleanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const liveNotesIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const chunkStartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const firstLiveNotesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   // micAudioStreamRef declared earlier (line ~686) for health monitor access
   const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
