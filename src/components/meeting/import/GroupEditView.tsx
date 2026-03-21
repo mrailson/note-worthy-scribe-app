@@ -140,6 +140,18 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
     setMemberSearch('');
   };
 
+  const addDirectoryMember = (u: NotewellUser) => {
+    setMembers(prev => [...prev, {
+      id: `dir-${u.user_id}`,
+      name: u.full_name,
+      initials: generateInitials(u.full_name),
+      org: u.practice_name,
+      role: u.practice_role || u.title || 'Guest',
+      fromContacts: false,
+    }]);
+    setMemberSearch('');
+  };
+
   const addNewMember = async (alsoSaveToContacts: boolean) => {
     if (!newName.trim()) return;
     const initials = generateInitials(newName);
