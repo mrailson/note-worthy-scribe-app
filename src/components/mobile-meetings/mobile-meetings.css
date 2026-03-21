@@ -549,6 +549,20 @@
 }
 
 .nw-mh-sheet {
+  --nw-surface: hsl(var(--card));
+  --nw-text: hsl(var(--foreground));
+  --nw-text2: hsl(var(--muted-foreground));
+  --nw-text3: hsl(var(--muted-foreground) / 0.6);
+  --nw-blue: #2563EB;
+  --nw-blue-light: #EFF6FF;
+  --nw-green: #059669;
+  --nw-green-light: #ECFDF5;
+  --nw-amber: #D97706;
+  --nw-amber-light: #FFFBEB;
+  --nw-surface2: hsl(var(--muted));
+  --nw-safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   position: fixed;
   bottom: 0;
   left: 0;
@@ -559,6 +573,15 @@
   padding: 8px 16px calc(var(--nw-safe-bottom) + 16px);
   transform: translateY(100%);
   transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.dark .nw-mh-sheet {
+  --nw-blue: #60A5FA;
+  --nw-blue-light: #1E293B;
+  --nw-green: #34D399;
+  --nw-green-light: #064E3B;
+  --nw-amber: #FBBF24;
+  --nw-amber-light: #451A03;
 }
 
 .nw-mh-sheet.open {
