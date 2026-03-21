@@ -483,7 +483,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     
     return () => {
       clearTimeout(safetyTimeout);
-      cancelIdleCallback(id);
+      _cic(id);
     };
   }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded, isLongMeetingRaw, isGeneratingStyle3, notesViewMode]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
