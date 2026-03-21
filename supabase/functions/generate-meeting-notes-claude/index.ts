@@ -503,6 +503,7 @@ serve(async (req) => {
       qcOnly,
       existingNotes,
       expectedAttendees: reqExpectedAttendees,
+      skipQc = false,
     } = await req.json();
 
     // ── QC-only mode: skip note generation, just run QC ──────────────
@@ -716,6 +717,10 @@ serve(async (req) => {
     const finalMinutes = meetingMinutes;
     const qcStartTime = Date.now();
 
+    if (skipQc) {
+      console.log('⏭️ QC audit skipped (disabled by user setting)');
+      qcResult = { status: 'skipped', reason: 'disabled_by_user', ran_at: new Date().toISOString() };
+    } else {
     try {
       console.log(`[QC] Starting quality audit at ${new Date(qcStartTime).toISOString()}`);
 
@@ -824,6 +829,7 @@ serve(async (req) => {
         ran_at: new Date().toISOString(),
       };
     }
+    } // end if (!skipQc)
 
     // ── Persist QC results + timing to generation_metadata ──
     const qcEndFinal = Date.now();

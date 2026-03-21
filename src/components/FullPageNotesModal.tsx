@@ -2214,6 +2214,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         ? 'claude-sonnet-4-6'
         : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
       
+      const skipQc = localStorage.getItem('meeting-qc-enabled') !== 'true';
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: transcriptWithMetadata,
@@ -2221,7 +2222,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           meetingDate: meetingDate,
           meetingTime: meetingTime,
           detailLevel: 'standard',
-          modelOverride
+          modelOverride,
+          skipQc,
         }
       });
 
@@ -2330,7 +2332,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             meetingTime: meetingTime,
             detailLevel: 'standard',
             modelOverride,
-            meetingId: meeting.id
+            meetingId: meeting.id,
+            skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
           }
         });
         data = result.data;

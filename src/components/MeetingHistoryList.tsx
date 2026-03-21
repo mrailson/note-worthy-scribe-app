@@ -1586,7 +1586,7 @@ export const MeetingHistoryList = ({
             console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', modelOverride);
             const { data, error: standardError } = await supabase.functions.invoke(
               'auto-generate-meeting-notes',
-              { body: { meetingId, forceRegenerate: true, modelOverride } }
+              { body: { meetingId, forceRegenerate: true, modelOverride, skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true' } }
             );
             
             console.log('📥 Response from auto-generate-meeting-notes:', { data, error: standardError });

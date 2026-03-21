@@ -5581,12 +5581,14 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           console.log('🧠 localStorage meeting-regenerate-llm value:', storedModel);
           const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
           console.log('🧠 Using model for initial generation:', modelOverride);
+          const skipQc = localStorage.getItem('meeting-qc-enabled') !== 'true';
           const functionResult = await supabase.functions
             .invoke('auto-generate-meeting-notes', {
               body: { 
                 meetingId: savedMeeting.id,
                 noteType: preferredNoteType,
                 modelOverride,
+                skipQc,
               }
             });
           

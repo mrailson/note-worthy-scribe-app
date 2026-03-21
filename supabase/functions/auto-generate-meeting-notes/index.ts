@@ -234,7 +234,8 @@ serve(async (req) => {
       detailLevel = 'standard',
       noteType = 'standard',
       transcriptSource,
-      modelOverride = 'claude-sonnet-4-6'
+      modelOverride = 'claude-sonnet-4-6',
+      skipQc = false,
     } = requestBody;
     meetingId = parsedMeetingId;
     console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType, 'using transcript source:', transcriptSource || 'auto', 'and model:', modelOverride);
@@ -1695,6 +1696,10 @@ ${cleanedTranscript}`;
     // ── 7-Category QC Audit (inline, non-blocking) ────────────────────
     const qcStart = Date.now();
     let qcResult: any = null;
+    if (skipQc) {
+      console.log('⏭️ QC audit skipped (disabled by user setting)');
+      qcResult = { status: 'skipped', reason: 'disabled_by_user', ran_at: new Date().toISOString() };
+    } else {
     try {
       console.log('🔍 Running 7-category QC audit via Claude Haiku 4.5...');
       const anthropicQcKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
@@ -1836,6 +1841,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         ran_at: new Date().toISOString(),
       };
     }
+    } // end if (!skipQc)
 
     // Save or update notes in database - handle forceRegenerate properly
     if (forceRegenerate) {
