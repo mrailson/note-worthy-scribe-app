@@ -7,7 +7,6 @@ import { ScreenshotImportTab } from './ScreenshotImportTab';
 import { AttendeesImportTab } from './AttendeesImportTab';
 import { MeetingAttendeesTab } from './MeetingAttendeesTab';
 import { AgendaImportTab } from './AgendaImportTab';
-import { AgendaImportTab } from './AgendaImportTab';
 import { CreateMeetingTab } from './CreateMeetingTab';
 import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
