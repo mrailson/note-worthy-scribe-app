@@ -2,7 +2,8 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, ChevronLeft, ChevronRight, Plus, Upload, Loader2, ImageIcon, RotateCcw } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { X, ChevronLeft, ChevronRight, Plus, Loader2, Upload, FileText, ClipboardPaste, MapPin, Video, Users2, RotateCcw } from 'lucide-react';
 import { useMeetingSetup } from './MeetingSetupContext';
 import { ContextStatusPill } from './ContextStatusPill';
 import { AvatarStack } from './AvatarStack';
@@ -15,6 +16,19 @@ import type { MeetingGroup } from '@/types/contactTypes';
 
 const GROUPS_PER_PAGE = 3;
 
+const ACCEPTED_FILE_TYPES = [
+  'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/tiff',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+].join(',');
+
+const MEETING_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; colour: string }> = {
+  'remote': { label: 'Remote', icon: <Video className="h-3 w-3" />, colour: '#3B82F6' },
+  'face-to-face': { label: 'Face to Face', icon: <Users2 className="h-3 w-3" />, colour: '#10B981' },
+  'hybrid': { label: 'Hybrid', icon: <Video className="h-3 w-3" />, colour: '#8B5CF6' },
+};
+
 interface PreMeetingSetupProps {
   onStartRecording: () => void;
   onOpenImportModal?: (tab?: string) => void;
@@ -26,6 +40,9 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
     presentCount, apologiesCount,
     lastUpdate, addAgendaItem, removeAgendaItem,
     toggleAttendeeStatus, loadGroup,
+    meetingType, setMeetingType,
+    meetingLocation, setMeetingLocation,
+    meetingTitle, setMeetingTitle,
   } = useMeetingSetup();
 
   const { contacts } = useContacts();
@@ -33,6 +50,8 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
   const [agendaInput, setAgendaInput] = useState('');
   const [groupPage, setGroupPage] = useState(0);
   const [isExtractingAgenda, setIsExtractingAgenda] = useState(false);
+  const [showPasteArea, setShowPasteArea] = useState(false);
+  const [pasteText, setPasteText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const agendaDropRef = useRef<HTMLDivElement>(null);
 
@@ -47,55 +66,135 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
     loadGroup(group, contacts);
   };
 
-  // Pagination logic
+  // Pagination
   const totalPages = Math.ceil(groups.length / GROUPS_PER_PAGE);
   const pagedGroups = groups.slice(groupPage * GROUPS_PER_PAGE, (groupPage + 1) * GROUPS_PER_PAGE);
   const needsPagination = groups.length > GROUPS_PER_PAGE;
 
-  // Image → agenda extraction
-  const extractAgendaFromImage = useCallback(async (file: File) => {
+  // Apply extracted meeting metadata
+  const applyExtractedData = useCallback((data: any) => {
+    const items: string[] = data?.agendaItems || [];
+    let feedbackParts: string[] = [];
+
+    if (items.length > 0) {
+      items.forEach((item: string) => addAgendaItem(item));
+      feedbackParts.push(`${items.length} agenda item${items.length > 1 ? 's' : ''}`);
+    }
+
+    if (data?.meetingType && ['remote', 'face-to-face', 'hybrid'].includes(data.meetingType)) {
+      setMeetingType(data.meetingType);
+      feedbackParts.push(`meeting type: ${data.meetingType}`);
+    }
+
+    if (data?.location) {
+      setMeetingLocation(data.location);
+      feedbackParts.push(`location: ${data.location}`);
+    }
+
+    if (data?.meetingTitle) {
+      setMeetingTitle(data.meetingTitle);
+      feedbackParts.push(`title detected`);
+    }
+
+    if (feedbackParts.length === 0) {
+      showToast.info('No meeting details found in the provided content', { section: 'meeting_manager' });
+    } else {
+      showToast.success(`Extracted: ${feedbackParts.join(', ')}`, { section: 'meeting_manager' });
+    }
+  }, [addAgendaItem, setMeetingType, setMeetingLocation, setMeetingTitle]);
+
+  // Extract from file (image or document)
+  const extractFromFile = useCallback(async (file: File) => {
     setIsExtractingAgenda(true);
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64Data = result.split(',')[1];
-          resolve(base64Data);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const isImage = file.type.startsWith('image/');
 
-      const { data, error } = await supabase.functions.invoke('extract-agenda-from-image', {
-        body: { imageBase64: base64, mimeType: file.type },
-      });
+      if (isImage) {
+        // Send image as base64
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
-      if (error) throw error;
+        const { data, error } = await supabase.functions.invoke('extract-agenda-from-image', {
+          body: { imageBase64: base64, mimeType: file.type },
+        });
+        if (error) throw error;
+        applyExtractedData(data);
+      } else {
+        // For PDFs and Word docs, extract text first via upload-to-text, then send text to AI
+        const formData = new FormData();
+        formData.append('file', file);
 
-      const items: string[] = data?.agendaItems || [];
-      if (items.length === 0) {
-        showToast.info('No agenda items found in that image', { section: 'meeting_manager' });
-        return;
+        // Read file as base64 and use upload-to-text to get text
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // First try extracting text via upload-to-text
+        const { data: textData, error: textError } = await supabase.functions.invoke('upload-to-text', {
+          body: { fileBase64: base64, fileName: file.name, mimeType: file.type },
+        });
+
+        if (textError) throw textError;
+
+        const extractedText = textData?.text || textData?.content || '';
+        if (!extractedText) {
+          showToast.info('Could not extract text from that file', { section: 'meeting_manager' });
+          return;
+        }
+
+        // Now send extracted text to the agenda extraction AI
+        const { data, error } = await supabase.functions.invoke('extract-agenda-from-image', {
+          body: { textContent: extractedText },
+        });
+        if (error) throw error;
+        applyExtractedData(data);
       }
-
-      items.forEach(item => addAgendaItem(item));
-      showToast.success(`${items.length} agenda item${items.length > 1 ? 's' : ''} extracted from image`, { section: 'meeting_manager' });
     } catch (err) {
       console.error('Agenda extraction error:', err);
-      showToast.error('Failed to extract agenda from image', { section: 'meeting_manager' });
+      showToast.error('Failed to extract meeting details from file', { section: 'meeting_manager' });
     } finally {
       setIsExtractingAgenda(false);
     }
-  }, [addAgendaItem]);
+  }, [applyExtractedData]);
+
+  // Extract from pasted text
+  const handleExtractFromText = useCallback(async () => {
+    if (!pasteText.trim()) return;
+    setIsExtractingAgenda(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-agenda-from-image', {
+        body: { textContent: pasteText.trim() },
+      });
+      if (error) throw error;
+      applyExtractedData(data);
+      setPasteText('');
+      setShowPasteArea(false);
+    } catch (err) {
+      console.error('Text extraction error:', err);
+      showToast.error('Failed to extract meeting details from text', { section: 'meeting_manager' });
+    } finally {
+      setIsExtractingAgenda(false);
+    }
+  }, [pasteText, applyExtractedData]);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      extractAgendaFromImage(file);
-    }
+    if (file) extractFromFile(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [extractAgendaFromImage]);
+  }, [extractFromFile]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
@@ -104,20 +203,18 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
       if (item.type.startsWith('image/')) {
         e.preventDefault();
         const file = item.getAsFile();
-        if (file) extractAgendaFromImage(file);
+        if (file) extractFromFile(file);
         return;
       }
     }
-  }, [extractAgendaFromImage]);
+  }, [extractFromFile]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      extractAgendaFromImage(file);
-    }
-  }, [extractAgendaFromImage]);
+    if (file) extractFromFile(file);
+  }, [extractFromFile]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -164,7 +261,6 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
             </div>
           </div>
           <div className="p-4 max-h-[360px] overflow-y-auto">
-            {/* Group Quick-Load (no attendees yet) */}
             {attendees.length === 0 && (
               <>
                 <div className="flex items-center justify-between mb-2">
@@ -239,7 +335,6 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                   </button>
                 ))}
 
-                {/* Create new group / manage attendees link */}
                 <button
                   onClick={() => onOpenImportModal?.('attendees')}
                   className="w-full flex items-center gap-2 p-2.5 rounded-lg mt-1 text-left transition-all duration-150 border border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5 cursor-pointer group"
@@ -259,7 +354,6 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
               </>
             )}
 
-            {/* Loaded attendees */}
             {attendees.length > 0 && (
               <>
                 {activeGroup && (
@@ -336,36 +430,116 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
         >
           <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
             <span className="text-sm font-extrabold text-foreground">📋 Agenda</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {agendaItems.length > 0 && (
                 <span className="text-xs text-muted-foreground font-semibold">{agendaItems.length} items</span>
               )}
               <button
+                onClick={() => setShowPasteArea(prev => !prev)}
+                disabled={isExtractingAgenda}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-muted-foreground hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20 transition-all cursor-pointer disabled:opacity-50"
+                title="Paste email or text with agenda details"
+              >
+                <ClipboardPaste className="h-3 w-3" />
+                <span className="hidden sm:inline">Paste Text</span>
+              </button>
+              <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isExtractingAgenda}
                 className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-muted-foreground hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20 transition-all cursor-pointer disabled:opacity-50"
-                title="Upload image of agenda"
+                title="Upload a file (image, PDF, or Word document)"
               >
-                <ImageIcon className="h-3 w-3" />
-                <span className="hidden sm:inline">Upload Image</span>
+                <Upload className="h-3 w-3" />
+                <span className="hidden sm:inline">Upload File</span>
               </button>
             </div>
           </div>
           <div className="p-4 flex-1">
+            {/* Paste text area */}
+            {showPasteArea && (
+              <div className="mb-3 animate-fade-in">
+                <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider mb-1.5">
+                  Paste email body or meeting details
+                </div>
+                <Textarea
+                  value={pasteText}
+                  onChange={e => setPasteText(e.target.value)}
+                  placeholder="Paste your email or meeting invitation text here… AI will extract agenda items, location, meeting type and more."
+                  className="text-xs min-h-[100px] border-dashed border-muted-foreground/30 bg-muted/20 resize-none"
+                  disabled={isExtractingAgenda}
+                />
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    size="sm"
+                    onClick={handleExtractFromText}
+                    disabled={!pasteText.trim() || isExtractingAgenda}
+                    className="text-xs h-7 px-3"
+                  >
+                    {isExtractingAgenda ? (
+                      <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                    ) : (
+                      <FileText className="h-3 w-3 mr-1.5" />
+                    )}
+                    Extract Meeting Details
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setShowPasteArea(false); setPasteText(''); }}
+                    className="text-xs h-7 px-3"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {isExtractingAgenda && (
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg mb-3 bg-primary/5 border border-primary/20 animate-fade-in">
                 <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
-                <span className="text-xs font-semibold text-primary">Extracting agenda items from image…</span>
+                <span className="text-xs font-semibold text-primary">Extracting meeting details…</span>
               </div>
             )}
-            {agendaItems.length === 0 && !isExtractingAgenda && (
+
+            {/* Detected meeting metadata badges */}
+            {(meetingType || meetingLocation || meetingTitle) && (
+              <div className="flex flex-wrap gap-1.5 mb-3 animate-fade-in">
+                {meetingTitle && (
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/50 border border-border text-[10px] font-semibold text-foreground/80">
+                    <FileText className="h-3 w-3 text-muted-foreground" />
+                    {meetingTitle}
+                  </div>
+                )}
+                {meetingType && MEETING_TYPE_LABELS[meetingType] && (
+                  <div
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold"
+                    style={{
+                      background: `${MEETING_TYPE_LABELS[meetingType].colour}12`,
+                      border: `1px solid ${MEETING_TYPE_LABELS[meetingType].colour}33`,
+                      color: MEETING_TYPE_LABELS[meetingType].colour,
+                    }}
+                  >
+                    {MEETING_TYPE_LABELS[meetingType].icon}
+                    {MEETING_TYPE_LABELS[meetingType].label}
+                  </div>
+                )}
+                {meetingLocation && (
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/50 border border-border text-[10px] font-semibold text-foreground/80">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    {meetingLocation}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {agendaItems.length === 0 && !isExtractingAgenda && !showPasteArea && (
               <div className="text-center py-5 text-muted-foreground">
                 <div className="text-2xl mb-1.5">📋</div>
                 <div className="text-xs font-semibold text-foreground/70">No agenda items yet</div>
                 <div className="text-[11px] mt-1">Add items below — they help the AI segment the transcript</div>
                 <div className="text-[10px] mt-2 text-muted-foreground/50 flex items-center justify-center gap-1.5">
-                  <ImageIcon className="h-3 w-3" />
-                  Paste (Ctrl+V) or drop an image of your agenda to auto-extract items
+                  <Upload className="h-3 w-3" />
+                  Upload a file, paste text, or Ctrl+V an image to auto-extract
                 </div>
               </div>
             )}
@@ -394,7 +568,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={ACCEPTED_FILE_TYPES}
               onChange={handleFileUpload}
               className="hidden"
             />
@@ -404,7 +578,6 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
 
       {/* Bottom: Pre-Recording Summary + Start Button */}
       <Card className="p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4">
-        {/* Context pills */}
         <div className="flex flex-wrap gap-2 flex-1">
           <ContextStatusPill
             icon="👥" label="Attendees"
@@ -431,9 +604,14 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
               value={activeGroup.name}
             />
           )}
+          {meetingType && MEETING_TYPE_LABELS[meetingType] && (
+            <ContextStatusPill
+              icon="📍" label="Type" color={MEETING_TYPE_LABELS[meetingType].colour}
+              value={MEETING_TYPE_LABELS[meetingType].label}
+            />
+          )}
         </div>
 
-        {/* Start Recording button */}
         <Button
           onClick={onStartRecording}
           className="px-8 py-6 rounded-xl text-[15px] font-extrabold shadow-lg transition-all duration-200 hover:scale-[1.02]"
