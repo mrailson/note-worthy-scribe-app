@@ -1513,6 +1513,7 @@ ${cleanedTranscript}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
     
+    const notesGenStart = Date.now();
     let generatedNotes = '';
     let modelUsed = modelOverride;
     
@@ -1690,7 +1691,9 @@ ${cleanedTranscript}`;
     const overviewMatch = generatedNotes.match(/(?:\*\*EXECUTIVE SUMMARY\*\*|# EXECUTIVE SUMMARY)\s*\n(.*?)(?=\n(?:#|\*\*)|$)/s);
     const overview = overviewMatch ? overviewMatch[1].trim() : 'Overview not available';
 
+    const notesGenEnd = Date.now();
     // ── 7-Category QC Audit (inline, non-blocking) ────────────────────
+    const qcStart = Date.now();
     let qcResult: any = null;
     try {
       console.log('🔍 Running 7-category QC audit via Claude Haiku 4.5...');
@@ -1844,6 +1847,12 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
     }
 
     // Build generation metadata for pipeline badges
+    const qcEnd = Date.now();
+    const notesGenDuration = (notesGenEnd - notesGenStart) / 1000;
+    const qcDuration = (qcEnd - qcStart) / 1000;
+    const totalPipelineDuration = (qcEnd - notesGenStart) / 1000;
+    console.log(`⏱️ Pipeline timing — Notes: ${notesGenDuration.toFixed(1)}s, QC: ${qcDuration.toFixed(1)}s, Total: ${totalPipelineDuration.toFixed(1)}s`);
+
     const generationMetadata = {
       model_used: modelUsed,
       transcript_source: actualTranscriptSource || transcriptSource || 'auto',
@@ -1852,6 +1861,11 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       qc: qcResult,
       note_style: noteType || 'standard',
       generated_at: new Date().toISOString(),
+      timing: {
+        notes_generation_seconds: parseFloat(notesGenDuration.toFixed(2)),
+        qc_audit_seconds: parseFloat(qcDuration.toFixed(2)),
+        total_pipeline_seconds: parseFloat(totalPipelineDuration.toFixed(2)),
+      },
     };
     console.log('📋 Generation metadata:', JSON.stringify(generationMetadata));
 
