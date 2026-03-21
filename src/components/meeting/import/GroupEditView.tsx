@@ -177,6 +177,16 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
     [members]
   );
 
+  const activeOrgs = useMemo(
+    () => [...new Set(members.map(m => m.org).filter(Boolean))].sort(),
+    [members]
+  );
+
+  const displayedMembers = useMemo(
+    () => filterOrg === 'All' ? members : members.filter(m => m.org === filterOrg),
+    [members, filterOrg]
+  );
+
   const filteredContacts = useMemo(() => {
     if (!memberSearch.trim()) return [];
 
