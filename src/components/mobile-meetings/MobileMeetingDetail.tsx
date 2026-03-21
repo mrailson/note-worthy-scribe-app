@@ -139,7 +139,7 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
             <ChevronLeft size={20} /> Back
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="nw-mh-icon-btn" onClick={() => setShowExport(true)}>
+            <button className="nw-mh-icon-btn" onClick={() => onShowExport?.(meeting?.word_count)}>
               <Download size={18} />
             </button>
             <button className="nw-mh-icon-btn" onClick={() => {
