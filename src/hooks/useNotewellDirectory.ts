@@ -20,7 +20,7 @@ interface PracticeGroup {
 }
 
 /** Organisation types to include in the Notewell directory */
-const INCLUDED_ORG_TYPES = ['Practice', 'Management', 'ICB'];
+const INCLUDED_ORG_TYPES = ['Practice', 'Management', 'ICB', 'PCN'];
 
 /** Practice names for NRES practices (partial match) */
 const NRES_PRACTICE_NAMES = [
