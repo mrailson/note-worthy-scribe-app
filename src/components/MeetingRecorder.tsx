@@ -74,6 +74,7 @@ import { LiveContextStatusBar } from "@/components/recording-flow/LiveContextSta
 import { RecordingCompleteScreen } from "@/components/recording-flow/RecordingCompleteScreen";
 import { MeetingSetupBridge } from "@/components/recording-flow/MeetingSetupBridge";
 import { RecordingFlowOverlay } from "@/components/recording-flow/RecordingFlowOverlay";
+import { TabDropdown } from "@/components/recording-flow/TabDropdown";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
 import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
