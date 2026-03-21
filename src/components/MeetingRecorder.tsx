@@ -603,6 +603,27 @@ export const MeetingRecorder = ({
   // Controlled tabs state for programmatic switching
   const [activeTab, setActiveTab] = useState<string>("recorder");
 
+  // ─── Recording session recovery ────────────────────────────────────
+  const {
+    recoveredSession,
+    isStale: isRecoveredStale,
+    isDuplicateTab: isRecoveredDuplicate,
+    discardSession: discardRecoveredSession,
+    consumeRecovery,
+  } = useRecordingRecovery(isRecording);
+
+  // ─── beforeunload warning ──────────────────────────────────────────
+  useEffect(() => {
+    if (!isRecording) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Recording in progress — are you sure you want to leave?';
+      return e.returnValue;
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isRecording]);
+
   // Auto-switch to recorder tab when recording starts
   useEffect(() => {
     if (isRecording && activeTab !== 'recorder') {
