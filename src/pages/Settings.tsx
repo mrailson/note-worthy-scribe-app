@@ -63,6 +63,8 @@ import { ServiceVisibilitySettings } from '@/components/settings/ServiceVisibili
 import { QuickRecordSettings } from '@/components/settings/QuickRecordSettings';
 import { PresentationTemplateSettings } from '@/components/settings/PresentationTemplateSettings';
 import { ReferralDestinationsManager } from '@/components/settings/ReferralDestinationsManager';
+import { ContactDirectory } from '@/components/settings/ContactDirectory';
+import { MeetingGroupsManager } from '@/components/settings/MeetingGroupsManager';
 import { useToast } from '@/hooks/use-toast';
 import { useToastPreferences } from '@/hooks/useToastPreferences';
 import { useVoicePreference, VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
