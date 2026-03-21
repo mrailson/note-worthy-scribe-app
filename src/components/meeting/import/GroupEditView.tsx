@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -639,8 +638,8 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
             </div>
           )}
 
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="flex flex-col gap-1.5 pr-2">
+          <div className="flex-1 min-h-0 overflow-y-auto ios-scroll pr-2">
+            <div className="flex flex-col gap-1.5 pb-2">
               {members.length === 0 && (
                 <div className="py-6 text-center text-xs text-muted-foreground">
                   No members yet — search above or create default members directly.
@@ -720,7 +719,7 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
                 );
               })}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
     </div>
