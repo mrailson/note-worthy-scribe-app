@@ -116,6 +116,17 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
     );
   }, [contacts, memberSearch, memberContactIds]);
 
+  const filteredDirectory = useMemo(() => {
+    if (!memberSearch || memberSearch.length < 2) return [];
+    const q = memberSearch.toLowerCase();
+    return directoryUsers.filter(u =>
+      !memberNames.has(u.full_name.toLowerCase()) &&
+      (u.full_name.toLowerCase().includes(q) ||
+       u.practice_name.toLowerCase().includes(q) ||
+       (u.email && u.email.toLowerCase().includes(q)))
+    );
+  }, [directoryUsers, memberSearch, memberNames]);
+
   const addContactMember = (c: Contact) => {
     setMembers(prev => [...prev, {
       id: c.id,
