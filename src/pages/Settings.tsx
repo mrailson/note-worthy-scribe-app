@@ -672,10 +672,14 @@ export default function Settings() {
 
           {/* Settings Tabs */}
           <Tabs defaultValue="general" className="space-y-4 sm:space-y-6">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-6'} overflow-x-auto`}>
+            <TabsList className="flex w-full overflow-x-auto">
               <TabsTrigger value="general" className="flex items-center gap-2 mobile-touch-target">
                 <SettingsIcon className="h-4 w-4" />
                 <span className="hidden sm:inline">General</span>
+              </TabsTrigger>
+              <TabsTrigger value="contacts" className="flex items-center gap-2 mobile-touch-target">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Contacts</span>
               </TabsTrigger>
               <TabsTrigger value="integrations" className="flex items-center gap-2 mobile-touch-target">
                 <Plug className="h-4 w-4" />
