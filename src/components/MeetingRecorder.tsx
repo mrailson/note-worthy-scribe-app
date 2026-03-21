@@ -97,6 +97,8 @@ import {
   clearPersistedSession,
   startHeartbeat,
   stopHeartbeat,
+  saveAudioChunk,
+  clearAudioChunks,
   type PersistedRecordingSession,
 } from "@/utils/recordingSessionPersistence";
 
@@ -1257,6 +1259,11 @@ export const MeetingRecorder = ({
       audioBackupRecorder.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioBackupChunks.current.push(event.data);
+          // Persist to IndexedDB for crash recovery
+          const sid = sessionStorage.getItem('currentMeetingId');
+          if (sid) {
+            saveAudioChunk(sid, event.data).catch(() => {});
+          }
         }
       };
 
@@ -3876,6 +3883,11 @@ export const MeetingRecorder = ({
         if (event.data.size > 0) {
           audioChunks.push(event.data);
           addDebugLog(`📦 Audio chunk captured: ${(event.data.size / 1024).toFixed(1)}KB`);
+          // Persist to IndexedDB for crash recovery
+          const sid = sessionStorage.getItem('currentMeetingId');
+          if (sid) {
+            saveAudioChunk(sid, event.data).catch(() => {});
+          }
         } else {
           addDebugLog(`⚠️ Empty audio chunk received`);
         }
@@ -4989,6 +5001,11 @@ export const MeetingRecorder = ({
       localStorage.removeItem('unsaved_meeting');
       clearPersistedSession();
       stopHeartbeat();
+      // Clear IndexedDB audio chunks on normal stop
+      const stoppedMeetingId = sessionStorage.getItem('currentMeetingId');
+      if (stoppedMeetingId) {
+        clearAudioChunks(stoppedMeetingId).catch(() => {});
+      }
       
       // Delete orphaned meeting record from database for short recordings
       const meetingIdToDelete = capturedMeetingId;
@@ -5217,6 +5234,11 @@ export const MeetingRecorder = ({
     localStorage.removeItem('unsaved_meeting');
     clearPersistedSession();
     stopHeartbeat();
+    // Clear IndexedDB audio chunks on normal stop
+    const stoppedMeetingId2 = sessionStorage.getItem('currentMeetingId');
+    if (stoppedMeetingId2) {
+      clearAudioChunks(stoppedMeetingId2).catch(() => {});
+    }
     
     console.log('Recording stopped');
     
