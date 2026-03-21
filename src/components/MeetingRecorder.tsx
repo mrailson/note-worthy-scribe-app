@@ -543,6 +543,7 @@ export const MeetingRecorder = ({
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [teamsImportOpen, setTeamsImportOpen] = useState(false);
   const [audioImportOpen, setAudioImportOpen] = useState(false);
+  const [audioImportDefaultTab, setAudioImportDefaultTab] = useState<string | undefined>();
   
   // Recording context state
   const [showContextDialog, setShowContextDialog] = useState(false);
@@ -6397,7 +6398,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               
   return (
     <MeetingSetupProvider>
-    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab) => { if (tab) { /* We could set the tab but LiveImportModal manages its own tab state */ } setAudioImportOpen(true); }} />
+    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }} />
     <TooltipProvider delayDuration={300}>
     <div className="space-y-6">
       {/* Continuation Mode Banner */}
@@ -6472,7 +6473,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             isRecording={isRecording}
             onStartRecording={startRecording}
             onStopRecording={handleStopWithConfirmation}
-            onOpenImportModal={(tab) => setAudioImportOpen(true)}
+            onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }}
             formatDuration={formatDuration}
           >
           <div className="space-y-4">
@@ -8041,6 +8042,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       <LiveImportModal
         open={audioImportOpen}
         onOpenChange={setAudioImportOpen}
+        defaultTab={audioImportDefaultTab}
       />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}

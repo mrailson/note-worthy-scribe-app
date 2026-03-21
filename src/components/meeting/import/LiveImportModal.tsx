@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface LiveImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultTab?: string;
   meetingId?: string;
   onImportComplete?: () => void;
 }
@@ -30,11 +31,19 @@ export type ImportedContent = {
 export const LiveImportModal: React.FC<LiveImportModalProps> = ({
   open,
   onOpenChange,
+  defaultTab,
   meetingId,
   onImportComplete
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('attendees');
+  const [activeTab, setActiveTab] = useState<string>(defaultTab || 'attendees');
+
+  // Sync activeTab when defaultTab or open changes
+  React.useEffect(() => {
+    if (open && defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [open, defaultTab]);
   const [isImporting, setIsImporting] = useState(false);
   
   // Get current meeting ID from session if not provided
