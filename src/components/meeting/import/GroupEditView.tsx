@@ -467,11 +467,6 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
                       </>
                     )}
                   </>
-                )}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             )}
 
