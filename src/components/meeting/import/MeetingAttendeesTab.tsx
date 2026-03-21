@@ -154,7 +154,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
     ]);
     setSearch('');
   };
-  };
 
   const loadGroup = async (group: MeetingGroup) => {
     const existingContactIds = new Set(attendees.map(a => a.contact_id).filter(Boolean));
