@@ -17,6 +17,7 @@ interface MeetingMicrophoneSettingsProps {
 }
 
 export const MeetingMicrophoneSettings = ({ onDeviceChange, onAudioSourceChange, currentAudioSource }: MeetingMicrophoneSettingsProps) => {
+  const [qcEnabled, setQcEnabled] = useState(() => localStorage.getItem('meeting-qc-enabled') === 'true');
   const {
     availableDevices,
     selectedDeviceId,
