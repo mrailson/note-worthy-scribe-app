@@ -1696,6 +1696,10 @@ ${cleanedTranscript}`;
     // ── 7-Category QC Audit (inline, non-blocking) ────────────────────
     const qcStart = Date.now();
     let qcResult: any = null;
+    if (skipQc) {
+      console.log('⏭️ QC audit skipped (disabled by user setting)');
+      qcResult = { status: 'skipped', reason: 'disabled_by_user', ran_at: new Date().toISOString() };
+    } else {
     try {
       console.log('🔍 Running 7-category QC audit via Claude Haiku 4.5...');
       const anthropicQcKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
@@ -1837,6 +1841,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         ran_at: new Date().toISOString(),
       };
     }
+    } // end if (!skipQc)
 
     // Save or update notes in database - handle forceRegenerate properly
     if (forceRegenerate) {

@@ -357,6 +357,28 @@ export const MeetingMicrophoneSettings = ({ onDeviceChange, onAudioSourceChange,
             <strong>Tip:</strong> For best results, use a headset microphone and speak clearly. 
             The selected microphone will be used for all meeting recordings.
           </p>
+
+          <Separator />
+
+          {/* Quality Control Pass toggle */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="qc-toggle" className="text-sm font-medium">Quality Control Pass</Label>
+              </div>
+              <Switch
+                id="qc-toggle"
+                checked={localStorage.getItem('meeting-qc-enabled') === 'true'}
+                onCheckedChange={(checked) => {
+                  localStorage.setItem('meeting-qc-enabled', String(checked));
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Run a QC audit after note generation (~15–20s). Checks for fabricated decisions, missing speakers, and other issues.
+            </p>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

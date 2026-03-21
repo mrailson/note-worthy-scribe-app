@@ -67,6 +67,7 @@ export const ManualNoteGenerationButton = ({
         ? 'claude-sonnet-4-6'
         : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
 
+      const skipQc = localStorage.getItem('meeting-qc-enabled') !== 'true';
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: { 
           transcript: transcriptText,
@@ -75,7 +76,8 @@ export const ManualNoteGenerationButton = ({
           meetingTime,
           detailLevel: 'standard',
           modelOverride,
-          meetingId
+          meetingId,
+          skipQc,
         }
       });
 
