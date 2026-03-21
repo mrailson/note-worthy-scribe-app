@@ -5,6 +5,7 @@ import { useMeetingSetup } from './MeetingSetupContext';
 import { ContextStatusPill } from './ContextStatusPill';
 import { AvatarStack } from './AvatarStack';
 import { LiveTranscriptGlassPanel } from './LiveTranscriptGlassPanel';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LiveContextStatusBarProps {
   onEditContext: (tab?: string) => void;
