@@ -100,6 +100,7 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
   const [color, setColor] = useState(group?.color || '#3B82F6');
   const [memberSearch, setMemberSearch] = useState('');
   const [showAddNew, setShowAddNew] = useState(false);
+  const [showDetails, setShowDetails] = useState(isNew);
   const [newName, setNewName] = useState('');
   const [newOrg, setNewOrg] = useState('External / Other');
   const [newRole, setNewRole] = useState('Guest');
