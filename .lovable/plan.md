@@ -1,18 +1,28 @@
 
 
+# Simplify Mobile Recording UI
 
-# iOS Transcript Safety Net — IMPLEMENTED
+## Goal
+On mobile (< 768px), strip the recording stage down to a minimal "record and stop" experience. Remove all context-editing UI during recording since mobile users will fix up meetings later.
 
-## Changes Made
+## Changes
 
-### 1. Fixed fake "saved" status (MeetingRecorder.tsx)
-When `currentMeetingId` is missing, iOS chunks are now marked as `'failed'` (not `'saved'`). The chunk text is also queued into `sessionStorage('orphanedIOSChunks')` for emergency recovery at stop time.
+### 1. `src/components/recording-flow/LiveContextStatusBar.tsx`
+- Import `useIsMobile` from `@/hooks/use-mobile`
+- When `isMobile` is true, hide:
+  - The "Edit Context" button
+  - The "Stop" button (the stop button exists elsewhere in the recorder controls)
+  - The Agenda status pill
+  - The entire 3-column quick action cards grid (Edit Attendees, Add Agenda, Screenshot)
+- Keep visible on mobile: REC badge with timer, word count / live transcript panel, and the avatar stack (lightweight context)
 
-### 2. Emergency transcript flush on stop (MeetingRecorder.tsx)
-When the DB has zero chunks at consolidation time, the system now checks all in-memory sources (Whisper memory, AssemblyAI preview, Deepgram preview, orphaned iOS chunks) and picks the longest available transcript. It also persists this emergency transcript back to the DB so it survives.
+### 2. `src/components/recording-flow/RecordingFlowOverlay.tsx`
+- Import `useIsMobile`
+- When `isMobile` is true and stage is `'setup'`, skip rendering `<PreMeetingSetup>` entirely — go straight to a simple "Start Recording" button so the user doesn't need to set up attendees or agenda on phone
+- The recording stage and done stage remain (with the slimmed-down status bar from change 1)
 
-### 3. Periodic AssemblyAI backup (useAssemblyRealtimePreview.ts)
-Every 30 seconds while active, the AssemblyAI streaming transcript is flushed to `meetings.assembly_ai_transcript` so there's always a recoverable copy in the database.
+### Technical notes
+- Uses the existing `useIsMobile()` hook (breakpoint 768px) — no new dependencies
+- Desktop experience is completely unchanged
+- The stop button still needs to be accessible on mobile — will verify it exists in the recorder controls (`children` rendered below the status bar). If not, a minimal stop button will be kept.
 
-### 4. iOS audio health gate (MeetingRecorder.tsx)
-10 seconds after starting SimpleIOSTranscriber, a health check verifies that at least one audio blob has been captured. If not, an error toast warns the user about possible microphone failure.
