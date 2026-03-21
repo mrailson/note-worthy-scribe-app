@@ -428,7 +428,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           meetingTime,
           detailLevel: 'standard',
           modelOverride,
-          meetingId: meeting.id
+          meetingId: meeting.id,
+          skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
         }
       });
       
