@@ -212,7 +212,8 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
               </TabsContent>
               
               <TabsContent value="attendees" className="mt-0 h-full">
-                <AttendeesImportTab 
+                <MeetingAttendeesTab
+                  meetingId={getCurrentMeetingId()}
                   onImport={handleImportContent}
                   isImporting={isImporting}
                 />

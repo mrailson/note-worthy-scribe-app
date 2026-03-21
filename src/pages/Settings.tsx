@@ -2149,6 +2149,11 @@ export default function Settings() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="contacts" className="space-y-6">
+              <ContactDirectory />
+              <MeetingGroupsManager />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
