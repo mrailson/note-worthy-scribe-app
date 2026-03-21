@@ -1525,7 +1525,7 @@ export const MeetingRecorder = ({
       startNewChunk();
 
       // Start second chunk after 30s (first chunk duration), then use 87s intervals (90s - 3s overlap)
-      setTimeout(() => {
+      chunkStartTimeoutRef.current = setTimeout(() => {
         if (isRecording && isRecordingRef.current && chunksStream?.active) {
           console.log('🔄 Starting second chunk at 30s mark');
           startNewChunk();
@@ -1569,7 +1569,6 @@ export const MeetingRecorder = ({
           segmentIntervalRef.current = chunkInterval;
         }
       }, 30000); // First interval fires at 30s to match first chunk
-      chunkStartTimeoutRef.current = chunkStartTimeoutRef.current; // stored below
 
       // Add a heartbeat to show recording is active every 5 seconds
       if (heartbeatIntervalRef.current) {
