@@ -4,12 +4,14 @@ import { Card } from '@/components/ui/card';
 import { useMeetingSetup } from './MeetingSetupContext';
 import { ContextStatusPill } from './ContextStatusPill';
 import { AvatarStack } from './AvatarStack';
+import { LiveTranscriptGlassPanel } from './LiveTranscriptGlassPanel';
 
 interface LiveContextStatusBarProps {
   onEditContext: (tab?: string) => void;
   onStopRecording: () => void;
   formatDuration: (seconds: number) => string;
   wordCount?: number;
+  transcriptText?: string;
 }
 
 export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
@@ -17,6 +19,7 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
   onStopRecording,
   formatDuration,
   wordCount = 0,
+  transcriptText = '',
 }) => {
   const {
     attendees, agendaItems, activeGroup,
@@ -72,10 +75,11 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
             value={formatDuration(recordingDuration)}
           />
 
-          {/* Word count pill */}
-          <ContextStatusPill
-            icon="📝" label="Words" color="#8B5CF6"
-            value={wordCount.toString()}
+          {/* Live transcript glass panel (replaces plain word count pill) */}
+          <LiveTranscriptGlassPanel
+            isRecording={true}
+            wordCount={wordCount}
+            transcriptText={transcriptText}
           />
 
           {/* Avatar stack */}
