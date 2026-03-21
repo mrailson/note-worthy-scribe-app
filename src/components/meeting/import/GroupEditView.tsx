@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, X, Search } from 'lucide-react';
+import { ArrowLeft, X, Search, BookUser, Building2 } from 'lucide-react';
 import {
   ATTENDEE_ROLES, ROLE_COLORS, SPEAKER_COLORS,
   SUGGESTED_ORGANISATIONS, GROUP_ICONS, GROUP_COLORS,
@@ -13,6 +13,8 @@ import {
 } from '@/types/contactTypes';
 import type { Contact, MeetingGroup, AdditionalMember } from '@/types/contactTypes';
 import { useContacts } from '@/hooks/useContacts';
+import { useNotewellDirectory } from '@/hooks/useNotewellDirectory';
+import type { NotewellUser } from '@/hooks/useNotewellDirectory';
 
 interface EditableMember {
   id: number | string;
