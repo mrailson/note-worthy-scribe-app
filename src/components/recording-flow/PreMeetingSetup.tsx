@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, ChevronLeft, ChevronRight, Plus, Upload, Loader2, ImageIcon } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Plus, Upload, Loader2, ImageIcon, RotateCcw } from 'lucide-react';
 import { useMeetingSetup } from './MeetingSetupContext';
 import { ContextStatusPill } from './ContextStatusPill';
 import { AvatarStack } from './AvatarStack';
