@@ -145,6 +145,11 @@ export default {
 						opacity: '0.85',
 						transform: 'scale(0.98)'
 					}
+			},
+				'pill-pop': {
+					'0%': { transform: 'scale(1)' },
+					'50%': { transform: 'scale(1.08)' },
+					'100%': { transform: 'scale(1)' }
 				}
 			},
 			animation: {
@@ -152,7 +157,8 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'wave': 'wave 1s ease-in-out infinite',
 				'pulse-slow': 'pulse-slow 3s ease-in-out infinite',
-				'pulse-gentle': 'pulse-gentle 2.5s ease-in-out infinite'
+				'pulse-gentle': 'pulse-gentle 2.5s ease-in-out infinite',
+				'pill-pop': 'pill-pop 0.4s ease'
 			},
 			animationDelay: {
 				'200': '200ms',
