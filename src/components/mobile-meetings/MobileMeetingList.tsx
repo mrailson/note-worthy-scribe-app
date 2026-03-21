@@ -1,5 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
+import { ChevronLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import './mobile-meetings.css';
 
 interface Meeting {
