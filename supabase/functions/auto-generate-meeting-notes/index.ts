@@ -1513,6 +1513,7 @@ ${cleanedTranscript}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
     
+    const notesGenStart = Date.now();
     let generatedNotes = '';
     let modelUsed = modelOverride;
     
