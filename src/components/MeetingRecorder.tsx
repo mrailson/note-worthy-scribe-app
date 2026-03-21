@@ -8047,5 +8047,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       )}
     </div>
     </TooltipProvider>
+    </MeetingSetupProvider>
   );
 };
