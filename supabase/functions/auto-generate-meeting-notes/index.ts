@@ -234,7 +234,8 @@ serve(async (req) => {
       detailLevel = 'standard',
       noteType = 'standard',
       transcriptSource,
-      modelOverride = 'claude-sonnet-4-6'
+      modelOverride = 'claude-sonnet-4-6',
+      skipQc = false,
     } = requestBody;
     meetingId = parsedMeetingId;
     console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType, 'using transcript source:', transcriptSource || 'auto', 'and model:', modelOverride);
