@@ -4988,6 +4988,8 @@ export const MeetingRecorder = ({
       
       // Clear unsaved meeting data but keep session IDs until meeting is saved
       localStorage.removeItem('unsaved_meeting');
+      clearPersistedSession();
+      stopHeartbeat();
       
       // Delete orphaned meeting record from database for short recordings
       const meetingIdToDelete = capturedMeetingId;
