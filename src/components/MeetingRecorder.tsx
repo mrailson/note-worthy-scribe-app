@@ -6432,9 +6432,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={(tab) => {
-        if (isRecording && tab !== 'recorder') {
-          return; // Prevent tab switching during recording
-        }
         setActiveTab(tab);
       }} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
