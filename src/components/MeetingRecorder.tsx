@@ -8039,7 +8039,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       />
       
       {/* Live Import Modal */}
-      <LiveImportModal
+      <LiveImportModalWithContext
         open={audioImportOpen}
         onOpenChange={setAudioImportOpen}
         defaultTab={audioImportDefaultTab}
