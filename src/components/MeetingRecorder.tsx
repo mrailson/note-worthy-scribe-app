@@ -6565,8 +6565,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
-                {/* Microphone Settings, Import Audio & Smartphone Icons - Top Right */}
-                <div className="flex justify-end gap-1 mb-2">
+                {/* Microphone Settings, Import Audio & Smartphone Icons - hide during recording (available via Edit Context) */}
+                <div className={`flex justify-end gap-1 mb-2 ${isRecording ? 'hidden' : ''}`}>
                   <MeetingMicrophoneSettings 
                     onDeviceChange={setSelectedMicrophoneId}
                     onAudioSourceChange={setAudioSourceMode}
