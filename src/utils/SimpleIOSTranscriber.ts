@@ -127,6 +127,7 @@ export class SimpleIOSTranscriber {
     this.sessionId = this.sessionId || id;
   }
 
+
   /**
    * Start recording and transcription
    */

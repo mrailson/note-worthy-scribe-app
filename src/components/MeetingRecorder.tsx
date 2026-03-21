@@ -2781,15 +2781,18 @@ export const MeetingRecorder = ({
       const currentSessionId = sessionStorage.getItem('currentSessionId');
       
       if (!currentMeetingId) {
-        console.log('📱 iOS chunk: No meetingId yet, skipping DB save');
-        // Update UI status anyway
-        setTimeout(() => {
-          setChunkSaveStatuses(prev => prev.map(chunk => 
-            chunk.id === uniqueChunkId 
-              ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
-              : chunk
-          ));
-        }, 500);
+        console.warn('⚠️ iOS chunk: No meetingId yet — marking as FAILED (not faking saved)');
+        // SAFETY NET: Queue this chunk text into sessionStorage so the stop sequence can recover it
+        try {
+          const existing = sessionStorage.getItem('orphanedIOSChunks') || '';
+          sessionStorage.setItem('orphanedIOSChunks', (existing + ' ' + data.text.trim()).trim());
+        } catch { /* ignore storage errors */ }
+        // Honestly mark as failed so the UI doesn't lie
+        setChunkSaveStatuses(prev => prev.map(chunk => 
+          chunk.id === uniqueChunkId 
+            ? { ...chunk, saveStatus: 'failed' as const }
+            : chunk
+        ));
         return;
       }
       
@@ -3023,6 +3026,18 @@ export const MeetingRecorder = ({
       await simpleIOSTranscriberRef.current.start();
       console.log('✅ Simple iOS transcription started successfully');
       addDebugLog('✅ Simple iOS transcription started (serial queue mode)');
+      
+      // AUDIO HEALTH GATE: Check after 10s that blobs are actually being captured
+      setTimeout(() => {
+        const stats = simpleIOSTranscriberRef.current?.getStats?.();
+        if (simpleIOSTranscriberRef.current && stats && stats.capturedBlobs === 0 && stats.isRecording) {
+          console.error('🚨 iOS AUDIO HEALTH CHECK FAILED: 0 blobs captured after 10s');
+          addDebugLog('🚨 No audio detected after 10s — possible mic failure');
+          showToast.error('No audio detected — please check microphone permissions and try again', {
+            section: 'meeting_manager', duration: 10000
+          });
+        }
+      }, 10000);
     } catch (error) {
       console.error('❌ Simple iOS transcription error:', error);
       addDebugLog(`❌ Failed to start iOS transcription: ${error}`);
@@ -5325,8 +5340,57 @@ export const MeetingRecorder = ({
       
       console.log(`✅ Consolidated transcript: ${finalTranscript.length} chars, ${totalChunkWords} words from chunks`);
     } else {
-      console.log('⚠️ No chunks found, using in-memory transcript');
-      finalTranscript = (transcript || '').trim();
+      console.log('⚠️ No chunks found in DB — attempting emergency recovery from in-memory sources');
+      
+      // EMERGENCY SAFETY NET: Try all available in-memory transcript sources
+      const inMemoryTranscript = (transcript || '').trim();
+      const assemblyTranscript = (assemblyPreview.fullTranscript || '').trim();
+      const deepgramTranscript = (deepgramPreview.fullTranscript || '').trim();
+      const orphanedChunks = (sessionStorage.getItem('orphanedIOSChunks') || '').trim();
+      
+      // Pick the longest available transcript as the emergency fallback
+      const candidates = [
+        { source: 'whisper-memory', text: inMemoryTranscript },
+        { source: 'assemblyai-preview', text: assemblyTranscript },
+        { source: 'deepgram-preview', text: deepgramTranscript },
+        { source: 'orphaned-ios-chunks', text: orphanedChunks },
+      ].filter(c => c.text.length > 0);
+      
+      if (candidates.length > 0) {
+        const best = candidates.reduce((a, b) => a.text.length >= b.text.length ? a : b);
+        finalTranscript = best.text;
+        console.log(`🚨 EMERGENCY RECOVERY: Using ${best.source} (${finalTranscript.length} chars, ${countWords(finalTranscript)} words)`);
+        
+        // Persist this emergency transcript to the DB so it's not lost
+        if (currentMeetingId && finalTranscript.length > 0) {
+          try {
+            const { data: { user: emergencyUser } } = await supabase.auth.getUser();
+            if (emergencyUser) {
+              await supabase.from('meeting_transcription_chunks').insert({
+                meeting_id: currentMeetingId,
+                user_id: emergencyUser.id,
+                chunk_number: 0,
+                transcription_text: finalTranscript,
+                confidence: 0.7,
+                is_final: true,
+                transcriber_type: `emergency-${best.source}`,
+                start_time: 0,
+                end_time: 0,
+                session_id: currentMeetingId
+              });
+              console.log('✅ Emergency transcript saved to DB');
+            }
+          } catch (emergencyErr) {
+            console.error('❌ Failed to save emergency transcript:', emergencyErr);
+          }
+        }
+      } else {
+        console.error('🚨 TOTAL DATA LOSS: No transcript available from any source');
+        finalTranscript = '';
+      }
+      
+      // Clean up orphaned chunks
+      sessionStorage.removeItem('orphanedIOSChunks');
     }
     
     // Inject meeting metadata silently into transcript for AI processing
