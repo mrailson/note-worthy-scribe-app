@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { X, ChevronLeft, ChevronRight, Plus, Loader2, Upload, FileText, ClipboardPaste, MapPin, Video, Users2, RotateCcw } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Plus, Loader2, Upload, FileText, ClipboardPaste, MapPin, Video, Users2, RotateCcw, Trash2 } from 'lucide-react';
 import { useMeetingSetup } from './MeetingSetupContext';
 import { ContextStatusPill } from './ContextStatusPill';
 import { AvatarStack } from './AvatarStack';
