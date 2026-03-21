@@ -1732,7 +1732,6 @@ const MeetingHistory = () => {
           onClose={() => setFullPageModalOpen(false)}
           meeting={modalMeeting}
           notes={modalNotes}
-          meetingId={modalMeeting?.id || null}
         />
       </>
     );
