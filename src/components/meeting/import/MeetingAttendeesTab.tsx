@@ -95,9 +95,10 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
     setAttendees(prev => {
       const next = updater(prev);
       saveAttendees(next);
+      onAttendeesChanged?.(next);
       return next;
     });
-  }, [saveAttendees]);
+  }, [saveAttendees, onAttendeesChanged]);
 
   // Search contacts + Notewell directory
   const addedIds = useMemo(() => new Set(attendees.map(a => a.contact_id).filter(Boolean)), [attendees]);
