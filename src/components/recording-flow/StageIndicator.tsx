@@ -15,7 +15,7 @@ export const StageIndicator: React.FC = () => {
   const currentIdx = stageOrder.indexOf(stage);
 
   return (
-    <div className="flex items-center gap-2 p-3 px-5 rounded-xl bg-card border border-border shadow-sm mb-5">
+    <div className="flex items-center gap-2 p-2 px-5 rounded-xl bg-card border border-border shadow-sm mb-3">
       <span className="text-lg font-extrabold text-amber-500">Notewell AI ✦</span>
       <div className="flex-1" />
       {stages.map((s, i) => (
