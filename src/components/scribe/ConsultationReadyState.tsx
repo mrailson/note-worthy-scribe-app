@@ -25,9 +25,12 @@ interface ConsultationReadyStateProps {
   settings: ScribeSettings;
   patientContext: PatientContext | null;
   f2fAccompanied?: boolean;
+  f2fLocation?: string;
+  practiceName?: string;
   onTypeChange: (type: ConsultationType) => void;
   onCategoryChange: (category: ConsultationCategory) => void;
   onF2fAccompaniedChange?: (accompanied: boolean) => void;
+  onF2fLocationChange?: (location: string) => void;
   onConsentChange: (consent: boolean) => void;
   onPatientContextChange: (context: PatientContext | null) => void;
   onStart: (audioMode?: AudioSourceMode) => void;
