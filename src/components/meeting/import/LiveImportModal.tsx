@@ -19,6 +19,7 @@ interface LiveImportModalProps {
   defaultTab?: string;
   meetingId?: string;
   onImportComplete?: () => void;
+  onAttendeesChanged?: (attendees: any[]) => void;
 }
 
 export type ImportedContent = {
@@ -33,7 +34,8 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
   onOpenChange,
   defaultTab,
   meetingId,
-  onImportComplete
+  onImportComplete,
+  onAttendeesChanged,
 }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>(defaultTab || 'attendees');
@@ -225,6 +227,7 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
                   meetingId={getCurrentMeetingId()}
                   onImport={handleImportContent}
                   isImporting={isImporting}
+                  onAttendeesChanged={onAttendeesChanged}
                 />
               </TabsContent>
               

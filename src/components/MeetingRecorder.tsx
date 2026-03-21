@@ -170,6 +170,23 @@ interface MeetingRecorderProps {
   onContinuationComplete?: () => void;
 }
 
+/** Wrapper that connects LiveImportModal to MeetingSetupContext */
+const LiveImportModalWithContext: React.FC<{
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultTab?: string;
+}> = (props) => {
+  const { setAttendees } = useMeetingSetup();
+  return (
+    <LiveImportModal
+      {...props}
+      onAttendeesChanged={(updated) => {
+        setAttendees(updated);
+      }}
+    />
+  );
+};
+
 export const MeetingRecorder = ({ 
   onTranscriptUpdate, 
   onDurationUpdate, 
@@ -8039,7 +8056,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       />
       
       {/* Live Import Modal */}
-      <LiveImportModal
+      <LiveImportModalWithContext
         open={audioImportOpen}
         onOpenChange={setAudioImportOpen}
         defaultTab={audioImportDefaultTab}

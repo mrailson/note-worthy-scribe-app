@@ -25,12 +25,14 @@ interface MeetingAttendeesTabProps {
   meetingId?: string | null;
   onImport?: (content: ImportedContent) => Promise<void>;
   isImporting?: boolean;
+  onAttendeesChanged?: (attendees: MeetingAttendee[]) => void;
 }
 
 export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   meetingId,
   onImport,
   isImporting,
+  onAttendeesChanged,
 }) => {
   const { contacts } = useContacts();
   const { groups, createGroup, updateGroup, deleteGroup } = useMeetingGroups();
@@ -93,9 +95,10 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
     setAttendees(prev => {
       const next = updater(prev);
       saveAttendees(next);
+      onAttendeesChanged?.(next);
       return next;
     });
-  }, [saveAttendees]);
+  }, [saveAttendees, onAttendeesChanged]);
 
   // Search contacts + Notewell directory
   const addedIds = useMemo(() => new Set(attendees.map(a => a.contact_id).filter(Boolean)), [attendees]);

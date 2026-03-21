@@ -263,6 +263,23 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
           <div className="p-4 max-h-[360px] overflow-y-auto">
             {attendees.length === 0 && (
               <>
+                <button
+                  onClick={() => onOpenImportModal?.('attendees')}
+                  className="w-full flex items-center gap-2 p-2.5 rounded-lg mb-2 text-left transition-all duration-150 border border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5 cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-muted/50 group-hover:bg-primary/10 transition-colors">
+                    <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-muted-foreground group-hover:text-primary transition-colors">
+                      Create New Group or Add Attendees
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/60">
+                      Open the attendees panel to manage groups &amp; contacts
+                    </div>
+                  </div>
+                </button>
+
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider">
                     Load a Meeting Group
@@ -334,23 +351,6 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                     />
                   </button>
                 ))}
-
-                <button
-                  onClick={() => onOpenImportModal?.('attendees')}
-                  className="w-full flex items-center gap-2 p-2.5 rounded-lg mt-1 text-left transition-all duration-150 border border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5 cursor-pointer group"
-                >
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-muted/50 group-hover:bg-primary/10 transition-colors">
-                    <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-muted-foreground group-hover:text-primary transition-colors">
-                      Create New Group or Add Attendees
-                    </div>
-                    <div className="text-[10px] text-muted-foreground/60">
-                      Open the attendees panel to manage groups &amp; contacts
-                    </div>
-                  </div>
-                </button>
               </>
             )}
 
