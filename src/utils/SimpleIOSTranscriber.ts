@@ -127,22 +127,6 @@ export class SimpleIOSTranscriber {
     this.sessionId = this.sessionId || id;
   }
 
-  /**
-   * Get current stats for external health checks
-   */
-  public getStats(): IOSTranscriberStats {
-    return {
-      capturedBlobs: this.capturedBlobCount,
-      queueLength: this.queue.length,
-      uploadedChunks: this.uploadedChunkCount,
-      lastUploadStatus: this.lastUploadStatus,
-      lastTextLength: this.lastTextLength,
-      isRecording: this.isRecording,
-      totalTranscribedChars: this.totalTranscribedChars,
-      lastOndataavailableTime: this.lastOndataavailableTime,
-      bufferedTextCount: this.pendingTexts.length,
-    };
-  }
 
   /**
    * Start recording and transcription
