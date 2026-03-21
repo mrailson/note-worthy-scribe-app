@@ -537,7 +537,8 @@ const MeetingHistory = () => {
           meetingDate: new Date(selectedMeeting.created_at).toISOString().split('T')[0],
           meetingTime: new Date(selectedMeeting.created_at).toLocaleTimeString(),
           detailLevel: 'standard',
-          modelOverride
+          modelOverride,
+          skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
         }
       });
 
