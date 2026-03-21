@@ -7323,16 +7323,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         </TabsContent> */}
 
         {/* Meeting History Tab */}
-        <TabsContent value="history" className="space-y-4 mt-6">
+        <TabsContent value="history" className="space-y-4 mt-2">
+          <div className="flex items-center gap-3 py-2 px-1 mb-2">
+            <TabDropdown activeTab={activeTab} onTabChange={setActiveTab} hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))} />
+            <h2 className="flex-1 text-[15px] font-extrabold text-foreground tracking-tight">My Meeting History</h2>
+          </div>
           <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3">
-              <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground">My Meeting History</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  View, edit, and manage your saved meetings
-                </p>
-              </div>
             </div>
             <div className="flex gap-2">
             </div>
