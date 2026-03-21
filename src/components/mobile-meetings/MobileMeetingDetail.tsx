@@ -194,7 +194,7 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
               <Users size={22} />
               <span>Attendees</span>
             </button>
-            <button className="nw-mh-quick-action" onClick={() => setShowExport(true)}>
+            <button className="nw-mh-quick-action" onClick={() => onShowExport?.(meeting?.word_count)}>
               <Download size={22} />
               <span>Export</span>
             </button>
