@@ -5216,6 +5216,8 @@ export const MeetingRecorder = ({
     
     // Clear unsaved meeting data when stopping normally
     localStorage.removeItem('unsaved_meeting');
+    clearPersistedSession();
+    stopHeartbeat();
     
     console.log('Recording stopped');
     
