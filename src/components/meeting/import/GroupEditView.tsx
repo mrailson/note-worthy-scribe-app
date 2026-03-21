@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, X, Search } from 'lucide-react';
+import { ArrowLeft, X, Search, BookUser, Building2 } from 'lucide-react';
 import {
   ATTENDEE_ROLES, ROLE_COLORS, SPEAKER_COLORS,
   SUGGESTED_ORGANISATIONS, GROUP_ICONS, GROUP_COLORS,
@@ -13,6 +13,8 @@ import {
 } from '@/types/contactTypes';
 import type { Contact, MeetingGroup, AdditionalMember } from '@/types/contactTypes';
 import { useContacts } from '@/hooks/useContacts';
+import { useNotewellDirectory } from '@/hooks/useNotewellDirectory';
+import type { NotewellUser } from '@/hooks/useNotewellDirectory';
 
 interface EditableMember {
   id: number | string;
@@ -42,7 +44,23 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
   group, contacts, onSave, onCancel,
 }) => {
   const { createContact } = useContacts();
+  const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory({ includeAll: true });
   const isNew = !group?.id;
+
+  // Load Notewell directory on mount
+  useEffect(() => {
+    if (!directoryLoaded && !directoryLoading) fetchDirectory();
+  }, [directoryLoaded, directoryLoading, fetchDirectory]);
+
+  const directoryUsers = useMemo(() => {
+    const users: NotewellUser[] = [];
+    for (const pg of practiceGroups) {
+      for (const u of pg.users) {
+        if (!users.some(x => x.user_id === u.user_id)) users.push(u);
+      }
+    }
+    return users;
+  }, [practiceGroups]);
 
   const [name, setName] = useState(group?.name || '');
   const [description, setDescription] = useState(group?.description || '');
@@ -98,6 +116,17 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
     );
   }, [contacts, memberSearch, memberContactIds]);
 
+  const filteredDirectory = useMemo(() => {
+    if (!memberSearch || memberSearch.length < 2) return [];
+    const q = memberSearch.toLowerCase();
+    return directoryUsers.filter(u =>
+      !memberNames.has(u.full_name.toLowerCase()) &&
+      (u.full_name.toLowerCase().includes(q) ||
+       u.practice_name.toLowerCase().includes(q) ||
+       (u.email && u.email.toLowerCase().includes(q)))
+    );
+  }, [directoryUsers, memberSearch, memberNames]);
+
   const addContactMember = (c: Contact) => {
     setMembers(prev => [...prev, {
       id: c.id,
@@ -107,6 +136,18 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
       role: c.default_role,
       fromContacts: true,
       contact_id: c.id,
+    }]);
+    setMemberSearch('');
+  };
+
+  const addDirectoryMember = (u: NotewellUser) => {
+    setMembers(prev => [...prev, {
+      id: `dir-${u.user_id}`,
+      name: u.full_name,
+      initials: generateInitials(u.full_name),
+      org: u.practice_name,
+      role: u.practice_role || u.title || 'Guest',
+      fromContacts: false,
     }]);
     setMemberSearch('');
   };
@@ -349,16 +390,16 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
               <Input
                 value={memberSearch}
                 onChange={e => setMemberSearch(e.target.value)}
-                placeholder="Search contacts to add..."
+                placeholder="Search contacts & Notewell directory..."
                 className="pl-9 h-9 text-xs"
               />
             </div>
 
             {memberSearch.length > 0 && (
-              <div className="bg-card border rounded-xl max-h-[150px] overflow-auto shadow-lg mb-2">
-                {filteredContacts.length === 0 ? (
+              <div className="bg-card border rounded-xl max-h-[200px] overflow-auto shadow-lg mb-2">
+                {filteredContacts.length === 0 && filteredDirectory.length === 0 ? (
                   <div className="p-3 text-center text-xs text-muted-foreground">
-                    No contacts found.{' '}
+                    No results found.{' '}
                     <button
                       className="text-amber-600 font-semibold hover:underline"
                       onClick={() => {
@@ -370,27 +411,63 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
                       Add as new?
                     </button>
                   </div>
-                ) : filteredContacts.map(c => {
-                  const clr = SPEAKER_COLORS[c.id % SPEAKER_COLORS.length];
-                  return (
-                    <div
-                      key={c.id}
-                      onClick={() => addContactMember(c)}
-                      className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors border-b border-border/30 last:border-0"
-                    >
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                        style={{ background: `${clr}22`, border: `2px solid ${clr}`, color: clr }}
-                      >
-                        {c.initials}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold">{c.name}</div>
-                        <div className="text-[10px] text-muted-foreground">{c.org}</div>
-                      </div>
-                    </div>
-                  );
-                })}
+                ) : (
+                  <>
+                    {filteredContacts.length > 0 && (
+                      <>
+                        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 flex items-center gap-1.5">
+                          <BookUser className="w-3 h-3" /> My Contacts
+                        </div>
+                        {filteredContacts.map(c => {
+                          const clr = SPEAKER_COLORS[c.id % SPEAKER_COLORS.length];
+                          return (
+                            <div
+                              key={c.id}
+                              onClick={() => addContactMember(c)}
+                              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent transition-colors border-b border-border/30 last:border-0"
+                            >
+                              <div
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                                style={{ background: `${clr}22`, border: `2px solid ${clr}`, color: clr }}
+                              >
+                                {c.initials}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-semibold">{c.name}</div>
+                                <div className="text-[10px] text-muted-foreground">{c.org}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                    {filteredDirectory.length > 0 && (
+                      <>
+                        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 flex items-center gap-1.5">
+                          <Building2 className="w-3 h-3" /> Notewell Directory
+                        </div>
+                        {filteredDirectory.map(u => {
+                          const initials = generateInitials(u.full_name);
+                          return (
+                            <div
+                              key={`dir-${u.user_id}`}
+                              onClick={() => addDirectoryMember(u)}
+                              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent transition-colors border-b border-border/30 last:border-0"
+                            >
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-2 border-blue-300 dark:border-blue-700">
+                                {initials}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-semibold">{u.full_name}</div>
+                                <div className="text-[10px] text-muted-foreground">{u.practice_name}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
