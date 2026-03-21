@@ -445,11 +445,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
                           <div className="text-[13px] font-semibold">{u.full_name}</div>
                           <div className="text-[11px] text-muted-foreground">{u.practice_name}</div>
                         </div>
-                        {(u.practice_role || u.title) && (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                            {u.practice_role || u.title}
-                          </span>
-                        )}
                       </div>
                     );
                   })}
