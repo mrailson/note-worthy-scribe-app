@@ -5340,8 +5340,57 @@ export const MeetingRecorder = ({
       
       console.log(`✅ Consolidated transcript: ${finalTranscript.length} chars, ${totalChunkWords} words from chunks`);
     } else {
-      console.log('⚠️ No chunks found, using in-memory transcript');
-      finalTranscript = (transcript || '').trim();
+      console.log('⚠️ No chunks found in DB — attempting emergency recovery from in-memory sources');
+      
+      // EMERGENCY SAFETY NET: Try all available in-memory transcript sources
+      const inMemoryTranscript = (transcript || '').trim();
+      const assemblyTranscript = (assemblyPreview.fullTranscript || '').trim();
+      const deepgramTranscript = (deepgramPreview.fullTranscript || '').trim();
+      const orphanedChunks = (sessionStorage.getItem('orphanedIOSChunks') || '').trim();
+      
+      // Pick the longest available transcript as the emergency fallback
+      const candidates = [
+        { source: 'whisper-memory', text: inMemoryTranscript },
+        { source: 'assemblyai-preview', text: assemblyTranscript },
+        { source: 'deepgram-preview', text: deepgramTranscript },
+        { source: 'orphaned-ios-chunks', text: orphanedChunks },
+      ].filter(c => c.text.length > 0);
+      
+      if (candidates.length > 0) {
+        const best = candidates.reduce((a, b) => a.text.length >= b.text.length ? a : b);
+        finalTranscript = best.text;
+        console.log(`🚨 EMERGENCY RECOVERY: Using ${best.source} (${finalTranscript.length} chars, ${countWords(finalTranscript)} words)`);
+        
+        // Persist this emergency transcript to the DB so it's not lost
+        if (currentMeetingId && finalTranscript.length > 0) {
+          try {
+            const { data: { user: emergencyUser } } = await supabase.auth.getUser();
+            if (emergencyUser) {
+              await supabase.from('meeting_transcription_chunks').insert({
+                meeting_id: currentMeetingId,
+                user_id: emergencyUser.id,
+                chunk_number: 0,
+                transcription_text: finalTranscript,
+                confidence: 0.7,
+                is_final: true,
+                transcriber_type: `emergency-${best.source}`,
+                start_time: 0,
+                end_time: 0,
+                session_id: currentMeetingId
+              });
+              console.log('✅ Emergency transcript saved to DB');
+            }
+          } catch (emergencyErr) {
+            console.error('❌ Failed to save emergency transcript:', emergencyErr);
+          }
+        }
+      } else {
+        console.error('🚨 TOTAL DATA LOSS: No transcript available from any source');
+        finalTranscript = '';
+      }
+      
+      // Clean up orphaned chunks
+      sessionStorage.removeItem('orphanedIOSChunks');
     }
     
     // Inject meeting metadata silently into transcript for AI processing
