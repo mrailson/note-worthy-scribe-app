@@ -163,9 +163,9 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex-1 overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-5 px-6 py-2 bg-muted/30 rounded-none border-b border-border/50">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full min-h-0 flex flex-col">
+            <TabsList className="grid w-full grid-cols-5 px-6 py-2 bg-muted/30 rounded-none border-b border-border/50 shrink-0">
               <TabsTrigger 
                 value="attendees"
                 className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
@@ -203,15 +203,15 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 overflow-auto p-6">
-              <TabsContent value="screenshot" className="mt-0 h-full">
+            <div className="flex-1 min-h-0 overflow-hidden p-6">
+              <TabsContent value="screenshot" className="mt-0 h-full min-h-0">
                 <ScreenshotImportTab 
                   onImport={handleImportContent}
                   isImporting={isImporting}
                 />
               </TabsContent>
               
-              <TabsContent value="attendees" className="mt-0 h-full">
+              <TabsContent value="attendees" className="mt-0 h-full min-h-0">
                 <MeetingAttendeesTab
                   meetingId={getCurrentMeetingId()}
                   onImport={handleImportContent}
@@ -219,21 +219,21 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
                 />
               </TabsContent>
               
-              <TabsContent value="actions" className="mt-0 h-full">
+              <TabsContent value="actions" className="mt-0 h-full min-h-0">
                 <ActionsImportTab 
                   onImport={handleImportContent}
                   isImporting={isImporting}
                 />
               </TabsContent>
               
-              <TabsContent value="agenda" className="mt-0 h-full">
+              <TabsContent value="agenda" className="mt-0 h-full min-h-0">
                 <AgendaImportTab 
                   onImport={handleImportContent}
                   isImporting={isImporting}
                 />
               </TabsContent>
               
-              <TabsContent value="create" className="mt-0 h-[calc(85vh-200px)] flex flex-col overflow-hidden">
+              <TabsContent value="create" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
                 <CreateMeetingTab 
                   onComplete={onImportComplete}
                   onClose={() => onOpenChange(false)}

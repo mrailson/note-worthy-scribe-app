@@ -354,8 +354,8 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-3 h-full min-h-0">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3 h-full min-h-0 overflow-hidden">
+      <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
           <button
             onClick={onCancel}
@@ -377,267 +377,270 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="flex flex-col gap-3 pr-2">
-          {/* Collapsible details section */}
-          <button
-            onClick={() => setShowDetails(prev => !prev)}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border bg-muted/30 hover:bg-muted/60 transition-colors"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl">{icon}</span>
-              <span className="text-sm font-bold">{name || 'Untitled Group'}</span>
-              {description && <span className="text-[11px] text-muted-foreground hidden sm:inline">— {description}</span>}
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <span className="text-[10px] font-semibold">{showDetails ? 'Hide' : 'Edit'}</span>
-              {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </div>
-          </button>
+      <div className="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
+        <button
+          onClick={() => setShowDetails(prev => !prev)}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border bg-muted/30 hover:bg-muted/60 transition-colors shrink-0"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-xl shrink-0">{icon}</span>
+            <span className="text-sm font-bold truncate">{name || 'Untitled Group'}</span>
+            {description && (
+              <span className="text-[11px] text-muted-foreground hidden sm:inline truncate">
+                — {description}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-muted-foreground shrink-0">
+            <span className="text-[10px] font-semibold">{showDetails ? 'Hide' : 'Edit'}</span>
+            {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </div>
+        </button>
 
-          {showDetails && (
-            <div className="flex flex-col gap-3 p-3 rounded-xl border bg-card">
+        {showDetails && (
+          <div className="flex flex-col gap-3 p-3 rounded-xl border bg-card shrink-0">
+            <div
+              className="flex items-center gap-3 p-3 rounded-lg"
+              style={{
+                background: `${color}08`,
+                border: `1.5px solid ${color}33`,
+              }}
+            >
               <div
-                className="flex items-center gap-3 p-3 rounded-lg"
+                className="w-[44px] h-[44px] rounded-lg flex items-center justify-center text-[22px] shrink-0"
                 style={{
-                  background: `${color}08`,
-                  border: `1.5px solid ${color}33`,
+                  background: `${color}20`,
+                  border: `2px solid ${color}`,
                 }}
               >
-                <div
-                  className="w-[44px] h-[44px] rounded-lg flex items-center justify-center text-[22px] shrink-0"
-                  style={{
-                    background: `${color}20`,
-                    border: `2px solid ${color}`,
-                  }}
-                >
-                  {icon}
-                </div>
-                <div className="flex-1 space-y-2">
-                  <div>
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Icon</div>
-                    <div className="flex gap-1 flex-wrap">
-                      {GROUP_ICONS.map(groupIcon => (
-                        <button
-                          key={groupIcon}
-                          onClick={() => setIcon(groupIcon)}
-                          className={`w-6 h-6 rounded text-sm flex items-center justify-center transition-all ${
-                            icon === groupIcon ? 'ring-2' : 'border hover:bg-accent'
-                          }`}
-                          style={
-                            icon === groupIcon
-                              ? { borderColor: color, background: `${color}15`, outline: `2px solid ${color}` }
-                              : {}
-                          }
-                        >
-                          {groupIcon}
-                        </button>
-                      ))}
-                    </div>
+                {icon}
+              </div>
+              <div className="flex-1 space-y-2">
+                <div>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Icon</div>
+                  <div className="flex gap-1 flex-wrap">
+                    {GROUP_ICONS.map(groupIcon => (
+                      <button
+                        key={groupIcon}
+                        onClick={() => setIcon(groupIcon)}
+                        className={`w-6 h-6 rounded text-sm flex items-center justify-center transition-all ${
+                          icon === groupIcon ? 'ring-2' : 'border hover:bg-accent'
+                        }`}
+                        style={
+                          icon === groupIcon
+                            ? { borderColor: color, background: `${color}15`, outline: `2px solid ${color}` }
+                            : {}
+                        }
+                      >
+                        {groupIcon}
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Colour</div>
-                    <div className="flex gap-1 flex-wrap">
-                      {GROUP_COLORS.map(groupColor => (
-                        <button
-                          key={groupColor}
-                          onClick={() => setColor(groupColor)}
-                          className="w-5 h-5 rounded-full transition-all"
-                          style={{
-                            background: groupColor,
-                            border: color === groupColor ? '3px solid currentColor' : '2px solid transparent',
-                            boxShadow: color === groupColor ? `0 0 0 2px var(--background), 0 0 0 4px ${groupColor}` : 'none',
-                          }}
-                        />
-                      ))}
-                    </div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Colour</div>
+                  <div className="flex gap-1 flex-wrap">
+                    {GROUP_COLORS.map(groupColor => (
+                      <button
+                        key={groupColor}
+                        onClick={() => setColor(groupColor)}
+                        className="w-5 h-5 rounded-full transition-all"
+                        style={{
+                          background: groupColor,
+                          border: color === groupColor ? '3px solid currentColor' : '2px solid transparent',
+                          boxShadow: color === groupColor ? `0 0 0 2px var(--background), 0 0 0 4px ${groupColor}` : 'none',
+                        }}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Group Name *</div>
-                <Input value={name} onChange={event => setName(event.target.value)} placeholder="e.g. NRES Programme Board" />
+            <div>
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Group Name *</div>
+              <Input value={name} onChange={event => setName(event.target.value)} placeholder="e.g. NRES Programme Board" />
+            </div>
+            <div>
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Description</div>
+              <Input value={description} onChange={event => setDescription(event.target.value)} placeholder="e.g. PML + 7 practices" />
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex justify-between items-center mb-2 shrink-0">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              Members ({members.length})
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddNew(!showAddNew)}
+              className="h-7 text-[11px] font-bold border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-700"
+            >
+              {showAddNew ? 'Cancel' : '+ New Person'}
+            </Button>
+          </div>
+
+          {showAddNew && (
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mb-2 space-y-2 shrink-0">
+              <div className="text-[10px] font-bold text-amber-800 dark:text-amber-200 uppercase tracking-wider">
+                Add default member
               </div>
-              <div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Description</div>
-                <Input value={description} onChange={event => setDescription(event.target.value)} placeholder="e.g. PML + 7 practices" />
+              <Input
+                value={newName}
+                onChange={event => setNewName(event.target.value)}
+                placeholder="Full name"
+              />
+              <div className="flex gap-1.5">
+                <Select value={newOrg} onValueChange={setNewOrg}>
+                  <SelectTrigger className="flex-1 h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUGGESTED_ORGANISATIONS.map(organisation => (
+                      <SelectItem key={organisation} value={organisation}>
+                        {organisation}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={newRole} onValueChange={setNewRole}>
+                  <SelectTrigger className="w-[130px] h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ATTENDEE_ROLES.map(role => (
+                      <SelectItem key={role} value={role}>
+                        {role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => addNewMember(false)}
+                  disabled={!newName.trim()}
+                  className="flex-1 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  Add to Group
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addNewMember(true)}
+                  disabled={!newName.trim()}
+                  className="flex-1 text-xs font-bold border-blue-400 bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-200"
+                >
+                  Add + Save to Contacts
+                </Button>
               </div>
             </div>
           )}
 
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Members ({members.length})
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddNew(!showAddNew)}
-                className="h-7 text-[11px] font-bold border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-700"
-              >
-                {showAddNew ? 'Cancel' : '+ New Person'}
-              </Button>
-            </div>
+          <div className="relative mb-1.5 shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={memberSearch}
+              onChange={event => setMemberSearch(event.target.value)}
+              placeholder="Search contacts & Notewell directory..."
+              className="pl-9 h-9 text-xs"
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground mb-2 px-1 shrink-0">
+            {directoryLoading
+              ? 'Loading directory…'
+              : 'Search by person, practice, role, or org type such as Management, ICB or PCN.'}
+          </p>
 
-            {showAddNew && (
-              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mb-2 space-y-2">
-                <div className="text-[10px] font-bold text-amber-800 dark:text-amber-200 uppercase tracking-wider">
-                  Add default member
-                </div>
-                <Input
-                  value={newName}
-                  onChange={event => setNewName(event.target.value)}
-                  placeholder="Full name"
-                />
-                <div className="flex gap-1.5">
-                  <Select value={newOrg} onValueChange={setNewOrg}>
-                    <SelectTrigger className="flex-1 h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SUGGESTED_ORGANISATIONS.map(organisation => (
-                        <SelectItem key={organisation} value={organisation}>
-                          {organisation}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={newRole} onValueChange={setNewRole}>
-                    <SelectTrigger className="w-[130px] h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ATTENDEE_ROLES.map(role => (
-                        <SelectItem key={role} value={role}>
-                          {role}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => addNewMember(false)}
-                    disabled={!newName.trim()}
-                    className="flex-1 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white"
+          {memberSearch.length > 0 && (
+            <div className="bg-card border rounded-xl max-h-[220px] overflow-auto shadow-lg mb-2 shrink-0">
+              {filteredContacts.length === 0 && filteredDirectory.length === 0 ? (
+                <div className="p-3 text-center text-xs text-muted-foreground">
+                  No results found.{' '}
+                  <button
+                    className="text-amber-600 font-semibold hover:underline"
+                    onClick={() => {
+                      setShowAddNew(true);
+                      setNewName(memberSearch);
+                      setMemberSearch('');
+                    }}
                   >
-                    Add to Group
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addNewMember(true)}
-                    disabled={!newName.trim()}
-                    className="flex-1 text-xs font-bold border-blue-400 bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-200"
-                  >
-                    Add + Save to Contacts
-                  </Button>
+                    Add as default member?
+                  </button>
                 </div>
-              </div>
-            )}
+              ) : (
+                <>
+                  {filteredContacts.length > 0 && (
+                    <>
+                      <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 flex items-center gap-1.5">
+                        <BookUser className="w-3 h-3" /> My Contacts
+                      </div>
+                      {filteredContacts.map(contact => {
+                        const colour = SPEAKER_COLORS[contact.id % SPEAKER_COLORS.length];
 
-            <div className="relative mb-1.5">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                value={memberSearch}
-                onChange={event => setMemberSearch(event.target.value)}
-                placeholder="Search contacts & Notewell directory..."
-                className="pl-9 h-9 text-xs"
-              />
-            </div>
-            <p className="text-[10px] text-muted-foreground mb-2 px-1">
-              {directoryLoading
-                ? 'Loading directory…'
-                : 'Search by person, practice, role, or org type such as Management, ICB or PCN.'}
-            </p>
-
-            {memberSearch.length > 0 && (
-              <div className="bg-card border rounded-xl max-h-[220px] overflow-auto shadow-lg mb-2">
-                {filteredContacts.length === 0 && filteredDirectory.length === 0 ? (
-                  <div className="p-3 text-center text-xs text-muted-foreground">
-                    No results found.{' '}
-                    <button
-                      className="text-amber-600 font-semibold hover:underline"
-                      onClick={() => {
-                        setShowAddNew(true);
-                        setNewName(memberSearch);
-                        setMemberSearch('');
-                      }}
-                    >
-                      Add as default member?
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    {filteredContacts.length > 0 && (
-                      <>
-                        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 flex items-center gap-1.5">
-                          <BookUser className="w-3 h-3" /> My Contacts
-                        </div>
-                        {filteredContacts.map(contact => {
-                          const colour = SPEAKER_COLORS[contact.id % SPEAKER_COLORS.length];
-
-                          return (
+                        return (
+                          <div
+                            key={contact.id}
+                            onClick={() => addContactMember(contact)}
+                            className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent transition-colors border-b border-border/30 last:border-0"
+                          >
                             <div
-                              key={contact.id}
-                              onClick={() => addContactMember(contact)}
-                              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent transition-colors border-b border-border/30 last:border-0"
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                              style={{ background: `${colour}22`, border: `2px solid ${colour}`, color: colour }}
                             >
-                              <div
-                                className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                                style={{ background: `${colour}22`, border: `2px solid ${colour}`, color: colour }}
-                              >
-                                {contact.initials}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs font-semibold">{contact.name}</div>
-                                <div className="text-[10px] text-muted-foreground">
-                                  {contact.org} · {contact.default_role}
-                                </div>
+                              {contact.initials}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-semibold">{contact.name}</div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {contact.org} · {contact.default_role}
                               </div>
                             </div>
-                          );
-                        })}
-                      </>
-                    )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
 
-                    {filteredDirectory.length > 0 && (
-                      <>
-                        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 flex items-center gap-1.5">
-                          <Building2 className="w-3 h-3" /> Notewell Directory
-                        </div>
-                        {filteredDirectory.map(user => {
-                          const initials = generateInitials(user.full_name);
+                  {filteredDirectory.length > 0 && (
+                    <>
+                      <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 flex items-center gap-1.5">
+                        <Building2 className="w-3 h-3" /> Notewell Directory
+                      </div>
+                      {filteredDirectory.map(user => {
+                        const initials = generateInitials(user.full_name);
 
-                          return (
-                            <div
-                              key={`directory-${user.user_id}`}
-                              onClick={() => addDirectoryMember(user)}
-                              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent transition-colors border-b border-border/30 last:border-0"
-                            >
-                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-2 border-blue-300 dark:border-blue-700">
-                                {initials}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs font-semibold">{user.full_name}</div>
-                                <div className="text-[10px] text-muted-foreground">
-                                  {user.practice_name} · {user.practice_role || user.title || user.organisation_type}
-                                </div>
+                        return (
+                          <div
+                            key={`directory-${user.user_id}`}
+                            onClick={() => addDirectoryMember(user)}
+                            className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent transition-colors border-b border-border/30 last:border-0"
+                          >
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-2 border-blue-300 dark:border-blue-700">
+                              {initials}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-semibold">{user.full_name}</div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {user.practice_name} · {user.practice_role || user.title || user.organisation_type}
                               </div>
                             </div>
-                          );
-                        })}
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
-            <div className="flex flex-col gap-1.5">
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="flex flex-col gap-1.5 pr-2">
               {members.length === 0 && (
                 <div className="py-6 text-center text-xs text-muted-foreground">
                   No members yet — search above or create default members directly.
@@ -717,9 +720,9 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
                 );
               })}
             </div>
-          </div>
+          </ScrollArea>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };
