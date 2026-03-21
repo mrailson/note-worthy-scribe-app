@@ -46,6 +46,7 @@ export const ATTENDEE_ROLES = [
   'Clinical Lead',
   'Presenter',
   'Practice Manager',
+  'Manager',
   'Observer',
   'Guest',
 ] as const;
