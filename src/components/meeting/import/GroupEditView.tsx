@@ -44,7 +44,23 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
   group, contacts, onSave, onCancel,
 }) => {
   const { createContact } = useContacts();
+  const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory({ includeAll: true });
   const isNew = !group?.id;
+
+  // Load Notewell directory on mount
+  useEffect(() => {
+    if (!directoryLoaded && !directoryLoading) fetchDirectory();
+  }, [directoryLoaded, directoryLoading, fetchDirectory]);
+
+  const directoryUsers = useMemo(() => {
+    const users: NotewellUser[] = [];
+    for (const pg of practiceGroups) {
+      for (const u of pg.users) {
+        if (!users.some(x => x.user_id === u.user_id)) users.push(u);
+      }
+    }
+    return users;
+  }, [practiceGroups]);
 
   const [name, setName] = useState(group?.name || '');
   const [description, setDescription] = useState(group?.description || '');
