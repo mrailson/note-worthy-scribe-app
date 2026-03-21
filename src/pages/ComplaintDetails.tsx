@@ -203,6 +203,9 @@ const ComplaintDetails = () => {
     transcript?: string;
     audioDuration?: number | null;
   }>>([]);
+  
+  // Ref to track poll intervals created in event handlers for cleanup
+  const ackPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
 
   // Define all functions before useEffect
