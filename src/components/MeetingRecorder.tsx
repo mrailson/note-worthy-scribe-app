@@ -97,6 +97,8 @@ import {
   clearPersistedSession,
   startHeartbeat,
   stopHeartbeat,
+  saveAudioChunk,
+  clearAudioChunks,
   type PersistedRecordingSession,
 } from "@/utils/recordingSessionPersistence";
 
