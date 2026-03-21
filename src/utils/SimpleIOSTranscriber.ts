@@ -38,6 +38,8 @@ export interface IOSTranscriberStats {
   totalTranscribedChars: number;
   lastOndataavailableTime: number;
   bufferedTextCount: number;
+  trackState: string;
+  recorderState: string;
 }
 
 interface QueuedChunk {
@@ -991,7 +993,9 @@ export class SimpleIOSTranscriber {
       isRecording: this.isRecording,
       totalTranscribedChars: this.totalTranscribedChars,
       lastOndataavailableTime: this.lastOndataavailableTime,
-      bufferedTextCount: this.pendingTexts.length
+      bufferedTextCount: this.pendingTexts.length,
+      trackState: this.stream?.getAudioTracks()[0]?.readyState ?? 'none',
+      recorderState: this.mediaRecorder?.state ?? 'none',
     };
 
     this.callbacks.onStatsUpdate?.(stats);
@@ -1010,7 +1014,9 @@ export class SimpleIOSTranscriber {
       isRecording: this.isRecording,
       totalTranscribedChars: this.totalTranscribedChars,
       lastOndataavailableTime: this.lastOndataavailableTime,
-      bufferedTextCount: this.pendingTexts.length
+      bufferedTextCount: this.pendingTexts.length,
+      trackState: this.stream?.getAudioTracks()[0]?.readyState ?? 'none',
+      recorderState: this.mediaRecorder?.state ?? 'none',
     };
   }
 

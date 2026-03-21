@@ -48,15 +48,17 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
             </span>
           </div>
 
-          {/* Divider */}
-          <div className="w-px h-5 bg-border" />
+          {/* Divider — hidden on mobile */}
+          {!isMobile && <div className="w-px h-5 bg-border" />}
 
-          {/* Status pills — hidden on mobile except Present count */}
-          <ContextStatusPill
-            icon="👥" label="Present" color="#10B981"
-            value={presentCount.toString()}
-            pulse={lastUpdate === 'attendance'}
-          />
+          {/* Status pills — all hidden on mobile */}
+          {!isMobile && (
+            <ContextStatusPill
+              icon="👥" label="Present" color="#10B981"
+              value={presentCount.toString()}
+              pulse={lastUpdate === 'attendance'}
+            />
+          )}
           {!isMobile && apologiesCount > 0 && (
             <ContextStatusPill
               icon="📨" label="Apologies" color="#F59E0B"
