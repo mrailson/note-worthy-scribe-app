@@ -568,6 +568,33 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                 </button>
               </div>
             ))}
+
+            {/* Meeting type selector — only shown when not already detected */}
+            {!meetingType && (
+              <div className="mt-3 pt-3 border-t border-border/30">
+                <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider mb-2">
+                  Meeting Format
+                </div>
+                <div className="flex rounded-lg border border-border overflow-hidden">
+                  <button
+                    onClick={() => setMeetingType('face-to-face')}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold transition-all cursor-pointer bg-muted/20 hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-600"
+                  >
+                    <Users2 className="h-3.5 w-3.5" />
+                    Face to Face
+                  </button>
+                  <div className="w-px bg-border" />
+                  <button
+                    onClick={() => setMeetingType('remote')}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold transition-all cursor-pointer bg-muted/20 hover:bg-blue-500/10 text-muted-foreground hover:text-blue-600"
+                  >
+                    <Video className="h-3.5 w-3.5" />
+                    Remote
+                  </button>
+                </div>
+              </div>
+            )}
+
             <Input
               value={agendaInput}
               onChange={e => setAgendaInput(e.target.value)}
