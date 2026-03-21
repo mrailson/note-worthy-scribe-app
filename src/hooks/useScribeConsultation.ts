@@ -1063,6 +1063,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
     setConsultationCategory,
     f2fAccompanied,
     setF2fAccompanied,
+    f2fLocation,
+    setF2fLocation,
     setPatientConsent,
     startConsultation,
     finishConsultation,
