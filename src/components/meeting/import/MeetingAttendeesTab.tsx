@@ -528,47 +528,53 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
         </div>
       )}
 
-      {/* Add new form */}
+      {/* Add new form - collapsible */}
       {showAddNew && (
-        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 space-y-3">
-          <div className="text-xs font-bold text-amber-800 dark:text-amber-200 uppercase tracking-wider">
-            Add New Attendee
-          </div>
-          <Input
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            placeholder="Full name"
-            onKeyDown={e => e.key === 'Enter' && addNewAttendee()}
-          />
-          <div className="flex gap-2">
-            <Select value={newOrg} onValueChange={setNewOrg}>
-              <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {SUGGESTED_ORGANISATIONS.map(o => (
-                  <SelectItem key={o} value={o}>{o}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={newRole} onValueChange={setNewRole}>
-              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ATTENDEE_ROLES.map(r => (
-                  <SelectItem key={r} value={r}>{r}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <Checkbox checked={saveToContacts} onCheckedChange={(c) => setSaveToContacts(!!c)} />
-            <span className="text-xs text-muted-foreground">Also save to contacts directory</span>
-          </label>
-          <Button
-            onClick={addNewAttendee}
-            disabled={!newName.trim()}
-            className="w-full"
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setShowAddNew(false)}
+            className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-amber-800 dark:text-amber-200 uppercase tracking-wider hover:bg-amber-100/50 dark:hover:bg-amber-900/30 transition-colors"
           >
-            Add to Meeting
-          </Button>
+            <span>Add New Attendee</span>
+            <span className="text-[10px] font-semibold normal-case text-muted-foreground">tap to minimise ▲</span>
+          </button>
+          <div className="px-4 pb-4 space-y-3">
+            <Input
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              placeholder="Full name"
+              onKeyDown={e => e.key === 'Enter' && addNewAttendee()}
+            />
+            <div className="flex gap-2">
+              <Select value={newOrg} onValueChange={setNewOrg}>
+                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SUGGESTED_ORGANISATIONS.map(o => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ATTENDEE_ROLES.map(r => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox checked={saveToContacts} onCheckedChange={(c) => setSaveToContacts(!!c)} />
+              <span className="text-xs text-muted-foreground">Also save to contacts directory</span>
+            </label>
+            <Button
+              onClick={addNewAttendee}
+              disabled={!newName.trim()}
+              className="w-full"
+            >
+              Add to Meeting
+            </Button>
+          </div>
         </div>
       )}
 
@@ -592,7 +598,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
       )}
 
       {/* Attendee list */}
-      <ScrollArea className="flex-1 max-h-[300px]">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="space-y-1.5">
           {filteredAttendees.length === 0 && attendees.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
