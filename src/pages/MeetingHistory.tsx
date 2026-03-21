@@ -1729,9 +1729,10 @@ const MeetingHistory = () => {
         )}
         <FullPageNotesModal
           isOpen={fullPageModalOpen}
-          onClose={() => setFullPageModalOpen(false)}
+          onClose={() => { setFullPageModalOpen(false); setModalMeeting(null); setModalNotes(''); }}
           meeting={modalMeeting}
           notes={modalNotes}
+          onNotesChange={setModalNotes}
         />
       </>
     );
