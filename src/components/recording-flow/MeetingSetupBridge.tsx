@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useMeetingSetup } from './MeetingSetupContext';
 
 interface MeetingSetupBridgeProps {
@@ -16,14 +16,28 @@ export const MeetingSetupBridge: React.FC<MeetingSetupBridgeProps> = ({
   duration,
   onOpenImportModal,
 }) => {
-  const { stage, setStage, setRecordingDuration } = useMeetingSetup();
+  const { stage, setStage, setRecordingDuration, attendees, agendaItems } = useMeetingSetup();
+  const wasRecordingRef = useRef(false);
 
   // Sync recording state → stage
   useEffect(() => {
     if (isRecording && stage === 'setup') {
       setStage('recording');
     }
-  }, [isRecording, stage, setStage]);
+    
+    // Detect recording stop: was recording, now not
+    if (wasRecordingRef.current && !isRecording) {
+      // Only show done screen if there was context set up
+      const hasContext = attendees.length > 0 || agendaItems.length > 0;
+      if (hasContext) {
+        setStage('done');
+      } else {
+        setStage('setup');
+      }
+    }
+    
+    wasRecordingRef.current = isRecording;
+  }, [isRecording, stage, setStage, attendees.length, agendaItems.length]);
 
   // Sync duration
   useEffect(() => {
@@ -32,6 +46,3 @@ export const MeetingSetupBridge: React.FC<MeetingSetupBridgeProps> = ({
 
   return null;
 };
-
-// Re-export onOpenImportModal handler type for use in the status bar
-export type OpenImportModalFn = (tab?: string) => void;
