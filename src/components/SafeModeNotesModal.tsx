@@ -3670,21 +3670,29 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <TabsContent value="transcript" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card">
                 <div className="p-6 space-y-4">
-                  {/* Meeting QC Badges */}
-                  <div className="flex flex-wrap items-center gap-2 min-h-[36px]">
-                    <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
-                    <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
-                    {meeting?.id && (
-                      <>
-                        <span className="text-xs font-medium text-muted-foreground ml-1">Recorded on:</span>
-                        <RecordingDeviceBadge meetingId={meeting.id} />
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-muted-foreground">Render Times:</span>
-                    <ProcessingTimeBadges noteTiming={generationMetadata?.timing} consolidationTiming={consolidationTiming} />
-                  </div>
+                  {/* Meeting QC & Render Times - Collapsed */}
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                      <ChevronDown className="h-3 w-3" />
+                      Pipeline Details
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="flex flex-wrap items-center gap-2 mt-1 min-h-[36px]">
+                        <span className="text-xs font-medium text-muted-foreground">Meeting QC:</span>
+                        <NotesGenerationBadges metadata={generationMetadata} meetingTitle={meeting?.title} />
+                        {meeting?.id && (
+                          <>
+                            <span className="text-xs font-medium text-muted-foreground ml-1">Recorded on:</span>
+                            <RecordingDeviceBadge meetingId={meeting.id} />
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-medium text-muted-foreground">Render Times:</span>
+                        <ProcessingTimeBadges noteTiming={generationMetadata?.timing} consolidationTiming={consolidationTiming} />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                   <div className="flex flex-wrap justify-between items-center gap-2 min-h-[36px]">
                     {/* Sub-tabs for Batch/Live/Deepgram with copy buttons */}
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
