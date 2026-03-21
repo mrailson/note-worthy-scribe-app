@@ -7059,6 +7059,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               </Button>
             </div>
           )}
+          </RecordingFlowOverlay>
         </TabsContent>
 
 
