@@ -25,6 +25,7 @@ interface MeetingAttendeesTabProps {
   meetingId?: string | null;
   onImport?: (content: ImportedContent) => Promise<void>;
   isImporting?: boolean;
+  onAttendeesChanged?: (attendees: MeetingAttendee[]) => void;
 }
 
 export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
