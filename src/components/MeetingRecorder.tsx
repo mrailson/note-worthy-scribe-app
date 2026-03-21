@@ -90,6 +90,15 @@ import { useBackupRecorder } from "@/hooks/useBackupRecorder";
 import { BackupIndicator } from "@/components/offline/BackupIndicator";
 import { BackupRecoveryPrompt } from "@/components/offline/BackupRecoveryPrompt";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRecordingRecovery } from "@/hooks/useRecordingRecovery";
+import { RecordingRecoveryBanner } from "@/components/recording-flow/RecordingRecoveryBanner";
+import {
+  persistRecordingSession,
+  clearPersistedSession,
+  startHeartbeat,
+  stopHeartbeat,
+  type PersistedRecordingSession,
+} from "@/utils/recordingSessionPersistence";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
