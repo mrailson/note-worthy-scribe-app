@@ -19,6 +19,7 @@ interface LiveImportModalProps {
   defaultTab?: string;
   meetingId?: string;
   onImportComplete?: () => void;
+  onAttendeesChanged?: (attendees: any[]) => void;
 }
 
 export type ImportedContent = {
