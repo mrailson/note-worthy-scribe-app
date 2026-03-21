@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { ChevronLeft, Download, Share2, FileText, MessageSquare, Users, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { MobileExportSheet } from './MobileExportSheet';
+
 import './mobile-meetings.css';
 
 const AVATAR_COLORS = [
