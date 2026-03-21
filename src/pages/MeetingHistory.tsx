@@ -246,6 +246,20 @@ const MeetingHistory = () => {
   const { folders, assignMeetingToFolder } = useMeetingFolders();
   const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
 
+  // Mobile detail view state
+  const [mobileDetailMeetingId, setMobileDetailMeetingId] = useState<string | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+
+  const openMobileDetail = useCallback((meetingId: string) => {
+    setMobileDetailMeetingId(meetingId);
+    requestAnimationFrame(() => setMobileDetailOpen(true));
+  }, []);
+
+  const closeMobileDetail = useCallback(() => {
+    setMobileDetailOpen(false);
+    setTimeout(() => setMobileDetailMeetingId(null), 300);
+  }, []);
+
   // Handle folder assignment - update parent state immediately
   const handleFolderAssigned = (meetingId: string, folderId: string | null) => {
     console.log('🗂 Parent: handleFolderAssigned called', { meetingId, folderId });
