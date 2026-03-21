@@ -6733,7 +6733,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }}
             formatDuration={formatDuration}
             wordCount={wordCount}
-            transcriptText={assemblyPreview.fullTranscript || transcript}
+            transcriptText={assemblyPreview.fullTranscript || deepgramPreview.fullTranscript || transcript}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))}
