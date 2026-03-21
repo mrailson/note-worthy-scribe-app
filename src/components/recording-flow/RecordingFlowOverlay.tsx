@@ -39,7 +39,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
 
       {/* Stage 1: Pre-Meeting Setup (not recording, setup stage) */}
       {stage === 'setup' && !isRecording && (
-        <PreMeetingSetup onStartRecording={onStartRecording} />
+        <PreMeetingSetup onStartRecording={onStartRecording} onOpenImportModal={onOpenImportModal} />
       )}
 
       {/* Stage 2: Recording — show live status bar + existing controls */}
