@@ -75,10 +75,12 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
             value={formatDuration(recordingDuration)}
           />
 
-          {/* Word count pill */}
-          <ContextStatusPill
-            icon="📝" label="Words" color="#8B5CF6"
-            value={wordCount.toString()}
+          {/* Live transcript glass panel (replaces plain word count pill) */}
+          <LiveTranscriptGlassPanel
+            isRecording={true}
+            wordCount={wordCount}
+            transcriptText={transcriptText}
+          />
           />
 
           {/* Avatar stack */}
