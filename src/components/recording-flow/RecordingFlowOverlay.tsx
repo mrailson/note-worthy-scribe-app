@@ -11,6 +11,7 @@ interface RecordingFlowOverlayProps {
   onStopRecording: () => void;
   onOpenImportModal: (tab?: string) => void;
   formatDuration: (seconds: number) => string;
+  wordCount?: number;
   children: React.ReactNode; // existing recorder controls
 }
 
@@ -24,6 +25,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   onStopRecording,
   onOpenImportModal,
   formatDuration,
+  wordCount,
   children,
 }) => {
   const { stage, setStage, resetSetup } = useMeetingSetup();
@@ -34,8 +36,10 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
 
   return (
     <>
-      {/* Stage Indicator — always visible */}
-      <StageIndicator />
+      {/* Stage Indicator — hidden during active recording to save space */}
+      {!(stage === 'recording' || isRecording) && (
+        <StageIndicator />
+      )}
 
       {/* Stage 1: Pre-Meeting Setup (not recording, setup stage) */}
       {stage === 'setup' && !isRecording && (
@@ -49,6 +53,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             onEditContext={onOpenImportModal}
             onStopRecording={onStopRecording}
             formatDuration={formatDuration}
+            wordCount={wordCount}
           />
           {/* Existing recorder controls below the status bar */}
           {children}

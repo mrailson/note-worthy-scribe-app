@@ -6516,10 +6516,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         </Card>
       )}
       
-      {/* Tabbed Interface */}
+      {/* Tabbed Interface — hide tabs row during active recording */}
       <Tabs value={activeTab} onValueChange={(tab) => {
         setActiveTab(tab);
       }} className="w-full">
+        {!isRecording && (
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic className="h-5 w-5" />
