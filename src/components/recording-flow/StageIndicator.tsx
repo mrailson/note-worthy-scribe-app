@@ -15,14 +15,12 @@ export const StageIndicator: React.FC = () => {
   const currentIdx = stageOrder.indexOf(stage);
 
   return (
-    <div className="flex items-center gap-2 p-2 px-5 rounded-xl bg-card border border-border shadow-sm mb-3">
-      <span className="text-lg font-extrabold text-amber-500">Notewell AI ✦</span>
-      <div className="flex-1" />
+    <div className="flex items-center gap-1.5">
       {stages.map((s, i) => (
         <React.Fragment key={s.id}>
           {i > 0 && (
             <div
-              className="w-5 h-px"
+              className="w-4 h-px"
               style={{
                 background: i <= currentIdx ? '#F59E0B' : 'hsl(var(--border))',
               }}
@@ -30,14 +28,14 @@ export const StageIndicator: React.FC = () => {
           )}
           <div
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all duration-200',
+              'flex items-center gap-1 px-2 py-0.5 rounded-md transition-all duration-200',
               stage === s.id
-                ? 'bg-amber-500/15 border-[1.5px] border-amber-500'
-                : 'border-[1.5px] border-transparent'
+                ? 'bg-amber-500/15 border border-amber-500'
+                : 'border border-transparent'
             )}
           >
             <div
-              className="w-[7px] h-[7px] rounded-full"
+              className="w-[6px] h-[6px] rounded-full"
               style={{
                 background:
                   stage === s.id ? '#F59E0B' :
@@ -46,7 +44,7 @@ export const StageIndicator: React.FC = () => {
             />
             <span
               className={cn(
-                'text-[11px] font-bold capitalize',
+                'text-[10px] font-bold capitalize',
                 stage === s.id ? 'text-amber-500' : 'text-muted-foreground'
               )}
             >

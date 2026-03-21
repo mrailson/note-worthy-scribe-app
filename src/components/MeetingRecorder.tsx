@@ -74,6 +74,7 @@ import { LiveContextStatusBar } from "@/components/recording-flow/LiveContextSta
 import { RecordingCompleteScreen } from "@/components/recording-flow/RecordingCompleteScreen";
 import { MeetingSetupBridge } from "@/components/recording-flow/MeetingSetupBridge";
 import { RecordingFlowOverlay } from "@/components/recording-flow/RecordingFlowOverlay";
+import { TabDropdown } from "@/components/recording-flow/TabDropdown";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
 import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
@@ -6516,42 +6517,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         </Card>
       )}
       
-      {/* Tabbed Interface — hide tabs row during active recording */}
+      {/* Tabbed Interface — tab bar replaced by dropdown in RecordingFlowOverlay */}
       <Tabs value={activeTab} onValueChange={(tab) => {
         setActiveTab(tab);
       }} className="w-full">
-        {!isRecording && (
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="recorder" className="flex items-center gap-2">
-            <Mic className="h-5 w-5" />
-            <span className="hidden sm:inline">Meeting Recorder</span>
-            <span className="sm:hidden">Record</span>
-          </TabsTrigger>
-          <TabsTrigger value="transcript" className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            <span className="hidden sm:inline">Meeting Transcript</span>
-            <span className="sm:hidden">Transcript</span>
-          </TabsTrigger>
-          {/* Temporarily hidden - Meeting Settings tab */}
-          {/* <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            <span className="hidden sm:inline">Meeting Settings</span>
-            <span className="sm:hidden">Settings</span>
-          </TabsTrigger> */}
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            <span className="hidden sm:inline">My Meeting History</span>
-            <span className="sm:hidden">History</span>
-            {meetings.some(m => isNewMeeting(m.created_at)) && (
-              <Badge className="bg-green-600 hover:bg-green-600 text-white text-[10px] px-1.5 py-0 h-4 ml-1">
-                New
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-        )}
         {/* Meeting Recorder Tab - ONLY recording controls */}
-        <TabsContent value="recorder" className={isRecording ? "space-y-3 mt-2" : "space-y-6 mt-6"}>
+        <TabsContent value="recorder" className={isRecording ? "space-y-3 mt-1" : "space-y-3 mt-1"}>
           <RecordingFlowOverlay
             isRecording={isRecording}
             onStartRecording={startRecording}
@@ -6559,6 +6530,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }}
             formatDuration={formatDuration}
             wordCount={wordCount}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))}
           >
           <div className="space-y-4">
 
@@ -7102,7 +7076,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         </TabsContent>
 
 
-        <TabsContent value="transcript" className="space-y-2 mt-6">
+        <TabsContent value="transcript" className="space-y-2 mt-2">
+          <div className="flex items-center gap-3 py-2 px-1 mb-2">
+            <TabDropdown activeTab={activeTab} onTabChange={setActiveTab} hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))} />
+            <h2 className="flex-1 text-[15px] font-extrabold text-foreground tracking-tight">Meeting Transcript</h2>
+          </div>
           {/* Transcript Source Switcher */}
           <div className="flex items-center gap-2 mb-4">
             <span className="text-sm text-muted-foreground">View:</span>
@@ -7345,19 +7323,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         </TabsContent> */}
 
         {/* Meeting History Tab */}
-        <TabsContent value="history" className="space-y-4 mt-6">
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3">
-              <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground">My Meeting History</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  View, edit, and manage your saved meetings
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-            </div>
+        <TabsContent value="history" className="space-y-4 mt-2">
+          <div className="flex items-center gap-3 py-2 px-1 mb-2">
+            <TabDropdown activeTab={activeTab} onTabChange={setActiveTab} hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))} />
+            <h2 className="flex-1 text-[15px] font-extrabold text-foreground tracking-tight">My Meeting History</h2>
           </div>
 
           {/* Compact Stats Pills */}

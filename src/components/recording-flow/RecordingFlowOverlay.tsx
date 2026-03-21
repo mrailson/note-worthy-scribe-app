@@ -4,6 +4,7 @@ import { StageIndicator } from './StageIndicator';
 import { PreMeetingSetup } from './PreMeetingSetup';
 import { LiveContextStatusBar } from './LiveContextStatusBar';
 import { RecordingCompleteScreen } from './RecordingCompleteScreen';
+import { TabDropdown } from './TabDropdown';
 
 interface RecordingFlowOverlayProps {
   isRecording: boolean;
@@ -12,13 +13,18 @@ interface RecordingFlowOverlayProps {
   onOpenImportModal: (tab?: string) => void;
   formatDuration: (seconds: number) => string;
   wordCount?: number;
-  children: React.ReactNode; // existing recorder controls
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
+  hasNewMeetings?: boolean;
+  children: React.ReactNode;
 }
 
-/**
- * Renders the 3-stage recording flow UI (Setup → Recording → Complete)
- * on top of / instead of the existing recorder controls.
- */
+const STAGE_TITLES: Record<string, string> = {
+  setup: 'Prepare Your Meeting',
+  recording: 'Recording in Progress',
+  done: 'Recording Complete',
+};
+
 export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   isRecording,
   onStartRecording,
@@ -26,27 +32,43 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   onOpenImportModal,
   formatDuration,
   wordCount,
+  activeTab = 'recorder',
+  onTabChange,
+  hasNewMeetings,
   children,
 }) => {
-  const { stage, setStage, resetSetup } = useMeetingSetup();
+  const { stage, resetSetup } = useMeetingSetup();
 
   const handleStartNewMeeting = () => {
     resetSetup();
   };
 
+  // During recording, hide the merged header (status bar replaces it)
+  const showMergedHeader = !(stage === 'recording' || isRecording);
+
   return (
     <>
-      {/* Stage Indicator — hidden during active recording to save space */}
-      {!(stage === 'recording' || isRecording) && (
-        <StageIndicator />
+      {/* Merged header row: Tab dropdown | Title | Stage indicator */}
+      {showMergedHeader && (
+        <div className="flex items-center gap-3 py-2 px-1 mb-2">
+          <TabDropdown
+            activeTab={activeTab}
+            onTabChange={onTabChange || (() => {})}
+            hasNewMeetings={hasNewMeetings}
+          />
+          <h2 className="flex-1 text-[15px] font-extrabold text-foreground tracking-tight truncate">
+            {STAGE_TITLES[stage] || 'Prepare Your Meeting'}
+          </h2>
+          <StageIndicator />
+        </div>
       )}
 
-      {/* Stage 1: Pre-Meeting Setup (not recording, setup stage) */}
+      {/* Stage 1: Pre-Meeting Setup */}
       {stage === 'setup' && !isRecording && (
         <PreMeetingSetup onStartRecording={onStartRecording} onOpenImportModal={onOpenImportModal} />
       )}
 
-      {/* Stage 2: Recording — show live status bar + existing controls */}
+      {/* Stage 2: Recording */}
       {(stage === 'recording' || isRecording) && (
         <>
           <LiveContextStatusBar
@@ -55,7 +77,6 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             formatDuration={formatDuration}
             wordCount={wordCount}
           />
-          {/* Existing recorder controls below the status bar */}
           {children}
         </>
       )}
