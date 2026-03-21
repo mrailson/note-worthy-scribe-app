@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, X, Search, BookUser, Building2 } from 'lucide-react';
+import { ArrowLeft, X, Search, BookUser, Building2, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   ATTENDEE_ROLES,
   SPEAKER_COLORS,
@@ -100,6 +100,7 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
   const [color, setColor] = useState(group?.color || '#3B82F6');
   const [memberSearch, setMemberSearch] = useState('');
   const [showAddNew, setShowAddNew] = useState(false);
+  const [showDetails, setShowDetails] = useState(isNew);
   const [newName, setNewName] = useState('');
   const [newOrg, setNewOrg] = useState('External / Other');
   const [newRole, setNewRole] = useState('Guest');
@@ -378,96 +379,92 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
 
       <ScrollArea className="flex-1 min-h-0">
         <div className="flex flex-col gap-3 pr-2">
-          <div
-            className="flex items-center gap-3 p-3.5 rounded-xl"
-            style={{
-              background: `${color}08`,
-              border: `1.5px solid ${color}33`,
-            }}
+          {/* Collapsible details section */}
+          <button
+            onClick={() => setShowDetails(prev => !prev)}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border bg-muted/30 hover:bg-muted/60 transition-colors"
           >
-            <div
-              className="w-[52px] h-[52px] rounded-xl flex items-center justify-center text-[26px] shrink-0"
-              style={{
-                background: `${color}20`,
-                border: `2.5px solid ${color}`,
-              }}
-            >
-              {icon}
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">{icon}</span>
+              <span className="text-sm font-bold">{name || 'Untitled Group'}</span>
+              {description && <span className="text-[11px] text-muted-foreground hidden sm:inline">— {description}</span>}
             </div>
-            <div className="flex-1 space-y-2">
-              <div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                  Icon
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="text-[10px] font-semibold">{showDetails ? 'Hide' : 'Edit'}</span>
+              {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </button>
+
+          {showDetails && (
+            <div className="flex flex-col gap-3 p-3 rounded-xl border bg-card">
+              <div
+                className="flex items-center gap-3 p-3 rounded-lg"
+                style={{
+                  background: `${color}08`,
+                  border: `1.5px solid ${color}33`,
+                }}
+              >
+                <div
+                  className="w-[44px] h-[44px] rounded-lg flex items-center justify-center text-[22px] shrink-0"
+                  style={{
+                    background: `${color}20`,
+                    border: `2px solid ${color}`,
+                  }}
+                >
+                  {icon}
                 </div>
-                <div className="flex gap-1 flex-wrap">
-                  {GROUP_ICONS.map(groupIcon => (
-                    <button
-                      key={groupIcon}
-                      onClick={() => setIcon(groupIcon)}
-                      className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition-all ${
-                        icon === groupIcon ? 'ring-2' : 'border hover:bg-accent'
-                      }`}
-                      style={
-                        icon === groupIcon
-                          ? {
-                              borderColor: color,
-                              background: `${color}15`,
-                              outline: `2px solid ${color}`,
-                            }
-                          : {}
-                      }
-                    >
-                      {groupIcon}
-                    </button>
-                  ))}
+                <div className="flex-1 space-y-2">
+                  <div>
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Icon</div>
+                    <div className="flex gap-1 flex-wrap">
+                      {GROUP_ICONS.map(groupIcon => (
+                        <button
+                          key={groupIcon}
+                          onClick={() => setIcon(groupIcon)}
+                          className={`w-6 h-6 rounded text-sm flex items-center justify-center transition-all ${
+                            icon === groupIcon ? 'ring-2' : 'border hover:bg-accent'
+                          }`}
+                          style={
+                            icon === groupIcon
+                              ? { borderColor: color, background: `${color}15`, outline: `2px solid ${color}` }
+                              : {}
+                          }
+                        >
+                          {groupIcon}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Colour</div>
+                    <div className="flex gap-1 flex-wrap">
+                      {GROUP_COLORS.map(groupColor => (
+                        <button
+                          key={groupColor}
+                          onClick={() => setColor(groupColor)}
+                          className="w-5 h-5 rounded-full transition-all"
+                          style={{
+                            background: groupColor,
+                            border: color === groupColor ? '3px solid currentColor' : '2px solid transparent',
+                            boxShadow: color === groupColor ? `0 0 0 2px var(--background), 0 0 0 4px ${groupColor}` : 'none',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
+
               <div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                  Colour
-                </div>
-                <div className="flex gap-1 flex-wrap">
-                  {GROUP_COLORS.map(groupColor => (
-                    <button
-                      key={groupColor}
-                      onClick={() => setColor(groupColor)}
-                      className="w-5 h-5 rounded-full transition-all"
-                      style={{
-                        background: groupColor,
-                        border: color === groupColor ? '3px solid currentColor' : '2px solid transparent',
-                        boxShadow:
-                          color === groupColor
-                            ? `0 0 0 2px var(--background), 0 0 0 4px ${groupColor}`
-                            : 'none',
-                      }}
-                    />
-                  ))}
-                </div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Group Name *</div>
+                <Input value={name} onChange={event => setName(event.target.value)} placeholder="e.g. NRES Programme Board" />
+              </div>
+              <div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Description</div>
+                <Input value={description} onChange={event => setDescription(event.target.value)} placeholder="e.g. PML + 7 practices" />
               </div>
             </div>
-          </div>
-
-          <div>
-            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-              Group Name *
-            </div>
-            <Input
-              value={name}
-              onChange={event => setName(event.target.value)}
-              placeholder="e.g. NRES Programme Board"
-            />
-          </div>
-
-          <div>
-            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-              Description
-            </div>
-            <Input
-              value={description}
-              onChange={event => setDescription(event.target.value)}
-              placeholder="e.g. PML + 7 practices"
-            />
-          </div>
+          )}
 
           <div>
             <div className="flex justify-between items-center mb-2">
