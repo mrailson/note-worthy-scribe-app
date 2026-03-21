@@ -438,9 +438,24 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                       >
                         {a.status === 'present' ? 'Present' : a.status === 'apologies' ? 'Apologies' : 'Absent'}
                       </button>
+                      <button
+                        onClick={() => setAttendees(prev => prev.filter(att => att.id !== a.id))}
+                        className="text-muted-foreground/30 hover:text-destructive transition-colors cursor-pointer p-0.5"
+                        title={`Remove ${a.name}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
                   ))}
                 </div>
+                {/* Add more attendees */}
+                <button
+                  onClick={() => onOpenImportModal?.('attendees')}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 mt-1.5 rounded-lg text-[11px] font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 border border-dashed border-muted-foreground/20 hover:border-primary/40 transition-all cursor-pointer"
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Attendee
+                </button>
               </>
             )}
           </div>
