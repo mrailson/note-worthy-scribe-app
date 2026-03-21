@@ -89,7 +89,7 @@ import { SafeModeNotesModal } from "@/components/SafeModeNotesModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMultiTypeNotes } from "@/hooks/useMultiTypeNotes";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
-import { MeetingAttendeeModal } from './MeetingAttendeeModal';
+import { LiveImportModal } from "@/components/meeting/import/LiveImportModal";
 import { useAuth } from '@/contexts/AuthContext';
 import { AttendeeRoleBadge } from './meeting-history/AttendeeRoleBadge';
 import { NewMeetingBadge } from './meeting-history/NewMeetingBadge';
@@ -3217,14 +3217,14 @@ export const MeetingHistoryList = ({
 
       {/* Attendee Modal */}
       {selectedMeetingForAttendees && (
-        <MeetingAttendeeModal
-          isOpen={attendeeModalOpen}
-          onClose={() => {
-            setAttendeeModalOpen(false);
-            setSelectedMeetingForAttendees(null);
+        <LiveImportModal
+          open={attendeeModalOpen}
+          onOpenChange={(open) => {
+            setAttendeeModalOpen(open);
+            if (!open) setSelectedMeetingForAttendees(null);
           }}
+          defaultTab="attendees"
           meetingId={selectedMeetingForAttendees.id}
-          meetingTitle={selectedMeetingForAttendees.title}
         />
       )}
 

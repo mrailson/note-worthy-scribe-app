@@ -122,7 +122,7 @@ import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 import EditableSection, { Section } from "@/components/scribe/EditableSection";
 import InteractiveNotesContent from "@/components/meeting-notes/InteractiveNotesContent";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
-import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
+import { LiveImportModal } from "@/components/meeting/import/LiveImportModal";
 import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
 import { ProcessingTimeBadges } from "@/components/meeting-notes/ProcessingTimeBadges";
 import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
@@ -4125,11 +4125,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
       {/* Attendee Modal */}
       {meeting && (
-        <MeetingAttendeeModal
-          isOpen={showAttendeeModal}
-          onClose={handleAttendeeModalClose}
+        <LiveImportModal
+          open={showAttendeeModal}
+          onOpenChange={(open) => { if (!open) handleAttendeeModalClose(); }}
+          defaultTab="attendees"
           meetingId={meeting.id}
-          meetingTitle={meeting.title}
         />
       )}
 

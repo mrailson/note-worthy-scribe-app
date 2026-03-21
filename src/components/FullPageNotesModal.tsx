@@ -7,7 +7,7 @@ import { useMinutesFormatter } from "@/hooks/useMinutesFormatter";
 
 
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
-import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
+import { LiveImportModal } from "@/components/meeting/import/LiveImportModal";
 import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
 import { ProcessingTimeBadges } from "@/components/meeting-notes/ProcessingTimeBadges";
 import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
@@ -3934,11 +3934,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
       {/* Attendee Modal */}
       {meeting && (
-        <MeetingAttendeeModal
-          isOpen={attendeeModalOpen}
-          onClose={() => setAttendeeModalOpen(false)}
+        <LiveImportModal
+          open={attendeeModalOpen}
+          onOpenChange={setAttendeeModalOpen}
+          defaultTab="attendees"
           meetingId={meeting.id}
-          meetingTitle={meeting.title}
         />
       )}
     </>
