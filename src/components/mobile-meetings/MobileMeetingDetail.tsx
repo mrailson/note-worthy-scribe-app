@@ -52,7 +52,6 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
   const { user } = useAuth();
   const [meeting, setMeeting] = useState<MeetingDetailData | null>(null);
   const [tab, setTab] = useState<TabId>('overview');
-  const [showExport, setShowExport] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
