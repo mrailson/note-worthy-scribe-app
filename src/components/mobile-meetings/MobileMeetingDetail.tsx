@@ -363,12 +363,6 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
       ) : (
         <div className="nw-mh-loading">Meeting not found</div>
       )}
-
-      <MobileExportSheet
-        open={showExport}
-        onClose={() => setShowExport(false)}
-        wordCount={meeting?.word_count}
-      />
     </div>
   );
 };
