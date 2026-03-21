@@ -78,6 +78,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             onStopRecording={onStopRecording}
             formatDuration={formatDuration}
             wordCount={wordCount}
+            transcriptText={transcriptText}
           />
           {children}
         </>
