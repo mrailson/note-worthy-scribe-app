@@ -28,7 +28,8 @@ const NRES_PRACTICE_NAMES = [
   'Bugbrooke', 'Brook Health', 'Denton Village',
 ];
 
-export function useNotewellDirectory() {
+export function useNotewellDirectory(options?: { includeAll?: boolean }) {
+  const includeAll = options?.includeAll ?? false;
   const { user } = useAuth();
   const [practiceGroups, setPracticeGroups] = useState<PracticeGroup[]>([]);
   const [loading, setLoading] = useState(false);
