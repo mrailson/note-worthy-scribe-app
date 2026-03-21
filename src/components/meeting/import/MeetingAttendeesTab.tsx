@@ -7,15 +7,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Search, Plus, X, Users } from 'lucide-react';
+import { Search, Plus, X, Users, BookUser, Building2 } from 'lucide-react';
 import { useContacts } from '@/hooks/useContacts';
 import { useMeetingGroups } from '@/hooks/useMeetingGroups';
+import { useNotewellDirectory } from '@/hooks/useNotewellDirectory';
 import { supabase } from '@/integrations/supabase/client';
 import {
   ATTENDEE_ROLES, ROLE_COLORS, SPEAKER_COLORS,
   SUGGESTED_ORGANISATIONS, generateInitials,
 } from '@/types/contactTypes';
 import type { MeetingAttendee, Contact, MeetingGroup } from '@/types/contactTypes';
+import type { NotewellUser } from '@/hooks/useNotewellDirectory';
 import type { ImportedContent } from './LiveImportModal';
 
 interface MeetingAttendeesTabProps {
@@ -31,6 +33,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
 }) => {
   const { contacts } = useContacts();
   const { groups } = useMeetingGroups();
+  const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory();
 
   const [attendees, setAttendees] = useState<MeetingAttendee[]>([]);
   const [search, setSearch] = useState('');
@@ -45,6 +48,11 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   const [loaded, setLoaded] = useState(false);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load Notewell directory on mount
+  useEffect(() => {
+    if (!directoryLoaded && !directoryLoading) fetchDirectory();
+  }, [directoryLoaded, directoryLoading, fetchDirectory]);
 
   // Load existing attendees from meeting
   useEffect(() => {
@@ -84,16 +92,37 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
     });
   }, [saveAttendees]);
 
-  // Search contacts
+  // Search contacts + Notewell directory
   const addedIds = useMemo(() => new Set(attendees.map(a => a.contact_id).filter(Boolean)), [attendees]);
+  const addedNames = useMemo(() => new Set(attendees.map(a => a.name.toLowerCase())), [attendees]);
+
+  const directoryUsers = useMemo(() => {
+    const users: NotewellUser[] = [];
+    for (const group of practiceGroups) {
+      for (const u of group.users) {
+        if (!users.some(x => x.user_id === u.user_id)) users.push(u);
+      }
+    }
+    return users;
+  }, [practiceGroups]);
+
   const searchResults = useMemo(() => {
-    if (!search) return [];
+    if (!search || search.length < 2) return { contacts: [] as Contact[], directory: [] as NotewellUser[] };
     const q = search.toLowerCase();
-    return contacts.filter(c =>
+    const contactMatches = contacts.filter(c =>
       !addedIds.has(c.id) &&
       (c.name.toLowerCase().includes(q) || c.org.toLowerCase().includes(q))
     );
-  }, [contacts, search, addedIds]);
+    const directoryMatches = directoryUsers.filter(u =>
+      !addedNames.has(u.full_name.toLowerCase()) &&
+      (u.full_name.toLowerCase().includes(q) ||
+       u.practice_name.toLowerCase().includes(q) ||
+       (u.email && u.email.toLowerCase().includes(q)))
+    );
+    return { contacts: contactMatches, directory: directoryMatches };
+  }, [contacts, directoryUsers, search, addedIds, addedNames]);
+
+  const hasSearchResults = searchResults.contacts.length > 0 || searchResults.directory.length > 0;
 
   const addContactAsAttendee = (contact: Contact) => {
     updateAttendees(prev => [
@@ -104,8 +133,23 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
         initials: contact.initials,
         role: contact.default_role,
         org: contact.org,
-        status: 'present',
+        status: 'present' as const,
         contact_id: contact.id,
+      },
+    ]);
+    setSearch('');
+  };
+
+  const addDirectoryUserAsAttendee = (user: NotewellUser) => {
+    updateAttendees(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        name: user.full_name,
+        initials: generateInitials(user.full_name),
+        role: user.practice_role || user.title || 'Guest',
+        org: user.practice_name,
+        status: 'present' as const,
       },
     ]);
     setSearch('');
@@ -308,7 +352,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search contacts by name or organisation..."
+            placeholder="Search contacts & Notewell directory..."
             className="pl-9"
           />
         </div>
@@ -323,11 +367,11 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
       </div>
 
       {/* Search results dropdown */}
-      {search.length > 0 && (
-        <div className="bg-card border rounded-xl max-h-[180px] overflow-auto shadow-lg">
-          {searchResults.length === 0 ? (
+      {search.length >= 2 && (
+        <div className="bg-card border rounded-xl max-h-[240px] overflow-auto shadow-lg">
+          {!hasSearchResults ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              No contacts found.{' '}
+              No results found.{' '}
               <button
                 className="text-primary font-semibold hover:underline"
                 onClick={() => {
@@ -340,34 +384,78 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
               </button>
             </div>
           ) : (
-            searchResults.map((c, idx) => {
-              const color = SPEAKER_COLORS[c.id % SPEAKER_COLORS.length];
-              const roleColor = ROLE_COLORS[c.default_role] || ROLE_COLORS.Guest;
-              return (
-                <div
-                  key={c.id}
-                  onClick={() => addContactAsAttendee(c)}
-                  className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors border-b border-border/30 last:border-0"
-                >
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
-                    style={{ background: `${color}22`, border: `2px solid ${color}`, color }}
-                  >
-                    {c.initials}
+            <>
+              {/* Contact results */}
+              {searchResults.contacts.length > 0 && (
+                <>
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 flex items-center gap-1.5">
+                    <BookUser className="w-3 h-3" /> My Contacts
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold">{c.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{c.org}</div>
+                  {searchResults.contacts.map((c) => {
+                    const color = SPEAKER_COLORS[c.id % SPEAKER_COLORS.length];
+                    const roleColor = ROLE_COLORS[c.default_role] || ROLE_COLORS.Guest;
+                    return (
+                      <div
+                        key={`contact-${c.id}`}
+                        onClick={() => addContactAsAttendee(c)}
+                        className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-accent transition-colors border-b border-border/30 last:border-0"
+                      >
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                          style={{ background: `${color}22`, border: `2px solid ${color}`, color }}
+                        >
+                          {c.initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-semibold">{c.name}</div>
+                          <div className="text-[11px] text-muted-foreground">{c.org}</div>
+                        </div>
+                        <span
+                          className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ background: roleColor.bg, color: roleColor.text, border: `1px solid ${roleColor.border}33` }}
+                        >
+                          {c.default_role}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Directory results */}
+              {searchResults.directory.length > 0 && (
+                <>
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 flex items-center gap-1.5">
+                    <Building2 className="w-3 h-3" /> Notewell Directory
                   </div>
-                  <span
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: roleColor.bg, color: roleColor.text, border: `1px solid ${roleColor.border}33` }}
-                  >
-                    {c.default_role}
-                  </span>
-                </div>
-              );
-            })
+                  {searchResults.directory.map((u) => {
+                    const initials = generateInitials(u.full_name);
+                    return (
+                      <div
+                        key={`dir-${u.user_id}`}
+                        onClick={() => addDirectoryUserAsAttendee(u)}
+                        className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-accent transition-colors border-b border-border/30 last:border-0"
+                      >
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-2 border-blue-300 dark:border-blue-700"
+                        >
+                          {initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-semibold">{u.full_name}</div>
+                          <div className="text-[11px] text-muted-foreground">{u.practice_name}</div>
+                        </div>
+                        {(u.practice_role || u.title) && (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            {u.practice_role || u.title}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </>
           )}
         </div>
       )}
