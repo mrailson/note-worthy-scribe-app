@@ -262,9 +262,12 @@ const Scribe = () => {
                   settings={consultation.settings}
                   patientContext={consultation.patientContext}
                   f2fAccompanied={consultation.f2fAccompanied}
+                  f2fLocation={consultation.f2fLocation}
+                  practiceName={practiceDetails?.name}
                   onTypeChange={consultation.setConsultationType}
                   onCategoryChange={consultation.setConsultationCategory}
                   onF2fAccompaniedChange={consultation.setF2fAccompanied}
+                  onF2fLocationChange={consultation.setF2fLocation}
                   onConsentChange={consultation.setPatientConsent}
                   onPatientContextChange={consultation.setPatientContext}
                   onStart={consultation.startConsultation}
