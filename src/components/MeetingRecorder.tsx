@@ -1259,6 +1259,11 @@ export const MeetingRecorder = ({
       audioBackupRecorder.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioBackupChunks.current.push(event.data);
+          // Persist to IndexedDB for crash recovery
+          const sid = sessionStorage.getItem('currentMeetingId');
+          if (sid) {
+            saveAudioChunk(sid, event.data).catch(() => {});
+          }
         }
       };
 
