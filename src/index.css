@@ -1198,3 +1198,11 @@ body:has([role="dialog"]) {
 .animate-sound-bar-2 { animation: sound-bar-2 0.8s ease-in-out infinite 0.1s; }
 .animate-sound-bar-3 { animation: sound-bar-3 0.8s ease-in-out infinite 0.2s; }
 .animate-sound-bar-4 { animation: sound-bar-4 0.8s ease-in-out infinite 0.3s; }
+
+/* Short viewport helpers for NHS 1366x768 laptops */
+@media (max-height: 800px) {
+  .short-viewport\:hidden { display: none !important; }
+  .short-viewport\:inline { display: inline !important; }
+  .short-viewport\:py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+  .short-viewport\:mt-0 { margin-top: 0 !important; }
+}
