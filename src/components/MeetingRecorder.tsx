@@ -6780,30 +6780,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                             </TooltipContent>
                           </Tooltip>
                            
-                           {/* Add Context Button - Desktop only */}
-                           {!isIOS && (
-                             <Tooltip>
-                               <TooltipTrigger asChild>
-                                 <Button
-                                   onClick={() => setShowContextDialog(true)}
-                                   variant="ghost"
-                                   size="sm"
-                                   className="h-8 w-8 p-0 text-primary hover:bg-primary/10 relative"
-                                 >
-                                   <ClipboardList className="h-4 w-4" />
-                                   {hasContext && (
-                                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-600 rounded-full flex items-center justify-center">
-                                       <Check className="h-2 w-2 text-white" />
-                                     </div>
-                                   )}
-                                 </Button>
-                               </TooltipTrigger>
-                               <TooltipContent side="bottom" align="center" className="z-50">
-                                 <p>Add Meeting Context</p>
-                               </TooltipContent>
-                             </Tooltip>
-                           )}
-                           
+
                            {/* Meeting Coach Button - Desktop only */}
                            {!isIOS && (
                              <Tooltip>
