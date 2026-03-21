@@ -8042,6 +8042,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       <LiveImportModal
         open={audioImportOpen}
         onOpenChange={setAudioImportOpen}
+        defaultTab={audioImportDefaultTab}
       />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
