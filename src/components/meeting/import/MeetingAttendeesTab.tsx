@@ -7,15 +7,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Search, Plus, X, Users } from 'lucide-react';
+import { Search, Plus, X, Users, BookUser, Building2 } from 'lucide-react';
 import { useContacts } from '@/hooks/useContacts';
 import { useMeetingGroups } from '@/hooks/useMeetingGroups';
+import { useNotewellDirectory } from '@/hooks/useNotewellDirectory';
 import { supabase } from '@/integrations/supabase/client';
 import {
   ATTENDEE_ROLES, ROLE_COLORS, SPEAKER_COLORS,
   SUGGESTED_ORGANISATIONS, generateInitials,
 } from '@/types/contactTypes';
 import type { MeetingAttendee, Contact, MeetingGroup } from '@/types/contactTypes';
+import type { NotewellUser } from '@/hooks/useNotewellDirectory';
 import type { ImportedContent } from './LiveImportModal';
 
 interface MeetingAttendeesTabProps {
