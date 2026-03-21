@@ -1,21 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Plus, Upload, Loader2, ImageIcon } from 'lucide-react';
 import { useMeetingSetup } from './MeetingSetupContext';
 import { ContextStatusPill } from './ContextStatusPill';
 import { AvatarStack } from './AvatarStack';
 import { useContacts } from '@/hooks/useContacts';
 import { useMeetingGroups } from '@/hooks/useMeetingGroups';
 import { SPEAKER_COLORS } from '@/types/contactTypes';
+import { supabase } from '@/integrations/supabase/client';
+import { showToast } from '@/utils/toastWrapper';
 import type { MeetingGroup } from '@/types/contactTypes';
+
+const GROUPS_PER_PAGE = 3;
 
 interface PreMeetingSetupProps {
   onStartRecording: () => void;
+  onOpenImportModal?: (tab?: string) => void;
 }
 
-export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecording }) => {
+export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecording, onOpenImportModal }) => {
   const {
     attendees, agendaItems, activeGroup,
     presentCount, apologiesCount,
@@ -26,6 +31,10 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
   const { contacts } = useContacts();
   const { groups } = useMeetingGroups();
   const [agendaInput, setAgendaInput] = useState('');
+  const [groupPage, setGroupPage] = useState(0);
+  const [isExtractingAgenda, setIsExtractingAgenda] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const agendaDropRef = useRef<HTMLDivElement>(null);
 
   const handleAddAgenda = () => {
     if (agendaInput.trim()) {
@@ -37,6 +46,83 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
   const handleLoadGroup = (group: MeetingGroup) => {
     loadGroup(group, contacts);
   };
+
+  // Pagination logic
+  const totalPages = Math.ceil(groups.length / GROUPS_PER_PAGE);
+  const pagedGroups = groups.slice(groupPage * GROUPS_PER_PAGE, (groupPage + 1) * GROUPS_PER_PAGE);
+  const needsPagination = groups.length > GROUPS_PER_PAGE;
+
+  // Image → agenda extraction
+  const extractAgendaFromImage = useCallback(async (file: File) => {
+    setIsExtractingAgenda(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64Data = result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const { data, error } = await supabase.functions.invoke('extract-agenda-from-image', {
+        body: { imageBase64: base64, mimeType: file.type },
+      });
+
+      if (error) throw error;
+
+      const items: string[] = data?.agendaItems || [];
+      if (items.length === 0) {
+        showToast.info('No agenda items found in that image', { section: 'meeting_manager' });
+        return;
+      }
+
+      items.forEach(item => addAgendaItem(item));
+      showToast.success(`${items.length} agenda item${items.length > 1 ? 's' : ''} extracted from image`, { section: 'meeting_manager' });
+    } catch (err) {
+      console.error('Agenda extraction error:', err);
+      showToast.error('Failed to extract agenda from image', { section: 'meeting_manager' });
+    } finally {
+      setIsExtractingAgenda(false);
+    }
+  }, [addAgendaItem]);
+
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      extractAgendaFromImage(file);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [extractAgendaFromImage]);
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) extractAgendaFromImage(file);
+        return;
+      }
+    }
+  }, [extractAgendaFromImage]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      extractAgendaFromImage(file);
+    }
+  }, [extractAgendaFromImage]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
 
   return (
     <div className="animate-fade-in space-y-5">
@@ -69,17 +155,40 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
             {/* Group Quick-Load (no attendees yet) */}
             {attendees.length === 0 && (
               <>
-                <div className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider mb-2">
-                  Load a Meeting Group
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider">
+                    Load a Meeting Group
+                  </div>
+                  {needsPagination && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setGroupPage(p => Math.max(0, p - 1))}
+                        disabled={groupPage === 0}
+                        className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-default"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                      <span className="text-[10px] text-muted-foreground font-medium tabular-nums">
+                        {groupPage + 1}/{totalPages}
+                      </span>
+                      <button
+                        onClick={() => setGroupPage(p => Math.min(totalPages - 1, p + 1))}
+                        disabled={groupPage >= totalPages - 1}
+                        className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-default"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 {groups.length === 0 && (
                   <div className="text-center py-6 text-muted-foreground">
                     <div className="text-2xl mb-2">👥</div>
                     <p className="text-xs font-semibold">No meeting groups yet</p>
-                    <p className="text-xs mt-1">Create groups in the Import Content modal</p>
+                    <p className="text-xs mt-1 text-muted-foreground/70">Create groups to quickly load attendees</p>
                   </div>
                 )}
-                {groups.map(g => (
+                {pagedGroups.map(g => (
                   <button
                     key={g.id}
                     onClick={() => handleLoadGroup(g)}
@@ -117,6 +226,24 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                     />
                   </button>
                 ))}
+
+                {/* Create new group / manage attendees link */}
+                <button
+                  onClick={() => onOpenImportModal?.('attendees')}
+                  className="w-full flex items-center gap-2 p-2.5 rounded-lg mt-1 text-left transition-all duration-150 border border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5 cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-muted/50 group-hover:bg-primary/10 transition-colors">
+                    <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-muted-foreground group-hover:text-primary transition-colors">
+                      Create New Group or Add Attendees
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/60">
+                      Open the attendees panel to manage groups &amp; contacts
+                    </div>
+                  </div>
+                </button>
               </>
             )}
 
@@ -148,7 +275,6 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                         background: a.status === 'present' ? 'transparent' : a.status === 'apologies' ? '#F59E0B08' : '#EF444408',
                       }}
                     >
-                      {/* Avatar */}
                       <div
                         className="w-[26px] h-[26px] rounded-full flex items-center justify-center font-bold flex-shrink-0"
                         style={{
@@ -189,19 +315,46 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
         </Card>
 
         {/* Right: Agenda */}
-        <Card className="overflow-hidden flex flex-col">
+        <Card
+          className="overflow-hidden flex flex-col"
+          onPaste={handlePaste}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          ref={agendaDropRef}
+        >
           <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
             <span className="text-sm font-extrabold text-foreground">📋 Agenda</span>
-            {agendaItems.length > 0 && (
-              <span className="text-xs text-muted-foreground font-semibold">{agendaItems.length} items</span>
-            )}
+            <div className="flex items-center gap-2">
+              {agendaItems.length > 0 && (
+                <span className="text-xs text-muted-foreground font-semibold">{agendaItems.length} items</span>
+              )}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isExtractingAgenda}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-muted-foreground hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20 transition-all cursor-pointer disabled:opacity-50"
+                title="Upload image of agenda"
+              >
+                <ImageIcon className="h-3 w-3" />
+                <span className="hidden sm:inline">Upload Image</span>
+              </button>
+            </div>
           </div>
           <div className="p-4 flex-1">
-            {agendaItems.length === 0 && (
+            {isExtractingAgenda && (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg mb-3 bg-primary/5 border border-primary/20 animate-fade-in">
+                <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                <span className="text-xs font-semibold text-primary">Extracting agenda items from image…</span>
+              </div>
+            )}
+            {agendaItems.length === 0 && !isExtractingAgenda && (
               <div className="text-center py-5 text-muted-foreground">
                 <div className="text-2xl mb-1.5">📋</div>
                 <div className="text-xs font-semibold text-foreground/70">No agenda items yet</div>
                 <div className="text-[11px] mt-1">Add items below — they help the AI segment the transcript</div>
+                <div className="text-[10px] mt-2 text-muted-foreground/50 flex items-center justify-center gap-1.5">
+                  <ImageIcon className="h-3 w-3" />
+                  Paste (Ctrl+V) or drop an image of your agenda to auto-extract items
+                </div>
               </div>
             )}
             {agendaItems.map((item, i) => (
@@ -225,6 +378,13 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
               onKeyDown={e => { if (e.key === 'Enter') handleAddAgenda(); }}
               placeholder="Type agenda item + Enter..."
               className="mt-2 border-dashed border-muted-foreground/30 bg-muted/20 text-xs"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
             />
           </div>
         </Card>
