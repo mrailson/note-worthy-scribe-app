@@ -2781,15 +2781,18 @@ export const MeetingRecorder = ({
       const currentSessionId = sessionStorage.getItem('currentSessionId');
       
       if (!currentMeetingId) {
-        console.log('📱 iOS chunk: No meetingId yet, skipping DB save');
-        // Update UI status anyway
-        setTimeout(() => {
-          setChunkSaveStatuses(prev => prev.map(chunk => 
-            chunk.id === uniqueChunkId 
-              ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
-              : chunk
-          ));
-        }, 500);
+        console.warn('⚠️ iOS chunk: No meetingId yet — marking as FAILED (not faking saved)');
+        // SAFETY NET: Queue this chunk text into sessionStorage so the stop sequence can recover it
+        try {
+          const existing = sessionStorage.getItem('orphanedIOSChunks') || '';
+          sessionStorage.setItem('orphanedIOSChunks', (existing + ' ' + data.text.trim()).trim());
+        } catch { /* ignore storage errors */ }
+        // Honestly mark as failed so the UI doesn't lie
+        setChunkSaveStatuses(prev => prev.map(chunk => 
+          chunk.id === uniqueChunkId 
+            ? { ...chunk, saveStatus: 'failed' as const }
+            : chunk
+        ));
         return;
       }
       
