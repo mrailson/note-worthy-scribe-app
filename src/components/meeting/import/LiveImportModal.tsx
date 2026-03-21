@@ -34,7 +34,8 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
   onOpenChange,
   defaultTab,
   meetingId,
-  onImportComplete
+  onImportComplete,
+  onAttendeesChanged,
 }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>(defaultTab || 'attendees');
