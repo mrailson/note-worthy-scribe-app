@@ -167,18 +167,18 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
             <TabsList className="grid w-full grid-cols-5 px-6 py-2 bg-muted/30 rounded-none border-b border-border/50">
               <TabsTrigger 
-                value="screenshot" 
-                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <Camera className="h-4 w-4" />
-                <span className="hidden sm:inline">Screenshot</span>
-              </TabsTrigger>
-              <TabsTrigger 
                 value="attendees"
                 className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Attendees</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="agenda"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <ClipboardList className="h-4 w-4" />
+                <span className="hidden sm:inline">Agenda</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="actions"
@@ -188,11 +188,11 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
                 <span className="hidden sm:inline">Actions</span>
               </TabsTrigger>
               <TabsTrigger 
-                value="agenda"
+                value="screenshot" 
                 className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                <ClipboardList className="h-4 w-4" />
-                <span className="hidden sm:inline">Agenda</span>
+                <Camera className="h-4 w-4" />
+                <span className="hidden sm:inline">Screenshot</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="create"
