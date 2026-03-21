@@ -27,6 +27,14 @@ interface MeetingSetupContextType {
   activeGroup: MeetingGroup | null;
   setActiveGroup: (g: MeetingGroup | null) => void;
 
+  // Meeting metadata (extracted from AI)
+  meetingType: 'remote' | 'face-to-face' | 'hybrid' | null;
+  setMeetingType: (t: 'remote' | 'face-to-face' | 'hybrid' | null) => void;
+  meetingLocation: string | null;
+  setMeetingLocation: (l: string | null) => void;
+  meetingTitle: string | null;
+  setMeetingTitle: (t: string | null) => void;
+
   // Computed counts
   presentCount: number;
   apologiesCount: number;
@@ -67,6 +75,9 @@ export const MeetingSetupProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [attendees, setAttendees] = useState<MeetingAttendee[]>([]);
   const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([]);
   const [activeGroup, setActiveGroup] = useState<MeetingGroup | null>(null);
+  const [meetingType, setMeetingType] = useState<'remote' | 'face-to-face' | 'hybrid' | null>(null);
+  const [meetingLocation, setMeetingLocation] = useState<string | null>(null);
+  const [meetingTitle, setMeetingTitle] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<ContextUpdateType>(null);
   const [confirmationMessage, setConfirmationMessage] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -118,11 +129,9 @@ export const MeetingSetupProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [triggerUpdate, showConfirmation, stage]);
 
   const loadGroup = useCallback((group: MeetingGroup, contacts: any[]) => {
-    // Build attendees from group contacts and additional members
     const contactMap = new Map(contacts.map(c => [c.id, c]));
     const newAttendees: MeetingAttendee[] = [];
 
-    // Add contacts from group
     for (const contactId of group.contact_ids) {
       const contact = contactMap.get(contactId);
       if (contact && !newAttendees.find(a => a.contact_id === contactId)) {
@@ -138,11 +147,9 @@ export const MeetingSetupProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     }
 
-    // Add additional members — cross-reference contacts for latest names
     const contactsByName = new Map(contacts.map(c => [c.name?.toLowerCase(), c]));
     for (const member of (group.additional_members || [])) {
       if (!newAttendees.find(a => a.name === member.name)) {
-        // Try to find a matching contact by name to get the latest data
         const matchedContact = contactsByName.get(member.name?.toLowerCase());
         const freshName = matchedContact?.name || member.name;
         const freshInitials = matchedContact?.initials || member.initials || freshName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
@@ -159,7 +166,6 @@ export const MeetingSetupProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     setAttendees(prev => {
-      // Merge: keep existing, add new
       const existingIds = new Set(prev.map(a => a.name));
       const merged = [...prev];
       for (const a of newAttendees) {
@@ -182,6 +188,9 @@ export const MeetingSetupProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setAttendees([]);
     setAgendaItems([]);
     setActiveGroup(null);
+    setMeetingType(null);
+    setMeetingLocation(null);
+    setMeetingTitle(null);
     setLastUpdate(null);
     setConfirmationMessage(null);
     setRecordingDuration(0);
@@ -194,6 +203,9 @@ export const MeetingSetupProvider: React.FC<{ children: React.ReactNode }> = ({ 
       agendaItems, setAgendaItems,
       addAgendaItem, removeAgendaItem,
       activeGroup, setActiveGroup,
+      meetingType, setMeetingType,
+      meetingLocation, setMeetingLocation,
+      meetingTitle, setMeetingTitle,
       presentCount, apologiesCount, absentCount,
       lastUpdate, triggerUpdate,
       confirmationMessage, showConfirmation,
