@@ -2574,6 +2574,42 @@ export type Database = {
         }
         Relationships: []
       }
+      contacts: {
+        Row: {
+          created_at: string
+          default_role: string
+          email: string | null
+          id: number
+          initials: string
+          name: string
+          org: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_role?: string
+          email?: string | null
+          id?: number
+          initials: string
+          name: string
+          org?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_role?: string
+          email?: string | null
+          id?: number
+          initials?: string
+          name?: string
+          org?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contractor_competencies: {
         Row: {
           competency_type: string
@@ -6007,6 +6043,45 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_groups: {
+        Row: {
+          additional_members: Json | null
+          color: string
+          contact_ids: number[] | null
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          additional_members?: Json | null
+          color?: string
+          contact_ids?: number[] | null
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          additional_members?: Json | null
+          color?: string
+          contact_ids?: number[] | null
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       meeting_infographics: {
         Row: {
           created_at: string | null
@@ -6541,6 +6616,7 @@ export type Database = {
           left_audio_url: string | null
           live_transcript_text: string | null
           location: string | null
+          meeting_attendees_json: Json | null
           meeting_configuration: Json | null
           meeting_context: Json | null
           meeting_format: string | null
@@ -6606,6 +6682,7 @@ export type Database = {
           left_audio_url?: string | null
           live_transcript_text?: string | null
           location?: string | null
+          meeting_attendees_json?: Json | null
           meeting_configuration?: Json | null
           meeting_context?: Json | null
           meeting_format?: string | null
@@ -6671,6 +6748,7 @@ export type Database = {
           left_audio_url?: string | null
           live_transcript_text?: string | null
           location?: string | null
+          meeting_attendees_json?: Json | null
           meeting_configuration?: Json | null
           meeting_context?: Json | null
           meeting_format?: string | null
