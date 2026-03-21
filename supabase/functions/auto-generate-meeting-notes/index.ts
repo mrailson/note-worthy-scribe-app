@@ -1691,7 +1691,9 @@ ${cleanedTranscript}`;
     const overviewMatch = generatedNotes.match(/(?:\*\*EXECUTIVE SUMMARY\*\*|# EXECUTIVE SUMMARY)\s*\n(.*?)(?=\n(?:#|\*\*)|$)/s);
     const overview = overviewMatch ? overviewMatch[1].trim() : 'Overview not available';
 
+    const notesGenEnd = Date.now();
     // ── 7-Category QC Audit (inline, non-blocking) ────────────────────
+    const qcStart = Date.now();
     let qcResult: any = null;
     try {
       console.log('🔍 Running 7-category QC audit via Claude Haiku 4.5...');
