@@ -649,7 +649,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
              }
              
              // Defer heavy processing to idle callback for better responsiveness
-             requestIdleCallback(async () => {
+             _ric(async () => {
                try {
                  const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
                  
