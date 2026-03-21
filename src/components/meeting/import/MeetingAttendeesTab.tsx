@@ -598,7 +598,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
       )}
 
       {/* Attendee list */}
-      <ScrollArea className="flex-1 max-h-[300px]">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="space-y-1.5">
           {filteredAttendees.length === 0 && attendees.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
