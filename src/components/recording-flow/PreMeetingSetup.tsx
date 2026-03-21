@@ -432,7 +432,17 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
             <span className="text-sm font-extrabold text-foreground">📋 Agenda</span>
             <div className="flex items-center gap-1.5">
               {agendaItems.length > 0 && (
-                <span className="text-xs text-muted-foreground font-semibold">{agendaItems.length} items</span>
+                <>
+                  <span className="text-xs text-muted-foreground font-semibold">{agendaItems.length} items</span>
+                  <button
+                    onClick={() => { setAgendaItems([]); setMeetingType(null); setMeetingLocation(null); setMeetingTitle(null); }}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 transition-all cursor-pointer"
+                    title="Clear all agenda items and extracted details"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    <span className="hidden sm:inline">Clear All</span>
+                  </button>
+                </>
               )}
               <button
                 onClick={() => setShowPasteArea(prev => !prev)}
