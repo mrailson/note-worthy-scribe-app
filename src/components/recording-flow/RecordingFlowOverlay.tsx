@@ -13,6 +13,7 @@ interface RecordingFlowOverlayProps {
   onOpenImportModal: (tab?: string) => void;
   formatDuration: (seconds: number) => string;
   wordCount?: number;
+  transcriptText?: string;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   hasNewMeetings?: boolean;
