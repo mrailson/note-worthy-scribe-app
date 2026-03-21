@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { MobileMeetingList } from "@/components/mobile-meetings/MobileMeetingList";
+import { MobileMeetingDetail } from "@/components/mobile-meetings/MobileMeetingDetail";
 import { SEO } from "@/components/SEO";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
