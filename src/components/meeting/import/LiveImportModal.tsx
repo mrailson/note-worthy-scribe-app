@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Camera, Users, ClipboardList, ListTodo, Loader2, FilePlus } from 'lucide-react';
 import { ScreenshotImportTab } from './ScreenshotImportTab';
 import { AttendeesImportTab } from './AttendeesImportTab';
+import { MeetingAttendeesTab } from './MeetingAttendeesTab';
 import { ActionsImportTab } from './ActionsImportTab';
 import { AgendaImportTab } from './AgendaImportTab';
 import { CreateMeetingTab } from './CreateMeetingTab';
@@ -211,7 +212,8 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
               </TabsContent>
               
               <TabsContent value="attendees" className="mt-0 h-full">
-                <AttendeesImportTab 
+                <MeetingAttendeesTab
+                  meetingId={getCurrentMeetingId()}
                   onImport={handleImportContent}
                   isImporting={isImporting}
                 />
