@@ -261,45 +261,49 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   // ── Group Edit View ──
   if (groupView === 'edit') {
     return (
-      <GroupEditView
-        group={editingGroup}
-        contacts={contacts}
-        onSave={async (data) => {
-          if (editingGroup?.id) {
-            await updateGroup(editingGroup.id, data);
-          } else {
-            await createGroup(data);
-          }
-          setGroupView('manage');
-          setEditingGroup(null);
-        }}
-        onCancel={() => { setGroupView('manage'); setEditingGroup(null); }}
-      />
+      <div className="h-full min-h-0 overflow-hidden">
+        <GroupEditView
+          group={editingGroup}
+          contacts={contacts}
+          onSave={async (data) => {
+            if (editingGroup?.id) {
+              await updateGroup(editingGroup.id, data);
+            } else {
+              await createGroup(data);
+            }
+            setGroupView('manage');
+            setEditingGroup(null);
+          }}
+          onCancel={() => { setGroupView('manage'); setEditingGroup(null); }}
+        />
+      </div>
     );
   }
 
   // ── Group Manage View ──
   if (groupView === 'manage') {
     return (
-      <GroupManageView
-        groups={groups}
-        contacts={contacts}
-        activeGroupId={activeGroupId}
-        onBack={() => setGroupView('pick')}
-        onNewGroup={() => { setEditingGroup(null); setGroupView('edit'); }}
-        onEditGroup={(g) => { setEditingGroup(g); setGroupView('edit'); }}
-        onDeleteGroup={async (id) => {
-          await deleteGroup(id);
-          if (activeGroupId === id) setActiveGroupId(null);
-        }}
-        onLoadGroup={loadGroup}
-      />
+      <div className="h-full min-h-0 overflow-hidden">
+        <GroupManageView
+          groups={groups}
+          contacts={contacts}
+          activeGroupId={activeGroupId}
+          onBack={() => setGroupView('pick')}
+          onNewGroup={() => { setEditingGroup(null); setGroupView('edit'); }}
+          onEditGroup={(g) => { setEditingGroup(g); setGroupView('edit'); }}
+          onDeleteGroup={async (id) => {
+            await deleteGroup(id);
+            if (activeGroupId === id) setActiveGroupId(null);
+          }}
+          onLoadGroup={loadGroup}
+        />
+      </div>
     );
   }
 
   // ── Main Pick View ──
   return (
-    <div className="flex flex-col gap-3 h-full">
+    <div className="flex flex-col gap-3 h-full min-h-0 overflow-hidden">
       {/* Meeting Groups — Quick Load */}
       {showGroups && attendees.length <= 4 && (
         <div className="space-y-2">
