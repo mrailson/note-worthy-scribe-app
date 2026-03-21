@@ -412,7 +412,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
         try {
           const { error: backupError } = await supabase
             .from('meetings')
-            .update({ live_transcript_backup: currentText })
+            .update({ assembly_ai_transcript: currentText })
             .eq('id', meetingId);
 
           if (!backupError) {
