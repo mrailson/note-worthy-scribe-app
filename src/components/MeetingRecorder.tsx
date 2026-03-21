@@ -4794,6 +4794,24 @@ export const MeetingRecorder = ({
         liveNotesIntervalRef.current = null;
       }
       
+      // Stop heartbeat interval
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+      
+      // Stop chunk start timeout
+      if (chunkStartTimeoutRef.current) {
+        clearTimeout(chunkStartTimeoutRef.current);
+        chunkStartTimeoutRef.current = null;
+      }
+      
+      // Stop first live notes timeout
+      if (firstLiveNotesTimeoutRef.current) {
+        clearTimeout(firstLiveNotesTimeoutRef.current);
+        firstLiveNotesTimeoutRef.current = null;
+      }
+      
       // Stop all transcribers asynchronously to avoid UI freeze
       try {
         if (browserTranscriberRef.current) {
