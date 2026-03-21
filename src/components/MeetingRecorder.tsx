@@ -914,6 +914,24 @@ export const MeetingRecorder = ({
       liveNotesIntervalRef.current = null;
     }
     
+    // Clear heartbeat interval
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+    
+    // Clear chunk start timeout
+    if (chunkStartTimeoutRef.current) {
+      clearTimeout(chunkStartTimeoutRef.current);
+      chunkStartTimeoutRef.current = null;
+    }
+    
+    // Clear first live notes timeout
+    if (firstLiveNotesTimeoutRef.current) {
+      clearTimeout(firstLiveNotesTimeoutRef.current);
+      firstLiveNotesTimeoutRef.current = null;
+    }
+    
     console.log('🔄 Meeting reset completed');
     
     // Page refresh removed to keep UI responsive after stop
