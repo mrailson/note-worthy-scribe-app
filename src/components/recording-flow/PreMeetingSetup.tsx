@@ -36,7 +36,7 @@ interface PreMeetingSetupProps {
 
 export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecording, onOpenImportModal }) => {
   const {
-    attendees, setAttendees, agendaItems, activeGroup, setActiveGroup,
+    attendees, setAttendees, agendaItems, setAgendaItems, activeGroup, setActiveGroup,
     presentCount, apologiesCount,
     lastUpdate, addAgendaItem, removeAgendaItem,
     toggleAttendeeStatus, loadGroup,
