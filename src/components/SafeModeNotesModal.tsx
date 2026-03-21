@@ -4125,11 +4125,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
       {/* Attendee Modal */}
       {meeting && (
-        <MeetingAttendeeModal
-          isOpen={showAttendeeModal}
-          onClose={handleAttendeeModalClose}
+        <LiveImportModal
+          open={showAttendeeModal}
+          onOpenChange={(open) => { if (!open) handleAttendeeModalClose(); }}
+          defaultTab="attendees"
           meetingId={meeting.id}
-          meetingTitle={meeting.title}
         />
       )}
 

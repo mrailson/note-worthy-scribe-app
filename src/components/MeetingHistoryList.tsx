@@ -3217,14 +3217,14 @@ export const MeetingHistoryList = ({
 
       {/* Attendee Modal */}
       {selectedMeetingForAttendees && (
-        <MeetingAttendeeModal
-          isOpen={attendeeModalOpen}
-          onClose={() => {
-            setAttendeeModalOpen(false);
-            setSelectedMeetingForAttendees(null);
+        <LiveImportModal
+          open={attendeeModalOpen}
+          onOpenChange={(open) => {
+            setAttendeeModalOpen(open);
+            if (!open) setSelectedMeetingForAttendees(null);
           }}
+          defaultTab="attendees"
           meetingId={selectedMeetingForAttendees.id}
-          meetingTitle={selectedMeetingForAttendees.title}
         />
       )}
 

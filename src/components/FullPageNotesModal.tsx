@@ -3934,11 +3934,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
       {/* Attendee Modal */}
       {meeting && (
-        <MeetingAttendeeModal
-          isOpen={attendeeModalOpen}
-          onClose={() => setAttendeeModalOpen(false)}
+        <LiveImportModal
+          open={attendeeModalOpen}
+          onOpenChange={setAttendeeModalOpen}
+          defaultTab="attendees"
           meetingId={meeting.id}
-          meetingTitle={meeting.title}
         />
       )}
     </>
