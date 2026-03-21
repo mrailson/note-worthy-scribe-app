@@ -33,7 +33,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
 }) => {
   const { contacts } = useContacts();
   const { groups } = useMeetingGroups();
-  const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory();
+  const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory({ includeAll: true });
 
   const [attendees, setAttendees] = useState<MeetingAttendee[]>([]);
   const [search, setSearch] = useState('');
