@@ -1,3 +1,11 @@
+// Polyfill requestIdleCallback for iOS Safari
+const _ric = typeof requestIdleCallback === 'function'
+  ? requestIdleCallback
+  : (cb: IdleRequestCallback, opts?: IdleRequestOptions) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), opts?.timeout ?? 1) as unknown as number;
+const _cic = typeof cancelIdleCallback === 'function'
+  ? cancelIdleCallback
+  : (id: number) => clearTimeout(id);
+
 import RichTextEditor from "@/components/RichTextEditor";
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { sanitiseActionOwners } from "@/utils/sanitiseActionOwners";
