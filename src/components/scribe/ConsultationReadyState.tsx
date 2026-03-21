@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ConsultationTypeSelector } from "./ConsultationTypeSelector";
+import { F2FLocationSelector } from "./F2FLocationSelector";
 import { PatientConsentBanner } from "./PatientConsentBanner";
 import { ScribeDevDisclaimer } from "./ScribeDevDisclaimer";
 import { PatientContextCapture } from "./PatientContextCapture";
