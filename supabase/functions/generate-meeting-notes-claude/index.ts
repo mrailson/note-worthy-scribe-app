@@ -503,6 +503,7 @@ serve(async (req) => {
       qcOnly,
       existingNotes,
       expectedAttendees: reqExpectedAttendees,
+      skipQc = false,
     } = await req.json();
 
     // ── QC-only mode: skip note generation, just run QC ──────────────
