@@ -38,6 +38,8 @@ export interface IOSTranscriberStats {
   totalTranscribedChars: number;
   lastOndataavailableTime: number;
   bufferedTextCount: number;
+  trackState: string;
+  recorderState: string;
 }
 
 interface QueuedChunk {
