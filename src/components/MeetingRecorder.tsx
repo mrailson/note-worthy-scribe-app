@@ -4996,6 +4996,11 @@ export const MeetingRecorder = ({
       localStorage.removeItem('unsaved_meeting');
       clearPersistedSession();
       stopHeartbeat();
+      // Clear IndexedDB audio chunks on normal stop
+      const stoppedMeetingId = sessionStorage.getItem('currentMeetingId');
+      if (stoppedMeetingId) {
+        clearAudioChunks(stoppedMeetingId).catch(() => {});
+      }
       
       // Delete orphaned meeting record from database for short recordings
       const meetingIdToDelete = capturedMeetingId;
