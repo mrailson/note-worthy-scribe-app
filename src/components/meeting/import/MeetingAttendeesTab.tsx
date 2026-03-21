@@ -32,6 +32,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   meetingId,
   onImport,
   isImporting,
+  onAttendeesChanged,
 }) => {
   const { contacts } = useContacts();
   const { groups, createGroup, updateGroup, deleteGroup } = useMeetingGroups();
