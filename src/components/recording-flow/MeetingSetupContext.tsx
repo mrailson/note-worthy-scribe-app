@@ -138,16 +138,22 @@ export const MeetingSetupProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     }
 
-    // Add additional members
+    // Add additional members — cross-reference contacts for latest names
+    const contactsByName = new Map(contacts.map(c => [c.name?.toLowerCase(), c]));
     for (const member of (group.additional_members || [])) {
       if (!newAttendees.find(a => a.name === member.name)) {
+        // Try to find a matching contact by name to get the latest data
+        const matchedContact = contactsByName.get(member.name?.toLowerCase());
+        const freshName = matchedContact?.name || member.name;
+        const freshInitials = matchedContact?.initials || member.initials || freshName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
         newAttendees.push({
-          id: `add-${Date.now()}-${Math.random()}`,
-          name: member.name,
-          initials: member.initials,
-          role: member.role || 'Guest',
-          org: member.org || '',
+          id: matchedContact?.id || `add-${Date.now()}-${Math.random()}`,
+          name: freshName,
+          initials: freshInitials,
+          role: matchedContact?.default_role || member.role || 'Guest',
+          org: matchedContact?.org || member.org || '',
           status: 'present',
+          contact_id: matchedContact?.id,
         });
       }
     }
