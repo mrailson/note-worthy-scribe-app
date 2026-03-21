@@ -81,7 +81,6 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
             wordCount={wordCount}
             transcriptText={transcriptText}
           />
-          />
 
           {/* Avatar stack */}
           {presentAttendees.length > 0 && (
