@@ -144,6 +144,7 @@ export class SimpleIOSTranscriber {
     };
   }
 
+  /**
    * Start recording and transcription
    */
   async start(): Promise<void> {
