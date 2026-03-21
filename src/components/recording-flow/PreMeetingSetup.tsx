@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 import type { MeetingGroup } from '@/types/contactTypes';
 
-const GROUPS_PER_PAGE = 3;
+const GROUPS_PER_PAGE = 5;
 
 const ACCEPTED_FILE_TYPES = [
   'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/tiff',
