@@ -410,12 +410,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
                           <div className="text-[13px] font-semibold">{c.name}</div>
                           <div className="text-[11px] text-muted-foreground">{c.org}</div>
                         </div>
-                        <span
-                          className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: roleColor.bg, color: roleColor.text, border: `1px solid ${roleColor.border}33` }}
-                        >
-                          {c.default_role}
-                        </span>
                       </div>
                     );
                   })}
