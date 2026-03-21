@@ -89,7 +89,7 @@ import { SafeModeNotesModal } from "@/components/SafeModeNotesModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMultiTypeNotes } from "@/hooks/useMultiTypeNotes";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
-import LiveImportModal from "@/components/meeting/import/LiveImportModal";
+import { LiveImportModal } from "@/components/meeting/import/LiveImportModal";
 import { useAuth } from '@/contexts/AuthContext';
 import { AttendeeRoleBadge } from './meeting-history/AttendeeRoleBadge';
 import { NewMeetingBadge } from './meeting-history/NewMeetingBadge';

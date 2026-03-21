@@ -7,7 +7,7 @@ import { useMinutesFormatter } from "@/hooks/useMinutesFormatter";
 
 
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
-import LiveImportModal from "@/components/meeting/import/LiveImportModal";
+import { LiveImportModal } from "@/components/meeting/import/LiveImportModal";
 import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
 import { ProcessingTimeBadges } from "@/components/meeting-notes/ProcessingTimeBadges";
 import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
