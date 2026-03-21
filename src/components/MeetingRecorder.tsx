@@ -67,6 +67,11 @@ import { SmartphoneRecordingHub } from "@/components/meeting/SmartphoneRecording
 import { MeetingMicrophoneSettings } from "@/components/meeting/MeetingMicrophoneSettings";
 import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscriptImportModal";
 import { LiveImportModal } from "@/components/meeting/import/LiveImportModal";
+import { MeetingSetupProvider, useMeetingSetup } from "@/components/recording-flow/MeetingSetupContext";
+import { StageIndicator } from "@/components/recording-flow/StageIndicator";
+import { PreMeetingSetup } from "@/components/recording-flow/PreMeetingSetup";
+import { LiveContextStatusBar } from "@/components/recording-flow/LiveContextStatusBar";
+import { RecordingCompleteScreen } from "@/components/recording-flow/RecordingCompleteScreen";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
 import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
