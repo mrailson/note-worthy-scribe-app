@@ -993,7 +993,9 @@ export class SimpleIOSTranscriber {
       isRecording: this.isRecording,
       totalTranscribedChars: this.totalTranscribedChars,
       lastOndataavailableTime: this.lastOndataavailableTime,
-      bufferedTextCount: this.pendingTexts.length
+      bufferedTextCount: this.pendingTexts.length,
+      trackState: this.stream?.getAudioTracks()[0]?.readyState ?? 'none',
+      recorderState: this.mediaRecorder?.state ?? 'none',
     };
 
     this.callbacks.onStatsUpdate?.(stats);

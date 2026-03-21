@@ -3027,12 +3027,14 @@ export const MeetingRecorder = ({
       console.log('✅ Simple iOS transcription started successfully');
       addDebugLog('✅ Simple iOS transcription started (serial queue mode)');
       
-      // AUDIO HEALTH GATE: Check after 10s that blobs are actually being captured
+      // AUDIO HEALTH GATE: Check after 10s that track and recorder are alive
+      // Note: iOS rotation strategy means capturedBlobs will be 0 at 10s (first blob arrives at ~90s rotation)
       setTimeout(() => {
         const stats = simpleIOSTranscriberRef.current?.getStats?.();
-        if (simpleIOSTranscriberRef.current && stats && stats.capturedBlobs === 0 && stats.isRecording) {
-          console.error('🚨 iOS AUDIO HEALTH CHECK FAILED: 0 blobs captured after 10s');
-          addDebugLog('🚨 No audio detected after 10s — possible mic failure');
+        if (simpleIOSTranscriberRef.current && stats && stats.isRecording &&
+            (stats.trackState !== 'live' || stats.recorderState !== 'recording')) {
+          console.error(`🚨 iOS AUDIO HEALTH CHECK FAILED: track=${stats.trackState}, recorder=${stats.recorderState}`);
+          addDebugLog(`🚨 Audio health check failed — track: ${stats.trackState}, recorder: ${stats.recorderState}`);
           showToast.error('No audio detected — please check microphone permissions and try again', {
             section: 'meeting_manager', duration: 10000
           });
