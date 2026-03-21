@@ -72,6 +72,7 @@ import { StageIndicator } from "@/components/recording-flow/StageIndicator";
 import { PreMeetingSetup } from "@/components/recording-flow/PreMeetingSetup";
 import { LiveContextStatusBar } from "@/components/recording-flow/LiveContextStatusBar";
 import { RecordingCompleteScreen } from "@/components/recording-flow/RecordingCompleteScreen";
+import { MeetingSetupBridge } from "@/components/recording-flow/MeetingSetupBridge";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
 import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
