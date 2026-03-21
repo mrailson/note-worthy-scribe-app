@@ -280,6 +280,32 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                   </div>
                 </button>
 
+                <button
+                  onClick={() => {
+                    setAttendees([{
+                      id: `multi-${Date.now()}`,
+                      name: 'Multiple Participants',
+                      initials: '++',
+                      role: 'Various',
+                      org: '',
+                      status: 'present' as const,
+                    }]);
+                  }}
+                  className="w-full flex items-center gap-2 p-2.5 rounded-lg mb-3 text-left transition-all duration-150 border border-muted-foreground/15 hover:border-blue-400/50 hover:bg-blue-500/5 cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                    <UsersRound className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-muted-foreground group-hover:text-blue-600 transition-colors">
+                      Multiple Participants
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/60">
+                      Quick start — no need to name individual attendees
+                    </div>
+                  </div>
+                </button>
+
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider">
                     Load a Meeting Group
