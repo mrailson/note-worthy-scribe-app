@@ -48,7 +48,11 @@ createRoot(document.getElementById("root")!).render(
             <RecordingProvider>
               <Toaster />
               <SonnerToaster
-                position="top-right"
+                position={window.innerWidth < 768 ? "bottom-center" : "top-right"}
+                toastOptions={{
+                  className: window.innerWidth < 768 ? 'mb-safe-bottom' : '',
+                  style: window.innerWidth < 768 ? { marginBottom: 'env(safe-area-inset-bottom, 8px)' } : {},
+                }}
                 icons={{
                   success: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
                   error: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
