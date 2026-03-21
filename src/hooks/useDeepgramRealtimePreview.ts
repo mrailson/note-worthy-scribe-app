@@ -478,9 +478,18 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
           }
 
           if (data.type === 'session_terminated') {
-            console.log('🔌 Deepgram: Session terminated');
-            setIsActive(false);
-            setStatus('stopped');
+            // Server-side edge function timed out or Deepgram dropped the connection.
+            // If we didn't intentionally stop, treat this as a reconnectable event
+            // rather than a terminal state — prevents the 24-min gap bug.
+            if (!intentionalStopRef.current && meetingIdRef.current) {
+              console.log('🔌 Deepgram: Session terminated by server — reconnecting...');
+              cleanup();
+              attemptReconnect();
+            } else {
+              console.log('🔌 Deepgram: Session terminated (intentional stop)');
+              setIsActive(false);
+              setStatus('stopped');
+            }
             return;
           }
 
