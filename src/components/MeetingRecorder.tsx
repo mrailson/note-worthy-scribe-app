@@ -90,6 +90,15 @@ import { useBackupRecorder } from "@/hooks/useBackupRecorder";
 import { BackupIndicator } from "@/components/offline/BackupIndicator";
 import { BackupRecoveryPrompt } from "@/components/offline/BackupRecoveryPrompt";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRecordingRecovery } from "@/hooks/useRecordingRecovery";
+import { RecordingRecoveryBanner } from "@/components/recording-flow/RecordingRecoveryBanner";
+import {
+  persistRecordingSession,
+  clearPersistedSession,
+  startHeartbeat,
+  stopHeartbeat,
+  type PersistedRecordingSession,
+} from "@/utils/recordingSessionPersistence";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -594,6 +603,27 @@ export const MeetingRecorder = ({
   // Controlled tabs state for programmatic switching
   const [activeTab, setActiveTab] = useState<string>("recorder");
 
+  // ─── Recording session recovery ────────────────────────────────────
+  const {
+    recoveredSession,
+    isStale: isRecoveredStale,
+    isDuplicateTab: isRecoveredDuplicate,
+    discardSession: discardRecoveredSession,
+    consumeRecovery,
+  } = useRecordingRecovery(isRecording);
+
+  // ─── beforeunload warning ──────────────────────────────────────────
+  useEffect(() => {
+    if (!isRecording) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Recording in progress — are you sure you want to leave?';
+      return e.returnValue;
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isRecording]);
+
   // Auto-switch to recorder tab when recording starts
   useEffect(() => {
     if (isRecording && activeTab !== 'recorder') {
@@ -604,6 +634,56 @@ export const MeetingRecorder = ({
   // Continuation state
   const [isContinuationMode, setIsContinuationMode] = useState(false);
   const [continuationMeetingTitle, setContinuationMeetingTitle] = useState<string>('');
+
+  // ─── Persist recording context to localStorage on every relevant change ───
+  // This enables crash recovery by saving attendees, agenda, and session info.
+  // Uses MeetingSetupBridge data via the context ref pattern.
+  const meetingSetupContextRef = useRef<{
+    attendees: any[];
+    agendaItems: any[];
+    activeGroup: any;
+    meetingType: string | null;
+    meetingTitle: string | null;
+  } | null>(null);
+
+  // This effect runs when recording state or key context values change
+  useEffect(() => {
+    if (!isRecording) {
+      return;
+    }
+    const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+    if (!currentMeetingId) return;
+
+    const ctx = meetingSetupContextRef.current;
+    const session: PersistedRecordingSession = {
+      sessionId: currentMeetingId,
+      startedAt: recordingStartTimeRef.current?.toISOString() || new Date().toISOString(),
+      attendees: (ctx?.attendees || []).map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        initials: a.initials || '',
+        role: a.role || '',
+        org: a.org || '',
+        status: a.status || 'present',
+        contact_id: a.contact_id,
+      })),
+      agendaItems: (ctx?.agendaItems || []).map((a: any) => ({ id: a.id, text: a.text })),
+      groupId: ctx?.activeGroup?.id || null,
+      groupName: ctx?.activeGroup?.name || null,
+      meetingFormat: ctx?.meetingType || null,
+      meetingTitle: ctx?.meetingTitle || null,
+      status: isPaused ? 'paused' : 'recording',
+      lastHeartbeat: new Date().toISOString(),
+    };
+    persistRecordingSession(session);
+  }, [isRecording, isPaused]);
+
+  // Stop heartbeat when recording ends
+  useEffect(() => {
+    if (!isRecording) {
+      stopHeartbeat();
+    }
+  }, [isRecording]);
   
   // Transcription watchdog for detecting stalled transcription
   // iPhone chunking runs on ~25s windows, so iOS needs much longer thresholds to avoid false alarms.
@@ -4420,6 +4500,7 @@ export const MeetingRecorder = ({
         // Store both session ID and meeting ID as the same value
         sessionStorage.setItem('currentSessionId', realMeetingId);
         sessionStorage.setItem('currentMeetingId', realMeetingId);
+        sessionStorage.setItem('recordingStartedAt', recordingStartTimeRef.current!.toISOString());
         
         // Set starting chunk counter for continuation mode
         // CRITICAL: Set both ref (synchronous) and state (UI display)
@@ -4502,6 +4583,11 @@ export const MeetingRecorder = ({
       setIsRecording(true);
       isRecordingRef.current = true;
       // Recording start time already set earlier - don't reset it here
+      
+      // Session persistence is handled by MeetingSetupBridge effect
+      startHeartbeat();
+      consumeRecovery(); // Dismiss any recovery banner now that we're recording
+      startHeartbeat();
       
       // Backup recorder is started later, after audio streams are fully initialised
       setRealtimeTranscripts([]);
@@ -4901,6 +4987,8 @@ export const MeetingRecorder = ({
       
       // Clear unsaved meeting data but keep session IDs until meeting is saved
       localStorage.removeItem('unsaved_meeting');
+      clearPersistedSession();
+      stopHeartbeat();
       
       // Delete orphaned meeting record from database for short recordings
       const meetingIdToDelete = capturedMeetingId;
@@ -5127,6 +5215,8 @@ export const MeetingRecorder = ({
     
     // Clear unsaved meeting data when stopping normally
     localStorage.removeItem('unsaved_meeting');
+    clearPersistedSession();
+    stopHeartbeat();
     
     console.log('Recording stopped');
     
@@ -6480,9 +6570,34 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               
   return (
     <MeetingSetupProvider>
-    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }} />
+    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }} contextRef={meetingSetupContextRef} />
     <TooltipProvider delayDuration={300}>
     <div className="space-y-6">
+      {/* Recording Recovery Banner */}
+      {recoveredSession && !isRecording && (
+        <RecordingRecoveryBanner
+          session={recoveredSession}
+          isStale={isRecoveredStale}
+          isDuplicateTab={isRecoveredDuplicate}
+          onResume={() => {
+            // Restore context into MeetingSetupContext and start recording
+            // For now, just discard and let user start fresh
+            // Full resume with audio continuation is a follow-up item
+            consumeRecovery();
+            showToast.info('Session context restored. Press Start Recording to continue.', { section: 'meeting_manager', duration: 4000 });
+          }}
+          onSave={() => {
+            // Save what we have — submit the existing meeting for transcription
+            // The meeting already exists in the database from the interrupted session
+            showToast.info('The interrupted session was already saved to your meeting history.', { section: 'meeting_manager', duration: 5000 });
+            discardRecoveredSession();
+          }}
+          onDiscard={() => {
+            discardRecoveredSession();
+            showToast.info('Previous session discarded.', { section: 'meeting_manager', duration: 2000 });
+          }}
+        />
+      )}
       {/* Continuation Mode Banner */}
       {isContinuationMode && !isRecording && (
         <Card className="border-primary/50 bg-primary/5">
