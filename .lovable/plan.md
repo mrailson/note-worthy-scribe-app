@@ -1,38 +1,34 @@
 
 
-## Add QC Pass Toggle to Microphone Settings
+# Replace Old Attendee Modal with New LiveImportModal
 
-### What
-Add a "Quality Control Pass" on/off switch to the Meeting Recorder's Microphone Settings panel (the right-side sheet). Default: **off**. When off, both edge functions skip the Haiku QC audit entirely, saving ~16s per meeting.
+## Summary
+Replace the old `MeetingAttendeeModal` component with the newer `LiveImportModal` (defaulting to the Attendees tab) in three locations:
+1. **SafeModeNotesModal** - the people icon during live recording
+2. **FullPageNotesModal** - the people icon in the notes view
+3. **MeetingHistoryList** - the "Manage Attendees" button on meeting cards
 
-### Changes
+## Why
+The new `LiveImportModal` / `MeetingAttendeesTab` system has superior UX: group loading, directory search, individual add/remove, and syncs via `meeting_attendees_json`. The old `MeetingAttendeeModal` uses a different data model (`meeting_attendees` junction table) and lacks the newer features.
 
-**1. Frontend — `src/components/meeting/MeetingMicrophoneSettings.tsx`**
-- Add a new section after the "Help text" (before closing `</div>`) with a divider, label "Quality Control Pass", description text, and a Switch component
-- Read/write the setting to `localStorage` key `meeting-qc-enabled` (default `false`)
-- Expose via a callback prop `onQcEnabledChange` so the parent can pass it downstream
+## Changes
 
-**2. Frontend — `src/components/MeetingRecorder.tsx`**
-- Read `localStorage.getItem('meeting-qc-enabled')` and pass `skipQc: true/false` in the body when invoking `auto-generate-meeting-notes`
-- Same for any direct calls to `generate-meeting-notes-claude`
+### 1. SafeModeNotesModal.tsx
+- Replace `MeetingAttendeeModal` import with `LiveImportModal`
+- Swap the rendered `<MeetingAttendeeModal>` for `<LiveImportModal>` with `defaultTab="attendees"` and the meeting ID
+- Keep existing open/close state variables
 
-**3. Frontend — All other call sites** (FullPageNotesModal, SafeModeNotesModal, MeetingHistory, MeetingSummary, MobileNotesSheet, etc.)
-- Read the same localStorage key and pass `skipQc` in the request body to `generate-meeting-notes-claude`
+### 2. FullPageNotesModal.tsx
+- Same swap: replace `MeetingAttendeeModal` import and usage with `LiveImportModal`
+- Pass `defaultTab="attendees"` and `meetingId={meeting.id}`
 
-**4. Edge function — `supabase/functions/auto-generate-meeting-notes/index.ts`**
-- Destructure `skipQc` from the request body (default `false`)
-- Wrap the QC block (lines ~1695–1838) in `if (!skipQc) { ... }` 
-- When skipped, set `qcResult = { status: 'skipped', reason: 'disabled_by_user' }` and `qc_audit_seconds: 0`
+### 3. MeetingHistoryList.tsx
+- Same swap: replace `MeetingAttendeeModal` import and usage with `LiveImportModal`
+- Pass `defaultTab="attendees"` and `meetingId={selectedMeetingForAttendees.id}`
 
-**5. Edge function — `supabase/functions/generate-meeting-notes-claude/index.ts`**
-- Destructure `skipQc` from the request body (line ~490)
-- Wrap the QC block (lines ~714–835) in `if (!skipQc) { ... }`
-- Same skip result pattern
-
-### UI placement
-In the Microphone Settings sheet, after the tip text, add:
-- A subtle divider
-- "Quality Control Pass" label with Shield icon
-- Description: "Run a QC audit after note generation (~15-20s). Checks for fabricated decisions, missing speakers, and other issues."
-- Switch toggle (off by default)
+### Technical Details
+- All three files currently import from `@/components/MeetingAttendeeModal` — change to `@/components/meeting/import/LiveImportModal`
+- The `LiveImportModal` accepts `{ open, onOpenChange, defaultTab, meetingId }` — map from the existing `isOpen`/`onClose` pattern to `open`/`onOpenChange`
+- The old modal's `meetingTitle` prop is not needed (LiveImportModal doesn't use it)
+- No changes needed to `MeetingAttendeesTab` — it already handles loading/saving attendees by `meetingId`
 
