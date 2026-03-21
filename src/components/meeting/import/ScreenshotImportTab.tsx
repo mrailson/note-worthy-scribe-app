@@ -301,8 +301,11 @@ export const ScreenshotImportTab: React.FC<ScreenshotImportTabProps> = ({
               <p className="text-sm text-muted-foreground mt-1">
                 or click to browse • Supports JPG, PNG, WEBP
               </p>
+              <p className="text-xs text-muted-foreground mt-2 bg-muted/50 rounded-md px-3 py-1.5 inline-block">
+                💡 <span className="font-semibold">Ctrl+V</span> to paste from clipboard — photos of agendas, attendance records, minutes, actions
+              </p>
             </div>
-            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Users className="h-3.5 w-3.5" /> Attendees
               </span>
