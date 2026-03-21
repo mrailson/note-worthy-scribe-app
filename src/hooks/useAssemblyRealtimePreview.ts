@@ -394,6 +394,45 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isActive, attemptReconnect]);
 
+  // SAFETY NET: Periodically flush fullTranscript to meetings.live_transcript_backup
+  // so that if all other DB write paths fail, there's a recoverable copy
+  const lastBackupRef = useRef<string>("");
+  const backupIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (isActive) {
+      // Start 30-second backup flush
+      backupIntervalRef.current = setInterval(async () => {
+        const currentText = baseTranscriptRef.current.trim();
+        if (!currentText || currentText === lastBackupRef.current) return;
+
+        const meetingId = sessionStorage.getItem('currentMeetingId');
+        if (!meetingId) return;
+
+        try {
+          const { error: backupError } = await supabase
+            .from('meetings')
+            .update({ live_transcript_backup: currentText })
+            .eq('id', meetingId);
+
+          if (!backupError) {
+            lastBackupRef.current = currentText;
+            console.log(`💾 AssemblyAI backup flushed (${currentText.length} chars)`);
+          }
+        } catch (err) {
+          console.warn('⚠️ AssemblyAI backup flush failed:', err);
+        }
+      }, 30000);
+    }
+
+    return () => {
+      if (backupIntervalRef.current) {
+        clearInterval(backupIntervalRef.current);
+        backupIntervalRef.current = null;
+      }
+    };
+  }, [isActive]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -401,6 +440,10 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
+      }
+      if (backupIntervalRef.current) {
+        clearInterval(backupIntervalRef.current);
+        backupIntervalRef.current = null;
       }
       if (clientRef.current) {
         clientRef.current.stop();
