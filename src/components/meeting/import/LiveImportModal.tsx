@@ -34,7 +34,7 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
   onImportComplete
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('screenshot');
+  const [activeTab, setActiveTab] = useState<string>('attendees');
   const [isImporting, setIsImporting] = useState(false);
   
   // Get current meeting ID from session if not provided
