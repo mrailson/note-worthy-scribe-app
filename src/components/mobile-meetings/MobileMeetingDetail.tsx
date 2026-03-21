@@ -37,6 +37,7 @@ interface MobileMeetingDetailProps {
   open: boolean;
   onBack: () => void;
   onViewSummary: (meetingId: string) => void;
+  onShowExport?: (wordCount?: number) => void;
 }
 
 type TabId = 'overview' | 'actions' | 'transcript';
