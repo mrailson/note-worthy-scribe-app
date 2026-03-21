@@ -101,6 +101,10 @@ const Scribe = () => {
             email: practice.email || undefined,
             logoUrl: practice.practice_logo_url || practice.logo_url || undefined
           });
+          // Default F2F location to practice name
+          if (practice.practice_name && !consultation.f2fLocation) {
+            consultation.setF2fLocation(practice.practice_name);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch practice details:', error);
