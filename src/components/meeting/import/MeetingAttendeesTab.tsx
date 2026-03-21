@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -19,6 +18,8 @@ import {
 import type { MeetingAttendee, Contact, MeetingGroup } from '@/types/contactTypes';
 import type { NotewellUser } from '@/hooks/useNotewellDirectory';
 import type { ImportedContent } from './LiveImportModal';
+import { GroupManageView } from './GroupManageView';
+import { GroupEditView } from './GroupEditView';
 
 interface MeetingAttendeesTabProps {
   meetingId?: string | null;
@@ -32,7 +33,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   isImporting,
 }) => {
   const { contacts } = useContacts();
-  const { groups } = useMeetingGroups();
+  const { groups, createGroup, updateGroup, deleteGroup } = useMeetingGroups();
   const { practiceGroups, loading: directoryLoading, loaded: directoryLoaded, fetchDirectory } = useNotewellDirectory({ includeAll: true });
 
   const [attendees, setAttendees] = useState<MeetingAttendee[]>([]);
@@ -46,6 +47,10 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [showGroups, setShowGroups] = useState(true);
   const [loaded, setLoaded] = useState(false);
+
+  // Group management views: 'pick' | 'manage' | 'edit'
+  const [groupView, setGroupView] = useState<'pick' | 'manage' | 'edit'>('pick');
+  const [editingGroup, setEditingGroup] = useState<MeetingGroup | null>(null);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -160,7 +165,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
     const existingNames = new Set(attendees.map(a => a.name.toLowerCase()));
     const newMembers: MeetingAttendee[] = [];
 
-    // Add contacts by ID
     for (const contactId of group.contact_ids || []) {
       if (existingContactIds.has(contactId)) continue;
       const contact = contacts.find(c => c.id === contactId);
@@ -178,7 +182,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
       }
     }
 
-    // Add additional members
     for (const member of group.additional_members || []) {
       if (existingNames.has(member.name.toLowerCase())) continue;
       newMembers.push({
@@ -197,6 +200,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
     }
     setActiveGroupId(group.id);
     setShowGroups(false);
+    setGroupView('pick');
   };
 
   const addNewAttendee = async () => {
@@ -211,7 +215,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
       status: 'present',
     };
 
-    // Optionally save to contacts
     if (saveToContacts) {
       const { data } = await supabase
         .from('contacts' as any)
@@ -255,6 +258,46 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   const apologiesCount = attendees.filter(a => a.status === 'apologies').length;
   const absentCount = attendees.filter(a => a.status === 'absent').length;
 
+  // ── Group Edit View ──
+  if (groupView === 'edit') {
+    return (
+      <GroupEditView
+        group={editingGroup}
+        contacts={contacts}
+        onSave={async (data) => {
+          if (editingGroup?.id) {
+            await updateGroup(editingGroup.id, data);
+          } else {
+            await createGroup(data);
+          }
+          setGroupView('manage');
+          setEditingGroup(null);
+        }}
+        onCancel={() => { setGroupView('manage'); setEditingGroup(null); }}
+      />
+    );
+  }
+
+  // ── Group Manage View ──
+  if (groupView === 'manage') {
+    return (
+      <GroupManageView
+        groups={groups}
+        contacts={contacts}
+        activeGroupId={activeGroupId}
+        onBack={() => setGroupView('pick')}
+        onNewGroup={() => { setEditingGroup(null); setGroupView('edit'); }}
+        onEditGroup={(g) => { setEditingGroup(g); setGroupView('edit'); }}
+        onDeleteGroup={async (id) => {
+          await deleteGroup(id);
+          if (activeGroupId === id) setActiveGroupId(null);
+        }}
+        onLoadGroup={loadGroup}
+      />
+    );
+  }
+
+  // ── Main Pick View ──
   return (
     <div className="flex flex-col gap-3 h-full">
       {/* Meeting Groups — Quick Load */}
@@ -264,12 +307,20 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
               Quick Load — Meeting Groups
             </span>
-            <button
-              onClick={() => setShowGroups(false)}
-              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Hide
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setGroupView('manage')}
+                className="text-[11px] text-amber-600 dark:text-amber-400 font-bold hover:underline"
+              >
+                Manage Groups
+              </button>
+              <button
+                onClick={() => setShowGroups(false)}
+                className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Hide
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {groups.map(group => {
@@ -326,23 +377,41 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
               {activeGroup.name}
             </span>
             <button
+              onClick={() => setGroupView('manage')}
+              className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold hover:underline"
+            >
+              Manage
+            </button>
+            <button
               onClick={() => setShowGroups(true)}
               className="text-[11px] text-muted-foreground underline"
             >
-              Change group
+              Change
             </button>
           </div>
         ) : null;
       })()}
 
       {/* Show groups button when collapsed */}
-      {!showGroups && !activeGroupId && groups.length > 0 && (
-        <button
-          onClick={() => setShowGroups(true)}
-          className="p-2 rounded-lg border border-dashed text-xs text-muted-foreground hover:border-primary hover:text-foreground transition-colors text-left"
-        >
-          📋 Load a meeting group preset...
-        </button>
+      {!showGroups && !activeGroupId && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowGroups(true)}
+            className="flex-1 p-2 rounded-lg border border-dashed text-xs text-muted-foreground hover:border-primary hover:text-foreground transition-colors text-left"
+          >
+            📋 Load a meeting group preset...
+          </button>
+          {groups.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setGroupView('manage')}
+              className="shrink-0 text-xs font-bold border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-700"
+            >
+              Manage Groups
+            </Button>
+          )}
+        </div>
       )}
 
       {/* Search & Add */}
@@ -385,7 +454,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
             </div>
           ) : (
             <>
-              {/* Contact results */}
               {searchResults.contacts.length > 0 && (
                 <>
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 flex items-center gap-1.5">
@@ -393,7 +461,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
                   </div>
                   {searchResults.contacts.map((c) => {
                     const color = SPEAKER_COLORS[c.id % SPEAKER_COLORS.length];
-                    const roleColor = ROLE_COLORS[c.default_role] || ROLE_COLORS.Guest;
                     return (
                       <div
                         key={`contact-${c.id}`}
@@ -416,7 +483,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
                 </>
               )}
 
-              {/* Directory results */}
               {searchResults.directory.length > 0 && (
                 <>
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 flex items-center gap-1.5">
@@ -530,15 +596,12 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
                 key={a.id}
                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-card border transition-all hover:shadow-sm"
               >
-                {/* Avatar */}
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                   style={{ background: `${color}22`, border: `2px solid ${color}`, color }}
                 >
                   {a.initials}
                 </div>
-
-                {/* Name + role */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-bold truncate">{a.name}</span>
@@ -551,8 +614,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">{a.org}</div>
                 </div>
-
-                {/* Attendance toggle */}
                 <div className="flex gap-0.5 p-0.5 rounded-lg bg-muted shrink-0">
                   {([
                     { val: 'present' as const, label: 'Present', activeClass: 'bg-emerald-500 text-white' },
@@ -570,8 +631,6 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
                     </button>
                   ))}
                 </div>
-
-                {/* Remove */}
                 <button
                   onClick={() => removeAttendee(a.id)}
                   className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
