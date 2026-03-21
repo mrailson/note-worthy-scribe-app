@@ -4615,7 +4615,10 @@ export const MeetingRecorder = ({
       console.log('📝 Live Notes generation scheduled every 15 minutes');
       
       // First live notes generation after 5 minutes to ensure meeting is saved
-      setTimeout(() => {
+      if (firstLiveNotesTimeoutRef.current) {
+        clearTimeout(firstLiveNotesTimeoutRef.current);
+      }
+      firstLiveNotesTimeoutRef.current = setTimeout(() => {
         console.log('📝 Triggering first live notes generation...');
         generateLiveNotes();
       }, 5 * 60 * 1000); // 5 minutes

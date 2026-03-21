@@ -70,6 +70,20 @@ const NHSMeetingNotes = () => {
     setStatus(newStatus);
   };
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+      if (transcriberRef.current) {
+        transcriberRef.current.stopTranscription();
+        transcriberRef.current = null;
+      }
+    };
+  }, []);
+
   // Start recording
   const startRecording = async () => {
     try {
