@@ -1551,19 +1551,24 @@ export const MeetingRecorder = ({
           segmentIntervalRef.current = chunkInterval;
         }
       }, 30000); // First interval fires at 30s to match first chunk
+      chunkStartTimeoutRef.current = chunkStartTimeoutRef.current; // stored below
 
       // Add a heartbeat to show recording is active every 5 seconds
-      const heartbeatInterval = setInterval(() => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+      heartbeatIntervalRef.current = setInterval(() => {
         if (isRecording && isRecordingRef.current) {
-          
-          
           // Get current transcript length for user feedback
           const currentLength = transcript.length;
           const currentWords = wordCount;
           
           console.log(`💓 Heartbeat: ${currentWords} words, ${currentLength} chars transcribed`);
         } else {
-          clearInterval(heartbeatInterval);
+          if (heartbeatIntervalRef.current) {
+            clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = null;
+          }
         }
       }, 5000); // Every 5 seconds for frequent feedback
 
