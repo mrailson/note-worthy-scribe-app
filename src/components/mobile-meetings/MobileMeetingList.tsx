@@ -1,5 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
+import { ChevronLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import './mobile-meetings.css';
 
 interface Meeting {
@@ -25,6 +27,8 @@ export const MobileMeetingList: React.FC<MobileMeetingListProps> = ({
   loading,
   onSelectMeeting,
 }) => {
+  const navigate = useNavigate();
+
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return '';
     const h = Math.floor(minutes / 60);
@@ -43,8 +47,11 @@ export const MobileMeetingList: React.FC<MobileMeetingListProps> = ({
     <div className="nw-mobile-meetings">
       <div className="nw-mh-header">
         <div className="nw-mh-header-row">
-          <div>
-            <div className="nw-mh-header-title">Meeting history</div>
+          <button className="nw-mh-back" onClick={() => navigate('/')}>
+            <ChevronLeft size={20} /> Recorder
+          </button>
+          <div style={{ textAlign: 'right' }}>
+            <div className="nw-mh-header-title" style={{ fontSize: 15 }}>Meeting history</div>
             <div className="nw-mh-header-subtitle">{totalCount} meeting{totalCount !== 1 ? 's' : ''}</div>
           </div>
         </div>
