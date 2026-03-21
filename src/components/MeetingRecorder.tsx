@@ -6516,42 +6516,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         </Card>
       )}
       
-      {/* Tabbed Interface — hide tabs row during active recording */}
+      {/* Tabbed Interface — tab bar replaced by dropdown in RecordingFlowOverlay */}
       <Tabs value={activeTab} onValueChange={(tab) => {
         setActiveTab(tab);
       }} className="w-full">
-        {!isRecording && (
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="recorder" className="flex items-center gap-2">
-            <Mic className="h-5 w-5" />
-            <span className="hidden sm:inline">Meeting Recorder</span>
-            <span className="sm:hidden">Record</span>
-          </TabsTrigger>
-          <TabsTrigger value="transcript" className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            <span className="hidden sm:inline">Meeting Transcript</span>
-            <span className="sm:hidden">Transcript</span>
-          </TabsTrigger>
-          {/* Temporarily hidden - Meeting Settings tab */}
-          {/* <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            <span className="hidden sm:inline">Meeting Settings</span>
-            <span className="sm:hidden">Settings</span>
-          </TabsTrigger> */}
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            <span className="hidden sm:inline">My Meeting History</span>
-            <span className="sm:hidden">History</span>
-            {meetings.some(m => isNewMeeting(m.created_at)) && (
-              <Badge className="bg-green-600 hover:bg-green-600 text-white text-[10px] px-1.5 py-0 h-4 ml-1">
-                New
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-        )}
         {/* Meeting Recorder Tab - ONLY recording controls */}
-        <TabsContent value="recorder" className={isRecording ? "space-y-3 mt-2" : "space-y-6 mt-6"}>
+        <TabsContent value="recorder" className={isRecording ? "space-y-3 mt-1" : "space-y-3 mt-1"}>
           <RecordingFlowOverlay
             isRecording={isRecording}
             onStartRecording={startRecording}
@@ -6559,6 +6529,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }}
             formatDuration={formatDuration}
             wordCount={wordCount}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))}
           >
           <div className="space-y-4">
 
