@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { MobileMeetingList } from "@/components/mobile-meetings/MobileMeetingList";
+import { MobileMeetingDetail } from "@/components/mobile-meetings/MobileMeetingDetail";
 import { SEO } from "@/components/SEO";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
@@ -243,6 +245,20 @@ const MeetingHistory = () => {
   // Folder management
   const { folders, assignMeetingToFolder } = useMeetingFolders();
   const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
+
+  // Mobile detail view state
+  const [mobileDetailMeetingId, setMobileDetailMeetingId] = useState<string | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+
+  const openMobileDetail = useCallback((meetingId: string) => {
+    setMobileDetailMeetingId(meetingId);
+    requestAnimationFrame(() => setMobileDetailOpen(true));
+  }, []);
+
+  const closeMobileDetail = useCallback(() => {
+    setMobileDetailOpen(false);
+    setTimeout(() => setMobileDetailMeetingId(null), 300);
+  }, []);
 
   // Handle folder assignment - update parent state immediately
   const handleFolderAssigned = (meetingId: string, folderId: string | null) => {
@@ -1692,6 +1708,35 @@ const MeetingHistory = () => {
       console.error("Error deleting selected meetings:", error.message);
     }
   };
+
+  // ── Mobile layout ──
+  if (isMobile) {
+    return (
+      <>
+        <MobileMeetingList
+          meetings={filteredMeetings}
+          totalCount={totalMeetings}
+          loading={loading}
+          onSelectMeeting={openMobileDetail}
+        />
+        {mobileDetailMeetingId && (
+          <MobileMeetingDetail
+            meetingId={mobileDetailMeetingId}
+            open={mobileDetailOpen}
+            onBack={closeMobileDetail}
+            onViewSummary={handleViewMeetingSummary}
+          />
+        )}
+        <FullPageNotesModal
+          isOpen={fullPageModalOpen}
+          onClose={() => { setFullPageModalOpen(false); setModalMeeting(null); setModalNotes(''); }}
+          meeting={modalMeeting}
+          notes={modalNotes}
+          onNotesChange={setModalNotes}
+        />
+      </>
+    );
+  }
 
   if (loading) {
     return (
