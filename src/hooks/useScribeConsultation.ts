@@ -25,6 +25,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
   const [consultationState, setConsultationState] = useState<ConsultationState>('ready');
   const [consultationType, setConsultationType] = useState<ConsultationType>('f2f');
   const [f2fAccompanied, setF2fAccompanied] = useState(false);
+  const [f2fLocation, setF2fLocation] = useState<string>('');
   const [consultationCategory, setConsultationCategory] = useState<ConsultationCategory>('general');
   const [patientConsent, setPatientConsent] = useState(false);
   const [consentTimestamp, setConsentTimestamp] = useState<string | undefined>();
@@ -1062,6 +1063,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
     setConsultationCategory,
     f2fAccompanied,
     setF2fAccompanied,
+    f2fLocation,
+    setF2fLocation,
     setPatientConsent,
     startConsultation,
     finishConsultation,

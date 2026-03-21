@@ -101,6 +101,10 @@ const Scribe = () => {
             email: practice.email || undefined,
             logoUrl: practice.practice_logo_url || practice.logo_url || undefined
           });
+          // Default F2F location to practice name
+          if (practice.practice_name && !consultation.f2fLocation) {
+            consultation.setF2fLocation(practice.practice_name);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch practice details:', error);
@@ -262,9 +266,12 @@ const Scribe = () => {
                   settings={consultation.settings}
                   patientContext={consultation.patientContext}
                   f2fAccompanied={consultation.f2fAccompanied}
+                  f2fLocation={consultation.f2fLocation}
+                  practiceName={practiceDetails?.name}
                   onTypeChange={consultation.setConsultationType}
                   onCategoryChange={consultation.setConsultationCategory}
                   onF2fAccompaniedChange={consultation.setF2fAccompanied}
+                  onF2fLocationChange={consultation.setF2fLocation}
                   onConsentChange={consultation.setPatientConsent}
                   onPatientContextChange={consultation.setPatientContext}
                   onStart={consultation.startConsultation}

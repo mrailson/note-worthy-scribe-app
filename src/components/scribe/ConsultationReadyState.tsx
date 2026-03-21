@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ConsultationTypeSelector } from "./ConsultationTypeSelector";
+import { F2FLocationSelector } from "./F2FLocationSelector";
 import { PatientConsentBanner } from "./PatientConsentBanner";
 import { ScribeDevDisclaimer } from "./ScribeDevDisclaimer";
 import { PatientContextCapture } from "./PatientContextCapture";
@@ -24,9 +25,12 @@ interface ConsultationReadyStateProps {
   settings: ScribeSettings;
   patientContext: PatientContext | null;
   f2fAccompanied?: boolean;
+  f2fLocation?: string;
+  practiceName?: string;
   onTypeChange: (type: ConsultationType) => void;
   onCategoryChange: (category: ConsultationCategory) => void;
   onF2fAccompaniedChange?: (accompanied: boolean) => void;
+  onF2fLocationChange?: (location: string) => void;
   onConsentChange: (consent: boolean) => void;
   onPatientContextChange: (context: PatientContext | null) => void;
   onStart: (audioMode?: AudioSourceMode) => void;
@@ -40,9 +44,12 @@ export const ConsultationReadyState = ({
   settings,
   patientContext,
   f2fAccompanied = false,
+  f2fLocation = '',
+  practiceName,
   onTypeChange,
   onCategoryChange,
   onF2fAccompaniedChange,
+  onF2fLocationChange,
   onConsentChange,
   onPatientContextChange,
   onStart,
@@ -114,6 +121,15 @@ export const ConsultationReadyState = ({
               />
             </div>
           </div>
+
+          {/* F2F Location Selector */}
+          {consultationType === 'f2f' && onF2fLocationChange && (
+            <F2FLocationSelector
+              value={f2fLocation}
+              onChange={onF2fLocationChange}
+              practiceName={practiceName}
+            />
+          )}
 
           {/* Patient Consent */}
           {settings.showConsentReminder && (
