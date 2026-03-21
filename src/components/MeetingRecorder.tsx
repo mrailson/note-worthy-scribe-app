@@ -6440,7 +6440,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <span className="hidden sm:inline">Meeting Recorder</span>
             <span className="sm:hidden">Record</span>
           </TabsTrigger>
-          <TabsTrigger value="transcript" className="flex items-center gap-2" disabled={isRecording} title={isRecording ? "Stop recording to access this tab" : undefined}>
+          <TabsTrigger value="transcript" className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Transcript</span>
             <span className="sm:hidden">Transcript</span>
