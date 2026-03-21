@@ -624,6 +624,16 @@ const ComplaintDetails = () => {
     };
   }, [isGeneratingAcknowledgement, countdown]);
 
+  // Cleanup poll interval on unmount
+  useEffect(() => {
+    return () => {
+      if (ackPollIntervalRef.current) {
+        clearInterval(ackPollIntervalRef.current);
+        ackPollIntervalRef.current = null;
+      }
+    };
+  }, []);
+
   // Conditional return AFTER all hooks are called
   if (!user) {
     return <LoginForm />;
