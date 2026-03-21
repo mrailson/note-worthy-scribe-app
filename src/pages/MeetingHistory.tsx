@@ -1709,6 +1709,35 @@ const MeetingHistory = () => {
     }
   };
 
+  // ── Mobile layout ──
+  if (isMobile) {
+    return (
+      <>
+        <MobileMeetingList
+          meetings={filteredMeetings}
+          totalCount={totalMeetings}
+          loading={loading}
+          onSelectMeeting={openMobileDetail}
+        />
+        {mobileDetailMeetingId && (
+          <MobileMeetingDetail
+            meetingId={mobileDetailMeetingId}
+            open={mobileDetailOpen}
+            onBack={closeMobileDetail}
+            onViewSummary={handleViewMeetingSummary}
+          />
+        )}
+        <FullPageNotesModal
+          isOpen={fullPageModalOpen}
+          onClose={() => setFullPageModalOpen(false)}
+          meeting={modalMeeting}
+          notes={modalNotes}
+          meetingId={modalMeeting?.id || null}
+        />
+      </>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-background">
