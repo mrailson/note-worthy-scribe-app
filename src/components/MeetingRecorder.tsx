@@ -6516,10 +6516,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         </Card>
       )}
       
-      {/* Tabbed Interface */}
+      {/* Tabbed Interface — hide tabs row during active recording */}
       <Tabs value={activeTab} onValueChange={(tab) => {
         setActiveTab(tab);
       }} className="w-full">
+        {!isRecording && (
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic className="h-5 w-5" />
@@ -6548,68 +6549,24 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             )}
           </TabsTrigger>
         </TabsList>
+        )}
         {/* Meeting Recorder Tab - ONLY recording controls */}
-        <TabsContent value="recorder" className="space-y-6 mt-6">
+        <TabsContent value="recorder" className={isRecording ? "space-y-3 mt-2" : "space-y-6 mt-6"}>
           <RecordingFlowOverlay
             isRecording={isRecording}
             onStartRecording={startRecording}
             onStopRecording={handleStopWithConfirmation}
             onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }}
             formatDuration={formatDuration}
+            wordCount={wordCount}
           >
           <div className="space-y-4">
-            {/* Compact Stats Dashboard */}
-            <Card className="bg-gradient-to-br from-background to-muted/30">
-              <CardContent className="pt-4 pb-4">
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Duration */}
-                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
-                    <div className="text-2xl font-bold text-primary mb-1">
-                      {formatDuration(duration)}
-                    </div>
-                    <div className="text-xs font-medium text-muted-foreground">Duration</div>
-                  </div>
-                  
-                  {/* Word Count */}
-                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
-                    <div className="text-2xl font-bold text-primary mb-1">
-                      {wordCount}
-                    </div>
-                    <div className="text-xs font-medium text-muted-foreground">Meeting Word Count</div>
-                  </div>
-                  
-                  {/* Connection Status */}
-                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50 hidden">
-                    <div className="flex items-center justify-center mb-1">
-                       <Badge 
-                         variant={getConnectionStatusColor() as any} 
-                         className={`flex items-center gap-1 text-xs px-2 py-1 ${
-                           connectionStatus === 'Ready for immediate transcription...' || 
-                           connectionStatus === 'Processing first speech...' ? 
-                           'animate-pulse' : ''
-                         }`}
-                       >
-                         {getConnectionStatusIcon()}
-                         <span className="hidden sm:inline">
-                           {connectionStatus === 'Ready for immediate transcription...' ? 'Ready for Speech ⚡' :
-                            connectionStatus === 'Processing first speech...' ? 'Processing Speech 🎤' :
-                            connectionStatus === 'First transcription complete - continuing...' ? 'Transcription Started ✓' :
-                            connectionStatus.includes('EARLY MODE') ? 'Fast Mode ⚡' :
-                            connectionStatus}
-                         </span>
-                       </Badge>
-                    </div>
-                    <div className="text-xs font-medium text-muted-foreground">Connection</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
-                {/* Microphone Settings, Import Audio & Smartphone Icons - Top Right */}
-                <div className="flex justify-end gap-1 mb-2">
+                {/* Microphone Settings, Import Audio & Smartphone Icons - hide during recording (available via Edit Context) */}
+                <div className={`flex justify-end gap-1 mb-2 ${isRecording ? 'hidden' : ''}`}>
                   <MeetingMicrophoneSettings 
                     onDeviceChange={setSelectedMicrophoneId}
                     onAudioSourceChange={setAudioSourceMode}
