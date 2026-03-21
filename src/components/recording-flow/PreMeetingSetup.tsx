@@ -222,23 +222,23 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
   }, []);
 
   return (
-    <div className="animate-fade-in space-y-5">
-      {/* Title */}
-      <div>
-        <h2 className="text-2xl font-extrabold text-foreground tracking-tight">
+    <div className="animate-fade-in flex flex-col" style={{ height: 'calc(100vh - 180px)', minHeight: '320px' }}>
+      {/* Title — compact */}
+      <div className="flex-shrink-0 mb-2">
+        <h2 className="text-lg font-extrabold text-foreground tracking-tight">
           Prepare Your Meeting
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-0.5 max-h-screen short-viewport:hidden">
           Set up attendees and agenda before recording — everything carries through
         </p>
       </div>
 
-      {/* Two-column grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Two-column grid — fills available space, scrolls internally */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0 overflow-hidden">
 
         {/* Left: Attendees */}
-        <Card className="overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
+        <Card className="overflow-hidden flex flex-col min-h-0">
+          <div className="px-4 py-2.5 border-b border-border/50 flex items-center justify-between flex-shrink-0">
             <span className="text-sm font-extrabold text-foreground">👥 Attendees</span>
             <div className="flex items-center gap-2">
               {attendees.length > 0 && (
@@ -260,18 +260,18 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
               )}
             </div>
           </div>
-          <div className="p-4 max-h-[360px] overflow-y-auto">
+          <div className="p-3 flex-1 overflow-y-auto min-h-0">
             {attendees.length === 0 && (
               <>
                 <button
                   onClick={() => onOpenImportModal?.('attendees')}
-                  className="w-full flex items-center gap-2 p-2.5 rounded-lg mb-2 text-left transition-all duration-150 border border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5 cursor-pointer group"
+                  className="w-full flex items-center gap-2 p-2 rounded-lg mb-1.5 text-left transition-all duration-150 border border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5 cursor-pointer group"
                 >
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-muted/50 group-hover:bg-primary/10 transition-colors">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted/50 group-hover:bg-primary/10 transition-colors">
                     <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-muted-foreground group-hover:text-primary transition-colors">
+                    <div className="text-[12px] font-semibold text-muted-foreground group-hover:text-primary transition-colors">
                       Create New Group or Add Attendees
                     </div>
                     <div className="text-[10px] text-muted-foreground/60">
@@ -291,13 +291,13 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                       status: 'present' as const,
                     }]);
                   }}
-                  className="w-full flex items-center gap-2 p-2.5 rounded-lg mb-3 text-left transition-all duration-150 border border-muted-foreground/15 hover:border-blue-400/50 hover:bg-blue-500/5 cursor-pointer group"
+                  className="w-full flex items-center gap-2 p-2 rounded-lg mb-2 text-left transition-all duration-150 border border-muted-foreground/15 hover:border-blue-400/50 hover:bg-blue-500/5 cursor-pointer group"
                 >
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
                     <UsersRound className="h-4 w-4 text-blue-500" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-muted-foreground group-hover:text-blue-600 transition-colors">
+                    <div className="text-[12px] font-semibold text-muted-foreground group-hover:text-blue-600 transition-colors">
                       Multiple Participants
                     </div>
                     <div className="text-[10px] text-muted-foreground/60">
@@ -306,7 +306,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                   </div>
                 </button>
 
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-1.5">
                   <div className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider">
                     Load a Meeting Group
                   </div>
@@ -333,17 +333,17 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                   )}
                 </div>
                 {groups.length === 0 && (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <div className="text-2xl mb-2">👥</div>
+                  <div className="text-center py-4 text-muted-foreground">
+                    <div className="text-2xl mb-1">👥</div>
                     <p className="text-xs font-semibold">No meeting groups yet</p>
-                    <p className="text-xs mt-1 text-muted-foreground/70">Create groups to quickly load attendees</p>
+                    <p className="text-xs mt-1 text-muted-foreground/70 short-viewport:hidden">Create groups to quickly load attendees</p>
                   </div>
                 )}
                 {pagedGroups.map(g => (
                   <button
                     key={g.id}
                     onClick={() => handleLoadGroup(g)}
-                    className="w-full flex items-center gap-2.5 p-2.5 rounded-lg mb-1.5 text-left transition-all duration-150 hover:translate-x-0.5 cursor-pointer"
+                    className="w-full flex items-center gap-2 p-2 rounded-lg mb-1 text-left transition-all duration-150 hover:translate-x-0.5 cursor-pointer"
                     style={{
                       border: `1.5px solid ${g.color}33`,
                       background: `${g.color}08`,
@@ -356,7 +356,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                     }}
                   >
                     <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
                       style={{
                         background: `${g.color}18`,
                         border: `1.5px solid ${g.color}`,
@@ -365,7 +365,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                       {g.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-bold text-foreground truncate">{g.name}</div>
+                      <div className="text-[12px] font-bold text-foreground truncate">{g.name}</div>
                       <div className="text-[10px] text-muted-foreground">
                         {g.description || 'Meeting group'} · {g.contact_ids.length + (g.additional_members?.length || 0)} members
                       </div>
@@ -384,7 +384,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
               <>
                 {activeGroup && (
                   <div
-                    className="flex items-center gap-2 p-2 rounded-lg mb-2.5"
+                    className="flex items-center gap-2 p-2 rounded-lg mb-2"
                     style={{
                       background: `${activeGroup.color}08`,
                       border: `1px solid ${activeGroup.color}33`,
@@ -451,7 +451,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                 {/* Add more attendees */}
                 <button
                   onClick={() => onOpenImportModal?.('attendees')}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 mt-1.5 rounded-lg text-[11px] font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 border border-dashed border-muted-foreground/20 hover:border-primary/40 transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 mt-1 rounded-lg text-[11px] font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 border border-dashed border-muted-foreground/20 hover:border-primary/40 transition-all cursor-pointer"
                 >
                   <Plus className="h-3 w-3" />
                   Add Attendee
@@ -463,13 +463,13 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
 
         {/* Right: Agenda */}
         <Card
-          className="overflow-hidden flex flex-col"
+          className="overflow-hidden flex flex-col min-h-0"
           onPaste={handlePaste}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           ref={agendaDropRef}
         >
-          <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
+          <div className="px-4 py-2.5 border-b border-border/50 flex items-center justify-between flex-shrink-0">
             <span className="text-sm font-extrabold text-foreground">📋 Agenda</span>
             <div className="flex items-center gap-1.5">
               {agendaItems.length > 0 && (
@@ -505,7 +505,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
               </button>
             </div>
           </div>
-          <div className="p-4 flex-1">
+          <div className="p-3 flex-1 overflow-y-auto min-h-0">
             {/* Paste text area */}
             {showPasteArea && (
               <div className="mb-3 animate-fade-in">
@@ -516,7 +516,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                   value={pasteText}
                   onChange={e => setPasteText(e.target.value)}
                   placeholder="Paste your email or meeting invitation text here… AI will extract agenda items, location, meeting type and more."
-                  className="text-xs min-h-[100px] border-dashed border-muted-foreground/30 bg-muted/20 resize-none"
+                  className="text-xs min-h-[80px] border-dashed border-muted-foreground/30 bg-muted/20 resize-none"
                   disabled={isExtractingAgenda}
                 />
                 <div className="flex gap-2 mt-2">
@@ -546,7 +546,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
             )}
 
             {isExtractingAgenda && (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg mb-3 bg-primary/5 border border-primary/20 animate-fade-in">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3 bg-primary/5 border border-primary/20 animate-fade-in">
                 <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
                 <span className="text-xs font-semibold text-primary">Extracting meeting details…</span>
               </div>
@@ -554,7 +554,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
 
             {/* Detected meeting metadata badges */}
             {(meetingType || meetingLocation || meetingTitle) && (
-              <div className="flex flex-wrap gap-1.5 mb-3 animate-fade-in">
+              <div className="flex flex-wrap gap-1.5 mb-2 animate-fade-in">
                 {meetingTitle && (
                   <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/50 border border-border text-[10px] font-semibold text-foreground/80">
                     <FileText className="h-3 w-3 text-muted-foreground" />
@@ -587,11 +587,11 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
             )}
 
             {agendaItems.length === 0 && !isExtractingAgenda && !showPasteArea && (
-              <div className="text-center py-5 text-muted-foreground">
-                <div className="text-2xl mb-1.5">📋</div>
-                <div className="text-xs font-semibold text-foreground/70">No agenda items yet</div>
-                <div className="text-[11px] mt-1">Add items below — they help the AI segment the transcript</div>
-                <div className="text-[10px] mt-2 text-muted-foreground/50 flex items-center justify-center gap-1.5">
+              <div className="text-center py-3 text-muted-foreground short-viewport:py-1">
+                <div className="text-2xl mb-1 short-viewport:hidden">📋</div>
+                <div className="text-xs font-semibold text-foreground/70 short-viewport:hidden">No agenda items yet</div>
+                <div className="text-[11px] mt-1 short-viewport:mt-0">Add items below — they help the AI segment the transcript</div>
+                <div className="text-[10px] mt-1.5 text-muted-foreground/50 flex items-center justify-center gap-1.5 short-viewport:hidden">
                   <Upload className="h-3 w-3" />
                   Upload a file, paste text, or Ctrl+V an image to auto-extract
                 </div>
@@ -600,7 +600,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
             {agendaItems.map((item, i) => (
               <div
                 key={item.id}
-                className="flex items-center gap-2 px-2.5 py-2 rounded-lg mb-1 bg-muted/30 border border-muted animate-fade-in"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg mb-1 bg-muted/30 border border-muted animate-fade-in"
               >
                 <span className="text-[11px] font-bold text-muted-foreground/40 font-mono w-[18px]">{i + 1}.</span>
                 <span className="flex-1 text-xs text-foreground/80 font-medium">{item.text}</span>
@@ -615,22 +615,23 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
 
             {/* Meeting type selector — only shown when not already detected */}
             {!meetingType && (
-              <div className="mt-3 pt-3 border-t border-border/30">
-                <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider mb-2">
+              <div className="mt-2 pt-2 border-t border-border/30">
+                <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider mb-1.5">
                   Meeting Format
                 </div>
                 <div className="flex rounded-lg border border-border overflow-hidden">
                   <button
                     onClick={() => setMeetingType('face-to-face')}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold transition-all cursor-pointer bg-muted/20 hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-600"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all cursor-pointer bg-muted/20 hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-600"
                   >
                     <Users2 className="h-3.5 w-3.5" />
-                    Face to Face
+                    <span className="short-viewport:hidden">Face to Face</span>
+                    <span className="hidden short-viewport:inline">F2F</span>
                   </button>
                   <div className="w-px bg-border" />
                   <button
                     onClick={() => setMeetingType('remote')}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold transition-all cursor-pointer bg-muted/20 hover:bg-blue-500/10 text-muted-foreground hover:text-blue-600"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all cursor-pointer bg-muted/20 hover:bg-blue-500/10 text-muted-foreground hover:text-blue-600"
                   >
                     <Video className="h-3.5 w-3.5" />
                     Remote
@@ -657,63 +658,64 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
         </Card>
       </div>
 
-      {/* Bottom: Pre-Recording Summary + Start Button */}
-      <Card className="p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4">
-        <div className="flex flex-wrap gap-2 flex-1">
-          <ContextStatusPill
-            icon="👥" label="Attendees"
-            color={attendees.length > 0 ? '#10B981' : '#94A3B8'}
-            value={attendees.length > 0 ? `${presentCount} present` : 'None'}
-            pulse={lastUpdate === 'group' || lastUpdate === 'attendance'}
-          />
-          {apologiesCount > 0 && (
+      {/* Bottom: Pre-Recording Summary + Start Button — sticky */}
+      <div className="flex-shrink-0 sticky bottom-0 z-10 -mx-1 px-1">
+        <Card className="p-3 sm:p-4 flex flex-col sm:flex-row items-center gap-3 border-t border-border/50 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+          <div className="flex flex-wrap gap-1.5 flex-1">
             <ContextStatusPill
-              icon="📨" label="Apologies" color="#F59E0B"
-              value={apologiesCount.toString()}
-              pulse={lastUpdate === 'attendance'}
+              icon="👥" label="Attendees"
+              color={attendees.length > 0 ? '#10B981' : '#94A3B8'}
+              value={attendees.length > 0 ? `${presentCount} present` : 'None'}
+              pulse={lastUpdate === 'group' || lastUpdate === 'attendance'}
             />
-          )}
-          <ContextStatusPill
-            icon="📋" label="Agenda"
-            color={agendaItems.length > 0 ? '#3B82F6' : '#94A3B8'}
-            value={agendaItems.length > 0 ? `${agendaItems.length} items` : 'None'}
-            pulse={lastUpdate === 'agenda'}
-          />
-          {activeGroup && (
+            {apologiesCount > 0 && (
+              <ContextStatusPill
+                icon="📨" label="Apologies" color="#F59E0B"
+                value={apologiesCount.toString()}
+                pulse={lastUpdate === 'attendance'}
+              />
+            )}
             <ContextStatusPill
-              icon={activeGroup.icon} label="Group" color={activeGroup.color}
-              value={activeGroup.name}
+              icon="📋" label="Agenda"
+              color={agendaItems.length > 0 ? '#3B82F6' : '#94A3B8'}
+              value={agendaItems.length > 0 ? `${agendaItems.length} items` : 'None'}
+              pulse={lastUpdate === 'agenda'}
             />
-          )}
-          {meetingType && MEETING_TYPE_LABELS[meetingType] && (
-            <ContextStatusPill
-              icon="📍" label="Type" color={MEETING_TYPE_LABELS[meetingType].colour}
-              value={MEETING_TYPE_LABELS[meetingType].label}
-            />
-          )}
+            {activeGroup && (
+              <ContextStatusPill
+                icon={activeGroup.icon} label="Group" color={activeGroup.color}
+                value={activeGroup.name}
+              />
+            )}
+            {meetingType && MEETING_TYPE_LABELS[meetingType] && (
+              <ContextStatusPill
+                icon="📍" label="Type" color={MEETING_TYPE_LABELS[meetingType].colour}
+                value={MEETING_TYPE_LABELS[meetingType].label}
+              />
+            )}
+          </div>
+
+          <Button
+            onClick={onStartRecording}
+            className="px-6 py-5 rounded-xl text-[14px] font-extrabold shadow-lg transition-all duration-200 hover:scale-[1.02]"
+            style={{
+              background: 'linear-gradient(135deg, #EF4444, #DC2626)',
+              boxShadow: '0 4px 20px #EF444444',
+            }}
+          >
+            <div className="w-2.5 h-2.5 rounded-full bg-white mr-2" />
+            Start Recording
+          </Button>
+        </Card>
+        {/* Skip setup */}
+        <div className="text-center py-1.5">
+          <button
+            onClick={onStartRecording}
+            className="text-[11px] text-muted-foreground underline cursor-pointer hover:text-foreground transition-colors"
+          >
+            or start recording without setup
+          </button>
         </div>
-
-        <Button
-          onClick={onStartRecording}
-          className="px-8 py-6 rounded-xl text-[15px] font-extrabold shadow-lg transition-all duration-200 hover:scale-[1.02]"
-          style={{
-            background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-            boxShadow: '0 4px 20px #EF444444',
-          }}
-        >
-          <div className="w-2.5 h-2.5 rounded-full bg-white mr-2" />
-          Start Recording
-        </Button>
-      </Card>
-
-      {/* Skip setup */}
-      <div className="text-center">
-        <button
-          onClick={onStartRecording}
-          className="text-[11px] text-muted-foreground underline cursor-pointer hover:text-foreground transition-colors"
-        >
-          or start recording without setup — you can add context during the meeting
-        </button>
       </div>
     </div>
   );
