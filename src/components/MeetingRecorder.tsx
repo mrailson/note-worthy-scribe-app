@@ -4533,6 +4533,13 @@ export const MeetingRecorder = ({
       isRecordingRef.current = true;
       // Recording start time already set earlier - don't reset it here
       
+      // ─── Persist session to localStorage for crash recovery ───
+      try {
+        const setupCtx = document.querySelector('[data-meeting-setup]');
+        // We'll persist from the effect below once state settles
+      } catch {}
+      startHeartbeat();
+      
       // Backup recorder is started later, after audio streams are fully initialised
       setRealtimeTranscripts([]);
       setChunkSaveStatuses([]);
