@@ -1733,8 +1733,14 @@ const MeetingHistory = () => {
             open={mobileDetailOpen}
             onBack={closeMobileDetail}
             onViewSummary={handleViewMeetingSummary}
+            onShowExport={openMobileExport}
           />
         )}
+        <MobileExportSheet
+          open={mobileExportOpen}
+          onClose={() => setMobileExportOpen(false)}
+          wordCount={mobileExportWordCount}
+        />
         <FullPageNotesModal
           isOpen={fullPageModalOpen}
           onClose={() => { setFullPageModalOpen(false); setModalMeeting(null); setModalNotes(''); }}
