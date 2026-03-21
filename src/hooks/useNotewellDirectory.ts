@@ -28,7 +28,8 @@ const NRES_PRACTICE_NAMES = [
   'Bugbrooke', 'Brook Health', 'Denton Village',
 ];
 
-export function useNotewellDirectory() {
+export function useNotewellDirectory(options?: { includeAll?: boolean }) {
+  const includeAll = options?.includeAll ?? false;
   const { user } = useAuth();
   const [practiceGroups, setPracticeGroups] = useState<PracticeGroup[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,19 +59,19 @@ export function useNotewellDirectory() {
 
       if (practicesError) throw practicesError;
 
-      // Filter to NRES practices + Management (PML) + ICB
-      const filteredPractices = (practices || []).filter(p => {
-        const orgType = p.organisation_type || '';
-        // Include Management and ICB orgs
-        if (orgType === 'Management' || orgType === 'ICB') return true;
-        // Include NRES practices only (not all Practice orgs)
-        if (orgType === 'Practice') {
-          return NRES_PRACTICE_NAMES.some(name =>
-            p.name.toLowerCase().includes(name.toLowerCase())
-          );
-        }
-        return false;
-      });
+      // Filter practices based on mode
+      const filteredPractices = includeAll
+        ? (practices || []).filter(p => INCLUDED_ORG_TYPES.includes(p.organisation_type || ''))
+        : (practices || []).filter(p => {
+            const orgType = p.organisation_type || '';
+            if (orgType === 'Management' || orgType === 'ICB') return true;
+            if (orgType === 'Practice') {
+              return NRES_PRACTICE_NAMES.some(name =>
+                p.name.toLowerCase().includes(name.toLowerCase())
+              );
+            }
+            return false;
+          });
 
       const filteredPracticeIds = new Set(filteredPractices.map(p => p.id));
 
