@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface LiveImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultTab?: string;
   meetingId?: string;
   onImportComplete?: () => void;
 }
