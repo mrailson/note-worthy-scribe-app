@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, ChevronLeft, ChevronRight, Plus, Upload, Loader2, ImageIcon } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Plus, Upload, Loader2, ImageIcon, RotateCcw } from 'lucide-react';
 import { useMeetingSetup } from './MeetingSetupContext';
 import { ContextStatusPill } from './ContextStatusPill';
 import { AvatarStack } from './AvatarStack';
@@ -22,7 +22,7 @@ interface PreMeetingSetupProps {
 
 export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecording, onOpenImportModal }) => {
   const {
-    attendees, agendaItems, activeGroup,
+    attendees, setAttendees, agendaItems, activeGroup, setActiveGroup,
     presentCount, apologiesCount,
     lastUpdate, addAgendaItem, removeAgendaItem,
     toggleAttendeeStatus, loadGroup,
@@ -143,13 +143,25 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
         <Card className="overflow-hidden">
           <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
             <span className="text-sm font-extrabold text-foreground">👥 Attendees</span>
-            {attendees.length > 0 && (
-              <div className="flex gap-2 text-xs font-bold">
-                <span className="text-emerald-600">● {presentCount}</span>
-                <span className="text-amber-500">● {apologiesCount}</span>
-                <span className="text-red-500">● {attendees.filter(a => a.status === 'absent').length}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {attendees.length > 0 && (
+                <button
+                  onClick={() => { setAttendees([]); setActiveGroup(null); }}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10 transition-all cursor-pointer"
+                  title="Clear attendees and pick a different group"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Change
+                </button>
+              )}
+              {attendees.length > 0 && (
+                <div className="flex gap-2 text-xs font-bold">
+                  <span className="text-emerald-600">● {presentCount}</span>
+                  <span className="text-amber-500">● {apologiesCount}</span>
+                  <span className="text-red-500">● {attendees.filter(a => a.status === 'absent').length}</span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="p-4 max-h-[360px] overflow-y-auto">
             {/* Group Quick-Load (no attendees yet) */}
