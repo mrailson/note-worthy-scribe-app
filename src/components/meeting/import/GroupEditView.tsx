@@ -231,7 +231,7 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
                       className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition-all ${
                         icon === ic ? 'ring-2' : 'border hover:bg-accent'
                       }`}
-                      style={icon === ic ? { borderColor: color, background: `${color}15`, ringColor: color } : {}}
+                      style={icon === ic ? { borderColor: color, background: `${color}15`, outline: `2px solid ${color}` } : {}}
                     >
                       {ic}
                     </button>
