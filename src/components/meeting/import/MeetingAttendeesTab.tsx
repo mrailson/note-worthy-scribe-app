@@ -92,16 +92,37 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
     });
   }, [saveAttendees]);
 
-  // Search contacts
+  // Search contacts + Notewell directory
   const addedIds = useMemo(() => new Set(attendees.map(a => a.contact_id).filter(Boolean)), [attendees]);
+  const addedNames = useMemo(() => new Set(attendees.map(a => a.name.toLowerCase())), [attendees]);
+
+  const directoryUsers = useMemo(() => {
+    const users: NotewellUser[] = [];
+    for (const group of practiceGroups) {
+      for (const u of group.users) {
+        if (!users.some(x => x.user_id === u.user_id)) users.push(u);
+      }
+    }
+    return users;
+  }, [practiceGroups]);
+
   const searchResults = useMemo(() => {
-    if (!search) return [];
+    if (!search || search.length < 2) return { contacts: [] as Contact[], directory: [] as NotewellUser[] };
     const q = search.toLowerCase();
-    return contacts.filter(c =>
+    const contactMatches = contacts.filter(c =>
       !addedIds.has(c.id) &&
       (c.name.toLowerCase().includes(q) || c.org.toLowerCase().includes(q))
     );
-  }, [contacts, search, addedIds]);
+    const directoryMatches = directoryUsers.filter(u =>
+      !addedNames.has(u.full_name.toLowerCase()) &&
+      (u.full_name.toLowerCase().includes(q) ||
+       u.practice_name.toLowerCase().includes(q) ||
+       (u.email && u.email.toLowerCase().includes(q)))
+    );
+    return { contacts: contactMatches, directory: directoryMatches };
+  }, [contacts, directoryUsers, search, addedIds, addedNames]);
+
+  const hasSearchResults = searchResults.contacts.length > 0 || searchResults.directory.length > 0;
 
   const addContactAsAttendee = (contact: Contact) => {
     updateAttendees(prev => [
