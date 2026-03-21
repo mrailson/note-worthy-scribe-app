@@ -133,11 +133,27 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
         initials: contact.initials,
         role: contact.default_role,
         org: contact.org,
-        status: 'present',
+        status: 'present' as const,
         contact_id: contact.id,
       },
     ]);
     setSearch('');
+  };
+
+  const addDirectoryUserAsAttendee = (user: NotewellUser) => {
+    updateAttendees(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        name: user.full_name,
+        initials: generateInitials(user.full_name),
+        role: user.practice_role || user.title || 'Guest',
+        org: user.practice_name,
+        status: 'present' as const,
+      },
+    ]);
+    setSearch('');
+  };
   };
 
   const loadGroup = async (group: MeetingGroup) => {
