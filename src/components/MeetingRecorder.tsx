@@ -4500,6 +4500,7 @@ export const MeetingRecorder = ({
         // Store both session ID and meeting ID as the same value
         sessionStorage.setItem('currentSessionId', realMeetingId);
         sessionStorage.setItem('currentMeetingId', realMeetingId);
+        sessionStorage.setItem('recordingStartedAt', recordingStartTimeRef.current!.toISOString());
         
         // Set starting chunk counter for continuation mode
         // CRITICAL: Set both ref (synchronous) and state (UI display)
