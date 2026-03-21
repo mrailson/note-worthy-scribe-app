@@ -352,7 +352,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search contacts by name or organisation..."
+            placeholder="Search contacts & Notewell directory..."
             className="pl-9"
           />
         </div>
