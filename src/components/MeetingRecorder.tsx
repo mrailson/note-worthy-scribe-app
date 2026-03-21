@@ -6394,6 +6394,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
               
   return (
+    <MeetingSetupProvider>
+    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab) => { if (tab) { /* We could set the tab but LiveImportModal manages its own tab state */ } setAudioImportOpen(true); }} />
     <TooltipProvider delayDuration={300}>
     <div className="space-y-6">
       {/* Continuation Mode Banner */}
