@@ -1,3 +1,11 @@
+// Polyfill requestIdleCallback for iOS Safari
+const _ric = typeof requestIdleCallback === 'function'
+  ? requestIdleCallback
+  : (cb: IdleRequestCallback, opts?: IdleRequestOptions) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), opts?.timeout ?? 1) as unknown as number;
+const _cic = typeof cancelIdleCallback === 'function'
+  ? cancelIdleCallback
+  : (id: number) => clearTimeout(id);
+
 import RichTextEditor from "@/components/RichTextEditor";
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { sanitiseActionOwners } from "@/utils/sanitiseActionOwners";
@@ -450,7 +458,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setIsRenderingMinutes(false);
     }, 5000);
 
-    const id = requestIdleCallback(() => {
+    const id = _ric(() => {
       clearTimeout(safetyTimeout);
       try {
         console.log('🎨 Rendering minutes for meeting:', meeting?.id, 'length:', notesStyle3.length);
@@ -475,7 +483,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     
     return () => {
       clearTimeout(safetyTimeout);
-      cancelIdleCallback(id);
+      _cic(id);
     };
   }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded, isLongMeetingRaw, isGeneratingStyle3, notesViewMode]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
@@ -641,7 +649,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
              }
              
              // Defer heavy processing to idle callback for better responsiveness
-             requestIdleCallback(async () => {
+             _ric(async () => {
                try {
                  const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
                  
