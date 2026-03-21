@@ -6468,6 +6468,13 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         </TabsList>
         {/* Meeting Recorder Tab - ONLY recording controls */}
         <TabsContent value="recorder" className="space-y-6 mt-6">
+          <RecordingFlowOverlay
+            isRecording={isRecording}
+            onStartRecording={startRecording}
+            onStopRecording={handleStopWithConfirmation}
+            onOpenImportModal={(tab) => setAudioImportOpen(true)}
+            formatDuration={formatDuration}
+          >
           <div className="space-y-4">
             {/* Compact Stats Dashboard */}
             <Card className="bg-gradient-to-br from-background to-muted/30">
