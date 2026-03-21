@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,6 +69,20 @@ const NHSMeetingNotes = () => {
   const handleStatusChange = (newStatus: string) => {
     setStatus(newStatus);
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+      if (transcriberRef.current) {
+        transcriberRef.current.stopTranscription();
+        transcriberRef.current = null;
+      }
+    };
+  }, []);
 
   // Start recording
   const startRecording = async () => {

@@ -914,6 +914,24 @@ export const MeetingRecorder = ({
       liveNotesIntervalRef.current = null;
     }
     
+    // Clear heartbeat interval
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+    
+    // Clear chunk start timeout
+    if (chunkStartTimeoutRef.current) {
+      clearTimeout(chunkStartTimeoutRef.current);
+      chunkStartTimeoutRef.current = null;
+    }
+    
+    // Clear first live notes timeout
+    if (firstLiveNotesTimeoutRef.current) {
+      clearTimeout(firstLiveNotesTimeoutRef.current);
+      firstLiveNotesTimeoutRef.current = null;
+    }
+    
     console.log('🔄 Meeting reset completed');
     
     // Page refresh removed to keep UI responsive after stop
@@ -956,6 +974,9 @@ export const MeetingRecorder = ({
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const autoCleanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const liveNotesIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const chunkStartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const firstLiveNotesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   // micAudioStreamRef declared earlier (line ~686) for health monitor access
   const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
@@ -1504,7 +1525,7 @@ export const MeetingRecorder = ({
       startNewChunk();
 
       // Start second chunk after 30s (first chunk duration), then use 87s intervals (90s - 3s overlap)
-      setTimeout(() => {
+      chunkStartTimeoutRef.current = setTimeout(() => {
         if (isRecording && isRecordingRef.current && chunksStream?.active) {
           console.log('🔄 Starting second chunk at 30s mark');
           startNewChunk();
@@ -1550,17 +1571,21 @@ export const MeetingRecorder = ({
       }, 30000); // First interval fires at 30s to match first chunk
 
       // Add a heartbeat to show recording is active every 5 seconds
-      const heartbeatInterval = setInterval(() => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+      heartbeatIntervalRef.current = setInterval(() => {
         if (isRecording && isRecordingRef.current) {
-          
-          
           // Get current transcript length for user feedback
           const currentLength = transcript.length;
           const currentWords = wordCount;
           
           console.log(`💓 Heartbeat: ${currentWords} words, ${currentLength} chars transcribed`);
         } else {
-          clearInterval(heartbeatInterval);
+          if (heartbeatIntervalRef.current) {
+            clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = null;
+          }
         }
       }, 5000); // Every 5 seconds for frequent feedback
 
@@ -4607,7 +4632,10 @@ export const MeetingRecorder = ({
       console.log('📝 Live Notes generation scheduled every 15 minutes');
       
       // First live notes generation after 5 minutes to ensure meeting is saved
-      setTimeout(() => {
+      if (firstLiveNotesTimeoutRef.current) {
+        clearTimeout(firstLiveNotesTimeoutRef.current);
+      }
+      firstLiveNotesTimeoutRef.current = setTimeout(() => {
         console.log('📝 Triggering first live notes generation...');
         generateLiveNotes();
       }, 5 * 60 * 1000); // 5 minutes
@@ -4763,6 +4791,24 @@ export const MeetingRecorder = ({
       if (liveNotesIntervalRef.current) {
         clearInterval(liveNotesIntervalRef.current);
         liveNotesIntervalRef.current = null;
+      }
+      
+      // Stop heartbeat interval
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+      
+      // Stop chunk start timeout
+      if (chunkStartTimeoutRef.current) {
+        clearTimeout(chunkStartTimeoutRef.current);
+        chunkStartTimeoutRef.current = null;
+      }
+      
+      // Stop first live notes timeout
+      if (firstLiveNotesTimeoutRef.current) {
+        clearTimeout(firstLiveNotesTimeoutRef.current);
+        firstLiveNotesTimeoutRef.current = null;
       }
       
       // Stop all transcribers asynchronously to avoid UI freeze
@@ -4983,6 +5029,24 @@ export const MeetingRecorder = ({
     if (transcriptSnippetIntervalRef.current) {
       clearInterval(transcriptSnippetIntervalRef.current);
       transcriptSnippetIntervalRef.current = null;
+    }
+    
+    // Stop heartbeat interval
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+    
+    // Stop chunk start timeout
+    if (chunkStartTimeoutRef.current) {
+      clearTimeout(chunkStartTimeoutRef.current);
+      chunkStartTimeoutRef.current = null;
+    }
+    
+    // Stop first live notes timeout
+    if (firstLiveNotesTimeoutRef.current) {
+      clearTimeout(firstLiveNotesTimeoutRef.current);
+      firstLiveNotesTimeoutRef.current = null;
     }
     
     // Stop microphone stream

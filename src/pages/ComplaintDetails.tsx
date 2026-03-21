@@ -203,6 +203,9 @@ const ComplaintDetails = () => {
     transcript?: string;
     audioDuration?: number | null;
   }>>([]);
+  
+  // Ref to track poll intervals created in event handlers for cleanup
+  const ackPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
 
   // Define all functions before useEffect
@@ -620,6 +623,16 @@ const ComplaintDetails = () => {
       if (interval) clearInterval(interval);
     };
   }, [isGeneratingAcknowledgement, countdown]);
+
+  // Cleanup poll interval on unmount
+  useEffect(() => {
+    return () => {
+      if (ackPollIntervalRef.current) {
+        clearInterval(ackPollIntervalRef.current);
+        ackPollIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   // Conditional return AFTER all hooks are called
   if (!user) {
@@ -1532,13 +1545,22 @@ const ComplaintDetails = () => {
       let attempts = 0;
       const maxAttempts = 15; // 30 seconds (2 seconds per attempt)
       
-      const pollInterval = setInterval(async () => {
+      // Clear any previous poll interval
+      if (ackPollIntervalRef.current) {
+        clearInterval(ackPollIntervalRef.current);
+        ackPollIntervalRef.current = null;
+      }
+      
+      ackPollIntervalRef.current = setInterval(async () => {
         attempts++;
         const status = await checkAcknowledgementStatus();
         
         if (status.hasContent && status.data) {
           // Found the letter!
-          clearInterval(pollInterval);
+          if (ackPollIntervalRef.current) {
+            clearInterval(ackPollIntervalRef.current);
+            ackPollIntervalRef.current = null;
+          }
           setAcknowledgementId(status.data.id);
           setAcknowledgementLetter(status.data.acknowledgement_letter);
           setAcknowledgementDate(status.data.created_at);
@@ -1553,7 +1575,10 @@ const ComplaintDetails = () => {
         
         if (attempts >= maxAttempts) {
           // Timeout - show empty state in modal
-          clearInterval(pollInterval);
+          if (ackPollIntervalRef.current) {
+            clearInterval(ackPollIntervalRef.current);
+            ackPollIntervalRef.current = null;
+          }
           setIsCheckingAcknowledgement(false);
           showToast.warning('Acknowledgement is still generating. Opening empty view...', { section: 'complaints' });
           openModalWithContent('');

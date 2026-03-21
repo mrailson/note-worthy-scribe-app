@@ -63,7 +63,10 @@ export const useMeetingDashboard = () => {
     };
 
     setTranscriptChunks(prev => {
-      const updated = [...prev, chunk];
+      // Cap at 5000 chunks to prevent unbounded memory growth
+      const updated = prev.length >= 5000 
+        ? [...prev.slice(-4999), chunk]
+        : [...prev, chunk];
       chunksRef.current = updated;
       return updated;
     });
