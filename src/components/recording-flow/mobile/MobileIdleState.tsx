@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { Mic, ChevronRight, CheckCircle2 } from 'lucide-react';
 import './mobile-recording.css';
@@ -14,7 +14,7 @@ interface RecentMeeting {
   id: string;
   title: string;
   created_at: string;
-  duration_seconds: number | null;
+  duration_minutes: number | null;
   word_count: number | null;
 }
 
@@ -28,7 +28,7 @@ export const MobileIdleState: React.FC<MobileIdleStateProps> = ({ onStartRecordi
     const fetchRecent = async () => {
       const { data } = await supabase
         .from('meetings')
-        .select('id, title, created_at, duration_seconds, word_count')
+        .select('id, title, created_at, duration_minutes, word_count')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -38,10 +38,10 @@ export const MobileIdleState: React.FC<MobileIdleStateProps> = ({ onStartRecordi
     fetchRecent();
   }, [user]);
 
-  const formatMeetingDuration = (seconds: number | null) => {
-    if (!seconds) return '';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
+  const formatMeetingDuration = (minutes: number | null) => {
+    if (!minutes) return '';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
     if (h > 0) return `${h}h ${m}m`;
     return `${m}m`;
   };
@@ -99,7 +99,7 @@ export const MobileIdleState: React.FC<MobileIdleStateProps> = ({ onStartRecordi
               <div className="nw-recent-title">{recentMeeting.title || 'Untitled Meeting'}</div>
               <div className="nw-recent-meta">
                 {format(new Date(recentMeeting.created_at), 'dd MMM · HH:mm')}
-                {recentMeeting.duration_seconds ? ` · ${formatMeetingDuration(recentMeeting.duration_seconds)}` : ''}
+                {recentMeeting.duration_minutes ? ` · ${formatMeetingDuration(recentMeeting.duration_minutes)}` : ''}
                 {recentMeeting.word_count ? ` · ${formatWordCount(recentMeeting.word_count)}` : ''}
               </div>
             </div>
