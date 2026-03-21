@@ -4584,11 +4584,9 @@ export const MeetingRecorder = ({
       isRecordingRef.current = true;
       // Recording start time already set earlier - don't reset it here
       
-      // ─── Persist session to localStorage for crash recovery ───
-      try {
-        const setupCtx = document.querySelector('[data-meeting-setup]');
-        // We'll persist from the effect below once state settles
-      } catch {}
+      // Session persistence is handled by MeetingSetupBridge effect
+      startHeartbeat();
+      consumeRecovery(); // Dismiss any recovery banner now that we're recording
       startHeartbeat();
       
       // Backup recorder is started later, after audio streams are fully initialised
