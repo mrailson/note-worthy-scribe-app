@@ -467,7 +467,9 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
                       </>
                     )}
                   </>
+                )}
               </div>
+            )}
             )}
 
             {/* Current members list */}
