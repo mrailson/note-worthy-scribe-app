@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, X, Search, BookUser, Building2 } from 'lucide-react';
+import { ArrowLeft, X, Search, BookUser, Building2, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   ATTENDEE_ROLES,
   SPEAKER_COLORS,
