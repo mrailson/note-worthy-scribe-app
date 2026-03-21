@@ -44,8 +44,11 @@ export const ATTENDEE_ROLES = [
   'Chair',
   'Minute Taker',
   'Clinical Lead',
+  'GP Partner',
   'Presenter',
   'Practice Manager',
+  'PCN Manager',
+  'Neighbourhood Manager',
   'Manager',
   'Observer',
   'Guest',
@@ -54,14 +57,17 @@ export const ATTENDEE_ROLES = [
 export type AttendeeRole = typeof ATTENDEE_ROLES[number];
 
 export const ROLE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  'Chair':            { bg: '#FEF3C7', text: '#92400E', border: '#F59E0B' },
-  'Minute Taker':     { bg: '#DBEAFE', text: '#1E40AF', border: '#3B82F6' },
-  'Clinical Lead':    { bg: '#D1FAE5', text: '#065F46', border: '#10B981' },
-  'Presenter':        { bg: '#EDE9FE', text: '#5B21B6', border: '#8B5CF6' },
-  'Practice Manager': { bg: '#FEE2E2', text: '#991B1B', border: '#EF4444' },
-  'Manager':          { bg: '#FFE4E6', text: '#9F1239', border: '#FB7185' },
-  'Observer':         { bg: '#F3F4F6', text: '#374151', border: '#9CA3AF' },
-  'Guest':            { bg: '#FFF7ED', text: '#9A3412', border: '#F97316' },
+  'Chair':                  { bg: '#FEF3C7', text: '#92400E', border: '#F59E0B' },
+  'Minute Taker':           { bg: '#DBEAFE', text: '#1E40AF', border: '#3B82F6' },
+  'Clinical Lead':          { bg: '#D1FAE5', text: '#065F46', border: '#10B981' },
+  'GP Partner':             { bg: '#ECFDF5', text: '#047857', border: '#34D399' },
+  'Presenter':              { bg: '#EDE9FE', text: '#5B21B6', border: '#8B5CF6' },
+  'Practice Manager':       { bg: '#FEE2E2', text: '#991B1B', border: '#EF4444' },
+  'PCN Manager':            { bg: '#E0E7FF', text: '#3730A3', border: '#6366F1' },
+  'Neighbourhood Manager':  { bg: '#F0FDFA', text: '#115E59', border: '#14B8A6' },
+  'Manager':                { bg: '#FFE4E6', text: '#9F1239', border: '#FB7185' },
+  'Observer':               { bg: '#F3F4F6', text: '#374151', border: '#9CA3AF' },
+  'Guest':                  { bg: '#FFF7ED', text: '#9A3412', border: '#F97316' },
 };
 
 export const SPEAKER_COLORS = [
