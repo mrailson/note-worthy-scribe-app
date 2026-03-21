@@ -222,16 +222,7 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
   }, []);
 
   return (
-    <div className="animate-fade-in flex flex-col" style={{ height: 'calc(100vh - 180px)', minHeight: '320px' }}>
-      {/* Title — compact */}
-      <div className="flex-shrink-0 mb-2">
-        <h2 className="text-lg font-extrabold text-foreground tracking-tight">
-          Prepare Your Meeting
-        </h2>
-        <p className="text-sm text-muted-foreground mt-0.5 max-h-screen short-viewport:hidden">
-          Set up attendees and agenda before recording — everything carries through
-        </p>
-      </div>
+    <div className="animate-fade-in flex flex-col" style={{ height: 'calc(100vh - 140px)', minHeight: '320px' }}>
 
       {/* Two-column grid — fills available space, scrolls internally */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0 overflow-hidden">
