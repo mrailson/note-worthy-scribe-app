@@ -47,6 +47,7 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
   open,
   onBack,
   onViewSummary,
+  onShowExport,
 }) => {
   const { user } = useAuth();
   const [meeting, setMeeting] = useState<MeetingDetailData | null>(null);
