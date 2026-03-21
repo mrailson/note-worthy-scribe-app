@@ -122,6 +122,15 @@ export const ConsultationReadyState = ({
             </div>
           </div>
 
+          {/* F2F Location Selector */}
+          {consultationType === 'f2f' && onF2fLocationChange && (
+            <F2FLocationSelector
+              value={f2fLocation}
+              onChange={onF2fLocationChange}
+              practiceName={practiceName}
+            />
+          )}
+
           {/* Patient Consent */}
           {settings.showConsentReminder && (
             <PatientConsentBanner
