@@ -634,6 +634,56 @@ export const MeetingRecorder = ({
   // Continuation state
   const [isContinuationMode, setIsContinuationMode] = useState(false);
   const [continuationMeetingTitle, setContinuationMeetingTitle] = useState<string>('');
+
+  // ─── Persist recording context to localStorage on every relevant change ───
+  // This enables crash recovery by saving attendees, agenda, and session info.
+  // Uses MeetingSetupBridge data via the context ref pattern.
+  const meetingSetupContextRef = useRef<{
+    attendees: any[];
+    agendaItems: any[];
+    activeGroup: any;
+    meetingType: string | null;
+    meetingTitle: string | null;
+  } | null>(null);
+
+  // This effect runs when recording state or key context values change
+  useEffect(() => {
+    if (!isRecording) {
+      return;
+    }
+    const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+    if (!currentMeetingId) return;
+
+    const ctx = meetingSetupContextRef.current;
+    const session: PersistedRecordingSession = {
+      sessionId: currentMeetingId,
+      startedAt: recordingStartTimeRef.current?.toISOString() || new Date().toISOString(),
+      attendees: (ctx?.attendees || []).map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        initials: a.initials || '',
+        role: a.role || '',
+        org: a.org || '',
+        status: a.status || 'present',
+        contact_id: a.contact_id,
+      })),
+      agendaItems: (ctx?.agendaItems || []).map((a: any) => ({ id: a.id, text: a.text })),
+      groupId: ctx?.activeGroup?.id || null,
+      groupName: ctx?.activeGroup?.name || null,
+      meetingFormat: ctx?.meetingType || null,
+      meetingTitle: ctx?.meetingTitle || meetingSettings?.title || null,
+      status: isPaused ? 'paused' : 'recording',
+      lastHeartbeat: new Date().toISOString(),
+    };
+    persistRecordingSession(session);
+  }, [isRecording, isPaused, meetingSettings?.title]);
+
+  // Stop heartbeat when recording ends
+  useEffect(() => {
+    if (!isRecording) {
+      stopHeartbeat();
+    }
+  }, [isRecording]);
   
   // Transcription watchdog for detecting stalled transcription
   // iPhone chunking runs on ~25s windows, so iOS needs much longer thresholds to avoid false alarms.
