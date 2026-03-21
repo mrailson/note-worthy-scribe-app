@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { X, ChevronLeft, ChevronRight, Plus, Loader2, Upload, FileText, ClipboardPaste, MapPin, Video, Users2, RotateCcw } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Plus, Loader2, Upload, FileText, ClipboardPaste, MapPin, Video, Users2, RotateCcw, Trash2 } from 'lucide-react';
 import { useMeetingSetup } from './MeetingSetupContext';
 import { ContextStatusPill } from './ContextStatusPill';
 import { AvatarStack } from './AvatarStack';
@@ -36,7 +36,7 @@ interface PreMeetingSetupProps {
 
 export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecording, onOpenImportModal }) => {
   const {
-    attendees, setAttendees, agendaItems, activeGroup, setActiveGroup,
+    attendees, setAttendees, agendaItems, setAgendaItems, activeGroup, setActiveGroup,
     presentCount, apologiesCount,
     lastUpdate, addAgendaItem, removeAgendaItem,
     toggleAttendeeStatus, loadGroup,
@@ -432,7 +432,17 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
             <span className="text-sm font-extrabold text-foreground">📋 Agenda</span>
             <div className="flex items-center gap-1.5">
               {agendaItems.length > 0 && (
-                <span className="text-xs text-muted-foreground font-semibold">{agendaItems.length} items</span>
+                <>
+                  <span className="text-xs text-muted-foreground font-semibold">{agendaItems.length} items</span>
+                  <button
+                    onClick={() => { setAgendaItems([]); setMeetingType(null); setMeetingLocation(null); setMeetingTitle(null); }}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 transition-all cursor-pointer"
+                    title="Clear all agenda items and extracted details"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    <span className="hidden sm:inline">Clear All</span>
+                  </button>
+                </>
               )}
               <button
                 onClick={() => setShowPasteArea(prev => !prev)}
@@ -558,6 +568,33 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                 </button>
               </div>
             ))}
+
+            {/* Meeting type selector — only shown when not already detected */}
+            {!meetingType && (
+              <div className="mt-3 pt-3 border-t border-border/30">
+                <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider mb-2">
+                  Meeting Format
+                </div>
+                <div className="flex rounded-lg border border-border overflow-hidden">
+                  <button
+                    onClick={() => setMeetingType('face-to-face')}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold transition-all cursor-pointer bg-muted/20 hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-600"
+                  >
+                    <Users2 className="h-3.5 w-3.5" />
+                    Face to Face
+                  </button>
+                  <div className="w-px bg-border" />
+                  <button
+                    onClick={() => setMeetingType('remote')}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold transition-all cursor-pointer bg-muted/20 hover:bg-blue-500/10 text-muted-foreground hover:text-blue-600"
+                  >
+                    <Video className="h-3.5 w-3.5" />
+                    Remote
+                  </button>
+                </div>
+              </div>
+            )}
+
             <Input
               value={agendaInput}
               onChange={e => setAgendaInput(e.target.value)}

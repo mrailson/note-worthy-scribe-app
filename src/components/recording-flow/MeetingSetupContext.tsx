@@ -101,7 +101,7 @@ export const MeetingSetupProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const addAgendaItem = useCallback((text: string) => {
-    setAgendaItems(prev => [...prev, { id: Date.now().toString(), text }]);
+    setAgendaItems(prev => [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, text }]);
     triggerUpdate('agenda');
     if (stage === 'recording') {
       showConfirmation('Agenda item added — AI will use this to segment the transcript');
