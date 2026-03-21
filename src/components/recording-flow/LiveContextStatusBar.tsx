@@ -22,6 +22,7 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
   wordCount = 0,
   transcriptText = '',
 }) => {
+  const isMobile = useIsMobile();
   const {
     attendees, agendaItems, activeGroup,
     presentCount, apologiesCount, absentCount,
@@ -50,33 +51,37 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
           {/* Divider */}
           <div className="w-px h-5 bg-border" />
 
-          {/* Status pills — all in one row */}
+          {/* Status pills — hidden on mobile except Present count */}
           <ContextStatusPill
             icon="👥" label="Present" color="#10B981"
             value={presentCount.toString()}
             pulse={lastUpdate === 'attendance'}
           />
-          {apologiesCount > 0 && (
+          {!isMobile && apologiesCount > 0 && (
             <ContextStatusPill
               icon="📨" label="Apologies" color="#F59E0B"
               value={apologiesCount.toString()}
               pulse={lastUpdate === 'attendance'}
             />
           )}
-          <ContextStatusPill
-            icon="📋" label="Agenda"
-            color={agendaItems.length > 0 ? '#3B82F6' : '#94A3B8'}
-            value={agendaItems.length > 0 ? `${agendaItems.length} items` : 'None'}
-            pulse={lastUpdate === 'agenda'}
-          />
+          {!isMobile && (
+            <ContextStatusPill
+              icon="📋" label="Agenda"
+              color={agendaItems.length > 0 ? '#3B82F6' : '#94A3B8'}
+              value={agendaItems.length > 0 ? `${agendaItems.length} items` : 'None'}
+              pulse={lastUpdate === 'agenda'}
+            />
+          )}
 
-          {/* Duration pill */}
-          <ContextStatusPill
-            icon="⏱" label="Duration" color="#6366F1"
-            value={formatDuration(recordingDuration)}
-          />
+          {/* Duration pill — hide on mobile (already in REC badge) */}
+          {!isMobile && (
+            <ContextStatusPill
+              icon="⏱" label="Duration" color="#6366F1"
+              value={formatDuration(recordingDuration)}
+            />
+          )}
 
-          {/* Live transcript glass panel (replaces plain word count pill) */}
+          {/* Live transcript glass panel */}
           <LiveTranscriptGlassPanel
             isRecording={true}
             wordCount={wordCount}
@@ -84,7 +89,7 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
           />
 
           {/* Avatar stack */}
-          {presentAttendees.length > 0 && (
+          {!isMobile && presentAttendees.length > 0 && (
             <>
               <div className="w-px h-5 bg-border" />
               <AvatarStack
@@ -98,25 +103,27 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Action buttons */}
-          <div className="flex gap-1.5 flex-shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEditContext()}
-              className="text-[11px] font-bold border-amber-500/40 text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 h-7 px-2.5"
-            >
-              ✏️ Edit Context
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onStopRecording}
-              className="text-[11px] font-bold border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive/20 h-7 px-2.5"
-            >
-              ⏹ Stop
-            </Button>
-          </div>
+          {/* Action buttons — hidden on mobile */}
+          {!isMobile && (
+            <div className="flex gap-1.5 flex-shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEditContext()}
+                className="text-[11px] font-bold border-amber-500/40 text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 h-7 px-2.5"
+              >
+                ✏️ Edit Context
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onStopRecording}
+                className="text-[11px] font-bold border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive/20 h-7 px-2.5"
+              >
+                ⏹ Stop
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Confirmation flash */}
@@ -130,30 +137,32 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
         )}
       </Card>
 
-      {/* Compact Quick Action Cards — single row */}
-      <div className="grid grid-cols-3 gap-2">
-        <button
-          onClick={() => onEditContext('attendees')}
-          className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-card transition-all duration-150 cursor-pointer hover:border-amber-500/50 hover:bg-muted/50"
-        >
-          <span className="text-base">👥</span>
-          <span className="text-[11px] font-bold text-foreground">Edit Attendees</span>
-        </button>
-        <button
-          onClick={() => onEditContext('agenda')}
-          className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-card transition-all duration-150 cursor-pointer hover:border-blue-500/50 hover:bg-muted/50"
-        >
-          <span className="text-base">📋</span>
-          <span className="text-[11px] font-bold text-foreground">Add Agenda</span>
-        </button>
-        <button
-          onClick={() => onEditContext('screenshot')}
-          className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-card transition-all duration-150 cursor-pointer hover:border-violet-500/50 hover:bg-muted/50"
-        >
-          <span className="text-base">📸</span>
-          <span className="text-[11px] font-bold text-foreground">Screenshot</span>
-        </button>
-      </div>
+      {/* Quick Action Cards — hidden on mobile */}
+      {!isMobile && (
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => onEditContext('attendees')}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-card transition-all duration-150 cursor-pointer hover:border-amber-500/50 hover:bg-muted/50"
+          >
+            <span className="text-base">👥</span>
+            <span className="text-[11px] font-bold text-foreground">Edit Attendees</span>
+          </button>
+          <button
+            onClick={() => onEditContext('agenda')}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-card transition-all duration-150 cursor-pointer hover:border-blue-500/50 hover:bg-muted/50"
+          >
+            <span className="text-base">📋</span>
+            <span className="text-[11px] font-bold text-foreground">Add Agenda</span>
+          </button>
+          <button
+            onClick={() => onEditContext('screenshot')}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-card transition-all duration-150 cursor-pointer hover:border-violet-500/50 hover:bg-muted/50"
+          >
+            <span className="text-base">📸</span>
+            <span className="text-[11px] font-bold text-foreground">Screenshot</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

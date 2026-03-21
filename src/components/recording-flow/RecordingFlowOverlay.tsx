@@ -5,6 +5,7 @@ import { PreMeetingSetup } from './PreMeetingSetup';
 import { LiveContextStatusBar } from './LiveContextStatusBar';
 import { RecordingCompleteScreen } from './RecordingCompleteScreen';
 import { TabDropdown } from './TabDropdown';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface RecordingFlowOverlayProps {
   isRecording: boolean;
@@ -40,6 +41,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   children,
 }) => {
   const { stage, resetSetup } = useMeetingSetup();
+  const isMobile = useIsMobile();
 
   const handleStartNewMeeting = () => {
     resetSetup();
@@ -65,9 +67,23 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
         </div>
       )}
 
-      {/* Stage 1: Pre-Meeting Setup */}
-      {stage === 'setup' && !isRecording && (
+      {/* Stage 1: Pre-Meeting Setup — skip on mobile, go straight to recording */}
+      {stage === 'setup' && !isRecording && !isMobile && (
         <PreMeetingSetup onStartRecording={onStartRecording} onOpenImportModal={onOpenImportModal} />
+      )}
+      {stage === 'setup' && !isRecording && isMobile && (
+        <div className="flex flex-col items-center gap-4 py-8">
+          <p className="text-sm text-muted-foreground text-center">
+            Tap to start recording. You can add attendees and agenda later.
+          </p>
+          <button
+            onClick={onStartRecording}
+            className="w-20 h-20 rounded-full bg-destructive flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+          >
+            <div className="w-8 h-8 rounded-full bg-destructive-foreground" />
+          </button>
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Start Recording</span>
+        </div>
       )}
 
       {/* Stage 2: Recording */}
