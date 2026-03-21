@@ -98,6 +98,7 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
   const [icon, setIcon] = useState(group?.icon || '📋');
   const [color, setColor] = useState(group?.color || '#3B82F6');
   const [memberSearch, setMemberSearch] = useState('');
+  const [filterOrg, setFilterOrg] = useState('All');
   const [showAddNew, setShowAddNew] = useState(false);
   const [showDetails, setShowDetails] = useState(isNew);
   const [newName, setNewName] = useState('');
@@ -174,6 +175,16 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
   const memberNames = useMemo(
     () => new Set(members.map(member => member.name.trim().toLowerCase())),
     [members]
+  );
+
+  const activeOrgs = useMemo(
+    () => [...new Set(members.map(m => m.org).filter(Boolean))].sort(),
+    [members]
+  );
+
+  const displayedMembers = useMemo(
+    () => filterOrg === 'All' ? members : members.filter(m => m.org === filterOrg),
+    [members, filterOrg]
   );
 
   const filteredContacts = useMemo(() => {
@@ -638,15 +649,39 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
             </div>
           )}
 
+          {/* Organisation filter pills */}
+          {members.length > 0 && activeOrgs.length > 1 && (
+            <div className="flex gap-1.5 flex-wrap mb-1.5 shrink-0">
+              {['All', ...activeOrgs].map(org => (
+                <button
+                  key={org}
+                  onClick={() => setFilterOrg(org)}
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                    filterOrg === org
+                      ? 'bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-900 dark:text-amber-200 dark:border-amber-700'
+                      : 'bg-card border text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {org === 'All' ? `All (${members.length})` : `${org} (${members.filter(m => m.org === org).length})`}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="flex-1 min-h-0 overflow-y-auto ios-scroll pr-2">
             <div className="flex flex-col gap-1.5 pb-2">
-              {members.length === 0 && (
+              {displayedMembers.length === 0 && members.length === 0 && (
                 <div className="py-6 text-center text-xs text-muted-foreground">
                   No members yet — search above or create default members directly.
                 </div>
               )}
+              {displayedMembers.length === 0 && members.length > 0 && (
+                <div className="py-6 text-center text-xs text-muted-foreground">
+                  No members match the selected filter.
+                </div>
+              )}
 
-              {members.map((member, index) => {
+              {displayedMembers.map((member, index) => {
                 const colour = SPEAKER_COLORS[index % SPEAKER_COLORS.length];
                 const isEditableDefault = member.source !== 'contact';
 
