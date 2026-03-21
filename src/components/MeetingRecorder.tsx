@@ -6571,9 +6571,34 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               
   return (
     <MeetingSetupProvider>
-    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }} />
+    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }} contextRef={meetingSetupContextRef} />
     <TooltipProvider delayDuration={300}>
     <div className="space-y-6">
+      {/* Recording Recovery Banner */}
+      {recoveredSession && !isRecording && (
+        <RecordingRecoveryBanner
+          session={recoveredSession}
+          isStale={isRecoveredStale}
+          isDuplicateTab={isRecoveredDuplicate}
+          onResume={() => {
+            // Restore context into MeetingSetupContext and start recording
+            // For now, just discard and let user start fresh
+            // Full resume with audio continuation is a follow-up item
+            consumeRecovery();
+            showToast.info('Session context restored. Press Start Recording to continue.', { section: 'meeting_manager', duration: 4000 });
+          }}
+          onSave={() => {
+            // Save what we have — submit the existing meeting for transcription
+            // The meeting already exists in the database from the interrupted session
+            showToast.info('The interrupted session was already saved to your meeting history.', { section: 'meeting_manager', duration: 5000 });
+            discardRecoveredSession();
+          }}
+          onDiscard={() => {
+            discardRecoveredSession();
+            showToast.info('Previous session discarded.', { section: 'meeting_manager', duration: 2000 });
+          }}
+        />
+      )}
       {/* Continuation Mode Banner */}
       {isContinuationMode && !isRecording && (
         <Card className="border-primary/50 bg-primary/5">
