@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { MobileMeetingList } from "@/components/mobile-meetings/MobileMeetingList";
 import { MobileMeetingDetail } from "@/components/mobile-meetings/MobileMeetingDetail";
+import { MobileExportSheet } from "@/components/mobile-meetings/MobileExportSheet";
 import { SEO } from "@/components/SEO";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
@@ -249,6 +250,8 @@ const MeetingHistory = () => {
   // Mobile detail view state
   const [mobileDetailMeetingId, setMobileDetailMeetingId] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [mobileExportOpen, setMobileExportOpen] = useState(false);
+  const [mobileExportWordCount, setMobileExportWordCount] = useState<number | undefined>();
 
   const openMobileDetail = useCallback((meetingId: string) => {
     setMobileDetailMeetingId(meetingId);
@@ -258,6 +261,11 @@ const MeetingHistory = () => {
   const closeMobileDetail = useCallback(() => {
     setMobileDetailOpen(false);
     setTimeout(() => setMobileDetailMeetingId(null), 300);
+  }, []);
+
+  const openMobileExport = useCallback((wordCount?: number) => {
+    setMobileExportWordCount(wordCount);
+    setMobileExportOpen(true);
   }, []);
 
   // Handle folder assignment - update parent state immediately
@@ -1725,8 +1733,14 @@ const MeetingHistory = () => {
             open={mobileDetailOpen}
             onBack={closeMobileDetail}
             onViewSummary={handleViewMeetingSummary}
+            onShowExport={openMobileExport}
           />
         )}
+        <MobileExportSheet
+          open={mobileExportOpen}
+          onClose={() => setMobileExportOpen(false)}
+          wordCount={mobileExportWordCount}
+        />
         <FullPageNotesModal
           isOpen={fullPageModalOpen}
           onClose={() => { setFullPageModalOpen(false); setModalMeeting(null); setModalNotes(''); }}

@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { ChevronLeft, Download, Share2, FileText, MessageSquare, Users, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { MobileExportSheet } from './MobileExportSheet';
+
 import './mobile-meetings.css';
 
 const AVATAR_COLORS = [
@@ -37,6 +37,7 @@ interface MobileMeetingDetailProps {
   open: boolean;
   onBack: () => void;
   onViewSummary: (meetingId: string) => void;
+  onShowExport?: (wordCount?: number) => void;
 }
 
 type TabId = 'overview' | 'actions' | 'transcript';
@@ -46,11 +47,11 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
   open,
   onBack,
   onViewSummary,
+  onShowExport,
 }) => {
   const { user } = useAuth();
   const [meeting, setMeeting] = useState<MeetingDetailData | null>(null);
   const [tab, setTab] = useState<TabId>('overview');
-  const [showExport, setShowExport] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -138,7 +139,7 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
             <ChevronLeft size={20} /> Back
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="nw-mh-icon-btn" onClick={() => setShowExport(true)}>
+            <button className="nw-mh-icon-btn" onClick={() => onShowExport?.(meeting?.word_count)}>
               <Download size={18} />
             </button>
             <button className="nw-mh-icon-btn" onClick={() => {
@@ -193,7 +194,7 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
               <Users size={22} />
               <span>Attendees</span>
             </button>
-            <button className="nw-mh-quick-action" onClick={() => setShowExport(true)}>
+            <button className="nw-mh-quick-action" onClick={() => onShowExport?.(meeting?.word_count)}>
               <Download size={22} />
               <span>Export</span>
             </button>
@@ -362,12 +363,6 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
       ) : (
         <div className="nw-mh-loading">Meeting not found</div>
       )}
-
-      <MobileExportSheet
-        open={showExport}
-        onClose={() => setShowExport(false)}
-        wordCount={meeting?.word_count}
-      />
     </div>
   );
 };
