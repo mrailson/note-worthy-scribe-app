@@ -301,7 +301,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   return (
     <div className="flex flex-col gap-3 h-full">
       {/* Meeting Groups — Quick Load */}
-      {showGroups && attendees.length <= 4 && groups.length > 0 && (
+      {showGroups && attendees.length <= 4 && (
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -314,50 +314,63 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
               >
                 Manage Groups
               </button>
-              <button
-                onClick={() => setShowGroups(false)}
-                className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Hide
-              </button>
+              {groups.length > 0 && (
+                <button
+                  onClick={() => setShowGroups(false)}
+                  className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Hide
+                </button>
+              )}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {groups.map(group => {
-              const totalMembers = (group.contact_ids?.length || 0) + (group.additional_members?.length || 0);
-              const isLoaded = activeGroupId === group.id;
-              return (
-                <button
-                  key={group.id}
-                  onClick={() => !isLoaded && loadGroup(group)}
-                  disabled={isLoaded}
-                  className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all ${
-                    isLoaded
-                      ? 'opacity-60 cursor-default'
-                      : 'hover:shadow-md hover:-translate-y-0.5 cursor-pointer'
-                  }`}
-                  style={{
-                    borderColor: isLoaded ? group.color : undefined,
-                    background: isLoaded ? `${group.color}08` : undefined,
-                  }}
-                >
-                  <span className="text-lg shrink-0 mt-0.5">{group.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-bold truncate">{group.name}</div>
-                    <div className="text-[11px] text-muted-foreground truncate mt-0.5">
-                      {group.description}
+          {groups.length === 0 ? (
+            <button
+              onClick={() => { setEditingGroup(null); setGroupView('edit'); }}
+              className="w-full p-4 rounded-xl border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 text-center hover:bg-amber-100/50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
+            >
+              <div className="text-lg mb-1">📋</div>
+              <div className="text-xs font-bold text-amber-800 dark:text-amber-200">No groups yet</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">Tap to create your first meeting group preset</div>
+            </button>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {groups.map(group => {
+                const totalMembers = (group.contact_ids?.length || 0) + (group.additional_members?.length || 0);
+                const isLoaded = activeGroupId === group.id;
+                return (
+                  <button
+                    key={group.id}
+                    onClick={() => !isLoaded && loadGroup(group)}
+                    disabled={isLoaded}
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all ${
+                      isLoaded
+                        ? 'opacity-60 cursor-default'
+                        : 'hover:shadow-md hover:-translate-y-0.5 cursor-pointer'
+                    }`}
+                    style={{
+                      borderColor: isLoaded ? group.color : undefined,
+                      background: isLoaded ? `${group.color}08` : undefined,
+                    }}
+                  >
+                    <span className="text-lg shrink-0 mt-0.5">{group.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-bold truncate">{group.name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {group.description}
+                      </div>
+                      <div
+                        className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                        style={{ background: `${group.color}15`, color: group.color }}
+                      >
+                        {isLoaded ? '✓ Loaded' : `${totalMembers} members`}
+                      </div>
                     </div>
-                    <div
-                      className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                      style={{ background: `${group.color}15`, color: group.color }}
-                    >
-                      {isLoaded ? '✓ Loaded' : `${totalMembers} members`}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
