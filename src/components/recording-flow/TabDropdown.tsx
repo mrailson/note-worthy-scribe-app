@@ -16,7 +16,6 @@ interface TabDropdownProps {
 
 const TAB_CONFIG = [
   { value: 'recorder', label: 'Meeting Recorder', shortLabel: 'Recorder', icon: Mic },
-  { value: 'transcript', label: 'Meeting Transcript', shortLabel: 'Transcript', icon: FileText },
   { value: 'history', label: 'My Meeting History', shortLabel: 'History', icon: History },
 ];
 
