@@ -67,6 +67,13 @@ import { SmartphoneRecordingHub } from "@/components/meeting/SmartphoneRecording
 import { MeetingMicrophoneSettings } from "@/components/meeting/MeetingMicrophoneSettings";
 import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscriptImportModal";
 import { LiveImportModal } from "@/components/meeting/import/LiveImportModal";
+import { MeetingSetupProvider, useMeetingSetup } from "@/components/recording-flow/MeetingSetupContext";
+import { StageIndicator } from "@/components/recording-flow/StageIndicator";
+import { PreMeetingSetup } from "@/components/recording-flow/PreMeetingSetup";
+import { LiveContextStatusBar } from "@/components/recording-flow/LiveContextStatusBar";
+import { RecordingCompleteScreen } from "@/components/recording-flow/RecordingCompleteScreen";
+import { MeetingSetupBridge } from "@/components/recording-flow/MeetingSetupBridge";
+import { RecordingFlowOverlay } from "@/components/recording-flow/RecordingFlowOverlay";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
 import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
@@ -6389,6 +6396,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
               
   return (
+    <MeetingSetupProvider>
+    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab) => { if (tab) { /* We could set the tab but LiveImportModal manages its own tab state */ } setAudioImportOpen(true); }} />
     <TooltipProvider delayDuration={300}>
     <div className="space-y-6">
       {/* Continuation Mode Banner */}
@@ -6427,9 +6436,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={(tab) => {
-        if (isRecording && tab !== 'recorder') {
-          return; // Prevent tab switching during recording
-        }
         setActiveTab(tab);
       }} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -6438,7 +6444,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <span className="hidden sm:inline">Meeting Recorder</span>
             <span className="sm:hidden">Record</span>
           </TabsTrigger>
-          <TabsTrigger value="transcript" className="flex items-center gap-2" disabled={isRecording} title={isRecording ? "Stop recording to access this tab" : undefined}>
+          <TabsTrigger value="transcript" className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Transcript</span>
             <span className="sm:hidden">Transcript</span>
@@ -6449,7 +6455,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <span className="hidden sm:inline">Meeting Settings</span>
             <span className="sm:hidden">Settings</span>
           </TabsTrigger> */}
-          <TabsTrigger value="history" className="flex items-center gap-2" disabled={isRecording} title={isRecording ? "Stop recording to access this tab" : undefined}>
+          <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-5 w-5" />
             <span className="hidden sm:inline">My Meeting History</span>
             <span className="sm:hidden">History</span>
@@ -6462,6 +6468,13 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         </TabsList>
         {/* Meeting Recorder Tab - ONLY recording controls */}
         <TabsContent value="recorder" className="space-y-6 mt-6">
+          <RecordingFlowOverlay
+            isRecording={isRecording}
+            onStartRecording={startRecording}
+            onStopRecording={handleStopWithConfirmation}
+            onOpenImportModal={(tab) => setAudioImportOpen(true)}
+            formatDuration={formatDuration}
+          >
           <div className="space-y-4">
             {/* Compact Stats Dashboard */}
             <Card className="bg-gradient-to-br from-background to-muted/30">
@@ -7046,6 +7059,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               </Button>
             </div>
           )}
+          </RecordingFlowOverlay>
         </TabsContent>
 
 
@@ -8043,5 +8057,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       )}
     </div>
     </TooltipProvider>
+    </MeetingSetupProvider>
   );
 };
