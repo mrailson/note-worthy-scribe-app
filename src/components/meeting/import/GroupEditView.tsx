@@ -470,7 +470,6 @@ export const GroupEditView: React.FC<GroupEditViewProps> = ({
                 )}
               </div>
             )}
-            )}
 
             {/* Current members list */}
             <div className="flex flex-col gap-1">
