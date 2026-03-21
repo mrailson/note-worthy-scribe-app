@@ -49,6 +49,11 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Load Notewell directory on mount
+  useEffect(() => {
+    if (!directoryLoaded && !directoryLoading) fetchDirectory();
+  }, [directoryLoaded, directoryLoading, fetchDirectory]);
+
   // Load existing attendees from meeting
   useEffect(() => {
     if (!meetingId || loaded) return;
