@@ -521,17 +521,20 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                   </div>
                 )}
                 {meetingType && MEETING_TYPE_LABELS[meetingType] && (
-                  <div
-                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold"
+                  <button
+                    onClick={() => setMeetingType(null)}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold cursor-pointer hover:opacity-80 transition-opacity group"
                     style={{
                       background: `${MEETING_TYPE_LABELS[meetingType].colour}12`,
                       border: `1px solid ${MEETING_TYPE_LABELS[meetingType].colour}33`,
                       color: MEETING_TYPE_LABELS[meetingType].colour,
                     }}
+                    title="Click to change meeting format"
                   >
                     {MEETING_TYPE_LABELS[meetingType].icon}
                     {MEETING_TYPE_LABELS[meetingType].label}
-                  </div>
+                    <X className="h-2.5 w-2.5 ml-0.5 opacity-50 group-hover:opacity-100" />
+                  </button>
                 )}
                 {meetingLocation && (
                   <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/50 border border-border text-[10px] font-semibold text-foreground/80">
