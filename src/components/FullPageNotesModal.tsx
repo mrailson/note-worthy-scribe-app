@@ -458,7 +458,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setIsRenderingMinutes(false);
     }, 5000);
 
-    const id = requestIdleCallback(() => {
+    const id = _ric(() => {
       clearTimeout(safetyTimeout);
       try {
         console.log('🎨 Rendering minutes for meeting:', meeting?.id, 'length:', notesStyle3.length);
