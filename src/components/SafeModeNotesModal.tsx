@@ -69,6 +69,7 @@ import {
   Pencil,
   Trash2,
   CalendarDays,
+  ChevronDown,
   ChevronRight,
   User,
   Settings2,
