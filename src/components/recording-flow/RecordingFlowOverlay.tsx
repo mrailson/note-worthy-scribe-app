@@ -6,6 +6,8 @@ import { LiveContextStatusBar } from './LiveContextStatusBar';
 import { RecordingCompleteScreen } from './RecordingCompleteScreen';
 import { TabDropdown } from './TabDropdown';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileIdleState } from './mobile/MobileIdleState';
+import { MobileRecordingState } from './mobile/MobileRecordingState';
 
 interface RecordingFlowOverlayProps {
   isRecording: boolean;
@@ -47,12 +49,40 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
     resetSetup();
   };
 
-  // During recording, hide the merged header (status bar replaces it)
+  // On mobile, render the full redesigned mobile UI
+  if (isMobile) {
+    // Idle state
+    if (stage === 'setup' && !isRecording) {
+      return <MobileIdleState onStartRecording={onStartRecording} />;
+    }
+
+    // Recording state
+    if (stage === 'recording' || isRecording) {
+      return (
+        <MobileRecordingState
+          onStopRecording={onStopRecording}
+          wordCount={wordCount ?? 0}
+          transcriptText={transcriptText ?? ''}
+        />
+      );
+    }
+
+    // Done state — reuse existing
+    if (stage === 'done' && !isRecording) {
+      return (
+        <RecordingCompleteScreen
+          formatDuration={formatDuration}
+          onStartNewMeeting={handleStartNewMeeting}
+        />
+      );
+    }
+  }
+
+  // ── Desktop layout (unchanged) ──
   const showMergedHeader = !(stage === 'recording' || isRecording);
 
   return (
     <>
-      {/* Merged header row: Tab dropdown | Title | Stage indicator */}
       {showMergedHeader && (
         <div className="flex items-center gap-3 py-2 px-1 mb-2">
           <TabDropdown
@@ -67,26 +97,10 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
         </div>
       )}
 
-      {/* Stage 1: Pre-Meeting Setup — skip on mobile, go straight to recording */}
-      {stage === 'setup' && !isRecording && !isMobile && (
+      {stage === 'setup' && !isRecording && (
         <PreMeetingSetup onStartRecording={onStartRecording} onOpenImportModal={onOpenImportModal} />
       )}
-      {stage === 'setup' && !isRecording && isMobile && (
-        <div className="flex flex-col items-center gap-4 py-8">
-          <p className="text-sm text-muted-foreground text-center">
-            Tap to start recording. You can add attendees and agenda later.
-          </p>
-          <button
-            onClick={onStartRecording}
-            className="w-20 h-20 rounded-full bg-destructive flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-          >
-            <div className="w-8 h-8 rounded-full bg-destructive-foreground" />
-          </button>
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Start Recording</span>
-        </div>
-      )}
 
-      {/* Stage 2: Recording */}
       {(stage === 'recording' || isRecording) && (
         <>
           <LiveContextStatusBar
@@ -100,7 +114,6 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
         </>
       )}
 
-      {/* Stage 3: Recording Complete */}
       {stage === 'done' && !isRecording && (
         <RecordingCompleteScreen
           formatDuration={formatDuration}
