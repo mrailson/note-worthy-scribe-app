@@ -6473,7 +6473,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             isRecording={isRecording}
             onStartRecording={startRecording}
             onStopRecording={handleStopWithConfirmation}
-            onOpenImportModal={(tab) => setAudioImportOpen(true)}
+            onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }}
             formatDuration={formatDuration}
           >
           <div className="space-y-4">
