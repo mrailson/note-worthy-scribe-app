@@ -671,12 +671,12 @@ export const MeetingRecorder = ({
       groupId: ctx?.activeGroup?.id || null,
       groupName: ctx?.activeGroup?.name || null,
       meetingFormat: ctx?.meetingType || null,
-      meetingTitle: ctx?.meetingTitle || meetingSettings?.title || null,
+      meetingTitle: ctx?.meetingTitle || null,
       status: isPaused ? 'paused' : 'recording',
       lastHeartbeat: new Date().toISOString(),
     };
     persistRecordingSession(session);
-  }, [isRecording, isPaused, meetingSettings?.title]);
+  }, [isRecording, isPaused]);
 
   // Stop heartbeat when recording ends
   useEffect(() => {
