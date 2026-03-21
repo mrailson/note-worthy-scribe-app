@@ -6451,7 +6451,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <span className="hidden sm:inline">Meeting Settings</span>
             <span className="sm:hidden">Settings</span>
           </TabsTrigger> */}
-          <TabsTrigger value="history" className="flex items-center gap-2" disabled={isRecording} title={isRecording ? "Stop recording to access this tab" : undefined}>
+          <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-5 w-5" />
             <span className="hidden sm:inline">My Meeting History</span>
             <span className="sm:hidden">History</span>
