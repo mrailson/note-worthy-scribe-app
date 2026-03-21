@@ -5014,6 +5014,24 @@ export const MeetingRecorder = ({
       transcriptSnippetIntervalRef.current = null;
     }
     
+    // Stop heartbeat interval
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+    
+    // Stop chunk start timeout
+    if (chunkStartTimeoutRef.current) {
+      clearTimeout(chunkStartTimeoutRef.current);
+      chunkStartTimeoutRef.current = null;
+    }
+    
+    // Stop first live notes timeout
+    if (firstLiveNotesTimeoutRef.current) {
+      clearTimeout(firstLiveNotesTimeoutRef.current);
+      firstLiveNotesTimeoutRef.current = null;
+    }
+    
     // Stop microphone stream
     if (micAudioStreamRef.current) {
       micAudioStreamRef.current.getTracks().forEach(track => track.stop());
