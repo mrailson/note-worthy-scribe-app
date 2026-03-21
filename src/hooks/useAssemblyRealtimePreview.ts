@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
 import { detectDevice } from "@/utils/DeviceDetection";
+import { supabase } from "@/integrations/supabase/client";
 
 export type PreviewStatus = 'idle' | 'connecting' | 'connected' | 'recording' | 'reconnecting' | 'error' | 'stopped';
 
