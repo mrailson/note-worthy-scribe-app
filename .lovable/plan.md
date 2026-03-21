@@ -1,34 +1,18 @@
 
 
-# Replace Old Attendee Modal with New LiveImportModal
 
-## Summary
-Replace the old `MeetingAttendeeModal` component with the newer `LiveImportModal` (defaulting to the Attendees tab) in three locations:
-1. **SafeModeNotesModal** - the people icon during live recording
-2. **FullPageNotesModal** - the people icon in the notes view
-3. **MeetingHistoryList** - the "Manage Attendees" button on meeting cards
+# iOS Transcript Safety Net — IMPLEMENTED
 
-## Why
-The new `LiveImportModal` / `MeetingAttendeesTab` system has superior UX: group loading, directory search, individual add/remove, and syncs via `meeting_attendees_json`. The old `MeetingAttendeeModal` uses a different data model (`meeting_attendees` junction table) and lacks the newer features.
+## Changes Made
 
-## Changes
+### 1. Fixed fake "saved" status (MeetingRecorder.tsx)
+When `currentMeetingId` is missing, iOS chunks are now marked as `'failed'` (not `'saved'`). The chunk text is also queued into `sessionStorage('orphanedIOSChunks')` for emergency recovery at stop time.
 
-### 1. SafeModeNotesModal.tsx
-- Replace `MeetingAttendeeModal` import with `LiveImportModal`
-- Swap the rendered `<MeetingAttendeeModal>` for `<LiveImportModal>` with `defaultTab="attendees"` and the meeting ID
-- Keep existing open/close state variables
+### 2. Emergency transcript flush on stop (MeetingRecorder.tsx)
+When the DB has zero chunks at consolidation time, the system now checks all in-memory sources (Whisper memory, AssemblyAI preview, Deepgram preview, orphaned iOS chunks) and picks the longest available transcript. It also persists this emergency transcript back to the DB so it survives.
 
-### 2. FullPageNotesModal.tsx
-- Same swap: replace `MeetingAttendeeModal` import and usage with `LiveImportModal`
-- Pass `defaultTab="attendees"` and `meetingId={meeting.id}`
+### 3. Periodic AssemblyAI backup (useAssemblyRealtimePreview.ts)
+Every 30 seconds while active, the AssemblyAI streaming transcript is flushed to `meetings.assembly_ai_transcript` so there's always a recoverable copy in the database.
 
-### 3. MeetingHistoryList.tsx
-- Same swap: replace `MeetingAttendeeModal` import and usage with `LiveImportModal`
-- Pass `defaultTab="attendees"` and `meetingId={selectedMeetingForAttendees.id}`
-
-### Technical Details
-- All three files currently import from `@/components/MeetingAttendeeModal` — change to `@/components/meeting/import/LiveImportModal`
-- The `LiveImportModal` accepts `{ open, onOpenChange, defaultTab, meetingId }` — map from the existing `isOpen`/`onClose` pattern to `open`/`onOpenChange`
-- The old modal's `meetingTitle` prop is not needed (LiveImportModal doesn't use it)
-- No changes needed to `MeetingAttendeesTab` — it already handles loading/saving attendees by `meetingId`
-
+### 4. iOS audio health gate (MeetingRecorder.tsx)
+10 seconds after starting SimpleIOSTranscriber, a health check verifies that at least one audio blob has been captured. If not, an error toast warns the user about possible microphone failure.
