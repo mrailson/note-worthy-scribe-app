@@ -250,6 +250,8 @@ const MeetingHistory = () => {
   // Mobile detail view state
   const [mobileDetailMeetingId, setMobileDetailMeetingId] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [mobileExportOpen, setMobileExportOpen] = useState(false);
+  const [mobileExportWordCount, setMobileExportWordCount] = useState<number | undefined>();
 
   const openMobileDetail = useCallback((meetingId: string) => {
     setMobileDetailMeetingId(meetingId);
@@ -259,6 +261,11 @@ const MeetingHistory = () => {
   const closeMobileDetail = useCallback(() => {
     setMobileDetailOpen(false);
     setTimeout(() => setMobileDetailMeetingId(null), 300);
+  }, []);
+
+  const openMobileExport = useCallback((wordCount?: number) => {
+    setMobileExportWordCount(wordCount);
+    setMobileExportOpen(true);
   }, []);
 
   // Handle folder assignment - update parent state immediately
