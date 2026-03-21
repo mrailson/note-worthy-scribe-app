@@ -7328,7 +7328,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <TabDropdown activeTab={activeTab} onTabChange={setActiveTab} hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))} />
             <h2 className="flex-1 text-[15px] font-extrabold text-foreground tracking-tight">My Meeting History</h2>
           </div>
-          <div className="flex gap-2">
 
           {/* Compact Stats Pills */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
