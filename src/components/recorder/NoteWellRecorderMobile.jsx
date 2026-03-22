@@ -823,9 +823,6 @@ export default function NoteWellRecorder() {
           });
           // Chain this chunk's text for next chunk's prompt
           if (transcriptData?.text) previousChunkText = transcriptData.text;
-            segments,
-            success: true,
-          });
         }
       }
 
