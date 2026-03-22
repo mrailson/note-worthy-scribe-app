@@ -5712,7 +5712,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         }
         
         // Save AssemblyAI transcript to assembly_transcript_text for SafeNote modal
-        const assemblyTranscript = assemblyPreview.fullTranscript;
+        const assemblyTranscript = capturedAssemblyTranscript;
         if (assemblyTranscript && assemblyTranscript.trim().length > 0) {
           console.log('📝 Saving AssemblyAI transcript:', assemblyTranscript.length, 'chars');
           await supabase
