@@ -537,10 +537,47 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
       }
     }
 
-    // Detect and filter out pure repetitive hallucinations
+    // Detect and clean repeated-phrase hallucinations
     if (finalText && finalText.length > 0) {
+      const collapseRepeatedClauses = (text: string) => {
+        const clauses = text
+          .split(/(?<=[.!?])\s+|,\s+/)
+          .map((part: string) => part.trim())
+          .filter(Boolean);
+
+        if (clauses.length < 4) {
+          return { text, removed: 0 };
+        }
+
+        const normaliseClause = (value: string) =>
+          value
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        const seen = new Set<string>();
+        const deduped: string[] = [];
+        let removed = 0;
+
+        for (const clause of clauses) {
+          const normalised = normaliseClause(clause);
+          if (!normalised) continue;
+
+          if (seen.has(normalised)) {
+            removed += 1;
+            continue;
+          }
+
+          seen.add(normalised);
+          deduped.push(clause);
+        }
+
+        const cleaned = deduped.join(', ').replace(/\s+/g, ' ').trim();
+        return { text: cleaned || text, removed };
+      };
+
       const words = finalText.toLowerCase().split(/\s+/).filter(Boolean);
-      // Content-rich chunks (≥120 words) bypass repetition rejection — rely on downstream dedup
       const isContentRich = words.length >= 120;
 
       const pcnCount = (finalText.match(/\bpcn\b/gi) || []).length;
@@ -556,16 +593,36 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
 
       const phrases = finalText.split(/[,.]/).map(p => p.trim().toLowerCase()).filter(p => p.length > 3);
       let hasPhraseRepetition = false;
+      let phraseUniqueRatio = 1;
       if (phrases.length >= 4) {
         const uniquePhrases = new Set(phrases).size;
-        const phraseUniqueRatio = uniquePhrases / phrases.length;
+        phraseUniqueRatio = uniquePhrases / phrases.length;
         if (phraseUniqueRatio < 0.3) {
           console.log(`🚫 [${requestId}] Detected repeated phrase pattern: ${uniquePhrases}/${phrases.length} unique (${(phraseUniqueRatio * 100).toFixed(0)}%)`);
           hasPhraseRepetition = true;
         }
       }
 
-      if ((isPureRepetition || hasPhraseRepetition) && !isContentRich) {
+      const severePhraseRepetition = phrases.length >= 6 && phraseUniqueRatio < 0.15;
+
+      if (severePhraseRepetition) {
+        const collapsed = collapseRepeatedClauses(finalText);
+        const collapsedWordCount = collapsed.text.split(/\s+/).filter(Boolean).length;
+
+        if (collapsed.removed >= 3 && collapsedWordCount >= 6) {
+          console.log(`🧹 [${requestId}] Collapsed repeated clauses: removed ${collapsed.removed}, words ${words.length} → ${collapsedWordCount}`);
+          finalText = collapsed.text;
+          segments = [];
+          hallucinationDetected = true;
+        } else {
+          console.log(`🚫 [${requestId}] Severe repeated phrase pattern detected (${(phraseUniqueRatio * 100).toFixed(0)}% unique)`);
+          finalText = '';
+          confidence = 0.0;
+          no_speech_prob = Math.max(no_speech_prob, 0.95);
+          segments = [];
+          hallucinationDetected = true;
+        }
+      } else if ((isPureRepetition || hasPhraseRepetition) && !isContentRich) {
         console.log(`🚫 [${requestId}] Detected repetitive hallucination`);
         finalText = '';
         confidence = 0.0;
@@ -580,7 +637,7 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
         segments = [];
         hallucinationDetected = true;
       } else if (isContentRich && (isPureRepetition || isRepetitive || hasPhraseRepetition)) {
-        console.log(`✅ [${requestId}] Content-rich chunk retained (${words.length} words) despite repetition signal — downstream dedup will handle`);
+        console.log(`✅ [${requestId}] Content-rich chunk retained (${words.length} words) with no severe phrase loop`);
       }
     }
 

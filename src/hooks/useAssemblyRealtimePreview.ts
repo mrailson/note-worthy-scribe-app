@@ -86,7 +86,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     return a === b || a.startsWith(b) || b.startsWith(a);
   };
 
-  // Update transcripts - rolling for live preview, full accumulation for tab
+  // Update transcripts - rolling for live preview, with partials surfaced in the main transcript view
   const updateTranscript = useCallback((newText: string, isFinal: boolean) => {
     if (!newText.trim()) return;
 
@@ -96,36 +96,31 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       const now = Date.now();
 
       if (shouldReplaceLastFinal(newText)) {
-        // Replace the last final segment (AssemblyAI often sends a formatted final after a raw final)
         const prevSeg = lastFinalSegmentRef.current;
+        const replaced = replaceTrailingSegment(baseTranscriptRef.current, prevSeg, newText);
 
-        setFullTranscript((prev) => replaceTrailingSegment(prev, prevSeg, newText));
-        baseTranscriptRef.current = replaceTrailingSegment(baseTranscriptRef.current, prevSeg, newText);
-
+        baseTranscriptRef.current = replaced;
+        setFullTranscript(replaced);
         console.log('🔁 Replaced duplicate final segment instead of appending');
       } else {
-        // Append brand new final segment
-        setFullTranscript((prev) => (prev + ' ' + newText).trim());
         baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + newText).trim();
+        setFullTranscript(baseTranscriptRef.current);
       }
 
       lastFinalSegmentRef.current = newText;
       lastFinalAtRef.current = now;
-
-      // Clear partial
       currentPartialRef.current = "";
 
-      // Update live preview with base only (no partial pending)
       const words = baseTranscriptRef.current.split(/\s+/).slice(-MAX_WORDS);
       setLiveTranscript(words.join(' '));
       return;
     }
 
-    // Partial - replace the current partial (don't accumulate partials)
     currentPartialRef.current = newText;
 
-    // Live preview = base + current partial
     const combined = (baseTranscriptRef.current + ' ' + newText).trim();
+    setFullTranscript(combined);
+
     const words = combined.split(/\s+/).slice(-MAX_WORDS);
     setLiveTranscript(words.join(' '));
   }, []);
