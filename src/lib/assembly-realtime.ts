@@ -320,8 +320,8 @@ export class AssemblyRealtimeClient {
         const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
         const data = JSON.parse(raw);
         if (data?.type === "error") { this.cb.onError?.(new Error(data?.error || "AssemblyAI error")); return; }
-        if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
-          const text = String(data?.transcript ?? "").trim();
+        if ('transcript' in data && 'end_of_turn' in data) {
+          const text = String(data.transcript ?? "").trim();
           if (!text) return;
           this.handleTurnMessage(data, text);
           return;
