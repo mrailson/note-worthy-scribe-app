@@ -98,6 +98,7 @@ export class ChunkedRecorder {
 
   get completedChunkCount(): number { return this.allCompletedChunks.length; }
   get currentStatus(): RecorderStatus { return this.status; }
+  get mediaStream(): MediaStream | null { return this.stream; }
 
   private startNewChunk(): void {
     if (!this.stream) return;
