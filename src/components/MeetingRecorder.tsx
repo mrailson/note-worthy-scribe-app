@@ -4717,6 +4717,7 @@ export const MeetingRecorder = ({
         
         // Build keyterms from attendees + agenda for better recognition
         const meetingKeyterms = buildMeetingKeyterms();
+        meetingKeytermsRef.current = meetingKeyterms;
         
         // Start preview with the mixed stream and keyterms
         await assemblyPreview.startPreview(assemblyAudioMixerRef.current.mixedStream, { keyterms: meetingKeyterms });
