@@ -6886,28 +6886,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                             </TooltipContent>
                           </Tooltip>
                            
-                            {/* Show/Hide Live Speech Toggle - Hidden on Edge */}
-                            {!/Edg/.test(navigator.userAgent) && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    onClick={() => setTickerEnabled(prev => { const next = !prev; if (!next) setShowTranscriptSnippet(false); return next; })}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
-                                  >
-                                    {tickerEnabled ? (
-                                      <Eye className="h-4 w-4" />
-                                    ) : (
-                                      <EyeOff className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
                          </div>
                         </div>
                       
