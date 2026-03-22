@@ -1,83 +1,35 @@
 
-Problem confirmed: the first-generation path is not using the same persistence/output contract as the regenerate path, so the UI, email, and Word export are reading the wrong fields after the initial run.
 
-What I found:
-- Initial desktop/mobile creation now calls `generate-meeting-notes-claude`.
-- That function writes the full notes to `meeting_summaries.summary` and QC metadata, but does not populate `meetings.notes_style_3` or reliably drive the downstream “standard minutes” display contract.
-- The meeting history cards and overview tabs still primarily surface `meeting.overview` / `meeting.notes_style_3`, which is why the first result looks like the lightweight overview/plain version.
-- The regenerate action still uses `auto-generate-meeting-notes`, and that path writes `meetings.notes_style_3`, action items, and the richer structure your screenshots show. That is why “regenerate on the same meeting” looks correct.
-- The current email/Word flows also have regressions:
-  - `PostMeetingActionsModal` has been changed to a weaker local docx builder with plain fallback.
-  - `export-docx` is currently returning a `.txt` payload, which is a hard regression if anything still hits that route.
-  - `EmailMeetingMinutesModal` still uses the better professional generator, so the app now has inconsistent Word-generation paths.
+## Add "Mobile Live" / "Mobile Offline" Recording Source to Badge
 
-Implementation plan
+### Problem
+The `RecordingDeviceBadge` currently shows Chrome, Edge, iPhone, etc. based on device info. But:
+1. Mobile recordings never call `attachDeviceInfoToMeeting`, so they often have no device data at all
+2. The recording mode (Live vs Offline) is never persisted, so there's no way to distinguish them
 
-1. Restore one authoritative “standard meeting notes” contract
-- Make initial meeting generation persist the same outputs that regenerate relies on:
-  - save full standard notes into `meeting_summaries.summary`
-  - mirror the same content into `meetings.notes_style_3`
-  - set `meetings.notes_generation_status = 'completed'`
-- Ensure this happens from the initial `generate-meeting-notes-claude` flow so first-run and regenerate produce identical downstream data.
+### Plan
 
-2. Align first-generation UI with the same source as regenerate
-- Update first-load meeting history / modal flows to prefer `meeting_summaries.summary` as the authoritative standard notes source, not `overview`.
-- Keep `overview` only for the meeting overview card/tab, not as a fallback replacement for full minutes.
-- Review these entry points specifically:
-  - `MeetingHistoryList`
-  - `MeetingRecorder` modal/open-summary path
-  - `PostMeetingActionsModal`
-  - any mobile notes sheet paths that still prefer overview before standard notes
+#### Step 1: Persist recording mode in `import_source` field
+The `import_source` column already exists on the `meetings` table. Mobile recordings currently set it to `"mobile_recorder"`. Change this to be more specific:
+- **Live mode**: `"mobile_live"`
+- **Offline mode**: `"mobile_offline"`
 
-3. Keep regenerate on the unified pipeline, not the legacy output mismatch
-- Replace standard-note regeneration calls that still use `auto-generate-meeting-notes` with the same unified `generate-meeting-notes-claude` pipeline plus the same persistence step as initial generation.
-- If `auto-generate-meeting-notes` must remain for compatibility, limit it to fallback/manual recovery only, not the main “standard minutes” path.
-- This removes the current split-brain behavior where first generation and regenerate save different shapes of data.
+Update all meeting insert calls in `NoteWellRecorderMobile.jsx` (there are ~4 insert locations around lines 816, 1014, 1039, 1212) to pass the current `mode` variable into `import_source`.
 
-4. Restore the professional Word document path everywhere
-- Remove the new plain/minimal Word generation as the primary meeting-minutes path.
-- Reuse the existing professional generator consistently for:
-  - post-meeting auto-email
-  - manual “Email meeting minutes”
-  - meeting Word export buttons
-- Keep fallback only as a last resort, but it must still use branded/professional structure rather than raw plain paragraphs.
-- Audit `PostMeetingActionsModal`, `useAutoEmail`, and any export helpers for regressions introduced by the recent attachment changes.
+Also call `attachDeviceInfoToMeeting` after each successful mobile meeting insert so device_browser/device_os/device_type are populated too.
 
-5. Fix the broken DOCX edge export regression
-- `supabase/functions/export-docx/index.ts` currently returns `text/plain` with a `.txt` attachment name.
-- Replace or retire this fallback so no meeting-email/export path can produce a disguised text file instead of a real `.docx`.
-- Confirm all meeting email/export flows send a genuine DOCX MIME type and professional filename.
+#### Step 2: Update `RecordingDeviceBadge` to show recording mode
+Modify `src/components/meeting-history/RecordingDeviceBadge.tsx`:
+- Add `import_source` to the query (`select`)
+- Update `getDeviceLabel` logic:
+  - `import_source === "mobile_live"` → **"Mobile · Live"**
+  - `import_source === "mobile_offline"` → **"Mobile · Offline"**
+  - `import_source === "mobile_recorder"` (legacy) → **"Mobile"** (keeps backward compat)
+  - Existing Chrome/Edge/Safari labels remain unchanged
+- Add distinct badge colours for the two mobile modes (e.g. blue for live, amber for offline)
+- Use `Smartphone` icon for both mobile modes
 
-6. Preserve meeting details in first-run outputs
-- Ensure the initial path passes and persists all authoritative metadata needed for the “correct” output:
-  - title
-  - date/time
-  - location / meeting format
-  - attendees where available
-  - notes config / section settings
-- The DB check on your failing example shows the meeting had null `meeting_format`, null `meeting_location`, and null `participants`, so the first-run prompt had less metadata than the corrected display. I’ll harden the initial save/generation handoff so metadata is populated before notes generation runs, and where unavailable, the UI/export layer will source from the meeting record + attendees tables instead of trusting the note body alone.
+#### Files to edit
+- `src/components/recorder/NoteWellRecorderMobile.jsx` — pass mode into import_source + call attachDeviceInfoToMeeting
+- `src/components/meeting-history/RecordingDeviceBadge.tsx` — read import_source, add mobile mode labels/colours
 
-Technical details
-- Root mismatch:
-  - `generate-meeting-notes-claude` writes `meeting_summaries.summary`
-  - regenerate / legacy path writes `meetings.notes_style_3`
-  - history cards use `meeting.overview`
-  - full notes modal often prefers `notes_style_3`
-- This means the first-run generation can be “correct” in the summaries table but still appear wrong everywhere the user actually sees/exports/emails it.
-- The real fix is not prompt tuning first; it is making every path read/write the same canonical standard-notes fields.
-
-Files likely involved
-- `supabase/functions/generate-meeting-notes-claude/index.ts`
-- `src/components/MeetingRecorder.tsx`
-- `src/components/MeetingHistoryList.tsx`
-- `src/components/PostMeetingActionsModal.tsx`
-- `src/components/EmailMeetingMinutesModal.tsx`
-- `src/hooks/useAutoEmail.ts`
-- `supabase/functions/export-docx/index.ts`
-- possibly `src/components/mobile-meetings/MobileExportSheet.tsx`
-
-Expected result after implementation
-- The very first meeting generation will produce the same rich standard minutes as “Action → Regenerate Meeting”.
-- The meeting history card/modal will show the correct standard notes with the meeting details section.
-- Auto-email and manual email will attach the proper professional Word document again.
-- No plain-text DOCX regressions.
