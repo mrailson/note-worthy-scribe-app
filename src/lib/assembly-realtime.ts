@@ -164,9 +164,9 @@ export class AssemblyRealtimeClient {
           return;
         }
 
-        // v3 turn messages (no `type` field — detect by shape)
-        if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
-          const text = String(data?.transcript ?? "").trim();
+        // Detect v3 messages by shape (no 'type' field, has 'transcript' + 'end_of_turn')
+        if ('transcript' in data && 'end_of_turn' in data) {
+          const text = String(data.transcript ?? "").trim();
           if (!text) return;
           this.handleTurnMessage(data, text);
           return;
