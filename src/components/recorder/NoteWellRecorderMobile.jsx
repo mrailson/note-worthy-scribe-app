@@ -830,6 +830,7 @@ export default function NoteWellRecorder() {
         }
 
         const meetingId = meetingData.id;
+        attachDeviceInfoToMeeting(meetingId);
         await dbPatch(rec.id, { meetingId });
         await refresh();
         setSyncProgress({ phase: "complete", currentChunk: 1, totalChunks: 1, percentComplete: 100, message: `Complete — ${wordCount} words` });
