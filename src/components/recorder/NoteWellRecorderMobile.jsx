@@ -1,0 +1,741 @@
+// NoteWellRecorder.jsx — Standalone offline-capable recorder with Supabase sync
+import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+// ─── IndexedDB helpers ────────────────────────────────────────────────────────
+const DB_NAME = "notewell_recordings_v1";
+const STORE   = "recordings";
+
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE, { keyPath: "id" });
+      }
+    };
+    r.onsuccess  = e => res(e.target.result);
+    r.onerror    = ()  => rej(r.error);
+  });
+}
+const dbOp = async (mode, fn) => {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx    = db.transaction(STORE, mode);
+    const store = tx.objectStore(STORE);
+    const req   = fn(store);
+    if (req) req.onsuccess = () => {};
+    tx.oncomplete = () => res(req?.result);
+    tx.onerror    = () => rej(tx.error);
+  });
+};
+const dbPut    = rec  => dbOp("readwrite", s => s.put(rec));
+const dbDelete = id   => dbOp("readwrite", s => s.delete(id));
+const dbAll    = ()   => new Promise(async (res, rej) => {
+  const db  = await openDB();
+  const tx  = db.transaction(STORE, "readonly");
+  const req = tx.objectStore(STORE).getAll();
+  req.onsuccess = () => res(req.result.sort((a, b) => b.createdAt - a.createdAt));
+  req.onerror   = () => rej(req.error);
+});
+const dbPatch  = async (id, patch) => {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx    = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const get   = store.get(id);
+    get.onsuccess = () => store.put({ ...get.result, ...patch });
+    tx.oncomplete = res;
+    tx.onerror    = () => rej(tx.error);
+  });
+};
+
+// ─── Formatting helpers ───────────────────────────────────────────────────────
+const fmtTime  = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+const fmtDate  = t => new Date(t).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const fmtSize  = b => b < 1048576 ? `${(b/1024).toFixed(0)} KB` : `${(b/1048576).toFixed(1)} MB`;
+
+// ─── Best supported MIME type ─────────────────────────────────────────────────
+const getBestMime = () =>
+  ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"]
+    .find(t => MediaRecorder.isTypeSupported(t)) ?? "";
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function WaveformBars({ active, isPaused }) {
+  const heights = [0.4,0.7,1,0.8,0.5,0.9,0.6,1,0.75,0.45,0.85,0.6,0.95,0.7,0.4];
+  return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,height:40}}>
+      {heights.map((h, i) => (
+        <div key={i} style={{
+          width:3, borderRadius:3,
+          height: active && !isPaused ? `${h*32}px` : "4px",
+          background: active ? "linear-gradient(180deg,#0288d1,#1565c0)" : "#e2e8f0",
+          transition: "height 0.3s ease",
+          animation: active && !isPaused
+            ? `barPulse ${0.6+i*0.07}s ${i*0.04}s ease-in-out infinite alternate` : "none",
+        }}/>
+      ))}
+    </div>
+  );
+}
+
+function ModePill({ mode, disabled, onTap }) {
+  const live = mode === "live";
+  return (
+    <button
+      onClick={disabled ? undefined : onTap}
+      disabled={disabled}
+      style={{
+        display:"inline-flex", alignItems:"center", gap:6,
+        padding:"6px 14px 6px 8px", borderRadius:20,
+        border:`1.5px solid ${live?"rgba(21,101,192,0.25)":"rgba(245,158,11,0.35)"}`,
+        background:live?"rgba(21,101,192,0.07)":"rgba(245,158,11,0.1)",
+        cursor:disabled?"default":"pointer", transition:"all 0.25s",
+        opacity:disabled?0.8:1,
+      }}
+    >
+      <div style={{
+        width:22, height:22, borderRadius:"50%",
+        background:live?"linear-gradient(135deg,#1565c0,#0288d1)":"linear-gradient(135deg,#f59e0b,#f97316)",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        boxShadow:live?"0 2px 6px rgba(21,101,192,0.4)":"0 2px 6px rgba(245,158,11,0.4)",
+      }}>
+        {live
+          ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M1.5 8.5a13 13 0 0 1 21 0M5 12a10 10 0 0 1 14 0M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="1.5" fill="white"/></svg>
+          : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10 10 0 0 1 19 12.55M5 12.55a10 10 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0"/></svg>
+        }
+      </div>
+      <span style={{fontSize:12,fontWeight:600,color:live?"#1565c0":"#d97706"}}>
+        {live ? "Live · Online" : "Offline · Saving locally"}
+      </span>
+      {!disabled && (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+          stroke={live?"#1565c0":"#d97706"} strokeWidth="2.5">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function ModeSheet({ mode, onClose, onSelect }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)",
+        display:"flex",alignItems:"flex-end",zIndex:50}}
+    >
+      <div onClick={e=>e.stopPropagation()} style={{
+        background:"white",borderRadius:"24px 24px 0 0",padding:"20px 18px 44px",width:"100%",
+        maxWidth:480,margin:"0 auto",
+        animation:"slideUp 0.25s ease-out",
+      }}>
+        <div style={{width:40,height:4,background:"#e2e8f0",borderRadius:2,margin:"0 auto 18px"}}/>
+        <div style={{fontSize:16,fontWeight:700,color:"#1a2332",marginBottom:3}}>Recording Mode</div>
+        <div style={{fontSize:13,color:"#64748b",marginBottom:18}}>
+          Auto-detected from your connection. Tap to override.
+        </div>
+
+        {[
+          {
+            id:"live",
+            icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M1.5 8.5a13 13 0 0 1 21 0M5 12a10 10 0 0 1 14 0M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="2" fill="white"/></svg>,
+            bg:"linear-gradient(135deg,#1565c0,#0288d1)",
+            border:"rgba(21,101,192,0.35)",
+            activeBg:"rgba(21,101,192,0.05)",
+            badge:"#1565c0",
+            title:"Live Transcription",
+            desc:"Requires internet. Transcript streams in real-time. Notes generated on stop.",
+            tip:"✓ Best for: boardrooms, clinics, on-site meetings",
+            tipColor:"#16a34a",
+          },
+          {
+            id:"offline",
+            icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>,
+            bg:"linear-gradient(135deg,#f59e0b,#f97316)",
+            border:"rgba(245,158,11,0.4)",
+            activeBg:"rgba(245,158,11,0.05)",
+            badge:"#f59e0b",
+            title:"Offline Recording",
+            desc:"No internet needed. Saves locally, syncs & transcribes when back online.",
+            tip:"✓ Best for: home visits, poor signal, basements",
+            tipColor:"#d97706",
+          },
+        ].map(opt => (
+          <button key={opt.id} onClick={()=>onSelect(opt.id)} style={{
+            width:"100%",padding:"14px 16px",borderRadius:16,marginBottom:10,
+            border:`2px solid ${mode===opt.id?opt.border:"#e2e8f0"}`,
+            background:mode===opt.id?opt.activeBg:"white",
+            cursor:"pointer",textAlign:"left",display:"flex",alignItems:"flex-start",gap:12,
+          }}>
+            <div style={{width:40,height:40,borderRadius:12,background:opt.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              {opt.icon}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:700,color:"#1a2332",display:"flex",alignItems:"center",gap:6}}>
+                {opt.title}
+                {mode===opt.id && (
+                  <span style={{fontSize:10,background:opt.badge,color:"white",padding:"1px 7px",borderRadius:10,fontWeight:700}}>ACTIVE</span>
+                )}
+              </div>
+              <div style={{fontSize:12,color:"#64748b",marginTop:3,lineHeight:1.5}}>{opt.desc}</div>
+              <div style={{fontSize:11,color:opt.tipColor,marginTop:5,fontWeight:500}}>{opt.tip}</div>
+            </div>
+          </button>
+        ))}
+
+        <div style={{background:"#f8fafc",borderRadius:12,padding:"10px 12px",display:"flex",alignItems:"flex-start",gap:8,marginTop:4}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{marginTop:1,flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span style={{fontSize:12,color:"#64748b",lineHeight:1.5}}>
+            Auto-detect will switch modes if your connection changes during a session and retry any failed sync.
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TitleModal({ blob, duration, onSave, onDiscard }) {
+  const [title, setTitle] = useState(
+    `Meeting ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"})} ${new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`
+  );
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",backdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end",zIndex:60}}>
+      <div style={{background:"white",borderRadius:"24px 24px 0 0",padding:"22px 18px 44px",width:"100%",maxWidth:480,margin:"0 auto",animation:"slideUp 0.25s ease-out"}}>
+        <div style={{width:40,height:4,background:"#e2e8f0",borderRadius:2,margin:"0 auto 18px"}}/>
+        <div style={{fontSize:17,fontWeight:700,color:"#1a2332",marginBottom:4}}>Name this recording</div>
+        <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>
+          {fmtTime(duration)} · {blob ? fmtSize(blob.size) : ""}
+        </div>
+        <input
+          autoFocus
+          value={title}
+          onChange={e=>setTitle(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&onSave(title)}
+          style={{width:"100%",padding:"12px 14px",borderRadius:12,border:"1.5px solid rgba(21,101,192,0.3)",
+            fontSize:14,color:"#1a2332",outline:"none",marginBottom:14,background:"#f8fafc",fontFamily:"inherit"}}
+        />
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onDiscard} style={{flex:1,padding:"13px",borderRadius:12,border:"1.5px solid #e2e8f0",background:"white",cursor:"pointer",fontSize:14,fontWeight:600,color:"#64748b",fontFamily:"inherit"}}>
+            Discard
+          </button>
+          <button onClick={()=>onSave(title)} style={{flex:2,padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",fontSize:14,fontWeight:600,color:"white",fontFamily:"inherit",boxShadow:"0 4px 12px rgba(21,101,192,0.4)"}}>
+            Save Recording
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying }) {
+  const colors = {
+    local:       { dot:"#f59e0b", bg:"rgba(245,158,11,0.1)",  border:"rgba(245,158,11,0.25)",  label:"Saved locally — tap Sync" },
+    syncing:     { dot:"#1565c0", bg:"rgba(21,101,192,0.08)", border:"rgba(21,101,192,0.2)",   label:"Uploading…" },
+    synced:      { dot:"#16a34a", bg:"rgba(22,163,74,0.08)",  border:"rgba(22,163,74,0.2)",    label:"Synced" },
+    transcribed: { dot:"#7c3aed", bg:"rgba(124,58,237,0.07)", border:"rgba(124,58,237,0.2)",   label:"Transcribed ✨" },
+    error:       { dot:"#dc2626", bg:"rgba(220,38,38,0.07)",  border:"rgba(220,38,38,0.2)",    label:"Sync failed — retry?" },
+  };
+  const c = colors[rec.status] ?? colors.local;
+
+  return (
+    <div style={{background:"white",borderRadius:16,padding:"12px 14px",marginBottom:8,
+      display:"flex",alignItems:"center",gap:12,
+      boxShadow:"0 2px 8px rgba(21,101,192,0.07)",border:"1px solid rgba(21,101,192,0.09)",
+      animation:"fadeIn 0.2s ease-out",
+    }}>
+      <button onClick={()=>onPlay(rec)} style={{
+        width:38,height:38,borderRadius:"50%",border:"none",cursor:"pointer",flexShrink:0,
+        background:isPlaying?"linear-gradient(135deg,#1565c0,#0288d1)":"#f0f4fb",
+        display:"flex",alignItems:"center",justifyContent:"center",
+        boxShadow:isPlaying?"0 3px 10px rgba(21,101,192,0.4)":"none",transition:"all 0.2s",
+      }}>
+        {isPlaying
+          ? <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          : <svg width="12" height="12" viewBox="0 0 24 24" fill="#1565c0"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        }
+      </button>
+
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:13,fontWeight:600,color:"#1a2332",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+          {rec.title}
+        </div>
+        <div style={{fontSize:11,color:"#94a3b8",marginTop:1}}>
+          {fmtDate(rec.createdAt)} · {fmtTime(rec.duration)} · {fmtSize(rec.size)}
+        </div>
+        <span style={{
+          display:"inline-flex",alignItems:"center",gap:4,marginTop:4,
+          padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,
+          background:c.bg,color:c.dot,border:`1px solid ${c.border}`,
+        }}>
+          <span style={{width:5,height:5,borderRadius:"50%",background:c.dot,
+            animation:rec.status==="syncing"?"pulse 1s infinite":"none"}}/>
+          {c.label}
+        </span>
+      </div>
+
+      <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+        {(rec.status==="local"||rec.status==="error") && (
+          <button onClick={()=>onSync(rec)} style={{
+            padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
+            background:"transparent",cursor:"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
+          }}>↑ Sync</button>
+        )}
+        <button onClick={()=>onDelete(rec.id)} style={{
+          width:28,height:28,borderRadius:8,border:"1px solid rgba(220,38,38,0.2)",
+          background:"rgba(220,38,38,0.05)",cursor:"pointer",
+          display:"flex",alignItems:"center",justifyContent:"center",
+        }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+            <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Toast({ msg, type }) {
+  const bg = { success:"#16a34a", error:"#dc2626", info:"#1565c0" }[type] ?? "#1565c0";
+  const icon = { success:"✓", error:"✕", info:"ℹ" }[type] ?? "";
+  return (
+    <div style={{
+      position:"fixed",bottom:96,left:"50%",transform:"translateX(-50%)",
+      background:bg,color:"white",padding:"10px 18px",borderRadius:20,
+      fontSize:13,fontWeight:500,whiteSpace:"nowrap",
+      boxShadow:"0 4px 16px rgba(0,0,0,0.2)",animation:"fadeIn 0.2s",zIndex:80,
+    }}>
+      {icon} {msg}
+    </div>
+  );
+}
+
+// ─── Helper: ArrayBuffer to base64 ───────────────────────────────────────────
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+export default function NoteWellRecorder() {
+  const [isOnline,      setIsOnline]      = useState(navigator.onLine);
+  const [mode,          setMode]          = useState(navigator.onLine ? "live" : "offline");
+  const [recState,      setRecState]      = useState("idle");   // idle|recording|paused
+  const [elapsed,       setElapsed]       = useState(0);
+  const [recordings,    setRecordings]    = useState([]);
+  const [showSheet,     setShowSheet]     = useState(false);
+  const [titleModal,    setTitleModal]    = useState(null);     // { blob, duration }
+  const [playingId,     setPlayingId]     = useState(null);
+  const [toast,         setToast]         = useState(null);
+
+  const mediaRecRef  = useRef(null);
+  const chunksRef    = useRef([]);
+  const timerRef     = useRef(null);
+  const streamRef    = useRef(null);
+  const audioRef     = useRef(new Audio());
+
+  // ── Connectivity (ping-based for reliable detection) ────────────────────
+  const checkConnectivity = useCallback(async () => {
+    if (!navigator.onLine) {
+      setIsOnline(false);
+      setMode("offline");
+      return;
+    }
+    try {
+      await fetch("https://www.google.com/favicon.ico", {
+        mode: "no-cors", cache: "no-store",
+      });
+      setIsOnline(true);
+      setMode("live");
+    } catch {
+      setIsOnline(false);
+      setMode("offline");
+    }
+  }, []);
+
+  useEffect(() => {
+    checkConnectivity();
+    const interval = setInterval(checkConnectivity, 10000);
+    window.addEventListener("online", checkConnectivity);
+    window.addEventListener("offline", checkConnectivity);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("online", checkConnectivity);
+      window.removeEventListener("offline", checkConnectivity);
+    };
+  }, [checkConnectivity]);
+
+  // ── Load saved recordings ─────────────────────────────────────────────────
+  const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const showToast = (msg, type="info") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // ── Recording controls ────────────────────────────────────────────────────
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
+      const mime = getBestMime();
+      const mr   = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 64000 });
+      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.onstop = () => handleStop(mime);
+      mr.start(1000);
+      mediaRecRef.current = mr;
+      const t0 = Date.now();
+      timerRef.current = setInterval(() => setElapsed(Math.floor((Date.now()-t0)/1000)), 500);
+      setRecState("recording");
+    } catch {
+      showToast("Microphone access denied", "error");
+    }
+  };
+
+  const pauseRecording = () => {
+    mediaRecRef.current?.pause();
+    clearInterval(timerRef.current);
+    setRecState("paused");
+  };
+
+  const resumeRecording = () => {
+    mediaRecRef.current?.resume();
+    const pausedAt = Date.now() - elapsed * 1000;
+    timerRef.current = setInterval(() => setElapsed(Math.floor((Date.now()-pausedAt)/1000)), 500);
+    setRecState("recording");
+  };
+
+  const stopRecording = () => {
+    clearInterval(timerRef.current);
+    mediaRecRef.current?.stop();
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    setRecState("idle");
+  };
+
+  const handleStop = async (mime) => {
+    const blob = new Blob(chunksRef.current, { type: mime });
+    setTitleModal({ blob, duration: elapsed });
+    setElapsed(0);
+  };
+
+  const saveRecording = async (title) => {
+    if (!titleModal?.blob) return;
+    const { blob, duration } = titleModal;
+    const arrayBuffer = await blob.arrayBuffer();
+    const rec = {
+      id:         `rec_${Date.now()}`,
+      title,
+      createdAt:  Date.now(),
+      duration,
+      size:       blob.size,
+      mimeType:   blob.type,
+      audioData:  arrayBuffer,
+      status:     "local",
+    };
+    await dbPut(rec);
+    await refresh();
+    setTitleModal(null);
+    showToast("Recording saved", "success");
+
+    // If online, kick off sync immediately
+    if (isOnline) syncRecording(rec);
+  };
+
+  // ── Sync ──────────────────────────────────────────────────────────────────
+  const syncRecording = async (rec) => {
+    await dbPatch(rec.id, { status: "syncing" });
+    await refresh();
+    try {
+      // ── Step 1: Upload audio to Supabase Storage ──────────────────────────
+      const audioBlob = new Blob([rec.audioData], { type: rec.mimeType });
+      const ext = rec.mimeType?.includes("mp4") ? "m4a" : rec.mimeType?.includes("ogg") ? "ogg" : "webm";
+      const filePath = `${rec.id}.${ext}`;
+
+      const { data, error } = await supabase.storage
+        .from("recordings")
+        .upload(filePath, audioBlob, {
+          contentType: rec.mimeType,
+          upsert: true,
+        });
+      if (error) throw error;
+
+      await dbPatch(rec.id, { status: "synced" });
+      await refresh();
+      showToast("Audio uploaded", "success");
+
+      // ── Step 2: Trigger Whisper transcription via standalone-whisper ───────
+      const base64Audio = arrayBufferToBase64(rec.audioData);
+      const { data: transcriptData, error: fnErr } = await supabase.functions
+        .invoke("standalone-whisper", {
+          body: { audio: base64Audio },
+        });
+      if (fnErr) throw fnErr;
+
+      await dbPatch(rec.id, { status: "transcribed", transcript: transcriptData?.text || "" });
+      await refresh();
+      showToast("Transcription complete", "success");
+    } catch (err) {
+      console.error("Sync error:", err);
+      await dbPatch(rec.id, { status: "error" });
+      await refresh();
+      showToast("Sync failed — will retry when online", "error");
+    }
+  };
+
+  const deleteRecording = async (id) => {
+    if (playingId === id) { audioRef.current.pause(); setPlayingId(null); }
+    await dbDelete(id);
+    await refresh();
+    showToast("Deleted", "info");
+  };
+
+  const playRecording = async (rec) => {
+    if (playingId === rec.id) { audioRef.current.pause(); setPlayingId(null); return; }
+    const blob = new Blob([rec.audioData], { type: rec.mimeType });
+    audioRef.current.src = URL.createObjectURL(blob);
+    audioRef.current.play();
+    setPlayingId(rec.id);
+    audioRef.current.onended = () => setPlayingId(null);
+  };
+
+  const isIdle      = recState === "idle";
+  const isRecording = recState === "recording";
+  const isPaused    = recState === "paused";
+  const active      = isRecording || isPaused;
+  const localCount  = recordings.filter(r => r.status==="local"||r.status==="error").length;
+
+  return (
+    <>
+      <style>{`
+        @keyframes barPulse  { from{transform:scaleY(0.5)} to{transform:scaleY(1)} }
+        @keyframes ripple    { 0%{transform:scale(1);opacity:0.7} 100%{transform:scale(2.4);opacity:0} }
+        @keyframes slideUp   { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+        @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+        @keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:0.4} }
+      `}</style>
+
+      <div style={{
+        width:"100%", maxWidth:480, margin:"0 auto",
+        minHeight:"100dvh", background:"#f0f4f9",
+        overflow:"hidden", display:"flex", flexDirection:"column",
+        position:"relative",
+        fontFamily:"'DM Sans',sans-serif",
+      }}>
+
+        {/* Header */}
+        <div style={{background:"linear-gradient(135deg,#1565c0 0%,#0288d1 100%)",padding:"14px 16px 16px",boxShadow:"0 4px 20px rgba(21,101,192,0.25)"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:38,height:38,borderRadius:11,background:"rgba(255,255,255,0.2)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid rgba(255,255,255,0.3)"}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+              </div>
+              <div>
+                <div style={{color:"white",fontWeight:700,fontSize:17,letterSpacing:-0.3}}>Meeting Recorder</div>
+                <div style={{color:"rgba(255,255,255,0.7)",fontSize:11}}>Notewell AI · Auto transcription</div>
+              </div>
+            </div>
+            {/* Sync all badge */}
+            {localCount > 0 && isOnline && (
+              <button
+                onClick={() => recordings.filter(r=>r.status==="local"||r.status==="error").forEach(syncRecording)}
+                style={{background:"rgba(245,158,11,0.9)",borderRadius:20,padding:"5px 12px",fontSize:11,color:"white",fontWeight:700,border:"none",cursor:"pointer",fontFamily:"inherit"}}
+              >
+                ↑ Sync {localCount}
+              </button>
+            )}
+            {(localCount===0 || !isOnline) && (
+              <button style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.15)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Connectivity status bar */}
+        <div style={{
+          height:36, width:"100%",
+          background: isOnline ? "#dcfce7" : "#fef3c7",
+          display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+          transition:"background 0.3s ease",
+        }}>
+          <span style={{
+            width:8, height:8, borderRadius:"50%",
+            background: isOnline ? "#16a34a" : "#d97706",
+            display:"inline-block",
+            animation: isOnline ? "none" : "pulse 1.5s infinite",
+          }}/>
+          <span style={{
+            fontSize:12, fontWeight:700, letterSpacing:0.2,
+            color: isOnline ? "#16a34a" : "#d97706",
+          }}>
+            {isOnline ? "Live · Connected" : "Offline · Saving locally — will sync on reconnect"}
+          </span>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+
+          {/* Mode pill */}
+          <div style={{padding:"14px 16px 0",display:"flex",justifyContent:"center"}}>
+            <ModePill mode={mode} disabled={active} onTap={()=>setShowSheet(true)} />
+          </div>
+
+          {/* Recorder card */}
+          <div style={{margin:"12px 16px 0",background:"white",borderRadius:22,padding:"22px 20px",boxShadow:"0 4px 16px rgba(21,101,192,0.1)",border:"1px solid rgba(21,101,192,0.1)"}}>
+
+            {/* State heading */}
+            <div style={{textAlign:"center",marginBottom:14}}>
+              {isIdle && (
+                <>
+                  <div style={{fontSize:20,fontWeight:700,color:"#1a2332",letterSpacing:-0.5}}>Ready to record</div>
+                  <div style={{fontSize:13,color:"#64748b",marginTop:4,lineHeight:1.5}}>
+                    {mode==="live" ? "Live transcript will appear as you speak" : "Recording saved locally · transcribed on sync"}
+                  </div>
+                </>
+              )}
+              {active && (
+                <>
+                  <div style={{fontSize:40,fontWeight:700,letterSpacing:-2,fontVariantNumeric:"tabular-nums",
+                    color:isPaused?"#f59e0b":"#1565c0",transition:"color 0.3s"}}>
+                    {fmtTime(elapsed)}
+                  </div>
+                  <div style={{fontSize:12,fontWeight:500,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",gap:5,
+                    color:isPaused?"#f59e0b":"#16a34a"}}>
+                    {isRecording && <span style={{width:7,height:7,borderRadius:"50%",background:"#dc2626",display:"inline-block",animation:"pulse 1s infinite"}}/>}
+                    {isRecording ? (mode==="live"?"Recording · Transcribing live":"Recording · Saving locally") : "⏸ Paused"}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Waveform */}
+            <div style={{background:"#f8fafc",borderRadius:14,padding:"10px 16px",marginBottom:18,border:"1px solid rgba(21,101,192,0.07)",minHeight:60,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <WaveformBars active={isRecording} isPaused={isPaused} />
+            </div>
+
+            {/* Controls */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16}}>
+              {active && (
+                <button onClick={stopRecording} style={{width:52,height:52,borderRadius:"50%",border:"2px solid rgba(220,38,38,0.25)",background:"rgba(220,38,38,0.07)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#dc2626"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+                </button>
+              )}
+
+              <div style={{position:"relative"}}>
+                {isRecording && <>
+                  <div style={{position:"absolute",inset:-8,borderRadius:"50%",border:"2px solid rgba(21,101,192,0.25)",animation:"ripple 1.6s infinite"}}/>
+                  <div style={{position:"absolute",inset:-16,borderRadius:"50%",border:"2px solid rgba(21,101,192,0.12)",animation:"ripple 1.6s 0.5s infinite"}}/>
+                </>}
+                <button
+                  onClick={isIdle ? startRecording : isRecording ? pauseRecording : resumeRecording}
+                  style={{
+                    width:isIdle?90:76, height:isIdle?90:76, borderRadius:"50%", border:"none", cursor:"pointer",
+                    background:isPaused?"linear-gradient(135deg,#f59e0b,#f97316)":"linear-gradient(135deg,#1565c0,#0288d1)",
+                    display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4,
+                    boxShadow:isRecording?"0 6px 28px rgba(21,101,192,0.55)":isPaused?"0 6px 24px rgba(245,158,11,0.5)":"0 6px 20px rgba(21,101,192,0.4)",
+                    transition:"all 0.25s", position:"relative", zIndex:1,
+                  }}
+                >
+                  {isIdle && <>
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                    <span style={{color:"white",fontSize:9,fontWeight:800,letterSpacing:1.5}}>RECORD</span>
+                  </>}
+                  {isRecording && <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>}
+                  {isPaused && <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>}
+                </button>
+              </div>
+
+              {isIdle && <div style={{width:52}}/>}
+
+              {active && (
+                <div style={{width:52,fontSize:10,color:"#94a3b8",textAlign:"center",lineHeight:1.5}}>
+                  {isRecording ? "Tap ⏸\nto pause" : "Tap ▶\nresume"}
+                </div>
+              )}
+            </div>
+
+            {isIdle && (
+              <div style={{textAlign:"center",marginTop:12,fontSize:11,color:"#94a3b8"}}>
+                {mode==="live" ? "📶 Connected · transcript streams in real-time" : "📴 Offline · recording queued for transcription"}
+              </div>
+            )}
+          </div>
+
+          {/* Steps — idle only */}
+          {isIdle && (
+            <div style={{margin:"12px 16px 0",display:"flex",gap:8}}>
+              {[
+                {n:"1",icon:mode==="live"?"🎙️":"🎙️",label:mode==="live"?"Tap record to start":"Record offline"},
+                {n:"2",icon:mode==="live"?"📝":"💾",label:mode==="live"?"Live transcript appears":"Saved to device"},
+                {n:"3",icon:"✨",label:"Notes generated on stop"},
+              ].map(s=>(
+                <div key={s.n} style={{flex:1,background:"white",borderRadius:14,padding:"12px 8px",textAlign:"center",boxShadow:"0 2px 8px rgba(21,101,192,0.07)",border:"1px solid rgba(21,101,192,0.08)"}}>
+                  <div style={{fontSize:20,marginBottom:4}}>{s.icon}</div>
+                  <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(21,101,192,0.1)",color:"#1565c0",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 6px"}}>{s.n}</div>
+                  <div style={{fontSize:11,color:"#475569",lineHeight:1.4,fontWeight:500}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Recordings list */}
+          <div style={{padding:"14px 16px 28px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+              <div style={{fontSize:11,fontWeight:600,color:"#94a3b8",letterSpacing:0.5,textTransform:"uppercase"}}>
+                Recordings ({recordings.length})
+              </div>
+              {localCount > 0 && isOnline && (
+                <button
+                  onClick={()=>recordings.filter(r=>r.status==="local"||r.status==="error").forEach(syncRecording)}
+                  style={{fontSize:11,color:"#1565c0",fontWeight:700,border:"1px solid rgba(21,101,192,0.2)",background:"rgba(21,101,192,0.05)",cursor:"pointer",padding:"3px 10px",borderRadius:8,fontFamily:"inherit"}}
+                >
+                  ↑ Sync all
+                </button>
+              )}
+            </div>
+
+            {recordings.length === 0 ? (
+              <div style={{textAlign:"center",padding:"28px 20px",color:"#94a3b8"}}>
+                <div style={{fontSize:36,marginBottom:8}}>🎙️</div>
+                <div style={{fontSize:14,fontWeight:500}}>No recordings yet</div>
+                <div style={{fontSize:12,marginTop:3}}>Tap the button above to start</div>
+              </div>
+            ) : recordings.map(r => (
+              <RecordingItem key={r.id} rec={r}
+                onDelete={deleteRecording} onSync={syncRecording}
+                onPlay={playRecording} isPlaying={playingId===r.id} />
+            ))}
+          </div>
+        </div>
+
+        {/* Mode sheet */}
+        {showSheet && (
+          <ModeSheet mode={mode} onClose={()=>setShowSheet(false)} onSelect={m=>{setMode(m);setShowSheet(false);}} />
+        )}
+
+        {/* Title modal */}
+        {titleModal && (
+          <TitleModal
+            blob={titleModal.blob} duration={titleModal.duration}
+            onSave={saveRecording}
+            onDiscard={()=>{ setTitleModal(null); setElapsed(0); }}
+          />
+        )}
+
+        {/* Toast */}
+        {toast && <Toast msg={toast.msg} type={toast.type} />}
+      </div>
+    </>
+  );
+}
