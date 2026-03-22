@@ -102,7 +102,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
       <div style={{
         position: 'absolute', top: 'calc(100% + 10px)', left: '50%',
         transform: open ? 'translateX(-50%) translateY(0) scale(1)' : 'translateX(-50%) translateY(-6px) scale(0.98)',
-        width: 420,
+        width: 620,
         background: 'hsl(var(--background) / 0.88)',
         backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
         border: '1px solid hsl(var(--border) / 0.25)', borderRadius: 16,
@@ -152,7 +152,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
 
         {/* Transcript content */}
         <div style={{
-          maxHeight: isDebugMode ? 250 : 120,
+          maxHeight: isDebugMode ? 480 : 140,
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
           padding: '4px 14px 12px',
@@ -176,7 +176,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
                 <EngineSection
                   label="Deepgram"
                   hue="142 71% 45%"
-                  lines={deepgramText ? [deepgramText] : []}
+                  lines={splitIntoLines(deepgramText, 4)}
                   emptyText="Deepgram: awaiting data…"
                 />
               )}
@@ -184,7 +184,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
                 <EngineSection
                   label={whisperChunkNum > 0 ? `Whisper (chunk ${whisperChunkNum})` : 'Whisper'}
                   hue="270 67% 55%"
-                  lines={whisperChunkText ? [whisperChunkText] : []}
+                  lines={splitIntoLines(whisperChunkText, 4)}
                   emptyText="Whisper: recording… (transcribes on sync)"
                 />
               )}
@@ -205,6 +205,25 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
       `}</style>
     </div>
   );
+};
+
+/* ── Helpers ── */
+
+const splitIntoLines = (text: string | undefined, max: number): string[] => {
+  if (!text || !text.trim()) return [];
+  const sentences = text.match(/[^.!?]+[.!?]+[\s]*/g);
+  if (!sentences || sentences.length <= 1) return [text];
+  const lines: string[] = [];
+  let current = '';
+  const perLine = Math.ceil(sentences.length / max);
+  sentences.forEach((s, i) => {
+    current += s;
+    if ((i + 1) % perLine === 0 || i === sentences.length - 1) {
+      lines.push(current.trim());
+      current = '';
+    }
+  });
+  return lines.slice(-max);
 };
 
 /* ── Sub-components ── */
@@ -271,7 +290,8 @@ const EngineSection: React.FC<EngineSectionProps> = ({ label, hue, lines, partia
     {lines.map((line, i) => (
       <div key={`${i}-${line.substring(0, 20)}`} style={{
         fontSize: 12, lineHeight: 1.5, color: 'hsl(var(--foreground) / 0.8)',
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0,
+        display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' as any,
+        overflow: 'hidden', margin: 0,
       }}>
         {line}
       </div>
@@ -280,7 +300,8 @@ const EngineSection: React.FC<EngineSectionProps> = ({ label, hue, lines, partia
       <div style={{
         fontSize: 12, lineHeight: 1.5, color: 'hsl(var(--foreground))',
         opacity: 0.4, fontStyle: 'italic',
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0,
+        display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' as any,
+        overflow: 'hidden', margin: 0,
       }}>
         {partial}
       </div>
