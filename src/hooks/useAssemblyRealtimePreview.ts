@@ -257,8 +257,9 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   ) => {
     const { preserveTranscript = false, keyterms = [] } = options || {};
     
-    if (clientRef.current || isActive) {
-      console.log('🎤 Preview already active, skipping start');
+    // Use ref for sync check to avoid stale closure over isActive state
+    if (clientRef.current || isActiveRef.current) {
+      console.log('🎤 AssemblyAI preview already active, skipping duplicate start');
       return;
     }
 

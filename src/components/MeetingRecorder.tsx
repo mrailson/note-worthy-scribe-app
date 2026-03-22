@@ -4859,8 +4859,12 @@ export const MeetingRecorder = ({
     recordingGenerationRef.current++;
     console.log(`🔒 Recording generation incremented to ${recordingGenerationRef.current} -- stale callbacks will be dropped`);
     
-    // CROSSOVER PREVENTION: Clear real-time transcript buffers immediately
-    // so they don't bleed into the next meeting
+    // CROSSOVER PREVENTION: Capture transcript text BEFORE clearing buffers
+    // so word-count validation uses the real values
+    const capturedAssemblyTranscript = assemblyPreview.fullTranscript || '';
+    const capturedDeepgramTranscript = deepgramPreview.fullTranscript || '';
+    
+    // Now clear real-time transcript buffers so they don't bleed into the next meeting
     assemblyPreview.clearTranscript();
     deepgramPreview.clearTranscript();
     
@@ -4875,9 +4879,9 @@ export const MeetingRecorder = ({
     
     // Check word count before processing.
     // Use the best available transcript so meetings aren't discarded if AssemblyAI is down.
-    const assemblyWords = countWords(assemblyPreview.fullTranscript);
+    const assemblyWords = countWords(capturedAssemblyTranscript);
     const whisperWords = countWords(transcript);
-    const deepgramWords = countWords(deepgramPreview.fullTranscript);
+    const deepgramWords = countWords(capturedDeepgramTranscript);
     let effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords);
     console.log('📊 Meeting word count (client):', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords, deepgram: deepgramWords, serverTriggered: isServerTriggered });
     
