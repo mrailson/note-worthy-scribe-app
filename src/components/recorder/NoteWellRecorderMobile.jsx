@@ -1034,29 +1034,17 @@ export default function NoteWellRecorder() {
       });
       showToast("Meeting created — generating notes…", "success");
 
-      // ── Step 6: Trigger note generation (same pipeline as desktop) ────
-      const storedModel = localStorage.getItem('meeting-regenerate-llm');
-      const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
-      supabase.functions
-        .invoke("auto-generate-meeting-notes", {
-          body: {
-            meetingId,
-            modelOverride,
-            skipQc: true,
-          },
+      // ── Step 6: Trigger note generation (governance-grade pipeline) ────
+      generateNotesForMeeting(meetingId, fullTranscript, rec.title || "Mobile Recording")
+        .then(() => {
+          showToast("Meeting notes generated ✨", "success");
+          triggerPostNoteActions(meetingId, fullTranscript);
         })
-        .then(({ error: genErr }) => {
-          if (genErr) {
-            console.error("Note generation failed:", genErr);
-            showToast("Meeting saved — note generation failed", "error");
-          } else {
-            showToast("Meeting notes generated ✨", "success");
-            // Trigger overview + auto-email after notes complete
-            triggerPostNoteActions(meetingId, fullTranscript);
-          }
-          setSyncProgress(null);
-          refresh();
-        });
+        .catch((err) => {
+          console.error("Note generation failed:", err);
+          showToast("Meeting saved — note generation failed", "error");
+        })
+        .finally(() => { setSyncProgress(null); refresh(); });
     } catch (err) {
       console.error("Sync error:", err);
       await dbPatch(rec.id, { status: "error" });
