@@ -92,6 +92,8 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
             isRecording={true}
             wordCount={wordCount}
             transcriptText={transcriptText}
+            recentFinals={recentFinals}
+            currentPartial={currentPartial}
           />
 
           {/* Avatar stack */}
