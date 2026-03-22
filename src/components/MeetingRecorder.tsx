@@ -6886,26 +6886,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                             </TooltipContent>
                           </Tooltip>
                            
-
-                           {/* Meeting Coach Button - Desktop only */}
-                           {!isIOS && (
-                             <Tooltip>
-                               <TooltipTrigger asChild>
-                                 <Button
-                                   onClick={() => setCoachModalOpen(true)}
-                                   variant="ghost"
-                                   size="sm"
-                                   className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
-                                 >
-                                   <Sparkles className="h-4 w-4" />
-                                 </Button>
-                               </TooltipTrigger>
-                               <TooltipContent side="bottom" align="center" className="z-50">
-                                 <p>Meeting Coach</p>
-                               </TooltipContent>
-                              </Tooltip>
-                            )}
-                            
                             {/* Show/Hide Live Speech Toggle - Hidden on Edge */}
                             {!/Edg/.test(navigator.userAgent) && (
                               <Tooltip>
