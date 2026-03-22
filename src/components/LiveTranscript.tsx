@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { TranscriptCleaner } from "@/utils/TranscriptCleaner";
 import { getActiveMinConfidence, meetsConfidenceThreshold, withDefaultThresholds } from "@/utils/confidenceGating";
 import { mergeLive, type LiveChunk } from "@/utils/liveMerge";
+import { detectHallucination } from "@/utils/whisperNgramHallucinationDetector";
 import { segmentsToPlainText, type Segment } from "@/lib/segmentMerge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
