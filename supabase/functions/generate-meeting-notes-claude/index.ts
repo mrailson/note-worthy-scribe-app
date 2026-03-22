@@ -612,22 +612,62 @@ serve(async (req) => {
     }
     // ── Standard generation path ────────────────────────────────────────
     else {
-      // Fetch expected attendees from DB if not provided in request
+      // Fetch expected attendees and notes_config from DB if not provided in request
       let expectedAttendees: string[] = reqExpectedAttendees || [];
-      if (expectedAttendees.length === 0 && reqMeetingId) {
+      let notesConfig: { length?: string; sections?: Record<string, boolean> } | null = null;
+
+      if (reqMeetingId) {
         try {
           const supabaseUrl = Deno.env.get('SUPABASE_URL');
           const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
           if (supabaseUrl && serviceKey) {
             const sb = createClient(supabaseUrl, serviceKey);
-            const { data: mtg } = await sb.from('meetings').select('expected_attendees').eq('id', reqMeetingId).maybeSingle();
-            if (mtg?.expected_attendees && Array.isArray(mtg.expected_attendees) && mtg.expected_attendees.length > 0) {
+            const { data: mtg } = await sb.from('meetings').select('expected_attendees, notes_config').eq('id', reqMeetingId).maybeSingle();
+            if (mtg?.expected_attendees && Array.isArray(mtg.expected_attendees) && mtg.expected_attendees.length > 0 && expectedAttendees.length === 0) {
               expectedAttendees = mtg.expected_attendees;
               console.log(`👥 Loaded ${expectedAttendees.length} expected attendees from meeting record`);
             }
+            if (mtg?.notes_config && typeof mtg.notes_config === 'object') {
+              notesConfig = mtg.notes_config as any;
+              console.log(`📋 Loaded notes_config: length=${notesConfig?.length}, sections=${JSON.stringify(notesConfig?.sections)}`);
+            }
           }
         } catch (e) {
-          console.warn('⚠️ Could not fetch expected attendees:', e);
+          console.warn('⚠️ Could not fetch meeting config:', e);
+        }
+      }
+
+      // Build notes length instruction
+      let lengthInstruction = '';
+      const notesLength = notesConfig?.length || 'standard';
+      if (notesLength === 'concise') {
+        lengthInstruction = '\n\n## OUTPUT LENGTH\nGenerate concise notes of approximately 800 words. Include only decisions, key actions, and critical outcomes. Omit detailed discussion context.\n';
+      } else if (notesLength === 'detailed') {
+        lengthInstruction = '\n\n## OUTPUT LENGTH\nGenerate detailed meeting notes of approximately 2,500 words. Include full discussion context, speaker attribution where identifiable, and nuanced positions taken by participants.\n';
+      } else {
+        lengthInstruction = '\n\n## OUTPUT LENGTH\nGenerate standard meeting notes of approximately 1,500 words. Include discussion context for each agenda item with balanced detail.\n';
+      }
+
+      // Build section filter instruction
+      let sectionInstruction = '';
+      if (notesConfig?.sections) {
+        const sectionLabels: Record<string, string> = {
+          exec_summary: 'Executive Summary (Discussion Summary overview paragraph)',
+          key_points: 'Key Discussion Points (numbered topic summaries)',
+          decisions: 'Decisions Register (RESOLVED / AGREED / NOTED)',
+          actions: 'Action Log (owner, deadline, status)',
+          open_items: 'Open Items & Risks',
+          attendees: 'Attendees (names and roles)',
+          next_meeting: 'Next Meeting',
+          full_transcript: 'Appendix: Full Transcript',
+        };
+        const enabledSections = Object.entries(notesConfig.sections)
+          .filter(([_, enabled]) => enabled)
+          .map(([key]) => sectionLabels[key])
+          .filter(Boolean);
+
+        if (enabledSections.length > 0 && enabledSections.length < Object.keys(sectionLabels).length) {
+          sectionInstruction = `\n\n## SECTIONS TO INCLUDE\nInclude ONLY the following sections in the output (skip any not listed):\n${enabledSections.map(s => `- ${s}`).join('\n')}\n\nDo NOT include sections that are not in the list above, even if the discussion content would support them.\n`;
         }
       }
 
@@ -642,6 +682,8 @@ serve(async (req) => {
         meetingType,
         practiceContext,
         expectedAttendees,
+        lengthInstruction,
+        sectionInstruction,
       };
 
       if (shouldChunk(processedTranscript)) {
