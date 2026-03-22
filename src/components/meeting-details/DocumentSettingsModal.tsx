@@ -13,13 +13,16 @@ const TYPE_BADGE: Record<string, { bg: string; fg: string }> = {
 };
 
 const PILL_COLOURS: Record<string, { bg: string; fg: string }> = {
-  logo:             { bg: '#E6F1FB', fg: '#0C447C' },
-  footer:           { bg: '#EAF3DE', fg: '#27500A' },
-  meeting_details:  { bg: '#E6F1FB', fg: '#0C447C' },
-  attendees:        { bg: '#FAEEDA', fg: '#633806' },
-  exec_summary:     { bg: '#EEEDFE', fg: '#3C3489' },
-  action_items:     { bg: '#FAEEDA', fg: '#633806' },
-  open_items:       { bg: '#fcebeb', fg: '#A32D2D' },
+  logo:               { bg: '#E6F1FB', fg: '#0C447C' },
+  footer:             { bg: '#EAF3DE', fg: '#27500A' },
+  meeting_details:    { bg: '#E6F1FB', fg: '#0C447C' },
+  attendees:          { bg: '#FAEEDA', fg: '#633806' },
+  exec_summary:       { bg: '#EEEDFE', fg: '#3C3489' },
+  discussion_summary: { bg: '#E6F1FB', fg: '#0C447C' },
+  decisions_register: { bg: '#EAF3DE', fg: '#27500A' },
+  action_items:       { bg: '#FAEEDA', fg: '#633806' },
+  open_items:         { bg: '#fcebeb', fg: '#A32D2D' },
+  next_meeting:       { bg: '#EEEDFE', fg: '#3C3489' },
 };
 
 const TYPE_LABELS: Record<string, string> = {
