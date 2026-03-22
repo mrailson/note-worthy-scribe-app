@@ -21,6 +21,7 @@ interface RecordingFlowOverlayProps {
   transcriptText?: string;
   recentFinals?: string[];
   currentPartial?: string;
+  assemblyFullTranscript?: string;
   deepgramText?: string;
   whisperChunkText?: string;
   whisperChunkNum?: number;
@@ -46,6 +47,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   transcriptText,
   recentFinals = [],
   currentPartial = '',
+  assemblyFullTranscript = '',
   deepgramText = '',
   whisperChunkText = '',
   whisperChunkNum = 0,
@@ -131,6 +133,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             transcriptText={transcriptText}
             recentFinals={recentFinals}
             currentPartial={currentPartial}
+            assemblyFullTranscript={assemblyFullTranscript}
             deepgramText={deepgramText}
             whisperChunkText={whisperChunkText}
             whisperChunkNum={whisperChunkNum}

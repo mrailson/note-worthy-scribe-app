@@ -15,6 +15,7 @@ interface LiveContextStatusBarProps {
   transcriptText?: string;
   recentFinals?: string[];
   currentPartial?: string;
+  assemblyFullTranscript?: string;
   deepgramText?: string;
   whisperChunkText?: string;
   whisperChunkNum?: number;
@@ -28,6 +29,7 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
   transcriptText = '',
   recentFinals = [],
   currentPartial = '',
+  assemblyFullTranscript = '',
   deepgramText = '',
   whisperChunkText = '',
   whisperChunkNum = 0,
@@ -100,6 +102,7 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
             transcriptText={transcriptText}
             recentFinals={recentFinals}
             currentPartial={currentPartial}
+            assemblyFullTranscript={assemblyFullTranscript}
             deepgramText={deepgramText}
             whisperChunkText={whisperChunkText}
             whisperChunkNum={whisperChunkNum}

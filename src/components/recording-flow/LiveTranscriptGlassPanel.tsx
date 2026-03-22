@@ -7,6 +7,7 @@ interface LiveTranscriptGlassPanelProps {
   recentFinals?: string[];
   currentPartial?: string;
   /** Per-engine debug data */
+  assemblyFullTranscript?: string;
   deepgramText?: string;
   whisperChunkText?: string;
   whisperChunkNum?: number;
@@ -29,6 +30,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
   transcriptText,
   recentFinals = [],
   currentPartial = '',
+  assemblyFullTranscript = '',
   deepgramText = '',
   whisperChunkText = '',
   whisperChunkNum = 0,
@@ -55,7 +57,13 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
     });
   }, []);
 
-  const visibleLines = recentFinals.slice(-MAX_VISIBLE_LINES);
+  // Use recentFinals if available, otherwise fall back to splitting assemblyFullTranscript
+  const assemblyFallbackLines = recentFinals.length === 0 && assemblyFullTranscript
+    ? splitIntoLines(assemblyFullTranscript, MAX_VISIBLE_LINES)
+    : [];
+  const visibleLines = recentFinals.length > 0
+    ? recentFinals.slice(-MAX_VISIBLE_LINES)
+    : assemblyFallbackLines;
   const isDebugMode = !activeEngines.has('all');
 
   if (!isRecording) return null;
@@ -168,7 +176,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
                 <EngineSection
                   label="AssemblyAI"
                   hue="217 91% 60%"
-                  lines={visibleLines}
+                  lines={visibleLines.length > 0 ? visibleLines : splitIntoLines(assemblyFullTranscript, 4)}
                   partial={currentPartial}
                 />
               )}

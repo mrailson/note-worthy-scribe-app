@@ -220,14 +220,18 @@ export class AssemblyRealtimeClient {
     this.sending = true;
     this.shouldReconnect = true;
     this.reconnectAttempts = 0;
+
+    // Preserve reconnect flag before clearing it, so we fire the right callback
+    const wasReconnecting = this.isReconnecting;
     this.isReconnecting = false;
 
-    if (this.isReconnecting) {
+    if (wasReconnecting) {
       this.cb.onReconnected?.();
+      console.log("✅ AssemblyRealtimeClient: reconnected and sending audio via AudioWorklet");
     } else {
       this.cb.onOpen?.();
+      console.log("✅ AssemblyRealtimeClient: connected and sending audio via AudioWorklet");
     }
-    console.log("✅ AssemblyRealtimeClient: sending audio via AudioWorklet");
   }
 
   private async attemptReconnect() {
