@@ -448,11 +448,15 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
                     <div style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--nw-text)' }}>
                       {meeting.best_of_all_transcript.slice(0, 500)}
                     </div>
-                    <div style={{
-                      position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
-                      background: 'linear-gradient(transparent, var(--nw-surface))',
-                      display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 8,
-                    }}>
+                    <div
+                      onClick={() => setTab('transcript')}
+                      style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
+                        background: 'linear-gradient(transparent, var(--nw-surface))',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 8,
+                        cursor: 'pointer',
+                      }}
+                    >
                       <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--nw-blue)' }}>
                         View full transcript
                       </span>
