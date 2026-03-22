@@ -7,6 +7,7 @@ interface LiveTranscriptGlassPanelProps {
   recentFinals?: string[];
   currentPartial?: string;
   /** Per-engine debug data */
+  assemblyFullTranscript?: string;
   deepgramText?: string;
   whisperChunkText?: string;
   whisperChunkNum?: number;
