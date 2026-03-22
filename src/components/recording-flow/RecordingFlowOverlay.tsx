@@ -19,6 +19,8 @@ interface RecordingFlowOverlayProps {
   formatDuration: (seconds: number) => string;
   wordCount?: number;
   transcriptText?: string;
+  recentFinals?: string[];
+  currentPartial?: string;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   hasNewMeetings?: boolean;
