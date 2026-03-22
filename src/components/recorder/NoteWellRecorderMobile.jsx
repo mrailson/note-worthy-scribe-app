@@ -330,6 +330,7 @@ export default function NoteWellRecorder() {
   const [titleModal,    setTitleModal]    = useState(null);     // { blob, duration }
   const [playingId,     setPlayingId]     = useState(null);
   const [toast,         setToast]         = useState(null);
+  const [storageWarning, setStorageWarning] = useState(null); // { usedMB, percentUsed }
 
   const mediaRecRef  = useRef(null);
   const chunksRef    = useRef([]);
