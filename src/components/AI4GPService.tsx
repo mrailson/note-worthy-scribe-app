@@ -663,8 +663,8 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         </Tooltip>
                       </TooltipProvider>
                       
-                      {/* Mobile Role Toggle - inline with Ask AI */}
-                      {isMobile && (
+                      {/* Mobile Role Toggle - only show when in active chat (not on welcome screen) */}
+                      {isMobile && messages.length > 0 && (
                         <div className="ml-3">
                           <MobileRoleToggle
                             selectedRole={mobileRole}
