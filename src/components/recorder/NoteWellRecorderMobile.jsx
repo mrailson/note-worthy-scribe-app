@@ -782,9 +782,22 @@ export default function NoteWellRecorder() {
       }
 
       // ── Step 4: Create meeting record ─────────────────────────────────
+      setSyncProgress({
+        phase: "stitching", currentChunk: totalChunks, totalChunks,
+        percentComplete: 92, message: "Creating meeting record…",
+      });
+
       // Re-verify auth before meeting creation (token may have expired during long transcription)
       const { data: { user: freshUser } } = await supabase.auth.getUser();
       const activeUser = freshUser || user;
+      console.log("[ChunkedSync] Creating meeting. activeUser:", activeUser?.id, "transcript length:", fullTranscript.length);
+
+      if (!activeUser?.id) {
+        console.error("[ChunkedSync] No authenticated user for meeting creation");
+        showToast("Session expired — please sign in and sync again", "error");
+        setSyncProgress(null);
+        return;
+      }
 
       const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
       const durationMins = Math.round((rec.duration || 0) / 60);
