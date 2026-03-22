@@ -13,6 +13,8 @@ interface LiveContextStatusBarProps {
   formatDuration: (seconds: number) => string;
   wordCount?: number;
   transcriptText?: string;
+  recentFinals?: string[];
+  currentPartial?: string;
 }
 
 export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
@@ -21,6 +23,8 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
   formatDuration,
   wordCount = 0,
   transcriptText = '',
+  recentFinals = [],
+  currentPartial = '',
 }) => {
   const isMobile = useIsMobile();
   const {

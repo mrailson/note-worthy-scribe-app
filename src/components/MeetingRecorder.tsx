@@ -6773,6 +6773,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             formatDuration={formatDuration}
             wordCount={wordCount}
             transcriptText={assemblyPreview.fullTranscript || deepgramPreview.fullTranscript || transcript}
+            recentFinals={assemblyPreview.recentFinals}
+            currentPartial={assemblyPreview.currentPartial}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))}

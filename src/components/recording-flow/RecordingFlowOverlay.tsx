@@ -123,6 +123,8 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             formatDuration={formatDuration}
             wordCount={wordCount}
             transcriptText={transcriptText}
+            recentFinals={recentFinals}
+            currentPartial={currentPartial}
           />
           {children}
         </>
