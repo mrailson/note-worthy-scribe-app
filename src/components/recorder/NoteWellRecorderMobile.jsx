@@ -431,7 +431,8 @@ export default function NoteWellRecorder() {
     // Check authentication first
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      showToast("Please sign in to sync recordings", "error");
+      showToast("Redirecting to sign in…", "info");
+      navigate("/auth", { state: { returnTo: location.pathname } });
       return;
     }
 
