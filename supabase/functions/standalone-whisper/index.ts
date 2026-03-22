@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -117,6 +118,29 @@ async function preprocessAudioViaTranscode(
   }
 }
 
+// ── Download audio from Supabase Storage ────────────────────────────────────
+
+async function downloadFromStorage(
+  bucket: string,
+  path: string,
+  requestId: string
+): Promise<Uint8Array> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  
+  const supabase = createClient(supabaseUrl, serviceKey);
+  
+  console.log(`📥 [${requestId}] Downloading from storage: ${bucket}/${path}`);
+  
+  const { data, error } = await supabase.storage.from(bucket).download(path);
+  if (error) throw new Error(`Storage download failed: ${error.message}`);
+  if (!data) throw new Error('Storage returned empty data');
+  
+  const bytes = new Uint8Array(await data.arrayBuffer());
+  console.log(`📥 [${requestId}] Downloaded ${bytes.length} bytes from storage`);
+  return bytes;
+}
+
 // ── Main handler ────────────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -130,14 +154,28 @@ serve(async (req) => {
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) throw new Error('OpenAI API key not configured');
 
-    const { audio } = await req.json();
-    if (!audio) throw new Error('No audio data provided');
+    const body = await req.json();
+    const { audio, storagePath, bucket } = body;
+    
+    if (!audio && !storagePath) throw new Error('No audio data or storagePath provided');
 
-    console.log(`📋 [${requestId}] Processing audio chunk, base64 size: ${audio.length}`);
+    let binaryAudio: Uint8Array;
 
-    // Convert base64 to binary
-    const binaryAudio = processBase64Chunks(audio);
+    if (storagePath) {
+      // ── Storage-first path: download from Supabase Storage ──
+      binaryAudio = await downloadFromStorage(bucket || 'recordings', storagePath, requestId);
+    } else {
+      // ── Legacy base64 path (for small files / backward compat) ──
+      console.log(`📋 [${requestId}] Processing audio chunk, base64 size: ${audio.length}`);
+      binaryAudio = processBase64Chunks(audio);
+    }
+
     console.log(`📦 [${requestId}] Binary audio: ${binaryAudio.length} bytes`);
+
+    // Check Whisper 25MB limit
+    if (binaryAudio.length > 25 * 1024 * 1024) {
+      throw new Error(`Audio file too large (${Math.round(binaryAudio.length / (1024 * 1024))}MB). Whisper limit is 25MB.`);
+    }
 
     // Smart format detection from magic bytes
     const format = detectFormat(binaryAudio);
