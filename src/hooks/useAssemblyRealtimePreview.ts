@@ -342,8 +342,6 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     setCurrentPartial("");
     baseTranscriptRef.current = "";
     currentPartialRef.current = "";
-    lastFinalSegmentRef.current = "";
-    lastFinalAtRef.current = 0;
     setError(null);
   }, []);
 
