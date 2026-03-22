@@ -471,7 +471,8 @@ export default function NoteWellRecorder() {
       console.error("Sync error:", err);
       await dbPatch(rec.id, { status: "error" });
       await refresh();
-      showToast("Sync failed — will retry when online", "error");
+      const msg = err?.message || err?.error_description || "Unknown error";
+      showToast(`Sync failed: ${msg}`, "error");
     }
   };
 
