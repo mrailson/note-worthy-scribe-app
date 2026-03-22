@@ -204,8 +204,9 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
       .map(l => l.replace(/\n/g, ' ').trim())
       .filter(l => l.length > 20);
 
-    return { summaryParagraph: summary, keyPoints: points.slice(0, 8) };
-  }, [meeting?.overview]);
+    const maxPoints = (meeting?.duration_minutes && meeting.duration_minutes >= 30) ? 10 : 8;
+    return { summaryParagraph: summary, keyPoints: points.slice(0, maxPoints) };
+  }, [meeting?.overview, meeting?.duration_minutes]);
 
   // Transcript stats
   const transcriptStats = useMemo(() => {
