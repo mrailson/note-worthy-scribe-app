@@ -262,6 +262,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       if (!preserveTranscript) {
         setLiveTranscript("");
         setFullTranscript("");
+        setRecentFinals([]);
+        setCurrentPartial("");
         baseTranscriptRef.current = "";
         currentPartialRef.current = "";
         lastFinalSegmentRef.current = "";
