@@ -84,6 +84,7 @@
   padding: 8px 4px 8px 0;
   min-height: 44px;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* ── Icon button ── */
