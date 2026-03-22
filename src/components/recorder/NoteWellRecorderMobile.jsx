@@ -673,6 +673,52 @@ export default function NoteWellRecorder() {
     if (isOnline) syncRecording(rec);
   };
 
+  // ── Generate notes via governance-grade pipeline ──────────────────────────
+  const generateNotesForMeeting = async (meetingId, transcript, meetingTitle) => {
+    const storedModel = localStorage.getItem('meeting-regenerate-llm');
+    const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
+
+    // 1. Generate title first
+    try {
+      await supabase.functions.invoke("generate-meeting-title", {
+        body: { transcript, currentTitle: meetingTitle, meetingId },
+      });
+    } catch (e) { console.warn("Title generation failed (non-critical):", e); }
+
+    // 2. Generate notes via the governance-grade pipeline
+    const { data: notesResult, error: notesErr } = await supabase.functions.invoke("generate-meeting-notes-claude", {
+      body: { transcript, meetingId, modelOverride, skipQc: true },
+    });
+
+    if (notesErr || !notesResult?.meetingMinutes) {
+      console.error("Note generation failed:", notesErr || "No notes returned");
+      throw new Error(notesErr?.message || "Note generation failed");
+    }
+
+    const generatedNotes = notesResult.meetingMinutes;
+
+    // 3. Save to meeting_summaries
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("meeting_summaries").upsert({
+        meeting_id: meetingId,
+        user_id: user.id,
+        summary: generatedNotes,
+        summary_type: "standard",
+        updated_at: new Date().toISOString(),
+        generation_metadata: { model: notesResult.modelUsed || modelOverride, source: "mobile_recorder" },
+      }, { onConflict: "meeting_id" });
+
+      // Also store as notes_style_3 on the meetings table
+      await supabase.from("meetings").update({
+        notes_style_3: generatedNotes,
+        notes_generation_status: "completed",
+      }).eq("id", meetingId);
+    }
+
+    return generatedNotes;
+  };
+
   // ── Post-note-generation actions (overview + auto-email) ────────────────
   const triggerPostNoteActions = async (meetingId, transcript) => {
     try {
