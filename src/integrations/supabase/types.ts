@@ -6624,6 +6624,7 @@ export type Database = {
           meeting_type: string
           merge_decision_log: Json | null
           mixed_audio_url: string | null
+          notes_config: Json | null
           notes_generation_status: string | null
           notes_style_2: string | null
           notes_style_3: string | null
@@ -6690,6 +6691,7 @@ export type Database = {
           meeting_type?: string
           merge_decision_log?: Json | null
           mixed_audio_url?: string | null
+          notes_config?: Json | null
           notes_generation_status?: string | null
           notes_style_2?: string | null
           notes_style_3?: string | null
@@ -6756,6 +6758,7 @@ export type Database = {
           meeting_type?: string
           merge_decision_log?: Json | null
           mixed_audio_url?: string | null
+          notes_config?: Json | null
           notes_generation_status?: string | null
           notes_style_2?: string | null
           notes_style_3?: string | null
@@ -11422,6 +11425,7 @@ export type Database = {
         Row: {
           action_items_on: boolean | null
           attendees_on: boolean | null
+          audio_mode: string
           exec_summary_on: boolean | null
           footer_on: boolean | null
           id: string
@@ -11429,14 +11433,26 @@ export type Database = {
           logo_position: string | null
           logo_scale: number | null
           meeting_details_on: boolean | null
+          notes_length: string
           open_items_on: boolean | null
+          preferred_mic_device_id: string | null
+          preferred_mic_label: string | null
           priority_column_on: boolean
+          section_actions: boolean
+          section_attendees: boolean
+          section_decisions: boolean
+          section_exec_summary: boolean
+          section_full_transcript: boolean
+          section_key_points: boolean
+          section_next_meeting: boolean
+          section_open_items: boolean
           updated_at: string | null
           user_id: string
         }
         Insert: {
           action_items_on?: boolean | null
           attendees_on?: boolean | null
+          audio_mode?: string
           exec_summary_on?: boolean | null
           footer_on?: boolean | null
           id?: string
@@ -11444,14 +11460,26 @@ export type Database = {
           logo_position?: string | null
           logo_scale?: number | null
           meeting_details_on?: boolean | null
+          notes_length?: string
           open_items_on?: boolean | null
+          preferred_mic_device_id?: string | null
+          preferred_mic_label?: string | null
           priority_column_on?: boolean
+          section_actions?: boolean
+          section_attendees?: boolean
+          section_decisions?: boolean
+          section_exec_summary?: boolean
+          section_full_transcript?: boolean
+          section_key_points?: boolean
+          section_next_meeting?: boolean
+          section_open_items?: boolean
           updated_at?: string | null
           user_id: string
         }
         Update: {
           action_items_on?: boolean | null
           attendees_on?: boolean | null
+          audio_mode?: string
           exec_summary_on?: boolean | null
           footer_on?: boolean | null
           id?: string
@@ -11459,8 +11487,19 @@ export type Database = {
           logo_position?: string | null
           logo_scale?: number | null
           meeting_details_on?: boolean | null
+          notes_length?: string
           open_items_on?: boolean | null
+          preferred_mic_device_id?: string | null
+          preferred_mic_label?: string | null
           priority_column_on?: boolean
+          section_actions?: boolean
+          section_attendees?: boolean
+          section_decisions?: boolean
+          section_exec_summary?: boolean
+          section_full_transcript?: boolean
+          section_key_points?: boolean
+          section_next_meeting?: boolean
+          section_open_items?: boolean
           updated_at?: string | null
           user_id?: string
         }

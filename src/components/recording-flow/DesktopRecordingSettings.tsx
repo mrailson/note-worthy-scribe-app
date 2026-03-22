@@ -1,29 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Settings, X, Mic, Monitor, FileText, List, AlertTriangle, Info } from 'lucide-react';
+import { Settings, Mic, Monitor, FileText, List, AlertTriangle, Info, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { useMeetingPreferences, type SectionKey } from '@/hooks/useMeetingPreferences';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const NOTES_SECTIONS = [
-  { id: 'exec_summary', name: 'Executive summary', desc: 'High-level meeting overview', icon: '📋', default: true },
-  { id: 'key_points', name: 'Key discussion points', desc: 'Numbered topic summaries', icon: '🔑', default: true },
-  { id: 'decisions', name: 'Decisions register', desc: 'RESOLVED / AGREED / NOTED items', icon: '✅', default: true },
-  { id: 'actions', name: 'Action log', desc: 'Owner, deadline, status for each action', icon: '📌', default: true },
-  { id: 'open_items', name: 'Open items & risks', desc: 'Unresolved matters carried forward', icon: '⚠️', default: true },
-  { id: 'attendees', name: 'Attendees', desc: 'Names and roles of participants', icon: '👥', default: true },
-  { id: 'next_meeting', name: 'Next meeting', desc: 'Date, time, and agenda preview', icon: '📅', default: true },
-  { id: 'full_transcript', name: 'Appendix: full transcript', desc: 'Included in the DOCX export', icon: '📄', default: false },
-] as const;
+const NOTES_SECTIONS: { id: SectionKey; name: string; desc: string; icon: string }[] = [
+  { id: 'section_exec_summary', name: 'Executive summary', desc: 'High-level meeting overview', icon: '📋' },
+  { id: 'section_key_points', name: 'Key discussion points', desc: 'Numbered topic summaries', icon: '🔑' },
+  { id: 'section_decisions', name: 'Decisions register', desc: 'RESOLVED / AGREED / NOTED items', icon: '✅' },
+  { id: 'section_actions', name: 'Action log', desc: 'Owner, deadline, status for each action', icon: '📌' },
+  { id: 'section_open_items', name: 'Open items & risks', desc: 'Unresolved matters carried forward', icon: '⚠️' },
+  { id: 'section_attendees', name: 'Attendees', desc: 'Names and roles of participants', icon: '👥' },
+  { id: 'section_next_meeting', name: 'Next meeting', desc: 'Date, time, and agenda preview', icon: '📅' },
+  { id: 'section_full_transcript', name: 'Appendix: full transcript', desc: 'Included in the DOCX export', icon: '📄' },
+];
 
 const NOTES_LENGTHS = [
-  { id: 'concise', label: 'Concise', sub: '~800 words', desc: 'Key decisions and actions only. Best for short stand-ups or brief check-ins.' },
-  { id: 'standard', label: 'Standard', sub: '~1,500 words', desc: 'Balanced coverage with discussion context. Works for most governance meetings.' },
-  { id: 'detailed', label: 'Detailed', sub: '~2,500 words', desc: 'Full discussion capture with speaker attribution. Best for board and audit committees.' },
-] as const;
+  { id: 'concise' as const, label: 'Concise', sub: '~800 words', desc: 'Key decisions and actions only. Best for short stand-ups or brief check-ins.' },
+  { id: 'standard' as const, label: 'Standard', sub: '~1,500 words', desc: 'Balanced coverage with discussion context. Works for most governance meetings.' },
+  { id: 'detailed' as const, label: 'Detailed', sub: '~2,500 words', desc: 'Full discussion capture with speaker attribution. Best for board and audit committees.' },
+];
 
-type NotesLengthId = typeof NOTES_LENGTHS[number]['id'];
 type AudioMode = 'mic_only' | 'mic_system';
 
 // ── Mic Test Hook (real Web Audio API) ─────────────────────────────────────
@@ -68,7 +68,6 @@ function useMicTest(deviceId: string) {
 
       const tick = () => {
         analyser.getByteFrequencyData(dataArray);
-        // RMS-ish level
         let sum = 0;
         for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
         const avg = sum / dataArray.length;
@@ -116,50 +115,19 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
   onOpenChange,
 }) => {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedMic, setSelectedMic] = useState('default');
-  const [audioMode, setAudioMode] = useState<AudioMode>('mic_only');
-  const [notesLength, setNotesLength] = useState<NotesLengthId>('standard');
-  const [sections, setSections] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(NOTES_SECTIONS.map(s => [s.id, s.default]))
-  );
+  const { prefs, loading, setAudioMode, setMicDevice, setNotesLength, toggleSection } = useMeetingPreferences();
+
+  const selectedMic = prefs.preferred_mic_device_id || 'default';
+  const audioMode = prefs.audio_mode;
+  const notesLength = prefs.notes_length;
 
   const mic = useMicTest(selectedMic);
-
-  // Load saved settings from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('nw-recording-settings');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.selectedMic) setSelectedMic(parsed.selectedMic);
-        if (parsed.audioMode) setAudioMode(parsed.audioMode);
-        if (parsed.notesLength) setNotesLength(parsed.notesLength);
-        if (parsed.sections) setSections(parsed.sections);
-      }
-    } catch {}
-  }, []);
-
-  // Save settings on change (debounced)
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
-  useEffect(() => {
-    clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      localStorage.setItem('nw-recording-settings', JSON.stringify({
-        selectedMic,
-        audioMode,
-        notesLength,
-        sections,
-      }));
-    }, 500);
-    return () => clearTimeout(saveTimeoutRef.current);
-  }, [selectedMic, audioMode, notesLength, sections]);
 
   // Enumerate devices
   useEffect(() => {
     if (!open) return;
     const enumerate = async () => {
       try {
-        // Request permission first
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach(t => t.stop());
         const allDevices = await navigator.mediaDevices.enumerateDevices();
@@ -171,11 +139,7 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
     enumerate();
   }, [open]);
 
-  const toggleSection = (id: string) => {
-    setSections(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const enabledCount = Object.values(sections).filter(Boolean).length;
+  const enabledCount = NOTES_SECTIONS.filter(s => prefs[s.id]).length;
   const selectedLengthDesc = NOTES_LENGTHS.find(l => l.id === notesLength)?.desc;
 
   return (
@@ -188,7 +152,16 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
           </SheetTitle>
         </SheetHeader>
 
+        {/* Loading state */}
+        {loading && (
+          <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Loading settings…</span>
+          </div>
+        )}
+
         {/* Scrollable body */}
+        {!loading && (
         <div className="flex-1 overflow-y-auto">
 
           {/* ── Section 1: Audio Input ── */}
@@ -202,7 +175,11 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
             <div className="relative mb-4">
               <select
                 value={selectedMic}
-                onChange={e => { setSelectedMic(e.target.value); mic.stop(); }}
+                onChange={e => {
+                  const dev = devices.find(d => d.deviceId === e.target.value);
+                  setMicDevice(e.target.value, dev?.label || 'System default');
+                  mic.stop();
+                }}
                 className={cn(
                   'w-full appearance-none rounded-lg border border-border bg-card px-3 py-2.5 pr-8',
                   'text-sm text-foreground cursor-pointer',
@@ -262,7 +239,6 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
             </div>
 
             <div className="grid grid-cols-2 gap-2 mb-1">
-              {/* Mic only card */}
               <button
                 onClick={() => setAudioMode('mic_only')}
                 className={cn(
@@ -284,7 +260,6 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
                 </p>
               </button>
 
-              {/* Mic + system card */}
               <button
                 onClick={() => setAudioMode('mic_system')}
                 className={cn(
@@ -304,7 +279,6 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
               </button>
             </div>
 
-            {/* Contextual callout */}
             {audioMode === 'mic_system' && (
               <div className="flex gap-2.5 p-3 rounded-lg mt-3 bg-warning/10 text-warning text-xs leading-relaxed">
                 <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
@@ -385,7 +359,7 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
                     <div
                       className={cn(
                         'w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0',
-                        sections[s.id] ? 'bg-accent' : 'bg-muted'
+                        prefs[s.id] ? 'bg-accent' : 'bg-muted'
                       )}
                     >
                       {s.icon}
@@ -396,7 +370,7 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
                     </div>
                   </div>
                   <Switch
-                    checked={sections[s.id]}
+                    checked={prefs[s.id]}
                     onCheckedChange={() => toggleSection(s.id)}
                   />
                 </div>
@@ -404,22 +378,8 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
             </div>
           </div>
         </div>
+        )}
       </SheetContent>
     </Sheet>
   );
 };
-
-// ── Export helper to read settings ──────────────────────────────────────────
-
-export function getRecordingSettings() {
-  try {
-    const saved = localStorage.getItem('nw-recording-settings');
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return {
-    selectedMic: 'default',
-    audioMode: 'mic_only',
-    notesLength: 'standard',
-    sections: Object.fromEntries(NOTES_SECTIONS.map(s => [s.id, s.default])),
-  };
-}

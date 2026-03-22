@@ -85,6 +85,7 @@ import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
 
+import { useMeetingPreferences } from "@/hooks/useMeetingPreferences";
 import { useRecordingHealthMonitor } from "@/hooks/useRecordingHealthMonitor";
 import { useBackupRecorder } from "@/hooks/useBackupRecorder";
 import { BackupIndicator } from "@/components/offline/BackupIndicator";
@@ -429,8 +430,17 @@ export const MeetingRecorder = ({
   const [firstTranscriptionReceived, setFirstTranscriptionReceived] = useState(false);
   const transcriptSnippetIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Recording mode state - defaults to mic-only
+  // Recording mode state - defaults to mic-only, synced from persisted preferences
+  const meetingPrefs = useMeetingPreferences();
   const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-and-system'>('mic-only');
+
+  // Sync recording mode from persisted preferences on load
+  useEffect(() => {
+    if (!meetingPrefs.loading) {
+      const mode = meetingPrefs.prefs.audio_mode === 'mic_system' ? 'mic-and-system' : 'mic-only';
+      setRecordingMode(mode);
+    }
+  }, [meetingPrefs.loading, meetingPrefs.prefs.audio_mode]);
   
   
   // Pause/Mute state
@@ -4498,6 +4508,7 @@ export const MeetingRecorder = ({
             practice_id: meetingSettings.practiceId || null,
             meeting_format: meetingSettings.format || 'teams',
             expected_attendees: attendeesList.length > 0 ? attendeesList : null,
+            notes_config: meetingPrefs.getNotesConfig(),
           };
 
           const { data: savedMeeting, error: saveError } = await supabase
