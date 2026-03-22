@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, Monitor, Tablet } from "lucide-react";
+import { Smartphone, Monitor, Tablet, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface RecordingDeviceBadgeProps {
@@ -11,9 +11,17 @@ interface DeviceData {
   device_browser: string | null;
   device_os: string | null;
   device_type: string | null;
+  import_source: string | null;
 }
 
 const getDeviceLabel = (device: DeviceData): string | null => {
+  const source = device.import_source?.toLowerCase() || '';
+
+  // Mobile recording modes take priority
+  if (source === 'mobile_live') return 'Mobile · Live';
+  if (source === 'mobile_offline') return 'Mobile · Offline';
+  if (source === 'mobile_recorder') return 'Mobile';
+
   const os = device.device_os?.toLowerCase() || '';
   const browser = device.device_browser?.toLowerCase() || '';
 
@@ -28,6 +36,12 @@ const getDeviceLabel = (device: DeviceData): string | null => {
 };
 
 const getDeviceIcon = (device: DeviceData) => {
+  const source = device.import_source?.toLowerCase() || '';
+
+  if (source === 'mobile_live') return <Wifi className="h-3 w-3" />;
+  if (source === 'mobile_offline') return <WifiOff className="h-3 w-3" />;
+  if (source === 'mobile_recorder') return <Smartphone className="h-3 w-3" />;
+
   const os = device.device_os?.toLowerCase() || '';
   const type = device.device_type?.toLowerCase() || '';
 
@@ -41,6 +55,12 @@ const getDeviceIcon = (device: DeviceData) => {
 };
 
 const getBadgeColour = (device: DeviceData): string => {
+  const source = device.import_source?.toLowerCase() || '';
+
+  if (source === 'mobile_live') return 'bg-blue-600 hover:bg-blue-600 text-white';
+  if (source === 'mobile_offline') return 'bg-amber-600 hover:bg-amber-600 text-white';
+  if (source === 'mobile_recorder') return 'bg-purple-600 hover:bg-purple-600 text-white';
+
   const os = device.device_os?.toLowerCase() || '';
   const browser = device.device_browser?.toLowerCase() || '';
 
@@ -58,10 +78,10 @@ export const RecordingDeviceBadge = ({ meetingId }: RecordingDeviceBadgeProps) =
     const fetch = async () => {
       const { data } = await supabase
         .from('meetings')
-        .select('device_browser, device_os, device_type')
+        .select('device_browser, device_os, device_type, import_source')
         .eq('id', meetingId)
         .single();
-      if (data?.device_browser || data?.device_os || data?.device_type) {
+      if (data?.device_browser || data?.device_os || data?.device_type || data?.import_source) {
         setDevice(data as DeviceData);
       }
     };

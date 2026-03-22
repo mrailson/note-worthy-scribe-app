@@ -1230,6 +1230,7 @@ export default function NoteWellRecorder() {
       }
 
       console.log("[LegacySync] Meeting created:", meetingData?.id);
+      attachDeviceInfoToMeeting(meetingData.id);
 
       await supabase.from("meeting_transcription_chunks").insert({
         meeting_id: meetingData.id, user_id: activeUser.id, session_id: sessionId,
