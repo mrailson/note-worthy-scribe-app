@@ -212,8 +212,8 @@ function SettingsSheet({ onClose, bitrate, onBitrateChange }) {
   return (
     <div
       onClick={onClose}
-      style={{position:"absolute",inset:0,background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)",
-        display:"flex",alignItems:"center",justifyContent:"center",zIndex:50}}
+      style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)",
+        display:"flex",alignItems:"center",justifyContent:"center",zIndex:9998}}
     >
       <div onClick={e=>e.stopPropagation()} style={{
         background:"white",borderRadius:24,padding:"20px 18px 28px",width:"calc(100% - 32px)",maxWidth:400,
