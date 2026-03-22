@@ -761,8 +761,8 @@ export default function NoteWellRecorder() {
         console.error("Meeting creation failed:", meetingErr);
         console.error("Meeting creation error details:", JSON.stringify(meetingErr));
         // Retry once after re-checking auth
-        const { data: { user: freshUser } } = await supabase.auth.getUser();
-        if (freshUser) {
+        const { data: { user: retryUser } } = await supabase.auth.getUser();
+        if (retryUser) {
           const { data: retryData, error: retryErr } = await supabase
             .from("meetings")
             .insert({
