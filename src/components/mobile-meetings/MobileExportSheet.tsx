@@ -206,6 +206,16 @@ export const MobileExportSheet: React.FC<MobileExportSheetProps> = ({
           </div>
         </button>
 
+        <button className="nw-mh-sheet-option" onClick={handleEmailNotes} disabled={isSending}>
+          <div className="nw-mh-sheet-option-icon" style={{ background: 'hsl(var(--accent))' }}>
+            {isSending ? <Loader2 size={20} className="animate-spin" style={{ color: 'hsl(var(--accent-foreground))' }} /> : <Mail size={20} style={{ color: 'hsl(var(--accent-foreground))' }} />}
+          </div>
+          <div>
+            <div>{isSending ? 'Sending…' : 'Email notes to me'}</div>
+            <div className="nw-mh-sheet-option-detail">Send notes with Word attachment to your email</div>
+          </div>
+        </button>
+
         <button className="nw-mh-sheet-option" onClick={handleExportTranscript}>
           <div className="nw-mh-sheet-option-icon" style={{ background: 'var(--nw-green-light)' }}>
             <List size={20} color="var(--nw-green)" />
