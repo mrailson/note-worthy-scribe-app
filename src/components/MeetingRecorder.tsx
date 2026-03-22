@@ -4691,8 +4691,11 @@ export const MeetingRecorder = ({
           console.log('🎤 Reusing existing audio mixer for AssemblyAI (unified pipeline)');
         }
         
-        // Start preview with the mixed stream
-        await assemblyPreview.startPreview(assemblyAudioMixerRef.current.mixedStream);
+        // Build keyterms from attendees + agenda for better recognition
+        const meetingKeyterms = buildMeetingKeyterms();
+        
+        // Start preview with the mixed stream and keyterms
+        await assemblyPreview.startPreview(assemblyAudioMixerRef.current.mixedStream, { keyterms: meetingKeyterms });
         console.log('✅ AssemblyAI real-time preview started');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to start (Whisper will continue):', assemblyError);
