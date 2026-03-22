@@ -5,6 +5,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { buildWhisperPrompt } from './whisperPromptBuilder';
 import { AudioChunk } from './ChunkedRecorder';
 
 export interface TranscriptionProgress {
