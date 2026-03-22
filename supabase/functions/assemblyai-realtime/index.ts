@@ -175,6 +175,11 @@ Deno.serve(async (req: Request) => {
           audioFrames += 1;
           audioBytes += bytes;
 
+          // First-frame diagnostic
+          if (audioFrames === 1) {
+            console.log(`🔍 First audio frame to AssemblyAI: ${bytes} bytes, type: ${event.data.constructor.name}`);
+          }
+
           const now = Date.now();
           if (now - lastAudioLogAt >= 5000) {
             console.log(`📡 Audio streaming: ${audioFrames} frame(s), ${(audioBytes / 1024).toFixed(1)} KB in last 5s`);
