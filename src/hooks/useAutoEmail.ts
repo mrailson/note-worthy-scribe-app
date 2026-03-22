@@ -101,7 +101,22 @@ export function useAutoEmail() {
           };
         }
       } catch (docError) {
-        console.warn('Word document generation failed:', docError);
+        console.error('Word document generation failed:', docError);
+        toast({
+          title: "Attachment Failed",
+          description: "Could not generate the Word document attachment. Email not sent.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      if (!wordAttachment) {
+        toast({
+          title: "Attachment Required",
+          description: "Word document attachment is required but could not be generated.",
+          variant: "destructive"
+        });
+        return false;
       }
 
       // Convert content to email-safe HTML
