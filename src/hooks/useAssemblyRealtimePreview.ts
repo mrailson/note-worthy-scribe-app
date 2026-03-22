@@ -46,56 +46,10 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   const partialFallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track the base text (all confirmed finals) and current partial separately.
-  // NOTE: AssemblyAI v3 can emit *two* final turns for the same utterance
-  // (e.g. raw + formatted), so we also track the last final segment to replace
-  // rather than append when that happens.
   const baseTranscriptRef = useRef<string>("");
   const currentPartialRef = useRef<string>("");
-  const lastFinalSegmentRef = useRef<string>("");
-  const lastFinalAtRef = useRef<number>(0);
 
-  const normalise = (t: string) =>
-    t
-      .toLowerCase()
-      // remove punctuation/case differences so we can detect duplicate finals
-      .replace(/[^\p{L}\p{N}\s]+/gu, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-  const replaceTrailingSegment = (full: string, oldSeg: string, newSeg: string) => {
-    const t = full.trim();
-    const oldT = oldSeg.trim();
-    const newT = newSeg.trim();
-
-    if (!oldT) return (t + ' ' + newT).trim();
-    if (t === oldT) return newT;
-
-    if (t.endsWith(' ' + oldT)) {
-      return (t.slice(0, -(oldT.length + 1)) + ' ' + newT).trim();
-    }
-
-    if (t.endsWith(oldT)) {
-      return (t.slice(0, -oldT.length) + newT).trim();
-    }
-
-    return (t + ' ' + newT).trim();
-  };
-
-  const shouldReplaceLastFinal = (newText: string) => {
-    const last = lastFinalSegmentRef.current;
-    if (!last) return false;
-
-    const withinWindow = Date.now() - lastFinalAtRef.current < 2000;
-    if (!withinWindow) return false;
-
-    const a = normalise(last);
-    const b = normalise(newText);
-    if (!a || !b) return false;
-
-    return a === b || a.startsWith(b) || b.startsWith(a);
-  };
-
-  // Update transcripts - rolling for live preview, with partials surfaced in the main transcript view
+  // Update transcripts — partials REPLACE preview, finals ALWAYS APPEND
   const updateTranscript = useCallback((newText: string, isFinal: boolean) => {
     if (!newText.trim()) return;
 
@@ -104,31 +58,15 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     if (isFinal) {
       // Clear the partial fallback timer since we got a proper final
       if (partialFallbackTimerRef.current) { clearTimeout(partialFallbackTimerRef.current); partialFallbackTimerRef.current = null; }
-      const now = Date.now();
 
-      if (shouldReplaceLastFinal(newText)) {
-        const prevSeg = lastFinalSegmentRef.current;
-        const replaced = replaceTrailingSegment(baseTranscriptRef.current, prevSeg, newText);
+      // ALWAYS append — never replace previous finals
+      baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + newText).trim();
+      setFullTranscript(baseTranscriptRef.current);
 
-        baseTranscriptRef.current = replaced;
-        setFullTranscript(replaced);
-        // Replace last entry in recentFinals
-        setRecentFinals(prev => {
-          const updated = [...prev];
-          if (updated.length > 0) updated[updated.length - 1] = newText;
-          else updated.push(newText);
-          return updated.slice(-MAX_RECENT_FINALS);
-        });
-        console.log('🔁 Replaced duplicate final segment instead of appending');
-      } else {
-        baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + newText).trim();
-        setFullTranscript(baseTranscriptRef.current);
-        // Add to rolling buffer of recent finals
-        setRecentFinals(prev => [...prev, newText].slice(-MAX_RECENT_FINALS));
-      }
+      // Add to rolling buffer of recent finals
+      setRecentFinals(prev => [...prev, newText].slice(-MAX_RECENT_FINALS));
 
-      lastFinalSegmentRef.current = newText;
-      lastFinalAtRef.current = now;
+      // Clear partial preview
       currentPartialRef.current = "";
       setCurrentPartial("");
 
@@ -137,12 +75,11 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       return;
     }
 
+    // PARTIAL: replace preview string (not appended to transcript)
     currentPartialRef.current = newText;
     setCurrentPartial(newText);
 
-    // NOTE: Turn-based commit logic (turn_order tracking + 30s absolute timer)
-    // is now handled inside AssemblyRealtimeClient itself, so no fallback timer here.
-
+    // Show combined view for live display
     const combined = (baseTranscriptRef.current + ' ' + newText).trim();
     setFullTranscript(combined);
 
