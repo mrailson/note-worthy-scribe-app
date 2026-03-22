@@ -60,12 +60,7 @@ export class AssemblyRealtimeClient {
   private audioFramesSent = 0;
   private lastDiagLogTime = 0;
 
-  // Turn-order tracking — commit previous turn when turn_order changes
-  private currentTurnOrder: number = -1;
-  private currentTurnText: string = "";
-  private turnStartTime: number = 0;
-  private turnCommitTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly TURN_COMMIT_TIMEOUT_MS = 30000;
+  // Diagnostic counters only (turn-order tracking removed — end_of_turn is the sole commit signal)
 
   constructor(private cb: Callbacks = {}) {}
 
