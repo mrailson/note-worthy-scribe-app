@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Header } from "@/components/Header";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
