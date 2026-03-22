@@ -1171,7 +1171,7 @@ export default function NoteWellRecorder() {
 
             {/* Waveform */}
             <div style={{background:"#f8fafc",borderRadius:14,padding:"10px 16px",marginBottom:18,border:"1px solid rgba(21,101,192,0.07)",minHeight:60,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <WaveformBars active={isRecording} isPaused={isPaused} />
+              <WaveformBars active={isRecording} isPaused={isPaused} stream={activeStream} />
             </div>
 
             {/* Controls */}
