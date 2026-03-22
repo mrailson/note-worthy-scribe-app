@@ -522,36 +522,17 @@ export default function NoteWellRecorder() {
         {/* App header with hamburger menu */}
         <Header />
 
-        {/* Header */}
-        <div style={{background:"linear-gradient(135deg,#1565c0 0%,#0288d1 100%)",padding:"14px 16px 16px",boxShadow:"0 4px 20px rgba(21,101,192,0.25)"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:38,height:38,borderRadius:11,background:"rgba(255,255,255,0.2)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid rgba(255,255,255,0.3)"}}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
-              </div>
-              <div>
-                <div style={{color:"white",fontWeight:700,fontSize:17,letterSpacing:-0.3}}>Meeting Recorder</div>
-                <div style={{color:"rgba(255,255,255,0.7)",fontSize:11}}>Notewell AI · Auto transcription</div>
-              </div>
-            </div>
-            {/* Sync all badge */}
-            {localCount > 0 && isOnline && (
-              <button
-                onClick={() => recordings.filter(r=>r.status==="local"||r.status==="error").forEach(syncRecording)}
-                style={{background:"rgba(245,158,11,0.9)",borderRadius:20,padding:"5px 12px",fontSize:11,color:"white",fontWeight:700,border:"none",cursor:"pointer",fontFamily:"inherit"}}
-              >
-                ↑ Sync {localCount}
-              </button>
-            )}
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              {localCount > 0 || !isOnline ? null : (
-                <button onClick={()=>navigate("/meetings")} style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.15)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} title="My Meetings">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                </button>
-              )}
-            </div>
+        {/* Sync badge (shown inline when needed) */}
+        {localCount > 0 && isOnline && (
+          <div style={{padding:"8px 16px 0",display:"flex",justifyContent:"center"}}>
+            <button
+              onClick={() => recordings.filter(r=>r.status==="local"||r.status==="error").forEach(syncRecording)}
+              style={{background:"rgba(245,158,11,0.9)",borderRadius:20,padding:"5px 12px",fontSize:11,color:"white",fontWeight:700,border:"none",cursor:"pointer",fontFamily:"inherit"}}
+            >
+              ↑ Sync {localCount}
+            </button>
           </div>
-        </div>
+        )}
 
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
@@ -562,7 +543,9 @@ export default function NoteWellRecorder() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
             <ModePill mode={mode} disabled={active} onTap={()=>setShowSheet(true)} />
-            <div style={{width:36,height:36}} />
+            <button onClick={()=>navigate("/meetings")} style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(21,101,192,0.15)",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}} title="My Meetings">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </button>
           </div>
 
           {/* Offline banner */}
