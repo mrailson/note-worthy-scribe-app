@@ -29,6 +29,8 @@ const MAX_RECONNECT_DELAY = 30000; // 30 seconds
 export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn => {
   const [liveTranscript, setLiveTranscript] = useState<string>("");
   const [fullTranscript, setFullTranscript] = useState<string>("");
+  const [recentFinals, setRecentFinals] = useState<string[]>([]);
+  const [currentPartial, setCurrentPartial] = useState<string>("");
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
