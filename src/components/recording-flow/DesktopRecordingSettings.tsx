@@ -275,7 +275,7 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
                 <div className="flex items-center gap-1.5 text-[13px] font-semibold mb-1">
                   <Mic className="h-3.5 w-3.5" />
                   Mic only
-                  <span className="inline-flex px-1.5 py-px rounded text-[10px] font-bold uppercase tracking-wide bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
+                  <span className="inline-flex px-1.5 py-px rounded text-[10px] font-bold uppercase tracking-wide bg-success/10 text-success">
                     Default
                   </span>
                 </div>
