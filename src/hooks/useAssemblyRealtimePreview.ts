@@ -12,7 +12,7 @@ interface UseAssemblyRealtimePreviewReturn {
   isActive: boolean;
   error: string | null;
   reconnectAttempts: number;
-  startPreview: (externalStream?: MediaStream, options?: { preserveTranscript?: boolean }) => Promise<void>;
+  startPreview: (externalStream?: MediaStream, options?: { preserveTranscript?: boolean; keyterms?: string[] }) => Promise<void>;
   stopPreview: () => void;
   clearTranscript: () => void;
 }
@@ -225,9 +225,9 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
 
   const startPreview = useCallback(async (
     externalStream?: MediaStream,
-    options?: { preserveTranscript?: boolean }
+    options?: { preserveTranscript?: boolean; keyterms?: string[] }
   ) => {
-    const { preserveTranscript = false } = options || {};
+    const { preserveTranscript = false, keyterms = [] } = options || {};
     
     if (clientRef.current || isActive) {
       console.log('🎤 Preview already active, skipping start');
@@ -316,6 +316,12 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
           setReconnectAttempts(0);
         }
       });
+
+      // Set keyterms before starting
+      if (keyterms.length > 0) {
+        clientRef.current.setKeyterms(keyterms);
+        console.log(`🔑 AssemblyAI: ${keyterms.length} keyterms configured`);
+      }
 
       await clientRef.current.start(externalStream);
       console.log('🎤 AssemblyAI client started successfully');

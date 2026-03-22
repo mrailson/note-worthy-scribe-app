@@ -749,6 +749,29 @@ export const MeetingRecorder = ({
   // AssemblyAI real-time preview hook (runs alongside Whisper)
   const assemblyPreview = useAssemblyRealtimePreview();
 
+  // Build keyterms from meeting context for AssemblyAI recognition
+  const buildMeetingKeyterms = useCallback((): string[] => {
+    const NHS_BASE = [
+      'NHS', 'ICB', 'PCN', 'CQC', 'KPMG', 'NHSE', 'NICE', 'BMA',
+      'indemnity', 'reinsurance', 'deductible', 'safeguarding',
+    ];
+    const ctx = meetingSetupContextRef.current;
+    const attendeeNames = (ctx?.attendees || [])
+      .map((a: any) => a?.name?.trim())
+      .filter(Boolean);
+    const agendaTerms = (ctx?.agendaItems || [])
+      .map((a: any) => a?.text?.trim())
+      .filter(Boolean)
+      .flatMap((t: string) => {
+        // Extract key phrases from agenda items (split on common delimiters)
+        const parts = t.split(/[,;–—/]/).map(p => p.trim()).filter(p => p.length > 1 && p.length <= 50);
+        return parts.length > 0 ? parts : [t.substring(0, 50)];
+      });
+    return [...NHS_BASE, ...attendeeNames, ...agendaTerms]
+      .filter(t => t.length > 0 && t.length <= 50)
+      .slice(0, 100);
+  }, []);
+
   // Deepgram real-time preview hook (runs alongside Whisper and AssemblyAI)
   const deepgramPreview = useDeepgramRealtimePreview();
 
@@ -4691,8 +4714,11 @@ export const MeetingRecorder = ({
           console.log('🎤 Reusing existing audio mixer for AssemblyAI (unified pipeline)');
         }
         
-        // Start preview with the mixed stream
-        await assemblyPreview.startPreview(assemblyAudioMixerRef.current.mixedStream);
+        // Build keyterms from attendees + agenda for better recognition
+        const meetingKeyterms = buildMeetingKeyterms();
+        
+        // Start preview with the mixed stream and keyterms
+        await assemblyPreview.startPreview(assemblyAudioMixerRef.current.mixedStream, { keyterms: meetingKeyterms });
         console.log('✅ AssemblyAI real-time preview started');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to start (Whisper will continue):', assemblyError);
