@@ -1046,7 +1046,7 @@ export default function NoteWellRecorder() {
               end_time: new Date().toISOString(),
               duration_minutes: durationMins,
               word_count: wordCount,
-              import_source: "mobile_recorder",
+              import_source: mode === "live" ? "mobile_live" : "mobile_offline",
               whisper_transcript_text: fullTranscript,
               primary_transcript_source: "whisper",
             })
