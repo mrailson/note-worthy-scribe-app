@@ -155,7 +155,11 @@ serve(async (req) => {
     if (!openAIApiKey) throw new Error('OpenAI API key not configured');
 
     const body = await req.json();
-    const { audio, storagePath, bucket } = body;
+    const { audio, storagePath, bucket, responseFormat, prompt: whisperPrompt } = body;
+    
+    // Validate response format — default to 'json' for backward compat
+    const validFormats = ['json', 'verbose_json', 'text', 'srt', 'vtt'];
+    const resolvedFormat = validFormats.includes(responseFormat) ? responseFormat : 'json';
     
     if (!audio && !storagePath) throw new Error('No audio data or storagePath provided');
 
@@ -187,7 +191,7 @@ serve(async (req) => {
     const forwardMime = preprocessed.preprocessed ? preprocessed.mimeType : format.mimeType;
     const forwardExt = preprocessed.preprocessed ? preprocessed.extension : format.extension;
 
-    console.log(`📡 [${requestId}] Forwarding to OpenAI: ${preprocessed.bytes.length}B as ${forwardMime} (.${forwardExt}), preprocessed=${preprocessed.preprocessed}`);
+    console.log(`📡 [${requestId}] Forwarding to OpenAI: ${preprocessed.bytes.length}B as ${forwardMime} (.${forwardExt}), preprocessed=${preprocessed.preprocessed}, format=${resolvedFormat}`);
 
     // Single attempt with resolved format
     const formData = new FormData();
@@ -195,7 +199,12 @@ serve(async (req) => {
     formData.append('file', blob, `audio.${forwardExt}`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
-    formData.append('response_format', 'json');
+    formData.append('response_format', resolvedFormat);
+    
+    // Add prompt if provided (helps Whisper with context/terminology)
+    if (whisperPrompt) {
+      formData.append('prompt', whisperPrompt);
+    }
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -204,15 +213,34 @@ serve(async (req) => {
     });
 
     if (response.ok) {
+      // Parse response based on format
+      if (resolvedFormat === 'text' || resolvedFormat === 'srt' || resolvedFormat === 'vtt') {
+        const textResult = await response.text();
+        console.log(`✅ [${requestId}] Whisper ${resolvedFormat} result: ${textResult.slice(0, 100)}…`);
+        return new Response(
+          JSON.stringify({ text: textResult, service: 'whisper', format: forwardMime }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       const result = await response.json();
       console.log(`✅ [${requestId}] Whisper result: ${result.text?.slice(0, 100)}…`);
 
+      // For verbose_json, include segments in the response
+      const responseBody: Record<string, any> = {
+        text: result.text || '',
+        service: 'whisper',
+        format: forwardMime,
+      };
+      
+      if (resolvedFormat === 'verbose_json') {
+        responseBody.segments = result.segments || [];
+        responseBody.language = result.language || 'en';
+        responseBody.duration = result.duration || 0;
+      }
+
       return new Response(
-        JSON.stringify({
-          text: result.text || '',
-          service: 'whisper',
-          format: forwardMime
-        }),
+        JSON.stringify(responseBody),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
