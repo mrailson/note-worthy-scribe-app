@@ -307,7 +307,8 @@ Format each entry as:
 Extract EVERY action committed to in the transcript, including informal ones ("I'll do that by Tuesday", "Amanda, can you check..."). If no owner was named, write "TBC". If no deadline was stated, write "TBC".
 
 ---
-
+${params.lengthInstruction || ''}
+${params.sectionInstruction || ''}
 ## TRANSCRIPT
 
 ${params.transcript}`;
