@@ -363,6 +363,19 @@ export class AssemblyRealtimeClient {
     this.manualStop = true;
     this.shouldReconnect = false;
 
+    // Flush any uncommitted turn text before stopping
+    if (this.currentTurnText.trim()) {
+      const remaining = this.getUncommittedText(this.currentTurnText);
+      if (remaining) {
+        console.log(`📚 AssemblyAI: Flushing ${remaining.split(/\s+/).length} uncommitted words on stop`);
+        this.cb.onFinal?.(remaining);
+      }
+      this.currentTurnText = "";
+      this.currentTurnOrder = -1;
+      this.committedWordCount = 0;
+    }
+    if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+
     try {
       this.sending = false;
       if (this.ws?.readyState === WebSocket.OPEN) {
@@ -376,19 +389,77 @@ export class AssemblyRealtimeClient {
     this.cleanupAudio();
   }
 
-  // ── v3 message handler — simple end_of_turn check ──────────────────────
+  // ── v3 message handler with 30s safety timer ──────────────────────────
 
   private handleTurnMessage(data: any, text: string) {
+    const turnOrder = typeof data?.turn_order === 'number' ? data.turn_order : -1;
+
+    // If end_of_turn fires, commit only the NEW portion and reset
     if (data?.end_of_turn === true) {
-      // FINAL: complete turn — commit
       this.endOfTurnCount++;
-      console.log(`✅ AAI final: "${text.substring(0, 50)}" turn:${data?.turn_order ?? '?'} (#${this.endOfTurnCount})`);
-      this.cb.onFinal?.(text);
-    } else {
-      // INTERIM: turn in progress — live preview (replaces previous partial)
-      this.partialCount++;
-      this.cb.onPartial?.(text);
+      const newText = this.getUncommittedText(text);
+      if (newText) {
+        console.log(`✅ AAI final #${this.endOfTurnCount}: "${newText.substring(0, 80)}..." turn:${turnOrder}`);
+        this.cb.onFinal?.(newText);
+      }
+      this.currentTurnText = "";
+      this.currentTurnOrder = -1;
+      this.committedWordCount = 0;
+      if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+      return;
     }
+
+    // Turn order changed — commit remaining text from previous turn
+    if (turnOrder !== -1 && turnOrder !== this.currentTurnOrder && this.currentTurnOrder !== -1) {
+      const remaining = this.getUncommittedText(this.currentTurnText);
+      if (remaining) {
+        this.endOfTurnCount++;
+        console.log(`🔄 AAI turn change ${this.currentTurnOrder}→${turnOrder}: "${remaining.substring(0, 80)}..."`);
+        this.cb.onFinal?.(remaining);
+      }
+      this.committedWordCount = 0;
+    }
+
+    // New turn started
+    if (turnOrder !== -1 && turnOrder !== this.currentTurnOrder) {
+      this.currentTurnOrder = turnOrder;
+      this.committedWordCount = 0;
+
+      // 30-second safety timer — commit accumulated NEW text, keep tracking this turn
+      if (this.turnCommitTimer) clearTimeout(this.turnCommitTimer);
+      this.turnCommitTimer = setTimeout(() => this.handleTimerFlush(), this.TURN_COMMIT_TIMEOUT_MS);
+    }
+
+    // v3 sends full cumulative turn text — just track it
+    this.currentTurnText = text;
+    this.partialCount++;
+    this.cb.onPartial?.(text);
+  }
+
+  private handleTimerFlush() {
+    const newText = this.getUncommittedText(this.currentTurnText);
+    if (newText) {
+      this.endOfTurnCount++;
+      console.log(`⏰ AAI 30s timer: committing ${newText.split(/\s+/).length} new words`);
+      this.cb.onFinal?.(newText);
+      this.committedWordCount = this.currentTurnText.trim().split(/\s+/).length;
+    }
+    // Re-arm if turn is still open
+    if (this.currentTurnOrder !== -1) {
+      this.turnCommitTimer = setTimeout(() => this.handleTimerFlush(), this.TURN_COMMIT_TIMEOUT_MS);
+    }
+  }
+
+  /**
+   * Extract only the words from `fullText` that haven't been committed yet.
+   * v3 sends cumulative text, so we skip the first `committedWordCount` words.
+   */
+  private getUncommittedText(fullText: string): string {
+    if (!fullText?.trim()) return "";
+    if (this.committedWordCount === 0) return fullText.trim();
+    const words = fullText.trim().split(/\s+/);
+    if (words.length <= this.committedWordCount) return "";
+    return words.slice(this.committedWordCount).join(' ');
   }
 
   // ── Audio capture ──────────────────────────────────────────────────────
