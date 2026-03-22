@@ -732,6 +732,10 @@ export default function NoteWellRecorder() {
       }
 
       // ── Step 4: Create meeting record ─────────────────────────────────
+      // Re-verify auth before meeting creation (token may have expired during long transcription)
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      const activeUser = freshUser || user;
+
       const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
       const durationMins = Math.round((rec.duration || 0) / 60);
 
@@ -739,9 +743,9 @@ export default function NoteWellRecorder() {
         .from("meetings")
         .insert({
           title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-          user_id: user.id,
+          user_id: activeUser.id,
           status: "completed",
-          meeting_type: "standard",
+          meeting_type: "general",
           start_time: new Date(rec.createdAt).toISOString(),
           end_time: new Date().toISOString(),
           duration_minutes: durationMins,
