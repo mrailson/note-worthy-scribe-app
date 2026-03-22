@@ -41,6 +41,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   const reconnectAttemptsRef = useRef<number>(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastExternalStreamRef = useRef<MediaStream | null>(null);
+  const partialFallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track the base text (all confirmed finals) and current partial separately.
   // NOTE: AssemblyAI v3 can emit *two* final turns for the same utterance
