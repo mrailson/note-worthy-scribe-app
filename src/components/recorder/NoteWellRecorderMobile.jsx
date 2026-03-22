@@ -954,17 +954,30 @@ export default function NoteWellRecorder() {
       await refresh();
 
       setSyncProgress({
-        phase: "complete", currentChunk: 1, totalChunks: 1,
-        percentComplete: 100, message: "Transcription complete",
+        phase: "transcribing", currentChunk: 1, totalChunks: 1,
+        percentComplete: 85, message: "Creating meeting record…",
       });
+
+      showToast("Transcription complete", "success");
 
       // Re-verify auth before meeting creation (token may have expired during long transcription)
       const { data: { user: freshUser } } = await supabase.auth.getUser();
       const activeUser = freshUser || user;
+      console.log("[LegacySync] Creating meeting. activeUser:", activeUser?.id, "transcript length:", transcriptText.length);
+
+      if (!activeUser?.id) {
+        console.error("[LegacySync] No authenticated user for meeting creation");
+        showToast("Session expired — please sign in and sync again", "error");
+        await dbPatch(rec.id, { status: "transcribed", transcript: transcriptText });
+        await refresh();
+        setSyncProgress(null);
+        return;
+      }
 
       // Create meeting
       const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
       const sessionId = crypto.randomUUID();
+      console.log("[LegacySync] Inserting meeting. wordCount:", wordCount, "title:", rec.title);
       const { data: meetingData, error: meetingErr } = await supabase
         .from("meetings")
         .insert({
@@ -977,12 +990,14 @@ export default function NoteWellRecorder() {
         }).select("id").single();
 
       if (meetingErr) {
-        console.error("Legacy meeting creation failed:", meetingErr, JSON.stringify(meetingErr));
+        console.error("[LegacySync] Meeting creation failed:", meetingErr, JSON.stringify(meetingErr));
         const errMsg = meetingErr?.message || meetingErr?.details || JSON.stringify(meetingErr);
         showToast(`Transcribed but meeting creation failed: ${errMsg}`, "error");
         setSyncProgress(null);
         return;
       }
+
+      console.log("[LegacySync] Meeting created:", meetingData?.id);
 
       await supabase.from("meeting_transcription_chunks").insert({
         meeting_id: meetingData.id, user_id: activeUser.id, session_id: sessionId,
@@ -992,18 +1007,27 @@ export default function NoteWellRecorder() {
 
       await dbPatch(rec.id, { meetingId: meetingData.id });
       await refresh();
+
+      setSyncProgress({
+        phase: "complete", currentChunk: 1, totalChunks: 1,
+        percentComplete: 100, message: `Complete — ${wordCount} words`,
+      });
       showToast("Meeting created — generating notes…", "success");
 
       supabase.functions.invoke("generate-meeting-notes-claude", {
         body: { meetingId: meetingData.id, transcript: transcriptText, title: rec.title || "Mobile Recording" },
       }).then(({ error: genErr }) => {
-        if (genErr) showToast("Meeting saved — note generation failed", "error");
-        else showToast("Meeting notes generated ✨", "success");
+        if (genErr) {
+          console.error("[LegacySync] Note generation failed:", genErr);
+          showToast("Meeting saved — note generation failed", "error");
+        } else {
+          showToast("Meeting notes generated ✨", "success");
+        }
         setSyncProgress(null);
         refresh();
       });
     } catch (err) {
-      console.error("Legacy sync error:", err);
+      console.error("[LegacySync] Error:", err);
       await dbPatch(rec.id, { status: "error" });
       await refresh();
       setSyncProgress(null);
