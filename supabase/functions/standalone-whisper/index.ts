@@ -149,6 +149,104 @@ async function downloadFromStorage(
   return bytes;
 }
 
+// ── Hallucination detection (ported from speech-to-text) ────────────────────
+
+const HALLUCINATION_PHRASES = [
+  'thank you for watching', 'thanks for watching', 'thank you for listening',
+  'thanks for listening', 'thank you for your time', 'thank you for joining',
+  'please subscribe', 'like and subscribe', 'don\'t forget to subscribe',
+  'see you in the next video', 'see you next time', 'until next time',
+  'i hope you enjoyed', 'this concludes', 'end of presentation',
+  'leave a comment', 'hit the like button', 'smash the like button',
+  'check out the link', 'link in the description', 'brought to you by',
+  'subtitles by', 'transcribed by', 'captions by',
+  'welcome to my channel', 'welcome back to my channel',
+  '[music]', '[applause]', '[laughter]', '[silence]',
+  'music playing', 'background music', 'upbeat music',
+];
+
+function cleanHallucinations(text: string, requestId: string): string {
+  if (!text || !text.trim()) return '';
+
+  const lowerText = text.toLowerCase();
+  const words = text.split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
+  const isContentRich = wordCount >= 120;
+
+  // 1. Check for hallucination phrases (only blank short/thin chunks)
+  for (const phrase of HALLUCINATION_PHRASES) {
+    if (lowerText.includes(phrase)) {
+      console.log(`🚫 [${requestId}] Hallucination phrase detected: "${phrase}"`);
+      if (wordCount < 100 && !isContentRich) {
+        return '';
+      }
+      break;
+    }
+  }
+
+  // 2. Phone-number / numeric spam detection (e.g. "1-800-637-8485" repeated)
+  const phonePattern = /\b\d[\d\-]{5,}\d\b/g;
+  const phoneMatches = text.match(phonePattern) || [];
+  if (phoneMatches.length >= 3) {
+    const phoneRatio = phoneMatches.join(' ').split(/\s+/).length / Math.max(wordCount, 1);
+    if (phoneRatio > 0.4) {
+      console.log(`🚫 [${requestId}] Phone-number hallucination detected: ${phoneMatches.length} occurrences (ratio ${(phoneRatio * 100).toFixed(0)}%)`);
+      return '';
+    }
+  }
+
+  // 3. Detect repetitive content (low unique-word ratio)
+  const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
+  const uniqueRatio = wordCount > 0 ? uniqueWords / wordCount : 1;
+  if (wordCount >= 8 && uniqueRatio < 0.20 && !isContentRich) {
+    console.log(`🚫 [${requestId}] Repetitive hallucination (unique ratio ${(uniqueRatio * 100).toFixed(0)}%)`);
+    return '';
+  }
+
+  // 4. Detect repeated-phrase loops (split on sentence/clause boundaries)
+  const phrases = text.split(/[,.]/).map(p => p.trim().toLowerCase()).filter(p => p.length > 3);
+  if (phrases.length >= 4) {
+    const uniquePhrases = new Set(phrases).size;
+    const phraseUniqueRatio = uniquePhrases / phrases.length;
+    if (phraseUniqueRatio < 0.15 && phrases.length >= 6) {
+      // Severe repetition — try collapsing
+      const collapsed = collapseRepeatedClauses(text);
+      if (collapsed.removed >= 3 && collapsed.text.split(/\s+/).length >= 6) {
+        console.log(`🧹 [${requestId}] Collapsed ${collapsed.removed} repeated clauses`);
+        return collapsed.text;
+      }
+      console.log(`🚫 [${requestId}] Severe phrase repetition (${(phraseUniqueRatio * 100).toFixed(0)}% unique)`);
+      return '';
+    }
+    if (phraseUniqueRatio < 0.30 && !isContentRich) {
+      console.log(`🚫 [${requestId}] Phrase-loop hallucination (${(phraseUniqueRatio * 100).toFixed(0)}% unique)`);
+      return '';
+    }
+  }
+
+  return text;
+}
+
+function collapseRepeatedClauses(text: string) {
+  const clauses = text.split(/(?<=[.!?])\s+|,\s+/).map(p => p.trim()).filter(Boolean);
+  if (clauses.length < 4) return { text, removed: 0 };
+
+  const normalise = (v: string) => v.toLowerCase().replace(/[^\p{L}\p{N}\s]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  let removed = 0;
+
+  for (const clause of clauses) {
+    const n = normalise(clause);
+    if (!n) continue;
+    if (seen.has(n)) { removed++; continue; }
+    seen.add(n);
+    deduped.push(clause);
+  }
+
+  return { text: deduped.join(', ').replace(/\s+/g, ' ').trim() || text, removed };
+}
+
 // ── Main handler ────────────────────────────────────────────────────────────
 
 serve(async (req) => {
