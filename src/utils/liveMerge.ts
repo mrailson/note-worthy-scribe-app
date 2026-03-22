@@ -12,10 +12,10 @@ export type LiveChunk = {
   wordConfidences?: { word: string; confidence: number }[]; // Word-level confidence for better merge decisions
 };
 
-const OVERLAP_SCAN = 200;       // chars to scan for overlaps (increased for better detection)
-const STITCH_SIM_THRESHOLD = 0.70; // relaxed threshold for medical content (was 0.85)
-const DEDUPE_SIM_THRESHOLD = 0.75; // relaxed threshold for medical terminology (was 0.90)
-const DEDUPE_WINDOW = 8;        // compare against last 8 sentences (increased for better context)
+const OVERLAP_SCAN = 120;       // chars to scan for overlaps (reduced from 200 — real overlap is at boundaries)
+const STITCH_SIM_THRESHOLD = 0.75; // tightened to reduce false positives (was 0.70)
+const DEDUPE_SIM_THRESHOLD = 0.80; // tightened to reduce false positives (was 0.75)
+const DEDUPE_WINDOW = 5;        // compare against last 5 sentences (reduced from 8 — less aggressive)
 const MIN_CONFIDENCE_THRESHOLD = 0.30; // minimum confidence to accept chunks (30%)
 
 // INCOMPLETE ENDING PATTERNS - avoid selecting chunk endings that terminate on these
