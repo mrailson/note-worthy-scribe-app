@@ -4,7 +4,7 @@ import { SEO } from "@/components/SEO";
 import { Header } from "@/components/Header";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { LoginForm } from "@/components/LoginForm";
-import NoteWellRecorder from "@/components/recorder/NoteWellRecorder";
+import { MeetingRecorder } from "@/components/MeetingRecorder";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
@@ -616,11 +616,27 @@ const Index = () => {
       <Header onNewMeeting={handleNewMeeting} />
       <NavigationBlockerDialog open={showBlockerDialog} onStay={cancelLeave} onLeave={confirmLeave} />
       
-        <div className="container mx-auto px-0 sm:px-4 sm:py-6 lg:py-8 max-w-4xl">
+        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">
           <MaintenanceBanner />
           
           <div id="meeting-recorder">
-            <NoteWellRecorder />
+            <MeetingRecorder 
+              onTranscriptUpdate={setTranscript} 
+              onDurationUpdate={setDuration} 
+              onWordCountUpdate={setWordCount} 
+              initialSettings={meetingSettings} 
+              autoStart={autoStart}
+              continueMeetingId={currentMeetingId}
+              existingTranscript={transcript}
+              existingDuration={parseInt(duration.split(':')[0]) * 60 + parseInt(duration.split(':')[1] || '0')}
+              forceRecorderTab={!!(location.state as any)?.continueMeeting}
+              onContinuationComplete={() => {
+                setCurrentMeetingId(null);
+                setTranscript('');
+                setDuration('00:00');
+                setWordCount(0);
+              }}
+            />
           </div>
         </div>
 
