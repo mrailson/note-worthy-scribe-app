@@ -135,14 +135,34 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
     }
   }, [meeting?.meeting_attendees_json]);
 
-  // Parse overview into bullets
-  const overviewBullets = useMemo(() => {
-    if (!meeting?.overview) return [];
-    const lines = meeting.overview
-      .split(/[\n•\-]/)
-      .map(l => l.trim())
-      .filter(l => l.length > 10);
-    return lines.slice(0, 8);
+  // Parse overview into summary paragraph + key points
+  const { summaryParagraph, keyPoints } = useMemo(() => {
+    if (!meeting?.overview) return { summaryParagraph: '', keyPoints: [] };
+    const raw = meeting.overview;
+
+    // Find the first bullet marker (• or line starting with -)
+    const bulletStart = raw.search(/[•]|\n\s*-\s/);
+    let summary = '';
+    let bulletSection = '';
+
+    if (bulletStart > 0) {
+      summary = raw.slice(0, bulletStart).trim();
+      bulletSection = raw.slice(bulletStart);
+    } else if (bulletStart === 0) {
+      // Entire text is bullets
+      bulletSection = raw;
+    } else {
+      // No bullet markers found — treat whole text as summary
+      summary = raw.trim();
+    }
+
+    // Split bullet section into individual items
+    const points = bulletSection
+      .split(/[•]|\n\s*-\s/)
+      .map(l => l.replace(/\n/g, ' ').trim())
+      .filter(l => l.length > 20);
+
+    return { summaryParagraph: summary, keyPoints: points.slice(0, 8) };
   }, [meeting?.overview]);
 
   // Transcript stats
@@ -268,17 +288,19 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
           {/* Tab content */}
           {tab === 'overview' && (
             <div className="nw-mh-section">
-              {meeting.overview && (
+              {meeting.overview ? (
                 <>
-                  <div className="nw-mh-card-content">
-                    <div className="nw-mh-overview-text">{meeting.overview}</div>
-                  </div>
+                  {summaryParagraph && (
+                    <div className="nw-mh-card-content" style={{ marginBottom: 16 }}>
+                      <div className="nw-mh-overview-text">{summaryParagraph}</div>
+                    </div>
+                  )}
 
-                  {overviewBullets.length > 1 && (
+                  {keyPoints.length > 0 && (
                     <>
-                      <div className="nw-mh-section-title" style={{ marginTop: 20 }}>Key points</div>
+                      <div className="nw-mh-section-title" style={{ marginTop: summaryParagraph ? 24 : 0 }}>Key points</div>
                       <div className="nw-mh-card-content">
-                        {overviewBullets.map((b, i) => (
+                        {keyPoints.map((b, i) => (
                           <div key={i} className="nw-mh-bullet">
                             <div className="nw-mh-bullet-dot" />
                             <div>{b}</div>
@@ -288,9 +310,7 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
                     </>
                   )}
                 </>
-              )}
-
-              {!meeting.overview && (
+              ) : (
                 <div className="nw-mh-card-content">
                   <div className="nw-mh-overview-text" style={{ color: 'var(--nw-text3)', fontStyle: 'italic' }}>
                     No overview available. Tap "Notes" to generate meeting notes.

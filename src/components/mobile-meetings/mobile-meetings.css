@@ -375,15 +375,15 @@
 }
 
 .nw-mh-overview-text {
-  font-size: 14.5px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.65;
   color: var(--nw-text);
 }
 
 .nw-mh-bullet {
   display: flex;
   gap: 10px;
-  padding: 10px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--nw-border);
   font-size: 14px;
   line-height: 1.5;
@@ -392,6 +392,7 @@
 
 .nw-mh-bullet:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 .nw-mh-bullet-dot {
@@ -400,7 +401,7 @@
   border-radius: 50%;
   background: var(--nw-blue);
   flex-shrink: 0;
-  margin-top: 7px;
+  margin-top: 8px;
 }
 
 /* ── Attendees ── */
