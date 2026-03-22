@@ -221,8 +221,6 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
         setCurrentPartial("");
         baseTranscriptRef.current = "";
         currentPartialRef.current = "";
-        lastFinalSegmentRef.current = "";
-        lastFinalAtRef.current = 0;
         console.log('🎤 Starting fresh AssemblyAI preview (transcripts cleared)');
       } else {
         // Reset only partial tracking refs, keep accumulated text
