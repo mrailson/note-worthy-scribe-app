@@ -196,7 +196,7 @@ const exportChunksToWord = async (rawChunks: ChunkSaveStatus[], mainTranscript: 
   });
 
   // Calculate totals
-  const totalWords = chunks.reduce((sum, c) => sum + c.text.trim().split(/\s+/).filter(w => w.length > 0).length, 0);
+  const totalWords = chunks.reduce((sum, c) => sum + countWords(c.text), 0);
   const totalDuration = chunks.reduce((sum, c) => {
     if (c.startTime !== undefined && c.endTime !== undefined) {
       return sum + (c.endTime - c.startTime);
