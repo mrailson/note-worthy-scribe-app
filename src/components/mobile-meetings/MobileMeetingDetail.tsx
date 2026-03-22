@@ -53,6 +53,9 @@ interface MobileMeetingDetailProps {
 
 type TabId = 'overview' | 'actions' | 'transcript' | 'ask-ai';
 
+const TRANSCRIPT_PREVIEW_LENGTH = 500;
+const TRANSCRIPT_EXPANDED_LENGTH = 5000;
+
 export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
   meetingId,
   open,
