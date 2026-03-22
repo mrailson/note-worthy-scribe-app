@@ -173,14 +173,7 @@ export class AssemblyRealtimeClient {
         if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
           const text = String(data?.transcript ?? "").trim();
           if (!text) return;
-          if (data?.end_of_turn) {
-            this.endOfTurnCount++;
-            console.log(`✅ AssemblyAI end_of_turn #${this.endOfTurnCount} (${text.split(/\s+/).length} words): "${text.substring(0, 80)}..."`);
-            this.cb.onFinal?.(text);
-          } else {
-            this.partialCount++;
-            this.cb.onPartial?.(text);
-          }
+          this.handleTurnMessage(data, text);
           return;
         }
 
