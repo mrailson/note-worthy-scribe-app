@@ -428,13 +428,20 @@ export default function NoteWellRecorder() {
 
   // ── Sync ──────────────────────────────────────────────────────────────────
   const syncRecording = async (rec) => {
+    // Check authentication first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showToast("Please sign in to sync recordings", "error");
+      return;
+    }
+
     await dbPatch(rec.id, { status: "syncing" });
     await refresh();
     try {
       // ── Step 1: Upload audio to Supabase Storage ──────────────────────────
       const audioBlob = new Blob([rec.audioData], { type: rec.mimeType });
       const ext = rec.mimeType?.includes("mp4") ? "m4a" : rec.mimeType?.includes("ogg") ? "ogg" : "webm";
-      const filePath = `${rec.id}.${ext}`;
+      const filePath = `${user.id}/${rec.id}.${ext}`;
 
       const { data, error } = await supabase.storage
         .from("recordings")
