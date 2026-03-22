@@ -357,7 +357,7 @@ export class AssemblyRealtimeClient {
   }
 
   stop() {
-    console.log("🛑 AssemblyRealtimeClient: stop");
+    console.log(`🛑 AssemblyRealtimeClient: stop (total msgs: ${this.totalMessageCount}, finals: ${this.endOfTurnCount}, partials: ${this.partialCount}, audioFrames: ${this.audioFramesSent})`);
     this.manualStop = true;
     this.shouldReconnect = false;
 
