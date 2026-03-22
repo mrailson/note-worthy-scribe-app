@@ -519,20 +519,8 @@ export default function NoteWellRecorder() {
         fontFamily:"'DM Sans',sans-serif",
       }}>
 
-        {/* Status bar */}
-        <div style={{height:44,background:"#1565c0",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px"}}>
-          <span style={{color:"white",fontSize:15,fontWeight:600}}>
-            {new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}
-          </span>
-          <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <span style={{width:7,height:7,borderRadius:"50%",background:isOnline?"#4caf50":"#f59e0b",display:"inline-block"}}/>
-            <span style={{color:"rgba(255,255,255,0.75)",fontSize:10,fontWeight:500}}>{isOnline?"Online":"Offline"}</span>
-            <div style={{width:25,height:12,borderRadius:3,border:"1.5px solid rgba(255,255,255,0.7)",position:"relative"}}>
-              <div style={{width:"68%",height:"100%",background:"#4caf50",borderRadius:2}}/>
-              <div style={{position:"absolute",right:-4,top:"50%",transform:"translateY(-50%)",width:3,height:6,background:"rgba(255,255,255,0.5)",borderRadius:"0 2px 2px 0"}}/>
-            </div>
-          </div>
-        </div>
+        {/* App header with hamburger menu */}
+        <Header />
 
         {/* Header */}
         <div style={{background:"linear-gradient(135deg,#1565c0 0%,#0288d1 100%)",padding:"14px 16px 16px",boxShadow:"0 4px 20px rgba(21,101,192,0.25)"}}>
