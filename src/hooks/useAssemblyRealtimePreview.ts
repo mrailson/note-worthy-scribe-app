@@ -100,6 +100,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     console.log(`🎤 AssemblyAI ${isFinal ? 'FINAL' : 'partial'}: "${newText.substring(0, 50)}..."`);
 
     if (isFinal) {
+      // Clear the partial fallback timer since we got a proper final
+      if (partialFallbackTimerRef.current) { clearTimeout(partialFallbackTimerRef.current); partialFallbackTimerRef.current = null; }
       const now = Date.now();
 
       if (shouldReplaceLastFinal(newText)) {
