@@ -453,11 +453,11 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying }) {
         </div>
 
         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-          {(rec.status==="local"||rec.status==="error") && (
+          {(rec.status==="local"||rec.status==="error"||(rec.status==="transcribed"&&!rec.meetingId)) && (
             <button onClick={()=>onSync(rec)} style={{
               padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
               background:"transparent",cursor:"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
-            }}>↑ Sync</button>
+            }}>{rec.status==="transcribed"?"⟳ Create Meeting":"↑ Sync"}</button>
           )}
           <button onClick={()=>onDelete(rec.id)} style={{
             width:28,height:28,borderRadius:8,border:"1px solid rgba(220,38,38,0.2)",
@@ -785,11 +785,72 @@ export default function NoteWellRecorder() {
   // ── Sync (chunked) ───────────────────────────────────────────────────────
   const syncRecording = async (rec) => {
     // Check authentication first
-    const { data: { user } } = await supabase.auth.getUser();
+    let user = null;
+    try {
+      const { data: { session } } = await supabase.auth.refreshSession();
+      user = session?.user || null;
+    } catch (e) {
+      console.warn("[Sync] Session refresh failed:", e);
+    }
+    if (!user) {
+      const { data: { user: fallbackUser } } = await supabase.auth.getUser();
+      user = fallbackUser;
+    }
     if (!user) {
       showToast("Redirecting to sign in…", "info");
       navigate("/auth", { state: { returnTo: location.pathname } });
       return;
+    }
+
+    // If already transcribed but meeting wasn't created, skip upload/transcription
+    if (rec.status === "transcribed" && rec.transcript && !rec.meetingId) {
+      console.log("[Sync] Resuming meeting creation for already-transcribed recording");
+      try {
+        const wordCount = rec.transcript.split(/\s+/).filter(Boolean).length;
+        const durationMins = Math.round((rec.duration || 0) / 60);
+        setSyncProgress({ phase: "stitching", currentChunk: 1, totalChunks: 1, percentComplete: 92, message: "Creating meeting record…" });
+
+        const { data: meetingData, error: meetingErr } = await supabase
+          .from("meetings")
+          .insert({
+            title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
+            user_id: user.id, status: "completed", meeting_type: "general",
+            start_time: new Date(rec.createdAt).toISOString(), end_time: new Date().toISOString(),
+            duration_minutes: durationMins, word_count: wordCount,
+            import_source: "mobile_recorder", whisper_transcript_text: rec.transcript,
+            primary_transcript_source: "whisper",
+          }).select("id").single();
+
+        if (meetingErr) {
+          console.error("[Sync] Resume meeting creation failed:", meetingErr);
+          showToast(`Meeting creation failed: ${meetingErr.message || "Unknown error"}`, "error");
+          setSyncProgress(null);
+          return;
+        }
+
+        const meetingId = meetingData.id;
+        await dbPatch(rec.id, { meetingId });
+        await refresh();
+        setSyncProgress({ phase: "complete", currentChunk: 1, totalChunks: 1, percentComplete: 100, message: `Complete — ${wordCount} words` });
+        showToast("Meeting created — generating notes…", "success");
+
+        generateNotesForMeeting(meetingId, rec.transcript, rec.title || "Mobile Recording")
+          .then(() => {
+            showToast("Meeting notes generated ✨", "success");
+            triggerPostNoteActions(meetingId, rec.transcript);
+          })
+          .catch((err) => {
+            console.error("[Sync] Note generation failed:", err);
+            showToast("Meeting saved — note generation failed", "error");
+          })
+          .finally(() => { setSyncProgress(null); refresh(); });
+        return;
+      } catch (err) {
+        console.error("[Sync] Resume error:", err);
+        showToast(`Resume failed: ${err?.message || "Unknown error"}`, "error");
+        setSyncProgress(null);
+        return;
+      }
     }
 
     await dbPatch(rec.id, { status: "syncing" });
@@ -917,13 +978,30 @@ export default function NoteWellRecorder() {
       });
 
       // Re-verify auth before meeting creation (token may have expired during long transcription)
-      const { data: { user: freshUser } } = await supabase.auth.getUser();
-      const activeUser = freshUser || user;
+      let activeUser = null;
+      try {
+        // First try refreshing the session (handles expired tokens on iOS Safari)
+        const { data: { session } } = await supabase.auth.refreshSession();
+        if (session?.user) {
+          activeUser = session.user;
+          console.log("[ChunkedSync] Session refreshed successfully:", activeUser.id);
+        }
+      } catch (refreshErr) {
+        console.warn("[ChunkedSync] Session refresh failed:", refreshErr);
+      }
+
+      if (!activeUser) {
+        // Fallback to getUser
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        activeUser = freshUser || user;
+      }
       console.log("[ChunkedSync] Creating meeting. activeUser:", activeUser?.id, "transcript length:", fullTranscript.length);
 
       if (!activeUser?.id) {
         console.error("[ChunkedSync] No authenticated user for meeting creation");
-        showToast("Session expired — please sign in and sync again", "error");
+        // Store transcript so user doesn't lose data, but keep trying
+        console.error("[ChunkedSync] Transcript preserved in IndexedDB with status 'transcribed'");
+        showToast("Session expired — tap Sync again after signing in", "error");
         setSyncProgress(null);
         return;
       }
@@ -1099,13 +1177,25 @@ export default function NoteWellRecorder() {
       showToast("Transcription complete", "success");
 
       // Re-verify auth before meeting creation (token may have expired during long transcription)
-      const { data: { user: freshUser } } = await supabase.auth.getUser();
-      const activeUser = freshUser || user;
+      let activeUser = null;
+      try {
+        const { data: { session } } = await supabase.auth.refreshSession();
+        if (session?.user) {
+          activeUser = session.user;
+          console.log("[LegacySync] Session refreshed successfully:", activeUser.id);
+        }
+      } catch (refreshErr) {
+        console.warn("[LegacySync] Session refresh failed:", refreshErr);
+      }
+      if (!activeUser) {
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        activeUser = freshUser || user;
+      }
       console.log("[LegacySync] Creating meeting. activeUser:", activeUser?.id, "transcript length:", transcriptText.length);
 
       if (!activeUser?.id) {
         console.error("[LegacySync] No authenticated user for meeting creation");
-        showToast("Session expired — please sign in and sync again", "error");
+        showToast("Session expired — tap Sync again after signing in", "error");
         await dbPatch(rec.id, { status: "transcribed", transcript: transcriptText });
         await refresh();
         setSyncProgress(null);
