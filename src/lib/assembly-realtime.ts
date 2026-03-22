@@ -377,36 +377,49 @@ export class AssemblyRealtimeClient {
   // ── Audio capture ──────────────────────────────────────────────────────
 
   private async startAudioCapture() {
-    if (this.externalStream) {
-      console.log("🎙️ AssemblyRealtimeClient: using external stream");
-      this.stream = this.externalStream;
-      this.ownsStream = false;
-    } else {
-      console.log("🎙️ AssemblyRealtimeClient: capturing mic directly");
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          channelCount: 1,
+    this.setupInProgress = true;
+    try {
+      // Validate external stream tracks are still alive
+      if (this.externalStream) {
+        const activeTracks = this.externalStream.getAudioTracks().filter(t => t.readyState === 'live');
+        if (activeTracks.length > 0) {
+          console.log("🎙️ AssemblyRealtimeClient: using external stream", activeTracks.length, "active tracks");
+          this.stream = this.externalStream;
+          this.ownsStream = false;
+        } else {
+          console.warn("⚠️ External stream tracks ended — capturing fresh mic");
+          this.externalStream = undefined;
+          this.stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+          });
+          this.ownsStream = true;
         }
-      });
-      this.ownsStream = true;
-    }
+      } else {
+        console.log("🎙️ AssemblyRealtimeClient: capturing mic directly");
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+        });
+        this.ownsStream = true;
+      }
 
-    // Create AudioContext at browser default rate (typically 48 kHz).
-    // The AudioWorklet resamples to 16 kHz internally.
-    this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const srcRate = this.audioCtx.sampleRate;
-    console.log(`🎛️ AssemblyRealtimeClient: AudioContext @ ${srcRate}Hz`);
+      // Create AudioContext at browser default rate (typically 48 kHz).
+      // The AudioWorklet resamples to 16 kHz internally.
+      this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      await this.audioCtx.resume();
+      const srcRate = this.audioCtx.sampleRate;
+      console.log(`🎛️ AssemblyRealtimeClient: AudioContext @ ${srcRate}Hz (state: ${this.audioCtx.state}), resampling to ${this.sampleRateTarget}Hz`);
 
-    const src = this.audioCtx.createMediaStreamSource(this.stream);
-    this.sources = [src];
+      const src = this.audioCtx.createMediaStreamSource(this.stream);
+      this.sources = [src];
 
-    // Try AudioWorklet first, fall back to ScriptProcessorNode
-    const useWorklet = await this.tryAudioWorklet(src);
-    if (!useWorklet) {
-      console.log("⚠️ AudioWorklet unavailable — falling back to ScriptProcessorNode");
-      this.startScriptProcessorFallback(src);
+      // Try AudioWorklet first, fall back to ScriptProcessorNode
+      const useWorklet = await this.tryAudioWorklet(src);
+      if (!useWorklet) {
+        console.log("⚠️ AudioWorklet unavailable — falling back to ScriptProcessorNode");
+        this.startScriptProcessorFallback(src);
+      }
+    } finally {
+      this.setupInProgress = false;
     }
   }
 
