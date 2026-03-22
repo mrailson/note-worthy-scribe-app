@@ -250,8 +250,9 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         
         const subject = `Notewell AI | ${freshMeetingData.title} — ${meetingDate}`;
         
-        // Convert notes content to styled HTML
-        const htmlContent = convertNotesToStyledHTML(
+        // Convert notes content to styled HTML using shared professional builder
+        const { buildProfessionalMeetingEmail } = await import('@/utils/meetingEmailBuilder');
+        const htmlContent = buildProfessionalMeetingEmail(
           freshMeetingData.content,
           senderName,
           freshMeetingData.title,
