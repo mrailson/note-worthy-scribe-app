@@ -88,7 +88,7 @@ export const MobileIdleState: React.FC<MobileIdleStateProps> = ({ onStartRecordi
           onClick={() => setSettingsOpen(true)}
           aria-label="Recording settings"
         >
-          <Settings size={20} strokeWidth={1.8} color="white" />
+          <Settings size={20} strokeWidth={1.8} />
         </button>
 
         <div>

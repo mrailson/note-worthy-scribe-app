@@ -35,6 +35,7 @@
    ══════════════════════════════════════════════════════════════ */
 
 .nw-idle-hero {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -485,8 +486,8 @@
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.18);
-  border: none;
+  background: var(--nw-surface);
+  border: 1px solid var(--nw-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -494,14 +495,11 @@
   -webkit-tap-highlight-color: transparent;
   transition: background 0.15s;
   z-index: 5;
+  color: var(--nw-text2);
 }
 
 .nw-mobile-settings-cog:active {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.nw-idle-hero {
-  position: relative;
+  background: var(--nw-surface2);
 }
 
 /* Backdrop overlay */
