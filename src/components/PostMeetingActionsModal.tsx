@@ -327,15 +327,19 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           });
           
           const blob = await Packer.toBlob(doc);
-          const reader = new FileReader();
-          const base64Promise = new Promise<string>((resolve) => {
+          const base64Content = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
             reader.onloadend = () => {
-              const base64 = (reader.result as string).split(',')[1];
-              resolve(base64);
+              const result = reader.result as string;
+              if (result) {
+                resolve(result.split(',')[1]);
+              } else {
+                reject(new Error('FileReader returned empty result'));
+              }
             };
+            reader.onerror = () => reject(new Error('FileReader error'));
+            reader.readAsDataURL(blob);
           });
-          reader.readAsDataURL(blob);
-          const base64Content = await base64Promise;
           
           const { generateMeetingFilename } = await import('@/utils/meetingFilename');
           const attachmentFilename = generateMeetingFilename(
@@ -349,8 +353,9 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             filename: attachmentFilename,
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           };
+          console.log('📎 Word attachment generated:', attachmentFilename, `(${Math.round(base64Content.length / 1024)}KB base64)`);
         } catch (docError) {
-          console.warn('Word document generation failed for auto-email:', docError);
+          console.error('❌ Word document generation failed for auto-email:', docError);
         }
         
         // Send email via Resend edge function
