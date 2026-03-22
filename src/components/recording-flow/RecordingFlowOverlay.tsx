@@ -99,6 +99,9 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             {STAGE_TITLES[stage] || 'Prepare Your Meeting'}
           </h2>
           <StageIndicator />
+          {showSettingsCog && stage === 'setup' && (
+            <SettingsTriggerButton onClick={() => setSettingsOpen(true)} />
+          )}
         </div>
       )}
 
