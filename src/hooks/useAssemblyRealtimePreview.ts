@@ -477,6 +477,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   return {
     liveTranscript,
     fullTranscript,
+    recentFinals,
+    currentPartial,
     status,
     isActive,
     error,
