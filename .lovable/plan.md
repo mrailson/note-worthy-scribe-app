@@ -1,23 +1,31 @@
 
 
-# Fix False "No Audio Detected" on iOS + Hide Present Pill on Mobile
+## Problem
 
-## Problem 1: False "No Audio Detected" Toast on iOS
+The Overview tab on mobile has two layout issues visible in the screenshots:
 
-The health check at line 3030 of `MeetingRecorder.tsx` fires after 10 seconds and checks `capturedBlobs === 0`. However, `SimpleIOSTranscriber` uses a **rotation strategy** (stop/restart every 90 seconds) with **no timeslice**. The `ondataavailable` event only fires when the recorder is stopped at rotation time. So at 10 seconds, `capturedBlobs` will always be 0 — this is a guaranteed false positive.
+1. **Overview text is a wall of text** -- the `overview` field contains inline bullet markers (•) that render as a continuous paragraph, making it very hard to read on a small screen.
+2. **Key Points duplicates and truncates** -- `overviewBullets` is derived by splitting the same overview text on `•`, `\n`, and `-`, which produces fragments that start mid-sentence (e.g. "based reporting and same") because the split cuts through the executive summary paragraph.
 
-**Fix:** Instead of checking `capturedBlobs`, check whether the audio track is alive and the recorder is in `recording` state. Replace the blob count check with a track health check: verify `stream.getAudioTracks()[0].readyState === 'live'` and `mediaRecorder.state === 'recording'`. Add a new method `getHealthStatus()` to `SimpleIOSTranscriber` that returns track state and recorder state, or simply extend `getStats()` to include `trackState` and `recorderState`.
+## Plan
 
-### File: `src/utils/SimpleIOSTranscriber.ts`
-- Extend `getStats()` to include `trackState` (from `stream.getAudioTracks()[0].readyState`) and `recorderState` (from `mediaRecorder.state`)
+### 1. Smarter overview parsing (MobileMeetingDetail.tsx)
 
-### File: `src/components/MeetingRecorder.tsx`
-- Change the 10s health check (line 3033) from `stats.capturedBlobs === 0` to `stats.trackState !== 'live' || stats.recorderState !== 'recording'`
+Replace the current naive split with a two-part parser:
+- **Summary paragraph**: Extract the text before the first bullet marker (`•` or `\n-`). Display this as a readable paragraph in its own card.
+- **Key points list**: Extract everything after the first bullet marker as discrete bullet items. Filter out fragments shorter than ~20 chars to avoid the "based reporting and same" problem.
 
-## Problem 2: Hide Present Pill on Mobile
+This eliminates the duplication (showing the same text twice) and the mid-sentence truncation.
 
-The "Present" `ContextStatusPill` (line 55) is currently always shown, even on mobile.
+### 2. Improve spacing and readability (mobile-meetings.css + component)
 
-### File: `src/components/recording-flow/LiveContextStatusBar.tsx`
-- Wrap the Present pill (lines 55-59) and its preceding divider (line 52) in `!isMobile &&` so on mobile only the REC badge, word count glass panel, and spacer remain
+- Add `margin-bottom: 16px` between the summary card and the key points card.
+- Increase `nw-mh-overview-text` font-size slightly to 15px for better readability on mobile.
+- Add `padding: 12px 0` on bullet items (up from 10px) for more breathing room.
+- Give the "KEY POINTS" section title proper top margin (`marginTop: 24px`).
+
+### 3. Files changed
+
+- `src/components/mobile-meetings/MobileMeetingDetail.tsx` -- rewrite `overviewBullets` memo and overview rendering block
+- `src/components/mobile-meetings/mobile-meetings.css` -- minor spacing tweaks
 
