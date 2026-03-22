@@ -785,11 +785,72 @@ export default function NoteWellRecorder() {
   // ── Sync (chunked) ───────────────────────────────────────────────────────
   const syncRecording = async (rec) => {
     // Check authentication first
-    const { data: { user } } = await supabase.auth.getUser();
+    let user = null;
+    try {
+      const { data: { session } } = await supabase.auth.refreshSession();
+      user = session?.user || null;
+    } catch (e) {
+      console.warn("[Sync] Session refresh failed:", e);
+    }
+    if (!user) {
+      const { data: { user: fallbackUser } } = await supabase.auth.getUser();
+      user = fallbackUser;
+    }
     if (!user) {
       showToast("Redirecting to sign in…", "info");
       navigate("/auth", { state: { returnTo: location.pathname } });
       return;
+    }
+
+    // If already transcribed but meeting wasn't created, skip upload/transcription
+    if (rec.status === "transcribed" && rec.transcript && !rec.meetingId) {
+      console.log("[Sync] Resuming meeting creation for already-transcribed recording");
+      try {
+        const wordCount = rec.transcript.split(/\s+/).filter(Boolean).length;
+        const durationMins = Math.round((rec.duration || 0) / 60);
+        setSyncProgress({ phase: "stitching", currentChunk: 1, totalChunks: 1, percentComplete: 92, message: "Creating meeting record…" });
+
+        const { data: meetingData, error: meetingErr } = await supabase
+          .from("meetings")
+          .insert({
+            title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
+            user_id: user.id, status: "completed", meeting_type: "general",
+            start_time: new Date(rec.createdAt).toISOString(), end_time: new Date().toISOString(),
+            duration_minutes: durationMins, word_count: wordCount,
+            import_source: "mobile_recorder", whisper_transcript_text: rec.transcript,
+            primary_transcript_source: "whisper",
+          }).select("id").single();
+
+        if (meetingErr) {
+          console.error("[Sync] Resume meeting creation failed:", meetingErr);
+          showToast(`Meeting creation failed: ${meetingErr.message || "Unknown error"}`, "error");
+          setSyncProgress(null);
+          return;
+        }
+
+        const meetingId = meetingData.id;
+        await dbPatch(rec.id, { meetingId });
+        await refresh();
+        setSyncProgress({ phase: "complete", currentChunk: 1, totalChunks: 1, percentComplete: 100, message: `Complete — ${wordCount} words` });
+        showToast("Meeting created — generating notes…", "success");
+
+        generateNotesForMeeting(meetingId, rec.transcript, rec.title || "Mobile Recording")
+          .then(() => {
+            showToast("Meeting notes generated ✨", "success");
+            triggerPostNoteActions(meetingId, rec.transcript);
+          })
+          .catch((err) => {
+            console.error("[Sync] Note generation failed:", err);
+            showToast("Meeting saved — note generation failed", "error");
+          })
+          .finally(() => { setSyncProgress(null); refresh(); });
+        return;
+      } catch (err) {
+        console.error("[Sync] Resume error:", err);
+        showToast(`Resume failed: ${err?.message || "Unknown error"}`, "error");
+        setSyncProgress(null);
+        return;
+      }
     }
 
     await dbPatch(rec.id, { status: "syncing" });
