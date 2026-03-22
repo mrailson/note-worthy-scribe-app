@@ -961,11 +961,20 @@ export default function NoteWellRecorder() {
     }
   };
 
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // recording id pending delete
+
   const deleteRecording = async (id) => {
+    setDeleteConfirm(id);
+  };
+
+  const confirmDelete = async () => {
+    const id = deleteConfirm;
+    setDeleteConfirm(null);
+    if (!id) return;
     if (playingId === id) { audioRef.current.pause(); setPlayingId(null); }
     await dbDelete(id);
     await refresh();
-    showToast("Deleted", "info");
+    showToast("Recording deleted", "info");
   };
 
   const playRecording = async (rec) => {
