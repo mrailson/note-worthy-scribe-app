@@ -244,60 +244,89 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying }) {
   };
   const c = colors[rec.status] ?? colors.local;
 
+  // Check if recording is >24h old and already transcribed/synced
+  const ageMs = Date.now() - new Date(rec.createdAt).getTime();
+  const isOldAndDone = ageMs > 24 * 60 * 60 * 1000 && (rec.status === "transcribed" || rec.meetingId);
+  const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+
   return (
     <div style={{background:"white",borderRadius:16,padding:"12px 14px",marginBottom:8,
-      display:"flex",alignItems:"center",gap:12,
-      boxShadow:"0 2px 8px rgba(21,101,192,0.07)",border:"1px solid rgba(21,101,192,0.09)",
+      display:"flex",flexDirection:"column",gap:0,
+      boxShadow:"0 2px 8px rgba(21,101,192,0.07)",border: isOldAndDone ? "1.5px solid rgba(245,158,11,0.4)" : "1px solid rgba(21,101,192,0.09)",
       animation:"fadeIn 0.2s ease-out",
     }}>
-      <button onClick={()=>onPlay(rec)} style={{
-        width:38,height:38,borderRadius:"50%",border:"none",cursor:"pointer",flexShrink:0,
-        background:isPlaying?"linear-gradient(135deg,#1565c0,#0288d1)":"#f0f4fb",
-        display:"flex",alignItems:"center",justifyContent:"center",
-        boxShadow:isPlaying?"0 3px 10px rgba(21,101,192,0.4)":"none",transition:"all 0.2s",
-      }}>
-        {isPlaying
-          ? <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          : <svg width="12" height="12" viewBox="0 0 24 24" fill="#1565c0"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        }
-      </button>
-
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:13,fontWeight:600,color:"#1a2332",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-          {rec.title}
-        </div>
-        <div style={{fontSize:11,color:"#94a3b8",marginTop:1}}>
-          {fmtDate(rec.createdAt)} · {fmtTime(rec.duration)} · {fmtSize(rec.size)}
-        </div>
-        <span style={{
-          display:"inline-flex",alignItems:"center",gap:4,marginTop:4,
-          padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,
-          background:c.bg,color:c.dot,border:`1px solid ${c.border}`,
-        }}>
-          <span style={{width:5,height:5,borderRadius:"50%",background:c.dot,
-            animation:rec.status==="syncing"?"pulse 1s infinite":"none"}}/>
-          {c.label}
-        </span>
-      </div>
-
-      <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-        {(rec.status==="local"||rec.status==="error") && (
-          <button onClick={()=>onSync(rec)} style={{
-            padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
-            background:"transparent",cursor:"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
-          }}>↑ Sync</button>
-        )}
-        <button onClick={()=>onDelete(rec.id)} style={{
-          width:28,height:28,borderRadius:8,border:"1px solid rgba(220,38,38,0.2)",
-          background:"rgba(220,38,38,0.05)",cursor:"pointer",
+      <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <button onClick={()=>onPlay(rec)} style={{
+          width:38,height:38,borderRadius:"50%",border:"none",cursor:"pointer",flexShrink:0,
+          background:isPlaying?"linear-gradient(135deg,#1565c0,#0288d1)":"#f0f4fb",
           display:"flex",alignItems:"center",justifyContent:"center",
+          boxShadow:isPlaying?"0 3px 10px rgba(21,101,192,0.4)":"none",transition:"all 0.2s",
         }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-            <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-          </svg>
+          {isPlaying
+            ? <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            : <svg width="12" height="12" viewBox="0 0 24 24" fill="#1565c0"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          }
         </button>
+
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:600,color:"#1a2332",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            {rec.title}
+          </div>
+          <div style={{fontSize:11,color:"#94a3b8",marginTop:1}}>
+            {fmtDate(rec.createdAt)} · {fmtTime(rec.duration)} · {fmtSize(rec.size)}
+          </div>
+          <span style={{
+            display:"inline-flex",alignItems:"center",gap:4,marginTop:4,
+            padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,
+            background:c.bg,color:c.dot,border:`1px solid ${c.border}`,
+          }}>
+            <span style={{width:5,height:5,borderRadius:"50%",background:c.dot,
+              animation:rec.status==="syncing"?"pulse 1s infinite":"none"}}/>
+            {c.label}
+          </span>
+        </div>
+
+        <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+          {(rec.status==="local"||rec.status==="error") && (
+            <button onClick={()=>onSync(rec)} style={{
+              padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
+              background:"transparent",cursor:"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
+            }}>↑ Sync</button>
+          )}
+          <button onClick={()=>onDelete(rec.id)} style={{
+            width:28,height:28,borderRadius:8,border:"1px solid rgba(220,38,38,0.2)",
+            background:"rgba(220,38,38,0.05)",cursor:"pointer",
+            display:"flex",alignItems:"center",justifyContent:"center",
+          }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+              <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {/* Cleanup reminder for old transcribed recordings */}
+      {isOldAndDone && (
+        <div style={{
+          marginTop:8, padding:"8px 10px", borderRadius:10,
+          background:"linear-gradient(135deg, #fef3c7, #fde68a)",
+          display:"flex", alignItems:"center", gap:8,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2.5" style={{flexShrink:0}}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span style={{fontSize:11,color:"#92400e",flex:1,lineHeight:1.4}}>
+            Notes generated {ageDays} day{ageDays !== 1 ? "s" : ""} ago — delete to free up space
+          </span>
+          <button onClick={()=>onDelete(rec.id)} style={{
+            padding:"4px 10px",borderRadius:8,border:"none",
+            background:"#b45309",color:"white",fontSize:10,fontWeight:700,
+            cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
+          }}>Delete</button>
+        </div>
+      )}
+    </div>
     </div>
   );
 }
