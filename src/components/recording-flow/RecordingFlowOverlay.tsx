@@ -128,6 +128,13 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
           onStartNewMeeting={handleStartNewMeeting}
         />
       )}
+
+      {showSettingsCog && (
+        <DesktopRecordingSettings
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+        />
+      )}
     </>
   );
 };
