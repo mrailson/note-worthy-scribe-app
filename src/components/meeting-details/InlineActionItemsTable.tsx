@@ -575,12 +575,8 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
                   }}
                 />
               </TableCell>
-              <TableCell>
-                <PriorityDropdown
-                  priority={item.priority}
-                  onPriorityChange={(newPriority) => updateActionItem(item.id, { priority: newPriority as 'High' | 'Medium' | 'Low' })}
-                />
-              </TableCell>
+
+
               <TableCell>
                 <StatusDropdown
                   status={item.status}
