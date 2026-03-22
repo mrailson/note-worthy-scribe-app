@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { countWords } from "@/lib/countWords";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -196,7 +197,7 @@ const exportChunksToWord = async (rawChunks: ChunkSaveStatus[], mainTranscript: 
   });
 
   // Calculate totals
-  const totalWords = chunks.reduce((sum, c) => sum + c.text.trim().split(/\s+/).filter(w => w.length > 0).length, 0);
+  const totalWords = chunks.reduce((sum, c) => sum + countWords(c.text), 0);
   const totalDuration = chunks.reduce((sum, c) => {
     if (c.startTime !== undefined && c.endTime !== undefined) {
       return sum + (c.endTime - c.startTime);
@@ -214,7 +215,7 @@ const exportChunksToWord = async (rawChunks: ChunkSaveStatus[], mainTranscript: 
     .map(t => (t as string).replace('audio/', '').split(';')[0]);
 
   // Calculate net transcript word count
-  const netTranscriptWords = mainTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+  const netTranscriptWords = countWords(mainTranscript);
 
   const doc = new Document({
     sections: [{
@@ -235,7 +236,7 @@ const exportChunksToWord = async (rawChunks: ChunkSaveStatus[], mainTranscript: 
         new Paragraph({ text: `Total Chunks: ${chunks.length}${duplicatesRemoved > 0 ? ` (${duplicatesRemoved} duplicates removed)` : ''}` }),
         new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
         new Paragraph({ text: `Net Words (merged transcript): ${netTranscriptWords}` }),
-        new Paragraph({ text: `Words Filtered: ${totalWords - netTranscriptWords}` }),
+        new Paragraph({ text: `Words Filtered: ${Math.max(0, totalWords - netTranscriptWords)}` }),
         new Paragraph({ text: `Total Duration: ${Math.floor(totalDuration / 60)}m ${Math.floor(totalDuration % 60)}s` }),
         new Paragraph({ text: `Total File Size: ${totalFileSize < 1024 * 1024 ? `${(totalFileSize / 1024).toFixed(0)} KB` : `${(totalFileSize / (1024 * 1024)).toFixed(1)} MB`}` }),
         new Paragraph({ text: `Audio Format: ${fileTypes.length > 0 ? fileTypes.join(', ') : 'N/A'}` }),
@@ -332,10 +333,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
   const chunksRecorded = chunks.length;
   
   // Calculate total words transcribed from all chunks
-  const totalWords = chunks.reduce((total, chunk) => {
-    const wordCount = chunk.text.trim().split(/\s+/).filter(word => word.length > 0).length;
-    return total + wordCount;
-  }, 0);
+  const totalWords = chunks.reduce((total, chunk) => total + countWords(chunk.text), 0);
   
   // Calculate total time from all chunks
   const totalTimeSeconds = chunks.reduce((total, chunk) => {

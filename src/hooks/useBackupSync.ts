@@ -61,47 +61,56 @@ export function useBackupSync() {
    * Simple overlap deduplication: if the end of text A and start of text B
    * share similar sentences, remove the duplicate prefix from B.
    */
-  const deduplicateOverlap = (textA: string, textB: string): string => {
-    if (!textA || !textB) return textB;
+  /**
+   * Word-boundary overlap removal for chunk stitching.
+   * Searches the first 50 words of the current chunk for phrases (min 8 words)
+   * matching the last 80 words of the previous chunk.
+   */
+  const removeOverlapText = (currentTranscript: string, previousTranscript: string, chunkNumber: number): string => {
+    if (!currentTranscript || !previousTranscript) return currentTranscript;
 
-    const threshold = WHISPER_CHUNKING.deduplication.similarityThreshold;
-    const sentenceCount = WHISPER_CHUNKING.deduplication.sentencesToCompare;
+    const currentWords = currentTranscript.split(/\s+/);
+    const previousWords = previousTranscript.split(/\s+/);
 
-    // Split into sentences
-    const sentencesA = textA.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
-    const sentencesB = textB.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+    // Only look at the last 80 words of the previous chunk
+    const previousTail = previousWords.slice(-80).map(w => w.toLowerCase());
+    const previousTailStr = previousTail.join(' ');
 
-    if (sentencesA.length === 0 || sentencesB.length === 0) return textB;
+    // Only look at the first 50 words of the current chunk for overlap
+    const searchWindow = Math.min(50, currentWords.length);
 
-    // Compare last N sentences of A with first N sentences of B
-    const tailA = sentencesA.slice(-sentenceCount);
-    let overlapCount = 0;
+    let overlapEndIndex = 0;
 
-    for (let i = 0; i < Math.min(sentenceCount, sentencesB.length); i++) {
-      const bSentence = sentencesB[i].toLowerCase();
-      const matchFound = tailA.some(aSentence => {
-        const aLower = aSentence.toLowerCase();
-        // Simple token overlap similarity
-        const tokensA = new Set(aLower.split(/\s+/));
-        const tokensB = new Set(bSentence.split(/\s+/));
-        const intersection = [...tokensA].filter(t => tokensB.has(t)).length;
-        const union = new Set([...tokensA, ...tokensB]).size;
-        return union > 0 && intersection / union >= threshold;
-      });
+    // Find longest matching phrase — minimum 8 words to avoid false positives
+    for (let phraseLength = Math.min(30, searchWindow); phraseLength >= 8; phraseLength--) {
+      for (let startIndex = 0; startIndex <= searchWindow - phraseLength; startIndex++) {
+        const phrase = currentWords
+          .slice(startIndex, startIndex + phraseLength)
+          .map(w => w.toLowerCase())
+          .join(' ');
 
-      if (matchFound) {
-        overlapCount = i + 1;
-      } else {
-        break;
+        // Word-boundary matching via joined word arrays
+        if (previousTailStr.includes(phrase)) {
+          overlapEndIndex = startIndex + phraseLength;
+          console.log(
+            `🔍 Chunk ${chunkNumber}: Found ${phraseLength}-word overlap at position ${startIndex}`
+          );
+          break;
+        }
       }
+      if (overlapEndIndex > 0) break;
     }
 
-    if (overlapCount > 0) {
-      // Remove overlapping sentences from start of B
-      return sentencesB.slice(overlapCount).join('. ');
+    if (overlapEndIndex > 0) {
+      const cleanedWords = currentWords.slice(overlapEndIndex);
+      console.log(
+        `✂️ Chunk ${chunkNumber}: Removed ${overlapEndIndex} overlapping words ` +
+        `(${currentWords.length} → ${cleanedWords.length})`
+      );
+      return cleanedWords.join(' ');
     }
 
-    return textB;
+    return currentTranscript;
   };
 
   const processSession = useCallback(async (sessionId: string) => {
@@ -131,7 +140,7 @@ export function useBackupSync() {
         
         // Deduplicate overlap with previous segment
         const deduplicated = i > 0
-          ? deduplicateOverlap(transcripts[i - 1], text)
+          ? removeOverlapText(text, transcripts[i - 1], i)
           : text;
 
         transcripts.push(deduplicated);
