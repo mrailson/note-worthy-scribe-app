@@ -859,13 +859,17 @@ export default function NoteWellRecorder() {
             await refresh();
             setSyncProgress({ phase: "complete", currentChunk: totalChunks, totalChunks, percentComplete: 100, message: `Complete — ${wordCount} words` });
             showToast("Meeting created — generating notes…", "success");
+            const meetingTitle = rec.title || "Mobile Recording";
             supabase.functions.invoke("generate-meeting-notes-claude", {
-              body: { meetingId, transcript: fullTranscript, title: rec.title || "Mobile Recording" },
+              body: { meetingId, transcript: fullTranscript, meetingTitle },
             }).then(({ error: genErr }) => {
               if (genErr) showToast("Meeting saved — note generation failed", "error");
               else showToast("Meeting notes generated ✨", "success");
               setSyncProgress(null); refresh();
             });
+            supabase.functions.invoke("generate-meeting-overview", {
+              body: { meetingId, transcript: fullTranscript, meetingTitle },
+            }).catch(() => {});
             return;
           }
           console.error("Meeting creation retry also failed:", retryErr);
