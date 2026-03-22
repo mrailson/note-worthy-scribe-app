@@ -7,6 +7,8 @@ interface MobileRecordingStateProps {
   onStopRecording: () => void;
   wordCount: number;
   transcriptText: string;
+  recentFinals?: string[];
+  currentPartial?: string;
 }
 
 // CSS-only waveform bars generated once
