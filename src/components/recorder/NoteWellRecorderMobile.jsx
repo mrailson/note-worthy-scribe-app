@@ -907,12 +907,13 @@ export default function NoteWellRecorder() {
       showToast("Meeting created — generating notes…", "success");
 
       // ── Step 6: Trigger note generation ───────────────────────────────
+      const meetingTitle = rec.title || "Mobile Recording";
       supabase.functions
         .invoke("generate-meeting-notes-claude", {
           body: {
             meetingId,
             transcript: fullTranscript,
-            title: rec.title || "Mobile Recording",
+            meetingTitle,
           },
         })
         .then(({ error: genErr }) => {
@@ -925,6 +926,10 @@ export default function NoteWellRecorder() {
           setSyncProgress(null);
           refresh();
         });
+      // ── Step 7: Trigger meeting overview generation ────────────────────
+      supabase.functions.invoke("generate-meeting-overview", {
+        body: { meetingId, transcript: fullTranscript, meetingTitle },
+      }).catch(() => {});
     } catch (err) {
       console.error("Sync error:", err);
       await dbPatch(rec.id, { status: "error" });
