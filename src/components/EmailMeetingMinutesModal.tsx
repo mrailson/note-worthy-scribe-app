@@ -410,8 +410,16 @@ export function EmailMeetingMinutesModal({
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         };
       } catch (docError) {
-        console.warn('Word document generation failed:', docError);
-        // Continue without attachment
+        console.error('Word document generation failed:', docError);
+        toast.error("Failed to generate Word document attachment. Please try again.");
+        setIsSending(false);
+        return;
+      }
+
+      if (!wordAttachment) {
+        toast.error("Word document attachment is required but could not be generated.");
+        setIsSending(false);
+        return;
       }
 
       // Action item interface for email rendering
