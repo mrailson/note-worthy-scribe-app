@@ -359,6 +359,15 @@ export class AssemblyRealtimeClient {
     this.manualStop = true;
     this.shouldReconnect = false;
 
+    // Flush any accumulated turn text before stopping
+    if (this.currentTurnText.trim()) {
+      console.log(`🔚 AssemblyAI: Flushing accumulated turn text on stop (${this.currentTurnText.split(/\s+/).length} words)`);
+      this.cb.onFinal?.(this.currentTurnText.trim());
+      this.currentTurnText = "";
+      this.currentTurnOrder = -1;
+    }
+    if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+
     try {
       this.sending = false;
       if (this.ws?.readyState === WebSocket.OPEN) {
