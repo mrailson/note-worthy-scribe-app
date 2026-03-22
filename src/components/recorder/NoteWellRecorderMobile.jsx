@@ -1184,8 +1184,8 @@ export default function NoteWellRecorder() {
 
               <div style={{position:"relative"}}>
                 {isRecording && <>
-                  <div style={{position:"absolute",inset:-8,borderRadius:"50%",border:"2px solid rgba(21,101,192,0.25)",animation:"ripple 1.6s infinite"}}/>
-                  <div style={{position:"absolute",inset:-16,borderRadius:"50%",border:"2px solid rgba(21,101,192,0.12)",animation:"ripple 1.6s 0.5s infinite"}}/>
+                  <div style={{position:"absolute",inset:-8,borderRadius:"50%",border:"2px solid rgba(21,101,192,0.25)",animation:"ripple 3.2s infinite"}}/>
+                  <div style={{position:"absolute",inset:-16,borderRadius:"50%",border:"2px solid rgba(21,101,192,0.12)",animation:"ripple 3.2s 1s infinite"}}/>
                 </>}
                 <button
                   onClick={isIdle ? startRecording : isRecording ? pauseRecording : resumeRecording}
