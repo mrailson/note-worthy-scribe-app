@@ -130,8 +130,8 @@ export function useAutoEmail() {
       }
 
       if (!data?.success) {
-        console.error('EmailJS error:', data);
-        throw new Error(data?.error || 'Failed to send email via EmailJS');
+        console.error('Resend error:', data);
+        throw new Error(data?.error || 'Failed to send email via Resend');
       }
 
       toast({
