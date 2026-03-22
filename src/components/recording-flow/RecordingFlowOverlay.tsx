@@ -46,6 +46,9 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
 }) => {
   const { stage, resetSetup } = useMeetingSetup();
   const isMobile = useIsMobile();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const device = detectDevice();
+  const showSettingsCog = device.isChromium && device.isDesktop;
 
   const handleStartNewMeeting = () => {
     resetSetup();
