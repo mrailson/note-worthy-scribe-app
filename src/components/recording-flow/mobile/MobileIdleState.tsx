@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
-import { Mic, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Mic, ChevronRight, CheckCircle2, Settings } from 'lucide-react';
+import { useMeetingPreferences, SectionKey } from '@/hooks/useMeetingPreferences';
 import './mobile-recording.css';
 
 interface MobileIdleStateProps {
@@ -18,10 +19,36 @@ interface RecentMeeting {
   word_count: number | null;
 }
 
+/* ── Section display config ─────────────────────────────────────── */
+const SECTION_ROWS: { key: SectionKey; label: string }[] = [
+  { key: 'section_exec_summary', label: 'Executive Summary' },
+  { key: 'section_key_points', label: 'Key Points' },
+  { key: 'section_decisions', label: 'Key Decisions' },
+  { key: 'section_actions', label: 'Action Items' },
+  { key: 'section_open_items', label: 'Open Items' },
+  { key: 'section_attendees', label: 'Attendees' },
+  { key: 'section_next_meeting', label: 'Next Meeting' },
+  { key: 'section_full_transcript', label: 'Full Transcript' },
+];
+
+const LENGTH_OPTIONS: { label: string; value: 'concise' | 'standard' | 'detailed' }[] = [
+  { label: 'Brief', value: 'concise' },
+  { label: 'Standard', value: 'standard' },
+  { label: 'Detailed', value: 'detailed' },
+];
+
+const LENGTH_DESCRIPTIONS: Record<string, string> = {
+  concise: 'Key points only — ideal for quick reference emails.',
+  standard: 'Balanced summary with actions and decisions.',
+  detailed: 'Full notes with discussion points and full context.',
+};
+
 export const MobileIdleState: React.FC<MobileIdleStateProps> = ({ onStartRecording }) => {
   const [recentMeeting, setRecentMeeting] = useState<RecentMeeting | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { prefs, setNotesLength, toggleSection } = useMeetingPreferences();
 
   useEffect(() => {
     if (!user) return;
@@ -55,6 +82,15 @@ export const MobileIdleState: React.FC<MobileIdleStateProps> = ({ onStartRecordi
   return (
     <div className="nw-mobile-rec">
       <div className="nw-idle-hero">
+        {/* Settings cog — top-left of hero area */}
+        <button
+          className="nw-mobile-settings-cog"
+          onClick={() => setSettingsOpen(true)}
+          aria-label="Recording settings"
+        >
+          <Settings size={20} strokeWidth={1.8} color="white" />
+        </button>
+
         <div>
           <div className="nw-idle-title">Ready to record</div>
           <div className="nw-idle-subtitle">
@@ -105,6 +141,70 @@ export const MobileIdleState: React.FC<MobileIdleStateProps> = ({ onStartRecordi
             </div>
             <div className="nw-recent-arrow">
               <ChevronRight size={16} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Settings Bottom Sheet ──────────────────────────────────── */}
+      {settingsOpen && (
+        <div className="nw-settings-overlay" onClick={() => setSettingsOpen(false)}>
+          <div
+            className="nw-settings-sheet"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag handle */}
+            <div className="nw-sheet-handle-wrap">
+              <div className="nw-sheet-handle" />
+            </div>
+
+            <div className="nw-sheet-body">
+              {/* ── Notes Length ─────────────────────────────────── */}
+              <div className="nw-sheet-section-label">Notes Length</div>
+              <div className="nw-sheet-card" style={{ padding: '16px' }}>
+                {/* Segmented control */}
+                <div className="nw-segmented-control">
+                  {LENGTH_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      className={`nw-segment ${prefs.notes_length === opt.value ? 'nw-segment--active' : ''}`}
+                      onClick={() => setNotesLength(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="nw-length-helper">
+                  {LENGTH_DESCRIPTIONS[prefs.notes_length] || LENGTH_DESCRIPTIONS.standard}
+                </p>
+              </div>
+
+              {/* ── Email Output Sections ────────────────────────── */}
+              <div className="nw-sheet-section-label">Email Output Sections</div>
+              <div className="nw-sheet-card" style={{ padding: 0 }}>
+                {SECTION_ROWS.map((row, idx) => (
+                  <div
+                    key={row.key}
+                    className="nw-section-row"
+                    style={idx < SECTION_ROWS.length - 1 ? { borderBottom: '1px solid #f2f2f7' } : undefined}
+                  >
+                    <span className="nw-section-label">{row.label}</span>
+                    <button
+                      className={`nw-ios-toggle ${prefs[row.key] ? 'nw-ios-toggle--on' : ''}`}
+                      onClick={() => toggleSection(row.key)}
+                      role="switch"
+                      aria-checked={prefs[row.key]}
+                    >
+                      <span className="nw-ios-toggle-thumb" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Save button ──────────────────────────────────── */}
+              <button className="nw-sheet-save-btn" onClick={() => setSettingsOpen(false)}>
+                Save Settings
+              </button>
             </div>
           </div>
         </div>
