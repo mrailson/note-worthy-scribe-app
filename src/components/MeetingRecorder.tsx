@@ -85,6 +85,7 @@ import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
 
+import { useMeetingPreferences } from "@/hooks/useMeetingPreferences";
 import { useRecordingHealthMonitor } from "@/hooks/useRecordingHealthMonitor";
 import { useBackupRecorder } from "@/hooks/useBackupRecorder";
 import { BackupIndicator } from "@/components/offline/BackupIndicator";
