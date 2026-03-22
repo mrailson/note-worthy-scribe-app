@@ -1053,9 +1053,10 @@ export default function NoteWellRecorder() {
         percentComplete: 50, message: "Transcribing…",
       });
 
+      const prompt = `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ''}`;
       const { data: transcriptData, error: fnErr } = await supabase.functions
         .invoke("standalone-whisper", {
-          body: { storagePath: filePath, bucket: "recordings" },
+          body: { storagePath: filePath, bucket: "recordings", prompt },
         });
       if (fnErr) throw fnErr;
 

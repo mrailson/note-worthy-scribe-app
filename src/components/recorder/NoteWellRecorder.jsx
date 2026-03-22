@@ -476,9 +476,10 @@ export default function NoteWellRecorder() {
 
       // ── Step 2: Trigger Whisper transcription via standalone-whisper ───────
       const base64Audio = arrayBufferToBase64(rec.audioData);
+      const prompt = `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ''}`;
       const { data: transcriptData, error: fnErr } = await supabase.functions
         .invoke("standalone-whisper", {
-          body: { audio: base64Audio },
+          body: { audio: base64Audio, prompt },
         });
       if (fnErr) throw fnErr;
 
