@@ -476,19 +476,10 @@ export default function NoteWellRecorder() {
       await refresh();
       showToast("Audio uploaded", "success");
 
-      // ── Step 2: Trigger Whisper transcription ─────────────────────────────
-      const bytes = new Uint8Array(rec.audioData);
-      let binary = '';
-      const chunkSize = 8192;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, i + chunkSize);
-        binary += String.fromCharCode(...chunk);
-      }
-      const base64Audio = btoa(binary);
-
+      // ── Step 2: Trigger Whisper transcription via storage path ─────────────
       const { data: transcriptData, error: fnErr } = await supabase.functions
         .invoke("standalone-whisper", {
-          body: { audio: base64Audio },
+          body: { storagePath: filePath, bucket: "recordings" },
         });
       if (fnErr) throw fnErr;
 
