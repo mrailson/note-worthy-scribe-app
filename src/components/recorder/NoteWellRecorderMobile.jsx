@@ -904,7 +904,9 @@ export default function NoteWellRecorder() {
         percentComplete: 100, message: "Transcription complete",
       });
 
-      showToast("Transcription complete", "success");
+      // Re-verify auth before meeting creation (token may have expired during long transcription)
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      const activeUser = freshUser || user;
 
       // Create meeting
       const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
@@ -913,14 +915,20 @@ export default function NoteWellRecorder() {
         .from("meetings")
         .insert({
           title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-          user_id: user.id, status: "completed", meeting_type: "standard",
+          user_id: activeUser.id, status: "completed", meeting_type: "general",
           start_time: new Date(rec.createdAt).toISOString(), end_time: new Date().toISOString(),
           duration_minutes: Math.round((rec.duration || 0) / 60), word_count: wordCount,
           import_source: "mobile_recorder", whisper_transcript_text: transcriptText,
           primary_transcript_source: "whisper",
         }).select("id").single();
 
-      if (meetingErr) { showToast("Transcribed but meeting creation failed", "error"); setSyncProgress(null); return; }
+      if (meetingErr) {
+        console.error("Legacy meeting creation failed:", meetingErr, JSON.stringify(meetingErr));
+        const errMsg = meetingErr?.message || meetingErr?.details || JSON.stringify(meetingErr);
+        showToast(`Transcribed but meeting creation failed: ${errMsg}`, "error");
+        setSyncProgress(null);
+        return;
+      }
 
       await supabase.from("meeting_transcription_chunks").insert({
         meeting_id: meetingData.id, user_id: user.id, session_id: sessionId,
