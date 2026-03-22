@@ -7,6 +7,8 @@ interface MobileRecordingStateProps {
   onStopRecording: () => void;
   wordCount: number;
   transcriptText: string;
+  recentFinals?: string[];
+  currentPartial?: string;
 }
 
 // CSS-only waveform bars generated once
@@ -20,6 +22,8 @@ export const MobileRecordingState: React.FC<MobileRecordingStateProps> = ({
   onStopRecording,
   wordCount,
   transcriptText,
+  recentFinals = [],
+  currentPartial = '',
 }) => {
   const [showTranscript, setShowTranscript] = useState(false);
   const { recordingDuration } = useMeetingSetup();

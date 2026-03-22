@@ -5,9 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type PreviewStatus = 'idle' | 'connecting' | 'connected' | 'recording' | 'reconnecting' | 'error' | 'stopped';
 
+const MAX_RECENT_FINALS = 4;
+
 interface UseAssemblyRealtimePreviewReturn {
   liveTranscript: string;
   fullTranscript: string;
+  recentFinals: string[];
+  currentPartial: string;
   status: PreviewStatus;
   isActive: boolean;
   error: string | null;
@@ -25,6 +29,8 @@ const MAX_RECONNECT_DELAY = 30000; // 30 seconds
 export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn => {
   const [liveTranscript, setLiveTranscript] = useState<string>("");
   const [fullTranscript, setFullTranscript] = useState<string>("");
+  const [recentFinals, setRecentFinals] = useState<string[]>([]);
+  const [currentPartial, setCurrentPartial] = useState<string>("");
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,15 +107,25 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
 
         baseTranscriptRef.current = replaced;
         setFullTranscript(replaced);
+        // Replace last entry in recentFinals
+        setRecentFinals(prev => {
+          const updated = [...prev];
+          if (updated.length > 0) updated[updated.length - 1] = newText;
+          else updated.push(newText);
+          return updated.slice(-MAX_RECENT_FINALS);
+        });
         console.log('🔁 Replaced duplicate final segment instead of appending');
       } else {
         baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + newText).trim();
         setFullTranscript(baseTranscriptRef.current);
+        // Add to rolling buffer of recent finals
+        setRecentFinals(prev => [...prev, newText].slice(-MAX_RECENT_FINALS));
       }
 
       lastFinalSegmentRef.current = newText;
       lastFinalAtRef.current = now;
       currentPartialRef.current = "";
+      setCurrentPartial("");
 
       const words = baseTranscriptRef.current.split(/\s+/).slice(-MAX_WORDS);
       setLiveTranscript(words.join(' '));
@@ -117,6 +133,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     }
 
     currentPartialRef.current = newText;
+    setCurrentPartial(newText);
 
     const combined = (baseTranscriptRef.current + ' ' + newText).trim();
     setFullTranscript(combined);
@@ -245,6 +262,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       if (!preserveTranscript) {
         setLiveTranscript("");
         setFullTranscript("");
+        setRecentFinals([]);
+        setCurrentPartial("");
         baseTranscriptRef.current = "";
         currentPartialRef.current = "";
         lastFinalSegmentRef.current = "";
@@ -362,6 +381,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     console.log('🧹 Clearing AssemblyAI transcript state');
     setLiveTranscript("");
     setFullTranscript("");
+    setRecentFinals([]);
+    setCurrentPartial("");
     baseTranscriptRef.current = "";
     currentPartialRef.current = "";
     lastFinalSegmentRef.current = "";
@@ -456,6 +477,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   return {
     liveTranscript,
     fullTranscript,
+    recentFinals,
+    currentPartial,
     status,
     isActive,
     error,

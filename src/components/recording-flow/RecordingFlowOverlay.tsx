@@ -19,6 +19,8 @@ interface RecordingFlowOverlayProps {
   formatDuration: (seconds: number) => string;
   wordCount?: number;
   transcriptText?: string;
+  recentFinals?: string[];
+  currentPartial?: string;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   hasNewMeetings?: boolean;
@@ -39,6 +41,8 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   formatDuration,
   wordCount,
   transcriptText,
+  recentFinals = [],
+  currentPartial = '',
   activeTab = 'recorder',
   onTabChange,
   hasNewMeetings,
@@ -68,6 +72,8 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
           onStopRecording={onStopRecording}
           wordCount={wordCount ?? 0}
           transcriptText={transcriptText ?? ''}
+          recentFinals={recentFinals}
+          currentPartial={currentPartial}
         />
       );
     }
@@ -117,6 +123,8 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             formatDuration={formatDuration}
             wordCount={wordCount}
             transcriptText={transcriptText}
+            recentFinals={recentFinals}
+            currentPartial={currentPartial}
           />
           {children}
         </>
