@@ -12,7 +12,7 @@ interface UseAssemblyRealtimePreviewReturn {
   isActive: boolean;
   error: string | null;
   reconnectAttempts: number;
-  startPreview: (externalStream?: MediaStream, options?: { preserveTranscript?: boolean }) => Promise<void>;
+  startPreview: (externalStream?: MediaStream, options?: { preserveTranscript?: boolean; keyterms?: string[] }) => Promise<void>;
   stopPreview: () => void;
   clearTranscript: () => void;
 }
