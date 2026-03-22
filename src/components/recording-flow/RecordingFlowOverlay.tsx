@@ -21,6 +21,9 @@ interface RecordingFlowOverlayProps {
   transcriptText?: string;
   recentFinals?: string[];
   currentPartial?: string;
+  deepgramText?: string;
+  whisperChunkText?: string;
+  whisperChunkNum?: number;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   hasNewMeetings?: boolean;
