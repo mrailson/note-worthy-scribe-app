@@ -12,6 +12,9 @@ export interface UserDocumentSettings {
   attendees_on: boolean;
   meeting_details_on: boolean;
   priority_column_on: boolean;
+  discussion_summary_on: boolean;
+  decisions_register_on: boolean;
+  next_meeting_on: boolean;
 }
 
 const DEFAULTS: UserDocumentSettings = {
@@ -25,6 +28,9 @@ const DEFAULTS: UserDocumentSettings = {
   attendees_on: true,
   meeting_details_on: true,
   priority_column_on: false,
+  discussion_summary_on: true,
+  decisions_register_on: true,
+  next_meeting_on: true,
 };
 
 export function useUserDocumentSettings() {
