@@ -207,6 +207,25 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
   );
 };
 
+/* ── Helpers ── */
+
+const splitIntoLines = (text: string | undefined, max: number): string[] => {
+  if (!text || !text.trim()) return [];
+  const sentences = text.match(/[^.!?]+[.!?]+[\s]*/g);
+  if (!sentences || sentences.length <= 1) return [text];
+  const lines: string[] = [];
+  let current = '';
+  const perLine = Math.ceil(sentences.length / max);
+  sentences.forEach((s, i) => {
+    current += s;
+    if ((i + 1) % perLine === 0 || i === sentences.length - 1) {
+      lines.push(current.trim());
+      current = '';
+    }
+  });
+  return lines.slice(-max);
+};
+
 /* ── Sub-components ── */
 
 const AllView: React.FC<{ visibleLines: string[]; currentPartial: string }> = ({ visibleLines, currentPartial }) => (
