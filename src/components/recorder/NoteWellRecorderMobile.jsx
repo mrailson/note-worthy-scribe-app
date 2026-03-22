@@ -130,7 +130,7 @@ function ModeSheet({ mode, onClose, onSelect }) {
     <div
       onClick={onClose}
       style={{position:"absolute",inset:0,background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)",
-        display:"flex",alignItems:"flex-end",zIndex:50}}
+        display:"flex",alignItems:"center",justifyContent:"center",zIndex:50}}
     >
       <div onClick={e=>e.stopPropagation()} style={{
         background:"white",borderRadius:"24px 24px 0 0",padding:"20px 18px 44px",width:"100%",
