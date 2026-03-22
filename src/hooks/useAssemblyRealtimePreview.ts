@@ -10,6 +10,8 @@ const MAX_RECENT_FINALS = 4;
 interface UseAssemblyRealtimePreviewReturn {
   liveTranscript: string;
   fullTranscript: string;
+  recentFinals: string[];
+  currentPartial: string;
   status: PreviewStatus;
   isActive: boolean;
   error: string | null;
