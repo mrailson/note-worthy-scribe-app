@@ -520,10 +520,9 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead className="w-[40%]">Action</TableHead>
+            <TableHead className="w-[55%]">Action</TableHead>
             <TableHead className="w-[15%]">Owner</TableHead>
             <TableHead className="w-[15%]">Deadline</TableHead>
-            <TableHead className="w-[15%]">Priority</TableHead>
             <TableHead className="w-[15%]">Status</TableHead>
           </TableRow>
         </TableHeader>
