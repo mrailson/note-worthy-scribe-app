@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { TranscriptCleaner } from "@/utils/TranscriptCleaner";
 import { getActiveMinConfidence, meetsConfidenceThreshold, withDefaultThresholds } from "@/utils/confidenceGating";
 import { mergeLive, type LiveChunk } from "@/utils/liveMerge";
+import { detectHallucination } from "@/utils/whisperNgramHallucinationDetector";
 import { segmentsToPlainText, type Segment } from "@/lib/segmentMerge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
@@ -483,6 +484,14 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
             console.log("📝 Using plain text chunk");
           }
           
+          // Run n-gram hallucination detection on each incoming chunk before accumulating
+          const hallucinationCheck = detectHallucination(textForDisplay, 0.5);
+          if (hallucinationCheck.isHallucinated && hallucinationCheck.cleanedText) {
+            const removedWords = textForDisplay.split(/\s+/).length - hallucinationCheck.cleanedText.split(/\s+/).length;
+            console.log(`🧹 Hallucination detector: removed ${removedWords} repeated words from chunk. Phrases: ${hallucinationCheck.repeatedPhrases.map(p => `"${p.phrase}" x${p.count}`).join(', ')}`);
+            textForDisplay = hallucinationCheck.cleanedText;
+          }
+
           // Always show latest raw text (interim or final) in the live box - accumulate chunks
           console.log("🔗 Accumulating transcript chunk:", textForDisplay?.substring(0, 50) + "...", 'previous_length:', liveTranscriptText.length);
           setLiveTranscriptText(prev => {

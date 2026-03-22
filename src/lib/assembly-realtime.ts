@@ -48,9 +48,17 @@ export class AssemblyRealtimeClient {
   private reconnectAttempts = 0;
   private isReconnecting = false;
   private manualStop = false;
+  private setupInProgress = false;
 
   // Keyterms for better recognition
   private keyterms: string[] = [];
+
+  // Diagnostic counters
+  private totalMessageCount = 0;
+  private endOfTurnCount = 0;
+  private partialCount = 0;
+  private audioFramesSent = 0;
+  private lastDiagLogTime = 0;
 
   constructor(private cb: Callbacks = {}) {}
 
@@ -147,6 +155,7 @@ export class AssemblyRealtimeClient {
       try {
         const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
         const data = JSON.parse(raw);
+        this.totalMessageCount++;
 
         if (data?.type === "error") {
           this.cb.onError?.(new Error(data?.error || "AssemblyAI error"));
@@ -158,10 +167,11 @@ export class AssemblyRealtimeClient {
           const text = String(data?.transcript ?? "").trim();
           if (!text) return;
           if (data?.end_of_turn) {
-            // End of turn — commit as final (already formatted since format_turns=true)
+            this.endOfTurnCount++;
+            console.log(`✅ AssemblyAI end_of_turn #${this.endOfTurnCount} (${text.split(/\s+/).length} words): "${text.substring(0, 80)}..."`);
             this.cb.onFinal?.(text);
           } else {
-            // Interim update — show as live preview while speaker is still talking
+            this.partialCount++;
             this.cb.onPartial?.(text);
           }
           return;
@@ -170,19 +180,19 @@ export class AssemblyRealtimeClient {
         // Legacy v2 compat
         if (data?.message_type === "PartialTranscript") {
           const text = String(data?.text ?? "").trim();
-          if (text) this.cb.onPartial?.(text);
+          if (text) { this.partialCount++; this.cb.onPartial?.(text); }
           return;
         }
         if (data?.message_type === "FinalTranscript") {
           const text = String(data?.text ?? "").trim();
-          if (text) this.cb.onFinal?.(text);
+          if (text) { this.endOfTurnCount++; this.cb.onFinal?.(text); }
           return;
         }
       } catch { /* ignore non-json */ }
     };
 
     this.ws!.onclose = (ev) => {
-      console.log("🔌 AssemblyRealtimeClient: proxy WS closed", ev.code, ev.reason);
+      console.log(`🔌 AssemblyRealtimeClient: proxy WS closed ${ev.code} ${ev.reason} (msgs: ${this.totalMessageCount}, finals: ${this.endOfTurnCount}, partials: ${this.partialCount}, audioFrames: ${this.audioFramesSent})`);
       this.sending = false;
 
       if (!this.manualStop && this.shouldReconnect && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
@@ -190,7 +200,9 @@ export class AssemblyRealtimeClient {
         return;
       }
 
-      this.cleanupAudio();
+      if (!this.setupInProgress) {
+        this.cleanupAudio();
+      }
       this.cb.onClose?.(ev.code, ev.reason || "");
     };
 
@@ -331,7 +343,9 @@ export class AssemblyRealtimeClient {
         this.attemptReconnect();
         return;
       }
-      this.cleanupAudio();
+      if (!this.setupInProgress) {
+        this.cleanupAudio();
+      }
       this.cb.onClose?.(ev.code, ev.reason || "");
     };
 
@@ -345,7 +359,7 @@ export class AssemblyRealtimeClient {
   }
 
   stop() {
-    console.log("🛑 AssemblyRealtimeClient: stop");
+    console.log(`🛑 AssemblyRealtimeClient: stop (total msgs: ${this.totalMessageCount}, finals: ${this.endOfTurnCount}, partials: ${this.partialCount}, audioFrames: ${this.audioFramesSent})`);
     this.manualStop = true;
     this.shouldReconnect = false;
 
@@ -365,36 +379,49 @@ export class AssemblyRealtimeClient {
   // ── Audio capture ──────────────────────────────────────────────────────
 
   private async startAudioCapture() {
-    if (this.externalStream) {
-      console.log("🎙️ AssemblyRealtimeClient: using external stream");
-      this.stream = this.externalStream;
-      this.ownsStream = false;
-    } else {
-      console.log("🎙️ AssemblyRealtimeClient: capturing mic directly");
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          channelCount: 1,
+    this.setupInProgress = true;
+    try {
+      // Validate external stream tracks are still alive
+      if (this.externalStream) {
+        const activeTracks = this.externalStream.getAudioTracks().filter(t => t.readyState === 'live');
+        if (activeTracks.length > 0) {
+          console.log("🎙️ AssemblyRealtimeClient: using external stream", activeTracks.length, "active tracks");
+          this.stream = this.externalStream;
+          this.ownsStream = false;
+        } else {
+          console.warn("⚠️ External stream tracks ended — capturing fresh mic");
+          this.externalStream = undefined;
+          this.stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+          });
+          this.ownsStream = true;
         }
-      });
-      this.ownsStream = true;
-    }
+      } else {
+        console.log("🎙️ AssemblyRealtimeClient: capturing mic directly");
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+        });
+        this.ownsStream = true;
+      }
 
-    // Create AudioContext at browser default rate (typically 48 kHz).
-    // The AudioWorklet resamples to 16 kHz internally.
-    this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const srcRate = this.audioCtx.sampleRate;
-    console.log(`🎛️ AssemblyRealtimeClient: AudioContext @ ${srcRate}Hz`);
+      // Create AudioContext at browser default rate (typically 48 kHz).
+      // The AudioWorklet resamples to 16 kHz internally.
+      this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      await this.audioCtx.resume();
+      const srcRate = this.audioCtx.sampleRate;
+      console.log(`🎛️ AssemblyRealtimeClient: AudioContext @ ${srcRate}Hz (state: ${this.audioCtx.state}), resampling to ${this.sampleRateTarget}Hz`);
 
-    const src = this.audioCtx.createMediaStreamSource(this.stream);
-    this.sources = [src];
+      const src = this.audioCtx.createMediaStreamSource(this.stream);
+      this.sources = [src];
 
-    // Try AudioWorklet first, fall back to ScriptProcessorNode
-    const useWorklet = await this.tryAudioWorklet(src);
-    if (!useWorklet) {
-      console.log("⚠️ AudioWorklet unavailable — falling back to ScriptProcessorNode");
-      this.startScriptProcessorFallback(src);
+      // Try AudioWorklet first, fall back to ScriptProcessorNode
+      const useWorklet = await this.tryAudioWorklet(src);
+      if (!useWorklet) {
+        console.log("⚠️ AudioWorklet unavailable — falling back to ScriptProcessorNode");
+        this.startScriptProcessorFallback(src);
+      }
+    } finally {
+      this.setupInProgress = false;
     }
   }
 
@@ -404,9 +431,14 @@ export class AssemblyRealtimeClient {
    * on the audio thread, sending raw PCM16 buffers to the main thread.
    */
   private async tryAudioWorklet(src: MediaStreamAudioSourceNode): Promise<boolean> {
+    if (!this.audioCtx) {
+      console.warn("⚠️ tryAudioWorklet: audioCtx is null, skipping");
+      return false;
+    }
     try {
-      await this.audioCtx!.audioWorklet.addModule('/worklets/pcm16-writer.js');
-      this.worklet = new AudioWorkletNode(this.audioCtx!, 'pcm16-writer');
+      await this.audioCtx.audioWorklet.addModule('/worklets/pcm16-writer.js');
+      console.log("✅ PCM16 worklet registered, AudioContext sampleRate:", this.audioCtx.sampleRate, "Hz");
+      this.worklet = new AudioWorkletNode(this.audioCtx, 'pcm16-writer');
 
       // Accumulate PCM16 data and send in ~100ms chunks
       const buffer16: Int16Array[] = [];
@@ -423,17 +455,29 @@ export class AssemblyRealtimeClient {
 
         while (accLen >= bytesPerChunk) {
           const payload = this.spliceBytes(buffer16, bytesPerChunk);
-          if (payload) this.ws!.send(payload.buffer as ArrayBuffer);
+          if (payload) {
+            this.ws!.send(payload.buffer as ArrayBuffer);
+            this.audioFramesSent++;
+            // Log every 100th frame for diagnostics
+            if (this.audioFramesSent % 100 === 0) {
+              const now = Date.now();
+              const elapsed = this.lastDiagLogTime ? (now - this.lastDiagLogTime) / 1000 : 0;
+              this.lastDiagLogTime = now;
+              console.log(`📡 AssemblyAI audio: sent frame #${this.audioFramesSent}, ${payload.byteLength} bytes` +
+                (elapsed ? `, ${elapsed.toFixed(1)}s since last log` : '') +
+                `, msgs back: ${this.totalMessageCount} (${this.endOfTurnCount} finals, ${this.partialCount} partials)`);
+            }
+          }
           accLen -= bytesPerChunk;
         }
       };
 
       // Connect source → worklet → muted destination (needed for worklet to process)
-      this.muteGain = this.audioCtx!.createGain();
+      this.muteGain = this.audioCtx.createGain();
       this.muteGain.gain.value = 0;
       src.connect(this.worklet);
       this.worklet.connect(this.muteGain);
-      this.muteGain.connect(this.audioCtx!.destination);
+      this.muteGain.connect(this.audioCtx.destination);
 
       console.log("✅ AssemblyRealtimeClient: AudioWorklet pipeline active");
       return true;
@@ -473,7 +517,10 @@ export class AssemblyRealtimeClient {
 
       while (accLen >= bytesPerChunk) {
         const payload = this.spliceBytes(buffer16, bytesPerChunk);
-        if (payload) this.ws!.send(payload.buffer as ArrayBuffer);
+        if (payload) {
+          this.ws!.send(payload.buffer as ArrayBuffer);
+          this.audioFramesSent++;
+        }
         accLen -= bytesPerChunk;
       }
     };

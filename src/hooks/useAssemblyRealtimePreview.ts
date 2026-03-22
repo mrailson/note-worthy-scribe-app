@@ -41,6 +41,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   const reconnectAttemptsRef = useRef<number>(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastExternalStreamRef = useRef<MediaStream | null>(null);
+  const partialFallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track the base text (all confirmed finals) and current partial separately.
   // NOTE: AssemblyAI v3 can emit *two* final turns for the same utterance
@@ -99,6 +100,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     console.log(`🎤 AssemblyAI ${isFinal ? 'FINAL' : 'partial'}: "${newText.substring(0, 50)}..."`);
 
     if (isFinal) {
+      // Clear the partial fallback timer since we got a proper final
+      if (partialFallbackTimerRef.current) { clearTimeout(partialFallbackTimerRef.current); partialFallbackTimerRef.current = null; }
       const now = Date.now();
 
       if (shouldReplaceLastFinal(newText)) {
@@ -134,6 +137,16 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
 
     currentPartialRef.current = newText;
     setCurrentPartial(newText);
+
+    // Start/reset 30s fallback timer — commit partial as final if no end_of_turn arrives
+    if (partialFallbackTimerRef.current) clearTimeout(partialFallbackTimerRef.current);
+    partialFallbackTimerRef.current = setTimeout(() => {
+      const pending = currentPartialRef.current.trim();
+      if (pending) {
+        console.log(`⏰ AssemblyAI: No end_of_turn in 30s — force-committing partial (${pending.split(/\s+/).length} words)`);
+        updateTranscript(pending, true);
+      }
+    }, 30000);
 
     const combined = (baseTranscriptRef.current + ' ' + newText).trim();
     setFullTranscript(combined);
@@ -178,9 +191,18 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
           clientRef.current = null;
         }
 
-        const stream = lastExternalStreamRef.current;
+        let stream = lastExternalStreamRef.current;
+        // Validate stream tracks are still alive
+        if (stream) {
+          const activeTracks = stream.getAudioTracks().filter(t => t.readyState === 'live');
+          if (activeTracks.length === 0) {
+            console.warn('⚠️ AssemblyAI: Stored stream tracks ended — will capture fresh mic');
+            lastExternalStreamRef.current = null;
+            stream = null;
+          }
+        }
 
-        console.log('📡 AssemblyAI: Attempting reconnection...');
+        console.log('📡 AssemblyAI: Attempting reconnection...', stream ? '(reusing stream)' : '(fresh mic)');
 
         clientRef.current = new AssemblyRealtimeClient({
           onOpen: () => {
@@ -360,10 +382,14 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     console.log('🛑 Stopping AssemblyAI preview...');
     intentionalStopRef.current = true;
 
-    // Clear any pending reconnect
+    // Clear any pending reconnect and fallback timers
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
+    }
+    if (partialFallbackTimerRef.current) {
+      clearTimeout(partialFallbackTimerRef.current);
+      partialFallbackTimerRef.current = null;
     }
     
     if (clientRef.current) {
