@@ -235,7 +235,7 @@ const exportChunksToWord = async (rawChunks: ChunkSaveStatus[], mainTranscript: 
         new Paragraph({ text: `Total Chunks: ${chunks.length}${duplicatesRemoved > 0 ? ` (${duplicatesRemoved} duplicates removed)` : ''}` }),
         new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
         new Paragraph({ text: `Net Words (merged transcript): ${netTranscriptWords}` }),
-        new Paragraph({ text: `Words Filtered: ${totalWords - netTranscriptWords}` }),
+        new Paragraph({ text: `Words Filtered: ${Math.max(0, totalWords - netTranscriptWords)}` }),
         new Paragraph({ text: `Total Duration: ${Math.floor(totalDuration / 60)}m ${Math.floor(totalDuration % 60)}s` }),
         new Paragraph({ text: `Total File Size: ${totalFileSize < 1024 * 1024 ? `${(totalFileSize / 1024).toFixed(0)} KB` : `${(totalFileSize / (1024 * 1024)).toFixed(1)} MB`}` }),
         new Paragraph({ text: `Audio Format: ${fileTypes.length > 0 ? fileTypes.join(', ') : 'N/A'}` }),

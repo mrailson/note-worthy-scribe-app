@@ -694,7 +694,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           new Paragraph({ text: `Total Chunks: ${chunks.length}` }),
           new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
           new Paragraph({ text: `Net Words (merged transcript): ${transcriptWords}` }),
-          new Paragraph({ text: `Words Filtered: ${totalWords - transcriptWords}` }),
+          new Paragraph({ text: `Words Filtered: ${Math.max(0, totalWords - transcriptWords)}` }),
           new Paragraph({ text: `Total Duration: ${Math.floor(totalDuration / 60)}m ${Math.floor(totalDuration % 60)}s` }),
           new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
           new Paragraph({ text: `Chunks Merged: ${mergedCount}/${chunks.length}` }),

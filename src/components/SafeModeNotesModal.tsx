@@ -1931,7 +1931,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       new Paragraph({ text: `Total Chunks: ${deduplicatedChunks.length}${duplicatesRemoved > 0 ? ` (${duplicatesRemoved} duplicates removed)` : ''}` }),
       new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
       new Paragraph({ text: `Net Words (merged transcript): ${transcriptWords}` }),
-      new Paragraph({ text: `Words Filtered: ${totalWords - transcriptWords}` }),
+      new Paragraph({ text: `Words Filtered: ${Math.max(0, totalWords - transcriptWords)}` }),
       new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
       new Paragraph({ 
         children: [
