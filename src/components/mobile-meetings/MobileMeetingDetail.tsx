@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ChevronLeft, Download, Share2, FileText, MessageSquare, Users, Clock } from 'lucide-react';
+import { ChevronLeft, Download, Share2, FileText, MessageSquare, Users, Clock, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -32,6 +32,15 @@ interface MeetingDetailData {
   meeting_attendees_json?: any;
 }
 
+interface ActionItem {
+  id: string;
+  action_text: string;
+  assignee_name?: string | null;
+  due_date?: string | null;
+  status?: string | null;
+  priority?: string | null;
+}
+
 interface MobileMeetingDetailProps {
   meetingId: string;
   open: boolean;
@@ -53,6 +62,8 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
   const [meeting, setMeeting] = useState<MeetingDetailData | null>(null);
   const [tab, setTab] = useState<TabId>('overview');
   const [loading, setLoading] = useState(true);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [actionItemsLoading, setActionItemsLoading] = useState(false);
 
   useEffect(() => {
     if (!meetingId || !user || !open) return;
@@ -72,6 +83,27 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
     };
 
     fetchMeeting();
+  }, [meetingId, user, open]);
+
+  // Fetch action items when actions tab is selected or on mount
+  useEffect(() => {
+    if (!meetingId || !user || !open) return;
+
+    const fetchActionItems = async () => {
+      setActionItemsLoading(true);
+      const { data, error } = await supabase
+        .from('meeting_action_items')
+        .select('id, action_text, assignee_name, due_date, status, priority')
+        .eq('meeting_id', meetingId)
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        setActionItems(data);
+      }
+      setActionItemsLoading(false);
+    };
+
+    fetchActionItems();
   }, [meetingId, user, open]);
 
   const formatDuration = (minutes: number | null) => {
@@ -104,7 +136,6 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
   // Parse overview into bullets
   const overviewBullets = useMemo(() => {
     if (!meeting?.overview) return [];
-    // Split by bullet markers or newlines
     const lines = meeting.overview
       .split(/[\n•\-]/)
       .map(l => l.trim())
@@ -126,6 +157,19 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
 
   const getInitials = (name: string) => {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  // Separate open and completed action items
+  const openActions = actionItems.filter(a => a.status !== 'Completed');
+  const completedActions = actionItems.filter(a => a.status === 'Completed');
+
+  const getPriorityStyle = (priority?: string | null) => {
+    switch (priority?.toLowerCase()) {
+      case 'high': return { background: 'var(--nw-red)', color: '#fff' };
+      case 'medium': return { background: 'var(--nw-amber-light)', color: 'var(--nw-amber)' };
+      case 'low': return { background: 'var(--nw-green-light)', color: 'var(--nw-green)' };
+      default: return { background: 'var(--nw-surface2)', color: 'var(--nw-text2)' };
+    }
   };
 
   if (!open) return null;
@@ -175,7 +219,7 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
                 color: 'var(--nw-green)',
               }}>
                 <span className="nw-mh-status-dot complete" style={{ width: 6, height: 6 }} />
-                {meeting.status === 'complete' ? 'Complete' : meeting.status}
+                {meeting.status === 'complete' ? 'Completed' : meeting.status}
               </span>
             </div>
           </div>
@@ -207,6 +251,9 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
             </button>
             <button className={`nw-mh-tab ${tab === 'actions' ? 'active' : ''}`} onClick={() => setTab('actions')}>
               Actions
+              {openActions.length > 0 && (
+                <span className="nw-mh-tab-badge">{openActions.length}</span>
+              )}
             </button>
             <button className={`nw-mh-tab ${tab === 'transcript' ? 'active' : ''}`} onClick={() => setTab('transcript')}>
               Transcript
@@ -276,11 +323,68 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
 
           {tab === 'actions' && (
             <div className="nw-mh-section">
-              <div className="nw-mh-card-content">
-                <div className="nw-mh-overview-text" style={{ color: 'var(--nw-text3)', fontStyle: 'italic' }}>
-                  Action items are extracted when meeting notes are generated. Tap "Notes" to view or generate.
+              {actionItemsLoading ? (
+                <div className="nw-mh-loading">Loading action items…</div>
+              ) : actionItems.length === 0 ? (
+                <div className="nw-mh-card-content">
+                  <div className="nw-mh-overview-text" style={{ color: 'var(--nw-text3)', fontStyle: 'italic' }}>
+                    No action items found. Tap "Notes" to generate meeting notes — action items are extracted automatically.
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {openActions.length > 0 && (
+                    <>
+                      <div className="nw-mh-section-title">Open ({openActions.length})</div>
+                      <div className="nw-mh-card-content">
+                        {openActions.map((item) => (
+                          <div key={item.id} className="nw-mh-action-item">
+                            <div className="nw-mh-action-text">{item.action_text}</div>
+                            <div className="nw-mh-action-meta">
+                              {item.assignee_name && item.assignee_name !== 'TBC' && (
+                                <span className="nw-mh-action-owner">{item.assignee_name}</span>
+                              )}
+                              {item.due_date && item.due_date !== 'TBC' && (
+                                <span className="nw-mh-action-deadline">Due: {item.due_date}</span>
+                              )}
+                              {item.priority && (
+                                <span className="nw-mh-action-badge" style={getPriorityStyle(item.priority)}>
+                                  {item.priority}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {completedActions.length > 0 && (
+                    <>
+                      <div className="nw-mh-section-title" style={{ marginTop: openActions.length > 0 ? 20 : 0 }}>
+                        Completed ({completedActions.length})
+                      </div>
+                      <div className="nw-mh-card-content">
+                        {completedActions.map((item) => (
+                          <div key={item.id} className="nw-mh-action-item" style={{ opacity: 0.6 }}>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                              <CheckCircle2 size={16} style={{ color: 'var(--nw-green)', flexShrink: 0, marginTop: 2 }} />
+                              <div className="nw-mh-action-text" style={{ textDecoration: 'line-through' }}>
+                                {item.action_text}
+                              </div>
+                            </div>
+                            <div className="nw-mh-action-meta">
+                              {item.assignee_name && item.assignee_name !== 'TBC' && (
+                                <span className="nw-mh-action-owner">{item.assignee_name}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
               <div className="nw-mh-safe-bottom" />
             </div>
           )}

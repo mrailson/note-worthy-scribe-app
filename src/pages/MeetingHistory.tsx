@@ -1739,6 +1739,7 @@ const MeetingHistory = () => {
         <MobileExportSheet
           open={mobileExportOpen}
           onClose={() => setMobileExportOpen(false)}
+          meetingId={mobileDetailMeetingId}
           wordCount={mobileExportWordCount}
         />
         <FullPageNotesModal
