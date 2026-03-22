@@ -618,7 +618,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               </DrawerClose>
                               {hasModuleAccess('meeting_recorder') && (
                                 <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/')}> 
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/new-recorder')}> 
                                     <FileText className="h-4 w-4 mr-2" />
                                     Meeting Notes
                                   </Button>
