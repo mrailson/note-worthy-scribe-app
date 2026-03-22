@@ -22,6 +22,7 @@ import { RoleToggle } from '@/components/ai4gp/RoleToggle';
 import { UnifiedSettingsDropdown } from '@/components/ai4gp/UnifiedSettingsDropdown';
 import { MobileRoleToggle, useMobileRolePreference } from '@/components/ai4gp/MobileRoleToggle';
 import { MobileRoleQuickPicks } from '@/components/ai4gp/MobileRoleQuickPicks';
+import { MobileChatWelcome } from '@/components/ai4gp/MobileChatWelcome';
 import { PowerPointGenerationOverlay } from '@/components/PowerPointGenerationOverlay';
 
 // Lazy-load heavy modal/panel components to improve initial load time
@@ -662,8 +663,8 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         </Tooltip>
                       </TooltipProvider>
                       
-                      {/* Mobile Role Toggle - inline with Ask AI */}
-                      {isMobile && (
+                      {/* Mobile Role Toggle - only show when in active chat (not on welcome screen) */}
+                      {isMobile && messages.length > 0 && (
                         <div className="ml-3">
                           <MobileRoleToggle
                             selectedRole={mobileRole}
@@ -855,10 +856,11 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                     isMobile ? "p-0 pb-36" : "p-1 sm:p-4 space-y-1 sm:space-y-3"
                   )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className={cn("w-full mx-auto space-y-2 sm:space-y-4", isBNFViewActive ? "max-w-5xl" : "max-w-3xl")}>
-                        {/* Mobile: Show quick picks inside the white bubble area */}
+                        {/* Mobile: Redesigned chat welcome with gradient header, role tabs, and chip prompts */}
                         {isMobile ? (
-                          <MobileRoleQuickPicks
+                          <MobileChatWelcome
                             selectedRole={mobileRole}
+                            onRoleChange={setMobileRole}
                             onSelectPrompt={(prompt) => handleSendWithContext(prompt)}
                             isLoading={isLoading}
                           />
