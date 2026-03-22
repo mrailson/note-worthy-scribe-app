@@ -453,11 +453,11 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying }) {
         </div>
 
         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-          {(rec.status==="local"||rec.status==="error") && (
+          {(rec.status==="local"||rec.status==="error"||(rec.status==="transcribed"&&!rec.meetingId)) && (
             <button onClick={()=>onSync(rec)} style={{
               padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
               background:"transparent",cursor:"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
-            }}>↑ Sync</button>
+            }}>{rec.status==="transcribed"?"⟳ Create Meeting":"↑ Sync"}</button>
           )}
           <button onClick={()=>onDelete(rec.id)} style={{
             width:28,height:28,borderRadius:8,border:"1px solid rgba(220,38,38,0.2)",
