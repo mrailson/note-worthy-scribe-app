@@ -134,8 +134,11 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
   if (localSettings.meeting_details_on) pills.push({ label: 'Meeting details', pillKey: 'meeting_details' });
   if (localSettings.attendees_on) pills.push({ label: 'Attendees', pillKey: 'attendees' });
   if (localSettings.exec_summary_on) pills.push({ label: 'Executive summary', pillKey: 'exec_summary' });
+  if (localSettings.discussion_summary_on) pills.push({ label: 'Discussion summary', pillKey: 'discussion_summary' });
+  if (localSettings.decisions_register_on) pills.push({ label: 'Decisions register', pillKey: 'decisions_register' });
   if (localSettings.action_items_on) pills.push({ label: 'Action items', pillKey: 'action_items' });
   if (localSettings.open_items_on) pills.push({ label: 'Open items', pillKey: 'open_items' });
+  if (localSettings.next_meeting_on) pills.push({ label: 'Next meeting', pillKey: 'next_meeting' });
   if (localSettings.footer_on) pills.push({ label: 'Footer', pillKey: 'footer' });
 
   return (
