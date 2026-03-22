@@ -317,6 +317,12 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
         }
       });
 
+      // Set keyterms before starting
+      if (keyterms.length > 0) {
+        clientRef.current.setKeyterms(keyterms);
+        console.log(`🔑 AssemblyAI: ${keyterms.length} keyterms configured`);
+      }
+
       await clientRef.current.start(externalStream);
       console.log('🎤 AssemblyAI client started successfully');
       
