@@ -483,9 +483,77 @@ export default function NoteWellRecorder() {
         });
       if (fnErr) throw fnErr;
 
-      await dbPatch(rec.id, { status: "transcribed", transcript: transcriptData?.text || "" });
+      const transcriptText = transcriptData?.text || "";
+      await dbPatch(rec.id, { status: "transcribed", transcript: transcriptText });
       await refresh();
       showToast("Transcription complete", "success");
+
+      // ── Step 3: Create meeting record ─────────────────────────────────────
+      const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
+      const durationMins = Math.round((rec.duration || 0) / 60);
+      const sessionId = crypto.randomUUID();
+
+      const { data: meetingData, error: meetingErr } = await supabase
+        .from("meetings")
+        .insert({
+          title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
+          user_id: user.id,
+          status: "completed",
+          meeting_type: "standard",
+          start_time: rec.createdAt || new Date().toISOString(),
+          end_time: new Date().toISOString(),
+          duration_minutes: durationMins,
+          word_count: wordCount,
+          import_source: "mobile_recorder",
+          whisper_transcript_text: transcriptText,
+          primary_transcript_source: "whisper",
+        })
+        .select("id")
+        .single();
+
+      if (meetingErr) {
+        console.error("Meeting creation failed:", meetingErr);
+        showToast("Transcribed but meeting creation failed", "error");
+        return;
+      }
+
+      const meetingId = meetingData.id;
+
+      // ── Step 4: Store transcript chunk ─────────────────────────────────────
+      await supabase.from("meeting_transcription_chunks").insert({
+        meeting_id: meetingId,
+        user_id: user.id,
+        session_id: sessionId,
+        chunk_number: 0,
+        transcription_text: transcriptText,
+        is_final: true,
+        source: "whisper",
+        transcriber_type: "whisper",
+        word_count: wordCount,
+      });
+
+      await dbPatch(rec.id, { meetingId });
+      await refresh();
+      showToast("Meeting created — generating notes…", "success");
+
+      // ── Step 5: Trigger note generation ────────────────────────────────────
+      supabase.functions
+        .invoke("generate-meeting-notes-claude", {
+          body: {
+            meetingId,
+            transcript: transcriptText,
+            title: rec.title || "Mobile Recording",
+          },
+        })
+        .then(({ error: genErr }) => {
+          if (genErr) {
+            console.error("Note generation failed:", genErr);
+            showToast("Meeting saved — note generation failed", "error");
+          } else {
+            showToast("Meeting notes generated ✨", "success");
+          }
+          refresh();
+        });
     } catch (err) {
       console.error("Sync error:", err);
       await dbPatch(rec.id, { status: "error" });
