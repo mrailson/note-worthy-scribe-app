@@ -226,7 +226,7 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
                 className={cn(
                   'px-3.5 py-1.5 rounded-lg border text-xs font-medium whitespace-nowrap cursor-pointer transition-colors',
                   mic.testing
-                    ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-success/10 border-success text-success'
                     : 'bg-accent border-primary text-primary hover:bg-primary/10'
                 )}
               >
@@ -236,7 +236,7 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
                 <div
                   className={cn(
                     'h-full rounded-full transition-[width] duration-75',
-                    mic.level > 30 ? 'bg-emerald-500' : mic.level > 10 ? 'bg-amber-500' : 'bg-muted-foreground/30'
+                    mic.level > 30 ? 'bg-success' : mic.level > 10 ? 'bg-warning' : 'bg-muted-foreground/30'
                   )}
                   style={{ width: `${mic.testing ? mic.level : 0}%` }}
                 />
