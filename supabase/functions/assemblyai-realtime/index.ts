@@ -104,7 +104,27 @@ Deno.serve(async (req: Request) => {
         assemblySocket = new WebSocket(wsUrl);
         
         assemblySocket.onopen = () => {
-          console.log('✅ AssemblyAI WebSocket connected');
+          console.log('✅ AssemblyAI WebSocket connected — sending Configure');
+          
+          // v3 requires a Configure message to declare audio encoding
+          const configMsg = JSON.stringify({
+            type: 'Configure',
+            data: {
+              encoding: 'pcm_s16le',
+              sample_rate: 16000,
+              format_turns: true
+            }
+          });
+          
+          try {
+            // @ts-ignore
+            assemblySocket!.send(configMsg);
+            console.log('📋 Sent Configure message:', configMsg);
+          } catch (err) {
+            console.error('❌ Failed to send Configure:', err);
+          }
+          
+          // Signal client that session is ready
           safeSend(socket, JSON.stringify({ 
             type: 'session_begins',
             session_id: Date.now().toString()
@@ -192,24 +212,12 @@ Deno.serve(async (req: Request) => {
             try {
               // @ts-ignore
               if (assemblySocket.readyState === WebSocket.OPEN) {
-                // AssemblyAI expects audio as base64-encoded string in JSON
-                const uint8 = event.data instanceof ArrayBuffer 
-                  ? new Uint8Array(event.data) 
-                  : event.data;
-                
-                // Convert to base64
-                let binary = '';
-                for (let i = 0; i < uint8.byteLength; i++) {
-                  binary += String.fromCharCode(uint8[i]);
-                }
-                const base64 = btoa(binary);
-                
-                // Send as JSON message with audio_data field
+                // v3 accepts raw binary PCM frames (after Configure message)
                 // @ts-ignore
-                assemblySocket.send(JSON.stringify({ audio_data: base64 }));
+                assemblySocket.send(event.data);
               }
             } catch (err) {
-              console.error('❌ Failed to forward audio to AssemblyAI:', err);
+              console.error('❌ Failed to forward audio:', err);
             }
           }
           return;
