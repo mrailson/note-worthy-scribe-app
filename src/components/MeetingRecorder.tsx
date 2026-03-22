@@ -5895,11 +5895,15 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           console.log('🧠 Using model for initial generation:', modelOverride);
           const skipQc = localStorage.getItem('meeting-qc-enabled') !== 'true';
           const functionResult = await supabase.functions
-            .invoke('auto-generate-meeting-notes', {
+            .invoke('generate-meeting-notes-claude', {
               body: { 
-                meetingId: savedMeeting.id,
-                noteType: preferredNoteType,
+                transcript: transcript,
+                meetingTitle: savedMeeting.title || 'Meeting Notes',
+                meetingDate: new Date(savedMeeting.start_time || Date.now()).toLocaleDateString('en-GB'),
+                meetingTime: new Date(savedMeeting.start_time || Date.now()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                detailLevel: preferredNoteType === 'standard' ? 'standard' : preferredNoteType,
                 modelOverride,
+                meetingId: savedMeeting.id,
                 skipQc,
               }
             });
