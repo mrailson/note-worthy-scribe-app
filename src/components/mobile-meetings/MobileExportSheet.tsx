@@ -23,6 +23,7 @@ export const MobileExportSheet: React.FC<MobileExportSheetProps> = ({
   onShare,
 }) => {
   const { user } = useAuth();
+  const { sendEmailAutomatically, isSending } = useAutoEmail();
 
   const fetchMeetingData = async () => {
     if (!meetingId || !user) return null;
