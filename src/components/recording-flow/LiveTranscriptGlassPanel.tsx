@@ -176,7 +176,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
                 <EngineSection
                   label="AssemblyAI"
                   hue="217 91% 60%"
-                  lines={visibleLines}
+                  lines={visibleLines.length > 0 ? visibleLines : splitIntoLines(assemblyFullTranscript, 4)}
                   partial={currentPartial}
                 />
               )}
