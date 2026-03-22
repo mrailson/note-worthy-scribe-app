@@ -260,6 +260,9 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
             <button className={`nw-mh-tab ${tab === 'transcript' ? 'active' : ''}`} onClick={() => setTab('transcript')}>
               Transcript
             </button>
+            <button className={`nw-mh-tab ${tab === 'ask-ai' ? 'active' : ''}`} onClick={() => setTab('ask-ai')}>
+              Ask AI
+            </button>
           </div>
 
           {/* Tab content */}
