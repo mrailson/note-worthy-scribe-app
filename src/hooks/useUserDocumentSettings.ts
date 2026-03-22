@@ -57,6 +57,9 @@ export function useUserDocumentSettings() {
         attendees_on: (data as any).attendees_on ?? true,
         meeting_details_on: (data as any).meeting_details_on ?? true,
         priority_column_on: (data as any).priority_column_on ?? false,
+        discussion_summary_on: (data as any).discussion_summary_on ?? true,
+        decisions_register_on: (data as any).decisions_register_on ?? true,
+        next_meeting_on: (data as any).next_meeting_on ?? true,
       });
     }
     setLoading(false);
