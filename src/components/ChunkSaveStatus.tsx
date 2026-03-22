@@ -333,10 +333,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
   const chunksRecorded = chunks.length;
   
   // Calculate total words transcribed from all chunks
-  const totalWords = chunks.reduce((total, chunk) => {
-    const wordCount = chunk.text.trim().split(/\s+/).filter(word => word.length > 0).length;
-    return total + wordCount;
-  }, 0);
+  const totalWords = chunks.reduce((total, chunk) => total + countWords(chunk.text), 0);
   
   // Calculate total time from all chunks
   const totalTimeSeconds = chunks.reduce((total, chunk) => {
