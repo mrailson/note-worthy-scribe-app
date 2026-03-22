@@ -288,17 +288,19 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
           {/* Tab content */}
           {tab === 'overview' && (
             <div className="nw-mh-section">
-              {meeting.overview && (
+              {meeting.overview ? (
                 <>
-                  <div className="nw-mh-card-content">
-                    <div className="nw-mh-overview-text">{meeting.overview}</div>
-                  </div>
+                  {summaryParagraph && (
+                    <div className="nw-mh-card-content" style={{ marginBottom: 16 }}>
+                      <div className="nw-mh-overview-text">{summaryParagraph}</div>
+                    </div>
+                  )}
 
-                  {overviewBullets.length > 1 && (
+                  {keyPoints.length > 0 && (
                     <>
-                      <div className="nw-mh-section-title" style={{ marginTop: 20 }}>Key points</div>
+                      <div className="nw-mh-section-title" style={{ marginTop: summaryParagraph ? 24 : 0 }}>Key points</div>
                       <div className="nw-mh-card-content">
-                        {overviewBullets.map((b, i) => (
+                        {keyPoints.map((b, i) => (
                           <div key={i} className="nw-mh-bullet">
                             <div className="nw-mh-bullet-dot" />
                             <div>{b}</div>
@@ -308,9 +310,7 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
                     </>
                   )}
                 </>
-              )}
-
-              {!meeting.overview && (
+              ) : (
                 <div className="nw-mh-card-content">
                   <div className="nw-mh-overview-text" style={{ color: 'var(--nw-text3)', fontStyle: 'italic' }}>
                     No overview available. Tap "Notes" to generate meeting notes.
