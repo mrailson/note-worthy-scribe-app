@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { format } from 'date-fns';
-import { ChevronLeft, Download, Share2, FileText, MessageSquare, Users, Clock, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Download, Share2, FileText, MessageSquare, Users, Clock, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+
+const MeetingQAPanel = lazy(() => import('@/components/meeting-details/MeetingQAPanel').then(m => ({ default: m.MeetingQAPanel })));
 
 import './mobile-meetings.css';
 
@@ -49,7 +51,7 @@ interface MobileMeetingDetailProps {
   onShowExport?: (wordCount?: number) => void;
 }
 
-type TabId = 'overview' | 'actions' | 'transcript';
+type TabId = 'overview' | 'actions' | 'transcript' | 'ask-ai';
 
 export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
   meetingId,
@@ -230,7 +232,7 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
               <FileText size={22} />
               <span>Notes</span>
             </button>
-            <button className="nw-mh-quick-action" onClick={() => onViewSummary(meeting.id)}>
+            <button className="nw-mh-quick-action" onClick={() => setTab('ask-ai')}>
               <MessageSquare size={22} />
               <span>Ask AI</span>
             </button>
@@ -257,6 +259,9 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
             </button>
             <button className={`nw-mh-tab ${tab === 'transcript' ? 'active' : ''}`} onClick={() => setTab('transcript')}>
               Transcript
+            </button>
+            <button className={`nw-mh-tab ${tab === 'ask-ai' ? 'active' : ''}`} onClick={() => setTab('ask-ai')}>
+              Ask AI
             </button>
           </div>
 
@@ -464,6 +469,22 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
                   </div>
                 </>
               )}
+              <div className="nw-mh-safe-bottom" />
+            </div>
+          )}
+
+          {tab === 'ask-ai' && (
+            <div className="nw-mh-section" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <Suspense fallback={
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+                  <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--nw-blue)' }} />
+                </div>
+              }>
+                <MeetingQAPanel
+                  meetingId={meeting.id}
+                  meetingTitle={meeting.title}
+                />
+              </Suspense>
               <div className="nw-mh-safe-bottom" />
             </div>
           )}
