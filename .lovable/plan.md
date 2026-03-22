@@ -2,34 +2,31 @@
 
 ## Problem
 
-Priority badges (High/Medium/Low) are showing by default across three views:
-1. **Mobile/iOS meeting detail** - priority badges on action item cards
-2. **SafeModeNotesModal** - `InlineActionItemsTable` always renders the Priority column
-3. **Export Studio** - already has `priority_column_on` defaulting to `false` (this one is already correct)
-
-The Export Studio already respects the `priority_column_on` setting (defaults to `false`), so no change needed there. The issue is the other two views.
+The mobile export sheet (`MobileExportSheet`) currently only offers Word document downloads (notes, transcript, quality summary) and a share option. There is no way to email meeting notes directly from the smartphone -- a feature that exists on desktop via `useAutoEmail`. The email should include the notes in the email body and attach a Word document.
 
 ## Plan
 
-### 1. Hide priority column in InlineActionItemsTable by default
+### 1. Add "Email Notes" option to MobileExportSheet
 
-- Add an optional `showPriority?: boolean` prop (default `false`) to `InlineActionItemsTable`
-- Conditionally render the Priority `<TableHead>` and `<TableCell>` (containing `PriorityDropdown`) based on this prop
-- Adjust the Action column width from 40% to ~55% when priority is hidden
+Add a new button to `MobileExportSheet.tsx` between "Meeting notes (.docx)" and "Full transcript (.docx)":
 
-This affects both the SafeModeNotesModal (which uses `<InlineActionItemsTable>`) and the desktop meeting details view.
+- Icon: `Mail` (lucide) with a purple/violet accent background
+- Label: "Email notes to me"
+- Detail: "Send notes with Word attachment to your email"
 
-### 2. Hide priority badges in mobile meeting detail
+### 2. Implement email handler
 
-- In `MobileMeetingDetail.tsx`, remove the priority badge rendering block (`item.priority && ...`) from the action items cards
+In `MobileExportSheet.tsx`:
+- Import and use the `useAutoEmail` hook
+- Create `handleEmailNotes` that:
+  1. Fetches meeting data (reuses existing `fetchMeetingData`)
+  2. Calls `sendEmailAutomatically(notesContent, subject)` with a subject like "Meeting Notes - {title} - {date}"
+  3. Shows success/error toast and closes the sheet
+- Disable the button and show a spinner while `isSending` is true
 
-### 3. Hide priority from MobileResponsiveTable
+### 3. Files changed
 
-- In `MobileResponsiveTable.tsx`, skip the priority badge at top of cards and the priority column in table mode by default
+- `src/components/mobile-meetings/MobileExportSheet.tsx` -- add Mail import, useAutoEmail hook, email handler, and new button option
 
-### Files changed
-
-- `src/components/meeting-details/InlineActionItemsTable.tsx` - add `showPriority` prop, conditionally render column
-- `src/components/mobile-meetings/MobileMeetingDetail.tsx` - remove priority badge from action cards
-- `src/components/meeting/MobileResponsiveTable.tsx` - skip priority rendering
+No new files or database changes needed. The existing `useAutoEmail` hook already handles Word attachment generation and email sending via the Supabase edge function.
 
