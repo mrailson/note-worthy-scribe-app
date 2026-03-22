@@ -935,7 +935,7 @@ export default function NoteWellRecorder() {
       }
 
       await supabase.from("meeting_transcription_chunks").insert({
-        meeting_id: meetingData.id, user_id: user.id, session_id: sessionId,
+        meeting_id: meetingData.id, user_id: activeUser.id, session_id: sessionId,
         chunk_number: 0, transcription_text: transcriptText, is_final: true,
         source: "whisper", transcriber_type: "whisper", word_count: wordCount,
       });
