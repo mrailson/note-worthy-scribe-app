@@ -4,7 +4,7 @@ import { SEO } from "@/components/SEO";
 import { Header } from "@/components/Header";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { LoginForm } from "@/components/LoginForm";
-import { MeetingRecorder } from "@/components/MeetingRecorder";
+import NoteWellRecorder from "@/components/recorder/NoteWellRecorder";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
