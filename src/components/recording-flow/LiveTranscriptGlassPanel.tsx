@@ -1,73 +1,40 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-
-interface TranscriptLine {
-  id: number;
-  text: string;
-}
+import React, { useState, useEffect } from 'react';
 
 interface LiveTranscriptGlassPanelProps {
   isRecording: boolean;
   wordCount: number;
-  /** The current running transcript text — new sentences appended over time */
+  /** The current running transcript text — kept for backward compat */
   transcriptText: string;
+  /** Rolling buffer of the last N completed turns (from onFinal) */
+  recentFinals?: string[];
+  /** The current partial transcript (from onPartial, still being spoken) */
+  currentPartial?: string;
 }
+
+const MAX_VISIBLE_LINES = 4;
 
 /**
  * A compact glass panel toggled from the word-count badge.
- * Shows the last 3 completed lines with a fade/blur cascade
+ * Shows the last 4 completed lines with a fade cascade
  * plus a blinking cursor on the active partial line.
  */
 export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> = ({
   isRecording,
   wordCount,
   transcriptText,
+  recentFinals = [],
+  currentPartial = '',
 }) => {
   const [open, setOpen] = useState(false);
-  const prevTextRef = useRef('');
-  const lineIdRef = useRef(0);
-  const [lines, setLines] = useState<TranscriptLine[]>([]);
-  const [currentPartial, setCurrentPartial] = useState('');
-
-  // Split incoming transcript into completed sentences and a trailing partial
-  useEffect(() => {
-    if (!transcriptText || transcriptText.length === 0) {
-      setLines([]);
-      setCurrentPartial('');
-      prevTextRef.current = '';
-      return;
-    }
-
-    // Only process the new portion
-    const text = transcriptText.trim();
-    
-    // Split on sentence boundaries (. ! ?)
-    const sentenceRegex = /[^.!?]*[.!?]+/g;
-    const matches = text.match(sentenceRegex) || [];
-    const completedText = matches.join('');
-    const partial = text.slice(completedText.length).trim();
-
-    // Build line objects from completed sentences
-    const newLines: TranscriptLine[] = matches
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
-      .map((s, i) => ({ id: i, text: s }));
-
-    setLines(newLines);
-    setCurrentPartial(partial);
-  }, [transcriptText]);
 
   // Auto-close when recording stops
   useEffect(() => {
     if (!isRecording) {
       setOpen(false);
-      setLines([]);
-      setCurrentPartial('');
-      prevTextRef.current = '';
     }
   }, [isRecording]);
 
-  // Only show the last 3 completed lines
-  const visibleLines = lines.slice(-3);
+  const visibleLines = recentFinals.slice(-MAX_VISIBLE_LINES);
 
   if (!isRecording) return null;
 
@@ -134,7 +101,6 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
           left: '50%',
           transform: open ? 'translateX(-50%) translateY(0) scale(1)' : 'translateX(-50%) translateY(-6px) scale(0.98)',
           width: 420,
-          height: 160,
           background: 'hsl(var(--background) / 0.88)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
@@ -182,10 +148,10 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
           </span>
         </div>
 
-        {/* Transcript Lines */}
+        {/* Transcript Lines — fixed height, 4 lines + partial, anchored to bottom */}
         <div
           style={{
-            flex: 1,
+            height: 120,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-end',
@@ -194,54 +160,58 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
           }}
         >
           {visibleLines.length === 0 && !currentPartial && (
-            <p style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', fontStyle: 'italic', margin: 0 }}>
+            <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', fontStyle: 'italic', margin: 0 }}>
               Listening… speak to see live transcript
             </p>
           )}
 
           {visibleLines.map((line, i) => {
-            const age = visibleLines.length - i; // 3=oldest, 1=newest
-            const opacity = age === 3 ? 0.2 : age === 2 ? 0.45 : 1;
-            const scale = age === 3 ? 0.97 : 1;
-            const blur = age === 3 ? 1.5 : 0;
+            // Opacity gradient: oldest line faintest, newest brightest
+            const progress = visibleLines.length === 1 ? 1 : i / (visibleLines.length - 1);
+            const opacity = 0.4 + progress * 0.6;
 
             return (
               <div
-                key={line.id}
+                key={`${i}-${line.substring(0, 20)}`}
                 style={{
                   fontSize: 13,
                   lineHeight: 1.6,
                   color: 'hsl(var(--foreground) / 0.85)',
                   opacity,
-                  transform: `scale(${scale})`,
-                  filter: blur > 0 ? `blur(${blur}px)` : 'none',
-                  transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                  transformOrigin: 'left center',
-                  animation: 'nw-fadeSlideIn 0.35s ease-out',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  transition: 'opacity 0.4s ease',
                   margin: 0,
                   padding: 0,
                 }}
               >
-                {line.text}
+                {line}
               </div>
             );
           })}
 
-          {/* Active partial line with blinking cursor */}
+          {/* Active partial line — muted italic to show "in progress" */}
           {currentPartial && (
             <div
               style={{
                 fontSize: 13,
                 lineHeight: 1.6,
-                fontWeight: 500,
                 color: 'hsl(var(--foreground))',
+                opacity: 0.4,
+                fontStyle: 'italic',
                 display: 'flex',
                 alignItems: 'center',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
                 margin: 0,
                 padding: 0,
               }}
             >
-              {currentPartial}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {currentPartial}
+              </span>
               <span
                 style={{
                   display: 'inline-block',
@@ -267,10 +237,6 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
         @keyframes nw-blink {
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
-        }
-        @keyframes nw-fadeSlideIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
