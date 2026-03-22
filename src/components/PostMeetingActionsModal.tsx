@@ -356,11 +356,32 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           console.log('📎 Word attachment generated:', attachmentFilename, `(${Math.round(base64Content.length / 1024)}KB base64)`);
         } catch (docError) {
           console.error('❌ Word document generation failed for auto-email:', docError);
-        }
-
-        if (!wordAttachment) {
-          console.error('⚠️ Auto-email skipped: Word attachment is mandatory');
-          return;
+          // Fallback: generate minimal Word doc
+          try {
+            const { Document, Packer, Paragraph, TextRun } = await import('docx');
+            const paragraphs = notesContent.split('\n').filter(l => l.trim()).map(line =>
+              new Paragraph({ children: [new TextRun({ text: line.replace(/[#*_~`]/g, '').trim() })] })
+            );
+            const doc = new Document({ sections: [{ children: paragraphs }] });
+            const buffer = await Packer.toBlob(doc);
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve) => {
+              reader.onloadend = () => {
+                const base64 = (reader.result as string).split(',')[1];
+                resolve(base64);
+              };
+            });
+            reader.readAsDataURL(buffer);
+            const base64Content = await base64Promise;
+            wordAttachment = {
+              content: base64Content,
+              filename: `meeting_notes.docx`,
+              type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            };
+            console.log('📎 Word attachment generated via minimal fallback');
+          } catch (fallbackError) {
+            console.error('All Word generation attempts failed:', fallbackError);
+          }
         }
         
         // Send email via Resend edge function

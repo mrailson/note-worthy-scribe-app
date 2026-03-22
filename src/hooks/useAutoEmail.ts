@@ -101,22 +101,32 @@ export function useAutoEmail() {
           };
         }
       } catch (docError) {
-        console.error('Word document generation failed:', docError);
-        toast({
-          title: "Attachment Failed",
-          description: "Could not generate the Word document attachment. Email not sent.",
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      if (!wordAttachment) {
-        toast({
-          title: "Attachment Required",
-          description: "Word document attachment is required but could not be generated.",
-          variant: "destructive"
-        });
-        return false;
+        console.warn('Word document generation failed, trying minimal fallback:', docError);
+        try {
+          const { Document, Packer, Paragraph, TextRun } = await import('docx');
+          const paragraphs = content.split('\n').filter(l => l.trim()).map(line =>
+            new Paragraph({ children: [new TextRun({ text: line.replace(/[#*_~`]/g, '').trim() })] })
+          );
+          const doc = new Document({ sections: [{ children: paragraphs }] });
+          const buffer = await Packer.toBlob(doc);
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve) => {
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve(base64);
+            };
+          });
+          reader.readAsDataURL(buffer);
+          const base64Content = await base64Promise;
+          wordAttachment = {
+            content: base64Content,
+            filename: `${(defaultSubject || 'document').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}.docx`,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          };
+          console.log('📎 Word attachment generated via minimal fallback');
+        } catch (fallbackError) {
+          console.error('All Word document generation attempts failed:', fallbackError);
+        }
       }
 
       // Convert content to email-safe HTML
