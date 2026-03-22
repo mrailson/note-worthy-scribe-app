@@ -1843,6 +1843,15 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
     }
     } // end if (!skipQc)
 
+    // Build generation metadata from available variables
+    const generationMetadata = {
+      model_used: modelUsed || modelOverride || 'unknown',
+      generated_at: new Date().toISOString(),
+      notes_length: generatedNotes?.length || 0,
+      qc: qcResult || null,
+      skip_qc: skipQc,
+    };
+
     // Save or update notes in database using upsert to handle existing records
     const { error: summaryError } = await supabase
       .from('meeting_summaries')
