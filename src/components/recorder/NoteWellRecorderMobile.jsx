@@ -1036,8 +1036,9 @@ export default function NoteWellRecorder() {
       });
       showToast("Meeting created — generating notes…", "success");
 
+      const meetingTitle = rec.title || "Mobile Recording";
       supabase.functions.invoke("generate-meeting-notes-claude", {
-        body: { meetingId: meetingData.id, transcript: transcriptText, title: rec.title || "Mobile Recording" },
+        body: { meetingId: meetingData.id, transcript: transcriptText, meetingTitle },
       }).then(({ error: genErr }) => {
         if (genErr) {
           console.error("[LegacySync] Note generation failed:", genErr);
@@ -1048,6 +1049,9 @@ export default function NoteWellRecorder() {
         setSyncProgress(null);
         refresh();
       });
+      supabase.functions.invoke("generate-meeting-overview", {
+        body: { meetingId: meetingData.id, transcript: transcriptText, meetingTitle },
+      }).catch(() => {});
     } catch (err) {
       console.error("[LegacySync] Error:", err);
       await dbPatch(rec.id, { status: "error" });
