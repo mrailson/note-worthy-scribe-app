@@ -157,11 +157,11 @@ export class AssemblyRealtimeClient {
         if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
           const text = String(data?.transcript ?? "").trim();
           if (!text) return;
-          if (data?.turn_is_formatted) {
+          if (data?.end_of_turn) {
+            // End of turn — commit as final (already formatted since format_turns=true)
             this.cb.onFinal?.(text);
-          } else if (data?.end_of_turn) {
-            return; // skip unformatted end-of-turn, formatted version follows
           } else {
+            // Interim update — show as live preview while speaker is still talking
             this.cb.onPartial?.(text);
           }
           return;
