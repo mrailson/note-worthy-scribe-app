@@ -138,15 +138,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     currentPartialRef.current = newText;
     setCurrentPartial(newText);
 
-    // Start/reset 30s fallback timer — commit partial as final if no end_of_turn arrives
-    if (partialFallbackTimerRef.current) clearTimeout(partialFallbackTimerRef.current);
-    partialFallbackTimerRef.current = setTimeout(() => {
-      const pending = currentPartialRef.current.trim();
-      if (pending) {
-        console.log(`⏰ AssemblyAI: No end_of_turn in 30s — force-committing partial (${pending.split(/\s+/).length} words)`);
-        updateTranscript(pending, true);
-      }
-    }, 30000);
+    // NOTE: Turn-based commit logic (turn_order tracking + 30s absolute timer)
+    // is now handled inside AssemblyRealtimeClient itself, so no fallback timer here.
 
     const combined = (baseTranscriptRef.current + ' ' + newText).trim();
     setFullTranscript(combined);

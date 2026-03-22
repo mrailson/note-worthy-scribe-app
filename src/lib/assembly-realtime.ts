@@ -60,6 +60,13 @@ export class AssemblyRealtimeClient {
   private audioFramesSent = 0;
   private lastDiagLogTime = 0;
 
+  // Turn-order tracking — commit previous turn when turn_order changes
+  private currentTurnOrder: number = -1;
+  private currentTurnText: string = "";
+  private turnStartTime: number = 0;
+  private turnCommitTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly TURN_COMMIT_TIMEOUT_MS = 30000;
+
   constructor(private cb: Callbacks = {}) {}
 
   /** Set keyterms before calling start(). */
@@ -166,14 +173,7 @@ export class AssemblyRealtimeClient {
         if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
           const text = String(data?.transcript ?? "").trim();
           if (!text) return;
-          if (data?.end_of_turn) {
-            this.endOfTurnCount++;
-            console.log(`✅ AssemblyAI end_of_turn #${this.endOfTurnCount} (${text.split(/\s+/).length} words): "${text.substring(0, 80)}..."`);
-            this.cb.onFinal?.(text);
-          } else {
-            this.partialCount++;
-            this.cb.onPartial?.(text);
-          }
+          this.handleTurnMessage(data, text);
           return;
         }
 
@@ -324,11 +324,7 @@ export class AssemblyRealtimeClient {
         if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
           const text = String(data?.transcript ?? "").trim();
           if (!text) return;
-          if (data?.end_of_turn) {
-            this.cb.onFinal?.(text);
-          } else {
-            this.cb.onPartial?.(text);
-          }
+          this.handleTurnMessage(data, text);
           return;
         }
         if (data?.message_type === "PartialTranscript") { const t = String(data?.text ?? "").trim(); if (t) this.cb.onPartial?.(t); return; }
@@ -363,6 +359,15 @@ export class AssemblyRealtimeClient {
     this.manualStop = true;
     this.shouldReconnect = false;
 
+    // Flush any accumulated turn text before stopping
+    if (this.currentTurnText.trim()) {
+      console.log(`🔚 AssemblyAI: Flushing accumulated turn text on stop (${this.currentTurnText.split(/\s+/).length} words)`);
+      this.cb.onFinal?.(this.currentTurnText.trim());
+      this.currentTurnText = "";
+      this.currentTurnOrder = -1;
+    }
+    if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+
     try {
       this.sending = false;
       if (this.ws?.readyState === WebSocket.OPEN) {
@@ -374,6 +379,55 @@ export class AssemblyRealtimeClient {
     }
 
     this.cleanupAudio();
+  }
+
+  // ── Turn-order tracking ─────────────────────────────────────────────────
+
+  private handleTurnMessage(data: any, text: string) {
+    const turnOrder = typeof data?.turn_order === 'number' ? data.turn_order : -1;
+
+    // If end_of_turn fires, commit immediately
+    if (data?.end_of_turn) {
+      this.endOfTurnCount++;
+      console.log(`✅ AssemblyAI end_of_turn #${this.endOfTurnCount} (${text.split(/\s+/).length} words): "${text.substring(0, 80)}..."`);
+      this.cb.onFinal?.(text);
+      this.currentTurnText = "";
+      this.currentTurnOrder = -1;
+      if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+      return;
+    }
+
+    // Turn order changed — commit the previous turn's accumulated text
+    if (turnOrder !== -1 && turnOrder !== this.currentTurnOrder && this.currentTurnOrder !== -1) {
+      if (this.currentTurnText.trim()) {
+        this.endOfTurnCount++;
+        console.log(`🔄 AssemblyAI turn_order ${this.currentTurnOrder}→${turnOrder} — committing previous turn (${this.currentTurnText.split(/\s+/).length} words)`);
+        this.cb.onFinal?.(this.currentTurnText.trim());
+      }
+    }
+
+    // Update tracking for current turn
+    if (turnOrder !== -1 && turnOrder !== this.currentTurnOrder) {
+      this.currentTurnOrder = turnOrder;
+      this.turnStartTime = Date.now();
+
+      // Reset the absolute 30s timer for this new turn
+      if (this.turnCommitTimer) clearTimeout(this.turnCommitTimer);
+      this.turnCommitTimer = setTimeout(() => {
+        if (this.currentTurnText.trim()) {
+          this.endOfTurnCount++;
+          console.log(`⏰ AssemblyAI: Turn ${this.currentTurnOrder} open for 30s — force-committing (${this.currentTurnText.split(/\s+/).length} words)`);
+          this.cb.onFinal?.(this.currentTurnText.trim());
+          this.currentTurnText = "";
+          this.currentTurnOrder = -1;
+        }
+      }, this.TURN_COMMIT_TIMEOUT_MS);
+    }
+
+    // v3 sends full turn text each time, so just replace
+    this.currentTurnText = text;
+    this.partialCount++;
+    this.cb.onPartial?.(text);
   }
 
   // ── Audio capture ──────────────────────────────────────────────────────
