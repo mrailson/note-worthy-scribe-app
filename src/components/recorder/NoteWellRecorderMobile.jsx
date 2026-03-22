@@ -784,6 +784,7 @@ export default function NoteWellRecorder() {
 
       // ── Phase 2: Transcribe each chunk ────────────────────────────────
       const chunkTranscripts = [];
+      let previousChunkText = "";
       for (let i = 0; i < totalChunks; i++) {
         const chunk = chunks[i];
         const paddedIndex = String(chunk.index).padStart(3, "0");
@@ -795,9 +796,14 @@ export default function NoteWellRecorder() {
           message: `Transcribing segment ${i + 1} of ${totalChunks}…`,
         });
 
+        // Build context prompt: chain previous chunk text for continuity
+        const prompt = previousChunkText
+          ? `NHS primary care meeting transcript. ${rec.title ? `Meeting: ${rec.title}.` : ''} ${previousChunkText.split(/\s+/).slice(-150).join(' ')}`
+          : `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ''}`;
+
         const { data: transcriptData, error: fnErr } = await supabase.functions
           .invoke("standalone-whisper", {
-            body: { storagePath, bucket: "recordings", responseFormat: "verbose_json" },
+            body: { storagePath, bucket: "recordings", responseFormat: "verbose_json", prompt },
           });
         if (fnErr) {
           console.warn(`Chunk ${i} transcription failed:`, fnErr);
@@ -812,6 +818,11 @@ export default function NoteWellRecorder() {
           chunkTranscripts.push({
             index: chunk.index,
             text: transcriptData?.text || "",
+            segments,
+            success: true,
+          });
+          // Chain this chunk's text for next chunk's prompt
+          if (transcriptData?.text) previousChunkText = transcriptData.text;
             segments,
             success: true,
           });
@@ -1042,9 +1053,10 @@ export default function NoteWellRecorder() {
         percentComplete: 50, message: "Transcribing…",
       });
 
+      const prompt = `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ''}`;
       const { data: transcriptData, error: fnErr } = await supabase.functions
         .invoke("standalone-whisper", {
-          body: { storagePath: filePath, bucket: "recordings" },
+          body: { storagePath: filePath, bucket: "recordings", prompt },
         });
       if (fnErr) throw fnErr;
 

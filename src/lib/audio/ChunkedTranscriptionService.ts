@@ -5,6 +5,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { buildWhisperPrompt } from './whisperPromptBuilder';
 import { AudioChunk } from './ChunkedRecorder';
 
 export interface TranscriptionProgress {
@@ -47,6 +48,9 @@ export interface TranscribeOptions {
   maxRetries?: number;          // Default: 2
   continueOnError?: boolean;    // Default: true
   prompt?: string;              // Context hint for Whisper
+  meetingTitle?: string;        // For prompt building
+  attendees?: string[];         // For prompt building
+  agendaTerms?: string[];       // For prompt building
 }
 
 const STORAGE_BUCKET = 'recordings';
@@ -59,7 +63,7 @@ export class ChunkedTranscriptionService {
     chunks: AudioChunk[],
     options: TranscribeOptions = {}
   ): Promise<TranscriptionResult> {
-    const { onProgress, language = 'en', maxRetries = 2, continueOnError = true, prompt } = options;
+    const { onProgress, language = 'en', maxRetries = 2, continueOnError = true, prompt, meetingTitle, attendees, agendaTerms } = options;
     const totalChunks = chunks.length;
     const chunkResults: ChunkTranscript[] = [];
 
@@ -81,7 +85,8 @@ export class ChunkedTranscriptionService {
       onProgress?.({ phase: 'uploading', currentChunk: i + 1, totalChunks, percentComplete: Math.round(((i + 1) / totalChunks) * 30), message: `Uploaded segment ${i + 1} of ${totalChunks}` });
     }
 
-    // Phase 2: Transcribe each chunk
+    // Phase 2: Transcribe each chunk (with prompt chaining)
+    let previousChunkText = '';
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const storagePath = storagePaths[i];
@@ -91,8 +96,22 @@ export class ChunkedTranscriptionService {
         chunkResults.push({ chunkIndex: chunk.index, text: '', segments: [], wordCount: 0, success: false, error: 'Upload failed' });
         continue;
       }
-      const result = await this.transcribeChunkWithRetry(storagePath, chunk, language, prompt, maxRetries);
+
+      // Build context-aware prompt with previous chunk text for continuity
+      const chunkPrompt = prompt || buildWhisperPrompt({
+        meetingTitle,
+        attendees,
+        agendaTerms,
+        previousChunkText: previousChunkText || undefined,
+      });
+
+      const result = await this.transcribeChunkWithRetry(storagePath, chunk, language, chunkPrompt, maxRetries);
       chunkResults.push(result);
+
+      // Chain successful text to next chunk for continuity
+      if (result.success && result.text) {
+        previousChunkText = result.text;
+      }
     }
 
     // Phase 3: Stitch
