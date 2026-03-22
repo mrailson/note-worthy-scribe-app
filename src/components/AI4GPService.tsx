@@ -856,10 +856,11 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                     isMobile ? "p-0 pb-36" : "p-1 sm:p-4 space-y-1 sm:space-y-3"
                   )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className={cn("w-full mx-auto space-y-2 sm:space-y-4", isBNFViewActive ? "max-w-5xl" : "max-w-3xl")}>
-                        {/* Mobile: Show quick picks inside the white bubble area */}
+                        {/* Mobile: Redesigned chat welcome with gradient header, role tabs, and chip prompts */}
                         {isMobile ? (
-                          <MobileRoleQuickPicks
+                          <MobileChatWelcome
                             selectedRole={mobileRole}
+                            onRoleChange={setMobileRole}
                             onSelectPrompt={(prompt) => handleSendWithContext(prompt)}
                             isLoading={isLoading}
                           />
