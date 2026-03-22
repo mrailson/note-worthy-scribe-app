@@ -9,6 +9,7 @@ import { ChunkedRecorder } from "@/lib/audio/ChunkedRecorder";
 import { ChunkedTranscriptionService } from "@/lib/audio/ChunkedTranscriptionService";
 import { getSavedBitrate, saveBitrate } from "@/components/settings/RecordingQualitySettings";
 import { BITRATE_OPTIONS } from "@/lib/audio/ChunkedRecorder";
+import { attachDeviceInfoToMeeting } from "@/utils/meetingDeviceCapture";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
@@ -817,7 +818,7 @@ export default function NoteWellRecorder() {
             user_id: user.id, status: "completed", meeting_type: "general",
             start_time: new Date(rec.createdAt).toISOString(), end_time: new Date().toISOString(),
             duration_minutes: durationMins, word_count: wordCount,
-            import_source: "mobile_recorder", whisper_transcript_text: rec.transcript,
+            import_source: mode === "live" ? "mobile_live" : "mobile_offline", whisper_transcript_text: rec.transcript,
             primary_transcript_source: "whisper",
           }).select("id").single();
 
@@ -829,6 +830,7 @@ export default function NoteWellRecorder() {
         }
 
         const meetingId = meetingData.id;
+        attachDeviceInfoToMeeting(meetingId);
         await dbPatch(rec.id, { meetingId });
         await refresh();
         setSyncProgress({ phase: "complete", currentChunk: 1, totalChunks: 1, percentComplete: 100, message: `Complete — ${wordCount} words` });
@@ -1020,7 +1022,7 @@ export default function NoteWellRecorder() {
           end_time: new Date().toISOString(),
           duration_minutes: durationMins,
           word_count: wordCount,
-          import_source: "mobile_recorder",
+          import_source: mode === "live" ? "mobile_live" : "mobile_offline",
           whisper_transcript_text: fullTranscript,
           primary_transcript_source: "whisper",
         })
@@ -1044,7 +1046,7 @@ export default function NoteWellRecorder() {
               end_time: new Date().toISOString(),
               duration_minutes: durationMins,
               word_count: wordCount,
-              import_source: "mobile_recorder",
+              import_source: mode === "live" ? "mobile_live" : "mobile_offline",
               whisper_transcript_text: fullTranscript,
               primary_transcript_source: "whisper",
             })
@@ -1054,6 +1056,7 @@ export default function NoteWellRecorder() {
             console.log("Meeting creation succeeded on retry");
             // Continue with the retry data
             const meetingId = retryData.id;
+            attachDeviceInfoToMeeting(meetingId);
             for (const ct of successfulChunks) {
               await supabase.from("meeting_transcription_chunks").insert({
                 meeting_id: meetingId, user_id: retryUser.id, session_id: sessionId,
@@ -1087,6 +1090,7 @@ export default function NoteWellRecorder() {
       }
 
       const meetingId = meetingData.id;
+      attachDeviceInfoToMeeting(meetingId);
 
       // ── Step 5: Store transcript chunks ───────────────────────────────
       for (const ct of successfulChunks) {
@@ -1213,7 +1217,7 @@ export default function NoteWellRecorder() {
           user_id: activeUser.id, status: "completed", meeting_type: "general",
           start_time: new Date(rec.createdAt).toISOString(), end_time: new Date().toISOString(),
           duration_minutes: Math.round((rec.duration || 0) / 60), word_count: wordCount,
-          import_source: "mobile_recorder", whisper_transcript_text: transcriptText,
+          import_source: mode === "live" ? "mobile_live" : "mobile_offline", whisper_transcript_text: transcriptText,
           primary_transcript_source: "whisper",
         }).select("id").single();
 
@@ -1226,6 +1230,7 @@ export default function NoteWellRecorder() {
       }
 
       console.log("[LegacySync] Meeting created:", meetingData?.id);
+      attachDeviceInfoToMeeting(meetingData.id);
 
       await supabase.from("meeting_transcription_chunks").insert({
         meeting_id: meetingData.id, user_id: activeUser.id, session_id: sessionId,
