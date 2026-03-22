@@ -176,6 +176,8 @@ function buildUserPrompt(params: {
   meetingType?: string;
   practiceContext?: string;
   expectedAttendees?: string[];
+  lengthInstruction?: string;
+  sectionInstruction?: string;
 }): string {
   const contextLines = [
     `- Organisation: ${params.organisationName || 'Not specified'}`,
