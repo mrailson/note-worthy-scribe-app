@@ -371,7 +371,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       }
       clientRef.current = null;
     }
-  }, [isActive, updateTranscript, attemptReconnect]);
+  }, [updateTranscript, attemptReconnect, setIsActive]);
 
   const stopPreview = useCallback(() => {
     console.log('🛑 Stopping AssemblyAI preview...');
