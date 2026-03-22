@@ -819,7 +819,7 @@ export default function NoteWellRecorder() {
       for (const ct of successfulChunks) {
         await supabase.from("meeting_transcription_chunks").insert({
           meeting_id: meetingId,
-          user_id: user.id,
+          user_id: activeUser.id,
           session_id: sessionId,
           chunk_number: ct.index,
           transcription_text: ct.text,
