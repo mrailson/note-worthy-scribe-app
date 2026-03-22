@@ -225,9 +225,9 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
 
   const startPreview = useCallback(async (
     externalStream?: MediaStream,
-    options?: { preserveTranscript?: boolean }
+    options?: { preserveTranscript?: boolean; keyterms?: string[] }
   ) => {
-    const { preserveTranscript = false } = options || {};
+    const { preserveTranscript = false, keyterms = [] } = options || {};
     
     if (clientRef.current || isActive) {
       console.log('🎤 Preview already active, skipping start');
