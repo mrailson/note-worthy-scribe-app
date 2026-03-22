@@ -28,6 +28,9 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
   transcriptText = '',
   recentFinals = [],
   currentPartial = '',
+  deepgramText = '',
+  whisperChunkText = '',
+  whisperChunkNum = 0,
 }) => {
   const isMobile = useIsMobile();
   const {
