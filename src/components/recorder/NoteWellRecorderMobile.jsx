@@ -556,9 +556,13 @@ export default function NoteWellRecorder() {
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
 
-          {/* Mode pill */}
-          <div style={{padding:"14px 16px 0",display:"flex",justifyContent:"center"}}>
+          {/* Mode pill row */}
+          <div style={{padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <button style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(21,101,192,0.15)",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}} title="Settings">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
             <ModePill mode={mode} disabled={active} onTap={()=>setShowSheet(true)} />
+            <div style={{width:36,height:36}} />
           </div>
 
           {/* Offline banner */}
@@ -606,7 +610,8 @@ export default function NoteWellRecorder() {
             </div>
 
             {/* Controls */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:24}}>
               {active && (
                 <button onClick={stopRecording} style={{width:52,height:52,borderRadius:"50%",border:"2px solid rgba(220,38,38,0.25)",background:"rgba(220,38,38,0.07)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#dc2626"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
@@ -636,6 +641,9 @@ export default function NoteWellRecorder() {
                   {isPaused && <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>}
                 </button>
               </div>
+              </div>
+
+              <div style={{width:36}}/>
 
               {isIdle && <div style={{width:52}}/>}
 
