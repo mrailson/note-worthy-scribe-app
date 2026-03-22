@@ -191,9 +191,18 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
           clientRef.current = null;
         }
 
-        const stream = lastExternalStreamRef.current;
+        let stream = lastExternalStreamRef.current;
+        // Validate stream tracks are still alive
+        if (stream) {
+          const activeTracks = stream.getAudioTracks().filter(t => t.readyState === 'live');
+          if (activeTracks.length === 0) {
+            console.warn('⚠️ AssemblyAI: Stored stream tracks ended — will capture fresh mic');
+            lastExternalStreamRef.current = null;
+            stream = null;
+          }
+        }
 
-        console.log('📡 AssemblyAI: Attempting reconnection...');
+        console.log('📡 AssemblyAI: Attempting reconnection...', stream ? '(reusing stream)' : '(fresh mic)');
 
         clientRef.current = new AssemblyRealtimeClient({
           onOpen: () => {
