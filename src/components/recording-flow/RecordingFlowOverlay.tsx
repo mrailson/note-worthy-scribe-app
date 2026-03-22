@@ -47,6 +47,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   transcriptText,
   recentFinals = [],
   currentPartial = '',
+  assemblyFullTranscript = '',
   deepgramText = '',
   whisperChunkText = '',
   whisperChunkNum = 0,
