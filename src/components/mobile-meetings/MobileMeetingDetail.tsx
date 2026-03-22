@@ -51,7 +51,7 @@ interface MobileMeetingDetailProps {
   onShowExport?: (wordCount?: number) => void;
 }
 
-type TabId = 'overview' | 'actions' | 'transcript';
+type TabId = 'overview' | 'actions' | 'transcript' | 'ask-ai';
 
 export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
   meetingId,
