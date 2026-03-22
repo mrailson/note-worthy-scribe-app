@@ -15,6 +15,9 @@ interface LiveContextStatusBarProps {
   transcriptText?: string;
   recentFinals?: string[];
   currentPartial?: string;
+  deepgramText?: string;
+  whisperChunkText?: string;
+  whisperChunkNum?: number;
 }
 
 export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
@@ -25,6 +28,9 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
   transcriptText = '',
   recentFinals = [],
   currentPartial = '',
+  deepgramText = '',
+  whisperChunkText = '',
+  whisperChunkNum = 0,
 }) => {
   const isMobile = useIsMobile();
   const {
@@ -94,6 +100,9 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
             transcriptText={transcriptText}
             recentFinals={recentFinals}
             currentPartial={currentPartial}
+            deepgramText={deepgramText}
+            whisperChunkText={whisperChunkText}
+            whisperChunkNum={whisperChunkNum}
           />
 
           {/* Avatar stack */}

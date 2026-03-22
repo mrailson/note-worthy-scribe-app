@@ -21,6 +21,9 @@ interface RecordingFlowOverlayProps {
   transcriptText?: string;
   recentFinals?: string[];
   currentPartial?: string;
+  deepgramText?: string;
+  whisperChunkText?: string;
+  whisperChunkNum?: number;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   hasNewMeetings?: boolean;
@@ -43,6 +46,9 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   transcriptText,
   recentFinals = [],
   currentPartial = '',
+  deepgramText = '',
+  whisperChunkText = '',
+  whisperChunkNum = 0,
   activeTab = 'recorder',
   onTabChange,
   hasNewMeetings,
@@ -125,6 +131,9 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             transcriptText={transcriptText}
             recentFinals={recentFinals}
             currentPartial={currentPartial}
+            deepgramText={deepgramText}
+            whisperChunkText={whisperChunkText}
+            whisperChunkNum={whisperChunkNum}
           />
           {children}
         </>
