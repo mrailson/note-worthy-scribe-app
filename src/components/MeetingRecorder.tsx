@@ -5390,8 +5390,8 @@ export const MeetingRecorder = ({
       
       // EMERGENCY SAFETY NET: Try all available in-memory transcript sources
       const inMemoryTranscript = (transcript || '').trim();
-      const assemblyTranscript = (assemblyPreview.fullTranscript || '').trim();
-      const deepgramTranscript = (deepgramPreview.fullTranscript || '').trim();
+      const assemblyTranscript = (capturedAssemblyTranscript || '').trim();
+      const deepgramTranscript = (capturedDeepgramTranscript || '').trim();
       const orphanedChunks = (sessionStorage.getItem('orphanedIOSChunks') || '').trim();
       
       // Pick the longest available transcript as the emergency fallback
