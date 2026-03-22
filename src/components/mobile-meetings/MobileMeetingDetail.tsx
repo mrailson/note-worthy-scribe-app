@@ -511,6 +511,10 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
               {meeting.best_of_all_transcript && (
                 <TranscriptInlineView transcript={meeting.best_of_all_transcript} />
               )}
+
+              {/* Delete Meeting */}
+              <DeleteMeetingSection meetingId={meeting.id} onDeleted={onBack} />
+
               <div className="nw-mh-safe-bottom" />
             </div>
           )}
