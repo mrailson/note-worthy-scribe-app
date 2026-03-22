@@ -607,6 +607,7 @@ export default function NoteWellRecorder() {
 
     const chunks = await recorderRef.current.stop();
     recorderRef.current = null;
+    setActiveStream(null);
     setRecState("idle");
 
     if (chunks.length === 0) {
