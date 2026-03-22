@@ -373,10 +373,14 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     console.log('🛑 Stopping AssemblyAI preview...');
     intentionalStopRef.current = true;
 
-    // Clear any pending reconnect
+    // Clear any pending reconnect and fallback timers
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
+    }
+    if (partialFallbackTimerRef.current) {
+      clearTimeout(partialFallbackTimerRef.current);
+      partialFallbackTimerRef.current = null;
     }
     
     if (clientRef.current) {
