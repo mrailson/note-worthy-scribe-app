@@ -74,6 +74,33 @@ export const MobileExportSheet: React.FC<MobileExportSheetProps> = ({
     }
   };
 
+  const handleEmailNotes = async () => {
+    try {
+      const meeting = await fetchMeetingData();
+      if (!meeting) {
+        toast.error('Could not load meeting data');
+        return;
+      }
+
+      const notesContent = meeting.notes_style_3 || meeting.overview || '';
+      if (!notesContent) {
+        toast.error('No notes available. Generate notes first.');
+        return;
+      }
+
+      const dateStr = new Date(meeting.created_at).toLocaleDateString('en-GB');
+      const subject = `Meeting Notes - ${meeting.title || 'Meeting'} - ${dateStr}`;
+      
+      const sent = await sendEmailAutomatically(notesContent, subject);
+      if (sent) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Email notes error:', error);
+      toast.error('Failed to email notes');
+    }
+  };
+
   const handleExportTranscript = async () => {
     try {
       const meeting = await fetchMeetingData();
