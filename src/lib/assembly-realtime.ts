@@ -541,6 +541,16 @@ export class AssemblyRealtimeClient {
         if (!this.sending || this.ws?.readyState !== WebSocket.OPEN) return;
 
         const pcm16 = new Int16Array(e.data as ArrayBuffer);
+
+        // First-frame diagnostic to verify audio pipeline health
+        if (this.audioFramesSent === 0) {
+          const slice = Array.from(pcm16.slice(0, 100));
+          const min = Math.min(...slice);
+          const max = Math.max(...slice);
+          const nonZero = slice.filter(v => v !== 0).length;
+          console.log(`🔍 First PCM16 frame: ${pcm16.length} samples, range [${min}..${max}], ${nonZero}/100 non-zero in first 100 samples`);
+        }
+
         buffer16.push(pcm16);
         accLen += pcm16.byteLength;
 
