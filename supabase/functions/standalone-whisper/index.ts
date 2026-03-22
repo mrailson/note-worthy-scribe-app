@@ -193,18 +193,29 @@ serve(async (req) => {
 
     console.log(`📡 [${requestId}] Forwarding to OpenAI: ${preprocessed.bytes.length}B as ${forwardMime} (.${forwardExt}), preprocessed=${preprocessed.preprocessed}, format=${resolvedFormat}`);
 
-    // Single attempt with resolved format
+    // Model selection: gpt-4o-mini-transcribe is more accurate but only supports
+    // 'json' and 'text' formats. verbose_json (needed for timestamps) requires whisper-1.
+    const model = resolvedFormat === 'verbose_json'
+      ? 'whisper-1'
+      : 'gpt-4o-mini-transcribe';
+
+    // Temperature 0 = adaptive mode (Whisper auto-increases when confidence is low)
+    const temperature = body.temperature ?? '0';
+
     const formData = new FormData();
     const blob = new Blob([preprocessed.bytes], { type: forwardMime });
     formData.append('file', blob, `audio.${forwardExt}`);
-    formData.append('model', 'whisper-1');
+    formData.append('model', model);
     formData.append('language', 'en');
     formData.append('response_format', resolvedFormat);
+    formData.append('temperature', String(temperature));
     
     // Add prompt if provided (helps Whisper with context/terminology)
     if (whisperPrompt) {
       formData.append('prompt', whisperPrompt);
     }
+
+    console.log(`🤖 [${requestId}] Using model=${model}, format=${resolvedFormat}, temperature=${temperature}, prompt=${whisperPrompt ? 'yes (' + whisperPrompt.length + ' chars)' : 'none'}`);
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
