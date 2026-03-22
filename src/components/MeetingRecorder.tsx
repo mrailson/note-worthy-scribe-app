@@ -748,6 +748,7 @@ export const MeetingRecorder = ({
 
   // AssemblyAI real-time preview hook (runs alongside Whisper)
   const assemblyPreview = useAssemblyRealtimePreview();
+  const meetingKeytermsRef = useRef<string[]>([]);
 
   // Build keyterms from meeting context for AssemblyAI recognition
   const buildMeetingKeyterms = useCallback((): string[] => {
