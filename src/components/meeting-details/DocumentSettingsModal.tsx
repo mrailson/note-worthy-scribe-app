@@ -13,25 +13,31 @@ const TYPE_BADGE: Record<string, { bg: string; fg: string }> = {
 };
 
 const PILL_COLOURS: Record<string, { bg: string; fg: string }> = {
-  logo:             { bg: '#E6F1FB', fg: '#0C447C' },
-  footer:           { bg: '#EAF3DE', fg: '#27500A' },
-  meeting_details:  { bg: '#E6F1FB', fg: '#0C447C' },
-  attendees:        { bg: '#FAEEDA', fg: '#633806' },
-  exec_summary:     { bg: '#EEEDFE', fg: '#3C3489' },
-  action_items:     { bg: '#FAEEDA', fg: '#633806' },
-  open_items:       { bg: '#fcebeb', fg: '#A32D2D' },
+  logo:               { bg: '#E6F1FB', fg: '#0C447C' },
+  footer:             { bg: '#EAF3DE', fg: '#27500A' },
+  meeting_details:    { bg: '#E6F1FB', fg: '#0C447C' },
+  attendees:          { bg: '#FAEEDA', fg: '#633806' },
+  exec_summary:       { bg: '#EEEDFE', fg: '#3C3489' },
+  discussion_summary: { bg: '#E6F1FB', fg: '#0C447C' },
+  decisions_register: { bg: '#EAF3DE', fg: '#27500A' },
+  action_items:       { bg: '#FAEEDA', fg: '#633806' },
+  open_items:         { bg: '#fcebeb', fg: '#A32D2D' },
+  next_meeting:       { bg: '#EEEDFE', fg: '#3C3489' },
 };
 
 const TYPE_LABELS: Record<string, string> = {
   practice: 'Practice', pcn: 'PCN', neighbourhood: 'Neighbourhood', organisation: 'Organisation',
 };
 
-const SECTION_META: { key: keyof Pick<UserDocumentSettings, 'meeting_details_on' | 'attendees_on' | 'exec_summary_on' | 'action_items_on' | 'open_items_on' | 'footer_on'>; label: string; subtitle: string; pillKey: string }[] = [
+const SECTION_META: { key: keyof Pick<UserDocumentSettings, 'meeting_details_on' | 'attendees_on' | 'exec_summary_on' | 'discussion_summary_on' | 'decisions_register_on' | 'action_items_on' | 'open_items_on' | 'next_meeting_on' | 'footer_on'>; label: string; subtitle: string; pillKey: string }[] = [
   { key: 'meeting_details_on', label: 'Meeting details', subtitle: 'Title, date, time, location table', pillKey: 'meeting_details' },
   { key: 'attendees_on', label: 'Attendees', subtitle: 'List of meeting participants', pillKey: 'attendees' },
   { key: 'exec_summary_on', label: 'Executive summary', subtitle: 'Key findings and context', pillKey: 'exec_summary' },
+  { key: 'discussion_summary_on', label: 'Discussion summary', subtitle: 'Numbered topic summaries', pillKey: 'discussion_summary' },
+  { key: 'decisions_register_on', label: 'Decisions register', subtitle: 'RESOLVED / AGREED / NOTED items', pillKey: 'decisions_register' },
   { key: 'action_items_on', label: 'Action items', subtitle: 'Tasks with owners and due dates', pillKey: 'action_items' },
   { key: 'open_items_on', label: 'Open items', subtitle: 'Unresolved items requiring follow-up', pillKey: 'open_items' },
+  { key: 'next_meeting_on', label: 'Next meeting', subtitle: 'Date, time and agenda preview', pillKey: 'next_meeting' },
   { key: 'footer_on', label: 'Footer', subtitle: 'Page footer with classification and date', pillKey: 'footer' },
 ];
 
@@ -128,8 +134,11 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({ is
   if (localSettings.meeting_details_on) pills.push({ label: 'Meeting details', pillKey: 'meeting_details' });
   if (localSettings.attendees_on) pills.push({ label: 'Attendees', pillKey: 'attendees' });
   if (localSettings.exec_summary_on) pills.push({ label: 'Executive summary', pillKey: 'exec_summary' });
+  if (localSettings.discussion_summary_on) pills.push({ label: 'Discussion summary', pillKey: 'discussion_summary' });
+  if (localSettings.decisions_register_on) pills.push({ label: 'Decisions register', pillKey: 'decisions_register' });
   if (localSettings.action_items_on) pills.push({ label: 'Action items', pillKey: 'action_items' });
   if (localSettings.open_items_on) pills.push({ label: 'Open items', pillKey: 'open_items' });
+  if (localSettings.next_meeting_on) pills.push({ label: 'Next meeting', pillKey: 'next_meeting' });
   if (localSettings.footer_on) pills.push({ label: 'Footer', pillKey: 'footer' });
 
   return (

@@ -1528,6 +1528,15 @@ const removeOpenItemsSection = (content: string): string =>
 const removeAttendeesSection = (content: string): string =>
   removeSectionByPattern(content, /^(attendees?|participants?)$/);
 
+const removeDiscussionSummarySection = (content: string): string =>
+  removeSectionByPattern(content, /^(discussion\s*summary|key\s*(points?|discussion|discussion\s*points?|highlights?|takeaways?))$/);
+
+const removeDecisionsRegisterSection = (content: string): string =>
+  removeSectionByPattern(content, /^(decisions?\s*(register|log)?|resolutions?)$/);
+
+const removeNextMeetingSection = (content: string): string =>
+  removeSectionByPattern(content, /^(next\s*meeting|upcoming\s*meeting|future\s*meeting)$/);
+
 // Section visibility settings for Word export (matches NotesViewSettings from notesSettings.ts)
 export interface VisibleSectionsInput {
   executiveSummary?: boolean;
@@ -1535,6 +1544,9 @@ export interface VisibleSectionsInput {
   actionList?: boolean;
   openItems?: boolean;
   attendees?: boolean;
+  discussionSummary?: boolean;
+  decisionsRegister?: boolean;
+  nextMeeting?: boolean;
 }
 
 
@@ -1561,6 +1573,15 @@ export const filterContentByVisibility = (content: string, visibleSections?: Vis
   }
   if (visibleSections.attendees === false) {
     filtered = removeAttendeesSection(filtered);
+  }
+  if (visibleSections.discussionSummary === false) {
+    filtered = removeDiscussionSummarySection(filtered);
+  }
+  if (visibleSections.decisionsRegister === false) {
+    filtered = removeDecisionsRegisterSection(filtered);
+  }
+  if (visibleSections.nextMeeting === false) {
+    filtered = removeNextMeetingSection(filtered);
   }
   
   return filtered;

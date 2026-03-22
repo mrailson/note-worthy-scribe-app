@@ -437,12 +437,15 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
       actionList: docSettings.action_items_on,
       openItems: docSettings.open_items_on,
       attendees: docSettings.attendees_on,
-      keyPoints: true, // always show key points / discussion summary
+      discussionSummary: docSettings.discussion_summary_on,
+      decisionsRegister: docSettings.decisions_register_on,
+      nextMeeting: docSettings.next_meeting_on,
+      keyPoints: true, // always show key points
     };
 
     const visibilityFiltered = filterContentByVisibility(notesContent, sectionVisibility);
     return removeActionItemsSection(visibilityFiltered).trim();
-  }, [notesContent, docSettings.exec_summary_on, docSettings.action_items_on, docSettings.open_items_on, docSettings.attendees_on]);
+  }, [notesContent, docSettings.exec_summary_on, docSettings.action_items_on, docSettings.open_items_on, docSettings.attendees_on, docSettings.discussion_summary_on, docSettings.decisions_register_on, docSettings.next_meeting_on]);
 
   const previewElements = useMemo(() => renderMeetingContent(filteredNotesContent), [filteredNotesContent]);
 
@@ -482,6 +485,9 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         actionList: docSettings.action_items_on,
         openItems: docSettings.open_items_on,
         attendees: docSettings.attendees_on,
+        discussionSummary: docSettings.discussion_summary_on,
+        decisionsRegister: docSettings.decisions_register_on,
+        nextMeeting: docSettings.next_meeting_on,
       };
 
       await generateProfessionalWordFromContent(
