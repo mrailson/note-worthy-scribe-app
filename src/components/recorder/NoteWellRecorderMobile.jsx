@@ -428,21 +428,40 @@ export default function NoteWellRecorder() {
     await dbPatch(rec.id, { status: "syncing" });
     await refresh();
     try {
-      // ── TODO 1: Upload audio to Supabase Storage ──────────────────────────
-      // const { data, error } = await supabase.storage
-      //   .from("recordings")
-      //   .upload(`${rec.id}.webm`, new Blob([rec.audioData], { type: rec.mimeType }));
-      // if (error) throw error;
-      // const audioPath = data.path;
+      // ── Step 1: Upload audio to Supabase Storage ──────────────────────────
+      const audioBlob = new Blob([rec.audioData], { type: rec.mimeType });
+      const ext = rec.mimeType?.includes("mp4") ? "m4a" : rec.mimeType?.includes("ogg") ? "ogg" : "webm";
+      const filePath = `${rec.id}.${ext}`;
 
-      // ── TODO 2: Trigger Whisper transcription edge function ───────────────
-      // const { error: fnErr } = await supabase.functions
-      //   .invoke("transcribe-recording", { body: { recordingId: rec.id, audioPath } });
-      // if (fnErr) throw fnErr;
+      const { data, error } = await supabase.storage
+        .from("recordings")
+        .upload(filePath, audioBlob, {
+          contentType: rec.mimeType,
+          upsert: true,
+        });
+      if (error) throw error;
 
-      // ─── Remove this mock timeout once TODOs above are wired ─────────────
-      await new Promise(r => setTimeout(r, 2500));
-      await dbPatch(rec.id, { status: "transcribed" });
+      await dbPatch(rec.id, { status: "synced" });
+      await refresh();
+      showToast("Audio uploaded", "success");
+
+      // ── Step 2: Trigger Whisper transcription ─────────────────────────────
+      const bytes = new Uint8Array(rec.audioData);
+      let binary = '';
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode(...chunk);
+      }
+      const base64Audio = btoa(binary);
+
+      const { data: transcriptData, error: fnErr } = await supabase.functions
+        .invoke("standalone-whisper", {
+          body: { audio: base64Audio },
+        });
+      if (fnErr) throw fnErr;
+
+      await dbPatch(rec.id, { status: "transcribed", transcript: transcriptData?.text || "" });
       await refresh();
       showToast("Transcription complete", "success");
     } catch (err) {
