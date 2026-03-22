@@ -739,6 +739,8 @@ serve(async (req) => {
     if (supabaseUrl && serviceKey && meetingId) {
       try {
         const sb = createClient(supabaseUrl, serviceKey);
+
+        // 1. Upsert into meeting_summaries (authoritative notes store)
         await sb.from('meeting_summaries')
           .upsert({
             meeting_id: meetingId,
@@ -752,6 +754,28 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           }, { onConflict: 'meeting_id' });
         console.log('💾 Baseline generation_metadata saved (upsert)');
+
+        // 2. Mirror notes into meetings table so ALL downstream consumers see them
+        //    (notes_style_3, notes_generation_status, word_count)
+        const wordCount = meetingMinutes.split(/\s+/).filter(Boolean).length;
+        const { error: meetingUpdateErr } = await sb.from('meetings')
+          .update({
+            notes_style_3: meetingMinutes,
+            notes_generation_status: 'completed',
+            word_count: wordCount,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', meetingId);
+
+        if (meetingUpdateErr) {
+          console.warn('⚠️ Could not mirror notes to meetings table:', meetingUpdateErr);
+          // Fail-soft: at least try to set status to completed
+          await sb.from('meetings')
+            .update({ notes_generation_status: 'completed' })
+            .eq('id', meetingId);
+        } else {
+          console.log('💾 Notes mirrored to meetings.notes_style_3 + status=completed');
+        }
       } catch (metaErr) {
         console.warn('⚠️ Could not save baseline metadata:', metaErr);
       }
