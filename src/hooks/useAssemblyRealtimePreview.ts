@@ -381,6 +381,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     console.log('🧹 Clearing AssemblyAI transcript state');
     setLiveTranscript("");
     setFullTranscript("");
+    setRecentFinals([]);
+    setCurrentPartial("");
     baseTranscriptRef.current = "";
     currentPartialRef.current = "";
     lastFinalSegmentRef.current = "";
