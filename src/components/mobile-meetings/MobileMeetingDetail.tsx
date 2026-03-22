@@ -53,6 +53,48 @@ interface MobileMeetingDetailProps {
 
 type TabId = 'overview' | 'actions' | 'transcript' | 'ask-ai';
 
+const TRANSCRIPT_PREVIEW_LENGTH = 500;
+const TRANSCRIPT_EXPANDED_LENGTH = 5000;
+
+const TranscriptInlineView = ({ transcript }: { transcript: string }) => {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = transcript.length > TRANSCRIPT_PREVIEW_LENGTH;
+  const displayText = expanded
+    ? transcript.slice(0, TRANSCRIPT_EXPANDED_LENGTH)
+    : transcript.slice(0, TRANSCRIPT_PREVIEW_LENGTH);
+  const hasMore = transcript.length > TRANSCRIPT_EXPANDED_LENGTH && expanded;
+
+  return (
+    <>
+      <div className="nw-mh-section-title" style={{ marginTop: 20 }}>
+        {expanded ? 'Transcript' : 'Transcript preview'}
+      </div>
+      <div className="nw-mh-card-content" style={{ position: 'relative' }}>
+        <div style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--nw-text)' }}>
+          {displayText}
+          {!expanded && isLong && '…'}
+          {hasMore && '…'}
+        </div>
+        {isLong && (
+          <div
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              textAlign: 'center',
+              paddingTop: 12,
+              cursor: 'pointer',
+              touchAction: 'manipulation',
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--nw-blue)' }}>
+              {expanded ? 'Show less' : 'View full transcript'}
+            </span>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
 export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
   meetingId,
   open,
@@ -465,29 +507,9 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
                 </>
               )}
 
-              {/* Transcript preview */}
+              {/* Transcript view */}
               {meeting.best_of_all_transcript && (
-                <>
-                  <div className="nw-mh-section-title" style={{ marginTop: 20 }}>Transcript preview</div>
-                  <div className="nw-mh-card-content" style={{ maxHeight: 200, overflow: 'hidden', position: 'relative' }}>
-                    <div style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--nw-text)' }}>
-                      {meeting.best_of_all_transcript.slice(0, 500)}
-                    </div>
-                    <div
-                      onClick={() => setTab('transcript')}
-                      style={{
-                        position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
-                        background: 'linear-gradient(transparent, var(--nw-surface))',
-                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 8,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--nw-blue)' }}>
-                        View full transcript
-                      </span>
-                    </div>
-                  </div>
-                </>
+                <TranscriptInlineView transcript={meeting.best_of_all_transcript} />
               )}
               <div className="nw-mh-safe-bottom" />
             </div>
