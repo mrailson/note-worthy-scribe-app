@@ -9,7 +9,6 @@ function safeSend(ws: WebSocket, data: string | ArrayBuffer | Uint8Array) {
   try {
     // @ts-ignore - readyState exists in the edge runtime
     if (ws.readyState !== WebSocket.OPEN) return;
-    // Deno WebSocket supports sending string | ArrayBuffer | Uint8Array
     // @ts-ignore
     ws.send(data);
   } catch (err) {
@@ -20,7 +19,6 @@ function safeSend(ws: WebSocket, data: string | ArrayBuffer | Uint8Array) {
 Deno.serve(async (req: Request) => {
   console.log('🚀 AssemblyAI WebSocket proxy request received');
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -29,7 +27,6 @@ Deno.serve(async (req: Request) => {
   const upgradeHeader = headers.get("upgrade") || "";
 
   if (upgradeHeader.toLowerCase() !== "websocket") {
-    console.log('❌ Not a WebSocket upgrade request');
     return new Response("Expected WebSocket connection", { 
       status: 400, 
       headers: corsHeaders 
@@ -37,42 +34,44 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    console.log('🔌 Upgrading to WebSocket...');
     const { socket, response } = Deno.upgradeWebSocket(req);
     
     let assemblySocket: WebSocket | null = null;
     let clientClosed = false;
 
-    // Avoid logging every single 100ms audio frame (too chatty and can destabilise the function).
+    // Keyterms received from client before session init
+    let pendingKeyterms: string[] = [];
+    let sessionInitialised = false;
+
+    // Audio frame stats (avoid chatty logs)
     let audioFrames = 0;
     let audioBytes = 0;
     let lastAudioLogAt = Date.now();
 
     socket.onopen = () => {
       console.log('✅ Client WebSocket opened');
-      
-      // Auto-start AssemblyAI session when client connects
-      initAssemblyAIConnection();
+      // Wait briefly for a possible configure message before starting session
+      setTimeout(() => {
+        if (!sessionInitialised && !clientClosed) {
+          initAssemblyAIConnection();
+        }
+      }, 200);
     };
 
     async function initAssemblyAIConnection() {
+      if (sessionInitialised) return;
+      sessionInitialised = true;
+
       try {
         const AAI_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
         if (!AAI_KEY) {
-          safeSend(socket, JSON.stringify({ 
-            type: 'error', 
-            error: 'Missing ASSEMBLYAI_API_KEY' 
-          }));
+          safeSend(socket, JSON.stringify({ type: 'error', error: 'Missing ASSEMBLYAI_API_KEY' }));
           return;
         }
 
         console.log('🔗 Creating AssemblyAI v3 WebSocket connection...');
 
-        // AssemblyAI Streaming v3 - minimal parameters (v3 ignores most v2 params)
-        // Only sample_rate and format_turns are documented for v3
-        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true`;
-        
-        // Get token from AssemblyAI (9 minutes expiry)
+        // Get token (9-minute expiry)
         const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=540', {
           method: 'GET',
           headers: { Authorization: AAI_KEY }
@@ -81,22 +80,28 @@ Deno.serve(async (req: Request) => {
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text();
           console.error('❌ Token request failed:', errorText);
-          safeSend(socket, JSON.stringify({ 
-            type: 'error', 
-            error: `Token request failed: ${errorText}` 
-          }));
+          safeSend(socket, JSON.stringify({ type: 'error', error: `Token request failed: ${errorText}` }));
           return;
         }
         
         const tokenData = await tokenResponse.json();
-        const tokenWsUrl = `${wsUrl}&token=${encodeURIComponent(tokenData.token)}`;
+
+        // Build v3 WebSocket URL with parameters
+        let wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&token=${encodeURIComponent(tokenData.token)}`;
+
+        // Add keyterms if provided by client
+        if (pendingKeyterms.length > 0) {
+          const keytermsParam = pendingKeyterms.join(',');
+          wsUrl += `&keyterms=${encodeURIComponent(keytermsParam)}`;
+          console.log(`🔑 Including ${pendingKeyterms.length} keyterms in AssemblyAI connection`);
+        }
         
         if (clientClosed) {
           console.log('⚠️ Client already closed; aborting AssemblyAI connection init');
           return;
         }
 
-        assemblySocket = new WebSocket(tokenWsUrl);
+        assemblySocket = new WebSocket(wsUrl);
         
         assemblySocket.onopen = () => {
           console.log('✅ AssemblyAI WebSocket connected');
@@ -109,7 +114,6 @@ Deno.serve(async (req: Request) => {
         let assemblyMsgCount = 0;
         assemblySocket.onmessage = (assemblyEvent) => {
           assemblyMsgCount++;
-          // Log first 5 messages and then every 20th for diagnostics
           if (assemblyMsgCount <= 5 || assemblyMsgCount % 20 === 0) {
             try {
               const preview = typeof assemblyEvent.data === 'string' 
@@ -123,17 +127,12 @@ Deno.serve(async (req: Request) => {
         
         assemblySocket.onerror = (error) => {
           console.error('❌ AssemblyAI WebSocket error:', error);
-          safeSend(socket, JSON.stringify({ 
-            type: 'error', 
-            error: 'AssemblyAI connection error' 
-          }));
+          safeSend(socket, JSON.stringify({ type: 'error', error: 'AssemblyAI connection error' }));
         };
         
         assemblySocket.onclose = (closeEvent) => {
           console.log('🔌 AssemblyAI WebSocket closed:', closeEvent.code, closeEvent.reason);
 
-          // Surface close reasons to the client so the UI can show actionable errors.
-          // When connection params are invalid, AssemblyAI closes quickly with a validation message.
           const reason = (closeEvent.reason || '').trim();
           const isClean = closeEvent.code === 1000;
 
@@ -155,16 +154,13 @@ Deno.serve(async (req: Request) => {
         };
       } catch (error) {
         console.error('❌ Failed to initialize AssemblyAI connection:', error);
-        safeSend(socket, JSON.stringify({ 
-          type: 'error', 
-          error: 'Failed to initialize AssemblyAI connection' 
-        }));
+        safeSend(socket, JSON.stringify({ type: 'error', error: 'Failed to initialize AssemblyAI connection' }));
       }
     }
 
     socket.onmessage = async (event) => {
       try {
-        // Handle binary data (audio)
+        // Handle binary data (raw PCM16 audio)
         if (event.data instanceof ArrayBuffer || event.data instanceof Uint8Array) {
           const bytes = event.data instanceof ArrayBuffer ? event.data.byteLength : event.data.byteLength;
           audioFrames += 1;
@@ -192,9 +188,23 @@ Deno.serve(async (req: Request) => {
           return;
         }
         
-        // Handle text/JSON messages (mostly for terminate)
+        // Handle text/JSON messages
         const message = JSON.parse(event.data);
-        console.log('📨 Received message from client:', message.type || 'unknown');
+        
+        // Configure message — receive keyterms before session init
+        if (message.type === 'configure') {
+          if (Array.isArray(message.keyterms)) {
+            pendingKeyterms = message.keyterms
+              .filter((t: unknown) => typeof t === 'string' && t.length > 0 && t.length <= 50)
+              .slice(0, 100);
+            console.log(`🔑 Received ${pendingKeyterms.length} keyterms from client`);
+          }
+          // If session hasn't started yet, init now with keyterms
+          if (!sessionInitialised) {
+            initAssemblyAIConnection();
+          }
+          return;
+        }
         
         if (message.type === 'terminate') {
           console.log('🔌 Received terminate signal');
@@ -206,10 +216,7 @@ Deno.serve(async (req: Request) => {
         
       } catch (error) {
         console.error('❌ Error processing message:', error);
-        safeSend(socket, JSON.stringify({ 
-          type: 'error', 
-          error: 'Failed to process message' 
-        }));
+        safeSend(socket, JSON.stringify({ type: 'error', error: 'Failed to process message' }));
       }
     };
 
