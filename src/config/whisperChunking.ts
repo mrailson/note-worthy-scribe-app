@@ -27,9 +27,9 @@ export const WHISPER_CHUNKING = {
   // with first 2–3 sentences of chunk N+1; drop prefix if similarity >= 0.6
   deduplication: {
     enabled: true,
-    sentencesToCompare: 3,
-    similarityThreshold: 0.60,
-    tokenOverlapThreshold: 0.60,
+    sentencesToCompare: 2,
+    similarityThreshold: 0.70,
+    tokenOverlapThreshold: 0.70,
   },
   // Confidence gate settings
   confidenceGate: {

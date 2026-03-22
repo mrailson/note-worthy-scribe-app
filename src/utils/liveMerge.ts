@@ -244,7 +244,7 @@ function stitchWithOverlap(prev: string, next: string, chunk?: LiveChunk) {
   if (!a || !b) return prev + (/[.!?…]$/.test(prev) ? " " : " ") + next;
 
   // Enhanced overlap detection with balanced thresholds
-  for (let k = Math.min(a.length, b.length); k >= 60; k -= 10) { // Require at least 60 characters overlap for better accuracy
+  for (let k = Math.min(a.length, b.length); k >= 80; k -= 10) { // Require at least 80 characters overlap to reduce false positives
     const suf = a.slice(-k);
     const pre = b.slice(0, k);
     const similarity = sim(suf, pre);
