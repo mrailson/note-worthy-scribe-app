@@ -83,6 +83,13 @@ const Index = () => {
   }, []);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Redirect mobile users to the dedicated mobile recorder
+  useEffect(() => {
+    if (window.innerWidth <= 768) {
+      navigate("/new-recorder", { replace: true });
+    }
+  }, []);
   const editMeetingId = searchParams.get('edit');
   const autoStart = searchParams.get('autoStart') === 'true';
   const [currentView, setCurrentView] = useState<"recording" | "summary">("recording");
