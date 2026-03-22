@@ -293,7 +293,6 @@ export default function MeetingSummary() {
           
           loadClaudeNotes();
         } else {
-          toast.error('No meeting selected');
           navigate('/meeting-history');
         }
       }
