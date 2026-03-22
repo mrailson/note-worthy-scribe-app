@@ -38,6 +38,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
 
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
   const intentionalStopRef = useRef<boolean>(false);
+  const isActiveRef = useRef<boolean>(false); // ref mirror of isActive for sync checks
   const reconnectAttemptsRef = useRef<number>(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastExternalStreamRef = useRef<MediaStream | null>(null);
