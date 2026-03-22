@@ -429,9 +429,14 @@ export class AssemblyRealtimeClient {
    * on the audio thread, sending raw PCM16 buffers to the main thread.
    */
   private async tryAudioWorklet(src: MediaStreamAudioSourceNode): Promise<boolean> {
+    if (!this.audioCtx) {
+      console.warn("⚠️ tryAudioWorklet: audioCtx is null, skipping");
+      return false;
+    }
     try {
-      await this.audioCtx!.audioWorklet.addModule('/worklets/pcm16-writer.js');
-      this.worklet = new AudioWorkletNode(this.audioCtx!, 'pcm16-writer');
+      await this.audioCtx.audioWorklet.addModule('/worklets/pcm16-writer.js');
+      console.log("✅ PCM16 worklet registered, AudioContext sampleRate:", this.audioCtx.sampleRate, "Hz");
+      this.worklet = new AudioWorkletNode(this.audioCtx, 'pcm16-writer');
 
       // Accumulate PCM16 data and send in ~100ms chunks
       const buffer16: Int16Array[] = [];
@@ -448,17 +453,29 @@ export class AssemblyRealtimeClient {
 
         while (accLen >= bytesPerChunk) {
           const payload = this.spliceBytes(buffer16, bytesPerChunk);
-          if (payload) this.ws!.send(payload.buffer as ArrayBuffer);
+          if (payload) {
+            this.ws!.send(payload.buffer as ArrayBuffer);
+            this.audioFramesSent++;
+            // Log every 100th frame for diagnostics
+            if (this.audioFramesSent % 100 === 0) {
+              const now = Date.now();
+              const elapsed = this.lastDiagLogTime ? (now - this.lastDiagLogTime) / 1000 : 0;
+              this.lastDiagLogTime = now;
+              console.log(`📡 AssemblyAI audio: sent frame #${this.audioFramesSent}, ${payload.byteLength} bytes` +
+                (elapsed ? `, ${elapsed.toFixed(1)}s since last log` : '') +
+                `, msgs back: ${this.totalMessageCount} (${this.endOfTurnCount} finals, ${this.partialCount} partials)`);
+            }
+          }
           accLen -= bytesPerChunk;
         }
       };
 
       // Connect source → worklet → muted destination (needed for worklet to process)
-      this.muteGain = this.audioCtx!.createGain();
+      this.muteGain = this.audioCtx.createGain();
       this.muteGain.gain.value = 0;
       src.connect(this.worklet);
       this.worklet.connect(this.muteGain);
-      this.muteGain.connect(this.audioCtx!.destination);
+      this.muteGain.connect(this.audioCtx.destination);
 
       console.log("✅ AssemblyRealtimeClient: AudioWorklet pipeline active");
       return true;
