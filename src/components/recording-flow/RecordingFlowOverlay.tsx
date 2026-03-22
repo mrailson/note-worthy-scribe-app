@@ -41,6 +41,8 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   formatDuration,
   wordCount,
   transcriptText,
+  recentFinals = [],
+  currentPartial = '',
   activeTab = 'recorder',
   onTabChange,
   hasNewMeetings,
