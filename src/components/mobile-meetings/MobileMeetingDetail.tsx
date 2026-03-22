@@ -232,7 +232,7 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
               <FileText size={22} />
               <span>Notes</span>
             </button>
-            <button className="nw-mh-quick-action" onClick={() => onViewSummary(meeting.id)}>
+            <button className="nw-mh-quick-action" onClick={() => setTab('ask-ai')}>
               <MessageSquare size={22} />
               <span>Ask AI</span>
             </button>
