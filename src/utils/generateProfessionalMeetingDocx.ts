@@ -1574,6 +1574,15 @@ export const filterContentByVisibility = (content: string, visibleSections?: Vis
   if (visibleSections.attendees === false) {
     filtered = removeAttendeesSection(filtered);
   }
+  if (visibleSections.discussionSummary === false) {
+    filtered = removeDiscussionSummarySection(filtered);
+  }
+  if (visibleSections.decisionsRegister === false) {
+    filtered = removeDecisionsRegisterSection(filtered);
+  }
+  if (visibleSections.nextMeeting === false) {
+    filtered = removeNextMeetingSection(filtered);
+  }
   
   return filtered;
 };
