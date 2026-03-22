@@ -748,6 +748,7 @@ export const MeetingRecorder = ({
 
   // AssemblyAI real-time preview hook (runs alongside Whisper)
   const assemblyPreview = useAssemblyRealtimePreview();
+  const meetingKeytermsRef = useRef<string[]>([]);
 
   // Build keyterms from meeting context for AssemblyAI recognition
   const buildMeetingKeyterms = useCallback((): string[] => {
@@ -3256,7 +3257,7 @@ export const MeetingRecorder = ({
             setAssemblyInputMode(mixerResult.hasSystemAudio ? 'mic-and-system' : 'mic-only');
             
             // Restart Assembly/Deepgram with new mixed stream
-            try { await assemblyPreview.startPreview(mixerResult.mixedStream); } catch (e) { console.warn('⚠️ AssemblyAI restart failed:', e); }
+            try { await assemblyPreview.startPreview(mixerResult.mixedStream, { keyterms: meetingKeytermsRef.current }); } catch (e) { console.warn('⚠️ AssemblyAI restart failed:', e); }
             try { await deepgramPreview.startPreview(currentMeetingId, mixerResult.mixedStream); } catch (e) { console.warn('⚠️ Deepgram restart failed:', e); }
           } catch (systemError: any) {
             console.error('❌ System audio capture failed:', systemError);
@@ -4716,6 +4717,7 @@ export const MeetingRecorder = ({
         
         // Build keyterms from attendees + agenda for better recognition
         const meetingKeyterms = buildMeetingKeyterms();
+        meetingKeytermsRef.current = meetingKeyterms;
         
         // Start preview with the mixed stream and keyterms
         await assemblyPreview.startPreview(assemblyAudioMixerRef.current.mixedStream, { keyterms: meetingKeyterms });
@@ -6673,7 +6675,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         const resumeAssemblyStream =
           assemblyAudioMixerRef.current?.mixedStream || micAudioStreamRef.current || undefined;
 
-        await assemblyPreview.startPreview(resumeAssemblyStream, { preserveTranscript: true });
+        await assemblyPreview.startPreview(resumeAssemblyStream, { preserveTranscript: true, keyterms: meetingKeytermsRef.current });
         console.log('✅ AssemblyAI preview resumed after unpause (transcript preserved)');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to restart:', assemblyError);
