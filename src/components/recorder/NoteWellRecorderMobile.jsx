@@ -767,7 +767,7 @@ export default function NoteWellRecorder() {
             .from("meetings")
             .insert({
               title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-              user_id: freshUser.id,
+              user_id: retryUser.id,
               status: "completed",
               meeting_type: "general",
               start_time: new Date(rec.createdAt).toISOString(),
