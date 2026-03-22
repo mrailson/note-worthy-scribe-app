@@ -205,7 +205,7 @@ const DeleteMeetingSection = ({ meetingId, onDeleted }: { meetingId: string; onD
     </div>
   );
 };
-
+export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
 
   meetingId,
   open,
