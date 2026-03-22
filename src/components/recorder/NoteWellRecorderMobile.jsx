@@ -490,9 +490,10 @@ export default function NoteWellRecorder() {
       `}</style>
 
       <div style={{
-        width:390, height:844, background:"#f0f4f9", borderRadius:44,
+        width:"100%", maxWidth:480, margin:"0 auto",
+        minHeight:"100dvh", background:"#f0f4f9",
         overflow:"hidden", display:"flex", flexDirection:"column",
-        boxShadow:"0 40px 80px rgba(0,0,0,0.25)", position:"relative",
+        position:"relative",
         fontFamily:"'DM Sans',sans-serif",
       }}>
 
