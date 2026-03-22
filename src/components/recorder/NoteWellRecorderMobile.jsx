@@ -859,17 +859,20 @@ export default function NoteWellRecorder() {
             await refresh();
             setSyncProgress({ phase: "complete", currentChunk: totalChunks, totalChunks, percentComplete: 100, message: `Complete — ${wordCount} words` });
             showToast("Meeting created — generating notes…", "success");
-            const meetingTitle = rec.title || "Mobile Recording";
-            supabase.functions.invoke("generate-meeting-notes-claude", {
-              body: { meetingId, transcript: fullTranscript, meetingTitle },
+            // Use auto-generate-meeting-notes (same as desktop) for title + governance-grade notes
+            const storedModel = localStorage.getItem('meeting-regenerate-llm');
+            const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
+            supabase.functions.invoke("auto-generate-meeting-notes", {
+              body: { meetingId, modelOverride, skipQc: true },
             }).then(({ error: genErr }) => {
               if (genErr) showToast("Meeting saved — note generation failed", "error");
-              else showToast("Meeting notes generated ✨", "success");
+              else {
+                showToast("Meeting notes generated ✨", "success");
+                // Trigger overview + auto-email after notes complete
+                triggerPostNoteActions(meetingId, fullTranscript);
+              }
               setSyncProgress(null); refresh();
             });
-            supabase.functions.invoke("generate-meeting-overview", {
-              body: { meetingId, transcript: fullTranscript, meetingTitle },
-            }).catch(() => {});
             return;
           }
           console.error("Meeting creation retry also failed:", retryErr);
