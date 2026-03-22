@@ -32,12 +32,14 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   const [recentFinals, setRecentFinals] = useState<string[]>([]);
   const [currentPartial, setCurrentPartial] = useState<string>("");
   const [status, setStatus] = useState<PreviewStatus>('idle');
-  const [isActive, setIsActive] = useState(false);
+  const [isActive, _setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const setIsActive = useCallback((v: boolean) => { isActiveRef.current = v; _setIsActive(v); }, []);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
   const intentionalStopRef = useRef<boolean>(false);
+  const isActiveRef = useRef<boolean>(false); // ref mirror of isActive for sync checks
   const reconnectAttemptsRef = useRef<number>(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastExternalStreamRef = useRef<MediaStream | null>(null);
@@ -256,8 +258,9 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   ) => {
     const { preserveTranscript = false, keyterms = [] } = options || {};
     
-    if (clientRef.current || isActive) {
-      console.log('🎤 Preview already active, skipping start');
+    // Use ref for sync check to avoid stale closure over isActive state
+    if (clientRef.current || isActiveRef.current) {
+      console.log('🎤 AssemblyAI preview already active, skipping duplicate start');
       return;
     }
 
@@ -369,7 +372,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       }
       clientRef.current = null;
     }
-  }, [isActive, updateTranscript, attemptReconnect]);
+  }, [updateTranscript, attemptReconnect, setIsActive]);
 
   const stopPreview = useCallback(() => {
     console.log('🛑 Stopping AssemblyAI preview...');
