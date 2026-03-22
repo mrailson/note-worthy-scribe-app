@@ -29,6 +29,7 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
   transcriptText = '',
   recentFinals = [],
   currentPartial = '',
+  assemblyFullTranscript = '',
   deepgramText = '',
   whisperChunkText = '',
   whisperChunkNum = 0,
