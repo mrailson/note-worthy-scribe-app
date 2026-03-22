@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useMeetingSetup } from './MeetingSetupContext';
 import { StageIndicator } from './StageIndicator';
 import { PreMeetingSetup } from './PreMeetingSetup';
@@ -8,6 +8,8 @@ import { TabDropdown } from './TabDropdown';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileIdleState } from './mobile/MobileIdleState';
 import { MobileRecordingState } from './mobile/MobileRecordingState';
+import { DesktopRecordingSettings, SettingsTriggerButton } from './DesktopRecordingSettings';
+import { detectDevice } from '@/utils/DeviceDetection';
 
 interface RecordingFlowOverlayProps {
   isRecording: boolean;
@@ -44,6 +46,9 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
 }) => {
   const { stage, resetSetup } = useMeetingSetup();
   const isMobile = useIsMobile();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const device = detectDevice();
+  const showSettingsCog = device.isChromium && device.isDesktop;
 
   const handleStartNewMeeting = () => {
     resetSetup();
@@ -94,6 +99,9 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             {STAGE_TITLES[stage] || 'Prepare Your Meeting'}
           </h2>
           <StageIndicator />
+          {showSettingsCog && stage === 'setup' && (
+            <SettingsTriggerButton onClick={() => setSettingsOpen(true)} />
+          )}
         </div>
       )}
 
@@ -118,6 +126,13 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
         <RecordingCompleteScreen
           formatDuration={formatDuration}
           onStartNewMeeting={handleStartNewMeeting}
+        />
+      )}
+
+      {showSettingsCog && (
+        <DesktopRecordingSettings
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
         />
       )}
     </>
