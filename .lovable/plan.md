@@ -1,64 +1,77 @@
 
+Problem confirmed: AssemblyAI is not actually “dead” on the backend. The logs show it is receiving audio and returning transcript messages almost immediately.
 
-# Fix: AssemblyAI never committing finals — `end_of_turn` never fires
+What the logs say
+- Assembly proxy is healthy:
+  - `21:46:30 ✅ AssemblyAI WebSocket connected`
+  - frequent `📡 Audio streaming: 50 frame(s), 156.3 KB in last 5s`
+  - transcript messages start within seconds:
+    - `21:46:35 msg #3 ... transcript:"In"`
+    - `21:46:41 msg #20 ... transcript:"In what would cost initially..."`
+    - `21:47:26 ... end_of_turn:true ...`
+- So AssemblyAI is producing text early, not only after a minute.
 
-## Root Cause (from edge function logs)
+Likely root cause in the app
+1. Early connection churn
+- The edge logs also show multiple rapid open/close cycles around `21:46:13–21:46:29` with `Client WebSocket closed`, `Received terminate signal`, and `AssemblyAI WebSocket closed: 1005`.
+- That suggests the client starts/stops/restarts Assembly several times at recording start, so the first usable stream may be getting interrupted.
 
-The logs show 400+ messages from AssemblyAI, **every single one** with `end_of_turn: false` and `end_of_turn_confidence` near zero (0.0, 0.000017, etc.). Audio is streaming perfectly (50 frames/5s, 156KB/5s) and transcription text is accurate — but AssemblyAI's v3 turn detector never fires for continuous multi-speaker meeting audio.
+2. UI hides Assembly when there are no finals yet
+- `LiveTranscriptGlassPanel` “All” view only renders:
+  - `recentFinals`
+  - `currentPartial`
+- For Assembly, the visible block in debug mode uses:
+  - `lines={recentFinals}`
+  - `partial={currentPartial}`
+- If the client reconnects or clears partials during startup, Assembly can look blank even though backend messages are arriving.
+- Deepgram/Whisper appear because they render differently from full transcript text.
 
-The 30-second fallback timer added previously **resets on every partial** (line 142), so since partials arrive every ~3 seconds, the timer never fires. Both commit paths are broken.
+3. One possible client logic bug to verify/fix
+- In `AssemblyRealtimeClient.start()`, after startup succeeds:
+  - `this.isReconnecting = false;`
+  - then code checks `if (this.isReconnecting) ... else onOpen`
+- That means the reconnected path can never call `onReconnected`.
+- This may leave the hook/UI in the wrong state after startup churn.
 
-## Fix — two changes in `src/lib/assembly-realtime.ts`
+Implementation plan
+1. Stabilize startup
+- Inspect and tighten the recording-start flow in `MeetingRecorder.tsx` so Assembly preview is started exactly once per recording start.
+- Prevent redundant stop/start cycles during initial mixer setup and early stream replacement.
 
-### 1. Track `turn_order` changes — commit previous turn as final
+2. Fix reconnect state handling in `src/lib/assembly-realtime.ts`
+- Preserve whether the connection is a fresh start vs reconnect before zeroing flags.
+- Ensure `onReconnected` actually fires after successful reconnects.
 
-AssemblyAI v3 sends `turn_order` with each message. When `turn_order` increments (e.g. 4 → 5), the previous turn's last accumulated text is complete. The client should:
+3. Make Assembly visible even before first final
+- Update `LiveTranscriptGlassPanel` so the Assembly section can display a fallback from `assemblyPreview.fullTranscript` when `recentFinals` is empty.
+- In “All” mode, show the latest Assembly partial/full text more explicitly during the first minute so it does not look empty.
 
-- Store `currentTurnOrder` and `currentTurnText`
-- On each incoming message, if `turn_order` differs from stored value:
-  - Commit `currentTurnText` as a final via `cb.onFinal()`
-  - Update stored turn to new value
-- This gives natural turn boundaries even without `end_of_turn`
+4. Add better startup diagnostics
+- Add targeted client logs for:
+  - preview start requested
+  - preview stopped
+  - reconnect initiated/completed
+  - first partial received
+  - first final received
+- This will distinguish “backend has no text” from “UI is not showing it”.
 
-### 2. Absolute turn timer — commit after 30s regardless
+5. Verify likely cause of the screenshot behavior
+- Your screenshot shows:
+  - AssemblyAI: “Awaiting data…”
+  - Deepgram and Whisper with text
+- That is consistent with “Assembly partial/final state not being surfaced in the panel yet,” not with AssemblyAI failing server-side.
 
-Instead of resetting on every partial, track when each turn's first partial arrived. If a turn has been accumulating for 30+ seconds without committing (no turn change, no end_of_turn), force-commit the accumulated text and reset.
+Files to update
+- `src/lib/assembly-realtime.ts`
+- `src/hooks/useAssemblyRealtimePreview.ts`
+- `src/components/recording-flow/LiveTranscriptGlassPanel.tsx`
+- possibly `src/components/MeetingRecorder.tsx` if duplicate startup is confirmed
 
-This handles the case where a single speaker talks for 60+ seconds without a turn change.
+Expected outcome
+- Assembly text should appear within the first few seconds, not seem blank for the first minute.
+- Reconnects should recover cleanly without losing visible transcript state.
+- The panel should show Assembly progress even before a formal final turn arrives.
 
-## Implementation detail
-
-**File: `src/lib/assembly-realtime.ts`** — Add to the message handler (line 166 area) and reconnect handler (line 324 area):
-
-```text
-New instance variables:
-  currentTurnOrder: number = -1
-  currentTurnText: string = ""
-  turnStartTime: number = 0
-  turnCommitTimer: NodeJS.Timeout | null = null
-
-Message handler logic (both initial and reconnect):
-  if turn_order !== currentTurnOrder:
-    if currentTurnText.trim():
-      cb.onFinal(currentTurnText)    // commit previous turn
-    currentTurnOrder = turn_order
-    currentTurnText = text
-    turnStartTime = Date.now()
-    reset 30s absolute timer
-  else:
-    currentTurnText = text           // update accumulator (v3 sends full turn text each time)
-
-  if end_of_turn:
-    cb.onFinal(text)
-    currentTurnText = ""
-    currentTurnOrder = -1
-  else:
-    cb.onPartial(text)
-```
-
-**File: `src/hooks/useAssemblyRealtimePreview.ts`** — Remove the partial-reset fallback timer (lines 142-149) since the client now handles turn commits directly.
-
-## Files changed
-1. `src/lib/assembly-realtime.ts` — turn tracking + absolute timer
-2. `src/hooks/useAssemblyRealtimePreview.ts` — remove redundant fallback timer
-
+Technical notes
+- Edge logs prove AssemblyAI is returning transcript deltas early, including `turn_order` 0/3/4 and later `end_of_turn:true`.
+- Therefore the remaining issue is almost certainly client startup/reconnect/UI presentation rather than the Assembly service itself.
