@@ -252,7 +252,7 @@ function renderMeetingContent(content: string): React.ReactNode[] {
       const isResolved = /^resolved/i.test(label);
       elements.push(
         <p key={`sub-${keyIndex++}`} className="text-sm leading-relaxed mb-2 pl-4" style={{ color: COLORS.textGrey }}>
-          <strong style={{ color: isResolved ? COLORS.agreedRed : COLORS.textGrey }}>{label}:</strong>{' '}
+          <strong style={{ color: isResolved ? '#000000' : COLORS.textGrey }}>{label}:</strong>{' '}
           {formatInline(rest)}
         </p>
       );
