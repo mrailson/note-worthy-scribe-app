@@ -25,28 +25,15 @@ export const MobileResponsiveTable: React.FC<MobileResponsiveTableProps> = ({
     return (
       <div className={`space-y-3 ${className}`}>
         {rows.map((row, rowIndex) => {
-          const isActionItemsTable = headers.some(h => h.toLowerCase().includes('priority'));
-          const priorityCell = isActionItemsTable 
-            ? Object.entries(row).find(([key]) => key.toLowerCase().includes('priority'))?.[1] 
-            : null;
-
           return (
             <Card key={rowIndex} className="p-4 shadow-sm border-border">
-              {/* Priority badge at top for action items */}
-              {priorityCell && (
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">Priority</span>
-                  {renderPriorityBadge(priorityCell)}
-                </div>
-              )}
-
               {/* Table content */}
               <div className="space-y-2.5">
                 {headers.map((header, headerIndex) => {
                   const cellValue = Object.values(row)[headerIndex];
                   
-                  // Skip priority if already shown at top
-                  if (header.toLowerCase().includes('priority') && priorityCell) {
+                  // Skip priority column
+                  if (header.toLowerCase().includes('priority')) {
                     return null;
                   }
 
@@ -79,14 +66,17 @@ export const MobileResponsiveTable: React.FC<MobileResponsiveTableProps> = ({
       <table className={`w-full border-collapse border border-border ${className}`}>
         <thead>
           <tr>
-            {headers.map((header, index) => (
-              <th
-                key={index}
-                className="border border-border px-4 py-3 bg-primary text-primary-foreground font-semibold text-left text-sm whitespace-nowrap"
-              >
-                {header}
-              </th>
-            ))}
+            {headers.map((header, index) => {
+              if (header.toLowerCase().includes('priority')) return null;
+              return (
+                <th
+                  key={index}
+                  className="border border-border px-4 py-3 bg-primary text-primary-foreground font-semibold text-left text-sm whitespace-nowrap"
+                >
+                  {header}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -100,14 +90,19 @@ export const MobileResponsiveTable: React.FC<MobileResponsiveTableProps> = ({
               {Object.entries(row).map(([key, value], cellIndex) => {
                 const header = headers[cellIndex];
                 
-                // Check if this is priority column
+                // Skip priority column
                 if (header?.toLowerCase().includes('priority')) {
-                  return (
-                    <td key={cellIndex} className="border border-border px-4 py-3 text-sm">
-                      {renderPriorityBadge(value)}
-                    </td>
-                  );
+                  return null;
                 }
+
+                return (
+                  <td
+                    key={cellIndex}
+                    className="border border-border px-4 py-3 text-sm text-card-foreground leading-relaxed"
+                  >
+                    {value}
+                  </td>
+                );
 
                 return (
                   <td

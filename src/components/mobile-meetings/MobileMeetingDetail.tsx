@@ -414,11 +414,6 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
                               {item.due_date && item.due_date !== 'TBC' && (
                                 <span className="nw-mh-action-deadline">Due: {item.due_date}</span>
                               )}
-                              {item.priority && (
-                                <span className="nw-mh-action-badge" style={getPriorityStyle(item.priority)}>
-                                  {item.priority}
-                                </span>
-                              )}
                             </div>
                           </div>
                         ))}
