@@ -4,9 +4,6 @@ import { ChevronLeft, Download, Share2, FileText, MessageSquare, Users, Clock, C
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { ChevronLeft, Download, Share2, FileText, MessageSquare, Users, Clock, CheckCircle2, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 const MeetingQAPanel = lazy(() => import('@/components/meeting-details/MeetingQAPanel').then(m => ({ default: m.MeetingQAPanel })));
 
