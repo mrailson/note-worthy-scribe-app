@@ -66,14 +66,17 @@ export const MobileResponsiveTable: React.FC<MobileResponsiveTableProps> = ({
       <table className={`w-full border-collapse border border-border ${className}`}>
         <thead>
           <tr>
-            {headers.map((header, index) => (
-              <th
-                key={index}
-                className="border border-border px-4 py-3 bg-primary text-primary-foreground font-semibold text-left text-sm whitespace-nowrap"
-              >
-                {header}
-              </th>
-            ))}
+            {headers.map((header, index) => {
+              if (header.toLowerCase().includes('priority')) return null;
+              return (
+                <th
+                  key={index}
+                  className="border border-border px-4 py-3 bg-primary text-primary-foreground font-semibold text-left text-sm whitespace-nowrap"
+                >
+                  {header}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
