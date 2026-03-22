@@ -749,6 +749,29 @@ export const MeetingRecorder = ({
   // AssemblyAI real-time preview hook (runs alongside Whisper)
   const assemblyPreview = useAssemblyRealtimePreview();
 
+  // Build keyterms from meeting context for AssemblyAI recognition
+  const buildMeetingKeyterms = useCallback((): string[] => {
+    const NHS_BASE = [
+      'NHS', 'ICB', 'PCN', 'CQC', 'KPMG', 'NHSE', 'NICE', 'BMA',
+      'indemnity', 'reinsurance', 'deductible', 'safeguarding',
+    ];
+    const ctx = meetingSetupContextRef.current;
+    const attendeeNames = (ctx?.attendees || [])
+      .map((a: any) => a?.name?.trim())
+      .filter(Boolean);
+    const agendaTerms = (ctx?.agendaItems || [])
+      .map((a: any) => a?.text?.trim())
+      .filter(Boolean)
+      .flatMap((t: string) => {
+        // Extract key phrases from agenda items (split on common delimiters)
+        const parts = t.split(/[,;–—/]/).map(p => p.trim()).filter(p => p.length > 1 && p.length <= 50);
+        return parts.length > 0 ? parts : [t.substring(0, 50)];
+      });
+    return [...NHS_BASE, ...attendeeNames, ...agendaTerms]
+      .filter(t => t.length > 0 && t.length <= 50)
+      .slice(0, 100);
+  }, []);
+
   // Deepgram real-time preview hook (runs alongside Whisper and AssemblyAI)
   const deepgramPreview = useDeepgramRealtimePreview();
 
