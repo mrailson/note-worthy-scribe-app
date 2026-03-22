@@ -63,7 +63,7 @@ export class ChunkedTranscriptionService {
     chunks: AudioChunk[],
     options: TranscribeOptions = {}
   ): Promise<TranscriptionResult> {
-    const { onProgress, language = 'en', maxRetries = 2, continueOnError = true, prompt } = options;
+    const { onProgress, language = 'en', maxRetries = 2, continueOnError = true, prompt, meetingTitle, attendees, agendaTerms } = options;
     const totalChunks = chunks.length;
     const chunkResults: ChunkTranscript[] = [];
 
