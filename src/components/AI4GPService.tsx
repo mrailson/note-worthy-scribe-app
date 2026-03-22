@@ -22,6 +22,7 @@ import { RoleToggle } from '@/components/ai4gp/RoleToggle';
 import { UnifiedSettingsDropdown } from '@/components/ai4gp/UnifiedSettingsDropdown';
 import { MobileRoleToggle, useMobileRolePreference } from '@/components/ai4gp/MobileRoleToggle';
 import { MobileRoleQuickPicks } from '@/components/ai4gp/MobileRoleQuickPicks';
+import { MobileChatWelcome } from '@/components/ai4gp/MobileChatWelcome';
 import { PowerPointGenerationOverlay } from '@/components/PowerPointGenerationOverlay';
 
 // Lazy-load heavy modal/panel components to improve initial load time
