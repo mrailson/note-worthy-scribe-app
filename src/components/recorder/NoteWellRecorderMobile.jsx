@@ -795,9 +795,14 @@ export default function NoteWellRecorder() {
           message: `Transcribing segment ${i + 1} of ${totalChunks}…`,
         });
 
+        // Build context prompt: chain previous chunk text for continuity
+        const prompt = previousChunkText
+          ? `NHS primary care meeting transcript. ${rec.title ? `Meeting: ${rec.title}.` : ''} ${previousChunkText.split(/\s+/).slice(-150).join(' ')}`
+          : `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ''}`;
+
         const { data: transcriptData, error: fnErr } = await supabase.functions
           .invoke("standalone-whisper", {
-            body: { storagePath, bucket: "recordings", responseFormat: "verbose_json" },
+            body: { storagePath, bucket: "recordings", responseFormat: "verbose_json", prompt },
           });
         if (fnErr) {
           console.warn(`Chunk ${i} transcription failed:`, fnErr);
