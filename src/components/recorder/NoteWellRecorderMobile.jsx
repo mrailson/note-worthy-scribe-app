@@ -610,7 +610,8 @@ export default function NoteWellRecorder() {
             </div>
 
             {/* Controls */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:24}}>
               {active && (
                 <button onClick={stopRecording} style={{width:52,height:52,borderRadius:"50%",border:"2px solid rgba(220,38,38,0.25)",background:"rgba(220,38,38,0.07)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#dc2626"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
