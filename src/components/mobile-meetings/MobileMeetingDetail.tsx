@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { format } from 'date-fns';
-import { ChevronLeft, Download, Share2, FileText, MessageSquare, Users, Clock, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Download, Share2, FileText, MessageSquare, Users, Clock, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+
+const MeetingQAPanel = lazy(() => import('@/components/meeting-details/MeetingQAPanel').then(m => ({ default: m.MeetingQAPanel })));
 
 import './mobile-meetings.css';
 
