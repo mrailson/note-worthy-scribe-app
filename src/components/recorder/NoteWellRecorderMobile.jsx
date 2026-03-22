@@ -1,6 +1,8 @@
-// NoteWellRecorder.jsx — Standalone offline-capable recorder with Supabase sync
+// NoteWellRecorder.jsx
+// Drop into Lovable as src/components/recorder/NoteWellRecorder.jsx
+// Wire the two TODO comments to your existing Supabase edge functions.
+
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
@@ -124,12 +126,11 @@ function ModeSheet({ mode, onClose, onSelect }) {
   return (
     <div
       onClick={onClose}
-      style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)",
+      style={{position:"absolute",inset:0,background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)",
         display:"flex",alignItems:"flex-end",zIndex:50}}
     >
       <div onClick={e=>e.stopPropagation()} style={{
         background:"white",borderRadius:"24px 24px 0 0",padding:"20px 18px 44px",width:"100%",
-        maxWidth:480,margin:"0 auto",
         animation:"slideUp 0.25s ease-out",
       }}>
         <div style={{width:40,height:4,background:"#e2e8f0",borderRadius:2,margin:"0 auto 18px"}}/>
@@ -202,8 +203,8 @@ function TitleModal({ blob, duration, onSave, onDiscard }) {
     `Meeting ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"})} ${new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`
   );
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",backdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end",zIndex:60}}>
-      <div style={{background:"white",borderRadius:"24px 24px 0 0",padding:"22px 18px 44px",width:"100%",maxWidth:480,margin:"0 auto",animation:"slideUp 0.25s ease-out"}}>
+    <div style={{position:"absolute",inset:0,background:"rgba(15,23,42,0.6)",backdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end",zIndex:60}}>
+      <div style={{background:"white",borderRadius:"24px 24px 0 0",padding:"22px 18px 44px",width:"100%",animation:"slideUp 0.25s ease-out"}}>
         <div style={{width:40,height:4,background:"#e2e8f0",borderRadius:2,margin:"0 auto 18px"}}/>
         <div style={{fontSize:17,fontWeight:700,color:"#1a2332",marginBottom:4}}>Name this recording</div>
         <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>
@@ -303,7 +304,7 @@ function Toast({ msg, type }) {
   const icon = { success:"✓", error:"✕", info:"ℹ" }[type] ?? "";
   return (
     <div style={{
-      position:"fixed",bottom:96,left:"50%",transform:"translateX(-50%)",
+      position:"absolute",bottom:96,left:"50%",transform:"translateX(-50%)",
       background:bg,color:"white",padding:"10px 18px",borderRadius:20,
       fontSize:13,fontWeight:500,whiteSpace:"nowrap",
       boxShadow:"0 4px 16px rgba(0,0,0,0.2)",animation:"fadeIn 0.2s",zIndex:80,
@@ -311,18 +312,6 @@ function Toast({ msg, type }) {
       {icon} {msg}
     </div>
   );
-}
-
-// ─── Helper: ArrayBuffer to base64 ───────────────────────────────────────────
-function arrayBufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  const chunkSize = 8192;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  return btoa(binary);
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -343,36 +332,17 @@ export default function NoteWellRecorder() {
   const streamRef    = useRef(null);
   const audioRef     = useRef(new Audio());
 
-  // ── Connectivity (ping-based for reliable detection) ────────────────────
-  const checkConnectivity = useCallback(async () => {
-    if (!navigator.onLine) {
-      setIsOnline(false);
-      setMode("offline");
-      return;
-    }
-    try {
-      await fetch("https://www.google.com/favicon.ico", {
-        mode: "no-cors", cache: "no-store",
-      });
-      setIsOnline(true);
-      setMode("live");
-    } catch {
-      setIsOnline(false);
-      setMode("offline");
-    }
-  }, []);
-
+  // ── Connectivity ──────────────────────────────────────────────────────────
   useEffect(() => {
-    checkConnectivity();
-    const interval = setInterval(checkConnectivity, 10000);
-    window.addEventListener("online", checkConnectivity);
-    window.addEventListener("offline", checkConnectivity);
+    const goOnline  = () => { setIsOnline(true);  setMode("live");    };
+    const goOffline = () => { setIsOnline(false); setMode("offline"); };
+    window.addEventListener("online",  goOnline);
+    window.addEventListener("offline", goOffline);
     return () => {
-      clearInterval(interval);
-      window.removeEventListener("online", checkConnectivity);
-      window.removeEventListener("offline", checkConnectivity);
+      window.removeEventListener("online",  goOnline);
+      window.removeEventListener("offline", goOffline);
     };
-  }, [checkConnectivity]);
+  }, []);
 
   // ── Load saved recordings ─────────────────────────────────────────────────
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
@@ -457,32 +427,21 @@ export default function NoteWellRecorder() {
     await dbPatch(rec.id, { status: "syncing" });
     await refresh();
     try {
-      // ── Step 1: Upload audio to Supabase Storage ──────────────────────────
-      const audioBlob = new Blob([rec.audioData], { type: rec.mimeType });
-      const ext = rec.mimeType?.includes("mp4") ? "m4a" : rec.mimeType?.includes("ogg") ? "ogg" : "webm";
-      const filePath = `${rec.id}.${ext}`;
+      // ── TODO 1: Upload audio to Supabase Storage ──────────────────────────
+      // const { data, error } = await supabase.storage
+      //   .from("recordings")
+      //   .upload(`${rec.id}.webm`, new Blob([rec.audioData], { type: rec.mimeType }));
+      // if (error) throw error;
+      // const audioPath = data.path;
 
-      const { data, error } = await supabase.storage
-        .from("recordings")
-        .upload(filePath, audioBlob, {
-          contentType: rec.mimeType,
-          upsert: true,
-        });
-      if (error) throw error;
+      // ── TODO 2: Trigger Whisper transcription edge function ───────────────
+      // const { error: fnErr } = await supabase.functions
+      //   .invoke("transcribe-recording", { body: { recordingId: rec.id, audioPath } });
+      // if (fnErr) throw fnErr;
 
-      await dbPatch(rec.id, { status: "synced" });
-      await refresh();
-      showToast("Audio uploaded", "success");
-
-      // ── Step 2: Trigger Whisper transcription via standalone-whisper ───────
-      const base64Audio = arrayBufferToBase64(rec.audioData);
-      const { data: transcriptData, error: fnErr } = await supabase.functions
-        .invoke("standalone-whisper", {
-          body: { audio: base64Audio },
-        });
-      if (fnErr) throw fnErr;
-
-      await dbPatch(rec.id, { status: "transcribed", transcript: transcriptData?.text || "" });
+      // ─── Remove this mock timeout once TODOs above are wired ─────────────
+      await new Promise(r => setTimeout(r, 2500));
+      await dbPatch(rec.id, { status: "transcribed" });
       await refresh();
       showToast("Transcription complete", "success");
     } catch (err) {
@@ -518,20 +477,38 @@ export default function NoteWellRecorder() {
   return (
     <>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
         @keyframes barPulse  { from{transform:scaleY(0.5)} to{transform:scaleY(1)} }
         @keyframes ripple    { 0%{transform:scale(1);opacity:0.7} 100%{transform:scale(2.4);opacity:0} }
         @keyframes slideUp   { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
         @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
         @keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        ::-webkit-scrollbar{width:3px}
+        ::-webkit-scrollbar-thumb{background:rgba(21,101,192,0.15);border-radius:4px}
       `}</style>
 
       <div style={{
-        width:"100%", maxWidth:480, margin:"0 auto",
-        minHeight:"100dvh", background:"#f0f4f9",
+        width:390, height:844, background:"#f0f4f9", borderRadius:44,
         overflow:"hidden", display:"flex", flexDirection:"column",
-        position:"relative",
+        boxShadow:"0 40px 80px rgba(0,0,0,0.25)", position:"relative",
         fontFamily:"'DM Sans',sans-serif",
       }}>
+
+        {/* Status bar */}
+        <div style={{height:44,background:"#1565c0",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px"}}>
+          <span style={{color:"white",fontSize:15,fontWeight:600}}>
+            {new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}
+          </span>
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <span style={{width:7,height:7,borderRadius:"50%",background:isOnline?"#4caf50":"#f59e0b",display:"inline-block"}}/>
+            <span style={{color:"rgba(255,255,255,0.75)",fontSize:10,fontWeight:500}}>{isOnline?"Online":"Offline"}</span>
+            <div style={{width:25,height:12,borderRadius:3,border:"1.5px solid rgba(255,255,255,0.7)",position:"relative"}}>
+              <div style={{width:"68%",height:"100%",background:"#4caf50",borderRadius:2}}/>
+              <div style={{position:"absolute",right:-4,top:"50%",transform:"translateY(-50%)",width:3,height:6,background:"rgba(255,255,255,0.5)",borderRadius:"0 2px 2px 0"}}/>
+            </div>
+          </div>
+        </div>
 
         {/* Header */}
         <div style={{background:"linear-gradient(135deg,#1565c0 0%,#0288d1 100%)",padding:"14px 16px 16px",boxShadow:"0 4px 20px rgba(21,101,192,0.25)"}}>
@@ -562,27 +539,6 @@ export default function NoteWellRecorder() {
           </div>
         </div>
 
-        {/* Connectivity status bar */}
-        <div style={{
-          height:36, width:"100%",
-          background: isOnline ? "#dcfce7" : "#fef3c7",
-          display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-          transition:"background 0.3s ease",
-        }}>
-          <span style={{
-            width:8, height:8, borderRadius:"50%",
-            background: isOnline ? "#16a34a" : "#d97706",
-            display:"inline-block",
-            animation: isOnline ? "none" : "pulse 1.5s infinite",
-          }}/>
-          <span style={{
-            fontSize:12, fontWeight:700, letterSpacing:0.2,
-            color: isOnline ? "#16a34a" : "#d97706",
-          }}>
-            {isOnline ? "Live · Connected" : "Offline · Saving locally — will sync on reconnect"}
-          </span>
-        </div>
-
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
 
@@ -590,6 +546,17 @@ export default function NoteWellRecorder() {
           <div style={{padding:"14px 16px 0",display:"flex",justifyContent:"center"}}>
             <ModePill mode={mode} disabled={active} onTap={()=>setShowSheet(true)} />
           </div>
+
+          {/* Offline banner */}
+          {!isOnline && isIdle && (
+            <div style={{margin:"10px 16px 0",background:"rgba(245,158,11,0.1)",borderRadius:12,padding:"10px 14px",border:"1px solid rgba(245,158,11,0.28)",display:"flex",gap:8,animation:"fadeIn 0.3s"}}>
+              <span style={{fontSize:15,flexShrink:0}}>⚡</span>
+              <div>
+                <div style={{fontSize:13,fontWeight:600,color:"#d97706"}}>Offline mode active</div>
+                <div style={{fontSize:12,color:"#92400e",lineHeight:1.4}}>Recording saves to this device and transcribes automatically when you're back online.</div>
+              </div>
+            </div>
+          )}
 
           {/* Recorder card */}
           <div style={{margin:"12px 16px 0",background:"white",borderRadius:22,padding:"22px 20px",boxShadow:"0 4px 16px rgba(21,101,192,0.1)",border:"1px solid rgba(21,101,192,0.1)"}}>
