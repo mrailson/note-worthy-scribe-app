@@ -6675,7 +6675,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         const resumeAssemblyStream =
           assemblyAudioMixerRef.current?.mixedStream || micAudioStreamRef.current || undefined;
 
-        await assemblyPreview.startPreview(resumeAssemblyStream, { preserveTranscript: true });
+        await assemblyPreview.startPreview(resumeAssemblyStream, { preserveTranscript: true, keyterms: meetingKeytermsRef.current });
         console.log('✅ AssemblyAI preview resumed after unpause (transcript preserved)');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to restart:', assemblyError);
