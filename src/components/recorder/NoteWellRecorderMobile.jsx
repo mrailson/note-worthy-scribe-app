@@ -1116,13 +1116,25 @@ export default function NoteWellRecorder() {
       showToast("Transcription complete", "success");
 
       // Re-verify auth before meeting creation (token may have expired during long transcription)
-      const { data: { user: freshUser } } = await supabase.auth.getUser();
-      const activeUser = freshUser || user;
+      let activeUser = null;
+      try {
+        const { data: { session } } = await supabase.auth.refreshSession();
+        if (session?.user) {
+          activeUser = session.user;
+          console.log("[LegacySync] Session refreshed successfully:", activeUser.id);
+        }
+      } catch (refreshErr) {
+        console.warn("[LegacySync] Session refresh failed:", refreshErr);
+      }
+      if (!activeUser) {
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        activeUser = freshUser || user;
+      }
       console.log("[LegacySync] Creating meeting. activeUser:", activeUser?.id, "transcript length:", transcriptText.length);
 
       if (!activeUser?.id) {
         console.error("[LegacySync] No authenticated user for meeting creation");
-        showToast("Session expired — please sign in and sync again", "error");
+        showToast("Session expired — tap Sync again after signing in", "error");
         await dbPatch(rec.id, { status: "transcribed", transcript: transcriptText });
         await refresh();
         setSyncProgress(null);
