@@ -176,7 +176,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
                 <EngineSection
                   label="Deepgram"
                   hue="142 71% 45%"
-                  lines={deepgramText ? [deepgramText] : []}
+                  lines={splitIntoLines(deepgramText, 4)}
                   emptyText="Deepgram: awaiting data…"
                 />
               )}
@@ -184,7 +184,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
                 <EngineSection
                   label={whisperChunkNum > 0 ? `Whisper (chunk ${whisperChunkNum})` : 'Whisper'}
                   hue="270 67% 55%"
-                  lines={whisperChunkText ? [whisperChunkText] : []}
+                  lines={splitIntoLines(whisperChunkText, 4)}
                   emptyText="Whisper: recording… (transcribes on sync)"
                 />
               )}
