@@ -1089,6 +1089,7 @@ export default function NoteWellRecorder() {
       }
 
       const meetingId = meetingData.id;
+      attachDeviceInfoToMeeting(meetingId);
 
       // ── Step 5: Store transcript chunks ───────────────────────────────
       for (const ct of successfulChunks) {
