@@ -11426,6 +11426,8 @@ export type Database = {
           action_items_on: boolean | null
           attendees_on: boolean | null
           audio_mode: string
+          decisions_register_on: boolean | null
+          discussion_summary_on: boolean | null
           exec_summary_on: boolean | null
           footer_on: boolean | null
           id: string
@@ -11433,6 +11435,7 @@ export type Database = {
           logo_position: string | null
           logo_scale: number | null
           meeting_details_on: boolean | null
+          next_meeting_on: boolean | null
           notes_length: string
           open_items_on: boolean | null
           preferred_mic_device_id: string | null
@@ -11453,6 +11456,8 @@ export type Database = {
           action_items_on?: boolean | null
           attendees_on?: boolean | null
           audio_mode?: string
+          decisions_register_on?: boolean | null
+          discussion_summary_on?: boolean | null
           exec_summary_on?: boolean | null
           footer_on?: boolean | null
           id?: string
@@ -11460,6 +11465,7 @@ export type Database = {
           logo_position?: string | null
           logo_scale?: number | null
           meeting_details_on?: boolean | null
+          next_meeting_on?: boolean | null
           notes_length?: string
           open_items_on?: boolean | null
           preferred_mic_device_id?: string | null
@@ -11480,6 +11486,8 @@ export type Database = {
           action_items_on?: boolean | null
           attendees_on?: boolean | null
           audio_mode?: string
+          decisions_register_on?: boolean | null
+          discussion_summary_on?: boolean | null
           exec_summary_on?: boolean | null
           footer_on?: boolean | null
           id?: string
@@ -11487,6 +11495,7 @@ export type Database = {
           logo_position?: string | null
           logo_scale?: number | null
           meeting_details_on?: boolean | null
+          next_meeting_on?: boolean | null
           notes_length?: string
           open_items_on?: boolean | null
           preferred_mic_device_id?: string | null
