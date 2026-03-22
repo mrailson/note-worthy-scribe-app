@@ -87,14 +87,19 @@ export const MobileResponsiveTable: React.FC<MobileResponsiveTableProps> = ({
               {Object.entries(row).map(([key, value], cellIndex) => {
                 const header = headers[cellIndex];
                 
-                // Check if this is priority column
+                // Skip priority column
                 if (header?.toLowerCase().includes('priority')) {
-                  return (
-                    <td key={cellIndex} className="border border-border px-4 py-3 text-sm">
-                      {renderPriorityBadge(value)}
-                    </td>
-                  );
+                  return null;
                 }
+
+                return (
+                  <td
+                    key={cellIndex}
+                    className="border border-border px-4 py-3 text-sm text-card-foreground leading-relaxed"
+                  >
+                    {value}
+                  </td>
+                );
 
                 return (
                   <td
