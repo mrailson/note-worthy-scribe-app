@@ -235,25 +235,36 @@ serve(async (req) => {
       // Parse response based on format
       if (resolvedFormat === 'text' || resolvedFormat === 'srt' || resolvedFormat === 'vtt') {
         const textResult = await response.text();
-        console.log(`✅ [${requestId}] Whisper ${resolvedFormat} result: ${textResult.slice(0, 100)}…`);
+        const cleanedText = cleanHallucinations(textResult, requestId);
+        console.log(`✅ [${requestId}] Whisper ${resolvedFormat} result: ${cleanedText.slice(0, 100)}…`);
         return new Response(
-          JSON.stringify({ text: textResult, service: 'whisper', format: forwardMime }),
+          JSON.stringify({ text: cleanedText, service: 'whisper', format: forwardMime }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
       const result = await response.json();
-      console.log(`✅ [${requestId}] Whisper result: ${result.text?.slice(0, 100)}…`);
+      let finalText = result.text || '';
+      let segments = result.segments || [];
+
+      // ── Hallucination detection ──
+      const cleaned = cleanHallucinations(finalText, requestId);
+      if (cleaned !== finalText) {
+        finalText = cleaned;
+        segments = []; // Segments are invalid after cleaning
+      }
+
+      console.log(`✅ [${requestId}] Whisper result: ${finalText.slice(0, 100)}…`);
 
       // For verbose_json, include segments in the response
       const responseBody: Record<string, any> = {
-        text: result.text || '',
+        text: finalText,
         service: 'whisper',
         format: forwardMime,
       };
       
       if (resolvedFormat === 'verbose_json') {
-        responseBody.segments = result.segments || [];
+        responseBody.segments = segments;
         responseBody.language = result.language || 'en';
         responseBody.duration = result.duration || 0;
       }
