@@ -21,6 +21,7 @@ interface RecordingFlowOverlayProps {
   transcriptText?: string;
   recentFinals?: string[];
   currentPartial?: string;
+  assemblyFullTranscript?: string;
   deepgramText?: string;
   whisperChunkText?: string;
   whisperChunkNum?: number;

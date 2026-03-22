@@ -6775,6 +6775,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             transcriptText={assemblyPreview.fullTranscript || deepgramPreview.fullTranscript || transcript}
             recentFinals={assemblyPreview.recentFinals}
             currentPartial={assemblyPreview.currentPartial}
+            assemblyFullTranscript={assemblyPreview.fullTranscript}
             deepgramText={deepgramPreview.fullTranscript ? deepgramPreview.fullTranscript.trim().split(/\s+/).slice(-30).join(' ') : ''}
             whisperChunkText={transcript ? transcript.trim().split(/\s+/).slice(-50).join(' ') : ''}
             whisperChunkNum={chunkCounter}
