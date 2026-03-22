@@ -32,8 +32,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   const [recentFinals, setRecentFinals] = useState<string[]>([]);
   const [currentPartial, setCurrentPartial] = useState<string>("");
   const [status, setStatus] = useState<PreviewStatus>('idle');
-  const [isActive, setIsActive] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isActive, _setIsActive] = useState(false);
+  const setIsActive = useCallback((v: boolean) => { isActiveRef.current = v; _setIsActive(v); }, []);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
