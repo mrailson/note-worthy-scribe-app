@@ -327,7 +327,6 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying }) {
         </div>
       )}
     </div>
-    </div>
   );
 }
 
