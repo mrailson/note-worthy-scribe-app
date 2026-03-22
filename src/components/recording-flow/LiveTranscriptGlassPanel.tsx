@@ -57,8 +57,13 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
     });
   }, []);
 
-  const visibleLines = recentFinals.slice(-MAX_VISIBLE_LINES);
-  const isDebugMode = !activeEngines.has('all');
+  // Use recentFinals if available, otherwise fall back to splitting assemblyFullTranscript
+  const assemblyFallbackLines = recentFinals.length === 0 && assemblyFullTranscript
+    ? splitIntoLines(assemblyFullTranscript, MAX_VISIBLE_LINES)
+    : [];
+  const visibleLines = recentFinals.length > 0
+    ? recentFinals.slice(-MAX_VISIBLE_LINES)
+    : assemblyFallbackLines;
 
   if (!isRecording) return null;
 
