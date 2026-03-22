@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Header } from "@/components/Header";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
@@ -518,20 +519,8 @@ export default function NoteWellRecorder() {
         fontFamily:"'DM Sans',sans-serif",
       }}>
 
-        {/* Status bar */}
-        <div style={{height:44,background:"#1565c0",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px"}}>
-          <span style={{color:"white",fontSize:15,fontWeight:600}}>
-            {new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}
-          </span>
-          <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <span style={{width:7,height:7,borderRadius:"50%",background:isOnline?"#4caf50":"#f59e0b",display:"inline-block"}}/>
-            <span style={{color:"rgba(255,255,255,0.75)",fontSize:10,fontWeight:500}}>{isOnline?"Online":"Offline"}</span>
-            <div style={{width:25,height:12,borderRadius:3,border:"1.5px solid rgba(255,255,255,0.7)",position:"relative"}}>
-              <div style={{width:"68%",height:"100%",background:"#4caf50",borderRadius:2}}/>
-              <div style={{position:"absolute",right:-4,top:"50%",transform:"translateY(-50%)",width:3,height:6,background:"rgba(255,255,255,0.5)",borderRadius:"0 2px 2px 0"}}/>
-            </div>
-          </div>
-        </div>
+        {/* App header with hamburger menu */}
+        <Header />
 
         {/* Header */}
         <div style={{background:"linear-gradient(135deg,#1565c0 0%,#0288d1 100%)",padding:"14px 16px 16px",boxShadow:"0 4px 20px rgba(21,101,192,0.25)"}}>
@@ -560,9 +549,6 @@ export default function NoteWellRecorder() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 </button>
               )}
-              <button style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.15)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              </button>
             </div>
           </div>
         </div>
