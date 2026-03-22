@@ -3257,7 +3257,7 @@ export const MeetingRecorder = ({
             setAssemblyInputMode(mixerResult.hasSystemAudio ? 'mic-and-system' : 'mic-only');
             
             // Restart Assembly/Deepgram with new mixed stream
-            try { await assemblyPreview.startPreview(mixerResult.mixedStream); } catch (e) { console.warn('⚠️ AssemblyAI restart failed:', e); }
+            try { await assemblyPreview.startPreview(mixerResult.mixedStream, { keyterms: meetingKeytermsRef.current }); } catch (e) { console.warn('⚠️ AssemblyAI restart failed:', e); }
             try { await deepgramPreview.startPreview(currentMeetingId, mixerResult.mixedStream); } catch (e) { console.warn('⚠️ Deepgram restart failed:', e); }
           } catch (systemError: any) {
             console.error('❌ System audio capture failed:', systemError);
