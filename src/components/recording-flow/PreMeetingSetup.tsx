@@ -673,10 +673,22 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
               pulse={lastUpdate === 'agenda'}
             />
             {activeGroup && (
-              <ContextStatusPill
-                icon={activeGroup.icon} label="Group" color={activeGroup.color}
-                value={activeGroup.name}
-              />
+              <button
+                onClick={() => onOpenImportModal?.('attendees')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] transition-all duration-300 cursor-pointer hover:opacity-80 group/grp"
+                style={{
+                  background: `${activeGroup.color}18`,
+                  border: `1px solid ${activeGroup.color}4D`,
+                }}
+                title={`Edit ${activeGroup.name}`}
+              >
+                <span className="text-sm leading-none">{activeGroup.icon}</span>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground leading-none">Group</span>
+                  <span className="text-[13px] font-extrabold leading-tight" style={{ color: activeGroup.color }}>{activeGroup.name}</span>
+                </div>
+                <span className="text-[10px] ml-1 opacity-50 group-hover/grp:opacity-100 transition-opacity">✏️</span>
+              </button>
             )}
             {meetingType && MEETING_TYPE_LABELS[meetingType] && (
               <ContextStatusPill
