@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
         const tokenData = await tokenResponse.json();
 
         // Build v3 WebSocket URL with parameters
-        let wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&token=${encodeURIComponent(tokenData.token)}`;
+        let wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&encoding=pcm_s16le&format_turns=true&token=${encodeURIComponent(tokenData.token)}`;
 
         // Add keyterms if provided by client
         if (pendingKeyterms.length > 0) {
@@ -104,27 +104,7 @@ Deno.serve(async (req: Request) => {
         assemblySocket = new WebSocket(wsUrl);
         
         assemblySocket.onopen = () => {
-          console.log('✅ AssemblyAI WebSocket connected — sending Configure');
-          
-          // v3 requires a Configure message to declare audio encoding
-          const configMsg = JSON.stringify({
-            type: 'Configure',
-            data: {
-              encoding: 'pcm_s16le',
-              sample_rate: 16000,
-              format_turns: true
-            }
-          });
-          
-          try {
-            // @ts-ignore
-            assemblySocket!.send(configMsg);
-            console.log('📋 Sent Configure message:', configMsg);
-          } catch (err) {
-            console.error('❌ Failed to send Configure:', err);
-          }
-          
-          // Signal client that session is ready
+          console.log('✅ AssemblyAI WebSocket connected');
           safeSend(socket, JSON.stringify({ 
             type: 'session_begins',
             session_id: Date.now().toString()
