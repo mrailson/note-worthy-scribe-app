@@ -1,8 +1,9 @@
 import React from 'react';
-import { FileText, Share2, List, Clock } from 'lucide-react';
+import { FileText, Share2, List, Clock, Mail, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
+import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { toast } from 'sonner';
 import './mobile-meetings.css';
 
@@ -22,6 +23,7 @@ export const MobileExportSheet: React.FC<MobileExportSheetProps> = ({
   onShare,
 }) => {
   const { user } = useAuth();
+  const { sendEmailAutomatically, isSending } = useAutoEmail();
 
   const fetchMeetingData = async () => {
     if (!meetingId || !user) return null;
@@ -69,6 +71,33 @@ export const MobileExportSheet: React.FC<MobileExportSheetProps> = ({
     } catch (error) {
       console.error('Export notes error:', error);
       toast.error('Failed to export notes');
+    }
+  };
+
+  const handleEmailNotes = async () => {
+    try {
+      const meeting = await fetchMeetingData();
+      if (!meeting) {
+        toast.error('Could not load meeting data');
+        return;
+      }
+
+      const notesContent = meeting.notes_style_3 || meeting.overview || '';
+      if (!notesContent) {
+        toast.error('No notes available. Generate notes first.');
+        return;
+      }
+
+      const dateStr = new Date(meeting.created_at).toLocaleDateString('en-GB');
+      const subject = `Meeting Notes - ${meeting.title || 'Meeting'} - ${dateStr}`;
+      
+      const sent = await sendEmailAutomatically(notesContent, subject);
+      if (sent) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Email notes error:', error);
+      toast.error('Failed to email notes');
     }
   };
 
@@ -174,6 +203,16 @@ export const MobileExportSheet: React.FC<MobileExportSheetProps> = ({
           <div>
             <div>Meeting notes (.docx)</div>
             <div className="nw-mh-sheet-option-detail">Formatted governance document with action log</div>
+          </div>
+        </button>
+
+        <button className="nw-mh-sheet-option" onClick={handleEmailNotes} disabled={isSending}>
+          <div className="nw-mh-sheet-option-icon" style={{ background: 'hsl(var(--accent))' }}>
+            {isSending ? <Loader2 size={20} className="animate-spin" style={{ color: 'hsl(var(--accent-foreground))' }} /> : <Mail size={20} style={{ color: 'hsl(var(--accent-foreground))' }} />}
+          </div>
+          <div>
+            <div>{isSending ? 'Sending…' : 'Email notes to me'}</div>
+            <div className="nw-mh-sheet-option-detail">Send notes with Word attachment to your email</div>
           </div>
         </button>
 
