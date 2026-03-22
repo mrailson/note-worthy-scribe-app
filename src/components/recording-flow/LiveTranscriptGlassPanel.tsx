@@ -152,7 +152,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
 
         {/* Transcript content */}
         <div style={{
-          maxHeight: isDebugMode ? 250 : 120,
+          maxHeight: isDebugMode ? 480 : 140,
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
           padding: '4px 14px 12px',
