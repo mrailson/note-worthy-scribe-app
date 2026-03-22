@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type PreviewStatus = 'idle' | 'connecting' | 'connected' | 'recording' | 'reconnecting' | 'error' | 'stopped';
 
+const MAX_RECENT_FINALS = 4;
+
 interface UseAssemblyRealtimePreviewReturn {
   liveTranscript: string;
   fullTranscript: string;
