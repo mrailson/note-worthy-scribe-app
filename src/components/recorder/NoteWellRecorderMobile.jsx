@@ -3,7 +3,7 @@
 // Wire the two TODO comments to your existing Supabase edge functions.
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 
@@ -320,6 +320,7 @@ function Toast({ msg, type }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function NoteWellRecorder() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isOnline,      setIsOnline]      = useState(navigator.onLine);
   const [mode,          setMode]          = useState(navigator.onLine ? "live" : "offline");
   const [recState,      setRecState]      = useState("idle");   // idle|recording|paused
@@ -431,7 +432,8 @@ export default function NoteWellRecorder() {
     // Check authentication first
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      showToast("Please sign in to sync recordings", "error");
+      showToast("Redirecting to sign in…", "info");
+      navigate("/auth", { state: { returnTo: location.pathname } });
       return;
     }
 
