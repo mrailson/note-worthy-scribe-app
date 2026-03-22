@@ -1,12 +1,8 @@
 import React from 'react';
 import { SEO } from '@/components/SEO';
-import NoteWellRecorder from '@/components/recorder/NoteWellRecorder';
 import NoteWellRecorderMobile from '@/components/recorder/NoteWellRecorderMobile';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
 
-const NewRecorder = () => {
-  const isMobile = useMediaQuery("(max-width: 768px)");
-
+export default function NewRecorderPage() {
   return (
     <>
       <SEO 
@@ -15,9 +11,7 @@ const NewRecorder = () => {
         canonical="https://www.gpnotewell.co.uk/new-recorder"
         keywords="meeting recorder, NHS transcription, medical recording, healthcare documentation, meeting transcription"
       />
-      {isMobile ? <NoteWellRecorderMobile /> : <NoteWellRecorder />}
+      <NoteWellRecorderMobile />
     </>
   );
-};
-
-export default NewRecorder;
+}
