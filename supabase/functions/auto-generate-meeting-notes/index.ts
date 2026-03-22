@@ -1843,41 +1843,10 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
     }
     } // end if (!skipQc)
 
-    // Save or update notes in database - handle forceRegenerate properly
-    if (forceRegenerate) {
-      // Delete existing record first, then insert new one
-      await supabase
-        .from('meeting_summaries')
-        .delete()
-        .eq('meeting_id', meetingId);
-    }
-
-    // Build generation metadata for pipeline badges
-    const qcEnd = Date.now();
-    const notesGenDuration = (notesGenEnd - notesGenStart) / 1000;
-    const qcDuration = (qcEnd - qcStart) / 1000;
-    const totalPipelineDuration = (qcEnd - notesGenStart) / 1000;
-    console.log(`⏱️ Pipeline timing — Notes: ${notesGenDuration.toFixed(1)}s, QC: ${qcDuration.toFixed(1)}s, Total: ${totalPipelineDuration.toFixed(1)}s`);
-
-    const generationMetadata = {
-      model_used: modelUsed,
-      transcript_source: actualTranscriptSource || transcriptSource || 'auto',
-      qc_status: qcResult?.status || 'skipped',
-      qc_details: qcResult?.summary || null,
-      qc: qcResult,
-      note_style: noteType || 'standard',
-      generated_at: new Date().toISOString(),
-      timing: {
-        notes_generation_seconds: parseFloat(notesGenDuration.toFixed(2)),
-        qc_audit_seconds: parseFloat(qcDuration.toFixed(2)),
-        total_pipeline_seconds: parseFloat(totalPipelineDuration.toFixed(2)),
-      },
-    };
-    console.log('📋 Generation metadata:', JSON.stringify(generationMetadata));
-
+    // Save or update notes in database using upsert to handle existing records
     const { error: summaryError } = await supabase
       .from('meeting_summaries')
-      .insert({
+      .upsert({
         meeting_id: meetingId,
         summary: generatedNotes,
         key_points: [],
@@ -1887,7 +1856,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         ai_generated: true,
         updated_at: new Date().toISOString(),
         generation_metadata: generationMetadata,
-      });
+      }, { onConflict: 'meeting_id' });
 
     if (summaryError) {
       console.error('❌ Error saving summary:', summaryError);
