@@ -110,19 +110,17 @@ export function useAutoEmail() {
         ? formatLetterForEmail(message)
         : convertToEmailSafeHTML(message);
 
-      // Prepare email data for EmailJS service
+      // Prepare email data for Resend service
       const emailData = {
         to_email: profile.email,
         subject,
-        message: emailHtml,
-        template_type: 'ai_generated_content',
-        from_name: 'AI4GP Service',
-        reply_to: 'noreply@gp-tools.nhs.uk',
+        html_content: emailHtml,
+        from_name: 'Notewell AI',
         word_attachment: wordAttachment
       };
 
-      // Send email via Supabase edge function
-      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
+      // Send email via Supabase edge function (Resend)
+      const { data, error } = await supabase.functions.invoke('send-meeting-email-resend', {
         body: emailData
       });
 
@@ -132,8 +130,8 @@ export function useAutoEmail() {
       }
 
       if (!data?.success) {
-        console.error('EmailJS error:', data);
-        throw new Error(data?.error || 'Failed to send email via EmailJS');
+        console.error('Resend error:', data);
+        throw new Error(data?.error || 'Failed to send email via Resend');
       }
 
       toast({
