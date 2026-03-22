@@ -562,6 +562,27 @@ export default function NoteWellRecorder() {
           </div>
         </div>
 
+        {/* Connectivity status bar */}
+        <div style={{
+          height:36, width:"100%",
+          background: isOnline ? "#dcfce7" : "#fef3c7",
+          display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+          transition:"background 0.3s ease",
+        }}>
+          <span style={{
+            width:8, height:8, borderRadius:"50%",
+            background: isOnline ? "#16a34a" : "#d97706",
+            display:"inline-block",
+            animation: isOnline ? "none" : "pulse 1.5s infinite",
+          }}/>
+          <span style={{
+            fontSize:12, fontWeight:700, letterSpacing:0.2,
+            color: isOnline ? "#16a34a" : "#d97706",
+          }}>
+            {isOnline ? "Live · Connected" : "Offline · Saving locally — will sync on reconnect"}
+          </span>
+        </div>
+
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
 
@@ -569,17 +590,6 @@ export default function NoteWellRecorder() {
           <div style={{padding:"14px 16px 0",display:"flex",justifyContent:"center"}}>
             <ModePill mode={mode} disabled={active} onTap={()=>setShowSheet(true)} />
           </div>
-
-          {/* Offline banner */}
-          {!isOnline && isIdle && (
-            <div style={{margin:"10px 16px 0",background:"rgba(245,158,11,0.1)",borderRadius:12,padding:"10px 14px",border:"1px solid rgba(245,158,11,0.28)",display:"flex",gap:8,animation:"fadeIn 0.3s"}}>
-              <span style={{fontSize:15,flexShrink:0}}>⚡</span>
-              <div>
-                <div style={{fontSize:13,fontWeight:600,color:"#d97706"}}>Offline mode active</div>
-                <div style={{fontSize:12,color:"#92400e",lineHeight:1.4}}>Recording saves to this device and transcribes automatically when you're back online.</div>
-              </div>
-            </div>
-          )}
 
           {/* Recorder card */}
           <div style={{margin:"12px 16px 0",background:"white",borderRadius:22,padding:"22px 20px",boxShadow:"0 4px 16px rgba(21,101,192,0.1)",border:"1px solid rgba(21,101,192,0.1)"}}>
