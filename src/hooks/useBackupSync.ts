@@ -140,7 +140,7 @@ export function useBackupSync() {
         
         // Deduplicate overlap with previous segment
         const deduplicated = i > 0
-          ? deduplicateOverlap(transcripts[i - 1], text)
+          ? removeOverlapText(text, transcripts[i - 1], i)
           : text;
 
         transcripts.push(deduplicated);
