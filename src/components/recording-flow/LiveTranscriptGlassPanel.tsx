@@ -102,7 +102,7 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
       <div style={{
         position: 'absolute', top: 'calc(100% + 10px)', left: '50%',
         transform: open ? 'translateX(-50%) translateY(0) scale(1)' : 'translateX(-50%) translateY(-6px) scale(0.98)',
-        width: 420,
+        width: 620,
         background: 'hsl(var(--background) / 0.88)',
         backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
         border: '1px solid hsl(var(--border) / 0.25)', borderRadius: 16,
