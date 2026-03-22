@@ -1436,79 +1436,97 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   saveAs(blob, filename);
 };
 
-// Helper to remove executive summary section from content (since we render it in a separate box)
-const removeExecutiveSummarySection = (content: string): string => {
+/**
+ * Detects whether a line is a section heading (markdown #, **bold**, ALL CAPS, or numbered).
+ * Returns the normalised lowercase heading text and level, or null if not a heading.
+ */
+const detectHeading = (line: string): { text: string; level: number } | null => {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+
+  // Markdown headings: ## **Executive Summary** or ### Executive Summary
+  const mdMatch = trimmed.match(/^(#{1,6})\s*\**\s*(.+?)\s*\**\s*$/);
+  if (mdMatch) {
+    return { text: mdMatch[2].replace(/\*+/g, '').replace(/:\s*$/, '').trim().toLowerCase(), level: mdMatch[1].length };
+  }
+
+  // Bold-only headings: **Executive Summary**
+  const boldMatch = trimmed.match(/^\*{2,}\s*(.+?)\s*\*{2,}\s*:?\s*$/);
+  if (boldMatch && trimmed.length < 80) {
+    return { text: boldMatch[1].replace(/:\s*$/, '').trim().toLowerCase(), level: 2 };
+  }
+
+  // Numbered headings: 1. Executive Summary or 1) Executive Summary
+  const numberedMatch = trimmed.match(/^\d+[.)]\s*\**\s*(.+?)\s*\**\s*:?\s*$/);
+  if (numberedMatch && trimmed.length < 80) {
+    return { text: numberedMatch[1].replace(/\*+/g, '').replace(/:\s*$/, '').trim().toLowerCase(), level: 2 };
+  }
+
+  // ALL CAPS headings (at least 3 chars, no lowercase)
+  if (/^[A-Z][A-Z\s&:,]{2,}$/.test(trimmed) && trimmed.length < 60) {
+    return { text: trimmed.replace(/:\s*$/, '').trim().toLowerCase(), level: 2 };
+  }
+
+  return null;
+};
+
+/**
+ * Generic section remover. Removes everything from the matching heading
+ * until the next heading of equal or higher level (or end of content).
+ */
+const removeSectionByPattern = (content: string, pattern: RegExp): string => {
   const lines = content.split('\n');
   const result: string[] = [];
-  let inSummarySection = false;
-  let summaryParagraphFound = false;
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    
-    // Detect Executive Summary / Overview heading
-    if (/^#{1,3}\s*(executive\s*summary|overview|summary)\s*$/i.test(trimmed)) {
-      inSummarySection = true;
-      summaryParagraphFound = false;
-      continue; // Skip the heading
-    }
-    
-    // If we're in summary section, skip the first paragraph (the summary text)
-    if (inSummarySection && !summaryParagraphFound) {
-      if (trimmed.length > 0 && !trimmed.startsWith('#')) {
-        // This is the summary paragraph - skip it
-        summaryParagraphFound = true;
-        continue;
-      } else if (trimmed.startsWith('#')) {
-        // Hit another heading without finding paragraph
-        inSummarySection = false;
-        result.push(line);
+  let inSection = false;
+  let sectionLevel = 0;
+
+  for (const line of lines) {
+    const heading = detectHeading(line);
+
+    if (heading) {
+      if (inSection) {
+        if (heading.level <= sectionLevel) {
+          inSection = false;
+          if (pattern.test(heading.text)) {
+            inSection = true;
+            sectionLevel = heading.level;
+            continue;
+          }
+          result.push(line);
+          continue;
+        }
+        continue; // sub-heading inside hidden section
+      }
+
+      if (pattern.test(heading.text)) {
+        inSection = true;
+        sectionLevel = heading.level;
         continue;
       }
     }
-    
-    // Once we've skipped the summary paragraph, exit summary section
-    if (inSummarySection && summaryParagraphFound) {
-      inSummarySection = false;
+
+    if (!inSection) {
+      result.push(line);
     }
-    
-    result.push(line);
   }
-  
+
   return result.join('\n').replace(/\n{3,}/g, '\n\n');
 };
 
-// Helper to remove action items section from content
-const removeActionItemsSection = (content: string): string => {
-  const lines = content.split('\n');
-  const result: string[] = [];
-  let inActionSection = false;
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    
-    // Detect Action Items section
-    if (/^#{1,3}\s*action\s+items?\s*:?\s*$/i.test(trimmed)) {
-      inActionSection = true;
-      continue;
-    }
-    
-    // Detect end of action section (new main heading that's not action-related)
-    if (inActionSection && /^#{1,2}\s+\S/.test(trimmed) && !/action|completed/i.test(trimmed)) {
-      inActionSection = false;
-    }
-    
-    // Skip lines in action section
-    if (inActionSection) {
-      continue;
-    }
-    
-    result.push(line);
-  }
-  
-  return result.join('\n').replace(/\n{3,}/g, '\n\n');
-};
+const removeExecutiveSummarySection = (content: string): string =>
+  removeSectionByPattern(content, /^(executive\s*summary|overview|summary)$/);
+
+const removeActionItemsSection = (content: string): string =>
+  removeSectionByPattern(content, /^(action\s*(items?|log|list)|completed\s*items?)$/);
+
+const removeKeyPointsSection = (content: string): string =>
+  removeSectionByPattern(content, /^(key\s*(points?|discussion|discussion\s*points?|highlights?|takeaways?)|discussion\s*summary)$/);
+
+const removeOpenItemsSection = (content: string): string =>
+  removeSectionByPattern(content, /^(open\s*(items?|issues?)(\s*[&,]\s*risks?)?|risks?\s*[&,]\s*open\s*items?)$/);
+
+const removeAttendeesSection = (content: string): string =>
+  removeSectionByPattern(content, /^(attendees?|participants?)$/);
 
 // Section visibility settings for Word export (matches NotesViewSettings from notesSettings.ts)
 export interface VisibleSectionsInput {
@@ -1519,97 +1537,6 @@ export interface VisibleSectionsInput {
   attendees?: boolean;
 }
 
-// Helper to remove Key Points section from content
-const removeKeyPointsSection = (content: string): string => {
-  const lines = content.split('\n');
-  const result: string[] = [];
-  let inKeyPointsSection = false;
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    
-    // Detect Key Points section heading
-    if (/^#{1,3}\s*key\s*points?\s*:?\s*$/i.test(trimmed)) {
-      inKeyPointsSection = true;
-      continue;
-    }
-    
-    // Detect end of key points section (new main heading)
-    if (inKeyPointsSection && /^#{1,2}\s+\S/.test(trimmed)) {
-      inKeyPointsSection = false;
-    }
-    
-    // Skip lines in key points section
-    if (inKeyPointsSection) {
-      continue;
-    }
-    
-    result.push(line);
-  }
-  
-  return result.join('\n').replace(/\n{3,}/g, '\n\n');
-};
-
-// Helper to remove Open Items section from content
-const removeOpenItemsSection = (content: string): string => {
-  const lines = content.split('\n');
-  const result: string[] = [];
-  let inOpenItemsSection = false;
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    
-    // Detect Open Items/Issues section heading
-    if (/^#{1,3}\s*open\s*(items?|issues?)\s*:?\s*$/i.test(trimmed)) {
-      inOpenItemsSection = true;
-      continue;
-    }
-    
-    // Detect end of open items section (new main heading)
-    if (inOpenItemsSection && /^#{1,2}\s+\S/.test(trimmed)) {
-      inOpenItemsSection = false;
-    }
-    
-    // Skip lines in open items section
-    if (inOpenItemsSection) {
-      continue;
-    }
-    
-    result.push(line);
-  }
-  
-  return result.join('\n').replace(/\n{3,}/g, '\n\n');
-};
-
-// Helper to remove Attendees section from content
-const removeAttendeesSection = (content: string): string => {
-  const lines = content.split('\n');
-  const result: string[] = [];
-  let inAttendeesSection = false;
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    
-    // Detect Attendees section heading
-    if (/^#{1,3}\s*attendees?\s*:?\s*$/i.test(trimmed) || /^\*\*ATTENDEES?\*\*\s*$/i.test(trimmed) || /^ATTENDEES?\s*$/i.test(trimmed)) {
-      inAttendeesSection = true;
-      continue;
-    }
-    
-    // Detect end of attendees section (new main heading)
-    if (inAttendeesSection && /^#{1,2}\s+\S/.test(trimmed)) {
-      inAttendeesSection = false;
-    }
-    
-    if (inAttendeesSection) {
-      continue;
-    }
-    
-    result.push(line);
-  }
-  
-  return result.join('\n').replace(/\n{3,}/g, '\n\n');
-};
 
 // Filter content based on section visibility settings
 export const filterContentByVisibility = (content: string, visibleSections?: VisibleSectionsInput): string => {
