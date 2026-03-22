@@ -95,8 +95,118 @@ const TranscriptInlineView = ({ transcript }: { transcript: string }) => {
     </>
   );
 };
+const DeleteMeetingSection = ({ meetingId, onDeleted }: { meetingId: string; onDeleted: () => void }) => {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('id', meetingId);
+
+      if (error) throw error;
+
+      toast.success('Meeting deleted permanently');
+      onDeleted();
+    } catch (err: any) {
+      console.error('Delete meeting error:', err);
+      toast.error('Failed to delete meeting: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsDeleting(false);
+      setShowConfirm(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 40, marginBottom: 20 }}>
+      {!showConfirm ? (
+        <button
+          onClick={() => setShowConfirm(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            width: '100%',
+            padding: '14px 16px',
+            fontSize: 14,
+            fontWeight: 500,
+            color: '#DC2626',
+            background: 'transparent',
+            border: '1px solid #FECACA',
+            borderRadius: 12,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+        >
+          <Trash2 size={16} />
+          Delete Meeting
+        </button>
+      ) : (
+        <div style={{
+          padding: 16,
+          background: '#FEF2F2',
+          border: '1px solid #FECACA',
+          borderRadius: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+            <AlertTriangle size={20} style={{ color: '#DC2626', flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#991B1B', marginBottom: 4 }}>
+                Delete this meeting permanently?
+              </p>
+              <p style={{ fontSize: 13, color: '#B91C1C', lineHeight: 1.5 }}>
+                This will permanently delete the meeting, all transcripts, notes, action items, and associated documents. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setShowConfirm(false)}
+              disabled={isDeleting}
+              style={{
+                flex: 1,
+                padding: '10px 16px',
+                fontSize: 14,
+                fontWeight: 500,
+                color: 'var(--nw-text)',
+                background: 'white',
+                border: '1px solid var(--nw-border)',
+                borderRadius: 10,
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              style={{
+                flex: 1,
+                padding: '10px 16px',
+                fontSize: 14,
+                fontWeight: 600,
+                color: 'white',
+                background: '#DC2626',
+                border: 'none',
+                borderRadius: 10,
+                cursor: isDeleting ? 'not-allowed' : 'pointer',
+                opacity: isDeleting ? 0.7 : 1,
+              }}
+            >
+              {isDeleting ? 'Deleting…' : 'Delete Forever'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
   meetingId,
   open,
   onBack,
