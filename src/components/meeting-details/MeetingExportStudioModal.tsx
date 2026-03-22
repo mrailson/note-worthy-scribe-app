@@ -485,6 +485,9 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         actionList: docSettings.action_items_on,
         openItems: docSettings.open_items_on,
         attendees: docSettings.attendees_on,
+        discussionSummary: docSettings.discussion_summary_on,
+        decisionsRegister: docSettings.decisions_register_on,
+        nextMeeting: docSettings.next_meeting_on,
       };
 
       await generateProfessionalWordFromContent(
