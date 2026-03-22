@@ -1056,6 +1056,7 @@ export default function NoteWellRecorder() {
             console.log("Meeting creation succeeded on retry");
             // Continue with the retry data
             const meetingId = retryData.id;
+            attachDeviceInfoToMeeting(meetingId);
             for (const ct of successfulChunks) {
               await supabase.from("meeting_transcription_chunks").insert({
                 meeting_id: meetingId, user_id: retryUser.id, session_id: sessionId,
