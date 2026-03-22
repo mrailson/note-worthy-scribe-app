@@ -1,8 +1,9 @@
 import React from 'react';
-import { FileText, Share2, List, Clock } from 'lucide-react';
+import { FileText, Share2, List, Clock, Mail, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
+import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { toast } from 'sonner';
 import './mobile-meetings.css';
 
