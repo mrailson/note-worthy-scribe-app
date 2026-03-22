@@ -593,8 +593,7 @@ export default function NoteWellRecorder() {
             </div>
 
             {/* Controls */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <div style={{display:"flex",alignItems:"center",gap:24}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20}}>
               {active && (
                 <button onClick={stopRecording} style={{width:52,height:52,borderRadius:"50%",border:"2px solid rgba(220,38,38,0.25)",background:"rgba(220,38,38,0.07)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#dc2626"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
@@ -608,12 +607,17 @@ export default function NoteWellRecorder() {
                 </>}
                 <button
                   onClick={isIdle ? startRecording : isRecording ? pauseRecording : resumeRecording}
+                  onTouchStart={e => { e.currentTarget.style.transform = "scale(0.93)"; }}
+                  onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onMouseDown={e => { e.currentTarget.style.transform = "scale(0.93)"; }}
+                  onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
                   style={{
                     width:isIdle?90:76, height:isIdle?90:76, borderRadius:"50%", border:"none", cursor:"pointer",
                     background:isPaused?"linear-gradient(135deg,#f59e0b,#f97316)":"linear-gradient(135deg,#1565c0,#0288d1)",
                     display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4,
                     boxShadow:isRecording?"0 6px 28px rgba(21,101,192,0.55)":isPaused?"0 6px 24px rgba(245,158,11,0.5)":"0 6px 20px rgba(21,101,192,0.4)",
-                    transition:"all 0.25s", position:"relative", zIndex:1,
+                    transition:"transform 0.15s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s", position:"relative", zIndex:1,
                   }}
                 >
                   {isIdle && <>
@@ -624,11 +628,6 @@ export default function NoteWellRecorder() {
                   {isPaused && <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>}
                 </button>
               </div>
-              </div>
-
-              <div style={{width:36}}/>
-
-              {isIdle && <div style={{width:52}}/>}
 
               {active && (
                 <div style={{width:52,fontSize:10,color:"#94a3b8",textAlign:"center",lineHeight:1.5}}>
