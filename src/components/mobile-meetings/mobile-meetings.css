@@ -325,6 +325,7 @@
   justify-content: center;
   gap: 6px;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .nw-mh-tab.active {
