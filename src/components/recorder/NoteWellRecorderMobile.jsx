@@ -661,6 +661,69 @@ export default function NoteWellRecorder() {
     if (isOnline) syncRecording(rec);
   };
 
+  // ── Post-note-generation actions (overview + auto-email) ────────────────
+  const triggerPostNoteActions = async (meetingId, transcript) => {
+    try {
+      // 1. Generate meeting overview
+      const { data: meeting } = await supabase
+        .from("meetings")
+        .select("title")
+        .eq("id", meetingId)
+        .maybeSingle();
+      const meetingTitle = meeting?.title || "Mobile Recording";
+
+      supabase.functions.invoke("generate-meeting-overview", {
+        body: { meetingId, transcript, meetingTitle },
+      }).catch((e) => console.warn("Overview generation failed:", e));
+
+      // 2. Auto-send email with notes
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) return;
+
+      const { data: summary } = await supabase
+        .from("meeting_summaries")
+        .select("summary")
+        .eq("meeting_id", meetingId)
+        .maybeSingle();
+      if (!summary?.summary) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("email", user.email)
+        .maybeSingle();
+
+      const senderName = profile?.full_name || user.email.split("@")[0] || "Notewell AI";
+      const meetingDate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+      const subject = `Notewell AI | ${meetingTitle} — ${meetingDate}`;
+
+      // Simple HTML email with notes
+      const htmlContent = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:20px;">
+        <h2 style="color:#003087;">${meetingTitle}</h2>
+        <p style="color:#555;font-size:14px;">Meeting notes generated automatically by Notewell AI on ${meetingDate}.</p>
+        <hr style="border:none;border-top:1px solid #e0e0e0;margin:16px 0;"/>
+        <div style="white-space:pre-wrap;font-size:14px;line-height:1.6;color:#333;">
+          ${summary.summary.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}
+        </div>
+        <hr style="border:none;border-top:1px solid #e0e0e0;margin:16px 0;"/>
+        <p style="color:#999;font-size:12px;">Sent from Notewell AI mobile recorder.</p>
+      </div>`;
+
+      await supabase.functions.invoke("send-meeting-email-resend", {
+        body: {
+          to_email: user.email,
+          cc_emails: [],
+          subject,
+          html_content: htmlContent,
+          from_name: senderName,
+        },
+      });
+      console.log("✅ Mobile auto-email sent to:", user.email);
+    } catch (e) {
+      console.warn("Post-note actions failed (non-critical):", e);
+    }
+  };
+
   // ── Sync (chunked) ───────────────────────────────────────────────────────
   const syncRecording = async (rec) => {
     // Check authentication first
@@ -859,17 +922,20 @@ export default function NoteWellRecorder() {
             await refresh();
             setSyncProgress({ phase: "complete", currentChunk: totalChunks, totalChunks, percentComplete: 100, message: `Complete — ${wordCount} words` });
             showToast("Meeting created — generating notes…", "success");
-            const meetingTitle = rec.title || "Mobile Recording";
-            supabase.functions.invoke("generate-meeting-notes-claude", {
-              body: { meetingId, transcript: fullTranscript, meetingTitle },
+            // Use auto-generate-meeting-notes (same as desktop) for title + governance-grade notes
+            const storedModel = localStorage.getItem('meeting-regenerate-llm');
+            const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
+            supabase.functions.invoke("auto-generate-meeting-notes", {
+              body: { meetingId, modelOverride, skipQc: true },
             }).then(({ error: genErr }) => {
               if (genErr) showToast("Meeting saved — note generation failed", "error");
-              else showToast("Meeting notes generated ✨", "success");
+              else {
+                showToast("Meeting notes generated ✨", "success");
+                // Trigger overview + auto-email after notes complete
+                triggerPostNoteActions(meetingId, fullTranscript);
+              }
               setSyncProgress(null); refresh();
             });
-            supabase.functions.invoke("generate-meeting-overview", {
-              body: { meetingId, transcript: fullTranscript, meetingTitle },
-            }).catch(() => {});
             return;
           }
           console.error("Meeting creation retry also failed:", retryErr);
@@ -906,14 +972,15 @@ export default function NoteWellRecorder() {
       });
       showToast("Meeting created — generating notes…", "success");
 
-      // ── Step 6: Trigger note generation ───────────────────────────────
-      const meetingTitle = rec.title || "Mobile Recording";
+      // ── Step 6: Trigger note generation (same pipeline as desktop) ────
+      const storedModel = localStorage.getItem('meeting-regenerate-llm');
+      const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
       supabase.functions
-        .invoke("generate-meeting-notes-claude", {
+        .invoke("auto-generate-meeting-notes", {
           body: {
             meetingId,
-            transcript: fullTranscript,
-            meetingTitle,
+            modelOverride,
+            skipQc: true,
           },
         })
         .then(({ error: genErr }) => {
@@ -922,14 +989,12 @@ export default function NoteWellRecorder() {
             showToast("Meeting saved — note generation failed", "error");
           } else {
             showToast("Meeting notes generated ✨", "success");
+            // Trigger overview + auto-email after notes complete
+            triggerPostNoteActions(meetingId, fullTranscript);
           }
           setSyncProgress(null);
           refresh();
         });
-      // ── Step 7: Trigger meeting overview generation ────────────────────
-      supabase.functions.invoke("generate-meeting-overview", {
-        body: { meetingId, transcript: fullTranscript, meetingTitle },
-      }).catch(() => {});
     } catch (err) {
       console.error("Sync error:", err);
       await dbPatch(rec.id, { status: "error" });
@@ -1036,22 +1101,23 @@ export default function NoteWellRecorder() {
       });
       showToast("Meeting created — generating notes…", "success");
 
-      const meetingTitle = rec.title || "Mobile Recording";
-      supabase.functions.invoke("generate-meeting-notes-claude", {
-        body: { meetingId: meetingData.id, transcript: transcriptText, meetingTitle },
+      // Use auto-generate-meeting-notes (same as desktop) for title + governance-grade notes
+      const storedModel = localStorage.getItem('meeting-regenerate-llm');
+      const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
+      supabase.functions.invoke("auto-generate-meeting-notes", {
+        body: { meetingId: meetingData.id, modelOverride, skipQc: true },
       }).then(({ error: genErr }) => {
         if (genErr) {
           console.error("[LegacySync] Note generation failed:", genErr);
           showToast("Meeting saved — note generation failed", "error");
         } else {
           showToast("Meeting notes generated ✨", "success");
+          // Trigger overview + auto-email after notes complete
+          triggerPostNoteActions(meetingData.id, transcriptText);
         }
         setSyncProgress(null);
         refresh();
       });
-      supabase.functions.invoke("generate-meeting-overview", {
-        body: { meetingId: meetingData.id, transcript: transcriptText, meetingTitle },
-      }).catch(() => {});
     } catch (err) {
       console.error("[LegacySync] Error:", err);
       await dbPatch(rec.id, { status: "error" });
