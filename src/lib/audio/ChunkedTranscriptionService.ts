@@ -48,6 +48,9 @@ export interface TranscribeOptions {
   maxRetries?: number;          // Default: 2
   continueOnError?: boolean;    // Default: true
   prompt?: string;              // Context hint for Whisper
+  meetingTitle?: string;        // For prompt building
+  attendees?: string[];         // For prompt building
+  agendaTerms?: string[];       // For prompt building
 }
 
 const STORAGE_BUCKET = 'recordings';
