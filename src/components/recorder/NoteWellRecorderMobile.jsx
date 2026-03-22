@@ -1261,6 +1261,27 @@ export default function NoteWellRecorder() {
           />
         )}
 
+        {/* Delete confirmation */}
+        {deleteConfirm && (
+          <div style={{position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)",padding:24}}>
+            <div style={{background:"white",borderRadius:20,padding:24,maxWidth:340,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                <div style={{width:40,height:40,borderRadius:12,background:"rgba(220,38,38,0.1)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </div>
+                <h3 style={{margin:0,fontSize:17,fontWeight:700,color:"#1a2332",letterSpacing:-0.3}}>Delete recording?</h3>
+              </div>
+              <p style={{margin:"0 0 20px",fontSize:14,color:"#64748b",lineHeight:1.5}}>
+                This recording will be <strong style={{color:"#dc2626"}}>permanently deleted</strong> and cannot be recovered. Any unsynced audio and transcript data will be lost.
+              </p>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setDeleteConfirm(null)} style={{flex:1,padding:"12px 0",borderRadius:12,border:"1px solid #e2e8f0",background:"white",color:"#475569",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                <button onClick={confirmDelete} style={{flex:1,padding:"12px 0",borderRadius:12,border:"none",background:"#dc2626",color:"white",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Toast */}
         {toast && <Toast msg={toast.msg} type={toast.type} />}
       </div>
