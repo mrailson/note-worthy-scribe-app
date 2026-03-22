@@ -214,7 +214,7 @@ const exportChunksToWord = async (rawChunks: ChunkSaveStatus[], mainTranscript: 
     .map(t => (t as string).replace('audio/', '').split(';')[0]);
 
   // Calculate net transcript word count
-  const netTranscriptWords = mainTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+  const netTranscriptWords = countWords(mainTranscript);
 
   const doc = new Document({
     sections: [{
