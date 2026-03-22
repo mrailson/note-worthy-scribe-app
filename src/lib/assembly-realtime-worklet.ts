@@ -41,11 +41,12 @@ export class AssemblyRealtimeClientWorklet {
     this.ws.onmessage = (evt) => {
       try {
         const data = JSON.parse(typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data));
-        if (data?.type === "Turn") {
-          const text = data?.formatted?.text ?? data?.text ?? "";
+        if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
+          const text = String(data?.transcript ?? "").trim();
           if (!text) return;
-          if (data?.is_final === false) this.cb.onPartial?.(text);
-          else this.cb.onFinal?.(text);
+          if (data?.turn_is_formatted) this.cb.onFinal?.(text);
+          else if (data?.end_of_turn) return;
+          else this.cb.onPartial?.(text);
         }
       } catch (_) {
         // Ignore non-JSON frames

@@ -153,13 +153,17 @@ export class AssemblyRealtimeClient {
           return;
         }
 
-        // v3 Turn format
-        if (data?.type === "Turn") {
-          const text = String(data?.transcript ?? data?.formatted?.text ?? data?.text ?? "").trim();
+        // v3 turn messages (no `type` field — detect by shape)
+        if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
+          const text = String(data?.transcript ?? "").trim();
           if (!text) return;
-          const isFinal = Boolean(data?.end_of_turn ?? false);
-          if (isFinal) this.cb.onFinal?.(text);
-          else this.cb.onPartial?.(text);
+          if (data?.turn_is_formatted) {
+            this.cb.onFinal?.(text);
+          } else if (data?.end_of_turn) {
+            return; // skip unformatted end-of-turn, formatted version follows
+          } else {
+            this.cb.onPartial?.(text);
+          }
           return;
         }
 
@@ -305,11 +309,16 @@ export class AssemblyRealtimeClient {
         const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
         const data = JSON.parse(raw);
         if (data?.type === "error") { this.cb.onError?.(new Error(data?.error || "AssemblyAI error")); return; }
-        if (data?.type === "Turn") {
-          const text = String(data?.transcript ?? data?.formatted?.text ?? data?.text ?? "").trim();
+        if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
+          const text = String(data?.transcript ?? "").trim();
           if (!text) return;
-          const isFinal = Boolean(data?.end_of_turn ?? false);
-          if (isFinal) this.cb.onFinal?.(text); else this.cb.onPartial?.(text);
+          if (data?.turn_is_formatted) {
+            this.cb.onFinal?.(text);
+          } else if (data?.end_of_turn) {
+            return;
+          } else {
+            this.cb.onPartial?.(text);
+          }
           return;
         }
         if (data?.message_type === "PartialTranscript") { const t = String(data?.text ?? "").trim(); if (t) this.cb.onPartial?.(t); return; }
