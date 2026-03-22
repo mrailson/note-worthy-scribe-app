@@ -48,9 +48,17 @@ export class AssemblyRealtimeClient {
   private reconnectAttempts = 0;
   private isReconnecting = false;
   private manualStop = false;
+  private setupInProgress = false;
 
   // Keyterms for better recognition
   private keyterms: string[] = [];
+
+  // Diagnostic counters
+  private totalMessageCount = 0;
+  private endOfTurnCount = 0;
+  private partialCount = 0;
+  private audioFramesSent = 0;
+  private lastDiagLogTime = 0;
 
   constructor(private cb: Callbacks = {}) {}
 
