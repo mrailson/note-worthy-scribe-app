@@ -114,6 +114,15 @@ Deno.serve(async (req: Request) => {
         let assemblyMsgCount = 0;
         assemblySocket.onmessage = (assemblyEvent) => {
           assemblyMsgCount++;
+          try {
+            if (typeof assemblyEvent.data === 'string') {
+              // Check for error messages before the connection closes
+              const parsed = JSON.parse(assemblyEvent.data);
+              if (parsed.error || parsed.type === 'error') {
+                console.error(`❗ AssemblyAI error message #${assemblyMsgCount}:`, assemblyEvent.data);
+              }
+            }
+          } catch { /* ignore non-JSON */ }
           if (assemblyMsgCount <= 5 || assemblyMsgCount % 20 === 0) {
             try {
               const preview = typeof assemblyEvent.data === 'string' 
