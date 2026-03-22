@@ -354,6 +354,24 @@ export default function NoteWellRecorder() {
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
   useEffect(() => { refresh(); }, [refresh]);
 
+  // ── Storage quota check ───────────────────────────────────────────────────
+  useEffect(() => {
+    const checkStorage = async () => {
+      if (!navigator.storage?.estimate) return;
+      try {
+        const { usage, quota } = await navigator.storage.estimate();
+        const usedMB = Math.round((usage || 0) / (1024 * 1024));
+        const percentUsed = quota ? Math.round(((usage || 0) / quota) * 100) : 0;
+        if (usedMB > 500 || percentUsed > 80) {
+          setStorageWarning({ usedMB, percentUsed });
+        } else {
+          setStorageWarning(null);
+        }
+      } catch { /* ignore */ }
+    };
+    checkStorage();
+  }, [recordings]);
+
   const showToast = (msg, type="info") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
