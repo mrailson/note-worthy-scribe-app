@@ -917,13 +917,30 @@ export default function NoteWellRecorder() {
       });
 
       // Re-verify auth before meeting creation (token may have expired during long transcription)
-      const { data: { user: freshUser } } = await supabase.auth.getUser();
-      const activeUser = freshUser || user;
+      let activeUser = null;
+      try {
+        // First try refreshing the session (handles expired tokens on iOS Safari)
+        const { data: { session } } = await supabase.auth.refreshSession();
+        if (session?.user) {
+          activeUser = session.user;
+          console.log("[ChunkedSync] Session refreshed successfully:", activeUser.id);
+        }
+      } catch (refreshErr) {
+        console.warn("[ChunkedSync] Session refresh failed:", refreshErr);
+      }
+
+      if (!activeUser) {
+        // Fallback to getUser
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        activeUser = freshUser || user;
+      }
       console.log("[ChunkedSync] Creating meeting. activeUser:", activeUser?.id, "transcript length:", fullTranscript.length);
 
       if (!activeUser?.id) {
         console.error("[ChunkedSync] No authenticated user for meeting creation");
-        showToast("Session expired — please sign in and sync again", "error");
+        // Store transcript so user doesn't lose data, but keep trying
+        console.error("[ChunkedSync] Transcript preserved in IndexedDB with status 'transcribed'");
+        showToast("Session expired — tap Sync again after signing in", "error");
         setSyncProgress(null);
         return;
       }
