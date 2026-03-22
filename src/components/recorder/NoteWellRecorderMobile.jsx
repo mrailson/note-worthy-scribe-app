@@ -784,6 +784,7 @@ export default function NoteWellRecorder() {
 
       // ── Phase 2: Transcribe each chunk ────────────────────────────────
       const chunkTranscripts = [];
+      let previousChunkText = "";
       for (let i = 0; i < totalChunks; i++) {
         const chunk = chunks[i];
         const paddedIndex = String(chunk.index).padStart(3, "0");
