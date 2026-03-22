@@ -346,6 +346,12 @@ const Index = () => {
     return (hours || 0) * 60 + (minutes || 0);
   };
   const handleNewMeeting = () => {
+    const isMobileScreen = window.innerWidth < 768;
+    const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobileScreen || isMobileUserAgent) {
+      navigate('/new-recorder');
+      return;
+    }
     setCurrentView("recording");
     setTranscript("");
     setDuration("00:00");
