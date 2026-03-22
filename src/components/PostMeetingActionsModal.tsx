@@ -359,7 +359,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           // Fallback: generate minimal Word doc
           try {
             const { Document, Packer, Paragraph, TextRun } = await import('docx');
-            const paragraphs = notesContent.split('\n').filter(l => l.trim()).map(line =>
+            const paragraphs = freshNotes.split('\n').filter(l => l.trim()).map(line =>
               new Paragraph({ children: [new TextRun({ text: line.replace(/[#*_~`]/g, '').trim() })] })
             );
             const doc = new Document({ sections: [{ children: paragraphs }] });

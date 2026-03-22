@@ -414,7 +414,7 @@ export function EmailMeetingMinutesModal({
         // Retry with simpler fallback approach
         try {
           const { generateProfessionalWordBlob } = await import('@/utils/generateProfessionalMeetingDocx');
-          const blob = await generateProfessionalWordBlob(notesToSend, meetingTitle.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim(), parsedDetails, []);
+           const blob = await generateProfessionalWordBlob(notesToSend, meetingTitle.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim(), undefined, []);
           const reader = new FileReader();
           const base64Promise = new Promise<string>((resolve) => {
             reader.onloadend = () => {
