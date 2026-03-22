@@ -410,16 +410,55 @@ export function EmailMeetingMinutesModal({
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         };
       } catch (docError) {
-        console.error('Word document generation failed:', docError);
-        toast.error("Failed to generate Word document attachment. Please try again.");
-        setIsSending(false);
-        return;
-      }
-
-      if (!wordAttachment) {
-        toast.error("Word document attachment is required but could not be generated.");
-        setIsSending(false);
-        return;
+        console.warn('Word document generation failed on first attempt:', docError);
+        // Retry with simpler fallback approach
+        try {
+          const { generateProfessionalWordBlob } = await import('@/utils/generateProfessionalMeetingDocx');
+           const blob = await generateProfessionalWordBlob(notesToSend, meetingTitle.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim(), undefined, []);
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve) => {
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve(base64);
+            };
+          });
+          reader.readAsDataURL(blob);
+          const base64Content = await base64Promise;
+          wordAttachment = {
+            content: base64Content,
+            filename: `${meetingTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}_minutes.docx`,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          };
+          console.log('📎 Word attachment generated on retry');
+        } catch (retryError) {
+          console.warn('Word document retry also failed, generating minimal doc:', retryError);
+          // Last resort: generate a minimal Word doc with just the text content
+          try {
+            const { Document, Packer, Paragraph, TextRun } = await import('docx');
+            const paragraphs = notesToSend.split('\n').filter(l => l.trim()).map(line => 
+              new Paragraph({ children: [new TextRun({ text: line.replace(/[#*_~`]/g, '').trim() })] })
+            );
+            const doc = new Document({ sections: [{ children: paragraphs }] });
+            const buffer = await Packer.toBlob(doc);
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve) => {
+              reader.onloadend = () => {
+                const base64 = (reader.result as string).split(',')[1];
+                resolve(base64);
+              };
+            });
+            reader.readAsDataURL(buffer);
+            const base64Content = await base64Promise;
+            wordAttachment = {
+              content: base64Content,
+              filename: `${meetingTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}_minutes.docx`,
+              type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            };
+            console.log('📎 Word attachment generated via minimal fallback');
+          } catch (fallbackError) {
+            console.error('All Word document generation attempts failed:', fallbackError);
+          }
+        }
       }
 
       // Action item interface for email rendering
