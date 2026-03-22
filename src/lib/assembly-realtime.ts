@@ -155,6 +155,7 @@ export class AssemblyRealtimeClient {
       try {
         const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
         const data = JSON.parse(raw);
+        this.totalMessageCount++;
 
         if (data?.type === "error") {
           this.cb.onError?.(new Error(data?.error || "AssemblyAI error"));
@@ -166,10 +167,11 @@ export class AssemblyRealtimeClient {
           const text = String(data?.transcript ?? "").trim();
           if (!text) return;
           if (data?.end_of_turn) {
-            // End of turn — commit as final (already formatted since format_turns=true)
+            this.endOfTurnCount++;
+            console.log(`✅ AssemblyAI end_of_turn #${this.endOfTurnCount} (${text.split(/\s+/).length} words): "${text.substring(0, 80)}..."`);
             this.cb.onFinal?.(text);
           } else {
-            // Interim update — show as live preview while speaker is still talking
+            this.partialCount++;
             this.cb.onPartial?.(text);
           }
           return;
@@ -178,12 +180,12 @@ export class AssemblyRealtimeClient {
         // Legacy v2 compat
         if (data?.message_type === "PartialTranscript") {
           const text = String(data?.text ?? "").trim();
-          if (text) this.cb.onPartial?.(text);
+          if (text) { this.partialCount++; this.cb.onPartial?.(text); }
           return;
         }
         if (data?.message_type === "FinalTranscript") {
           const text = String(data?.text ?? "").trim();
-          if (text) this.cb.onFinal?.(text);
+          if (text) { this.endOfTurnCount++; this.cb.onFinal?.(text); }
           return;
         }
       } catch { /* ignore non-json */ }
