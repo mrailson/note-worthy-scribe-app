@@ -131,11 +131,9 @@ serve(async (req) => {
 </style>
 </head><body>${html}</body></html>`;
 
-    // For now, we'll return the HTML as a text file since creating proper DOCX is complex
-    // In a production environment, you'd want to use a proper HTML to DOCX conversion library
-    const textContent = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    // Return the styled HTML as a .doc file (Word can open HTML natively)
     const encoder = new TextEncoder();
-    const fileBuffer = encoder.encode(textContent);
+    const fileBuffer = encoder.encode(page);
 
     const safe = (filename || "meeting-notes").replace(/[^a-z0-9\-_]+/gi, "-");
     
@@ -143,8 +141,8 @@ serve(async (req) => {
       status: 200,
       headers: {
         ...corsHeaders,
-        "Content-Type": "text/plain",
-        "Content-Disposition": `attachment; filename="${safe}.txt"`,
+        "Content-Type": "application/msword",
+        "Content-Disposition": `attachment; filename="${safe}.doc"`,
       },
     });
 
