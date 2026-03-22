@@ -517,7 +517,7 @@ export default function NoteWellRecorder() {
   const [chunksCompleted, setChunksCompleted] = useState(0);
   const [syncProgress,  setSyncProgress]  = useState(null);
   const [bitrate,       setBitrate]       = useState(getSavedBitrate());
-
+  const [activeStream,  setActiveStream]  = useState(null);  // MediaStream for waveform
   const recorderRef  = useRef(null);  // ChunkedRecorder instance
   const timerRef     = useRef(null);
   const audioRef     = useRef(new Audio());
