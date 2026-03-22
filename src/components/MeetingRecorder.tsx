@@ -4508,6 +4508,7 @@ export const MeetingRecorder = ({
             practice_id: meetingSettings.practiceId || null,
             meeting_format: meetingSettings.format || 'teams',
             expected_attendees: attendeesList.length > 0 ? attendeesList : null,
+            notes_config: meetingPrefs.getNotesConfig(),
           };
 
           const { data: savedMeeting, error: saveError } = await supabase
