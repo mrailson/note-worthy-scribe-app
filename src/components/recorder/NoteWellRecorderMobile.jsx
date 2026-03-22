@@ -755,7 +755,56 @@ export default function NoteWellRecorder() {
 
       if (meetingErr) {
         console.error("Meeting creation failed:", meetingErr);
-        showToast("Transcribed but meeting creation failed", "error");
+        console.error("Meeting creation error details:", JSON.stringify(meetingErr));
+        // Retry once after re-checking auth
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        if (freshUser) {
+          const { data: retryData, error: retryErr } = await supabase
+            .from("meetings")
+            .insert({
+              title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
+              user_id: freshUser.id,
+              status: "completed",
+              meeting_type: "general",
+              start_time: new Date(rec.createdAt).toISOString(),
+              end_time: new Date().toISOString(),
+              duration_minutes: durationMins,
+              word_count: wordCount,
+              import_source: "mobile_recorder",
+              whisper_transcript_text: fullTranscript,
+              primary_transcript_source: "whisper",
+            })
+            .select("id")
+            .single();
+          if (!retryErr && retryData) {
+            console.log("Meeting creation succeeded on retry");
+            // Continue with the retry data
+            const meetingId = retryData.id;
+            for (const ct of successfulChunks) {
+              await supabase.from("meeting_transcription_chunks").insert({
+                meeting_id: meetingId, user_id: freshUser.id, session_id: sessionId,
+                chunk_number: ct.index, transcription_text: ct.text, is_final: true,
+                source: "whisper", transcriber_type: "whisper",
+                word_count: ct.text.split(/\s+/).filter(Boolean).length,
+              });
+            }
+            await dbPatch(rec.id, { meetingId });
+            await refresh();
+            setSyncProgress({ phase: "complete", currentChunk: totalChunks, totalChunks, percentComplete: 100, message: `Complete — ${wordCount} words` });
+            showToast("Meeting created — generating notes…", "success");
+            supabase.functions.invoke("generate-meeting-notes-claude", {
+              body: { meetingId, transcript: fullTranscript, title: rec.title || "Mobile Recording" },
+            }).then(({ error: genErr }) => {
+              if (genErr) showToast("Meeting saved — note generation failed", "error");
+              else showToast("Meeting notes generated ✨", "success");
+              setSyncProgress(null); refresh();
+            });
+            return;
+          }
+          console.error("Meeting creation retry also failed:", retryErr);
+        }
+        const errMsg = meetingErr?.message || meetingErr?.details || JSON.stringify(meetingErr);
+        showToast(`Transcribed but meeting creation failed: ${errMsg}`, "error");
         setSyncProgress(null);
         return;
       }
