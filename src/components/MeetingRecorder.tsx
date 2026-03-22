@@ -430,8 +430,17 @@ export const MeetingRecorder = ({
   const [firstTranscriptionReceived, setFirstTranscriptionReceived] = useState(false);
   const transcriptSnippetIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Recording mode state - defaults to mic-only
+  // Recording mode state - defaults to mic-only, synced from persisted preferences
+  const meetingPrefs = useMeetingPreferences();
   const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-and-system'>('mic-only');
+
+  // Sync recording mode from persisted preferences on load
+  useEffect(() => {
+    if (!meetingPrefs.loading) {
+      const mode = meetingPrefs.prefs.audio_mode === 'mic_system' ? 'mic-and-system' : 'mic-only';
+      setRecordingMode(mode);
+    }
+  }, [meetingPrefs.loading, meetingPrefs.prefs.audio_mode]);
   
   
   // Pause/Mute state
