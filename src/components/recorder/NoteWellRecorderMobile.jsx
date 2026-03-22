@@ -1,11 +1,14 @@
-// NoteWellRecorder.jsx
-// Drop into Lovable as src/components/recorder/NoteWellRecorder.jsx
-// Wire the two TODO comments to your existing Supabase edge functions.
+// NoteWellRecorderMobile.jsx
+// Chunked audio recording with 15-minute segments for meetings up to 5 hours.
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
+import { ChunkedRecorder } from "@/lib/audio/ChunkedRecorder";
+import { ChunkedTranscriptionService } from "@/lib/audio/ChunkedTranscriptionService";
+import { getSavedBitrate, saveBitrate } from "@/components/settings/RecordingQualitySettings";
+import { BITRATE_OPTIONS } from "@/lib/audio/ChunkedRecorder";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
@@ -57,16 +60,20 @@ const dbPatch  = async (id, patch) => {
 };
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────
+const fmtDuration = (ms) => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(seconds).padStart(2, "0");
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
+};
 const fmtTime  = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 const fmtDate  = t => new Date(t).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 const fmtSize  = b => b < 1048576 ? `${(b/1024).toFixed(0)} KB` : `${(b/1048576).toFixed(1)} MB`;
 
-// ─── Best supported MIME type ─────────────────────────────────────────────────
-const getBestMime = () =>
-  ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"]
-    .find(t => MediaRecorder.isTypeSupported(t)) ?? "";
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────
 
 function WaveformBars({ active, isPaused }) {
   const heights = [0.4,0.7,1,0.8,0.5,0.9,0.6,1,0.75,0.45,0.85,0.6,0.95,0.7,0.4];
@@ -201,7 +208,72 @@ function ModeSheet({ mode, onClose, onSelect }) {
   );
 }
 
-function TitleModal({ blob, duration, onSave, onDiscard }) {
+function SettingsSheet({ onClose, bitrate, onBitrateChange }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{position:"absolute",inset:0,background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)",
+        display:"flex",alignItems:"center",justifyContent:"center",zIndex:50}}
+    >
+      <div onClick={e=>e.stopPropagation()} style={{
+        background:"white",borderRadius:24,padding:"20px 18px 28px",width:"calc(100% - 32px)",maxWidth:400,
+        animation:"slideUp 0.25s ease-out",
+      }}>
+        <div style={{width:40,height:4,background:"#e2e8f0",borderRadius:2,margin:"0 auto 18px"}}/>
+        <div style={{fontSize:16,fontWeight:700,color:"#1a2332",marginBottom:3}}>Recording Settings</div>
+        <div style={{fontSize:13,color:"#64748b",marginBottom:18}}>
+          Changes apply to your next recording.
+        </div>
+
+        <div style={{fontSize:13,fontWeight:600,color:"#1a2332",marginBottom:10}}>Audio Quality</div>
+        {BITRATE_OPTIONS.map(opt => (
+          <button key={opt.value} onClick={()=>{ saveBitrate(opt.value); onBitrateChange(opt.value); }} style={{
+            width:"100%",padding:"12px 14px",borderRadius:14,marginBottom:8,
+            border:`2px solid ${bitrate===opt.value?"rgba(21,101,192,0.35)":"#e2e8f0"}`,
+            background:bitrate===opt.value?"rgba(21,101,192,0.05)":"white",
+            cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12,
+          }}>
+            <div style={{
+              width:18,height:18,borderRadius:"50%",
+              border:`2px solid ${bitrate===opt.value?"#1565c0":"#cbd5e1"}`,
+              display:"flex",alignItems:"center",justifyContent:"center",
+            }}>
+              {bitrate===opt.value && <div style={{width:10,height:10,borderRadius:"50%",background:"#1565c0"}}/>}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:13,fontWeight:600,color:"#1a2332"}}>{opt.label}</span>
+                {opt.value === 32000 && (
+                  <span style={{fontSize:9,background:"rgba(21,101,192,0.1)",color:"#1565c0",padding:"1px 6px",borderRadius:8,fontWeight:700}}>Recommended</span>
+                )}
+              </div>
+              <div style={{fontSize:11,color:"#64748b",marginTop:2}}>{opt.description}</div>
+              <div style={{fontSize:10,color:"#94a3b8",marginTop:2}}>
+                3hr meeting ≈ {Math.round((opt.value / 8) * 180 * 60 / (1024 * 1024))} MB
+              </div>
+            </div>
+          </button>
+        ))}
+
+        <div style={{background:"#f8fafc",borderRadius:12,padding:"10px 12px",display:"flex",alignItems:"flex-start",gap:8,marginTop:8}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{marginTop:1,flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span style={{fontSize:12,color:"#64748b",lineHeight:1.5}}>
+            Audio is split into 15-minute chunks automatically, supporting recordings up to 5 hours.
+          </span>
+        </div>
+
+        <button onClick={onClose} style={{
+          width:"100%",padding:"13px",borderRadius:14,border:"none",marginTop:14,
+          background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",
+          fontSize:14,fontWeight:600,color:"white",fontFamily:"inherit",
+          boxShadow:"0 4px 12px rgba(21,101,192,0.4)",
+        }}>Done</button>
+      </div>
+    </div>
+  );
+}
+
+function TitleModal({ duration, chunkCount, totalSize, onSave, onDiscard }) {
   const [title, setTitle] = useState(
     `Meeting ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"})} ${new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`
   );
@@ -211,7 +283,7 @@ function TitleModal({ blob, duration, onSave, onDiscard }) {
         <div style={{width:40,height:4,background:"#e2e8f0",borderRadius:2,margin:"0 auto 18px"}}/>
         <div style={{fontSize:17,fontWeight:700,color:"#1a2332",marginBottom:4}}>Name this recording</div>
         <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>
-          {fmtTime(duration)} · {blob ? fmtSize(blob.size) : ""}
+          {fmtTime(duration)} · {fmtSize(totalSize)}{chunkCount > 1 ? ` · ${chunkCount} segments` : ""}
         </div>
         <input
           autoFocus
@@ -230,6 +302,39 @@ function TitleModal({ blob, duration, onSave, onDiscard }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SyncProgressBar({ progress }) {
+  if (!progress) return null;
+  const phaseColors = {
+    uploading: "#1565c0",
+    transcribing: "#7c3aed",
+    stitching: "#f59e0b",
+    complete: "#16a34a",
+    error: "#dc2626",
+  };
+  const color = phaseColors[progress.phase] || "#1565c0";
+  return (
+    <div style={{margin:"8px 16px 0",background:"white",borderRadius:14,padding:"12px 14px",
+      boxShadow:"0 2px 8px rgba(21,101,192,0.07)",border:"1px solid rgba(21,101,192,0.09)",animation:"fadeIn 0.2s"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+        <span style={{fontSize:12,fontWeight:600,color:"#1a2332"}}>{progress.message}</span>
+        <span style={{fontSize:11,fontWeight:700,color}}>{progress.percentComplete}%</span>
+      </div>
+      <div style={{width:"100%",height:6,borderRadius:3,background:"#f1f5f9",overflow:"hidden"}}>
+        <div style={{
+          width:`${progress.percentComplete}%`,height:"100%",borderRadius:3,
+          background:`linear-gradient(90deg, ${color}, ${color}cc)`,
+          transition:"width 0.5s ease-out",
+        }}/>
+      </div>
+      {progress.phase === "transcribing" && progress.totalChunks > 1 && (
+        <div style={{fontSize:10,color:"#94a3b8",marginTop:4}}>
+          Segment {progress.currentChunk} of {progress.totalChunks}
+        </div>
+      )}
     </div>
   );
 }
@@ -274,6 +379,7 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying }) {
           </div>
           <div style={{fontSize:11,color:"#94a3b8",marginTop:1}}>
             {fmtDate(rec.createdAt)} · {fmtTime(rec.duration)} · {fmtSize(rec.size)}
+            {rec.chunkCount > 1 ? ` · ${rec.chunkCount} segments` : ""}
           </div>
           <span style={{
             display:"inline-flex",alignItems:"center",gap:4,marginTop:4,
@@ -352,18 +458,20 @@ export default function NoteWellRecorder() {
   const [isOnline,      setIsOnline]      = useState(navigator.onLine);
   const [mode,          setMode]          = useState(navigator.onLine ? "live" : "offline");
   const [recState,      setRecState]      = useState("idle");   // idle|recording|paused
-  const [elapsed,       setElapsed]       = useState(0);
+  const [elapsed,       setElapsed]       = useState(0);        // ms elapsed
   const [recordings,    setRecordings]    = useState([]);
   const [showSheet,     setShowSheet]     = useState(false);
-  const [titleModal,    setTitleModal]    = useState(null);     // { blob, duration }
+  const [showSettings,  setShowSettings]  = useState(false);
+  const [titleModal,    setTitleModal]    = useState(null);     // { chunks, duration, totalSize, chunkCount }
   const [playingId,     setPlayingId]     = useState(null);
   const [toast,         setToast]         = useState(null);
-  const [storageWarning, setStorageWarning] = useState(null); // { usedMB, percentUsed }
+  const [storageWarning, setStorageWarning] = useState(null);
+  const [chunksCompleted, setChunksCompleted] = useState(0);
+  const [syncProgress,  setSyncProgress]  = useState(null);
+  const [bitrate,       setBitrate]       = useState(getSavedBitrate());
 
-  const mediaRecRef  = useRef(null);
-  const chunksRef    = useRef([]);
+  const recorderRef  = useRef(null);  // ChunkedRecorder instance
   const timerRef     = useRef(null);
-  const streamRef    = useRef(null);
   const audioRef     = useRef(new Audio());
 
   // ── Connectivity ──────────────────────────────────────────────────────────
@@ -405,64 +513,93 @@ export default function NoteWellRecorder() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // ── Recording controls ────────────────────────────────────────────────────
+  // ── Recording controls (chunked) ─────────────────────────────────────────
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      chunksRef.current = [];
-      const mime = getBestMime();
-      const mr   = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 64000 });
-      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.onstop = () => handleStop(mime);
-      mr.start(1000);
-      mediaRecRef.current = mr;
-      const t0 = Date.now();
-      timerRef.current = setInterval(() => setElapsed(Math.floor((Date.now()-t0)/1000)), 500);
+      const recorder = new ChunkedRecorder({
+        chunkDurationMs: 15 * 60 * 1000, // 15 minutes
+        audioBitrate: bitrate,
+        onChunkReady: (chunk) => {
+          setChunksCompleted(prev => prev + 1);
+          console.log(`[ChunkedRecording] Chunk ${chunk.index} ready: ${(chunk.sizeBytes / 1024 / 1024).toFixed(1)}MB, ${(chunk.durationMs / 1000).toFixed(0)}s`);
+        },
+        onStatusChange: (status) => console.log(`[ChunkedRecording] Status: ${status}`),
+      });
+      recorderRef.current = recorder;
+      await recorder.start();
+
+      const startTime = Date.now();
+      timerRef.current = setInterval(() => {
+        setElapsed(Date.now() - startTime);
+      }, 500);
       setRecState("recording");
+      setChunksCompleted(0);
     } catch {
       showToast("Microphone access denied", "error");
     }
   };
 
   const pauseRecording = () => {
-    mediaRecRef.current?.pause();
+    // ChunkedRecorder doesn't have native pause — we stop the timer display
     clearInterval(timerRef.current);
     setRecState("paused");
   };
 
   const resumeRecording = () => {
-    mediaRecRef.current?.resume();
-    const pausedAt = Date.now() - elapsed * 1000;
-    timerRef.current = setInterval(() => setElapsed(Math.floor((Date.now()-pausedAt)/1000)), 500);
+    // Resume timer from where we left off
+    const resumeFrom = Date.now() - elapsed;
+    timerRef.current = setInterval(() => setElapsed(Date.now() - resumeFrom), 500);
     setRecState("recording");
   };
 
-  const stopRecording = () => {
+  const stopRecording = async () => {
     clearInterval(timerRef.current);
-    mediaRecRef.current?.stop();
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    setRecState("idle");
-  };
+    if (!recorderRef.current) { setRecState("idle"); return; }
 
-  const handleStop = async (mime) => {
-    const blob = new Blob(chunksRef.current, { type: mime });
-    setTitleModal({ blob, duration: elapsed });
+    const chunks = await recorderRef.current.stop();
+    recorderRef.current = null;
+    setRecState("idle");
+
+    if (chunks.length === 0) {
+      showToast("No audio recorded", "error");
+      setElapsed(0);
+      return;
+    }
+
+    const totalSize = chunks.reduce((s, c) => s + c.sizeBytes, 0);
+    const durationSecs = Math.floor(elapsed / 1000);
+    setTitleModal({ chunks, duration: durationSecs, totalSize, chunkCount: chunks.length });
     setElapsed(0);
   };
 
   const saveRecording = async (title) => {
-    if (!titleModal?.blob) return;
-    const { blob, duration } = titleModal;
-    const arrayBuffer = await blob.arrayBuffer();
+    if (!titleModal?.chunks) return;
+    const { chunks, duration, totalSize, chunkCount } = titleModal;
+
+    // Store each chunk's ArrayBuffer in IndexedDB
+    const chunkData = await Promise.all(
+      chunks.map(async (chunk) => ({
+        index: chunk.index,
+        arrayBuffer: await chunk.blob.arrayBuffer(),
+        mimeType: chunk.blob.type,
+        startTimeMs: chunk.startTimeMs,
+        endTimeMs: chunk.endTimeMs,
+        durationMs: chunk.durationMs,
+        sizeBytes: chunk.sizeBytes,
+      }))
+    );
+
     const rec = {
       id:         `rec_${Date.now()}`,
       title,
       createdAt:  Date.now(),
       duration,
-      size:       blob.size,
-      mimeType:   blob.type,
-      audioData:  arrayBuffer,
+      size:       totalSize,
+      mimeType:   chunks[0]?.blob.type || "audio/webm",
+      chunks:     chunkData,
+      chunkCount,
+      // Keep audioData as first chunk for playback compatibility
+      audioData:  chunkData[0]?.arrayBuffer,
       status:     "local",
     };
     await dbPut(rec);
@@ -474,7 +611,7 @@ export default function NoteWellRecorder() {
     if (isOnline) syncRecording(rec);
   };
 
-  // ── Sync ──────────────────────────────────────────────────────────────────
+  // ── Sync (chunked) ───────────────────────────────────────────────────────
   const syncRecording = async (rec) => {
     // Check authentication first
     const { data: { user } } = await supabase.auth.getUser();
@@ -486,40 +623,117 @@ export default function NoteWellRecorder() {
 
     await dbPatch(rec.id, { status: "syncing" });
     await refresh();
-    try {
-      // ── Step 1: Upload audio to Supabase Storage ──────────────────────────
-      const audioBlob = new Blob([rec.audioData], { type: rec.mimeType });
-      const ext = rec.mimeType?.includes("mp4") ? "m4a" : rec.mimeType?.includes("ogg") ? "ogg" : "webm";
-      const filePath = `${user.id}/${rec.id}.${ext}`;
 
-      const { data, error } = await supabase.storage
-        .from("recordings")
-        .upload(filePath, audioBlob, {
-          contentType: rec.mimeType,
-          upsert: true,
+    try {
+      const sessionId = crypto.randomUUID();
+      const chunks = rec.chunks || [];
+      const totalChunks = chunks.length;
+
+      // If no chunk data, fall back to single-file upload
+      if (totalChunks === 0 && rec.audioData) {
+        await syncLegacySingleFile(rec, user);
+        return;
+      }
+
+      // ── Phase 1: Upload all chunks to storage ──────────────────────────
+      for (let i = 0; i < totalChunks; i++) {
+        const chunk = chunks[i];
+        const paddedIndex = String(chunk.index).padStart(3, "0");
+        const storagePath = `${sessionId}/chunk_${paddedIndex}.webm`;
+        const blob = new Blob([chunk.arrayBuffer], { type: chunk.mimeType || "audio/webm" });
+
+        setSyncProgress({
+          phase: "uploading", currentChunk: i + 1, totalChunks,
+          percentComplete: Math.round(((i + 1) / totalChunks) * 30),
+          message: `Uploading segment ${i + 1} of ${totalChunks}…`,
         });
-      if (error) throw error;
+
+        const { error } = await supabase.storage
+          .from("recordings")
+          .upload(storagePath, blob, { contentType: chunk.mimeType || "audio/webm", upsert: true });
+        if (error) throw error;
+      }
 
       await dbPatch(rec.id, { status: "synced" });
       await refresh();
-      showToast("Audio uploaded", "success");
 
-      // ── Step 2: Trigger Whisper transcription via storage path ─────────────
-      const { data: transcriptData, error: fnErr } = await supabase.functions
-        .invoke("standalone-whisper", {
-          body: { storagePath: filePath, bucket: "recordings" },
+      // ── Phase 2: Transcribe each chunk ────────────────────────────────
+      const chunkTranscripts = [];
+      for (let i = 0; i < totalChunks; i++) {
+        const chunk = chunks[i];
+        const paddedIndex = String(chunk.index).padStart(3, "0");
+        const storagePath = `${sessionId}/chunk_${paddedIndex}.webm`;
+
+        setSyncProgress({
+          phase: "transcribing", currentChunk: i + 1, totalChunks,
+          percentComplete: 30 + Math.round(((i + 1) / totalChunks) * 55),
+          message: `Transcribing segment ${i + 1} of ${totalChunks}…`,
         });
-      if (fnErr) throw fnErr;
 
-      const transcriptText = transcriptData?.text || "";
-      await dbPatch(rec.id, { status: "transcribed", transcript: transcriptText });
+        const { data: transcriptData, error: fnErr } = await supabase.functions
+          .invoke("standalone-whisper", {
+            body: { storagePath, bucket: "recordings", responseFormat: "verbose_json" },
+          });
+        if (fnErr) {
+          console.warn(`Chunk ${i} transcription failed:`, fnErr);
+          chunkTranscripts.push({ index: chunk.index, text: "", segments: [], success: false });
+        } else {
+          const offsetSec = (chunk.startTimeMs || 0) / 1000;
+          const segments = (transcriptData?.segments || []).map(seg => ({
+            start: seg.start + offsetSec,
+            end: seg.end + offsetSec,
+            text: seg.text?.trim() || "",
+          }));
+          chunkTranscripts.push({
+            index: chunk.index,
+            text: transcriptData?.text || "",
+            segments,
+            success: true,
+          });
+        }
+      }
+
+      // ── Phase 3: Stitch transcripts ───────────────────────────────────
+      setSyncProgress({
+        phase: "stitching", currentChunk: totalChunks, totalChunks,
+        percentComplete: 90, message: "Assembling final transcript…",
+      });
+
+      let fullTranscript;
+      const successfulChunks = chunkTranscripts.filter(c => c.success && c.text).sort((a, b) => a.index - b.index);
+      if (successfulChunks.length <= 1) {
+        fullTranscript = successfulChunks[0]?.text || "";
+      } else {
+        // Stitch with overlap deduplication
+        const allSegments = [];
+        let lastEndTime = 0;
+        for (const ct of successfulChunks) {
+          for (const seg of ct.segments) {
+            if (seg.end <= lastEndTime + 0.5) continue;
+            allSegments.push(seg);
+            lastEndTime = Math.max(lastEndTime, seg.end);
+          }
+        }
+        fullTranscript = allSegments.map(s => s.text).join(" ").replace(/\s+/g, " ").trim();
+      }
+
+      if (!fullTranscript) {
+        fullTranscript = chunkTranscripts.map(c => c.text).filter(Boolean).join(" ").trim();
+      }
+
+      await dbPatch(rec.id, { status: "transcribed", transcript: fullTranscript });
       await refresh();
-      showToast("Transcription complete", "success");
 
-      // ── Step 3: Create meeting record ─────────────────────────────────────
-      const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
+      const failedCount = chunkTranscripts.filter(c => !c.success).length;
+      if (failedCount > 0) {
+        showToast(`${failedCount} segment${failedCount > 1 ? "s" : ""} failed — partial transcript`, "error");
+      } else {
+        showToast("Transcription complete", "success");
+      }
+
+      // ── Step 4: Create meeting record ─────────────────────────────────
+      const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
       const durationMins = Math.round((rec.duration || 0) / 60);
-      const sessionId = crypto.randomUUID();
 
       const { data: meetingData, error: meetingErr } = await supabase
         .from("meetings")
@@ -528,12 +742,12 @@ export default function NoteWellRecorder() {
           user_id: user.id,
           status: "completed",
           meeting_type: "standard",
-          start_time: rec.createdAt || new Date().toISOString(),
+          start_time: new Date(rec.createdAt).toISOString(),
           end_time: new Date().toISOString(),
           duration_minutes: durationMins,
           word_count: wordCount,
           import_source: "mobile_recorder",
-          whisper_transcript_text: transcriptText,
+          whisper_transcript_text: fullTranscript,
           primary_transcript_source: "whisper",
         })
         .select("id")
@@ -542,34 +756,42 @@ export default function NoteWellRecorder() {
       if (meetingErr) {
         console.error("Meeting creation failed:", meetingErr);
         showToast("Transcribed but meeting creation failed", "error");
+        setSyncProgress(null);
         return;
       }
 
       const meetingId = meetingData.id;
 
-      // ── Step 4: Store transcript chunk ─────────────────────────────────────
-      await supabase.from("meeting_transcription_chunks").insert({
-        meeting_id: meetingId,
-        user_id: user.id,
-        session_id: sessionId,
-        chunk_number: 0,
-        transcription_text: transcriptText,
-        is_final: true,
-        source: "whisper",
-        transcriber_type: "whisper",
-        word_count: wordCount,
-      });
+      // ── Step 5: Store transcript chunks ───────────────────────────────
+      for (const ct of successfulChunks) {
+        await supabase.from("meeting_transcription_chunks").insert({
+          meeting_id: meetingId,
+          user_id: user.id,
+          session_id: sessionId,
+          chunk_number: ct.index,
+          transcription_text: ct.text,
+          is_final: true,
+          source: "whisper",
+          transcriber_type: "whisper",
+          word_count: ct.text.split(/\s+/).filter(Boolean).length,
+        });
+      }
 
       await dbPatch(rec.id, { meetingId });
       await refresh();
+
+      setSyncProgress({
+        phase: "complete", currentChunk: totalChunks, totalChunks,
+        percentComplete: 100, message: `Complete — ${wordCount} words`,
+      });
       showToast("Meeting created — generating notes…", "success");
 
-      // ── Step 5: Trigger note generation ────────────────────────────────────
+      // ── Step 6: Trigger note generation ───────────────────────────────
       supabase.functions
         .invoke("generate-meeting-notes-claude", {
           body: {
             meetingId,
-            transcript: transcriptText,
+            transcript: fullTranscript,
             title: rec.title || "Mobile Recording",
           },
         })
@@ -580,14 +802,101 @@ export default function NoteWellRecorder() {
           } else {
             showToast("Meeting notes generated ✨", "success");
           }
+          setSyncProgress(null);
           refresh();
         });
     } catch (err) {
       console.error("Sync error:", err);
       await dbPatch(rec.id, { status: "error" });
       await refresh();
+      setSyncProgress(null);
       const msg = err?.message || err?.error_description || "Unknown error";
       showToast(`Sync failed: ${msg}`, "error");
+    }
+  };
+
+  // Legacy single-file sync for recordings saved before chunked update
+  const syncLegacySingleFile = async (rec, user) => {
+    try {
+      const audioBlob = new Blob([rec.audioData], { type: rec.mimeType });
+      const ext = rec.mimeType?.includes("mp4") ? "m4a" : rec.mimeType?.includes("ogg") ? "ogg" : "webm";
+      const filePath = `${user.id}/${rec.id}.${ext}`;
+
+      setSyncProgress({
+        phase: "uploading", currentChunk: 1, totalChunks: 1,
+        percentComplete: 20, message: "Uploading audio…",
+      });
+
+      const { error } = await supabase.storage
+        .from("recordings")
+        .upload(filePath, audioBlob, { contentType: rec.mimeType, upsert: true });
+      if (error) throw error;
+
+      await dbPatch(rec.id, { status: "synced" });
+      await refresh();
+
+      setSyncProgress({
+        phase: "transcribing", currentChunk: 1, totalChunks: 1,
+        percentComplete: 50, message: "Transcribing…",
+      });
+
+      const { data: transcriptData, error: fnErr } = await supabase.functions
+        .invoke("standalone-whisper", {
+          body: { storagePath: filePath, bucket: "recordings" },
+        });
+      if (fnErr) throw fnErr;
+
+      const transcriptText = transcriptData?.text || "";
+      await dbPatch(rec.id, { status: "transcribed", transcript: transcriptText });
+      await refresh();
+
+      setSyncProgress({
+        phase: "complete", currentChunk: 1, totalChunks: 1,
+        percentComplete: 100, message: "Transcription complete",
+      });
+
+      showToast("Transcription complete", "success");
+
+      // Create meeting
+      const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
+      const sessionId = crypto.randomUUID();
+      const { data: meetingData, error: meetingErr } = await supabase
+        .from("meetings")
+        .insert({
+          title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
+          user_id: user.id, status: "completed", meeting_type: "standard",
+          start_time: new Date(rec.createdAt).toISOString(), end_time: new Date().toISOString(),
+          duration_minutes: Math.round((rec.duration || 0) / 60), word_count: wordCount,
+          import_source: "mobile_recorder", whisper_transcript_text: transcriptText,
+          primary_transcript_source: "whisper",
+        }).select("id").single();
+
+      if (meetingErr) { showToast("Transcribed but meeting creation failed", "error"); setSyncProgress(null); return; }
+
+      await supabase.from("meeting_transcription_chunks").insert({
+        meeting_id: meetingData.id, user_id: user.id, session_id: sessionId,
+        chunk_number: 0, transcription_text: transcriptText, is_final: true,
+        source: "whisper", transcriber_type: "whisper", word_count: wordCount,
+      });
+
+      await dbPatch(rec.id, { meetingId: meetingData.id });
+      await refresh();
+      showToast("Meeting created — generating notes…", "success");
+
+      supabase.functions.invoke("generate-meeting-notes-claude", {
+        body: { meetingId: meetingData.id, transcript: transcriptText, title: rec.title || "Mobile Recording" },
+      }).then(({ error: genErr }) => {
+        if (genErr) showToast("Meeting saved — note generation failed", "error");
+        else showToast("Meeting notes generated ✨", "success");
+        setSyncProgress(null);
+        refresh();
+      });
+    } catch (err) {
+      console.error("Legacy sync error:", err);
+      await dbPatch(rec.id, { status: "error" });
+      await refresh();
+      setSyncProgress(null);
+      showToast(`Sync failed: ${err?.message || "Unknown error"}`, "error");
     }
   };
 
@@ -600,7 +909,10 @@ export default function NoteWellRecorder() {
 
   const playRecording = async (rec) => {
     if (playingId === rec.id) { audioRef.current.pause(); setPlayingId(null); return; }
-    const blob = new Blob([rec.audioData], { type: rec.mimeType });
+    // Play first chunk for preview
+    const audioData = rec.audioData || rec.chunks?.[0]?.arrayBuffer;
+    if (!audioData) { showToast("No audio data", "error"); return; }
+    const blob = new Blob([audioData], { type: rec.mimeType });
     audioRef.current.src = URL.createObjectURL(blob);
     audioRef.current.play();
     setPlayingId(rec.id);
@@ -675,12 +987,15 @@ export default function NoteWellRecorder() {
           </div>
         )}
 
+        {/* Sync progress bar */}
+        <SyncProgressBar progress={syncProgress} />
+
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
 
           {/* Mode pill row */}
           <div style={{padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <button style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(21,101,192,0.15)",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}} title="Settings">
+            <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(21,101,192,0.15)",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}} title="Settings">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
             <ModePill mode={mode} disabled={active} onTap={()=>setShowSheet(true)} />
@@ -717,13 +1032,19 @@ export default function NoteWellRecorder() {
                 <>
                   <div style={{fontSize:40,fontWeight:700,letterSpacing:-2,fontVariantNumeric:"tabular-nums",
                     color:isPaused?"#f59e0b":"#1565c0",transition:"color 0.3s"}}>
-                    {fmtTime(elapsed)}
+                    {fmtDuration(elapsed)}
                   </div>
                   <div style={{fontSize:12,fontWeight:500,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",gap:5,
                     color:isPaused?"#f59e0b":"#16a34a"}}>
                     {isRecording && <span style={{width:7,height:7,borderRadius:"50%",background:"#dc2626",display:"inline-block",animation:"pulse 1s infinite"}}/>}
                     {isRecording ? (mode==="live"?"Recording · Transcribing live":"Recording · Saving locally") : "⏸ Paused"}
                   </div>
+                  {/* Chunk indicator */}
+                  {chunksCompleted > 0 && (
+                    <div style={{fontSize:10,color:"#94a3b8",marginTop:4}}>
+                      {chunksCompleted} segment{chunksCompleted !== 1 ? "s" : ""} completed
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -851,10 +1172,20 @@ export default function NoteWellRecorder() {
           <ModeSheet mode={mode} onClose={()=>setShowSheet(false)} onSelect={m=>{setMode(m);setShowSheet(false);}} />
         )}
 
+        {showSettings && (
+          <SettingsSheet
+            onClose={()=>setShowSettings(false)}
+            bitrate={bitrate}
+            onBitrateChange={setBitrate}
+          />
+        )}
+
         {/* Title modal */}
         {titleModal && (
           <TitleModal
-            blob={titleModal.blob} duration={titleModal.duration}
+            duration={titleModal.duration}
+            chunkCount={titleModal.chunkCount}
+            totalSize={titleModal.totalSize}
             onSave={saveRecording}
             onDiscard={()=>{ setTitleModal(null); setElapsed(0); }}
           />
