@@ -324,11 +324,7 @@ export class AssemblyRealtimeClient {
         if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
           const text = String(data?.transcript ?? "").trim();
           if (!text) return;
-          if (data?.end_of_turn) {
-            this.cb.onFinal?.(text);
-          } else {
-            this.cb.onPartial?.(text);
-          }
+          this.handleTurnMessage(data, text);
           return;
         }
         if (data?.message_type === "PartialTranscript") { const t = String(data?.text ?? "").trim(); if (t) this.cb.onPartial?.(t); return; }
