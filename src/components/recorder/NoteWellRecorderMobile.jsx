@@ -661,6 +661,69 @@ export default function NoteWellRecorder() {
     if (isOnline) syncRecording(rec);
   };
 
+  // ── Post-note-generation actions (overview + auto-email) ────────────────
+  const triggerPostNoteActions = async (meetingId, transcript) => {
+    try {
+      // 1. Generate meeting overview
+      const { data: meeting } = await supabase
+        .from("meetings")
+        .select("title")
+        .eq("id", meetingId)
+        .maybeSingle();
+      const meetingTitle = meeting?.title || "Mobile Recording";
+
+      supabase.functions.invoke("generate-meeting-overview", {
+        body: { meetingId, transcript, meetingTitle },
+      }).catch((e) => console.warn("Overview generation failed:", e));
+
+      // 2. Auto-send email with notes
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) return;
+
+      const { data: summary } = await supabase
+        .from("meeting_summaries")
+        .select("summary")
+        .eq("meeting_id", meetingId)
+        .maybeSingle();
+      if (!summary?.summary) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("email", user.email)
+        .maybeSingle();
+
+      const senderName = profile?.full_name || user.email.split("@")[0] || "Notewell AI";
+      const meetingDate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+      const subject = `Notewell AI | ${meetingTitle} — ${meetingDate}`;
+
+      // Simple HTML email with notes
+      const htmlContent = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:20px;">
+        <h2 style="color:#003087;">${meetingTitle}</h2>
+        <p style="color:#555;font-size:14px;">Meeting notes generated automatically by Notewell AI on ${meetingDate}.</p>
+        <hr style="border:none;border-top:1px solid #e0e0e0;margin:16px 0;"/>
+        <div style="white-space:pre-wrap;font-size:14px;line-height:1.6;color:#333;">
+          ${summary.summary.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}
+        </div>
+        <hr style="border:none;border-top:1px solid #e0e0e0;margin:16px 0;"/>
+        <p style="color:#999;font-size:12px;">Sent from Notewell AI mobile recorder.</p>
+      </div>`;
+
+      await supabase.functions.invoke("send-meeting-email-resend", {
+        body: {
+          to_email: user.email,
+          cc_emails: [],
+          subject,
+          html_content: htmlContent,
+          from_name: senderName,
+        },
+      });
+      console.log("✅ Mobile auto-email sent to:", user.email);
+    } catch (e) {
+      console.warn("Post-note actions failed (non-critical):", e);
+    }
+  };
+
   // ── Sync (chunked) ───────────────────────────────────────────────────────
   const syncRecording = async (rec) => {
     // Check authentication first
