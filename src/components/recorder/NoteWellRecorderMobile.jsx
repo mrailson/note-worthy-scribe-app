@@ -786,7 +786,7 @@ export default function NoteWellRecorder() {
             const meetingId = retryData.id;
             for (const ct of successfulChunks) {
               await supabase.from("meeting_transcription_chunks").insert({
-                meeting_id: meetingId, user_id: freshUser.id, session_id: sessionId,
+                meeting_id: meetingId, user_id: retryUser.id, session_id: sessionId,
                 chunk_number: ct.index, transcription_text: ct.text, is_final: true,
                 source: "whisper", transcriber_type: "whisper",
                 word_count: ct.text.split(/\s+/).filter(Boolean).length,
