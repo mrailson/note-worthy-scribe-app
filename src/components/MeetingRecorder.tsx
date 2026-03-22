@@ -4877,8 +4877,9 @@ export const MeetingRecorder = ({
     // Use the best available transcript so meetings aren't discarded if AssemblyAI is down.
     const assemblyWords = countWords(assemblyPreview.fullTranscript);
     const whisperWords = countWords(transcript);
-    let effectiveWords = Math.max(assemblyWords, whisperWords);
-    console.log('📊 Meeting word count (client):', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords, serverTriggered: isServerTriggered });
+    const deepgramWords = countWords(deepgramPreview.fullTranscript);
+    let effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords);
+    console.log('📊 Meeting word count (client):', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords, deepgram: deepgramWords, serverTriggered: isServerTriggered });
     
     // CRITICAL: If client state shows low word count OR server triggered the stop,
     // query the database for actual word count AND duration - client state may be stale/empty
