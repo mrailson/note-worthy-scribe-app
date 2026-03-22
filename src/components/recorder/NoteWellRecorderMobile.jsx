@@ -818,7 +818,7 @@ export default function NoteWellRecorder() {
             user_id: user.id, status: "completed", meeting_type: "general",
             start_time: new Date(rec.createdAt).toISOString(), end_time: new Date().toISOString(),
             duration_minutes: durationMins, word_count: wordCount,
-            import_source: "mobile_recorder", whisper_transcript_text: rec.transcript,
+            import_source: mode === "live" ? "mobile_live" : "mobile_offline", whisper_transcript_text: rec.transcript,
             primary_transcript_source: "whisper",
           }).select("id").single();
 
