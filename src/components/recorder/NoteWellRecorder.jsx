@@ -343,17 +343,36 @@ export default function NoteWellRecorder() {
   const streamRef    = useRef(null);
   const audioRef     = useRef(new Audio());
 
-  // ── Connectivity ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    const goOnline  = () => { setIsOnline(true);  setMode("live");    };
-    const goOffline = () => { setIsOnline(false); setMode("offline"); };
-    window.addEventListener("online",  goOnline);
-    window.addEventListener("offline", goOffline);
-    return () => {
-      window.removeEventListener("online",  goOnline);
-      window.removeEventListener("offline", goOffline);
-    };
+  // ── Connectivity (ping-based for reliable detection) ────────────────────
+  const checkConnectivity = useCallback(async () => {
+    if (!navigator.onLine) {
+      setIsOnline(false);
+      setMode("offline");
+      return;
+    }
+    try {
+      await fetch("https://www.google.com/favicon.ico", {
+        mode: "no-cors", cache: "no-store",
+      });
+      setIsOnline(true);
+      setMode("live");
+    } catch {
+      setIsOnline(false);
+      setMode("offline");
+    }
   }, []);
+
+  useEffect(() => {
+    checkConnectivity();
+    const interval = setInterval(checkConnectivity, 10000);
+    window.addEventListener("online", checkConnectivity);
+    window.addEventListener("offline", checkConnectivity);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("online", checkConnectivity);
+      window.removeEventListener("offline", checkConnectivity);
+    };
+  }, [checkConnectivity]);
 
   // ── Load saved recordings ─────────────────────────────────────────────────
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
