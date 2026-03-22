@@ -44,8 +44,7 @@ export class AssemblyRealtimeClientWorklet {
         if ('turn_order' in data || ('transcript' in data && 'end_of_turn' in data)) {
           const text = String(data?.transcript ?? "").trim();
           if (!text) return;
-          if (data?.turn_is_formatted) this.cb.onFinal?.(text);
-          else if (data?.end_of_turn) return;
+          if (data?.end_of_turn) this.cb.onFinal?.(text);
           else this.cb.onPartial?.(text);
         }
       } catch (_) {

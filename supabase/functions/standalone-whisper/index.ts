@@ -110,6 +110,14 @@ async function preprocessAudioViaTranscode(
     const wasTranscoded = response.headers.get('X-Audio-Transcoded') === 'true';
 
     console.log(`✅ [${requestId}] Preprocessing complete: ${audioBytes.length}B → ${resultBytes.length}B, ${declaredMime} → ${resultMime} (.${resultExt}), transcoded=${wasTranscoded}`);
+
+    // Size sanity check: if transcoded output is less than 50% of original,
+    // the transcode may have truncated the audio — fall back to original
+    if (wasTranscoded && resultBytes.length < audioBytes.length * 0.5 && resultBytes.length < 50000) {
+      console.warn(`⚠️ [${requestId}] Transcoded audio suspiciously small (${resultBytes.length}B vs ${audioBytes.length}B original). Falling back to original.`);
+      return { bytes: audioBytes, mimeType: declaredMime, extension: inferExtension(declaredMime), preprocessed: false };
+    }
+
     return { bytes: resultBytes, mimeType: resultMime, extension: resultExt, preprocessed: true };
   } catch (err: any) {
     const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError';
@@ -193,11 +201,11 @@ serve(async (req) => {
 
     console.log(`📡 [${requestId}] Forwarding to OpenAI: ${preprocessed.bytes.length}B as ${forwardMime} (.${forwardExt}), preprocessed=${preprocessed.preprocessed}, format=${resolvedFormat}`);
 
-    // Model selection: gpt-4o-mini-transcribe is more accurate but only supports
-    // 'json' and 'text' formats. verbose_json (needed for timestamps) requires whisper-1.
-    const model = resolvedFormat === 'verbose_json'
-      ? 'whisper-1'
-      : 'gpt-4o-mini-transcribe';
+    // Model selection: default to whisper-1 (battle-tested with browser webm/opus).
+    // gpt-4o-mini-transcribe can be requested explicitly via body.model but only supports
+    // 'json' and 'text' formats — verbose_json always requires whisper-1.
+    const requestedModel = body.model || 'whisper-1';
+    const model = resolvedFormat === 'verbose_json' ? 'whisper-1' : requestedModel;
 
     // Temperature 0 = adaptive mode (Whisper auto-increases when confidence is low)
     const temperature = body.temperature ?? '0';
