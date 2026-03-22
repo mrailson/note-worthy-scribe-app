@@ -3,6 +3,7 @@
 // Wire the two TODO comments to your existing Supabase edge functions.
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
