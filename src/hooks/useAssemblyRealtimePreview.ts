@@ -107,15 +107,25 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
 
         baseTranscriptRef.current = replaced;
         setFullTranscript(replaced);
+        // Replace last entry in recentFinals
+        setRecentFinals(prev => {
+          const updated = [...prev];
+          if (updated.length > 0) updated[updated.length - 1] = newText;
+          else updated.push(newText);
+          return updated.slice(-MAX_RECENT_FINALS);
+        });
         console.log('🔁 Replaced duplicate final segment instead of appending');
       } else {
         baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + newText).trim();
         setFullTranscript(baseTranscriptRef.current);
+        // Add to rolling buffer of recent finals
+        setRecentFinals(prev => [...prev, newText].slice(-MAX_RECENT_FINALS));
       }
 
       lastFinalSegmentRef.current = newText;
       lastFinalAtRef.current = now;
       currentPartialRef.current = "";
+      setCurrentPartial("");
 
       const words = baseTranscriptRef.current.split(/\s+/).slice(-MAX_WORDS);
       setLiveTranscript(words.join(' '));
@@ -123,6 +133,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     }
 
     currentPartialRef.current = newText;
+    setCurrentPartial(newText);
 
     const combined = (baseTranscriptRef.current + ' ' + newText).trim();
     setFullTranscript(combined);
