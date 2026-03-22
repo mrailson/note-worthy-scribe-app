@@ -212,24 +212,12 @@ Deno.serve(async (req: Request) => {
             try {
               // @ts-ignore
               if (assemblySocket.readyState === WebSocket.OPEN) {
-                // AssemblyAI expects audio as base64-encoded string in JSON
-                const uint8 = event.data instanceof ArrayBuffer 
-                  ? new Uint8Array(event.data) 
-                  : event.data;
-                
-                // Convert to base64
-                let binary = '';
-                for (let i = 0; i < uint8.byteLength; i++) {
-                  binary += String.fromCharCode(uint8[i]);
-                }
-                const base64 = btoa(binary);
-                
-                // Send as JSON message with audio_data field
+                // v3 accepts raw binary PCM frames (after Configure message)
                 // @ts-ignore
-                assemblySocket.send(JSON.stringify({ audio_data: base64 }));
+                assemblySocket.send(event.data);
               }
             } catch (err) {
-              console.error('❌ Failed to forward audio to AssemblyAI:', err);
+              console.error('❌ Failed to forward audio:', err);
             }
           }
           return;
