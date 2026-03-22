@@ -159,7 +159,6 @@ export default function MeetingSummary() {
             
             if (summaryData?.summary) {
               setClaudeNotes(summaryData.summary);
-              toast.success('Meeting notes loaded successfully!');
             }
           } catch (error) {
             console.error('Error loading notes:', error);
