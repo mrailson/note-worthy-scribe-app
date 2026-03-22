@@ -330,6 +330,7 @@ export default function NoteWellRecorder() {
   const [titleModal,    setTitleModal]    = useState(null);     // { blob, duration }
   const [playingId,     setPlayingId]     = useState(null);
   const [toast,         setToast]         = useState(null);
+  const [storageWarning, setStorageWarning] = useState(null); // { usedMB, percentUsed }
 
   const mediaRecRef  = useRef(null);
   const chunksRef    = useRef([]);
@@ -352,6 +353,24 @@ export default function NoteWellRecorder() {
   // ── Load saved recordings ─────────────────────────────────────────────────
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
   useEffect(() => { refresh(); }, [refresh]);
+
+  // ── Storage quota check ───────────────────────────────────────────────────
+  useEffect(() => {
+    const checkStorage = async () => {
+      if (!navigator.storage?.estimate) return;
+      try {
+        const { usage, quota } = await navigator.storage.estimate();
+        const usedMB = Math.round((usage || 0) / (1024 * 1024));
+        const percentUsed = quota ? Math.round(((usage || 0) / quota) * 100) : 0;
+        if (usedMB > 500 || percentUsed > 80) {
+          setStorageWarning({ usedMB, percentUsed });
+        } else {
+          setStorageWarning(null);
+        }
+      } catch { /* ignore */ }
+    };
+    checkStorage();
+  }, [recordings]);
 
   const showToast = (msg, type="info") => {
     setToast({ msg, type });
@@ -541,6 +560,31 @@ export default function NoteWellRecorder() {
             >
               ↑ Sync {localCount}
             </button>
+          </div>
+        )}
+
+        {/* Storage warning banner */}
+        {storageWarning && (
+          <div style={{
+            margin:"8px 16px 0", padding:"10px 14px", borderRadius:12,
+            background:"linear-gradient(135deg, #fef3c7, #fde68a)",
+            border:"1px solid #f59e0b", display:"flex", alignItems:"center", gap:10,
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2.5">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <div style={{flex:1}}>
+              <p style={{fontSize:12,fontWeight:600,color:"#92400e",margin:0}}>
+                Storage {storageWarning.percentUsed}% full ({storageWarning.usedMB} MB used)
+              </p>
+              <p style={{fontSize:11,color:"#a16207",margin:"2px 0 0"}}>
+                Sync or delete old recordings to free space
+              </p>
+            </div>
+            <button onClick={() => setStorageWarning(null)} style={{
+              background:"none", border:"none", cursor:"pointer", padding:4, color:"#92400e", fontSize:16, fontWeight:700
+            }}>×</button>
           </div>
         )}
 
