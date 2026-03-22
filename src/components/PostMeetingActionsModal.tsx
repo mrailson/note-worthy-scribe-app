@@ -357,6 +357,11 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         } catch (docError) {
           console.error('❌ Word document generation failed for auto-email:', docError);
         }
+
+        if (!wordAttachment) {
+          console.error('⚠️ Auto-email skipped: Word attachment is mandatory');
+          return;
+        }
         
         // Send email via Resend edge function
         const { data, error } = await supabase.functions.invoke('send-meeting-email-resend', {
