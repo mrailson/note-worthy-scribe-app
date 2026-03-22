@@ -99,8 +99,11 @@
   background: var(--nw-surface2);
   color: var(--nw-text2);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.15s;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .nw-mh-icon-btn:active {
