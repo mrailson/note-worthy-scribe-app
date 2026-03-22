@@ -271,7 +271,8 @@ const EngineSection: React.FC<EngineSectionProps> = ({ label, hue, lines, partia
     {lines.map((line, i) => (
       <div key={`${i}-${line.substring(0, 20)}`} style={{
         fontSize: 12, lineHeight: 1.5, color: 'hsl(var(--foreground) / 0.8)',
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0,
+        display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' as any,
+        overflow: 'hidden', margin: 0,
       }}>
         {line}
       </div>
@@ -280,7 +281,8 @@ const EngineSection: React.FC<EngineSectionProps> = ({ label, hue, lines, partia
       <div style={{
         fontSize: 12, lineHeight: 1.5, color: 'hsl(var(--foreground))',
         opacity: 0.4, fontStyle: 'italic',
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0,
+        display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' as any,
+        overflow: 'hidden', margin: 0,
       }}>
         {partial}
       </div>
