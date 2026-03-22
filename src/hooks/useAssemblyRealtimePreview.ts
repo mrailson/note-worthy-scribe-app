@@ -33,6 +33,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   const [currentPartial, setCurrentPartial] = useState<string>("");
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [isActive, _setIsActive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const setIsActive = useCallback((v: boolean) => { isActiveRef.current = v; _setIsActive(v); }, []);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
