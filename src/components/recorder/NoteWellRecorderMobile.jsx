@@ -1152,23 +1152,17 @@ export default function NoteWellRecorder() {
       });
       showToast("Meeting created — generating notes…", "success");
 
-      // Use auto-generate-meeting-notes (same as desktop) for title + governance-grade notes
-      const storedModel = localStorage.getItem('meeting-regenerate-llm');
-      const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
-      supabase.functions.invoke("auto-generate-meeting-notes", {
-        body: { meetingId: meetingData.id, modelOverride, skipQc: true },
-      }).then(({ error: genErr }) => {
-        if (genErr) {
-          console.error("[LegacySync] Note generation failed:", genErr);
-          showToast("Meeting saved — note generation failed", "error");
-        } else {
+      // Generate notes via governance-grade pipeline (generate-meeting-notes-claude)
+      generateNotesForMeeting(meetingData.id, transcriptText, rec.title || "Mobile Recording")
+        .then(() => {
           showToast("Meeting notes generated ✨", "success");
-          // Trigger overview + auto-email after notes complete
           triggerPostNoteActions(meetingData.id, transcriptText);
-        }
-        setSyncProgress(null);
-        refresh();
-      });
+        })
+        .catch((err) => {
+          console.error("[LegacySync] Note generation failed:", err);
+          showToast("Meeting saved — note generation failed", "error");
+        })
+        .finally(() => { setSyncProgress(null); refresh(); });
     } catch (err) {
       console.error("[LegacySync] Error:", err);
       await dbPatch(rec.id, { status: "error" });
