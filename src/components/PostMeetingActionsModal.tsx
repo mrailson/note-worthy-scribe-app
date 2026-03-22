@@ -13,7 +13,6 @@ import { FileText, PlayCircle, Loader2, CheckCircle, AlertCircle, Mail } from 'l
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from "@/utils/toastWrapper";
 import { useAuth } from '@/contexts/AuthContext';
-import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
 
 interface PostMeetingActionsModalProps {
   isOpen: boolean;
