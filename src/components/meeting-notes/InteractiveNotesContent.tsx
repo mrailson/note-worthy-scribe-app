@@ -106,8 +106,8 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
         const label = subHeadingMatch[1].trim();
         const bodyText = (subHeadingMatch[2] || '').replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
         const isResolved = label.toLowerCase() === 'resolved';
-        const labelClass = isResolved ? 'text-red-600 font-bold' : 'font-bold text-foreground';
-        const bodyClass = isResolved ? 'font-bold text-red-700' : 'text-foreground';
+        const labelClass = isResolved ? 'text-foreground font-bold' : 'font-bold text-foreground';
+        const bodyClass = isResolved ? 'font-bold text-foreground' : 'text-foreground';
         result.push({
           type: 'subheading',
           content: bodyText,

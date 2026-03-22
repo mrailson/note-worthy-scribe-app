@@ -162,10 +162,10 @@ function renderMeetingContent(content: string): React.ReactNode[] {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((p, i) => {
       if (p.startsWith('**') && p.endsWith('**')) {
-        // Highlight "Resolved" lines in red bold
+        // Highlight "Resolved" lines in black bold
         const inner = p.slice(2, -2);
         if (/^Resolved/i.test(inner)) {
-          return <strong key={i} style={{ color: COLORS.agreedRed }}>{inner}</strong>;
+          return <strong key={i} style={{ color: '#000000' }}>{inner}</strong>;
         }
         return <strong key={i}>{inner}</strong>;
       }
@@ -252,7 +252,7 @@ function renderMeetingContent(content: string): React.ReactNode[] {
       const isResolved = /^resolved/i.test(label);
       elements.push(
         <p key={`sub-${keyIndex++}`} className="text-sm leading-relaxed mb-2 pl-4" style={{ color: COLORS.textGrey }}>
-          <strong style={{ color: isResolved ? COLORS.agreedRed : COLORS.textGrey }}>{label}:</strong>{' '}
+          <strong style={{ color: isResolved ? '#000000' : COLORS.textGrey }}>{label}:</strong>{' '}
           {formatInline(rest)}
         </p>
       );
