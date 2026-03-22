@@ -429,6 +429,7 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying }) {
             {fmtDate(rec.createdAt)} · {fmtTime(rec.duration)} · {fmtSize(rec.size)}
             {rec.chunkCount > 1 ? ` · ${rec.chunkCount} segments` : ""}
           </div>
+          {/* Status badge */}
           <span style={{
             display:"inline-flex",alignItems:"center",gap:4,marginTop:4,
             padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,
@@ -437,7 +438,18 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying }) {
             <span style={{width:5,height:5,borderRadius:"50%",background:c.dot,
               animation:rec.status==="syncing"?"pulse 1s infinite":"none"}}/>
             {c.label}
+            {rec.status === "transcribed" && rec.transcript && (() => {
+              const wc = rec.transcript.split(/\s+/).filter(Boolean).length;
+              const fmt = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K` : String(wc);
+              return <span style={{marginLeft:2,opacity:0.85}}>· {fmt} Words</span>;
+            })()}
           </span>
+          {/* Safe-delete hint for completed recordings */}
+          {rec.status === "transcribed" && rec.meetingId && (
+            <div style={{fontSize:10,color:"#16a34a",marginTop:3,opacity:0.8,lineHeight:1.3}}>
+              ✓ You may now safely delete this recording
+            </div>
+          )}
         </div>
 
         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
