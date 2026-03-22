@@ -318,6 +318,7 @@ function Toast({ msg, type }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function NoteWellRecorder() {
+  const navigate = useNavigate();
   const [isOnline,      setIsOnline]      = useState(navigator.onLine);
   const [mode,          setMode]          = useState(navigator.onLine ? "live" : "offline");
   const [recState,      setRecState]      = useState("idle");   // idle|recording|paused
