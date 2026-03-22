@@ -75,18 +75,66 @@ const fmtSize  = b => b < 1048576 ? `${(b/1024).toFixed(0)} KB` : `${(b/1048576)
 
 // ─── Sub-components ───────────────────────────────────────────────────────
 
-function WaveformBars({ active, isPaused }) {
-  const heights = [0.4,0.7,1,0.8,0.5,0.9,0.6,1,0.75,0.45,0.85,0.6,0.95,0.7,0.4];
+function WaveformBars({ active, isPaused, stream }) {
+  const BAR_COUNT = 15;
+  const [levels, setLevels] = useState(() => new Array(BAR_COUNT).fill(0));
+  const analyserRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (!active || isPaused || !stream) {
+      setLevels(new Array(BAR_COUNT).fill(0));
+      return;
+    }
+
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.7;
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      audioCtxRef.current = audioCtx;
+      analyserRef.current = analyser;
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      const tick = () => {
+        analyser.getByteFrequencyData(dataArray);
+        // Sample BAR_COUNT bins from the frequency data
+        const binCount = dataArray.length;
+        const newLevels = [];
+        for (let i = 0; i < BAR_COUNT; i++) {
+          const binIndex = Math.min(Math.floor((i / BAR_COUNT) * binCount), binCount - 1);
+          newLevels.push(dataArray[binIndex] / 255);
+        }
+        setLevels(newLevels);
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    } catch (e) {
+      console.warn("WaveformBars: AudioContext failed", e);
+    }
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+        audioCtxRef.current.close().catch(() => {});
+      }
+      analyserRef.current = null;
+      audioCtxRef.current = null;
+    };
+  }, [active, isPaused, stream]);
+
   return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,height:40}}>
-      {heights.map((h, i) => (
+      {levels.map((level, i) => (
         <div key={i} style={{
           width:3, borderRadius:3,
-          height: active && !isPaused ? `${h*32}px` : "4px",
-          background: active ? "linear-gradient(180deg,#0288d1,#1565c0)" : "#e2e8f0",
-          transition: "height 0.3s ease",
-          animation: active && !isPaused
-            ? `barPulse ${0.6+i*0.07}s ${i*0.04}s ease-in-out infinite alternate` : "none",
+          height: active && !isPaused ? `${Math.max(4, level * 32)}px` : "4px",
+          background: active && level > 0.05 ? "linear-gradient(180deg,#0288d1,#1565c0)" : "#e2e8f0",
+          transition: "height 0.08s ease-out, background 0.15s",
         }}/>
       ))}
     </div>
