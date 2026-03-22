@@ -13,7 +13,6 @@ import { FileText, PlayCircle, Loader2, CheckCircle, AlertCircle, Mail } from 'l
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from "@/utils/toastWrapper";
 import { useAuth } from '@/contexts/AuthContext';
-import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
 
 interface PostMeetingActionsModalProps {
   isOpen: boolean;
@@ -270,63 +269,52 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           }
         );
         
-        // Generate Word document attachment
+        // Generate Word document attachment using professional generator
         let wordAttachment = null;
         try {
-          const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
-          const { parseContentToDocxElements, stripTranscriptSection } = await import('@/utils/generateMeetingNotesDocx');
-          const { buildNHSStyles, buildNumbering, NHS_COLORS, FONTS } = await import('@/utils/wordTheme');
+          const { generateProfessionalWordBlob } = await import('@/utils/generateProfessionalMeetingDocx');
           
-          const cleanedContent = stripTranscriptSection(freshMeetingData.content);
           const cleanTitle = freshMeetingData.title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
           
-          const children: any[] = [];
+          // Build parsed details from meeting metadata
+          const parsedDetails = {
+            title: cleanTitle,
+            date: meetingDate || undefined,
+            time: freshMeetingData.startTime 
+              ? new Date(freshMeetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' GMT'
+              : undefined,
+            location: freshMeetingData.format || freshMeetingData.location || undefined,
+            attendees: Array.isArray(freshMeetingData.participants) && freshMeetingData.participants.length > 0
+              ? freshMeetingData.participants.join(', ')
+              : undefined,
+          };
           
-          children.push(
-            new Paragraph({
-              children: [new TextRun({
-                text: cleanTitle,
-                bold: true,
-                size: FONTS.size.title,
-                color: NHS_COLORS.headingBlue,
-                font: FONTS.default,
-              })],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 240 },
-            })
-          );
+          // Fetch action items for this meeting
+          let parsedActionItems: any[] = [];
+          try {
+            const { data: actionItemsData } = await supabase
+              .from('meeting_action_items')
+              .select('action_text, assignee_name, due_date, priority, status')
+              .eq('meeting_id', meetingId);
+            
+            if (actionItemsData && actionItemsData.length > 0) {
+              parsedActionItems = actionItemsData.map((item: any) => ({
+                action: item.action_text,
+                owner: item.assignee_name || 'Unassigned',
+                deadline: item.due_date || undefined,
+                priority: item.priority || 'medium',
+                status: item.status === 'completed' ? 'Completed' as const : item.status === 'in_progress' ? 'In Progress' as const : 'Open' as const,
+                isCompleted: item.status === 'completed',
+              }));
+            }
+          } catch (aiErr) {
+            console.warn('Could not fetch action items for Word attachment:', aiErr);
+          }
           
-          const contentElements = await parseContentToDocxElements(cleanedContent);
-          children.push(...contentElements);
+          // Generate the professional Word blob
+          const blob = await generateProfessionalWordBlob(freshMeetingData.content, cleanTitle, parsedDetails, parsedActionItems);
           
-          const now = new Date();
-          const dateStr = now.toLocaleDateString('en-GB');
-          const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-          
-          children.push(
-            new Paragraph({
-              children: [new TextRun({
-                text: `Generated on ${dateStr} ${timeStr}`,
-                italics: true,
-                size: FONTS.size.footer,
-                color: NHS_COLORS.textLightGrey,
-                font: FONTS.default,
-              })],
-              alignment: AlignmentType.CENTER,
-              spacing: { before: 480 },
-            })
-          );
-          
-          const styles = buildNHSStyles();
-          const numbering = buildNumbering();
-          
-          const doc = new Document({
-            styles: styles,
-            numbering: numbering,
-            sections: [{ children }],
-          });
-          
-          const blob = await Packer.toBlob(doc);
+          // Convert blob to base64
           const base64Content = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -353,17 +341,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             filename: attachmentFilename,
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           };
-          console.log('📎 Word attachment generated:', attachmentFilename, `(${Math.round(base64Content.length / 1024)}KB base64)`);
+          console.log('📎 Professional Word attachment generated:', attachmentFilename, `(${Math.round(base64Content.length / 1024)}KB base64)`);
         } catch (docError) {
           console.error('❌ Word document generation failed for auto-email:', docError);
-          // Fallback: generate minimal Word doc
+          // Fallback: try professional generator without parsed data
           try {
-            const { Document, Packer, Paragraph, TextRun } = await import('docx');
-            const paragraphs = freshNotes.split('\n').filter(l => l.trim()).map(line =>
-              new Paragraph({ children: [new TextRun({ text: line.replace(/[#*_~`]/g, '').trim() })] })
-            );
-            const doc = new Document({ sections: [{ children: paragraphs }] });
-            const buffer = await Packer.toBlob(doc);
+            const { generateProfessionalWordBlob } = await import('@/utils/generateProfessionalMeetingDocx');
+            const blob = await generateProfessionalWordBlob(freshMeetingData.content, freshMeetingData.title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim(), undefined, []);
             const reader = new FileReader();
             const base64Promise = new Promise<string>((resolve) => {
               reader.onloadend = () => {
@@ -371,14 +355,14 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                 resolve(base64);
               };
             });
-            reader.readAsDataURL(buffer);
+            reader.readAsDataURL(blob);
             const base64Content = await base64Promise;
             wordAttachment = {
               content: base64Content,
               filename: `meeting_notes.docx`,
               type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
             };
-            console.log('📎 Word attachment generated via minimal fallback');
+            console.log('📎 Word attachment generated via professional fallback');
           } catch (fallbackError) {
             console.error('All Word generation attempts failed:', fallbackError);
           }
