@@ -1600,11 +1600,14 @@ export default function NoteWellRecorder() {
                     {["assemblyai","deepgram","browser-speech"].map(eng => (
                       <button key={eng} onClick={() => {
                         if (liveEngine !== eng) {
+                          stopLiveTranscription();
                           setLiveEngine(eng);
-                          // Restart live transcription with new engine
+                          setLiveTranscript("");
+                          setLiveWordCount(0);
+                          setLivePartial("");
+                          // Start with new engine directly (bypass stale closure)
                           if (activeStream) {
-                            stopLiveTranscription();
-                            setTimeout(() => startLiveTranscription(activeStream), 300);
+                            setTimeout(() => startLiveTranscription(activeStream, eng), 300);
                           }
                         }
                       }} style={{
