@@ -1,29 +1,68 @@
 
 
-# Fix: AssemblyAI Desktop Recording (Match Dictate Pattern)
+# Fix: AssemblyAI Reconnection Crash (`createMediaStreamSource` TypeError)
 
 ## Problem
-In mic-only mode on desktop, `buildAssemblyAudioStream` requests a **second** microphone stream and creates an **unused** `AudioContext`, causing AudioContext exhaustion and silent failures. The working Dictate feature avoids this by letting `AssemblyRealtimeClient` capture its own mic internally.
+The console shows a clear failure chain:
+1. Proxy closes with **1011** (server-side timeout/error)
+2. Reconnection fires, but crashes with: `TypeError: Failed to execute 'createMediaStreamSource' on 'AudioContext': parameter 1 is not of type 'MediaStream'`
+3. Subsequent attempts fail with "AudioContext destroyed — cannot start fallback"
+
+The root cause: when `dispose()` is called on the old client during reconnection, it runs `cleanupAudio()` which may stop/invalidate the mic stream. The new client then either receives a dead stream reference or `this.stream` ends up as `undefined` before hitting `createMediaStreamSource`.
 
 ## Changes
 
-### File 1: `src/components/MeetingRecorder.tsx` (~lines 4696-4756)
-**Skip `buildAssemblyAudioStream` entirely in mic-only mode.** When `assemblyAudioMixerRef.current` is null (no pre-built mixer from unified pipeline), check if we actually have system audio. If not (mic-only), call `startPreview(undefined, ...)` — letting AssemblyAI capture its own mic, exactly like Dictate.
+### File 1: `src/lib/assembly-realtime.ts` — Guard `startAudioCapture`
+Add a validation check before calling `createMediaStreamSource` to ensure `this.stream` is a valid `MediaStream` instance:
 
-- Lines 4702-4742: Replace the block that always calls `buildAssemblyAudioStream` with:
-  - If `screenStreamRef.current` has live audio tracks → still build mixer (mic+system works fine)
-  - If no system audio (mic-only) → skip mixer, set `assemblyInputMode('mic-only')`, and pass `undefined` to `startPreview`
-- Line 4749: Change to `assemblyAudioMixerRef.current?.mixedStream` (may be undefined now)
+- **Line ~544**: Before `this.audioCtx.createMediaStreamSource(this.stream)`, add:
+  ```typescript
+  if (!this.stream || !(this.stream instanceof MediaStream)) {
+    throw new Error("Audio capture failed: stream is not a valid MediaStream");
+  }
+  ```
 
-### File 2: `src/utils/buildAssemblyAudioStream.ts` (lines 125-143)
-**Remove orphaned `AudioContext` in mic-only fast path.** Line 131 creates `new AudioContext()` that serves no purpose. Return `null` for `audioContext` instead, preventing resource waste.
+- **Lines ~514-535**: Add `instanceof MediaStream` check alongside the track-liveness check on the external stream, so an invalid/detached object doesn't pass through:
+  ```typescript
+  if (this.externalStream && this.externalStream instanceof MediaStream) {
+    // existing track validation...
+  }
+  ```
+
+### File 2: `src/hooks/useAssemblyRealtimePreview.ts` — Better stream validation on reconnect
+- **Line ~129-137**: Add `instanceof MediaStream` check so a stale reference doesn't get passed:
+  ```typescript
+  if (stream && !(stream instanceof MediaStream)) {
+    lastExternalStreamRef.current = null;
+    stream = null;
+  }
+  ```
+
+### File 3: `src/lib/assembly-realtime.ts` — `dispose()` should NOT destroy streams it doesn't own
+- **Lines ~418-434**: The `dispose()` method currently calls `cleanupAudio()` which stops mic tracks even for streams the client doesn't own. For reconnection, `dispose()` should only close the WebSocket and worklet/processor nodes, but leave the mic stream alive if `ownsStream` is false.
+
+## Technical Details
+
+```text
+CURRENT RECONNECT FLOW (broken):
+  1. Proxy 1011 → onclose fires
+  2. attemptReconnect() → dispose() old client
+     → cleanupAudio() stops ALL tracks (even shared ones)
+  3. New client.start(lastExternalStream)
+     → stream tracks are dead OR stream is invalid object
+     → createMediaStreamSource(invalidThing) → TypeError
+
+FIXED FLOW:
+  1. Proxy 1011 → onclose fires
+  2. attemptReconnect() → dispose() old client
+     → only closes WS + audio nodes, preserves shared streams
+  3. New client.start(validatedStream || undefined)
+     → instanceof check ensures valid MediaStream
+     → if invalid, falls through to fresh getUserMedia
+```
 
 ## What stays unchanged
-- **Whisper**: Own transcriber, own mic stream, own AudioContext — untouched
-- **Deepgram**: Already handles `undefined` stream — untouched
-- **Mic+System mode**: Still uses the mixer pipeline — untouched
-- **Mobile**: Uses its own direct client — untouched
-
-## Result
-Desktop mic-only goes from 3 AudioContexts + 2 mic streams → 2 AudioContexts + 1 mic stream, matching the working Dictate pattern.
+- **Whisper / Deepgram**: Separate pipelines, untouched
+- **Mobile**: Uses direct client, unaffected
+- **Normal start/stop**: `stop()` method still does full cleanup as before
 
