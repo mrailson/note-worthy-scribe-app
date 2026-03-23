@@ -79,6 +79,7 @@ export class WhisperChunkTranscriber {
 
   private scheduleNextChunk() {
     if (!this.isActive) return;
+    const duration = this.chunkIndex === 0 ? this.firstChunkDurationMs : this.subsequentChunkDurationMs;
     this.chunkInterval = setTimeout(() => {
       if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
         this.mediaRecorder.stop();
@@ -90,7 +91,7 @@ export class WhisperChunkTranscriber {
           }
         }, 120);
       }
-    }, this.chunkDurationMs);
+    }, duration);
   }
 
   private async processAudioChunk() {
