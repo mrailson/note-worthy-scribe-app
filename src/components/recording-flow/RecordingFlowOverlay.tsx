@@ -109,6 +109,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             activeTab={activeTab}
             onTabChange={onTabChange || (() => {})}
             hasNewMeetings={hasNewMeetings}
+            meetingCount={meetingCount}
           />
           <h2 className="flex-1 text-[15px] font-extrabold text-foreground tracking-tight truncate">
             {STAGE_TITLES[stage] || 'Prepare Your Meeting'}
