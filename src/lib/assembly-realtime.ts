@@ -221,10 +221,13 @@ export class AssemblyRealtimeClient {
       }
     };
 
-    // Start audio capture (only on first connect, not on reconnect)
+    // Start audio capture only if no live AudioContext exists
     if (!this.audioCtx || this.audioCtx.state === 'closed') {
       console.log('🔄 AssemblyRealtimeClient: creating/recreating audio pipeline');
       await this.startAudioCapture();
+    } else {
+      // Audio pipeline still alive — just reconnect the WebSocket output
+      console.log('🔄 Reusing existing AudioContext for reconnect (state:', this.audioCtx.state, ')');
     }
     this.sending = true;
     this.shouldReconnect = true;
