@@ -59,6 +59,13 @@ export const TRANSCRIPTION_SERVICES: TranscriptionServiceInfo[] = [
     type: 'batch', 
     available: true 
   },
+  { 
+    id: 'gladia', 
+    name: 'Gladia', 
+    description: 'Fast, multilingual, real-time streaming', 
+    type: 'realtime', 
+    available: true 
+  },
 ];
 
 export interface TranscriptData {

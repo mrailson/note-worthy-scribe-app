@@ -105,7 +105,8 @@ export function getServiceDisplayName(service: TranscriptionService): string {
     'amazon-transcribe': 'Amazon Transcribe',
     'google-cloud': 'Google Cloud Speech',
     'browser-speech': 'Browser Speech',
-    'whisper-batch': 'Whisper (Batch)'
+    'whisper-batch': 'Whisper (Batch)',
+    'gladia': 'Gladia',
   };
   return names[service] || service;
 }
