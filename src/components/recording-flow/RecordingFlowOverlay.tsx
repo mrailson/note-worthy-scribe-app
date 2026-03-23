@@ -28,6 +28,7 @@ interface RecordingFlowOverlayProps {
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   hasNewMeetings?: boolean;
+  meetingCount?: number;
   children: React.ReactNode;
 }
 
