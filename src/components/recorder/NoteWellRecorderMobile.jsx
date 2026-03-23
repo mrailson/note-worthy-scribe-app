@@ -638,7 +638,7 @@ export default function NoteWellRecorder() {
             const s = status.toLowerCase();
             if (s.includes("recording") || s.includes("processing")) setLiveStatus("connected");
           },
-          { chunkDurationMs: 5000 }
+          { firstChunkDurationMs: 5000, subsequentChunkDurationMs: 90000 }
         );
         await transcriber.startTranscription();
         liveClientRef.current = transcriber;
