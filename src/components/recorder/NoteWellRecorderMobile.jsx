@@ -1884,6 +1884,7 @@ export default function NoteWellRecorder() {
             totalSize={titleModal.totalSize}
             onSave={saveRecording}
             onDiscard={()=>{ setTitleModal(null); setElapsed(0); }}
+            onContinue={continueRecording}
           />
         )}
 
