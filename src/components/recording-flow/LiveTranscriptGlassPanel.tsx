@@ -17,13 +17,15 @@ interface LiveTranscriptGlassPanelProps {
 
 const MAX_VISIBLE_LINES = 4;
 
-type EngineKey = 'all' | 'assembly' | 'deepgram' | 'whisper';
+type EngineKey = 'all' | 'assembly' | 'deepgram' | 'whisper' | 'gladia' | 'browser';
 
 const ENGINE_SOURCES: { key: EngineKey; label: string; hue: string }[] = [
   { key: 'all', label: 'All', hue: '0 0% 50%' },
   { key: 'assembly', label: 'AssemblyAI', hue: '217 91% 60%' },
   { key: 'deepgram', label: 'Deepgram', hue: '142 71% 45%' },
   { key: 'whisper', label: 'Whisper', hue: '270 67% 55%' },
+  { key: 'gladia', label: 'Gladia', hue: '35 95% 55%' },
+  { key: 'browser', label: 'Browser', hue: '190 70% 50%' },
 ];
 
 export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> = ({
