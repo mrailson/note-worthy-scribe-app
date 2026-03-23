@@ -53,6 +53,29 @@ serve(async (req) => {
     let content = meetingNotes || transcript;
     console.log('📄 Content length:', content.length);
 
+    // ── Short-content guard: prevent hallucination on minimal content ──
+    const overviewWordCount = content.trim().split(/\s+/).filter(Boolean).length;
+    console.log(`📏 Content word count: ${overviewWordCount}`);
+
+    if (overviewWordCount < 100) {
+      console.log('⚠️ Ultra-short content (<100 words) — saving factual overview without LLM');
+      const minimalOverview = `This recording captured minimal content (${overviewWordCount} words). No substantive meeting topics were identified.\n\n• Recording too short for meaningful summary\n• No decisions or actions identified\n• Consider re-recording if content was expected`;
+
+      const { error: dbError } = await supabase
+        .from('meeting_overviews')
+        .upsert({ meeting_id: meetingId, overview: minimalOverview }, { onConflict: 'meeting_id' });
+
+      if (dbError) {
+        console.error('❌ Database error saving minimal overview:', dbError);
+      } else {
+        console.log('✅ Minimal overview saved (short content guard)');
+      }
+
+      return new Response(JSON.stringify({ overview: minimalOverview, success: true, shortContent: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Initialize Supabase client and fetch meeting context
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
