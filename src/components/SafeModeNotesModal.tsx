@@ -1863,6 +1863,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const batchWords = batchTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
     const liveWords = liveTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
     const deepgramWords = deepgramTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
+    const gladiaWords = gladiaTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
     const bestOfAllWords = bestOfAllTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
     const hasBothSources = batchWords > 0 && liveWords > 0;
     const wordDifference = Math.abs(batchWords - liveWords);
@@ -1873,7 +1874,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       { source: 'Batch (Whisper)', words: batchWords },
       { source: 'Live (AssemblyAI)', words: liveWords },
       { source: 'Deepgram', words: deepgramWords },
-      { source: 'Best of All (3)', words: bestOfAllWords }
+      { source: 'Gladia', words: gladiaWords },
+      { source: 'Best of All', words: bestOfAllWords }
     ].filter(s => s.words > 0);
     const preferredSource = allWordCounts.length > 0 
       ? allWordCounts.reduce((a, b) => a.words >= b.words ? a : b).source 
