@@ -934,6 +934,9 @@ export const MeetingRecorder = ({
     
     // Clear Deepgram live transcript state
     deepgramPreview.clearTranscript();
+
+    // Clear Gladia live transcript state
+    gladiaPreview.clearTranscript();
     
     setSelectedMeetings([]);
     setIsSelectMode(false);
