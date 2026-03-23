@@ -2098,7 +2098,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `transcription-quality-summary-${new Date().toISOString().slice(0, 10)}.docx`);
     toast.success('Transcription Quality Summary downloaded');
-  }, [transcriptChunks, transcript, batchTranscript, liveTranscript, deepgramTranscript, bestOfAllTranscript, extractCleanChunkText, extractChunkTiming, isChunkInTranscript, meeting]);
+  }, [transcriptChunks, transcript, batchTranscript, liveTranscript, deepgramTranscript, gladiaTranscript, bestOfAllTranscript, extractCleanChunkText, extractChunkTiming, isChunkInTranscript, meeting]);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
