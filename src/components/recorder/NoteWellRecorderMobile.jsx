@@ -10,6 +10,8 @@ import { ChunkedTranscriptionService } from "@/lib/audio/ChunkedTranscriptionSer
 import { getSavedBitrate, saveBitrate } from "@/components/settings/RecordingQualitySettings";
 import { BITRATE_OPTIONS } from "@/lib/audio/ChunkedRecorder";
 import { attachDeviceInfoToMeeting } from "@/utils/meetingDeviceCapture";
+import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
+import { createTranscriber } from "@/utils/TranscriptionServiceFactory";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
@@ -531,6 +533,12 @@ export default function NoteWellRecorder() {
   const [syncProgress,  setSyncProgress]  = useState(null);
   const [bitrate,       setBitrate]       = useState(getSavedBitrate());
   const [activeStream,  setActiveStream]  = useState(null);  // MediaStream for waveform
+  const [liveEngine,    setLiveEngine]    = useState("assemblyai"); // assemblyai|deepgram|browser-speech
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [liveWordCount, setLiveWordCount] = useState(0);
+  const [livePartial,   setLivePartial]   = useState("");
+  const [liveStatus,    setLiveStatus]    = useState("idle"); // idle|connecting|connected|error
+  const liveClientRef   = useRef(null);  // AssemblyRealtimeClient or UnifiedTranscriber
   const recorderRef  = useRef(null);  // ChunkedRecorder instance
   const timerRef     = useRef(null);
   const audioRef     = useRef(new Audio());
@@ -574,6 +582,79 @@ export default function NoteWellRecorder() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // ── Live transcription engine ──────────────────────────────────────────────
+  const startLiveTranscription = useCallback(async (stream) => {
+    if (mode !== "live" || !isOnline) return;
+    stopLiveTranscription();
+    setLiveStatus("connecting");
+    setLiveTranscript("");
+    setLiveWordCount(0);
+    setLivePartial("");
+
+    try {
+      if (liveEngine === "assemblyai") {
+        const client = new AssemblyRealtimeClient({
+          onOpen: () => setLiveStatus("connected"),
+          onPartial: (text) => setLivePartial(text),
+          onFinal: (text) => {
+            setLiveTranscript(prev => {
+              const updated = prev ? prev + " " + text : text;
+              setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
+              return updated;
+            });
+            setLivePartial("");
+          },
+          onError: (err) => {
+            console.error("[LiveTranscript] AssemblyAI error:", err);
+            setLiveStatus("error");
+          },
+          onClose: () => setLiveStatus("idle"),
+        });
+        await client.start(stream);
+        liveClientRef.current = client;
+        setLiveStatus("connected");
+      } else {
+        // Deepgram or browser-speech via factory
+        const transcriber = createTranscriber(liveEngine, {
+          onTranscription: (text) => {
+            setLiveTranscript(prev => {
+              const updated = prev ? prev + " " + text : text;
+              setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
+              return updated;
+            });
+          },
+          onError: (err) => {
+            console.error(`[LiveTranscript] ${liveEngine} error:`, err);
+            setLiveStatus("error");
+          },
+          onStatusChange: (status) => {
+            if (status === "recording" || status === "connected") setLiveStatus("connected");
+          },
+        });
+        await transcriber.startTranscription();
+        liveClientRef.current = transcriber;
+        setLiveStatus("connected");
+      }
+    } catch (err) {
+      console.error("[LiveTranscript] Start failed:", err);
+      setLiveStatus("error");
+    }
+  }, [liveEngine, mode, isOnline]);
+
+  const stopLiveTranscription = useCallback(() => {
+    if (liveClientRef.current) {
+      try {
+        if (typeof liveClientRef.current.stop === "function") {
+          liveClientRef.current.stop();
+        } else if (typeof liveClientRef.current.stopTranscription === "function") {
+          liveClientRef.current.stopTranscription();
+        }
+      } catch { /* ignore */ }
+      liveClientRef.current = null;
+    }
+    setLiveStatus("idle");
+  }, []);
+
   // ── Recording controls (chunked) ─────────────────────────────────────────
   const startRecording = async () => {
     try {
@@ -589,6 +670,8 @@ export default function NoteWellRecorder() {
       recorderRef.current = recorder;
       await recorder.start();
       setActiveStream(recorder.mediaStream);
+      // Start live transcription with the same stream
+      startLiveTranscription(recorder.mediaStream);
 
       const startTime = Date.now();
       timerRef.current = setInterval(() => {
@@ -616,6 +699,7 @@ export default function NoteWellRecorder() {
 
   const stopRecording = async () => {
     clearInterval(timerRef.current);
+    stopLiveTranscription();
     if (!recorderRef.current) { setRecState("idle"); return; }
 
     const chunks = await recorderRef.current.stop();
@@ -1501,7 +1585,72 @@ export default function NoteWellRecorder() {
               <WaveformBars active={isRecording} isPaused={isPaused} stream={activeStream} />
             </div>
 
-            {/* Controls */}
+            {/* Live Transcript Debug Panel */}
+            {active && mode === "live" && (
+              <div style={{background:"#f0f4fb",borderRadius:12,padding:"10px 12px",marginBottom:14,border:"1px solid rgba(21,101,192,0.12)"}}>
+                {/* Engine selector + status */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                  <div style={{display:"flex",gap:4}}>
+                    {["assemblyai","deepgram","browser-speech"].map(eng => (
+                      <button key={eng} onClick={() => {
+                        if (liveEngine !== eng) {
+                          setLiveEngine(eng);
+                          // Restart live transcription with new engine
+                          if (activeStream) {
+                            stopLiveTranscription();
+                            setTimeout(() => startLiveTranscription(activeStream), 300);
+                          }
+                        }
+                      }} style={{
+                        padding:"3px 8px",borderRadius:8,border:"none",cursor:"pointer",
+                        fontSize:10,fontWeight:600,fontFamily:"inherit",
+                        background: liveEngine===eng ? "#1565c0" : "white",
+                        color: liveEngine===eng ? "white" : "#64748b",
+                        boxShadow: liveEngine===eng ? "0 2px 6px rgba(21,101,192,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
+                        transition:"all 0.2s",
+                      }}>
+                        {eng==="assemblyai"?"Assembly":eng==="deepgram"?"Deepgram":"Browser"}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:5}}>
+                    <span style={{
+                      width:6,height:6,borderRadius:"50%",
+                      background: liveStatus==="connected"?"#16a34a":liveStatus==="connecting"?"#f59e0b":liveStatus==="error"?"#dc2626":"#94a3b8",
+                      animation: liveStatus==="connecting"?"pulse 1s infinite":"none",
+                    }}/>
+                    <span style={{fontSize:10,color:"#64748b",fontWeight:500}}>
+                      {liveStatus==="connected"?"Live":liveStatus==="connecting"?"Connecting…":liveStatus==="error"?"Error":"Off"}
+                    </span>
+                    <span style={{fontSize:10,color:"#1565c0",fontWeight:700,marginLeft:4}}>
+                      {liveWordCount} words
+                    </span>
+                  </div>
+                </div>
+                {/* Transcript preview — last ~100 chars */}
+                <div style={{
+                  fontSize:11,color:"#334155",lineHeight:1.5,
+                  maxHeight:60,overflowY:"auto",
+                  fontFamily:"'SF Mono','Menlo',monospace",
+                  wordBreak:"break-word",
+                }}>
+                  {liveTranscript ? (
+                    <>
+                      <span style={{opacity:0.6}}>
+                        {liveTranscript.length > 200 ? "…" + liveTranscript.slice(-200) : liveTranscript}
+                      </span>
+                      {livePartial && <span style={{color:"#1565c0",fontStyle:"italic"}}> {livePartial}</span>}
+                    </>
+                  ) : livePartial ? (
+                    <span style={{color:"#1565c0",fontStyle:"italic"}}>{livePartial}</span>
+                  ) : (
+                    <span style={{color:"#94a3b8",fontStyle:"italic"}}>Waiting for speech…</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20}}>
               {active && (
                 <button onClick={stopRecording} style={{width:52,height:52,borderRadius:"50%",border:"2px solid rgba(220,38,38,0.25)",background:"rgba(220,38,38,0.07)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
