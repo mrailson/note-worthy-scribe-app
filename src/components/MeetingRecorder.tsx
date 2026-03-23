@@ -8199,8 +8199,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       {/* Live Import Modal */}
       <LiveImportModalWithContext
         open={audioImportOpen}
-        onOpenChange={setAudioImportOpen}
+        onOpenChange={(open) => { setAudioImportOpen(open); if (!open) setEditGroupId(null); }}
         defaultTab={audioImportDefaultTab}
+        editGroupId={editGroupId}
       />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
