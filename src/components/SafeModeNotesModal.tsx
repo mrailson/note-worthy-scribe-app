@@ -1241,6 +1241,29 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         setDeepgramTranscript('');
       }
 
+      // Load Gladia transcript from gladia_transcriptions table
+      try {
+        const { data: gladiaData } = await supabase
+          .from('gladia_transcriptions' as any)
+          .select('transcription_text')
+          .eq('meeting_id', meeting.id)
+          .eq('is_final', true)
+          .order('chunk_number', { ascending: true });
+
+        if (gladiaData && gladiaData.length > 0) {
+          const rawGladiaText = (gladiaData as any[])
+            .map((d: any) => d.transcription_text)
+            .filter(Boolean)
+            .join(' ');
+          setGladiaTranscript(rawGladiaText ? dedupTranscriptText(rawGladiaText).text : '');
+        } else {
+          setGladiaTranscript('');
+        }
+      } catch (gladiaError) {
+        console.warn('Failed to load Gladia transcript:', gladiaError);
+        setGladiaTranscript('');
+      }
+
       // Set the main transcript (prefer batch, fallback to live)
       if (batchText) {
         setTranscript(batchText);
