@@ -222,7 +222,8 @@ export class AssemblyRealtimeClient {
     };
 
     // Start audio capture (only on first connect, not on reconnect)
-    if (!this.audioCtx) {
+    if (!this.audioCtx || this.audioCtx.state === 'closed') {
+      console.log('🔄 AssemblyRealtimeClient: creating/recreating audio pipeline');
       await this.startAudioCapture();
     }
     this.sending = true;
