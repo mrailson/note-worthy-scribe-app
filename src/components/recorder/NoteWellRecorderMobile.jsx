@@ -1655,7 +1655,7 @@ export default function NoteWellRecorder() {
                         boxShadow: liveEngine===eng ? "0 2px 6px rgba(21,101,192,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
                         transition:"all 0.2s",
                       }}>
-                        {eng==="assemblyai"?"Assembly":eng==="deepgram"?"Deepgram":"Browser"}
+                        {eng==="assemblyai"?"Assembly":eng==="deepgram"?"Deepgram":eng==="whisper"?"Whisper":"Browser"}
                       </button>
                     ))}
                   </div>
