@@ -335,6 +335,15 @@ const MeetingHistory = () => {
       }
       
       console.log('🔍 Summary data fetched:', summaryData?.summary ? 'Summary exists' : 'No summary');
+
+      // Self-heal: if summary exists but notes_generation_status is stuck
+      if (summaryData?.summary && 
+          (meeting.notes_generation_status === 'queued' || meeting.notes_generation_status === 'generating')) {
+        supabase.from('meetings')
+          .update({ notes_generation_status: 'completed' })
+          .eq('id', meetingId)
+          .then(() => console.log('🔧 Self-healed stuck notes_generation_status for', meetingId));
+      }
       
       // Load notes_style_3 (Minutes - Standard) for email functionality
       const notesStyle3 = meeting.notes_style_3 || '';
