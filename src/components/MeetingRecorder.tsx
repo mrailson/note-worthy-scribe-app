@@ -905,6 +905,7 @@ export const MeetingRecorder = ({
     setChunkCounter(0);
     chunkCounterRef.current = 0; // CRITICAL: Reset ref alongside state
     setChunkSaveStatuses([]); // Clear previous meeting's chunk data
+    setBrowserSpeechPreviewText(''); // Reset browser speech preview
     setRemovedSegments([]); // Clear removed segments from previous meeting
     setConnectionStatus("Disconnected");
     setSpeakerCount(0);
