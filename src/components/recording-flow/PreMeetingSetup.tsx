@@ -604,6 +604,14 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
               </div>
             ))}
 
+            <Input
+              value={agendaInput}
+              onChange={e => setAgendaInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleAddAgenda(); }}
+              placeholder="Type agenda item + Enter..."
+              className="mt-2 border-dashed border-muted-foreground/30 bg-muted/20 text-xs"
+            />
+
             {/* Meeting type selector — only shown when not already detected */}
             {!meetingType && (
               <div className="mt-2 pt-2 border-t border-border/30">
@@ -630,14 +638,6 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                 </div>
               </div>
             )}
-
-            <Input
-              value={agendaInput}
-              onChange={e => setAgendaInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleAddAgenda(); }}
-              placeholder="Type agenda item + Enter..."
-              className="mt-2 border-dashed border-muted-foreground/30 bg-muted/20 text-xs"
-            />
             <input
               ref={fileInputRef}
               type="file"
