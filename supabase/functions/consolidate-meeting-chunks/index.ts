@@ -1003,10 +1003,11 @@ serve(async (req) => {
     }
 
     const deepgramChunkCount = deepgramChunksData?.length || 0;
-    console.log(`📊 Deepgram chunks fetched: ${deepgramChunkCount}`);
+    const gladiaChunkCount = gladiaChunksData?.length || 0;
+    console.log(`📊 Deepgram chunks fetched: ${deepgramChunkCount}, Gladia chunks fetched: ${gladiaChunkCount}`);
 
     // If no chunks AND we have a live transcript, save it and return
-    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0) && liveTranscript && liveTranscript.length > 50) {
+    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0) && (!gladiaChunksData || gladiaChunksData.length === 0) && liveTranscript && liveTranscript.length > 50) {
       console.log('✅ No chunks found, using provided live transcript');
       const wordCount = liveTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
       
