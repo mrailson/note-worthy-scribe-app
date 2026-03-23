@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useMeetingSetup } from './MeetingSetupContext';
 import { ContextStatusPill } from './ContextStatusPill';
 import { AvatarStack } from './AvatarStack';
 import { LiveTranscriptGlassPanel } from './LiveTranscriptGlassPanel';
+import { AttendeePreviewPanel } from './AttendeePreviewPanel';
+import { AgendaPreviewPanel } from './AgendaPreviewPanel';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LiveContextStatusBarProps {
