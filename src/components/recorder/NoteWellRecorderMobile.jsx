@@ -1632,69 +1632,86 @@ export default function NoteWellRecorder() {
               <WaveformBars active={isRecording} isPaused={isPaused} stream={activeStream} />
             </div>
 
-            {/* Live Transcript Debug Panel */}
+            {/* Live Word Count + Expandable Panel */}
             {active && mode === "live" && (
-              <div style={{background:"#f0f4fb",borderRadius:12,padding:"10px 12px",marginBottom:14,border:"1px solid rgba(21,101,192,0.12)"}}>
-                {/* Engine selector + status */}
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                  <div style={{display:"flex",gap:4}}>
-                    {["assemblyai","deepgram"].map(eng => (
-                      <button key={eng} onClick={() => {
-                        if (liveEngine !== eng) {
-                          stopLiveTranscription();
-                          setLiveEngine(eng);
-                          setLiveTranscript("");
-                          setLivePartial("");
-                          if (activeStream) {
-                            setTimeout(() => startLiveTranscription(activeStream, eng), 300);
-                          }
-                        }
-                      }} style={{
-                        padding:"3px 8px",borderRadius:8,border:"none",cursor:"pointer",
-                        fontSize:10,fontWeight:600,fontFamily:"inherit",
-                        background: liveEngine===eng ? "#1565c0" : "white",
-                        color: liveEngine===eng ? "white" : "#64748b",
-                        boxShadow: liveEngine===eng ? "0 2px 6px rgba(21,101,192,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
-                        transition:"all 0.2s",
-                      }}>
-                        {eng==="assemblyai"?"Assembly":"Deepgram"}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:5}}>
-                    <span style={{
-                      width:6,height:6,borderRadius:"50%",
-                      background: liveStatus==="connected"?"#16a34a":liveStatus==="connecting"?"#f59e0b":liveStatus==="error"?"#dc2626":"#94a3b8",
-                      animation: liveStatus==="connecting"?"pulse 1s infinite":"none",
-                    }}/>
-                    <span style={{fontSize:10,color:"#64748b",fontWeight:500}}>
-                      {liveStatus==="connected"?"Live":liveStatus==="connecting"?"Connecting…":liveStatus==="error"?"Error":"Off"}
-                    </span>
-                    <span style={{fontSize:16,color:"#1565c0",fontWeight:800,marginLeft:4}}>
-                      {liveWordCount} words
-                    </span>
-                  </div>
-                </div>
-                {/* Transcript preview — last ~100 chars */}
-                <div style={{
-                  fontSize:11,color:"#334155",lineHeight:1.5,
-                  maxHeight:60,overflowY:"auto",
-                  fontFamily:"'SF Mono','Menlo',monospace",
-                  wordBreak:"break-word",
-                }}>
-                  {liveTranscript ? (
-                    <>
-                      <span style={{opacity:0.6}}>
-                        {liveTranscript.length > 200 ? "…" + liveTranscript.slice(-200) : liveTranscript}
+              <div style={{marginBottom:14}}>
+                {/* Always-visible word count tap target */}
+                <button
+                  onClick={() => setLiveExpanded(e => !e)}
+                  style={{
+                    display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+                    width:"100%",padding:"8px 12px",borderRadius:12,border:"1px solid rgba(21,101,192,0.12)",
+                    background:"#f0f4fb",cursor:"pointer",fontFamily:"inherit",
+                  }}
+                >
+                  <span style={{
+                    width:6,height:6,borderRadius:"50%",
+                    background: liveStatus==="connected"?"#16a34a":liveStatus==="connecting"?"#f59e0b":liveStatus==="error"?"#dc2626":"#94a3b8",
+                    animation: liveStatus==="connecting"?"pulse 1s infinite":"none",
+                  }}/>
+                  <span style={{fontSize:18,color:"#1565c0",fontWeight:800}}>
+                    {liveWordCount} words
+                  </span>
+                  <span style={{fontSize:10,color:"#94a3b8",marginLeft:2}}>
+                    {liveExpanded ? "▲" : "▼"}
+                  </span>
+                </button>
+
+                {/* Expanded panel */}
+                {liveExpanded && (
+                  <div style={{background:"#f0f4fb",borderRadius:"0 0 12px 12px",padding:"10px 12px",borderLeft:"1px solid rgba(21,101,192,0.12)",borderRight:"1px solid rgba(21,101,192,0.12)",borderBottom:"1px solid rgba(21,101,192,0.12)",marginTop:-1}}>
+                    {/* Engine selector */}
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                      <div style={{display:"flex",gap:4}}>
+                        {["assemblyai","deepgram"].map(eng => (
+                          <button key={eng} onClick={() => {
+                            if (liveEngine !== eng) {
+                              stopLiveTranscription();
+                              setLiveEngine(eng);
+                              setLiveTranscript("");
+                              setLivePartial("");
+                              if (activeStream) {
+                                setTimeout(() => startLiveTranscription(activeStream, eng), 300);
+                              }
+                            }
+                          }} style={{
+                            padding:"3px 8px",borderRadius:8,border:"none",cursor:"pointer",
+                            fontSize:10,fontWeight:600,fontFamily:"inherit",
+                            background: liveEngine===eng ? "#1565c0" : "white",
+                            color: liveEngine===eng ? "white" : "#64748b",
+                            boxShadow: liveEngine===eng ? "0 2px 6px rgba(21,101,192,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
+                            transition:"all 0.2s",
+                          }}>
+                            {eng==="assemblyai"?"Assembly":"Deepgram"}
+                          </button>
+                        ))}
+                      </div>
+                      <span style={{fontSize:10,color:"#64748b",fontWeight:500}}>
+                        {liveStatus==="connected"?"Live":liveStatus==="connecting"?"Connecting…":liveStatus==="error"?"Error":"Off"}
                       </span>
-                      {livePartial && <span style={{color:"#1565c0",fontStyle:"italic"}}> {livePartial}</span>}
-                    </>
-                  ) : livePartial ? (
-                    <span style={{color:"#1565c0",fontStyle:"italic"}}>{livePartial}</span>
-                  ) : (
-                    <span style={{color:"#94a3b8",fontStyle:"italic"}}>Waiting for speech…</span>
-                  )}
-                </div>
+                    </div>
+                    {/* Transcript preview */}
+                    <div style={{
+                      fontSize:11,color:"#334155",lineHeight:1.5,
+                      maxHeight:60,overflowY:"auto",
+                      fontFamily:"'SF Mono','Menlo',monospace",
+                      wordBreak:"break-word",
+                    }}>
+                      {liveTranscript ? (
+                        <>
+                          <span style={{opacity:0.6}}>
+                            {liveTranscript.length > 200 ? "…" + liveTranscript.slice(-200) : liveTranscript}
+                          </span>
+                          {livePartial && <span style={{color:"#1565c0",fontStyle:"italic"}}> {livePartial}</span>}
+                        </>
+                      ) : livePartial ? (
+                        <span style={{color:"#1565c0",fontStyle:"italic"}}>{livePartial}</span>
+                      ) : (
+                        <span style={{color:"#94a3b8",fontStyle:"italic"}}>Waiting for speech…</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
