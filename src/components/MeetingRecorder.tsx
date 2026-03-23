@@ -4918,10 +4918,12 @@ export const MeetingRecorder = ({
     // so word-count validation uses the real values
     const capturedAssemblyTranscript = assemblyPreview.fullTranscript || '';
     const capturedDeepgramTranscript = deepgramPreview.fullTranscript || '';
+    const capturedGladiaTranscript = gladiaPreview.fullTranscript || '';
     
     // Now clear real-time transcript buffers so they don't bleed into the next meeting
     assemblyPreview.clearTranscript();
     deepgramPreview.clearTranscript();
+    gladiaPreview.clearTranscript();
     
     // CROSSOVER PREVENTION: Capture and then remove sessionStorage meeting ID synchronously
     // Late-arriving callbacks can no longer read a stale meeting ID
