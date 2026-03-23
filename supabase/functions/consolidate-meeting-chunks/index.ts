@@ -207,7 +207,7 @@ function postMergeDedup(segments: string[]): PostMergeDedupResult {
 
 // ============= BEST-OF-ALL MERGER (Deno-compatible, 3-engine) =============
 
-type Engine = 'assembly' | 'whisper' | 'deepgram';
+type Engine = 'assembly' | 'whisper' | 'deepgram' | 'gladia';
 
 interface RawChunk {
   engine: Engine;
