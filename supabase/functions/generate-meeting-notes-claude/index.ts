@@ -747,8 +747,8 @@ serve(async (req) => {
           const chunkPrompt = buildUserPrompt({ ...promptParams, transcript: chunks[i] });
 
           const result = isClaudeModel
-            ? await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, chunkPrompt)
-            : await callGemini(NOTEWELL_SYSTEM_PROMPT, chunkPrompt);
+            ? await callClaude(effectiveModelOverride, effectiveSystemPrompt, chunkPrompt)
+            : await callGemini(effectiveSystemPrompt, chunkPrompt);
           chunkResults.push(result);
         }
 
@@ -756,15 +756,15 @@ serve(async (req) => {
         const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document following the same output format. Merge duplicate topics, unify the action log, and deduplicate decisions. In the DECISIONS REGISTER, label every entry as **[RESOLVED]**, **[AGREED]**, or **[NOTED]**. Maintain ALL specific details, names, dates, figures. Use British English throughout.\n\nCHUNK RESULTS:\n${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
         
         meetingMinutes = isClaudeModel
-          ? await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, consolidationPrompt)
-          : await callGemini(NOTEWELL_SYSTEM_PROMPT, consolidationPrompt);
+          ? await callClaude(effectiveModelOverride, effectiveSystemPrompt, consolidationPrompt)
+          : await callGemini(effectiveSystemPrompt, consolidationPrompt);
       } else {
         const userPrompt = buildUserPrompt(promptParams);
         const apiStart = Date.now();
 
         meetingMinutes = isClaudeModel
-          ? await callClaude(effectiveModelOverride, NOTEWELL_SYSTEM_PROMPT, userPrompt)
-          : await callGemini(NOTEWELL_SYSTEM_PROMPT, userPrompt);
+          ? await callClaude(effectiveModelOverride, effectiveSystemPrompt, userPrompt)
+          : await callGemini(effectiveSystemPrompt, userPrompt);
 
         console.log(`⚡ API response: ${Date.now() - apiStart}ms`);
       }
