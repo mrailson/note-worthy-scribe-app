@@ -56,6 +56,43 @@ export const useGladiaRealtimePreview = (): UseGladiaRealtimePreviewReturn => {
     }
   }, []);
 
+  // Save final chunk to gladia_transcriptions table
+  const saveChunkToDatabase = useCallback(async (text: string, confidence: number) => {
+    if (!meetingIdRef.current || !text.trim()) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('🎤 Gladia: No user for DB save');
+        return;
+      }
+
+      chunkCounterRef.current += 1;
+      const chunkNumber = chunkCounterRef.current;
+
+      const { error: dbError } = await supabase
+        .from('gladia_transcriptions' as any)
+        .insert({
+          meeting_id: meetingIdRef.current,
+          user_id: user.id,
+          session_id: sessionIdRef.current || meetingIdRef.current,
+          chunk_number: chunkNumber,
+          transcription_text: text.trim(),
+          confidence: confidence,
+          is_final: true,
+          word_count: text.trim().split(/\s+/).filter((w: string) => w.length > 0).length
+        });
+
+      if (dbError) {
+        console.error('❌ Gladia: Failed to save chunk:', dbError);
+      } else {
+        console.log(`💾 Gladia: Saved chunk #${chunkNumber} to DB`);
+      }
+    } catch (err) {
+      console.error('❌ Gladia: Exception saving chunk:', err);
+    }
+  }, []);
+
   const updateTranscript = useCallback((text: string, isFinal: boolean) => {
     if (!text.trim()) return;
 
@@ -66,12 +103,14 @@ export const useGladiaRealtimePreview = (): UseGladiaRealtimePreviewReturn => {
       setFullTranscript(baseTranscriptRef.current);
       const words = baseTranscriptRef.current.split(/\s+/).slice(-MAX_WORDS);
       setLiveTranscript(words.join(' '));
+      // Persist to DB
+      saveChunkToDatabase(text, 0.78);
     } else {
       const combined = (baseTranscriptRef.current + ' ' + text).trim();
       const words = combined.split(/\s+/).slice(-MAX_WORDS);
       setLiveTranscript(words.join(' '));
     }
-  }, []);
+  }, [saveChunkToDatabase]);
 
   const connectWebSocket = useCallback(async (meetingId: string, externalStream?: MediaStream) => {
     const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/gladia-streaming`;
