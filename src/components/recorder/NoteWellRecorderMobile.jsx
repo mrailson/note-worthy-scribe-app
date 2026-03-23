@@ -325,7 +325,7 @@ function SettingsSheet({ onClose, bitrate, onBitrateChange }) {
   );
 }
 
-function TitleModal({ duration, chunkCount, totalSize, onSave, onDiscard }) {
+function TitleModal({ duration, chunkCount, totalSize, onSave, onDiscard, onContinue }) {
   const [title, setTitle] = useState(
     `Meeting ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"})} ${new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`
   );
@@ -345,6 +345,11 @@ function TitleModal({ duration, chunkCount, totalSize, onSave, onDiscard }) {
           style={{width:"100%",padding:"12px 14px",borderRadius:12,border:"1.5px solid rgba(21,101,192,0.3)",
             fontSize:14,color:"#1a2332",outline:"none",marginBottom:14,background:"#f8fafc",fontFamily:"inherit"}}
         />
+        {onContinue && (
+          <button onClick={onContinue} style={{width:"100%",padding:"13px",borderRadius:12,border:"1.5px solid #16a34a",background:"#f0fdf4",cursor:"pointer",fontSize:14,fontWeight:600,color:"#16a34a",fontFamily:"inherit",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            ▶ Continue Recording
+          </button>
+        )}
         <div style={{display:"flex",gap:10}}>
           <button onClick={onDiscard} style={{flex:1,padding:"13px",borderRadius:12,border:"1.5px solid #e2e8f0",background:"white",cursor:"pointer",fontSize:14,fontWeight:600,color:"#64748b",fontFamily:"inherit"}}>
             Discard
@@ -764,8 +769,36 @@ export default function NoteWellRecorder() {
 
     const totalSize = chunks.reduce((s, c) => s + c.sizeBytes, 0);
     const durationSecs = Math.floor(elapsed / 1000);
-    setTitleModal({ chunks, duration: durationSecs, totalSize, chunkCount: chunks.length });
+    setTitleModal({ chunks, duration: durationSecs, totalSize, chunkCount: chunks.length, stoppedElapsed: elapsed });
     setElapsed(0);
+  };
+
+  const continueRecording = async () => {
+    if (!titleModal) return;
+    const prevElapsed = titleModal.stoppedElapsed || 0;
+    setTitleModal(null);
+    try {
+      const recorder = new ChunkedRecorder({
+        chunkDurationMs: 15 * 60 * 1000,
+        audioBitrate: bitrate,
+        onChunkReady: (chunk) => {
+          setChunksCompleted(prev => prev + 1);
+          console.log(`[ChunkedRecording] Chunk ${chunk.index} ready`);
+        },
+        onStatusChange: (status) => console.log(`[ChunkedRecording] Status: ${status}`),
+      });
+      recorderRef.current = recorder;
+      await recorder.start();
+      setActiveStream(recorder.mediaStream);
+      startLiveTranscription(recorder.mediaStream);
+      const resumeFrom = Date.now() - prevElapsed;
+      timerRef.current = setInterval(() => setElapsed(Date.now() - resumeFrom), 500);
+      setRecState("recording");
+      showToast("Recording resumed", "success");
+    } catch (err) {
+      console.error("Failed to continue recording:", err);
+      showToast("Failed to resume", "error");
+    }
   };
 
   const saveRecording = async (title) => {
@@ -1851,6 +1884,7 @@ export default function NoteWellRecorder() {
             totalSize={titleModal.totalSize}
             onSave={saveRecording}
             onDiscard={()=>{ setTitleModal(null); setElapsed(0); }}
+            onContinue={continueRecording}
           />
         )}
 
