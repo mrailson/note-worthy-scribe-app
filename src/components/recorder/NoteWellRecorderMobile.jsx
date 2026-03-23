@@ -670,6 +670,8 @@ export default function NoteWellRecorder() {
       recorderRef.current = recorder;
       await recorder.start();
       setActiveStream(recorder.mediaStream);
+      // Start live transcription with the same stream
+      startLiveTranscription(recorder.mediaStream);
 
       const startTime = Date.now();
       timerRef.current = setInterval(() => {
