@@ -5897,7 +5897,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           const functionResult = await supabase.functions
             .invoke('generate-meeting-notes-claude', {
               body: { 
-                transcript: transcript,
+                transcript: meetingData.transcript,
                 meetingTitle: savedMeeting.title || 'Meeting Notes',
                 meetingDate: new Date(savedMeeting.start_time || Date.now()).toLocaleDateString('en-GB'),
                 meetingTime: new Date(savedMeeting.start_time || Date.now()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
