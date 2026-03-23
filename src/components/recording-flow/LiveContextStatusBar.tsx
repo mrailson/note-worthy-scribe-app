@@ -19,6 +19,8 @@ interface LiveContextStatusBarProps {
   deepgramText?: string;
   whisperChunkText?: string;
   whisperChunkNum?: number;
+  gladiaText?: string;
+  browserText?: string;
 }
 
 export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
