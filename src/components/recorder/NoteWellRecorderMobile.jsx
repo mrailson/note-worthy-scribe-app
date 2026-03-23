@@ -12,6 +12,7 @@ import { BITRATE_OPTIONS } from "@/lib/audio/ChunkedRecorder";
 import { attachDeviceInfoToMeeting } from "@/utils/meetingDeviceCapture";
 import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
 import { createTranscriber } from "@/utils/TranscriptionServiceFactory";
+import { WhisperChunkTranscriber } from "@/utils/WhisperChunkTranscriber";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
@@ -616,6 +617,32 @@ export default function NoteWellRecorder() {
         await client.start(stream);
         liveClientRef.current = client;
         setLiveStatus("connected");
+      } else if (engine === "whisper") {
+        // Whisper chunk transcriber — sends audio chunks to edge function
+        const transcriber = new WhisperChunkTranscriber(
+          (data) => {
+            const t = typeof data === "object" ? (data?.text ?? "") : String(data || "");
+            if (!t.trim()) return;
+            setLiveTranscript(prev => {
+              const p = typeof prev === "string" ? prev : "";
+              const updated = p ? p + " " + t : t;
+              setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
+              return updated;
+            });
+          },
+          (err) => {
+            console.error("[LiveTranscript] Whisper error:", err);
+            setLiveStatus("error");
+          },
+          (status) => {
+            const s = status.toLowerCase();
+            if (s.includes("recording") || s.includes("processing")) setLiveStatus("connected");
+          },
+          { chunkDurationMs: 5000 }
+        );
+        await transcriber.startTranscription();
+        liveClientRef.current = transcriber;
+        setLiveStatus("connected");
       } else {
         // Deepgram or browser-speech via factory
         const transcriber = createTranscriber(engine, {
@@ -643,7 +670,8 @@ export default function NoteWellRecorder() {
             setLiveStatus("error");
           },
           onStatusChange: (status) => {
-            if (status === "recording" || status === "connected") setLiveStatus("connected");
+            const s = (status || "").toLowerCase();
+            if (s === "recording" || s === "connected" || s === "listening for speech...") setLiveStatus("connected");
           },
         });
         await transcriber.startTranscription();
@@ -1606,7 +1634,7 @@ export default function NoteWellRecorder() {
                 {/* Engine selector + status */}
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                   <div style={{display:"flex",gap:4}}>
-                    {["assemblyai","deepgram","browser-speech"].map(eng => (
+                    {["assemblyai","deepgram","browser-speech","whisper"].map(eng => (
                       <button key={eng} onClick={() => {
                         if (liveEngine !== eng) {
                           stopLiveTranscription();
@@ -1627,7 +1655,7 @@ export default function NoteWellRecorder() {
                         boxShadow: liveEngine===eng ? "0 2px 6px rgba(21,101,192,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
                         transition:"all 0.2s",
                       }}>
-                        {eng==="assemblyai"?"Assembly":eng==="deepgram"?"Deepgram":"Browser"}
+                        {eng==="assemblyai"?"Assembly":eng==="deepgram"?"Deepgram":eng==="whisper"?"Whisper":"Browser"}
                       </button>
                     ))}
                   </div>
