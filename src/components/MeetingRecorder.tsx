@@ -81,6 +81,7 @@ import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
 import { TeamsAudioHint } from "@/components/meeting/TeamsAudioHint";
 import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRealtimePreview";
 import { useDeepgramRealtimePreview } from "@/hooks/useDeepgramRealtimePreview";
+import { useGladiaRealtimePreview } from "@/hooks/useGladiaRealtimePreview";
 import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
