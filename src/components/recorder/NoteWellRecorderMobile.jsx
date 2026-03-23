@@ -583,7 +583,8 @@ export default function NoteWellRecorder() {
   };
 
   // ── Live transcription engine ──────────────────────────────────────────────
-  const startLiveTranscription = useCallback(async (stream) => {
+  const startLiveTranscription = useCallback(async (stream, engineOverride) => {
+    const engine = engineOverride || liveEngine;
     if (mode !== "live" || !isOnline) return;
     stopLiveTranscription();
     setLiveStatus("connecting");
@@ -592,7 +593,7 @@ export default function NoteWellRecorder() {
     setLivePartial("");
 
     try {
-      if (liveEngine === "assemblyai") {
+      if (engine === "assemblyai") {
         const client = new AssemblyRealtimeClient({
           onOpen: () => setLiveStatus("connected"),
           onPartial: (text) => setLivePartial(text),
@@ -617,7 +618,7 @@ export default function NoteWellRecorder() {
         setLiveStatus("connected");
       } else {
         // Deepgram or browser-speech via factory
-        const transcriber = createTranscriber(liveEngine, {
+        const transcriber = createTranscriber(engine, {
           onTranscription: (data) => {
             const t = typeof data === "string" ? data : (data?.text ?? String(data || ""));
             if (!t.trim()) return;
@@ -629,7 +630,7 @@ export default function NoteWellRecorder() {
             });
           },
           onError: (err) => {
-            console.error(`[LiveTranscript] ${liveEngine} error:`, err);
+            console.error(`[LiveTranscript] ${engine} error:`, err);
             setLiveStatus("error");
           },
           onStatusChange: (status) => {
@@ -1599,11 +1600,14 @@ export default function NoteWellRecorder() {
                     {["assemblyai","deepgram","browser-speech"].map(eng => (
                       <button key={eng} onClick={() => {
                         if (liveEngine !== eng) {
+                          stopLiveTranscription();
                           setLiveEngine(eng);
-                          // Restart live transcription with new engine
+                          setLiveTranscript("");
+                          setLiveWordCount(0);
+                          setLivePartial("");
+                          // Start with new engine directly (bypass stale closure)
                           if (activeStream) {
-                            stopLiveTranscription();
-                            setTimeout(() => startLiveTranscription(activeStream), 300);
+                            setTimeout(() => startLiveTranscription(activeStream, eng), 300);
                           }
                         }
                       }} style={{
