@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createPcmStream } from "@/lib/audio/pcm16";
+import { supabase } from "@/integrations/supabase/client";
 
 export type GladiaPreviewStatus = 'idle' | 'connecting' | 'connected' | 'recording' | 'reconnecting' | 'error' | 'stopped';
 
