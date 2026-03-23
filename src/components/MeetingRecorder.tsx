@@ -4520,19 +4520,43 @@ export const MeetingRecorder = ({
           console.log(`✅ Continuing meeting record: ${realMeetingId}`);
         } else {
           // NORMAL MODE: Create new meeting
-          const attendeesList = meetingSettings.attendees
+          // Prefer attendees from the new MeetingSetupContext (full names + roles)
+          // Fall back to old meetingSettings string for backwards compatibility
+          const ctx = meetingSetupContextRef.current;
+          const contextAttendees = (ctx?.attendees || [])
+            .filter((a: any) => a?.status === 'present' || !a?.status)
+            .map((a: any) => {
+              // Build "Name (Role)" or "Name (Organisation)" format for expected_attendees
+              const name = a?.name?.trim();
+              if (!name) return '';
+              const role = a?.role?.trim();
+              const org = a?.org?.trim();
+              if (role && org) return `${name} (${role}, ${org})`;
+              if (role) return `${name} (${role})`;
+              if (org) return `${name} (${org})`;
+              return name;
+            })
+            .filter(Boolean);
+
+          const legacyAttendeesList = meetingSettings.attendees
             ? meetingSettings.attendees.split(/[,\n]/).map((a: string) => a.trim()).filter(Boolean)
             : [];
 
+          const attendeesList = contextAttendees.length > 0 ? contextAttendees : legacyAttendeesList;
+
+          // Use context title/format if available from new PreMeetingSetup
+          const contextTitle = ctx?.meetingTitle?.trim();
+          const contextFormat = ctx?.meetingType;
+
           const meetingData = {
-            title: meetingSettings.title || 'General Meeting',
+            title: contextTitle || meetingSettings.title || 'General Meeting',
             duration_minutes: 0, // Will be updated when stopped
             meeting_type: 'general',
             start_time: generateMeetingTimestamp(),
             status: 'recording' as const,
             user_id: user.id,
             practice_id: meetingSettings.practiceId || null,
-            meeting_format: meetingSettings.format || 'teams',
+            meeting_format: contextFormat || meetingSettings.format || 'teams',
             expected_attendees: attendeesList.length > 0 ? attendeesList : null,
             notes_config: meetingPrefs.getNotesConfig(),
           };
