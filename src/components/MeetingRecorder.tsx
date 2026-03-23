@@ -6798,6 +6798,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             deepgramText={deepgramPreview.fullTranscript ? deepgramPreview.fullTranscript.trim().split(/\s+/).slice(-30).join(' ') : ''}
             whisperChunkText={transcript ? transcript.trim().split(/\s+/).slice(-50).join(' ') : ''}
             whisperChunkNum={chunkCounter}
+            gladiaText={''}
+            browserText={''}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))}
