@@ -10,6 +10,8 @@ import { ChunkedTranscriptionService } from "@/lib/audio/ChunkedTranscriptionSer
 import { getSavedBitrate, saveBitrate } from "@/components/settings/RecordingQualitySettings";
 import { BITRATE_OPTIONS } from "@/lib/audio/ChunkedRecorder";
 import { attachDeviceInfoToMeeting } from "@/utils/meetingDeviceCapture";
+import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
+import { createTranscriber } from "@/utils/TranscriptionServiceFactory";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
