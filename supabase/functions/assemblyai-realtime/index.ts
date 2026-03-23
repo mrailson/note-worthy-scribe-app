@@ -154,6 +154,8 @@ Deno.serve(async (req: Request) => {
                 ? `AssemblyAI closed (${closeEvent.code}): ${reason}`
                 : `AssemblyAI closed (${closeEvent.code}).`
             }));
+            // FIX: Close client socket so the client can trigger reconnect
+            try { socket.close(closeEvent.code, `AssemblyAI upstream closed (${closeEvent.code})`); } catch {}
             return;
           }
 
