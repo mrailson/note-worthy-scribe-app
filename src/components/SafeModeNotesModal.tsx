@@ -213,9 +213,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [batchTranscript, setBatchTranscript] = useState('');
   const [liveTranscript, setLiveTranscript] = useState('');
   const [deepgramTranscript, setDeepgramTranscript] = useState('');
+  const [gladiaTranscript, setGladiaTranscript] = useState('');
   const [consolidatedTranscript, setConsolidatedTranscript] = useState('');
   const [bestOfAllTranscript, setBestOfAllTranscript] = useState('');
-  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live' | 'deepgram' | 'best_of_all'>('batch');
+  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live' | 'deepgram' | 'gladia' | 'best_of_all'>('batch');
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [consolidationStats, setConsolidationStats] = useState<{
     batchWords: number;
@@ -1238,6 +1239,29 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       } catch (deepgramError) {
         console.warn('Failed to load Deepgram transcript:', deepgramError);
         setDeepgramTranscript('');
+      }
+
+      // Load Gladia transcript from gladia_transcriptions table
+      try {
+        const { data: gladiaData } = await supabase
+          .from('gladia_transcriptions' as any)
+          .select('transcription_text')
+          .eq('meeting_id', meeting.id)
+          .eq('is_final', true)
+          .order('chunk_number', { ascending: true });
+
+        if (gladiaData && gladiaData.length > 0) {
+          const rawGladiaText = (gladiaData as any[])
+            .map((d: any) => d.transcription_text)
+            .filter(Boolean)
+            .join(' ');
+          setGladiaTranscript(rawGladiaText ? dedupTranscriptText(rawGladiaText).text : '');
+        } else {
+          setGladiaTranscript('');
+        }
+      } catch (gladiaError) {
+        console.warn('Failed to load Gladia transcript:', gladiaError);
+        setGladiaTranscript('');
       }
 
       // Set the main transcript (prefer batch, fallback to live)
@@ -3798,6 +3822,40 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         )}
                       </div>
                       <div className="flex items-center">
+                        <Button
+                          variant={transcriptSubTab === 'gladia' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setTranscriptSubTab('gladia')}
+                          className="h-7 text-xs rounded-r-none"
+                          style={transcriptSubTab === 'gladia' ? { backgroundColor: 'hsl(35 95% 55%)' } : undefined}
+                        >
+                          Gladia
+                          {gladiaTranscript && (
+                            <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                              {gladiaTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
+                            </Badge>
+                          )}
+                        </Button>
+                        {gladiaTranscript && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-1.5 rounded-l-none border-l border-border/50"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(gladiaTranscript);
+                                  toast.success('Gladia transcript copied');
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Copy Gladia transcript</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                      <div className="flex items-center">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -3807,7 +3865,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                               className={`h-7 text-xs rounded-r-none gap-1 ${transcriptSubTab === 'best_of_all' ? 'bg-gradient-to-r from-primary to-purple-600' : ''}`}
                             >
                               <Sparkles className="h-3 w-3" />
-                              Best of All (3)
+                              Best of All
                               {bestOfAllTranscript && (
                                 <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
                                   {bestOfAllTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
@@ -3817,7 +3875,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             <p className="font-medium">Canonical Transcript</p>
-                            <p className="text-xs mt-1">Merged from AssemblyAI, Deepgram and batch transcription with deterministic de-duplication.</p>
+                            <p className="text-xs mt-1">Merged from Whisper, Deepgram and Gladia with deterministic de-duplication.</p>
                           </TooltipContent>
                         </Tooltip>
                         {bestOfAllTranscript && (
@@ -4014,13 +4072,40 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         )
                       )}
 
-                      {/* Best of All (3) Transcript View — read-only canonical */}
+                      {/* Gladia Transcript View */}
+                      {transcriptSubTab === 'gladia' && (
+                        gladiaTranscript ? (
+                          <div className="relative">
+                            {viewMode === 'plain' ? (
+                              <pre 
+                                className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                                style={{ fontSize: `${fontSize}px` }}
+                              >
+                                {gladiaTranscript}
+                              </pre>
+                            ) : (
+                              <div 
+                                className="prose prose-sm dark:prose-invert max-w-none text-justify"
+                                style={{ fontSize: `${fontSize}px` }}
+                                dangerouslySetInnerHTML={{ __html: formatTranscript(gladiaTranscript) }}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No Gladia transcript available for this meeting.</p>
+                          </div>
+                        )
+                      )}
+
+                      {/* Best of All Transcript View — read-only canonical */}
                       {transcriptSubTab === 'best_of_all' && (
                         bestOfAllTranscript ? (
                           <div className="relative">
                             <div className="mb-3 px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-md border border-primary/20">
                               <p className="text-xs text-muted-foreground">
-                                Merged from AssemblyAI, Deepgram and batch transcription with deterministic de-duplication.
+                                Merged from Whisper, Deepgram and Gladia with deterministic de-duplication.
                                 This is the canonical transcript used for notes, Ask AI, and exports.
                               </p>
                             </div>

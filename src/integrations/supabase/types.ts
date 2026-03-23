@@ -4200,6 +4200,48 @@ export type Database = {
         }
         Relationships: []
       }
+      gladia_transcriptions: {
+        Row: {
+          chunk_number: number
+          confidence: number | null
+          created_at: string | null
+          id: string
+          is_final: boolean | null
+          meeting_id: string
+          session_id: string
+          transcription_text: string
+          updated_at: string | null
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          chunk_number: number
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          is_final?: boolean | null
+          meeting_id: string
+          session_id: string
+          transcription_text: string
+          updated_at?: string | null
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          chunk_number?: number
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          is_final?: boolean | null
+          meeting_id?: string
+          session_id?: string
+          transcription_text?: string
+          updated_at?: string | null
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       gp_appointments: {
         Row: {
           address: string | null

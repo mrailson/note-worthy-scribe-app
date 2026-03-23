@@ -5463,6 +5463,7 @@ export const MeetingRecorder = ({
         { source: 'whisper-memory', text: inMemoryTranscript },
         { source: 'assemblyai-preview', text: assemblyTranscript },
         { source: 'deepgram-preview', text: deepgramTranscript },
+        { source: 'gladia-preview', text: (capturedGladiaTranscript || '').trim() },
         { source: 'orphaned-ios-chunks', text: orphanedChunks },
       ].filter(c => c.text.length > 0);
       
