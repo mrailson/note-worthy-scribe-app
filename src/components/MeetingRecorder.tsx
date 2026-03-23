@@ -5895,15 +5895,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           console.log('🧠 Using model for initial generation:', modelOverride);
           const skipQc = localStorage.getItem('meeting-qc-enabled') !== 'true';
           const functionResult = await supabase.functions
-            .invoke('generate-meeting-notes-claude', {
+            .invoke('auto-generate-meeting-notes', {
               body: { 
-                transcript: meetingData.transcript,
-                meetingTitle: savedMeeting.title || 'Meeting Notes',
-                meetingDate: new Date(savedMeeting.start_time || Date.now()).toLocaleDateString('en-GB'),
-                meetingTime: new Date(savedMeeting.start_time || Date.now()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-                detailLevel: preferredNoteType === 'standard' ? 'standard' : preferredNoteType,
-                modelOverride,
                 meetingId: savedMeeting.id,
+                forceRegenerate: false,
+                modelOverride,
                 skipQc,
               }
             });
@@ -5911,26 +5907,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           if (functionResult.error) {
             console.error('❌ Background notes generation failed:', functionResult.error);
           } else {
-            console.log('🎉 Background notes generation started successfully');
-          }
-
-          // Trigger meeting overview generation (silent)
-          console.log('🔍 Background: Invoking generate-meeting-overview function...');
-          setStopRecordingStep('Generating overview...');
-          
-          const overviewResult = await supabase.functions
-            .invoke('generate-meeting-overview', {
-              body: {
-                meetingId: savedMeeting.id,
-                transcript: meetingData.transcript,
-                meetingTitle: savedMeeting.title
-              }
-            });
-          
-          if (overviewResult.error) {
-            console.error('❌ Background overview generation failed:', overviewResult.error);
-          } else {
-            console.log('🎉 Background overview generation started successfully');
+            console.log('🎉 Background notes generation started successfully (via auto-generate-meeting-notes pipeline)');
           }
 
           // Clean up session storage
