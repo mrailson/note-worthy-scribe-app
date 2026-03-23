@@ -75,6 +75,14 @@ export function createTranscriber(
         onStatusChange,
         onSummary
       );
+
+    case 'gladia':
+      return new GladiaRealtimeTranscriber(
+        onTranscription,
+        onError,
+        onStatusChange,
+        onSummary
+      );
       
     default:
       console.warn(`Unknown service: ${service}, falling back to AssemblyAI`);
