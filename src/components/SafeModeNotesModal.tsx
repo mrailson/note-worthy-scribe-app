@@ -1911,7 +1911,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       }),
       new Paragraph({ 
         children: [
-          new TextRun({ text: 'Best of All (3) Words: ', bold: true }),
+          new TextRun({ text: 'Gladia Words: ', bold: true }),
+          new TextRun({ text: String(gladiaWords) })
+        ]
+      }),
+      new Paragraph({ 
+        children: [
+          new TextRun({ text: 'Best of All Words: ', bold: true }),
           new TextRun({ text: String(bestOfAllWords), bold: true, color: bestOfAllWords > 0 ? '6B21A8' : '999999' })
         ]
       }),
