@@ -362,7 +362,7 @@ export class AssemblyRealtimeClient {
         this.attemptReconnect();
         return;
       }
-      if (!this.setupInProgress && !this.shouldReconnect) {
+      if (this.manualStop) {
         this.cleanupAudio();
       }
       this.cb.onClose?.(ev.code, ev.reason || "");
