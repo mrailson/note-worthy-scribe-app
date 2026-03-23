@@ -79,6 +79,10 @@ export class AssemblyRealtimeClient {
 
   async start(externalStream?: MediaStream) {
     this.externalStream = externalStream;
+    this.manualStop = false;
+    this.sending = false;
+    this.shouldReconnect = false;
+
     console.log("🎧 AssemblyRealtimeClient: connecting to proxy", PROXY_WS_URL,
       externalStream ? "(using external stream)" : "(capturing mic)");
 
@@ -91,7 +95,7 @@ export class AssemblyRealtimeClient {
       if (!ws) return reject(new Error("WebSocket not initialised"));
 
       const onOpen = () => { cleanup(); resolve(); };
-      const onError = (e: Event) => { cleanup(); reject(new Error("Failed to connect to AssemblyAI proxy")); };
+      const onError = () => { cleanup(); reject(new Error("Failed to connect to AssemblyAI proxy")); };
       const onClose = (ev: CloseEvent) => { cleanup(); reject(new Error(`AssemblyAI proxy closed (${ev.code})`)); };
       const cleanup = () => {
         ws.removeEventListener("open", onOpen);
@@ -143,7 +147,7 @@ export class AssemblyRealtimeClient {
         } catch { /* ignore */ }
       };
 
-      const handleClose = (ev: CloseEvent) => { cleanup(); reject(new Error("AssemblyAI proxy closed")); };
+      const handleClose = () => { cleanup(); reject(new Error("AssemblyAI proxy closed")); };
       const handleError = () => { cleanup(); reject(new Error("AssemblyAI proxy error")); };
 
       const cleanup = () => {
@@ -158,6 +162,10 @@ export class AssemblyRealtimeClient {
       ws.addEventListener("error", handleError);
     });
 
+    // From this point onward, proxy-side 1011/close errors are transient and
+    // should be handled by the socket close + reconnect path, not surfaced as fatal.
+    this.shouldReconnect = true;
+
     // Attach ongoing transcription handlers
     this.ws!.onmessage = (evt) => {
       try {
@@ -167,10 +175,8 @@ export class AssemblyRealtimeClient {
 
         if (data?.type === "error") {
           const errMsg = String(data?.error || "AssemblyAI error");
-          // Proxy disconnect errors (e.g. "AssemblyAI closed (1011)") are transient —
-          // let the onclose handler trigger reconnection instead of treating as fatal
           if (/closed\s*\(\d+\)/i.test(errMsg) && this.shouldReconnect) {
-            console.warn(`⚠️ AssemblyAI transient proxy error: ${errMsg} — will reconnect on close`);
+            console.warn(`⚠️ AssemblyAI transient proxy error: ${errMsg} — waiting for close/reconnect`);
             return;
           }
           this.cb.onError?.(new Error(errMsg));
@@ -229,11 +235,10 @@ export class AssemblyRealtimeClient {
       // Audio pipeline still alive — just reconnect the WebSocket output
       console.log('🔄 Reusing existing AudioContext for reconnect (state:', this.audioCtx.state, ')');
     }
+
     this.sending = true;
-    this.shouldReconnect = true;
     this.reconnectAttempts = 0;
 
-    // Preserve reconnect flag before clearing it, so we fire the right callback
     const wasReconnecting = this.isReconnecting;
     this.isReconnecting = false;
 
