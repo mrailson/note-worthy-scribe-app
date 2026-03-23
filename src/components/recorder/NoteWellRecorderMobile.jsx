@@ -592,7 +592,6 @@ export default function NoteWellRecorder() {
     stopLiveTranscription();
     setLiveStatus("connecting");
     setLiveTranscript("");
-    setLiveWordCount(0);
     setLivePartial("");
 
     try {
