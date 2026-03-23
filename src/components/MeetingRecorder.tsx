@@ -583,6 +583,7 @@ export const MeetingRecorder = ({
   const [teamsImportOpen, setTeamsImportOpen] = useState(false);
   const [audioImportOpen, setAudioImportOpen] = useState(false);
   const [audioImportDefaultTab, setAudioImportDefaultTab] = useState<string | undefined>();
+  const [editGroupId, setEditGroupId] = useState<string | null>(null);
   
   // Recording context state
   const [showContextDialog, setShowContextDialog] = useState(false);
