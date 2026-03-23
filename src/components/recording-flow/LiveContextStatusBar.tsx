@@ -110,6 +110,8 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
             deepgramText={deepgramText}
             whisperChunkText={whisperChunkText}
             whisperChunkNum={whisperChunkNum}
+            gladiaText={gladiaText}
+            browserText={browserText}
           />
 
           {/* Avatar stack */}

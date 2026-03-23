@@ -144,6 +144,8 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             deepgramText={deepgramText}
             whisperChunkText={whisperChunkText}
             whisperChunkNum={whisperChunkNum}
+            gladiaText={gladiaText}
+            browserText={browserText}
           />
           {children}
         </>
