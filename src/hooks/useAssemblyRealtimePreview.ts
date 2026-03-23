@@ -121,7 +121,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
         // to avoid setting manualStop=true and destroying AudioContext prematurely
         if (clientRef.current) {
           try { 
-            clientRef.current.dispose?.() || clientRef.current.stop(); 
+            clientRef.current.dispose(); 
           } catch { /* ignore */ }
           clientRef.current = null;
         }
