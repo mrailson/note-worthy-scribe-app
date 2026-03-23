@@ -4752,7 +4752,8 @@ export const MeetingRecorder = ({
         meetingKeytermsRef.current = meetingKeyterms;
         
         // Start preview with the mixed stream and keyterms
-        await assemblyPreview.startPreview(assemblyAudioMixerRef.current.mixedStream, { keyterms: meetingKeyterms });
+        // Pass mixed stream if available, otherwise undefined (direct mic capture like Dictate)
+        await assemblyPreview.startPreview(assemblyAudioMixerRef.current?.mixedStream || undefined, { keyterms: meetingKeyterms });
         console.log('✅ AssemblyAI real-time preview started');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to start (Whisper will continue):', assemblyError);
