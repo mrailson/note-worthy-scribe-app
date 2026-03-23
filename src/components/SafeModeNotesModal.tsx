@@ -2013,8 +2013,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       new Paragraph({ text: deepgramTranscript || '(No Deepgram transcript available)' }),
       new Paragraph({ text: '' }),
 
-      // 4. Best of All (3) — the merged canonical transcript — always included
-      new Paragraph({ text: '4. Best of All (3) — Merged Canonical Transcript', heading: HeadingLevel.HEADING_2 }),
+      // 4. Gladia Transcript — always included
+      new Paragraph({ text: '4. Gladia Transcript', heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: `Word Count: ${gladiaWords}` }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: gladiaTranscript || '(No Gladia transcript available)' }),
+      new Paragraph({ text: '' }),
+
+      // 5. Best of All — the merged canonical transcript — always included
+      new Paragraph({ text: '5. Best of All — Merged Canonical Transcript', heading: HeadingLevel.HEADING_2 }),
       new Paragraph({ 
         children: [
           new TextRun({ text: `Word Count: ${bestOfAllWords}`, bold: true })
@@ -2023,7 +2030,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       new Paragraph({ 
         children: [
           new TextRun({ 
-            text: 'This is the three-way merged transcript from Whisper, AssemblyAI, and Deepgram with post-merge deduplication applied.',
+            text: 'This is the multi-engine merged transcript from Whisper, Deepgram, and Gladia with post-merge deduplication applied.',
             italics: true,
             color: '666666',
             size: 18
@@ -2031,7 +2038,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         ]
       }),
       new Paragraph({ text: '' }),
-      new Paragraph({ text: bestOfAllTranscript || '(No Best of All transcript available — requires all three engines to have contributed content)' }),
+      new Paragraph({ text: bestOfAllTranscript || '(No Best of All transcript available — requires multiple engines to have contributed content)' }),
       new Paragraph({ text: '' }),
     );
 
