@@ -28,6 +28,7 @@ interface RecordingFlowOverlayProps {
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   hasNewMeetings?: boolean;
+  meetingCount?: number;
   children: React.ReactNode;
 }
 
@@ -54,6 +55,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   activeTab = 'recorder',
   onTabChange,
   hasNewMeetings,
+  meetingCount,
   children,
 }) => {
   const { stage, resetSetup } = useMeetingSetup();
@@ -108,6 +110,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             activeTab={activeTab}
             onTabChange={onTabChange || (() => {})}
             hasNewMeetings={hasNewMeetings}
+            meetingCount={meetingCount}
           />
           <h2 className="flex-1 text-[15px] font-extrabold text-foreground tracking-tight truncate">
             {STAGE_TITLES[stage] || 'Prepare Your Meeting'}
