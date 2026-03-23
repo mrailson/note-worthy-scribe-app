@@ -6683,7 +6683,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               
   return (
     <MeetingSetupProvider>
-    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }} contextRef={meetingSetupContextRef} />
+    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab, editGroupId) => { setAudioImportDefaultTab(tab || undefined); setEditGroupId(editGroupId || null); setAudioImportOpen(true); }} contextRef={meetingSetupContextRef} />
     <TooltipProvider delayDuration={300}>
     <div className="space-y-6">
       {/* Recording Recovery Banner */}
