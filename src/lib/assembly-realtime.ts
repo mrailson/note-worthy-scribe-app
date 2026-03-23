@@ -562,6 +562,11 @@ export class AssemblyRealtimeClient {
       const srcRate = this.audioCtx.sampleRate;
       console.log(`🎛️ AssemblyRealtimeClient: AudioContext @ ${srcRate}Hz (state: ${this.audioCtx.state}), resampling to ${this.sampleRateTarget}Hz`);
 
+      // Final guard: ensure stream is valid before creating source node
+      if (!this.stream || !(this.stream instanceof MediaStream)) {
+        throw new Error("Audio capture failed: stream is not a valid MediaStream");
+      }
+
       const src = this.audioCtx.createMediaStreamSource(this.stream);
       this.sources = [src];
 

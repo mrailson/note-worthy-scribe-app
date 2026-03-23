@@ -127,7 +127,12 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
         }
 
         let stream = lastExternalStreamRef.current;
-        // Validate stream tracks are still alive
+        // Validate stream is a real MediaStream with live tracks
+        if (stream && !(stream instanceof MediaStream)) {
+          console.warn('⚠️ AssemblyAI: Stored stream is not a valid MediaStream — discarding');
+          lastExternalStreamRef.current = null;
+          stream = null;
+        }
         if (stream) {
           const activeTracks = stream.getAudioTracks().filter(t => t.readyState === 'live');
           if (activeTracks.length === 0) {
