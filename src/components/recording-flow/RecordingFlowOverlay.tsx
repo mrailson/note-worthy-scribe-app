@@ -54,6 +54,8 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   deepgramText = '',
   whisperChunkText = '',
   whisperChunkNum = 0,
+  gladiaText = '',
+  browserText = '',
   activeTab = 'recorder',
   onTabChange,
   hasNewMeetings,
