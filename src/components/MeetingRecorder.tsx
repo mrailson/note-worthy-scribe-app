@@ -4939,8 +4939,9 @@ export const MeetingRecorder = ({
     const assemblyWords = countWords(capturedAssemblyTranscript);
     const whisperWords = countWords(transcript);
     const deepgramWords = countWords(capturedDeepgramTranscript);
-    let effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords);
-    console.log('📊 Meeting word count (client):', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords, deepgram: deepgramWords, serverTriggered: isServerTriggered });
+    const gladiaWords = countWords(capturedGladiaTranscript);
+    let effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords, gladiaWords);
+    console.log('📊 Meeting word count (client):', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords, deepgram: deepgramWords, gladia: gladiaWords, serverTriggered: isServerTriggered });
     
     // CRITICAL: If client state shows low word count OR server triggered the stop,
     // query the database for actual word count AND duration - client state may be stale/empty
