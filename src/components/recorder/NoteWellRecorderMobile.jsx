@@ -12,6 +12,7 @@ import { BITRATE_OPTIONS } from "@/lib/audio/ChunkedRecorder";
 import { attachDeviceInfoToMeeting } from "@/utils/meetingDeviceCapture";
 import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
 import { createTranscriber } from "@/utils/TranscriptionServiceFactory";
+import { WhisperChunkTranscriber } from "@/utils/WhisperChunkTranscriber";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
