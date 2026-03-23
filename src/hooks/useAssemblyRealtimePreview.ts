@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
-import { detectDevice } from "@/utils/DeviceDetection";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PreviewStatus = 'idle' | 'connecting' | 'connected' | 'recording' | 'reconnecting' | 'error' | 'stopped';
 
 const MAX_RECENT_FINALS = 4;
+const MAX_WORDS = 100;
 
 interface UseAssemblyRealtimePreviewReturn {
   liveTranscript: string;
@@ -21,11 +21,6 @@ interface UseAssemblyRealtimePreviewReturn {
   clearTranscript: () => void;
 }
 
-const MAX_WORDS = 100; // Keep last 100 words for live preview
-const MAX_RECONNECT_ATTEMPTS = 5;
-const INITIAL_RECONNECT_DELAY = 1000; // 1 second
-const MAX_RECONNECT_DELAY = 30000; // 30 seconds
-
 export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn => {
   const [liveTranscript, setLiveTranscript] = useState<string>("");
   const [fullTranscript, setFullTranscript] = useState<string>("");
@@ -39,10 +34,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
 
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
   const intentionalStopRef = useRef<boolean>(false);
-  const isActiveRef = useRef<boolean>(false); // ref mirror of isActive for sync checks
-  const reconnectAttemptsRef = useRef<number>(0);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastExternalStreamRef = useRef<MediaStream | null>(null);
+  const isActiveRef = useRef<boolean>(false);
   const partialFallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track the base text (all confirmed finals) and current partial separately.
@@ -56,17 +48,13 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     console.log(`🎤 AssemblyAI ${isFinal ? 'FINAL' : 'partial'}: "${newText.substring(0, 50)}..."`);
 
     if (isFinal) {
-      // Clear the partial fallback timer since we got a proper final
       if (partialFallbackTimerRef.current) { clearTimeout(partialFallbackTimerRef.current); partialFallbackTimerRef.current = null; }
 
-      // ALWAYS append — never replace previous finals
       baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + newText).trim();
       setFullTranscript(baseTranscriptRef.current);
 
-      // Add to rolling buffer of recent finals
       setRecentFinals(prev => [...prev, newText].slice(-MAX_RECENT_FINALS));
 
-      // Clear partial preview
       currentPartialRef.current = "";
       setCurrentPartial("");
 
@@ -79,7 +67,6 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     currentPartialRef.current = newText;
     setCurrentPartial(newText);
 
-    // Show combined view for live display
     const combined = (baseTranscriptRef.current + ' ' + newText).trim();
     setFullTranscript(combined);
 
@@ -87,123 +74,12 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     setLiveTranscript(words.join(' '));
   }, []);
 
-  // Internal reconnect function with exponential backoff
-  const attemptReconnect = useCallback(async () => {
-    if (intentionalStopRef.current) {
-      console.log('🔌 AssemblyAI: Skipping reconnect - intentional stop');
-      return;
-    }
-
-    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-      console.error('❌ AssemblyAI: Max reconnection attempts reached');
-      setError(`Connection lost after ${MAX_RECONNECT_ATTEMPTS} reconnection attempts`);
-      setStatus('error');
-      setIsActive(false);
-      return;
-    }
-
-    reconnectAttemptsRef.current += 1;
-    setReconnectAttempts(reconnectAttemptsRef.current);
-
-    // Exponential backoff with jitter
-    const delay = Math.min(
-      INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttemptsRef.current - 1) + Math.random() * 500,
-      MAX_RECONNECT_DELAY
-    );
-
-    console.log(`🔄 AssemblyAI: Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})`);
-    setStatus('reconnecting');
-    setError(null);
-
-    reconnectTimeoutRef.current = setTimeout(async () => {
-      try {
-        // Clean up old client — use graceful dispose instead of stop()
-        // to avoid setting manualStop=true and destroying AudioContext prematurely
-        if (clientRef.current) {
-          try { 
-            clientRef.current.dispose(); 
-          } catch { /* ignore */ }
-          clientRef.current = null;
-        }
-
-        let stream = lastExternalStreamRef.current;
-        // Validate stream is a real MediaStream with live tracks
-        if (stream && !(stream instanceof MediaStream)) {
-          console.warn('⚠️ AssemblyAI: Stored stream is not a valid MediaStream — discarding');
-          lastExternalStreamRef.current = null;
-          stream = null;
-        }
-        if (stream) {
-          const activeTracks = stream.getAudioTracks().filter(t => t.readyState === 'live');
-          if (activeTracks.length === 0) {
-            console.warn('⚠️ AssemblyAI: Stored stream tracks ended — will capture fresh mic');
-            lastExternalStreamRef.current = null;
-            stream = null;
-          }
-        }
-
-        console.log('📡 AssemblyAI: Attempting reconnection...', stream ? '(reusing stream)' : '(fresh mic)');
-
-        clientRef.current = new AssemblyRealtimeClient({
-          onOpen: () => {
-            console.log('✅ AssemblyAI: WebSocket reconnected');
-            setStatus('recording');
-            setIsActive(true);
-            reconnectAttemptsRef.current = 0;
-            setReconnectAttempts(0);
-            setError(null);
-          },
-          onPartial: (text: string) => {
-            updateTranscript(text, false);
-          },
-          onFinal: (text: string) => {
-            updateTranscript(text, true);
-          },
-          onClose: (code: number, reason: string) => {
-            console.log('🔌 AssemblyAI: WebSocket closed during/after reconnect', { code, reason });
-
-            if (intentionalStopRef.current) {
-              setStatus('stopped');
-              setIsActive(false);
-              return;
-            }
-
-            // Any unexpected close (including 1000) triggers reconnect
-            attemptReconnect();
-          },
-          onError: (err: Error) => {
-            console.error('❌ AssemblyAI: Error during reconnect:', err);
-            attemptReconnect();
-          },
-          onReconnecting: () => {
-            console.log('🔄 AssemblyAI: Internal client reconnecting...');
-            setStatus('reconnecting');
-          },
-          onReconnected: () => {
-            console.log('✅ AssemblyAI: Internal client reconnected');
-            setStatus('recording');
-            reconnectAttemptsRef.current = 0;
-            setReconnectAttempts(0);
-          }
-        });
-
-        await clientRef.current.start(stream || undefined);
-        console.log('🎤 AssemblyAI: Reconnection client started');
-
-      } catch (err) {
-        console.error('❌ AssemblyAI: Reconnection attempt failed:', err);
-        attemptReconnect();
-      }
-    }, delay);
-  }, [updateTranscript]);
-
   const startPreview = useCallback(async (
     externalStream?: MediaStream,
     options?: { preserveTranscript?: boolean; keyterms?: string[] }
   ) => {
     const { preserveTranscript = false, keyterms = [] } = options || {};
     
-    // Use ref for sync check to avoid stale closure over isActive state
     if (clientRef.current || isActiveRef.current) {
       console.log('🎤 AssemblyAI preview already active, skipping duplicate start');
       return;
@@ -213,15 +89,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       setStatus('connecting');
       setError(null);
       intentionalStopRef.current = false;
-      reconnectAttemptsRef.current = 0;
       setReconnectAttempts(0);
 
-      // Store the stream for reconnection
-      if (externalStream) {
-        lastExternalStreamRef.current = externalStream;
-      }
-      
-      // Only clear transcripts if NOT preserving (i.e., fresh start)
       if (!preserveTranscript) {
         setLiveTranscript("");
         setFullTranscript("");
@@ -231,7 +100,6 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
         currentPartialRef.current = "";
         console.log('🎤 Starting fresh AssemblyAI preview (transcripts cleared)');
       } else {
-        // Reset only partial tracking refs, keep accumulated text
         currentPartialRef.current = "";
         console.log('🎤 Resuming AssemblyAI preview (preserving existing transcript)');
       }
@@ -239,11 +107,13 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       console.log('🎤 Starting AssemblyAI real-time preview...', 
         externalStream ? '(with external stream)' : '(mic only)');
       
+      // Create a SINGLE client — let its internal reconnect own the lifecycle
       clientRef.current = new AssemblyRealtimeClient({
         onOpen: () => {
           console.log('✅ AssemblyAI preview WebSocket connected');
           setStatus('recording');
           setIsActive(true);
+          setError(null);
         },
         onPartial: (text: string) => {
           updateTranscript(text, false);
@@ -252,47 +122,47 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
           updateTranscript(text, true);
         },
         onClose: (code: number, reason: string) => {
-          console.log('🔌 AssemblyAI preview closed', { code, reason });
+          // This only fires when the client has exhausted its internal reconnect
+          // attempts, OR on a manual stop. No hook-level reconnect needed.
+          console.log('🔌 AssemblyAI preview closed (final)', { code, reason });
           setIsActive(false);
 
-          // Only treat as intentional if WE initiated the stop
           if (intentionalStopRef.current) {
             setStatus('stopped');
             return;
           }
 
-          // Any unexpected close (including code 1000 from server-side idle timeout
-          // or token expiry) should trigger auto-reconnect
+          // Client exhausted its retries — surface as error
           const msg = `AssemblyAI disconnected (${code || 0})${reason ? `: ${reason}` : ''}`;
-          console.warn(`⚠️ ${msg} - attempting auto-reconnect...`);
+          console.warn(`⚠️ ${msg}`);
           setError(msg);
-          attemptReconnect();
+          setStatus('error');
         },
         onError: (err: Error) => {
+          // Only fires for fatal errors (client exhausted retries or non-transient)
           console.error('❌ AssemblyAI preview error:', err);
           setError(err.message);
-          setIsActive(false);
 
-          // Attempt reconnect on error (unless intentionally stopped)
-          if (!intentionalStopRef.current) {
-            attemptReconnect();
-          } else {
+          if (intentionalStopRef.current) {
             setStatus('error');
+            setIsActive(false);
           }
+          // Don't set status to error for transient issues — client handles reconnect
         },
         onReconnecting: () => {
-          console.log('🔄 AssemblyAI preview reconnecting...');
+          console.log('🔄 AssemblyAI preview reconnecting (client-internal)...');
           setStatus('reconnecting');
+          setReconnectAttempts(prev => prev + 1);
         },
         onReconnected: () => {
-          console.log('✅ AssemblyAI preview reconnected');
+          console.log('✅ AssemblyAI preview reconnected (client-internal)');
           setStatus('recording');
-          reconnectAttemptsRef.current = 0;
+          setIsActive(true);
           setReconnectAttempts(0);
+          setError(null);
         }
       });
 
-      // Set keyterms before starting
       if (keyterms.length > 0) {
         clientRef.current.setKeyterms(keyterms);
         console.log(`🔑 AssemblyAI: ${keyterms.length} keyterms configured`);
@@ -307,7 +177,6 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       setStatus('error');
       setIsActive(false);
 
-      // Ensure we fully clean up any half-open sockets/audio contexts.
       try {
         clientRef.current?.stop();
       } catch {
@@ -315,17 +184,12 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       }
       clientRef.current = null;
     }
-  }, [updateTranscript, attemptReconnect, setIsActive]);
+  }, [updateTranscript, setIsActive]);
 
   const stopPreview = useCallback(() => {
     console.log('🛑 Stopping AssemblyAI preview...');
     intentionalStopRef.current = true;
 
-    // Clear any pending reconnect and fallback timers
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
     if (partialFallbackTimerRef.current) {
       clearTimeout(partialFallbackTimerRef.current);
       partialFallbackTimerRef.current = null;
@@ -336,12 +200,10 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       clientRef.current = null;
     }
     
-    lastExternalStreamRef.current = null;
     setStatus('stopped');
     setIsActive(false);
   }, []);
 
-  // Clear all transcript state (for meeting reset)
   const clearTranscript = useCallback(() => {
     console.log('🧹 Clearing AssemblyAI transcript state');
     setLiveTranscript("");
@@ -353,40 +215,12 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     setError(null);
   }, []);
 
-  // Visibility change listener — reconnect when page resumes from background
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') return;
-      if (intentionalStopRef.current) return;
-      
-      // Only reconnect if we had an active session (stream was stored)
-      if (!lastExternalStreamRef.current) return;
-
-      const client = clientRef.current;
-      const isAlive = client && isActive;
-
-      if (!isAlive) {
-        console.log('📡 AssemblyAI: Page resumed from background, connection dead — reconnecting...');
-        reconnectAttemptsRef.current = 0;
-        setReconnectAttempts(0);
-        attemptReconnect();
-      } else {
-        console.log('📡 AssemblyAI: Page resumed, connection still alive ✅');
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isActive, attemptReconnect]);
-
-  // SAFETY NET: Periodically flush fullTranscript to meetings.live_transcript_backup
-  // so that if all other DB write paths fail, there's a recoverable copy
+  // SAFETY NET: Periodically flush fullTranscript to meetings.assembly_ai_transcript
   const lastBackupRef = useRef<string>("");
   const backupIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (isActive) {
-      // Start 30-second backup flush
       backupIntervalRef.current = setInterval(async () => {
         const currentText = baseTranscriptRef.current.trim();
         if (!currentText || currentText === lastBackupRef.current) return;
@@ -422,10 +256,6 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   useEffect(() => {
     return () => {
       intentionalStopRef.current = true;
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
       if (backupIntervalRef.current) {
         clearInterval(backupIntervalRef.current);
         backupIntervalRef.current = null;
