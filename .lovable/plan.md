@@ -1,68 +1,74 @@
 
+Diagnosis:
+- Yes, the right direction is to use the existing Dictate pattern, not the current Meeting preview reconnection stack.
+- The repeating failure is not really the `vendor.js` / `tabs:outgoing.message.ready` noise — those look like extension/runtime noise.
+- The real problem is that `MeetingRecorder` uses `useAssemblyRealtimePreview`, which adds a second reconnect/dispose layer around `AssemblyRealtimeClient`.
+- Dictate is more stable because it uses a single `AssemblyRealtimeClient` instance directly and lets that client own reconnects.
 
-# Fix: AssemblyAI Reconnection Crash (`createMediaStreamSource` TypeError)
+Recommendation:
+- Do not literally plug `useAdminDictation` into meetings — that hook also brings admin drafts, formatting, templates, and admin-specific persistence.
+- Instead, replace the internals of `useAssemblyRealtimePreview` with the same AssemblyAI session lifecycle used by Dictate: one client instance, direct callbacks, no hook-level client recreation.
 
-## Problem
-The console shows a clear failure chain:
-1. Proxy closes with **1011** (server-side timeout/error)
-2. Reconnection fires, but crashes with: `TypeError: Failed to execute 'createMediaStreamSource' on 'AudioContext': parameter 1 is not of type 'MediaStream'`
-3. Subsequent attempts fail with "AudioContext destroyed — cannot start fallback"
+Implementation plan:
+1. Simplify `src/hooks/useAssemblyRealtimePreview.ts`
+   - Remove the outer `attemptReconnect()` loop, reconnect timeout orchestration, and `dispose()`-based client handoff.
+   - Keep the public API the same (`startPreview`, `stopPreview`, `clearTranscript`, `fullTranscript`, `recentFinals`, `currentPartial`, `status`, `error`, `isActive`) so `MeetingRecorder` and `useScribeRecording` still work.
+   - Wire callbacks exactly like Dictate:
+     - `onOpen` → set `recording`
+     - `onPartial` → update `currentPartial` + combined preview
+     - `onFinal` → append/replace deduped final text
+     - `onReconnecting` / `onReconnected` → just update status
+     - `onError` → only surface fatal errors instead of spawning a second client
 
-The root cause: when `dispose()` is called on the old client during reconnection, it runs `cleanupAudio()` which may stop/invalidate the mic stream. The new client then either receives a dead stream reference or `this.stream` ends up as `undefined` before hitting `createMediaStreamSource`.
+2. Preserve Meeting-specific features inside the simplified hook
+   - Keep `externalStream` support for mixed mic+system audio.
+   - Keep `keyterms`.
+   - Keep `preserveTranscript` for pause/resume.
+   - Keep the transcript backup flush to the `meetings` table if needed.
 
-## Changes
+3. Keep `src/components/MeetingRecorder.tsx` mostly as-is
+   - Continue the new mic-only path (`startPreview(undefined, ...)`) and the mixed-stream path when system audio exists.
+   - Do not add any extra reconnect logic there; let the client own it.
+   - Keep Whisper and Deepgram as independent fallback/parallel engines.
 
-### File 1: `src/lib/assembly-realtime.ts` — Guard `startAudioCapture`
-Add a validation check before calling `createMediaStreamSource` to ensure `this.stream` is a valid `MediaStream` instance:
+4. Clean up `src/lib/assembly-realtime.ts` usage assumptions
+   - Stop depending on `dispose()` for preview recovery.
+   - If `dispose()` is no longer needed anywhere, remove it later; otherwise leave it isolated and unused by the preview hook.
+   - Keep internal reconnect behavior as the only reconnect owner.
 
-- **Line ~544**: Before `this.audioCtx.createMediaStreamSource(this.stream)`, add:
-  ```typescript
-  if (!this.stream || !(this.stream instanceof MediaStream)) {
-    throw new Error("Audio capture failed: stream is not a valid MediaStream");
-  }
-  ```
+Why this should work better:
+- It matches the already-working Dictate lifecycle.
+- It removes the race between:
+  - client-internal reconnect, and
+  - hook-level “kill and recreate the client” reconnect.
+- It avoids passing stale stream references into `createMediaStreamSource(...)`.
 
-- **Lines ~514-535**: Add `instanceof MediaStream` check alongside the track-liveness check on the external stream, so an invalid/detached object doesn't pass through:
-  ```typescript
-  if (this.externalStream && this.externalStream instanceof MediaStream) {
-    // existing track validation...
-  }
-  ```
-
-### File 2: `src/hooks/useAssemblyRealtimePreview.ts` — Better stream validation on reconnect
-- **Line ~129-137**: Add `instanceof MediaStream` check so a stale reference doesn't get passed:
-  ```typescript
-  if (stream && !(stream instanceof MediaStream)) {
-    lastExternalStreamRef.current = null;
-    stream = null;
-  }
-  ```
-
-### File 3: `src/lib/assembly-realtime.ts` — `dispose()` should NOT destroy streams it doesn't own
-- **Lines ~418-434**: The `dispose()` method currently calls `cleanupAudio()` which stops mic tracks even for streams the client doesn't own. For reconnection, `dispose()` should only close the WebSocket and worklet/processor nodes, but leave the mic stream alive if `ownsStream` is false.
-
-## Technical Details
-
+Technical note:
 ```text
-CURRENT RECONNECT FLOW (broken):
-  1. Proxy 1011 → onclose fires
-  2. attemptReconnect() → dispose() old client
-     → cleanupAudio() stops ALL tracks (even shared ones)
-  3. New client.start(lastExternalStream)
-     → stream tracks are dead OR stream is invalid object
-     → createMediaStreamSource(invalidThing) → TypeError
+Current failing stack:
+MeetingRecorder -> useAssemblyRealtimePreview -> AssemblyRealtimeClient
+                                   |
+                            second reconnect layer
+                                   |
+                     dispose old client / recreate new client
+                                   |
+                   stale stream / closed context / MediaStream errors
 
-FIXED FLOW:
-  1. Proxy 1011 → onclose fires
-  2. attemptReconnect() → dispose() old client
-     → only closes WS + audio nodes, preserves shared streams
-  3. New client.start(validatedStream || undefined)
-     → instanceof check ensures valid MediaStream
-     → if invalid, falls through to fresh getUserMedia
+Planned stack:
+MeetingRecorder -> simplified preview hook -> AssemblyRealtimeClient
+                                              |
+                                      single reconnect owner
 ```
 
-## What stays unchanged
-- **Whisper / Deepgram**: Separate pipelines, untouched
-- **Mobile**: Uses direct client, unaffected
-- **Normal start/stop**: `stop()` method still does full cleanup as before
+Files to change:
+- `src/hooks/useAssemblyRealtimePreview.ts` (main refactor)
+- Possibly minor cleanup in `src/lib/assembly-realtime.ts`
+- Likely no or only tiny changes in `src/components/MeetingRecorder.tsx`
 
+QA to run after implementation:
+- Desktop mic-only recording with AssemblyAI preview
+- Desktop mic + system audio recording
+- Pause/resume with `preserveTranscript`
+- Temporary proxy close / 1011 recovery
+- Verify Whisper and Deepgram still continue independently
+- Verify no duplicate AssemblyAI text in the live panel
