@@ -620,7 +620,9 @@ export default function NoteWellRecorder() {
         const transcriber = createTranscriber(liveEngine, {
           onTranscription: (text) => {
             setLiveTranscript(prev => {
-              const updated = prev ? prev + " " + text : text;
+              const p = typeof prev === "string" ? prev : "";
+              const t = typeof text === "string" ? text : String(text || "");
+              const updated = p ? p + " " + t : t;
               setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
               return updated;
             });
