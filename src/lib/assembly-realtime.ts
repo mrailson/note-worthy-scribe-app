@@ -331,7 +331,15 @@ export class AssemblyRealtimeClient {
       try {
         const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
         const data = JSON.parse(raw);
-        if (data?.type === "error") { this.cb.onError?.(new Error(data?.error || "AssemblyAI error")); return; }
+        if (data?.type === "error") {
+          const errMsg = String(data?.error || "AssemblyAI error");
+          if (/closed\s*\(\d+\)/i.test(errMsg) && this.shouldReconnect) {
+            console.warn(`⚠️ AssemblyAI transient proxy error (reconnect): ${errMsg}`);
+            return;
+          }
+          this.cb.onError?.(new Error(errMsg));
+          return;
+        }
         if ('transcript' in data && 'end_of_turn' in data) {
           const text = String(data.transcript ?? "").trim();
           if (!text) return;
