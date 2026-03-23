@@ -1105,10 +1105,23 @@ serve(async (req) => {
       });
     }
 
-    console.log(`📊 After pre-filter: ${whisperRaw.length} Whisper, ${assemblyRaw.length} Assembly, ${deepgramRaw.length} Deepgram chunks`);
+    // Process Gladia chunks
+    for (const glChunk of (gladiaChunksData || [])) {
+      const text = glChunk.transcription_text || '';
+      if (!text.trim()) continue;
+
+      gladiaRaw.push({
+        engine: 'gladia',
+        idx: glChunk.chunk_number,
+        text: text,
+        confidence: glChunk.confidence || undefined
+      });
+    }
+
+    console.log(`📊 After pre-filter: ${whisperRaw.length} Whisper, ${assemblyRaw.length} Assembly, ${deepgramRaw.length} Deepgram, ${gladiaRaw.length} Gladia chunks`);
 
     // If all chunks were filtered, fall back to live transcript or existing
-    if (whisperRaw.length === 0 && assemblyRaw.length === 0 && deepgramRaw.length === 0) {
+    if (whisperRaw.length === 0 && assemblyRaw.length === 0 && deepgramRaw.length === 0 && gladiaRaw.length === 0) {
       if (liveTranscript && liveTranscript.length > 50 && !isTextHallucinated(liveTranscript)) {
         console.log('✅ All chunks filtered, using provided live transcript');
         const wordCount = liveTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
