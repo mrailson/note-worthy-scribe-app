@@ -1,42 +1,29 @@
 
 
-# Add "Manage" Link to Group Pill → Direct Edit
+# Fix: AssemblyAI Desktop Recording (Match Dictate Pattern)
 
-## What Changes
+## Problem
+In mic-only mode on desktop, `buildAssemblyAudioStream` requests a **second** microphone stream and creates an **unused** `AudioContext`, causing AudioContext exhaustion and silent failures. The working Dictate feature avoids this by letting `AssemblyRealtimeClient` capture its own mic internally.
 
-When the active group pill is shown at the bottom of PreMeetingSetup, add a "Manage" link that opens the LiveImportModal directly on the **edit view** for that specific group (instead of the generic attendees picker).
+## Changes
 
-## How
+### File 1: `src/components/MeetingRecorder.tsx` (~lines 4696-4756)
+**Skip `buildAssemblyAudioStream` entirely in mic-only mode.** When `assemblyAudioMixerRef.current` is null (no pre-built mixer from unified pipeline), check if we actually have system audio. If not (mic-only), call `startPreview(undefined, ...)` — letting AssemblyAI capture its own mic, exactly like Dictate.
 
-### 1. Thread `editGroupId` through the modal chain
+- Lines 4702-4742: Replace the block that always calls `buildAssemblyAudioStream` with:
+  - If `screenStreamRef.current` has live audio tracks → still build mixer (mic+system works fine)
+  - If no system audio (mic-only) → skip mixer, set `assemblyInputMode('mic-only')`, and pass `undefined` to `startPreview`
+- Line 4749: Change to `assemblyAudioMixerRef.current?.mixedStream` (may be undefined now)
 
-- **`PreMeetingSetup.tsx`** (line 675-691): Add a "Manage" text link inside the group pill. When clicked, call `onOpenImportModal('attendees', activeGroup.id)` instead of just `onOpenImportModal('attendees')`.
-- **`PreMeetingSetup.tsx`** interface: Update `onOpenImportModal` signature to `(tab?: string, editGroupId?: string) => void`.
+### File 2: `src/utils/buildAssemblyAudioStream.ts` (lines 125-143)
+**Remove orphaned `AudioContext` in mic-only fast path.** Line 131 creates `new AudioContext()` that serves no purpose. Return `null` for `audioContext` instead, preventing resource waste.
 
-### 2. Update `LiveImportModal` to accept and forward `editGroupId`
+## What stays unchanged
+- **Whisper**: Own transcriber, own mic stream, own AudioContext — untouched
+- **Deepgram**: Already handles `undefined` stream — untouched
+- **Mic+System mode**: Still uses the mixer pipeline — untouched
+- **Mobile**: Uses its own direct client — untouched
 
-- **`LiveImportModalProps`**: Add `editGroupId?: string`.
-- **`LiveImportModal.tsx`**: Pass `editGroupId` down to `MeetingAttendeesTab`.
-
-### 3. Update `MeetingAttendeesTab` to auto-open group edit
-
-- **`MeetingAttendeesTabProps`**: Add `editGroupId?: string`.
-- **`MeetingAttendeesTab.tsx`**: Add a `useEffect` — when `editGroupId` is set and groups are loaded, find the matching group, set `editingGroup` to it, and set `groupView` to `'edit'`.
-
-### 4. Wire up in `MeetingRecorder.tsx`
-
-- **`LiveImportModalWithContext`**: Accept and forward `editGroupId`.
-- **`MeetingRecorder.tsx`** (line 6686, 6758): Update the `onOpenImportModal` handler to capture and store `editGroupId` in state, pass it to `LiveImportModalWithContext`.
-
-### 5. Update `RecordingFlowOverlay.tsx`
-
-- Update `onOpenImportModal` signature to `(tab?: string, editGroupId?: string) => void`.
-
-## Files to Change
-
-- `src/components/recording-flow/PreMeetingSetup.tsx` — add Manage link in group pill, update callback signature
-- `src/components/recording-flow/RecordingFlowOverlay.tsx` — update callback type
-- `src/components/MeetingRecorder.tsx` — store editGroupId state, pass through
-- `src/components/meeting/import/LiveImportModal.tsx` — accept and forward editGroupId
-- `src/components/meeting/import/MeetingAttendeesTab.tsx` — auto-open edit view when editGroupId provided
+## Result
+Desktop mic-only goes from 3 AudioContexts + 2 mic streams → 2 AudioContexts + 1 mic stream, matching the working Dictate pattern.
 
