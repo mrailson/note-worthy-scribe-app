@@ -26,6 +26,7 @@ export class AssemblyRealtimeClientWorklet {
     // Open v3 websocket with OTEWELL verbatim settings
     const wsUrl =
       `wss://streaming.assemblyai.com/v3/ws?sample_rate=${this.sampleRateTarget}` +
+      `&encoding=pcm_s16le` +
       `&token=${encodeURIComponent(token)}` +
       `&format_turns=true` +
       `&punctuate=false` +      // OTEWELL: verbatim capture
