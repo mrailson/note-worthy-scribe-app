@@ -2770,7 +2770,10 @@ export const MeetingRecorder = ({
     })();
     
     if (isDuplicate) return;
-    
+
+    // Accumulate for live preview Browser Speech panel
+    setBrowserSpeechPreviewText(prev => prev + (prev ? ' ' : '') + trimmedText);
+
     // Add chunk status tracking for iPhone/mobile transcription with timestamps
     // CRITICAL: Use synchronous ref for correct chunk numbering (setState is async)
     chunkCounterRef.current += 1;
