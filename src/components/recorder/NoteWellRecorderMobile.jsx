@@ -567,6 +567,28 @@ export default function NoteWellRecorder() {
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Auto-delete completed recordings (Meeting Created ✓) after 1 hour
+  useEffect(() => {
+    const ONE_HOUR = 60 * 60 * 1000;
+    const cleanup = async () => {
+      const all = await dbAll();
+      let deleted = false;
+      for (const rec of all) {
+        if (rec.status === "transcribed" && rec.meetingId) {
+          const age = Date.now() - new Date(rec.createdAt).getTime();
+          if (age > ONE_HOUR) {
+            await dbDelete(rec.id);
+            deleted = true;
+          }
+        }
+      }
+      if (deleted) refresh();
+    };
+    cleanup();
+    const iv = setInterval(cleanup, 5 * 60 * 1000); // check every 5 minutes
+    return () => clearInterval(iv);
+  }, [refresh]);
+
   // ── Storage quota check ───────────────────────────────────────────────────
   useEffect(() => {
     const checkStorage = async () => {
@@ -1507,6 +1529,15 @@ export default function NoteWellRecorder() {
   const [deleteConfirm, setDeleteConfirm] = useState(null); // recording id pending delete
 
   const deleteRecording = async (id) => {
+    // Skip confirmation for completed recordings (Meeting Created ✓)
+    const rec = recordings.find(r => r.id === id);
+    if (rec && rec.status === "transcribed" && rec.meetingId) {
+      if (playingId === id) { audioRef.current.pause(); setPlayingId(null); }
+      await dbDelete(id);
+      await refresh();
+      showToast("Recording deleted", "info");
+      return;
+    }
     setDeleteConfirm(id);
   };
 
