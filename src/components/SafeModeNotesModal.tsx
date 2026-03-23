@@ -213,9 +213,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [batchTranscript, setBatchTranscript] = useState('');
   const [liveTranscript, setLiveTranscript] = useState('');
   const [deepgramTranscript, setDeepgramTranscript] = useState('');
+  const [gladiaTranscript, setGladiaTranscript] = useState('');
   const [consolidatedTranscript, setConsolidatedTranscript] = useState('');
   const [bestOfAllTranscript, setBestOfAllTranscript] = useState('');
-  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live' | 'deepgram' | 'best_of_all'>('batch');
+  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live' | 'deepgram' | 'gladia' | 'best_of_all'>('batch');
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [consolidationStats, setConsolidationStats] = useState<{
     batchWords: number;
