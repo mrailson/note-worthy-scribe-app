@@ -795,11 +795,12 @@ export const MeetingRecorder = ({
     const assemblyWords = countWords(assemblyPreview.fullTranscript);
     const whisperWords = countWords(transcript);
     const deepgramWords = countWords(deepgramPreview.fullTranscript);
-    const effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords);
+    const gladiaWords = countWords(gladiaPreview.fullTranscript);
+    const effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords, gladiaWords);
 
     setWordCount(effectiveWords);
     onWordCountUpdate(effectiveWords);
-  }, [assemblyPreview.fullTranscript, transcript, deepgramPreview.fullTranscript, onWordCountUpdate, countWords]);
+  }, [assemblyPreview.fullTranscript, transcript, deepgramPreview.fullTranscript, gladiaPreview.fullTranscript, onWordCountUpdate, countWords]);
 
   // ============= WHISPER COST PROTECTION =============
   // Maximum recording duration (4 hours) to prevent runaway billing
