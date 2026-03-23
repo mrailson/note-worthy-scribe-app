@@ -412,8 +412,8 @@ export class AssemblyRealtimeClient {
   }
 
   /**
-   * Lightweight teardown for reconnection — closes WS without destroying
-   * audio resources or setting manualStop, so the next client can start fresh.
+   * Lightweight teardown for reconnection — closes WS and audio nodes
+   * but preserves shared mic streams so the next client can reuse them.
    */
   dispose() {
     console.log(`🗑️ AssemblyRealtimeClient: dispose (lightweight teardown for reconnect)`);
@@ -429,8 +429,25 @@ export class AssemblyRealtimeClient {
 
     if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
 
-    // Clean up audio fully — the new client will create its own resources
-    this.cleanupAudio();
+    // Only clean up audio nodes (worklet/processor/context) — NOT the mic stream
+    // if we don't own it, so the next client can reuse the same stream.
+    try {
+      this.worklet?.disconnect();
+      this.processor?.disconnect();
+      this.sources?.forEach(s => { try { s.disconnect(); } catch {} });
+      this.audioCtx?.close();
+    } catch {}
+
+    // Only stop mic tracks if we own the stream
+    if (this.ownsStream && this.stream) {
+      this.stream.getTracks().forEach(t => t.stop());
+    }
+
+    this.worklet = undefined;
+    this.processor = undefined;
+    this.sources = undefined;
+    this.audioCtx = undefined;
+    // Don't null out this.stream or this.externalStream — let the hook manage that
   }
 
   // ── v3 message handler with 30s safety timer ──────────────────────────
@@ -511,8 +528,8 @@ export class AssemblyRealtimeClient {
   private async startAudioCapture() {
     this.setupInProgress = true;
     try {
-      // Validate external stream tracks are still alive
-      if (this.externalStream) {
+      // Validate external stream is a real MediaStream with live tracks
+      if (this.externalStream && this.externalStream instanceof MediaStream) {
         const activeTracks = this.externalStream.getAudioTracks().filter(t => t.readyState === 'live');
         if (activeTracks.length > 0) {
           console.log("🎙️ AssemblyRealtimeClient: using external stream", activeTracks.length, "active tracks");
@@ -527,6 +544,10 @@ export class AssemblyRealtimeClient {
           this.ownsStream = true;
         }
       } else {
+        if (this.externalStream) {
+          console.warn("⚠️ External stream is not a valid MediaStream — capturing fresh mic");
+          this.externalStream = undefined;
+        }
         console.log("🎙️ AssemblyRealtimeClient: capturing mic directly");
         this.stream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
@@ -540,6 +561,11 @@ export class AssemblyRealtimeClient {
       await this.audioCtx.resume();
       const srcRate = this.audioCtx.sampleRate;
       console.log(`🎛️ AssemblyRealtimeClient: AudioContext @ ${srcRate}Hz (state: ${this.audioCtx.state}), resampling to ${this.sampleRateTarget}Hz`);
+
+      // Final guard: ensure stream is valid before creating source node
+      if (!this.stream || !(this.stream instanceof MediaStream)) {
+        throw new Error("Audio capture failed: stream is not a valid MediaStream");
+      }
 
       const src = this.audioCtx.createMediaStreamSource(this.stream);
       this.sources = [src];
