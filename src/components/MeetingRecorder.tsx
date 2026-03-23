@@ -7520,44 +7520,42 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         <TabsContent value="history" className="space-y-4 mt-2">
           <div className="flex items-center gap-3 py-2 px-1 mb-2">
             <TabDropdown activeTab={activeTab} onTabChange={setActiveTab} hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))} meetingCount={meetings.length} />
+            <p className="text-[13px] text-muted-foreground ml-3">
+              <span className="font-medium text-foreground">
+                {meetings.filter(m => 
+                  new Date(m.created_at || m.start_time).getMonth() === new Date().getMonth() &&
+                  new Date(m.created_at || m.start_time).getFullYear() === new Date().getFullYear()
+                ).length}
+              </span>
+              {' '}this month
+              <span className="mx-1.5">·</span>
+              <span className="font-medium text-foreground">
+                {(() => {
+                  const totalMinutes = meetings.reduce((acc, m) => {
+                    if (m.duration_minutes && m.duration_minutes > 0) return acc + m.duration_minutes;
+                    if (m.start_time && m.end_time) {
+                      const diff = (new Date(m.end_time).getTime() - new Date(m.start_time).getTime()) / (1000 * 60);
+                      return acc + (diff > 0 ? diff : 0);
+                    }
+                    return acc;
+                  }, 0);
+                  const hours = Math.floor(totalMinutes / 60);
+                  const mins = Math.round(totalMinutes % 60);
+                  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                })()}
+              </span>
+              {' '}recorded
+              <span className="mx-1.5">·</span>
+              <span className="font-medium text-foreground">
+                {(() => {
+                  if (totalTranscriptWords >= 1000000) return `${(totalTranscriptWords / 1000000).toFixed(1)}M`;
+                  if (totalTranscriptWords >= 1000) return `${(totalTranscriptWords / 1000).toFixed(1)}k`;
+                  return totalTranscriptWords.toString();
+                })()}
+              </span>
+              {' '}words
+            </p>
           </div>
-
-          {/* Stats summary line */}
-          <p className="text-[13px] text-muted-foreground mb-4">
-            <span className="font-medium text-foreground">
-              {meetings.filter(m => 
-                new Date(m.created_at || m.start_time).getMonth() === new Date().getMonth() &&
-                new Date(m.created_at || m.start_time).getFullYear() === new Date().getFullYear()
-              ).length}
-            </span>
-            {' '}this month
-            <span className="mx-1.5">·</span>
-            <span className="font-medium text-foreground">
-              {(() => {
-                const totalMinutes = meetings.reduce((acc, m) => {
-                  if (m.duration_minutes && m.duration_minutes > 0) return acc + m.duration_minutes;
-                  if (m.start_time && m.end_time) {
-                    const diff = (new Date(m.end_time).getTime() - new Date(m.start_time).getTime()) / (1000 * 60);
-                    return acc + (diff > 0 ? diff : 0);
-                  }
-                  return acc;
-                }, 0);
-                const hours = Math.floor(totalMinutes / 60);
-                const mins = Math.round(totalMinutes % 60);
-                return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-              })()}
-            </span>
-            {' '}recorded
-            <span className="mx-1.5">·</span>
-            <span className="font-medium text-foreground">
-              {(() => {
-                if (totalTranscriptWords >= 1000000) return `${(totalTranscriptWords / 1000000).toFixed(1)}M`;
-                if (totalTranscriptWords >= 1000) return `${(totalTranscriptWords / 1000).toFixed(1)}k`;
-                return totalTranscriptWords.toString();
-              })()}
-            </span>
-            {' '}words
-          </p>
 
           {/* Search and Filter Controls */}
           <div className="space-y-4">
