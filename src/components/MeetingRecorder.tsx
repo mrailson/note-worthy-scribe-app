@@ -5223,6 +5223,9 @@ export const MeetingRecorder = ({
     
     // Stop Deepgram real-time preview
     deepgramPreview.stopPreview();
+
+    // Stop Gladia real-time preview
+    gladiaPreview.stopPreview();
     
     // Cleanup AssemblyAI audio mixer
     cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
