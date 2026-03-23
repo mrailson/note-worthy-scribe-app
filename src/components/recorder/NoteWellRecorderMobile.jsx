@@ -582,6 +582,79 @@ export default function NoteWellRecorder() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // ── Live transcription engine ──────────────────────────────────────────────
+  const startLiveTranscription = useCallback(async (stream) => {
+    if (mode !== "live" || !isOnline) return;
+    stopLiveTranscription();
+    setLiveStatus("connecting");
+    setLiveTranscript("");
+    setLiveWordCount(0);
+    setLivePartial("");
+
+    try {
+      if (liveEngine === "assemblyai") {
+        const client = new AssemblyRealtimeClient({
+          onOpen: () => setLiveStatus("connected"),
+          onPartial: (text) => setLivePartial(text),
+          onFinal: (text) => {
+            setLiveTranscript(prev => {
+              const updated = prev ? prev + " " + text : text;
+              setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
+              return updated;
+            });
+            setLivePartial("");
+          },
+          onError: (err) => {
+            console.error("[LiveTranscript] AssemblyAI error:", err);
+            setLiveStatus("error");
+          },
+          onClose: () => setLiveStatus("idle"),
+        });
+        await client.start(stream);
+        liveClientRef.current = client;
+        setLiveStatus("connected");
+      } else {
+        // Deepgram or browser-speech via factory
+        const transcriber = createTranscriber(liveEngine, {
+          onTranscription: (text) => {
+            setLiveTranscript(prev => {
+              const updated = prev ? prev + " " + text : text;
+              setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
+              return updated;
+            });
+          },
+          onError: (err) => {
+            console.error(`[LiveTranscript] ${liveEngine} error:`, err);
+            setLiveStatus("error");
+          },
+          onStatusChange: (status) => {
+            if (status === "recording" || status === "connected") setLiveStatus("connected");
+          },
+        });
+        await transcriber.startTranscription();
+        liveClientRef.current = transcriber;
+        setLiveStatus("connected");
+      }
+    } catch (err) {
+      console.error("[LiveTranscript] Start failed:", err);
+      setLiveStatus("error");
+    }
+  }, [liveEngine, mode, isOnline]);
+
+  const stopLiveTranscription = useCallback(() => {
+    if (liveClientRef.current) {
+      try {
+        if (typeof liveClientRef.current.stop === "function") {
+          liveClientRef.current.stop();
+        } else if (typeof liveClientRef.current.stopTranscription === "function") {
+          liveClientRef.current.stopTranscription();
+        }
+      } catch { /* ignore */ }
+      liveClientRef.current = null;
+    }
+    setLiveStatus("idle");
+  }, []);
+
   // ── Recording controls (chunked) ─────────────────────────────────────────
   const startRecording = async () => {
     try {
