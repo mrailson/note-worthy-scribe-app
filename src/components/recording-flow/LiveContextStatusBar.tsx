@@ -48,6 +48,9 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
     recordingDuration,
   } = useMeetingSetup();
 
+  const [attendeePreviewOpen, setAttendeePreviewOpen] = useState(false);
+  const [agendaPreviewOpen, setAgendaPreviewOpen] = useState(false);
+
   const presentAttendees = attendees.filter(a => a.status === 'present');
 
   return (
