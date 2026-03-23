@@ -704,6 +704,8 @@ export default function NoteWellRecorder() {
 
   // ── Recording controls (chunked) ─────────────────────────────────────────
   const startRecording = async () => {
+    peakWordCountRef.current = 0;
+    setLiveWordCount(0);
     try {
       const recorder = new ChunkedRecorder({
         chunkDurationMs: 15 * 60 * 1000, // 15 minutes
