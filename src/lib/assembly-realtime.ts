@@ -411,6 +411,28 @@ export class AssemblyRealtimeClient {
     this.cleanupAudio();
   }
 
+  /**
+   * Lightweight teardown for reconnection — closes WS without destroying
+   * audio resources or setting manualStop, so the next client can start fresh.
+   */
+  dispose() {
+    console.log(`🗑️ AssemblyRealtimeClient: dispose (lightweight teardown for reconnect)`);
+    this.shouldReconnect = false;
+
+    try {
+      this.sending = false;
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: "terminate" }));
+      }
+      this.ws?.close();
+    } catch {}
+
+    if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+
+    // Clean up audio fully — the new client will create its own resources
+    this.cleanupAudio();
+  }
+
   // ── v3 message handler with 30s safety timer ──────────────────────────
 
   private handleTurnMessage(data: any, text: string) {
