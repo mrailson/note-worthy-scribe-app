@@ -16,16 +16,18 @@ export class WhisperChunkTranscriber {
   private chunkIndex = 0;
   private chunkInterval: NodeJS.Timeout | null = null;
   private currentAudioChunks: Blob[] = [];
-  private readonly chunkDurationMs: number;
+  private readonly firstChunkDurationMs: number;
+  private readonly subsequentChunkDurationMs: number;
   private readonly language?: string;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void,
-    options?: { chunkDurationMs?: number; language?: string }
+    options?: { chunkDurationMs?: number; firstChunkDurationMs?: number; subsequentChunkDurationMs?: number; language?: string }
   ) {
-    this.chunkDurationMs = options?.chunkDurationMs ?? 5000; // 5s chunks for low latency
+    this.firstChunkDurationMs = options?.firstChunkDurationMs ?? options?.chunkDurationMs ?? 5000;
+    this.subsequentChunkDurationMs = options?.subsequentChunkDurationMs ?? options?.chunkDurationMs ?? 90000;
     this.language = options?.language;
   }
 
@@ -77,6 +79,7 @@ export class WhisperChunkTranscriber {
 
   private scheduleNextChunk() {
     if (!this.isActive) return;
+    const duration = this.chunkIndex === 0 ? this.firstChunkDurationMs : this.subsequentChunkDurationMs;
     this.chunkInterval = setTimeout(() => {
       if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
         this.mediaRecorder.stop();
@@ -88,7 +91,7 @@ export class WhisperChunkTranscriber {
           }
         }, 120);
       }
-    }, this.chunkDurationMs);
+    }, duration);
   }
 
   private async processAudioChunk() {
