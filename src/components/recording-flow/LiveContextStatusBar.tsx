@@ -74,26 +74,43 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
 
           {/* Status pills — all hidden on mobile */}
           {!isMobile && (
-            <ContextStatusPill
-              icon="👥" label="Present" color="#10B981"
-              value={presentCount.toString()}
-              pulse={lastUpdate === 'attendance'}
-            />
+            <div style={{ position: 'relative' }}>
+              <ContextStatusPill
+                icon="👥" label="Present" color="#10B981"
+                value={presentCount.toString()}
+                pulse={lastUpdate === 'attendance'}
+                onClick={attendees.length > 0 ? () => { setAttendeePreviewOpen(o => !o); setAgendaPreviewOpen(false); } : undefined}
+              />
+              <AttendeePreviewPanel
+                open={attendeePreviewOpen}
+                onClose={() => setAttendeePreviewOpen(false)}
+                attendees={attendees}
+              />
+            </div>
           )}
           {!isMobile && apologiesCount > 0 && (
             <ContextStatusPill
               icon="📨" label="Apologies" color="#F59E0B"
               value={apologiesCount.toString()}
               pulse={lastUpdate === 'attendance'}
+              onClick={attendees.length > 0 ? () => { setAttendeePreviewOpen(o => !o); setAgendaPreviewOpen(false); } : undefined}
             />
           )}
           {!isMobile && (
-            <ContextStatusPill
-              icon="📋" label="Agenda"
-              color={agendaItems.length > 0 ? '#3B82F6' : '#94A3B8'}
-              value={agendaItems.length > 0 ? `${agendaItems.length} items` : 'None'}
-              pulse={lastUpdate === 'agenda'}
-            />
+            <div style={{ position: 'relative' }}>
+              <ContextStatusPill
+                icon="📋" label="Agenda"
+                color={agendaItems.length > 0 ? '#3B82F6' : '#94A3B8'}
+                value={agendaItems.length > 0 ? `${agendaItems.length} items` : 'None'}
+                pulse={lastUpdate === 'agenda'}
+                onClick={agendaItems.length > 0 ? () => { setAgendaPreviewOpen(o => !o); setAttendeePreviewOpen(false); } : undefined}
+              />
+              <AgendaPreviewPanel
+                open={agendaPreviewOpen}
+                onClose={() => setAgendaPreviewOpen(false)}
+                items={agendaItems}
+              />
+            </div>
           )}
 
           {/* Duration pill — hide on mobile (already in REC badge) */}
