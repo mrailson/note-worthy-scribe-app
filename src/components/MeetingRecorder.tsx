@@ -7272,7 +7272,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
         <TabsContent value="transcript" className="space-y-2 mt-2">
           <div className="flex items-center gap-3 py-2 px-1 mb-2">
-            <TabDropdown activeTab={activeTab} onTabChange={setActiveTab} hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))} />
+            <TabDropdown activeTab={activeTab} onTabChange={setActiveTab} hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))} meetingCount={meetings.length} />
             <h2 className="flex-1 text-[15px] font-extrabold text-foreground tracking-tight">Meeting Transcript</h2>
           </div>
           {/* Transcript Source Switcher */}
