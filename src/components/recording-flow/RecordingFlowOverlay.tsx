@@ -55,6 +55,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   activeTab = 'recorder',
   onTabChange,
   hasNewMeetings,
+  meetingCount,
   children,
 }) => {
   const { stage, resetSetup } = useMeetingSetup();
