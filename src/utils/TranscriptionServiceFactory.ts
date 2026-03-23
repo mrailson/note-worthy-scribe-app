@@ -8,6 +8,7 @@ import { AmazonTranscribeRealtimeTranscriber } from '@/utils/AmazonTranscribeRea
 import { GoogleCloudSpeechTranscriber } from '@/utils/GoogleCloudSpeechTranscriber';
 import { BrowserSpeechTranscriber } from '@/utils/BrowserSpeechTranscriber';
 import { WhisperBatchTranscriber } from '@/utils/WhisperBatchTranscriber';
+import { GladiaRealtimeTranscriber } from '@/utils/GladiaRealtimeTranscriber';
 
 // Unified interface that all transcribers implement
 export interface UnifiedTranscriber {
