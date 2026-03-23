@@ -93,7 +93,7 @@ Deno.serve(async (req: Request) => {
         // Add keyterms if provided by client
         if (pendingKeyterms.length > 0) {
           const keytermsParam = pendingKeyterms.join(',');
-          wsUrl += `&keyterms=${encodeURIComponent(keytermsParam)}`;
+          wsUrl += `&keyterms_prompt=${encodeURIComponent(keytermsParam)}`;
           console.log(`🔑 Including ${pendingKeyterms.length} keyterms in AssemblyAI connection`);
         }
         
