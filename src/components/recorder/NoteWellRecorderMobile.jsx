@@ -875,10 +875,9 @@ export default function NoteWellRecorder() {
     return data;
   };
 
-  // ── Post-note-generation actions (overview + auto-email) ────────────────
-  const triggerPostNoteActions = async (meetingId, transcript) => {
+  // ── Post-note-generation actions (auto-email only — overview handled by orchestrator) ──
+  const triggerPostNoteActions = async (meetingId) => {
     try {
-      // 1. Generate meeting overview
       const { data: meeting } = await supabase
         .from("meetings")
         .select("title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count")
@@ -886,11 +885,6 @@ export default function NoteWellRecorder() {
         .maybeSingle();
       const meetingTitle = meeting?.title || "Mobile Recording";
 
-      supabase.functions.invoke("generate-meeting-overview", {
-        body: { meetingId, transcript, meetingTitle },
-      }).catch((e) => console.warn("Overview generation failed:", e));
-
-      // 2. Auto-send email with notes (professional format matching desktop)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) return;
 
@@ -916,7 +910,6 @@ export default function NoteWellRecorder() {
         : undefined;
       const subject = `Notewell AI | ${meetingTitle} — ${meetingDate}`;
 
-      // Build professional styled HTML email (same as desktop)
       const { buildProfessionalMeetingEmail } = await import("@/utils/meetingEmailBuilder");
       const htmlContent = buildProfessionalMeetingEmail(
         summary.summary,
@@ -934,7 +927,6 @@ export default function NoteWellRecorder() {
         }
       );
 
-      // Generate professional Word attachment
       let wordAttachment = null;
       try {
         const { generateProfessionalWordBlob } = await import("@/utils/generateProfessionalMeetingDocx");
@@ -949,7 +941,6 @@ export default function NoteWellRecorder() {
             : undefined,
         };
 
-        // Fetch action items
         let parsedActionItems = [];
         try {
           const { data: actionItemsData } = await supabase
