@@ -1,35 +1,29 @@
 
 
-## Add "Mobile Live" / "Mobile Offline" Recording Source to Badge
+## Fix: `[object Object]` in live transcript
 
 ### Problem
-The `RecordingDeviceBadge` currently shows Chrome, Edge, iPhone, etc. based on device info. But:
-1. Mobile recordings never call `attachDeviceInfoToMeeting`, so they often have no device data at all
-2. The recording mode (Live vs Offline) is never persisted, so there's no way to distinguish them
+The transcript preview shows `[object Object]` because the Deepgram and Browser Speech transcribers pass a `TranscriptData` object (with `.text`, `.speaker`, `.confidence` fields) to `onTranscription`, but the code treats the argument as a plain string.
 
-### Plan
+### Root Cause
+In `NoteWellRecorderMobile.jsx` line ~621, the `onTranscription` callback receives `(text)` but `text` is actually a `TranscriptData` object. The `String(text)` coercion produces `[object Object]`.
 
-#### Step 1: Persist recording mode in `import_source` field
-The `import_source` column already exists on the `meetings` table. Mobile recordings currently set it to `"mobile_recorder"`. Change this to be more specific:
-- **Live mode**: `"mobile_live"`
-- **Offline mode**: `"mobile_offline"`
+### Fix (1 file)
 
-Update all meeting insert calls in `NoteWellRecorderMobile.jsx` (there are ~4 insert locations around lines 816, 1014, 1039, 1212) to pass the current `mode` variable into `import_source`.
+**`src/components/recorder/NoteWellRecorderMobile.jsx`** — In the `createTranscriber` callback (~line 621):
 
-Also call `attachDeviceInfoToMeeting` after each successful mobile meeting insert so device_browser/device_os/device_type are populated too.
+```javascript
+onTranscription: (data) => {
+  const t = typeof data === "string" ? data : (data?.text ?? String(data || ""));
+  if (!t.trim()) return;
+  setLiveTranscript(prev => {
+    const p = typeof prev === "string" ? prev : "";
+    const updated = p ? p + " " + t : t;
+    setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
+    return updated;
+  });
+},
+```
 
-#### Step 2: Update `RecordingDeviceBadge` to show recording mode
-Modify `src/components/meeting-history/RecordingDeviceBadge.tsx`:
-- Add `import_source` to the query (`select`)
-- Update `getDeviceLabel` logic:
-  - `import_source === "mobile_live"` → **"Mobile · Live"**
-  - `import_source === "mobile_offline"` → **"Mobile · Offline"**
-  - `import_source === "mobile_recorder"` (legacy) → **"Mobile"** (keeps backward compat)
-  - Existing Chrome/Edge/Safari labels remain unchanged
-- Add distinct badge colours for the two mobile modes (e.g. blue for live, amber for offline)
-- Use `Smartphone` icon for both mobile modes
-
-#### Files to edit
-- `src/components/recorder/NoteWellRecorderMobile.jsx` — pass mode into import_source + call attachDeviceInfoToMeeting
-- `src/components/meeting-history/RecordingDeviceBadge.tsx` — read import_source, add mobile mode labels/colours
+This extracts `.text` from the `TranscriptData` object for Deepgram and Browser Speech, while still handling plain strings from AssemblyAI.
 
