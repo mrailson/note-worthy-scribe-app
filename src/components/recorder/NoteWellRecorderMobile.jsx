@@ -533,6 +533,12 @@ export default function NoteWellRecorder() {
   const [syncProgress,  setSyncProgress]  = useState(null);
   const [bitrate,       setBitrate]       = useState(getSavedBitrate());
   const [activeStream,  setActiveStream]  = useState(null);  // MediaStream for waveform
+  const [liveEngine,    setLiveEngine]    = useState("assemblyai"); // assemblyai|deepgram|browser-speech
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [liveWordCount, setLiveWordCount] = useState(0);
+  const [livePartial,   setLivePartial]   = useState("");
+  const [liveStatus,    setLiveStatus]    = useState("idle"); // idle|connecting|connected|error
+  const liveClientRef   = useRef(null);  // AssemblyRealtimeClient or UnifiedTranscriber
   const recorderRef  = useRef(null);  // ChunkedRecorder instance
   const timerRef     = useRef(null);
   const audioRef     = useRef(new Audio());
