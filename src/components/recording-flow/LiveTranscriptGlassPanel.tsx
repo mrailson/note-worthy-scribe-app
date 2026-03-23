@@ -12,12 +12,11 @@ interface LiveTranscriptGlassPanelProps {
   whisperChunkText?: string;
   whisperChunkNum?: number;
   gladiaText?: string;
-  browserText?: string;
 }
 
 const MAX_VISIBLE_LINES = 4;
 
-type EngineKey = 'all' | 'assembly' | 'deepgram' | 'whisper' | 'gladia' | 'browser';
+type EngineKey = 'all' | 'assembly' | 'deepgram' | 'whisper' | 'gladia';
 
 const ENGINE_SOURCES: { key: EngineKey; label: string; hue: string }[] = [
   { key: 'all', label: 'All', hue: '0 0% 50%' },
@@ -25,7 +24,6 @@ const ENGINE_SOURCES: { key: EngineKey; label: string; hue: string }[] = [
   { key: 'deepgram', label: 'Deepgram', hue: '142 71% 45%' },
   { key: 'whisper', label: 'Whisper', hue: '270 67% 55%' },
   { key: 'gladia', label: 'Gladia', hue: '35 95% 55%' },
-  { key: 'browser', label: 'Browser', hue: '190 70% 50%' },
 ];
 
 export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> = ({
@@ -39,7 +37,6 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
   whisperChunkText = '',
   whisperChunkNum = 0,
   gladiaText = '',
-  browserText = '',
 }) => {
   const [open, setOpen] = useState(false);
   const [activeEngines, setActiveEngines] = useState<Set<EngineKey>>(new Set(['all']));
@@ -208,14 +205,6 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
                   hue="35 95% 55%"
                   lines={splitIntoLines(gladiaText, 4)}
                   emptyText="Gladia: awaiting data…"
-                />
-              )}
-              {activeEngines.has('browser') && (
-                <EngineSection
-                  label="Browser Speech"
-                  hue="190 70% 50%"
-                  lines={splitIntoLines(browserText, 4)}
-                  emptyText="Browser Speech: awaiting data…"
                 />
               )}
             </div>

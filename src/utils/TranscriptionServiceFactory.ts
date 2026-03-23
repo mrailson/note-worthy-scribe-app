@@ -60,14 +60,6 @@ export function createTranscriber(
         onSummary
       );
       
-    case 'browser-speech':
-      return new BrowserSpeechTranscriber(
-        onTranscription,
-        onError,
-        onStatusChange,
-        onSummary
-      );
-      
     case 'whisper-batch':
       return new WhisperBatchTranscriber(
         onTranscription,
@@ -104,7 +96,6 @@ export function getServiceDisplayName(service: TranscriptionService): string {
     'deepgram': 'Deepgram Nova-3',
     'amazon-transcribe': 'Amazon Transcribe',
     'google-cloud': 'Google Cloud Speech',
-    'browser-speech': 'Browser Speech',
     'whisper-batch': 'Whisper (Batch)',
     'gladia': 'Gladia',
   };

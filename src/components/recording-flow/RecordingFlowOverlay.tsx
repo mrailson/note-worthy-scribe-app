@@ -26,7 +26,6 @@ interface RecordingFlowOverlayProps {
   whisperChunkText?: string;
   whisperChunkNum?: number;
   gladiaText?: string;
-  browserText?: string;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   hasNewMeetings?: boolean;
@@ -55,7 +54,6 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
   whisperChunkText = '',
   whisperChunkNum = 0,
   gladiaText = '',
-  browserText = '',
   activeTab = 'recorder',
   onTabChange,
   hasNewMeetings,
@@ -145,7 +143,6 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             whisperChunkText={whisperChunkText}
             whisperChunkNum={whisperChunkNum}
             gladiaText={gladiaText}
-            browserText={browserText}
           />
           {children}
         </>
