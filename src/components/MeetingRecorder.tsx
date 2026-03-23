@@ -6803,7 +6803,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             whisperChunkText={transcript ? transcript.trim().split(/\s+/).slice(-50).join(' ') : ''}
             whisperChunkNum={chunkCounter}
             gladiaText={''}
-            browserText={''}
+            browserText={browserSpeechPreviewText ? browserSpeechPreviewText.trim().split(/\s+/).slice(-30).join(' ') : ''}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))}
