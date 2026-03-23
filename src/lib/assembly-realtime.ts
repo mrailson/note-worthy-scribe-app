@@ -411,6 +411,28 @@ export class AssemblyRealtimeClient {
     this.cleanupAudio();
   }
 
+  /**
+   * Lightweight teardown for reconnection — closes WS without destroying
+   * audio resources or setting manualStop, so the next client can start fresh.
+   */
+  dispose() {
+    console.log(`🗑️ AssemblyRealtimeClient: dispose (lightweight teardown for reconnect)`);
+    this.shouldReconnect = false;
+
+    try {
+      this.sending = false;
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: "terminate" }));
+      }
+      this.ws?.close();
+    } catch {}
+
+    if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+
+    // Clean up audio fully — the new client will create its own resources
+    this.cleanupAudio();
+  }
+
   // ── v3 message handler with 30s safety timer ──────────────────────────
 
   private handleTurnMessage(data: any, text: string) {
@@ -525,12 +547,19 @@ export class AssemblyRealtimeClient {
       // Try AudioWorklet first, fall back to ScriptProcessorNode
       const useWorklet = await this.tryAudioWorklet(src);
       if (!useWorklet) {
-        if (this.audioCtx) {
+        // Ensure AudioContext still exists for fallback
+        if (!this.audioCtx || this.audioCtx.state === 'closed') {
+          console.log("🔄 Recreating AudioContext for ScriptProcessor fallback");
+          this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          await this.audioCtx.resume();
+          // Recreate source node with new context
+          const newSrc = this.audioCtx.createMediaStreamSource(this.stream!);
+          this.sources = [newSrc];
+          console.log("⚠️ AudioWorklet unavailable — falling back to ScriptProcessorNode (fresh context)");
+          this.startScriptProcessorFallback(newSrc);
+        } else {
           console.log("⚠️ AudioWorklet unavailable — falling back to ScriptProcessorNode");
           this.startScriptProcessorFallback(src);
-        } else {
-          console.error("❌ AudioContext destroyed — cannot start fallback");
-          this.cb.onError?.(new Error("Audio capture failed: no AudioContext"));
         }
       }
     } finally {

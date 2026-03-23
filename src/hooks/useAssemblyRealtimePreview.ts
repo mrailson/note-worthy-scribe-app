@@ -117,9 +117,12 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
 
     reconnectTimeoutRef.current = setTimeout(async () => {
       try {
-        // Clean up old client
+        // Clean up old client — use graceful dispose instead of stop()
+        // to avoid setting manualStop=true and destroying AudioContext prematurely
         if (clientRef.current) {
-          try { clientRef.current.stop(); } catch { /* ignore */ }
+          try { 
+            clientRef.current.dispose(); 
+          } catch { /* ignore */ }
           clientRef.current = null;
         }
 
