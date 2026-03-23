@@ -769,7 +769,7 @@ export default function NoteWellRecorder() {
 
     const totalSize = chunks.reduce((s, c) => s + c.sizeBytes, 0);
     const durationSecs = Math.floor(elapsed / 1000);
-    setTitleModal({ chunks, duration: durationSecs, totalSize, chunkCount: chunks.length });
+    setTitleModal({ chunks, duration: durationSecs, totalSize, chunkCount: chunks.length, stoppedElapsed: elapsed });
     setElapsed(0);
   };
 
