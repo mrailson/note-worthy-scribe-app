@@ -1507,6 +1507,15 @@ export default function NoteWellRecorder() {
   const [deleteConfirm, setDeleteConfirm] = useState(null); // recording id pending delete
 
   const deleteRecording = async (id) => {
+    // Skip confirmation for completed recordings (Meeting Created ✓)
+    const rec = recordings.find(r => r.id === id);
+    if (rec && rec.status === "transcribed" && rec.meetingId) {
+      if (playingId === id) { audioRef.current.pause(); setPlayingId(null); }
+      await dbDelete(id);
+      await refresh();
+      showToast("Recording deleted", "info");
+      return;
+    }
     setDeleteConfirm(id);
   };
 
