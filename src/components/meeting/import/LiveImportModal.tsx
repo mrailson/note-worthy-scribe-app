@@ -33,6 +33,7 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
   open,
   onOpenChange,
   defaultTab,
+  editGroupId,
   meetingId,
   onImportComplete,
   onAttendeesChanged,
