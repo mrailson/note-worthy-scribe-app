@@ -412,8 +412,8 @@ export class AssemblyRealtimeClient {
   }
 
   /**
-   * Lightweight teardown for reconnection — closes WS without destroying
-   * audio resources or setting manualStop, so the next client can start fresh.
+   * Lightweight teardown for reconnection — closes WS and audio nodes
+   * but preserves shared mic streams so the next client can reuse them.
    */
   dispose() {
     console.log(`🗑️ AssemblyRealtimeClient: dispose (lightweight teardown for reconnect)`);
@@ -429,8 +429,25 @@ export class AssemblyRealtimeClient {
 
     if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
 
-    // Clean up audio fully — the new client will create its own resources
-    this.cleanupAudio();
+    // Only clean up audio nodes (worklet/processor/context) — NOT the mic stream
+    // if we don't own it, so the next client can reuse the same stream.
+    try {
+      this.worklet?.disconnect();
+      this.processor?.disconnect();
+      this.sources?.forEach(s => { try { s.disconnect(); } catch {} });
+      this.audioCtx?.close();
+    } catch {}
+
+    // Only stop mic tracks if we own the stream
+    if (this.ownsStream && this.stream) {
+      this.stream.getTracks().forEach(t => t.stop());
+    }
+
+    this.worklet = undefined;
+    this.processor = undefined;
+    this.sources = undefined;
+    this.audioCtx = undefined;
+    // Don't null out this.stream or this.externalStream — let the hook manage that
   }
 
   // ── v3 message handler with 30s safety timer ──────────────────────────
