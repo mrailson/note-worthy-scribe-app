@@ -773,6 +773,34 @@ export default function NoteWellRecorder() {
     setElapsed(0);
   };
 
+  const continueRecording = async () => {
+    if (!titleModal) return;
+    const prevElapsed = titleModal.stoppedElapsed || 0;
+    setTitleModal(null);
+    try {
+      const recorder = new ChunkedRecorder({
+        chunkDurationMs: 15 * 60 * 1000,
+        audioBitrate: bitrate,
+        onChunkReady: (chunk) => {
+          setChunksCompleted(prev => prev + 1);
+          console.log(`[ChunkedRecording] Chunk ${chunk.index} ready`);
+        },
+        onStatusChange: (status) => console.log(`[ChunkedRecording] Status: ${status}`),
+      });
+      recorderRef.current = recorder;
+      await recorder.start();
+      setActiveStream(recorder.mediaStream);
+      startLiveTranscription(recorder.mediaStream);
+      const resumeFrom = Date.now() - prevElapsed;
+      timerRef.current = setInterval(() => setElapsed(Date.now() - resumeFrom), 500);
+      setRecState("recording");
+      showToast("Recording resumed", "success");
+    } catch (err) {
+      console.error("Failed to continue recording:", err);
+      showToast("Failed to resume", "error");
+    }
+  };
+
   const saveRecording = async (title) => {
     if (!titleModal?.chunks) return;
     const { chunks, duration, totalSize, chunkCount } = titleModal;
