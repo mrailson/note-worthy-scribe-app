@@ -254,6 +254,8 @@ export const useGladiaRealtimePreview = (): UseGladiaRealtimePreviewReturn => {
     intentionalStopRef.current = false;
     reconnectAttemptsRef.current = 0;
     setReconnectAttempts(0);
+    chunkCounterRef.current = 0;
+    sessionIdRef.current = crypto.randomUUID();
 
     if (!preserveTranscript) {
       setLiveTranscript("");

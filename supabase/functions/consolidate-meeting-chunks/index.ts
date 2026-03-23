@@ -392,12 +392,13 @@ function postProcessTranscript(s: string): string {
   return out;
 }
 
-function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgramRaw: RawChunk[], cfg: MergeConfig = DEFAULT_MERGE_CONFIG) {
+function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgramRaw: RawChunk[], cfg: MergeConfig = DEFAULT_MERGE_CONFIG, gladiaRaw: RawChunk[] = []) {
   const whisper = normaliseChunks(whisperRaw, cfg).sort((a, b) => a.idx - b.idx);
   const assembly = normaliseChunks(assemblyRaw, cfg).sort((a, b) => (a.startSec - b.startSec) || (a.idx - b.idx));
   const deepgram = normaliseChunks(deepgramRaw, cfg).sort((a, b) => a.idx - b.idx);
+  const gladia = normaliseChunks(gladiaRaw, cfg).sort((a, b) => a.idx - b.idx);
   
-  const combined = [...assembly, ...deepgram, ...whisper].sort((a, b) => {
+  const combined = [...assembly, ...deepgram, ...gladia, ...whisper].sort((a, b) => {
     const t = a.startSec - b.startSec;
     if (t !== 0) return t;
     const tierDiff = getEngineTier(a.engine) - getEngineTier(b.engine);
