@@ -1644,7 +1644,6 @@ export default function NoteWellRecorder() {
                           stopLiveTranscription();
                           setLiveEngine(eng);
                           setLiveTranscript("");
-                          setLiveWordCount(0);
                           setLivePartial("");
                           if (activeStream) {
                             setTimeout(() => startLiveTranscription(activeStream, eng), 300);
