@@ -4787,8 +4787,17 @@ export const MeetingRecorder = ({
         console.warn('⚠️ Deepgram preview failed to start (other transcriptions will continue):', deepgramError);
         // Don't fail the recording - Whisper and AssemblyAI can continue
       }
+
+      // Start Gladia real-time preview
+      try {
+        console.log('🎤 Starting Gladia real-time preview...');
+        await gladiaPreview.startPreview(realMeetingId, assemblyAudioMixerRef.current?.mixedStream);
+        console.log('✅ Gladia real-time preview started');
+        addDebugLog('✅ Gladia: Recording started');
+      } catch (gladiaError) {
+        console.warn('⚠️ Gladia preview failed to start (other transcriptions will continue):', gladiaError);
+      }
       
-      // Start backup recorder NOW — all audio streams are initialised
       if (backupEnabled && !isBackupActive) {
         try {
           const backupStream = assemblyAudioMixerRef.current?.mixedStream 
