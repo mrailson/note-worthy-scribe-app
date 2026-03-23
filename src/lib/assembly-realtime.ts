@@ -528,8 +528,8 @@ export class AssemblyRealtimeClient {
   private async startAudioCapture() {
     this.setupInProgress = true;
     try {
-      // Validate external stream tracks are still alive
-      if (this.externalStream) {
+      // Validate external stream is a real MediaStream with live tracks
+      if (this.externalStream && this.externalStream instanceof MediaStream) {
         const activeTracks = this.externalStream.getAudioTracks().filter(t => t.readyState === 'live');
         if (activeTracks.length > 0) {
           console.log("🎙️ AssemblyRealtimeClient: using external stream", activeTracks.length, "active tracks");
@@ -544,6 +544,10 @@ export class AssemblyRealtimeClient {
           this.ownsStream = true;
         }
       } else {
+        if (this.externalStream) {
+          console.warn("⚠️ External stream is not a valid MediaStream — capturing fresh mic");
+          this.externalStream = undefined;
+        }
         console.log("🎙️ AssemblyRealtimeClient: capturing mic directly");
         this.stream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
