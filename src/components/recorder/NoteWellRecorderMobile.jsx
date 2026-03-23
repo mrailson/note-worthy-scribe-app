@@ -1286,10 +1286,10 @@ export default function NoteWellRecorder() {
             await refresh();
             setSyncProgress({ phase: "complete", currentChunk: totalChunks, totalChunks, percentComplete: 100, message: `Complete — ${wordCount} words` });
             showToast("Meeting created — generating notes…", "success");
-            generateNotesForMeeting(meetingId, fullTranscript, rec.title || "Mobile Recording")
+            generateNotesForMeeting(meetingId)
               .then(() => {
                 showToast("Meeting notes generated ✨", "success");
-                triggerPostNoteActions(meetingId, fullTranscript);
+                triggerPostNoteActions(meetingId);
               })
               .catch((err) => {
                 console.error("Note generation failed:", err);
