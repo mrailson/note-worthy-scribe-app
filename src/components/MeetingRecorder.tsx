@@ -6791,6 +6791,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             activeTab={activeTab}
             onTabChange={setActiveTab}
             hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))}
+            meetingCount={meetings.length}
           >
           <div className="space-y-4">
 
