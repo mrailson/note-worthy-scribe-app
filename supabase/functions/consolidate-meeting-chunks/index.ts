@@ -1027,7 +1027,7 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0)) {
+    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0) && (!gladiaChunksData || gladiaChunksData.length === 0)) {
       return new Response(JSON.stringify({
         success: false,
         message: 'No chunks found and no live transcript provided',
