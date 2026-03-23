@@ -25,6 +25,8 @@ interface RecordingFlowOverlayProps {
   deepgramText?: string;
   whisperChunkText?: string;
   whisperChunkNum?: number;
+  gladiaText?: string;
+  browserText?: string;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   hasNewMeetings?: boolean;
