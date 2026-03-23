@@ -202,6 +202,22 @@ export const LiveTranscriptGlassPanel: React.FC<LiveTranscriptGlassPanelProps> =
                   emptyText="Whisper: recording… (transcribes on sync)"
                 />
               )}
+              {activeEngines.has('gladia') && (
+                <EngineSection
+                  label="Gladia"
+                  hue="35 95% 55%"
+                  lines={splitIntoLines(gladiaText, 4)}
+                  emptyText="Gladia: awaiting data…"
+                />
+              )}
+              {activeEngines.has('browser') && (
+                <EngineSection
+                  label="Browser Speech"
+                  hue="190 70% 50%"
+                  lines={splitIntoLines(browserText, 4)}
+                  emptyText="Browser Speech: awaiting data…"
+                />
+              )}
             </div>
           )}
         </div>
