@@ -208,7 +208,7 @@ export class AssemblyRealtimeClient {
         return;
       }
 
-      if (!this.setupInProgress) {
+      if (!this.setupInProgress && !this.shouldReconnect) {
         this.cleanupAudio();
       }
       this.cb.onClose?.(ev.code, ev.reason || "");
