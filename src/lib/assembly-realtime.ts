@@ -266,7 +266,9 @@ export class AssemblyRealtimeClient {
         this.attemptReconnect();
       } else {
         this.isReconnecting = false;
-        this.cleanupAudio();
+        if (this.manualStop) {
+          this.cleanupAudio();
+        }
         this.cb.onError?.(new Error(`Failed to reconnect after ${MAX_RECONNECT_ATTEMPTS} attempts`));
       }
     }
