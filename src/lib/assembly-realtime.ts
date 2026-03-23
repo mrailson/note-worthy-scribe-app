@@ -24,7 +24,7 @@ const PROXY_WS_URL =
   "wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-realtime";
 
 const RECONNECT_DELAY_MS = 5000;
-const MAX_RECONNECT_ATTEMPTS = 1;
+const MAX_RECONNECT_ATTEMPTS = 2;
 
 export class AssemblyRealtimeClient {
   private ws?: WebSocket;
