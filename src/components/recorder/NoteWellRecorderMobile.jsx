@@ -537,6 +537,8 @@ export default function NoteWellRecorder() {
   const [liveEngine,    setLiveEngine]    = useState("assemblyai"); // assemblyai|deepgram|browser-speech
   const [liveTranscript, setLiveTranscript] = useState("");
   const [liveWordCount, setLiveWordCount] = useState(0);
+  const [liveExpanded,  setLiveExpanded]  = useState(false);
+  const peakWordCountRef = useRef(0);
   const [livePartial,   setLivePartial]   = useState("");
   const [liveStatus,    setLiveStatus]    = useState("idle"); // idle|connecting|connected|error
   const liveClientRef   = useRef(null);  // AssemblyRealtimeClient or UnifiedTranscriber
