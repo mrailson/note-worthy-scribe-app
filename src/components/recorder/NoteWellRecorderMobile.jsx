@@ -1334,10 +1334,10 @@ export default function NoteWellRecorder() {
       showToast("Meeting created — generating notes…", "success");
 
       // ── Step 6: Trigger note generation (governance-grade pipeline) ────
-      generateNotesForMeeting(meetingId, fullTranscript, rec.title || "Mobile Recording")
+      generateNotesForMeeting(meetingId)
         .then(() => {
           showToast("Meeting notes generated ✨", "success");
-          triggerPostNoteActions(meetingId, fullTranscript);
+          triggerPostNoteActions(meetingId);
         })
         .catch((err) => {
           console.error("Note generation failed:", err);
