@@ -7,20 +7,25 @@ interface ContextStatusPillProps {
   value: string;
   color: string; // hex colour
   pulse?: boolean;
+  onClick?: () => void;
 }
 
 export const ContextStatusPill: React.FC<ContextStatusPillProps> = ({
-  icon, label, value, color, pulse = false,
+  icon, label, value, color, pulse = false, onClick,
 }) => {
+  const Tag = onClick ? 'button' : 'div';
   return (
-    <div
+    <Tag
+      onClick={onClick}
       className={cn(
         'flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] transition-all duration-300',
-        pulse && 'animate-pill-pop'
+        pulse && 'animate-pill-pop',
+        onClick && 'cursor-pointer hover:brightness-110 active:scale-[0.97]'
       )}
       style={{
         background: `${color}18`,
         border: `1px solid ${color}4D`,
+        ...(onClick ? { outline: 'none', fontFamily: 'inherit' } : {}),
       }}
     >
       <span className="text-sm leading-none">{icon}</span>
@@ -35,6 +40,6 @@ export const ContextStatusPill: React.FC<ContextStatusPillProps> = ({
           {value}
         </span>
       </div>
-    </div>
+    </Tag>
   );
 };
