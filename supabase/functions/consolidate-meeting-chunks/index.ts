@@ -268,6 +268,7 @@ function gapFillJaccard(candidateTokens: string[], whisperTokens: string[]): num
 
 function normaliseConfidence(engine: Engine, confidence?: number): number {
   if (engine === 'assembly') return 0.80;
+  if (engine === 'gladia') return 0.78;
   if (engine === 'deepgram') {
     if (confidence == null) return 0.75;
     if (confidence > 1) return Math.max(0, Math.min(1, confidence / 100));
