@@ -1,4 +1,4 @@
-console.log("🔧 AssemblyAI client v2 loaded");
+console.log("🔧 AssemblyAI client v3 loaded — audio persists across reconnects");
 // src/lib/assembly-realtime.ts
 
 /**
@@ -208,7 +208,7 @@ export class AssemblyRealtimeClient {
         return;
       }
 
-      if (!this.setupInProgress && !this.shouldReconnect) {
+      if (this.manualStop) {
         this.cleanupAudio();
       }
       this.cb.onClose?.(ev.code, ev.reason || "");
@@ -221,10 +221,13 @@ export class AssemblyRealtimeClient {
       }
     };
 
-    // Start audio capture (only on first connect, not on reconnect)
+    // Start audio capture only if no live AudioContext exists
     if (!this.audioCtx || this.audioCtx.state === 'closed') {
       console.log('🔄 AssemblyRealtimeClient: creating/recreating audio pipeline');
       await this.startAudioCapture();
+    } else {
+      // Audio pipeline still alive — just reconnect the WebSocket output
+      console.log('🔄 Reusing existing AudioContext for reconnect (state:', this.audioCtx.state, ')');
     }
     this.sending = true;
     this.shouldReconnect = true;
@@ -266,7 +269,9 @@ export class AssemblyRealtimeClient {
         this.attemptReconnect();
       } else {
         this.isReconnecting = false;
-        this.cleanupAudio();
+        if (this.manualStop) {
+          this.cleanupAudio();
+        }
         this.cb.onError?.(new Error(`Failed to reconnect after ${MAX_RECONNECT_ATTEMPTS} attempts`));
       }
     }
@@ -360,7 +365,7 @@ export class AssemblyRealtimeClient {
         this.attemptReconnect();
         return;
       }
-      if (!this.setupInProgress && !this.shouldReconnect) {
+      if (this.manualStop) {
         this.cleanupAudio();
       }
       this.cb.onClose?.(ev.code, ev.reason || "");
