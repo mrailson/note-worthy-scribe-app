@@ -617,6 +617,32 @@ export default function NoteWellRecorder() {
         await client.start(stream);
         liveClientRef.current = client;
         setLiveStatus("connected");
+      } else if (engine === "whisper") {
+        // Whisper chunk transcriber — sends audio chunks to edge function
+        const transcriber = new WhisperChunkTranscriber(
+          (data) => {
+            const t = typeof data === "object" ? (data?.text ?? "") : String(data || "");
+            if (!t.trim()) return;
+            setLiveTranscript(prev => {
+              const p = typeof prev === "string" ? prev : "";
+              const updated = p ? p + " " + t : t;
+              setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
+              return updated;
+            });
+          },
+          (err) => {
+            console.error("[LiveTranscript] Whisper error:", err);
+            setLiveStatus("error");
+          },
+          (status) => {
+            const s = status.toLowerCase();
+            if (s.includes("recording") || s.includes("processing")) setLiveStatus("connected");
+          },
+          { chunkDurationMs: 5000 }
+        );
+        await transcriber.startTranscription();
+        liveClientRef.current = transcriber;
+        setLiveStatus("connected");
       } else {
         // Deepgram or browser-speech via factory
         const transcriber = createTranscriber(engine, {
@@ -644,7 +670,8 @@ export default function NoteWellRecorder() {
             setLiveStatus("error");
           },
           onStatusChange: (status) => {
-            if (status === "recording" || status === "connected") setLiveStatus("connected");
+            const s = (status || "").toLowerCase();
+            if (s === "recording" || s === "connected" || s === "listening for speech...") setLiveStatus("connected");
           },
         });
         await transcriber.startTranscription();
