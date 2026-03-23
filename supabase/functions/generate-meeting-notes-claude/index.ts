@@ -712,6 +712,16 @@ serve(async (req) => {
         }
       }
 
+      // ── Short-transcript prompt modifier (100-300 words) ──
+      let effectiveSystemPrompt = NOTEWELL_SYSTEM_PROMPT;
+      let effectiveMaxTokens: number | undefined = undefined;
+      if (transcriptWordCount < 300) {
+        console.log('⚠️ Short transcript (100-300 words) — injecting strict anti-hallucination preamble');
+        const shortPreamble = `\n\n## ⚠️ SHORT TRANSCRIPT WARNING\nThis transcript contains only ~${transcriptWordCount} words. You MUST:\n- Report ONLY what is explicitly stated in the transcript\n- Use "None identified" for ALL sections where the transcript provides no information\n- Do NOT extrapolate, infer, or generate plausible content\n- Do NOT use examples from this system prompt as filler\n- Keep the output proportional to the input — a short transcript means short notes\n- If fewer than 3 agenda items are identifiable, list only those present\n`;
+        effectiveSystemPrompt = shortPreamble + NOTEWELL_SYSTEM_PROMPT;
+        effectiveMaxTokens = 2000;
+      }
+
       const promptParams = {
         transcript: processedTranscript,
         meetingTitle: meetingTitle || 'General Meeting',
