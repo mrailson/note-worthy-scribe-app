@@ -2334,7 +2334,7 @@ export const MeetingRecorder = ({
   const simpleIOSTranscriberRef = useRef<SimpleIOSTranscriber | null>(null);
   const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
   const [iosTranscriberStats, setIosTranscriberStats] = useState<IOSTranscriberStats | null>(null);
-  const browserSpeechTextRef = useRef<string>('');
+  const [browserSpeechPreviewText, setBrowserSpeechPreviewText] = useState('');
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
   const liveTranscriptRef = useRef<{ getCurrentTranscript: () => string } | null>(null);
