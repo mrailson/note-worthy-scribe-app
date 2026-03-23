@@ -1634,7 +1634,7 @@ export default function NoteWellRecorder() {
                 {/* Engine selector + status */}
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                   <div style={{display:"flex",gap:4}}>
-                    {["assemblyai","deepgram","browser-speech","whisper"].map(eng => (
+                    {["assemblyai","deepgram"].map(eng => (
                       <button key={eng} onClick={() => {
                         if (liveEngine !== eng) {
                           stopLiveTranscription();
@@ -1642,7 +1642,6 @@ export default function NoteWellRecorder() {
                           setLiveTranscript("");
                           setLiveWordCount(0);
                           setLivePartial("");
-                          // Start with new engine directly (bypass stale closure)
                           if (activeStream) {
                             setTimeout(() => startLiveTranscription(activeStream, eng), 300);
                           }
@@ -1655,7 +1654,7 @@ export default function NoteWellRecorder() {
                         boxShadow: liveEngine===eng ? "0 2px 6px rgba(21,101,192,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
                         transition:"all 0.2s",
                       }}>
-                        {eng==="assemblyai"?"Assembly":eng==="deepgram"?"Deepgram":eng==="whisper"?"Whisper":"Browser"}
+                        {eng==="assemblyai"?"Assembly":"Deepgram"}
                       </button>
                     ))}
                   </div>
@@ -1668,7 +1667,7 @@ export default function NoteWellRecorder() {
                     <span style={{fontSize:10,color:"#64748b",fontWeight:500}}>
                       {liveStatus==="connected"?"Live":liveStatus==="connecting"?"Connecting…":liveStatus==="error"?"Error":"Off"}
                     </span>
-                    <span style={{fontSize:10,color:"#1565c0",fontWeight:700,marginLeft:4}}>
+                    <span style={{fontSize:16,color:"#1565c0",fontWeight:800,marginLeft:4}}>
                       {liveWordCount} words
                     </span>
                   </div>
