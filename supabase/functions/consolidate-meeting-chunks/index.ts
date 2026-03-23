@@ -1223,7 +1223,7 @@ serve(async (req) => {
 
     // ============= PERFORM BEST-OF-ALL 3-ENGINE MERGE =============
     const mergeStart = Date.now();
-    const mergeResult = mergeBestOfAll(whisperGoldChunks, assemblyRaw, deepgramRaw, DEFAULT_MERGE_CONFIG);
+    const mergeResult = mergeBestOfAll(whisperGoldChunks, assemblyRaw, deepgramRaw, DEFAULT_MERGE_CONFIG, gladiaRaw);
     const mergeDurationMs = Date.now() - mergeStart;
     
     console.log(`🔀 Best-of-All merge complete:`);
