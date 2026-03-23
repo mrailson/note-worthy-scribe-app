@@ -114,9 +114,7 @@ export const RecordingFlowOverlay: React.FC<RecordingFlowOverlayProps> = ({
             hasNewMeetings={hasNewMeetings}
             meetingCount={meetingCount}
           />
-          <h2 className="flex-1 text-[15px] font-extrabold text-foreground tracking-tight truncate">
-            {STAGE_TITLES[stage] || 'Prepare Your Meeting'}
-          </h2>
+          <div className="flex-1" />
           <StageIndicator />
           {showSettingsCog && stage === 'setup' && (
             <SettingsTriggerButton onClick={() => setSettingsOpen(true)} />
