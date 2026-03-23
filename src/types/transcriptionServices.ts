@@ -4,7 +4,8 @@ export type TranscriptionService =
   | 'amazon-transcribe'
   | 'google-cloud'
   | 'browser-speech'
-  | 'whisper-batch';
+  | 'whisper-batch'
+  | 'gladia';
 
 export interface TranscriptionServiceInfo {
   id: TranscriptionService;
@@ -56,6 +57,13 @@ export const TRANSCRIPTION_SERVICES: TranscriptionServiceInfo[] = [
     name: 'Whisper (Batch)', 
     description: 'Highest accuracy, end of session', 
     type: 'batch', 
+    available: true 
+  },
+  { 
+    id: 'gladia', 
+    name: 'Gladia', 
+    description: 'Fast, multilingual, real-time streaming', 
+    type: 'realtime', 
     available: true 
   },
 ];

@@ -19,6 +19,8 @@ interface LiveContextStatusBarProps {
   deepgramText?: string;
   whisperChunkText?: string;
   whisperChunkNum?: number;
+  gladiaText?: string;
+  browserText?: string;
 }
 
 export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
@@ -33,6 +35,8 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
   deepgramText = '',
   whisperChunkText = '',
   whisperChunkNum = 0,
+  gladiaText = '',
+  browserText = '',
 }) => {
   const isMobile = useIsMobile();
   const {
@@ -106,6 +110,8 @@ export const LiveContextStatusBar: React.FC<LiveContextStatusBarProps> = ({
             deepgramText={deepgramText}
             whisperChunkText={whisperChunkText}
             whisperChunkNum={whisperChunkNum}
+            gladiaText={gladiaText}
+            browserText={browserText}
           />
 
           {/* Avatar stack */}
