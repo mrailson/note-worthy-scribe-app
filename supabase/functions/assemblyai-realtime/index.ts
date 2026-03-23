@@ -93,7 +93,7 @@ Deno.serve(async (req: Request) => {
         // Add keyterms if provided by client
         if (pendingKeyterms.length > 0) {
           const keytermsParam = pendingKeyterms.join(',');
-          wsUrl += `&keyterms=${encodeURIComponent(keytermsParam)}`;
+          wsUrl += `&keyterms_prompt=${encodeURIComponent(keytermsParam)}`;
           console.log(`🔑 Including ${pendingKeyterms.length} keyterms in AssemblyAI connection`);
         }
         
@@ -154,6 +154,8 @@ Deno.serve(async (req: Request) => {
                 ? `AssemblyAI closed (${closeEvent.code}): ${reason}`
                 : `AssemblyAI closed (${closeEvent.code}).`
             }));
+            // FIX: Close client socket so the client can trigger reconnect
+            try { socket.close(closeEvent.code, `AssemblyAI upstream closed (${closeEvent.code})`); } catch {}
             return;
           }
 
