@@ -4700,41 +4700,47 @@ export const MeetingRecorder = ({
         // If mixer was already created (unified mic+system Chromium path), reuse it.
         // Otherwise build one now (mic-only or non-Chromium paths).
         if (!assemblyAudioMixerRef.current) {
+          // Check if we actually have live system audio tracks to mix
           const systemStreamForAssembly = screenStreamRef.current;
+          const hasLiveSystemAudio = systemStreamForAssembly && 
+            systemStreamForAssembly.getAudioTracks().some(t => t.readyState === 'live');
           
-          const mixerResult = await buildAssemblyAudioStream(
-            systemStreamForAssembly,
-            { 
-              existingMicStream: micAudioStreamRef.current,
-              micConstraints: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          if (hasLiveSystemAudio) {
+            // MIC + SYSTEM PATH: Build mixer to combine both streams
+            const mixerResult = await buildAssemblyAudioStream(
+              systemStreamForAssembly,
+              { 
+                existingMicStream: micAudioStreamRef.current,
+                micConstraints: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+              }
+            );
+            
+            assemblyAudioMixerRef.current = mixerResult;
+            
+            if (mixerResult.hasSystemAudio) {
+              setSystemAudioCaptured(true);
+              setAssemblyInputMode('mic-and-system');
+              addDebugLog('✅ AssemblyAI: Mic + System audio');
+            } else {
+              // Mixer failed to capture system audio despite live tracks
+              setAssemblyInputMode('mic-only');
+              addDebugLog('⚠️ AssemblyAI: Mic only (mixer could not capture system audio)');
             }
-          );
-          
-          assemblyAudioMixerRef.current = mixerResult;
-          
-          // Update system audio captured flag and AssemblyAI input mode
-          if (mixerResult.hasSystemAudio) {
-            setSystemAudioCaptured(true);
-            setAssemblyInputMode('mic-and-system');
-            addDebugLog('✅ AssemblyAI: Mic + System audio');
           } else {
+            // MIC-ONLY PATH: Skip mixer entirely — let AssemblyRealtimeClient
+            // capture mic directly (same pattern as working Dictate feature)
             setAssemblyInputMode('mic-only');
             
             if (recordingMode === 'mic-and-system') {
-              const reasonMessage = mixerResult.systemAudioReason === 'no_screen_stream' 
+              const reasonMessage = !systemStreamForAssembly 
                 ? 'No screen share active'
-                : mixerResult.systemAudioReason === 'no_audio_tracks'
-                ? 'Screen share has no audio (try sharing a Browser Tab with "Share tab audio")'
-                : mixerResult.systemAudioReason === 'tracks_not_live'
-                ? 'System audio track ended or is muted'
-                : 'System audio unavailable';
-              
-              addDebugLog(`⚠️ AssemblyAI: Mic only (${reasonMessage})`);
+                : 'System audio track ended or is muted';
+              addDebugLog(`⚠️ AssemblyAI: Mic only — direct capture (${reasonMessage})`);
               showToast.warning(`Live transcript using microphone only. ${reasonMessage}`, {
                 section: 'meeting_manager', duration: 6000
               });
             } else {
-              addDebugLog('ℹ️ AssemblyAI: Mic only (mic-only mode)');
+              addDebugLog('ℹ️ AssemblyAI: Mic only — direct capture (no mixer needed)');
             }
           }
         } else {
