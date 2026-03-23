@@ -1,3 +1,4 @@
+console.log("🔧 AssemblyAI client v2 loaded");
 // src/lib/assembly-realtime.ts
 
 /**
@@ -207,7 +208,7 @@ export class AssemblyRealtimeClient {
         return;
       }
 
-      if (!this.setupInProgress) {
+      if (!this.setupInProgress && !this.shouldReconnect) {
         this.cleanupAudio();
       }
       this.cb.onClose?.(ev.code, ev.reason || "");
@@ -221,7 +222,8 @@ export class AssemblyRealtimeClient {
     };
 
     // Start audio capture (only on first connect, not on reconnect)
-    if (!this.audioCtx) {
+    if (!this.audioCtx || this.audioCtx.state === 'closed') {
+      console.log('🔄 AssemblyRealtimeClient: creating/recreating audio pipeline');
       await this.startAudioCapture();
     }
     this.sending = true;
@@ -358,7 +360,7 @@ export class AssemblyRealtimeClient {
         this.attemptReconnect();
         return;
       }
-      if (!this.setupInProgress) {
+      if (!this.setupInProgress && !this.shouldReconnect) {
         this.cleanupAudio();
       }
       this.cb.onClose?.(ev.code, ev.reason || "");
