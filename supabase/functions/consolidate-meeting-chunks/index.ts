@@ -1035,12 +1035,13 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    console.log(`📊 Found ${chunks?.length || 0} meeting_transcription_chunks + ${deepgramChunkCount} Deepgram chunks to consolidate`);
+    console.log(`📊 Found ${chunks?.length || 0} meeting_transcription_chunks + ${deepgramChunkCount} Deepgram + ${gladiaChunkCount} Gladia chunks to consolidate`);
 
     // Build RawChunks for Best-of-All merger
     const whisperRaw: RawChunk[] = [];
     const assemblyRaw: RawChunk[] = [];
     const deepgramRaw: RawChunk[] = [];
+    const gladiaRaw: RawChunk[] = [];
     const rejectedChunks: { chunkNumber: number; reason: string }[] = [];
 
     // Process meeting_transcription_chunks (Whisper + AssemblyAI)
