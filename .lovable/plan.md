@@ -1,60 +1,63 @@
 
 
-# Fix: MeetingRecorder Should Use `auto-generate-meeting-notes` Instead of Direct `generate-meeting-notes-claude`
+# Fix: Mobile (Live) Recordings Missing Auto-Generation and Email
 
 ## Problem
 
-When a recording stops, `MeetingRecorder.tsx` (line 5897) calls `generate-meeting-notes-claude` directly. This function only generates notes — it does NOT:
-- Generate a descriptive AI title (via `generate-meeting-title`)
-- Fetch attendees, agenda, documents, or meeting format context
-- Clean the transcript via chunked GPT cleaning
-- Auto-detect meeting format (Teams/hybrid/face-to-face)
+When recording via Mobile (Live), the meeting is created with a transcript but:
+- No auto-generated descriptive title (stays as "Meeting 23 Mar 09:12")
+- No meeting notes generated
+- No email sent
+- No overview generated
 
-The "Regenerate Notes" action menu in `MeetingHistoryList.tsx` (line 1588) calls `auto-generate-meeting-notes`, which does ALL of the above — that's why regeneration produces correct titles and better-formatted notes.
+Desktop recordings now work correctly because they use the `auto-generate-meeting-notes` orchestrator. But the mobile recorder still calls `generate-meeting-notes-claude` directly and manually handles title/overview/email in separate functions.
 
-## Fix
+## Root Cause
 
-Replace the direct `generate-meeting-notes-claude` call in `MeetingRecorder.tsx` with a call to `auto-generate-meeting-notes`, matching what the action menu uses.
+`NoteWellRecorderMobile.jsx` has its own `generateNotesForMeeting` function (line 866) that:
+1. Calls `generate-meeting-title` manually
+2. Calls `generate-meeting-notes-claude` directly (not the orchestrator)
+3. Manually saves to `meeting_summaries` and `meetings.notes_style_3`
+4. Then calls `triggerPostNoteActions` which manually handles overview and email
 
-### In `src/components/MeetingRecorder.tsx` (around lines 5897-5909)
+This bypasses the unified `auto-generate-meeting-notes` orchestrator that handles everything: title, transcript cleaning, attendee merging, notes generation, overview, and more.
 
-Change from:
-```typescript
-const functionResult = await supabase.functions
-  .invoke('generate-meeting-notes-claude', {
-    body: { 
-      transcript: meetingData.transcript,
-      meetingTitle: savedMeeting.title || 'Meeting Notes',
-      meetingDate: ...,
-      meetingTime: ...,
-      detailLevel: ...,
-      modelOverride,
-      meetingId: savedMeeting.id,
-      skipQc,
-    }
+## Plan
+
+### 1. Replace `generateNotesForMeeting` with a call to `auto-generate-meeting-notes`
+
+Replace the entire `generateNotesForMeeting` function (lines 866-908) with a simple orchestrator call, matching what `MeetingRecorder.tsx` now does:
+
+```javascript
+const generateNotesForMeeting = async (meetingId) => {
+  const storedModel = localStorage.getItem('meeting-regenerate-llm');
+  const modelOverride = !storedModel || storedModel === 'gemini-3-flash' 
+    ? 'claude-sonnet-4-6' : storedModel;
+
+  const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+    body: { meetingId, forceRegenerate: false, modelOverride, skipQc: true }
   });
+
+  if (error) throw new Error(error.message || 'Note generation failed');
+  return data;
+};
 ```
 
-To:
-```typescript
-const functionResult = await supabase.functions
-  .invoke('auto-generate-meeting-notes', {
-    body: { 
-      meetingId: savedMeeting.id,
-      forceRegenerate: false,
-      modelOverride,
-      skipQc,
-    }
-  });
-```
+### 2. Add auto-email after orchestrator completes
 
-This single change ensures first-run generation goes through the same pipeline as manual regeneration: title generation, transcript cleaning, attendee merging, format detection, and governance-grade notes.
+The orchestrator handles title, notes, and overview — but NOT the email. After the orchestrator returns, trigger the email send using the existing `triggerPostNoteActions` logic but stripped down to just the email portion (since overview is now handled by the orchestrator).
 
-### Also remove the separate `generate-meeting-overview` call (lines 5921-5928)
+Simplify `triggerPostNoteActions` (lines 911-1043) to only handle the auto-email step, removing the overview generation call (line 922-924) since the orchestrator now does that.
 
-The `auto-generate-meeting-notes` function already generates the overview internally, so the separate call on lines 5921-5928 becomes redundant and should be removed.
+### 3. Update all call sites
+
+There are 4 places that call `generateNotesForMeeting` with `(meetingId, transcript, title)` — update them all to just pass `(meetingId)` since the orchestrator fetches transcript from the database:
+- Line 1098 (resume sync for transcribed recordings)
+- Line 1331 (retry meeting creation)
+- Line 1379 (main chunked sync)
+- Line 1510 (legacy single-file sync)
 
 ## Files to Change
 
-- `src/components/MeetingRecorder.tsx` — replace `generate-meeting-notes-claude` with `auto-generate-meeting-notes`, remove redundant overview call
+- `src/components/recorder/NoteWellRecorderMobile.jsx` — replace `generateNotesForMeeting` with orchestrator call, simplify `triggerPostNoteActions` to email-only, update all call sites
 
