@@ -4,7 +4,8 @@ export type TranscriptionService =
   | 'amazon-transcribe'
   | 'google-cloud'
   | 'browser-speech'
-  | 'whisper-batch';
+  | 'whisper-batch'
+  | 'gladia';
 
 export interface TranscriptionServiceInfo {
   id: TranscriptionService;
