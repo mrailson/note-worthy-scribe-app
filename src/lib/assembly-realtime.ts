@@ -1,4 +1,4 @@
-console.log("🔧 AssemblyAI client v2 loaded");
+console.log("🔧 AssemblyAI client v3 loaded — audio persists across reconnects");
 // src/lib/assembly-realtime.ts
 
 /**
