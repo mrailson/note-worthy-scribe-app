@@ -699,6 +699,7 @@ export default function NoteWellRecorder() {
 
   const stopRecording = async () => {
     clearInterval(timerRef.current);
+    stopLiveTranscription();
     if (!recorderRef.current) { setRecState("idle"); return; }
 
     const chunks = await recorderRef.current.stop();
