@@ -5922,7 +5922,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             .invoke('generate-meeting-overview', {
               body: {
                 meetingId: savedMeeting.id,
-                transcript: transcript,
+                transcript: meetingData.transcript,
                 meetingTitle: savedMeeting.title
               }
             });
