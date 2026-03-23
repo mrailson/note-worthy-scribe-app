@@ -7522,61 +7522,42 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <TabDropdown activeTab={activeTab} onTabChange={setActiveTab} hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))} meetingCount={meetings.length} />
           </div>
 
-          {/* Compact Stats Pills */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-sm transition-all hover:shadow-sm hover:border-primary/30">
-              <FileText className="h-3.5 w-3.5 text-primary" />
-              <span className="font-semibold text-primary">{meetings.length}</span>
-              <span className="text-muted-foreground">meetings</span>
-            </div>
-            
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-500/20 text-sm transition-all hover:shadow-sm hover:border-blue-500/30">
-              <Clock className="h-3.5 w-3.5 text-blue-500" />
-              <span className="font-semibold text-blue-500">
-                {meetings.filter(m => 
-                  new Date(m.created_at || m.start_time).getMonth() === new Date().getMonth()
-                ).length}
-              </span>
-              <span className="text-muted-foreground">this month</span>
-            </div>
-            
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 to-purple-500/5 border border-purple-500/20 text-sm transition-all hover:shadow-sm hover:border-purple-500/30">
-              <Timer className="h-3.5 w-3.5 text-purple-500" />
-              <span className="font-semibold text-purple-500">
-                {(() => {
-                  const totalMinutes = meetings.reduce((acc, m) => {
-                    // Use duration_minutes if available, otherwise calculate from start/end
-                    if (m.duration_minutes && m.duration_minutes > 0) {
-                      return acc + m.duration_minutes;
-                    }
-                    if (m.start_time && m.end_time) {
-                      const start = new Date(m.start_time);
-                      const end = new Date(m.end_time);
-                      const diff = (end.getTime() - start.getTime()) / (1000 * 60);
-                      return acc + (diff > 0 ? diff : 0);
-                    }
-                    return acc;
-                  }, 0);
-                  const hours = Math.floor(totalMinutes / 60);
-                  const mins = Math.round(totalMinutes % 60);
-                  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-                })()}
-              </span>
-              <span className="text-muted-foreground">total time</span>
-            </div>
-            
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/10 to-orange-500/5 border border-orange-500/20 text-sm transition-all hover:shadow-sm hover:border-orange-500/30">
-              <Type className="h-3.5 w-3.5 text-orange-500" />
-              <span className="font-semibold text-orange-500">
-                {(() => {
-                  if (totalTranscriptWords >= 1000000) return `${(totalTranscriptWords / 1000000).toFixed(1)}M`;
-                  if (totalTranscriptWords >= 1000) return `${(totalTranscriptWords / 1000).toFixed(1)}k`;
-                  return totalTranscriptWords.toString();
-                })()}
-              </span>
-              <span className="text-muted-foreground">words</span>
-            </div>
-          </div>
+          {/* Stats summary line */}
+          <p className="text-[13px] text-muted-foreground mb-4">
+            <span className="font-medium text-foreground">
+              {meetings.filter(m => 
+                new Date(m.created_at || m.start_time).getMonth() === new Date().getMonth() &&
+                new Date(m.created_at || m.start_time).getFullYear() === new Date().getFullYear()
+              ).length}
+            </span>
+            {' '}this month
+            <span className="mx-1.5">·</span>
+            <span className="font-medium text-foreground">
+              {(() => {
+                const totalMinutes = meetings.reduce((acc, m) => {
+                  if (m.duration_minutes && m.duration_minutes > 0) return acc + m.duration_minutes;
+                  if (m.start_time && m.end_time) {
+                    const diff = (new Date(m.end_time).getTime() - new Date(m.start_time).getTime()) / (1000 * 60);
+                    return acc + (diff > 0 ? diff : 0);
+                  }
+                  return acc;
+                }, 0);
+                const hours = Math.floor(totalMinutes / 60);
+                const mins = Math.round(totalMinutes % 60);
+                return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+              })()}
+            </span>
+            {' '}recorded
+            <span className="mx-1.5">·</span>
+            <span className="font-medium text-foreground">
+              {(() => {
+                if (totalTranscriptWords >= 1000000) return `${(totalTranscriptWords / 1000000).toFixed(1)}M`;
+                if (totalTranscriptWords >= 1000) return `${(totalTranscriptWords / 1000).toFixed(1)}k`;
+                return totalTranscriptWords.toString();
+              })()}
+            </span>
+            {' '}words
+          </p>
 
           {/* Search and Filter Controls */}
           <div className="space-y-4">
