@@ -628,7 +628,8 @@ export default function NoteWellRecorder() {
             setLiveTranscript(prev => {
               const p = typeof prev === "string" ? prev : "";
               const updated = p ? p + " " + t : t;
-              setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
+              const newCount2 = updated.split(/\s+/).filter(Boolean).length;
+              if (newCount2 > peakWordCountRef.current) { peakWordCountRef.current = newCount2; setLiveWordCount(newCount2); }
               return updated;
             });
           },
