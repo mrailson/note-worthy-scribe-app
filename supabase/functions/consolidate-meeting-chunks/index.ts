@@ -990,6 +990,18 @@ serve(async (req) => {
       console.warn('⚠️ Failed to fetch Deepgram chunks:', deepgramError.message);
     }
 
+    // Fetch Gladia chunks from dedicated table
+    const { data: gladiaChunksData, error: gladiaError } = await supabase
+      .from('gladia_transcriptions')
+      .select('chunk_number, transcription_text, confidence, is_final')
+      .eq('meeting_id', meetingId)
+      .eq('is_final', true)
+      .order('chunk_number');
+
+    if (gladiaError) {
+      console.warn('⚠️ Failed to fetch Gladia chunks:', gladiaError.message);
+    }
+
     const deepgramChunkCount = deepgramChunksData?.length || 0;
     console.log(`📊 Deepgram chunks fetched: ${deepgramChunkCount}`);
 
