@@ -620,14 +620,23 @@ export default function NoteWellRecorder() {
         // Deepgram or browser-speech via factory
         const transcriber = createTranscriber(engine, {
           onTranscription: (data) => {
+            const isFinal = typeof data === "object" && (data?.is_final || data?.isFinal);
             const t = typeof data === "string" ? data : (data?.text ?? String(data || ""));
             if (!t.trim()) return;
-            setLiveTranscript(prev => {
-              const p = typeof prev === "string" ? prev : "";
-              const updated = p ? p + " " + t : t;
-              setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
-              return updated;
-            });
+
+            if (typeof data === "string" || isFinal) {
+              // Final result — append to committed transcript
+              setLiveTranscript(prev => {
+                const p = typeof prev === "string" ? prev : "";
+                const updated = p ? p + " " + t : t;
+                setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
+                return updated;
+              });
+              setLivePartial("");
+            } else {
+              // Partial/interim result — show as preview only, don't commit
+              setLivePartial(t);
+            }
           },
           onError: (err) => {
             console.error(`[LiveTranscript] ${engine} error:`, err);
