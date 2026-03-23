@@ -525,12 +525,19 @@ export class AssemblyRealtimeClient {
       // Try AudioWorklet first, fall back to ScriptProcessorNode
       const useWorklet = await this.tryAudioWorklet(src);
       if (!useWorklet) {
-        if (this.audioCtx) {
+        // Ensure AudioContext still exists for fallback
+        if (!this.audioCtx || this.audioCtx.state === 'closed') {
+          console.log("🔄 Recreating AudioContext for ScriptProcessor fallback");
+          this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          await this.audioCtx.resume();
+          // Recreate source node with new context
+          const newSrc = this.audioCtx.createMediaStreamSource(this.stream!);
+          this.sources = [newSrc];
+          console.log("⚠️ AudioWorklet unavailable — falling back to ScriptProcessorNode (fresh context)");
+          this.startScriptProcessorFallback(newSrc);
+        } else {
           console.log("⚠️ AudioWorklet unavailable — falling back to ScriptProcessorNode");
           this.startScriptProcessorFallback(src);
-        } else {
-          console.error("❌ AudioContext destroyed — cannot start fallback");
-          this.cb.onError?.(new Error("Audio capture failed: no AudioContext"));
         }
       }
     } finally {
