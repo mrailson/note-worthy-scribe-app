@@ -31,7 +31,7 @@ const MEETING_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode
 
 interface PreMeetingSetupProps {
   onStartRecording: () => void;
-  onOpenImportModal?: (tab?: string) => void;
+  onOpenImportModal?: (tab?: string, editGroupId?: string) => void;
 }
 
 export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecording, onOpenImportModal }) => {
