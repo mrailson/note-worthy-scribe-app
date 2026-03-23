@@ -126,17 +126,14 @@ export async function buildAssemblyAudioStream(
   if (!hasSystemAudio || !screenStream) {
     console.log(`🎛️ buildAssemblyAudioStream: No system audio (reason: ${systemAudioReason}), returning mic-only stream`);
     
-    // Create a minimal audio context using browser's default sample rate
-    // AssemblyRealtimeClient handles resampling to 16kHz internally
-    const audioContext = new AudioContext();
-    
+    // No AudioContext needed here — AssemblyRealtimeClient creates its own internally
     const totalTime = performance.now() - startTime;
     console.log(`🎛️ buildAssemblyAudioStream: Completed in ${totalTime.toFixed(0)}ms (mic-only)`);
     
     return {
       mixedStream: micStream,
       micStream: ownsMicStream ? micStream : null, // Only return for cleanup if we created it
-      audioContext,
+      audioContext: null as any, // AssemblyRealtimeClient manages its own AudioContext
       hasSystemAudio: false,
       systemAudioReason
     };
