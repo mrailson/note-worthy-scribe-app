@@ -11,6 +11,8 @@ interface LiveTranscriptGlassPanelProps {
   deepgramText?: string;
   whisperChunkText?: string;
   whisperChunkNum?: number;
+  gladiaText?: string;
+  browserText?: string;
 }
 
 const MAX_VISIBLE_LINES = 4;
