@@ -103,6 +103,7 @@ Deno.serve(async (req: Request) => {
         }
 
         assemblySocket = new WebSocket(wsUrl);
+        assemblySocket.binaryType = "arraybuffer";
         
         assemblySocket.onopen = () => {
           console.log('✅ AssemblyAI WebSocket connected');
