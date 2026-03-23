@@ -618,10 +618,11 @@ export default function NoteWellRecorder() {
       } else {
         // Deepgram or browser-speech via factory
         const transcriber = createTranscriber(liveEngine, {
-          onTranscription: (text) => {
+          onTranscription: (data) => {
+            const t = typeof data === "string" ? data : (data?.text ?? String(data || ""));
+            if (!t.trim()) return;
             setLiveTranscript(prev => {
               const p = typeof prev === "string" ? prev : "";
-              const t = typeof text === "string" ? text : String(text || "");
               const updated = p ? p + " " + t : t;
               setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
               return updated;
