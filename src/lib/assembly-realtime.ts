@@ -1,3 +1,4 @@
+console.log("🔧 AssemblyAI client v2 loaded");
 // src/lib/assembly-realtime.ts
 
 /**
