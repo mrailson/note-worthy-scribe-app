@@ -1863,6 +1863,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const batchWords = batchTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
     const liveWords = liveTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
     const deepgramWords = deepgramTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
+    const gladiaWords = gladiaTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
     const bestOfAllWords = bestOfAllTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
     const hasBothSources = batchWords > 0 && liveWords > 0;
     const wordDifference = Math.abs(batchWords - liveWords);
@@ -1873,7 +1874,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       { source: 'Batch (Whisper)', words: batchWords },
       { source: 'Live (AssemblyAI)', words: liveWords },
       { source: 'Deepgram', words: deepgramWords },
-      { source: 'Best of All (3)', words: bestOfAllWords }
+      { source: 'Gladia', words: gladiaWords },
+      { source: 'Best of All', words: bestOfAllWords }
     ].filter(s => s.words > 0);
     const preferredSource = allWordCounts.length > 0 
       ? allWordCounts.reduce((a, b) => a.words >= b.words ? a : b).source 
@@ -1909,7 +1911,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       }),
       new Paragraph({ 
         children: [
-          new TextRun({ text: 'Best of All (3) Words: ', bold: true }),
+          new TextRun({ text: 'Gladia Words: ', bold: true }),
+          new TextRun({ text: String(gladiaWords) })
+        ]
+      }),
+      new Paragraph({ 
+        children: [
+          new TextRun({ text: 'Best of All Words: ', bold: true }),
           new TextRun({ text: String(bestOfAllWords), bold: true, color: bestOfAllWords > 0 ? '6B21A8' : '999999' })
         ]
       }),
@@ -2005,8 +2013,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       new Paragraph({ text: deepgramTranscript || '(No Deepgram transcript available)' }),
       new Paragraph({ text: '' }),
 
-      // 4. Best of All (3) — the merged canonical transcript — always included
-      new Paragraph({ text: '4. Best of All (3) — Merged Canonical Transcript', heading: HeadingLevel.HEADING_2 }),
+      // 4. Gladia Transcript — always included
+      new Paragraph({ text: '4. Gladia Transcript', heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: `Word Count: ${gladiaWords}` }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: gladiaTranscript || '(No Gladia transcript available)' }),
+      new Paragraph({ text: '' }),
+
+      // 5. Best of All — the merged canonical transcript — always included
+      new Paragraph({ text: '5. Best of All — Merged Canonical Transcript', heading: HeadingLevel.HEADING_2 }),
       new Paragraph({ 
         children: [
           new TextRun({ text: `Word Count: ${bestOfAllWords}`, bold: true })
@@ -2015,7 +2030,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       new Paragraph({ 
         children: [
           new TextRun({ 
-            text: 'This is the three-way merged transcript from Whisper, AssemblyAI, and Deepgram with post-merge deduplication applied.',
+            text: 'This is the multi-engine merged transcript from Whisper, Deepgram, and Gladia with post-merge deduplication applied.',
             italics: true,
             color: '666666',
             size: 18
@@ -2023,7 +2038,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         ]
       }),
       new Paragraph({ text: '' }),
-      new Paragraph({ text: bestOfAllTranscript || '(No Best of All transcript available — requires all three engines to have contributed content)' }),
+      new Paragraph({ text: bestOfAllTranscript || '(No Best of All transcript available — requires multiple engines to have contributed content)' }),
       new Paragraph({ text: '' }),
     );
 
@@ -2083,7 +2098,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `transcription-quality-summary-${new Date().toISOString().slice(0, 10)}.docx`);
     toast.success('Transcription Quality Summary downloaded');
-  }, [transcriptChunks, transcript, batchTranscript, liveTranscript, deepgramTranscript, bestOfAllTranscript, extractCleanChunkText, extractChunkTiming, isChunkInTranscript, meeting]);
+  }, [transcriptChunks, transcript, batchTranscript, liveTranscript, deepgramTranscript, gladiaTranscript, bestOfAllTranscript, extractCleanChunkText, extractChunkTiming, isChunkInTranscript, meeting]);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
