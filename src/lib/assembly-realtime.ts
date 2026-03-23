@@ -165,7 +165,14 @@ export class AssemblyRealtimeClient {
         this.totalMessageCount++;
 
         if (data?.type === "error") {
-          this.cb.onError?.(new Error(data?.error || "AssemblyAI error"));
+          const errMsg = String(data?.error || "AssemblyAI error");
+          // Proxy disconnect errors (e.g. "AssemblyAI closed (1011)") are transient —
+          // let the onclose handler trigger reconnection instead of treating as fatal
+          if (/closed\s*\(\d+\)/i.test(errMsg) && this.shouldReconnect) {
+            console.warn(`⚠️ AssemblyAI transient proxy error: ${errMsg} — will reconnect on close`);
+            return;
+          }
+          this.cb.onError?.(new Error(errMsg));
           return;
         }
 
