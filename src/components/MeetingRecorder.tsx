@@ -779,6 +779,9 @@ export const MeetingRecorder = ({
   // Deepgram real-time preview hook (runs alongside Whisper and AssemblyAI)
   const deepgramPreview = useDeepgramRealtimePreview();
 
+  // Gladia real-time preview hook (runs alongside other engines)
+  const gladiaPreview = useGladiaRealtimePreview();
+
   const countWords = useCallback((text: string) => {
     const t = (text ?? '').trim();
     if (!t) return 0;
