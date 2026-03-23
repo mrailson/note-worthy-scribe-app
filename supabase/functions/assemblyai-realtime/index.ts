@@ -35,6 +35,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { socket, response } = Deno.upgradeWebSocket(req);
+    socket.binaryType = "arraybuffer";
     
     let assemblySocket: WebSocket | null = null;
     let clientClosed = false;
