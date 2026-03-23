@@ -4072,13 +4072,40 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         )
                       )}
 
-                      {/* Best of All (3) Transcript View — read-only canonical */}
+                      {/* Gladia Transcript View */}
+                      {transcriptSubTab === 'gladia' && (
+                        gladiaTranscript ? (
+                          <div className="relative">
+                            {viewMode === 'plain' ? (
+                              <pre 
+                                className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                                style={{ fontSize: `${fontSize}px` }}
+                              >
+                                {gladiaTranscript}
+                              </pre>
+                            ) : (
+                              <div 
+                                className="prose prose-sm dark:prose-invert max-w-none text-justify"
+                                style={{ fontSize: `${fontSize}px` }}
+                                dangerouslySetInnerHTML={{ __html: formatTranscript(gladiaTranscript) }}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No Gladia transcript available for this meeting.</p>
+                          </div>
+                        )
+                      )}
+
+                      {/* Best of All Transcript View — read-only canonical */}
                       {transcriptSubTab === 'best_of_all' && (
                         bestOfAllTranscript ? (
                           <div className="relative">
                             <div className="mb-3 px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-md border border-primary/20">
                               <p className="text-xs text-muted-foreground">
-                                Merged from AssemblyAI, Deepgram and batch transcription with deterministic de-duplication.
+                                Merged from Whisper, Deepgram and Gladia with deterministic de-duplication.
                                 This is the canonical transcript used for notes, Ask AI, and exports.
                               </p>
                             </div>
