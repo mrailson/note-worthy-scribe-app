@@ -6755,7 +6755,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             isRecording={isRecording}
             onStartRecording={startRecording}
             onStopRecording={handleStopWithConfirmation}
-            onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }}
+            onOpenImportModal={(tab, editGroupId) => { setAudioImportDefaultTab(tab || undefined); setEditGroupId(editGroupId || null); setAudioImportOpen(true); }}
             formatDuration={formatDuration}
             wordCount={wordCount}
             transcriptText={assemblyPreview.fullTranscript || deepgramPreview.fullTranscript || transcript}

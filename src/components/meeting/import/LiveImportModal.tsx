@@ -222,6 +222,7 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
                   onImport={handleImportContent}
                   isImporting={isImporting}
                   onAttendeesChanged={onAttendeesChanged}
+                  editGroupId={editGroupId}
                 />
               </TabsContent>
               

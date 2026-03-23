@@ -26,6 +26,7 @@ interface MeetingAttendeesTabProps {
   onImport?: (content: ImportedContent) => Promise<void>;
   isImporting?: boolean;
   onAttendeesChanged?: (attendees: MeetingAttendee[]) => void;
+  editGroupId?: string | null;
 }
 
 export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
@@ -33,6 +34,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   onImport,
   isImporting,
   onAttendeesChanged,
+  editGroupId,
 }) => {
   const { contacts } = useContacts();
   const { groups, createGroup, updateGroup, deleteGroup } = useMeetingGroups();
