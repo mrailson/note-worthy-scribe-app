@@ -1465,10 +1465,10 @@ export default function NoteWellRecorder() {
       showToast("Meeting created — generating notes…", "success");
 
       // Generate notes via governance-grade pipeline (generate-meeting-notes-claude)
-      generateNotesForMeeting(meetingData.id, transcriptText, rec.title || "Mobile Recording")
+      generateNotesForMeeting(meetingData.id)
         .then(() => {
           showToast("Meeting notes generated ✨", "success");
-          triggerPostNoteActions(meetingData.id, transcriptText);
+          triggerPostNoteActions(meetingData.id);
         })
         .catch((err) => {
           console.error("[LegacySync] Note generation failed:", err);
