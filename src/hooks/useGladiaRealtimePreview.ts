@@ -38,6 +38,8 @@ export const useGladiaRealtimePreview = (): UseGladiaRealtimePreviewReturn => {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const baseTranscriptRef = useRef<string>("");
+  const chunkCounterRef = useRef<number>(0);
+  const sessionIdRef = useRef<string>(crypto.randomUUID());
 
   const cleanup = useCallback(() => {
     if (pcmStreamRef.current) {
