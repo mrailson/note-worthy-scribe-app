@@ -1,63 +1,77 @@
 
 
-# Fix: Mobile (Live) Recordings Missing Auto-Generation and Email
+# Fix: Notes Generation Status Getting Overwritten to `queued`
 
 ## Problem
 
-When recording via Mobile (Live), the meeting is created with a transcript but:
-- No auto-generated descriptive title (stays as "Meeting 23 Mar 09:12")
-- No meeting notes generated
-- No email sent
-- No overview generated
+Every time the user opens a meeting modal, it shows "Notes are being generated..." even though notes were already successfully generated. The title and overview are correct but the status banner persists.
 
-Desktop recordings now work correctly because they use the `auto-generate-meeting-notes` orchestrator. But the mobile recorder still calls `generate-meeting-notes-claude` directly and manually handles title/overview/email in separate functions.
+## Root Cause (confirmed via database investigation)
 
-## Root Cause
+The `auto-close-inactive-meetings` edge function runs periodically and finds meetings still in `status: 'recording'`. When it closes them, it **blindly sets `notes_generation_status: 'queued'`** (line 178) — even if notes have already been generated and the status was already `'completed'`.
 
-`NoteWellRecorderMobile.jsx` has its own `generateNotesForMeeting` function (line 866) that:
-1. Calls `generate-meeting-title` manually
-2. Calls `generate-meeting-notes-claude` directly (not the orchestrator)
-3. Manually saves to `meeting_summaries` and `meetings.notes_style_3`
-4. Then calls `triggerPostNoteActions` which manually handles overview and email
-
-This bypasses the unified `auto-generate-meeting-notes` orchestrator that handles everything: title, transcript cleaning, attendee merging, notes generation, overview, and more.
+Timeline for Jessica's meeting `dcac40f1`:
+- **09:34:17** — MeetingRecorder triggers `auto-generate-meeting-notes`
+- **09:35:45** — Orchestrator completes, sets status to `'completed'` ✅
+- **~09:37-09:38** — `auto-close-inactive-meetings` runs, finds the meeting still in `status: 'recording'`, overwrites `notes_generation_status` back to `'queued'` ❌
+- Result: `notes_generation_status = 'queued'` permanently, causing the "Notes are being generated..." banner to show forever
 
 ## Plan
 
-### 1. Replace `generateNotesForMeeting` with a call to `auto-generate-meeting-notes`
+### 1. Fix `auto-close-inactive-meetings` — don't overwrite completed status
 
-Replace the entire `generateNotesForMeeting` function (lines 866-908) with a simple orchestrator call, matching what `MeetingRecorder.tsx` now does:
+In `supabase/functions/auto-close-inactive-meetings/index.ts` (line 172-180), before setting `notes_generation_status: 'queued'`, check if notes already exist. If `notes_generation_status` is already `'completed'`, preserve it.
 
-```javascript
-const generateNotesForMeeting = async (meetingId) => {
-  const storedModel = localStorage.getItem('meeting-regenerate-llm');
-  const modelOverride = !storedModel || storedModel === 'gemini-3-flash' 
-    ? 'claude-sonnet-4-6' : storedModel;
+```typescript
+// Fetch current notes status before updating
+const { data: currentMeeting } = await supabase
+  .from('meetings')
+  .select('notes_generation_status')
+  .eq('id', meeting.id)
+  .single();
 
-  const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
-    body: { meetingId, forceRegenerate: false, modelOverride, skipQc: true }
-  });
+const notesStatus = currentMeeting?.notes_generation_status;
+const shouldQueueNotes = notesStatus !== 'completed' && notesStatus !== 'generating';
 
-  if (error) throw new Error(error.message || 'Note generation failed');
-  return data;
-};
+await supabase.from('meetings').update({
+  status: 'completed',
+  end_time: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  ...(shouldQueueNotes ? { notes_generation_status: 'queued' } : {})
+}).eq('id', meeting.id);
 ```
 
-### 2. Add auto-email after orchestrator completes
+### 2. Add client-side resilience in `MeetingDetailsTabs`
 
-The orchestrator handles title, notes, and overview — but NOT the email. After the orchestrator returns, trigger the email send using the existing `triggerPostNoteActions` logic but stripped down to just the email portion (since overview is now handled by the orchestrator).
+If `notesGenerationStatus` is `'queued'` or `'generating'` but an overview already exists, don't show the "generating" banner — the status is stale.
 
-Simplify `triggerPostNoteActions` (lines 911-1043) to only handle the auto-email step, removing the overview generation call (line 922-924) since the orchestrator now does that.
+In `src/components/meeting-details/MeetingDetailsTabs.tsx` (line 105):
 
-### 3. Update all call sites
+```typescript
+// Don't show generating banner if overview already exists (stale status)
+const showGeneratingStatus = (notesGenerationStatus === 'queued' || notesGenerationStatus === 'generating') && !currentOverview;
+```
 
-There are 4 places that call `generateNotesForMeeting` with `(meetingId, transcript, title)` — update them all to just pass `(meetingId)` since the orchestrator fetches transcript from the database:
-- Line 1098 (resume sync for transcribed recordings)
-- Line 1331 (retry meeting creation)
-- Line 1379 (main chunked sync)
-- Line 1510 (legacy single-file sync)
+### 3. Fix the stuck meeting in the database
+
+The existing stuck meeting needs its status corrected. Add a self-healing check in `MeetingHistory.tsx` `handleViewMeetingSummary`: if summary exists but status is stuck at `queued`/`generating`, silently update status to `completed`.
+
+In `src/pages/MeetingHistory.tsx` (after line 337):
+
+```typescript
+// Self-heal: if summary exists but status is stuck
+if (summaryData?.summary && 
+    (meeting.notes_generation_status === 'queued' || meeting.notes_generation_status === 'generating')) {
+  supabase.from('meetings')
+    .update({ notes_generation_status: 'completed' })
+    .eq('id', meetingId)
+    .then(() => console.log('🔧 Self-healed stuck notes_generation_status'));
+}
+```
 
 ## Files to Change
 
-- `src/components/recorder/NoteWellRecorderMobile.jsx` — replace `generateNotesForMeeting` with orchestrator call, simplify `triggerPostNoteActions` to email-only, update all call sites
+- `supabase/functions/auto-close-inactive-meetings/index.ts` — check before overwriting notes status
+- `src/components/meeting-details/MeetingDetailsTabs.tsx` — don't show banner if overview exists
+- `src/pages/MeetingHistory.tsx` — self-heal stuck status on modal open
 
