@@ -168,14 +168,25 @@ serve(async (req) => {
       try {
         console.log(`🔄 Auto-closing meeting ${meeting.id} (${meeting.title})`);
 
-        // Update meeting status to completed
+        // Check current notes_generation_status before overwriting
+        const { data: currentMeeting } = await supabase
+          .from('meetings')
+          .select('notes_generation_status')
+          .eq('id', meeting.id)
+          .single();
+
+        const notesStatus = currentMeeting?.notes_generation_status;
+        const shouldQueueNotes = notesStatus !== 'completed' && notesStatus !== 'generating';
+        console.log(`📋 Meeting ${meeting.id} current notes status: ${notesStatus}, will queue: ${shouldQueueNotes}`);
+
+        // Update meeting status to completed, preserving notes status if already done
         const { error: updateError } = await supabase
           .from('meetings')
           .update({
             status: 'completed',
             end_time: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            notes_generation_status: 'queued'
+            ...(shouldQueueNotes ? { notes_generation_status: 'queued' } : {})
           })
           .eq('id', meeting.id);
 
