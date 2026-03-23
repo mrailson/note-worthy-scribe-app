@@ -3,7 +3,6 @@ export type TranscriptionService =
   | 'deepgram'
   | 'amazon-transcribe'
   | 'google-cloud'
-  | 'browser-speech'
   | 'whisper-batch'
   | 'gladia';
 
@@ -42,13 +41,6 @@ export const TRANSCRIPTION_SERVICES: TranscriptionServiceInfo[] = [
     id: 'google-cloud', 
     name: 'Google Cloud Speech', 
     description: 'Multi-language, high accuracy', 
-    type: 'realtime', 
-    available: true 
-  },
-  { 
-    id: 'browser-speech', 
-    name: 'Browser Speech', 
-    description: 'Free, no API costs, built-in', 
     type: 'realtime', 
     available: true 
   },
