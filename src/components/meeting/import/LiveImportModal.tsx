@@ -16,6 +16,7 @@ interface LiveImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultTab?: string;
+  editGroupId?: string | null;
   meetingId?: string;
   onImportComplete?: () => void;
   onAttendeesChanged?: (attendees: any[]) => void;
@@ -32,6 +33,7 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
   open,
   onOpenChange,
   defaultTab,
+  editGroupId,
   meetingId,
   onImportComplete,
   onAttendeesChanged,
@@ -220,6 +222,7 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
                   onImport={handleImportContent}
                   isImporting={isImporting}
                   onAttendeesChanged={onAttendeesChanged}
+                  editGroupId={editGroupId}
                 />
               </TabsContent>
               

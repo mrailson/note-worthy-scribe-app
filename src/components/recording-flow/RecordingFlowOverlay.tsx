@@ -15,7 +15,7 @@ interface RecordingFlowOverlayProps {
   isRecording: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
-  onOpenImportModal: (tab?: string) => void;
+  onOpenImportModal: (tab?: string, editGroupId?: string) => void;
   formatDuration: (seconds: number) => string;
   wordCount?: number;
   transcriptText?: string;

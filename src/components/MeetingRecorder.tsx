@@ -188,6 +188,7 @@ const LiveImportModalWithContext: React.FC<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultTab?: string;
+  editGroupId?: string | null;
 }> = (props) => {
   const { setAttendees } = useMeetingSetup();
   return (
@@ -583,6 +584,7 @@ export const MeetingRecorder = ({
   const [teamsImportOpen, setTeamsImportOpen] = useState(false);
   const [audioImportOpen, setAudioImportOpen] = useState(false);
   const [audioImportDefaultTab, setAudioImportDefaultTab] = useState<string | undefined>();
+  const [editGroupId, setEditGroupId] = useState<string | null>(null);
   
   // Recording context state
   const [showContextDialog, setShowContextDialog] = useState(false);
@@ -6683,7 +6685,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               
   return (
     <MeetingSetupProvider>
-    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }} contextRef={meetingSetupContextRef} />
+    <MeetingSetupBridge isRecording={isRecording} duration={duration} onOpenImportModal={(tab, editGroupId) => { setAudioImportDefaultTab(tab || undefined); setEditGroupId(editGroupId || null); setAudioImportOpen(true); }} contextRef={meetingSetupContextRef} />
     <TooltipProvider delayDuration={300}>
     <div className="space-y-6">
       {/* Recording Recovery Banner */}
@@ -6755,7 +6757,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             isRecording={isRecording}
             onStartRecording={startRecording}
             onStopRecording={handleStopWithConfirmation}
-            onOpenImportModal={(tab) => { setAudioImportDefaultTab(tab || undefined); setAudioImportOpen(true); }}
+            onOpenImportModal={(tab, editGroupId) => { setAudioImportDefaultTab(tab || undefined); setEditGroupId(editGroupId || null); setAudioImportOpen(true); }}
             formatDuration={formatDuration}
             wordCount={wordCount}
             transcriptText={assemblyPreview.fullTranscript || deepgramPreview.fullTranscript || transcript}
@@ -8197,8 +8199,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       {/* Live Import Modal */}
       <LiveImportModalWithContext
         open={audioImportOpen}
-        onOpenChange={setAudioImportOpen}
+        onOpenChange={(open) => { setAudioImportOpen(open); if (!open) setEditGroupId(null); }}
         defaultTab={audioImportDefaultTab}
+        editGroupId={editGroupId}
       />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}

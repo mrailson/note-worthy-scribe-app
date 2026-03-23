@@ -8,7 +8,7 @@ import {
 interface MeetingSetupBridgeProps {
   isRecording: boolean;
   duration: number;
-  onOpenImportModal: (tab?: string) => void;
+  onOpenImportModal: (tab?: string, editGroupId?: string) => void;
   /** Mutable ref that MeetingRecorder reads for persistence */
   contextRef?: React.MutableRefObject<{
     attendees: any[];

@@ -26,6 +26,7 @@ interface MeetingAttendeesTabProps {
   onImport?: (content: ImportedContent) => Promise<void>;
   isImporting?: boolean;
   onAttendeesChanged?: (attendees: MeetingAttendee[]) => void;
+  editGroupId?: string | null;
 }
 
 export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
@@ -33,6 +34,7 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   onImport,
   isImporting,
   onAttendeesChanged,
+  editGroupId,
 }) => {
   const { contacts } = useContacts();
   const { groups, createGroup, updateGroup, deleteGroup } = useMeetingGroups();
@@ -60,6 +62,17 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
   useEffect(() => {
     if (!directoryLoaded && !directoryLoading) fetchDirectory();
   }, [directoryLoaded, directoryLoading, fetchDirectory]);
+
+  // Auto-open group edit when editGroupId is provided
+  useEffect(() => {
+    if (editGroupId && groups.length > 0) {
+      const group = groups.find(g => g.id === editGroupId);
+      if (group) {
+        setEditingGroup(group);
+        setGroupView('edit');
+      }
+    }
+  }, [editGroupId, groups]);
 
   // Load existing attendees from meeting
   useEffect(() => {
