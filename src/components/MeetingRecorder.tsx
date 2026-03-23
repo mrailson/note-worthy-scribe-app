@@ -905,6 +905,7 @@ export const MeetingRecorder = ({
     setChunkCounter(0);
     chunkCounterRef.current = 0; // CRITICAL: Reset ref alongside state
     setChunkSaveStatuses([]); // Clear previous meeting's chunk data
+    setBrowserSpeechPreviewText(''); // Reset browser speech preview
     setRemovedSegments([]); // Clear removed segments from previous meeting
     setConnectionStatus("Disconnected");
     setSpeakerCount(0);
@@ -2334,6 +2335,7 @@ export const MeetingRecorder = ({
   const simpleIOSTranscriberRef = useRef<SimpleIOSTranscriber | null>(null);
   const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
   const [iosTranscriberStats, setIosTranscriberStats] = useState<IOSTranscriberStats | null>(null);
+  const [browserSpeechPreviewText, setBrowserSpeechPreviewText] = useState('');
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
   const liveTranscriptRef = useRef<{ getCurrentTranscript: () => string } | null>(null);
@@ -2769,7 +2771,10 @@ export const MeetingRecorder = ({
     })();
     
     if (isDuplicate) return;
-    
+
+    // Accumulate for live preview Browser Speech panel
+    setBrowserSpeechPreviewText(prev => prev + (prev ? ' ' : '') + trimmedText);
+
     // Add chunk status tracking for iPhone/mobile transcription with timestamps
     // CRITICAL: Use synchronous ref for correct chunk numbering (setState is async)
     chunkCounterRef.current += 1;
@@ -6799,7 +6804,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             whisperChunkText={transcript ? transcript.trim().split(/\s+/).slice(-50).join(' ') : ''}
             whisperChunkNum={chunkCounter}
             gladiaText={''}
-            browserText={''}
+            browserText={browserSpeechPreviewText ? browserSpeechPreviewText.trim().split(/\s+/).slice(-30).join(' ') : ''}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))}
