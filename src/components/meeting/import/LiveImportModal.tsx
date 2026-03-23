@@ -16,6 +16,7 @@ interface LiveImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultTab?: string;
+  editGroupId?: string | null;
   meetingId?: string;
   onImportComplete?: () => void;
   onAttendeesChanged?: (attendees: any[]) => void;
