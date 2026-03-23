@@ -188,6 +188,7 @@ const LiveImportModalWithContext: React.FC<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultTab?: string;
+  editGroupId?: string | null;
 }> = (props) => {
   const { setAttendees } = useMeetingSetup();
   return (

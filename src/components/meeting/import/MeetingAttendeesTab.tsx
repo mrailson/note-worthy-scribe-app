@@ -63,6 +63,17 @@ export const MeetingAttendeesTab: React.FC<MeetingAttendeesTabProps> = ({
     if (!directoryLoaded && !directoryLoading) fetchDirectory();
   }, [directoryLoaded, directoryLoading, fetchDirectory]);
 
+  // Auto-open group edit when editGroupId is provided
+  useEffect(() => {
+    if (editGroupId && groups.length > 0) {
+      const group = groups.find(g => g.id === editGroupId);
+      if (group) {
+        setEditingGroup(group);
+        setGroupView('edit');
+      }
+    }
+  }, [editGroupId, groups]);
+
   // Load existing attendees from meeting
   useEffect(() => {
     if (!meetingId || loaded) return;
