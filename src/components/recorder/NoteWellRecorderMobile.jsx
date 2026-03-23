@@ -604,7 +604,8 @@ export default function NoteWellRecorder() {
               const p = typeof prev === "string" ? prev : "";
               const t = typeof text === "string" ? text : String(text || "");
               const updated = p ? p + " " + t : t;
-              setLiveWordCount(updated.split(/\s+/).filter(Boolean).length);
+              const newCount = updated.split(/\s+/).filter(Boolean).length;
+              if (newCount > peakWordCountRef.current) { peakWordCountRef.current = newCount; setLiveWordCount(newCount); }
               return updated;
             });
             setLivePartial("");
