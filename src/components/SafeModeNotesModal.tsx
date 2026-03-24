@@ -1169,6 +1169,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     fetchAttendees();
   }, [isOpen, meeting?.id]);
 
+  // Pre-load transcripts when modal opens so length regeneration has data
+  useEffect(() => {
+    if (isOpen && meeting?.id && !transcript && !isLoadingTranscript) {
+      loadTranscript();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, meeting?.id]);
+
   // Auto-sync action items to notes if action items exist but notes don't have an ACTION ITEMS section
   useEffect(() => {
     if (!isOpen || !meeting?.id || isLoadingNotes) return;
