@@ -196,7 +196,7 @@ Generate meeting notes now according to the format and length instructions.
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: length === "comprehensive" ? 8192 : length === "detailed" ? 4096 : 2048,
+        max_tokens: maxTokens,
         system: systemPrompt,
         messages: [{ role: "user", content: userMessage }],
       }),

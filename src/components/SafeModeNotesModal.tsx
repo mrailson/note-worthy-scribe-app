@@ -292,12 +292,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         toast.error('No transcript available to regenerate notes from');
         return;
       }
-      const updated = await generateNotesWithLength({
+      const payload = {
         transcript: transcriptToUse,
         format: (noteType as any) || 'standard',
         length: newLength,
         meetingTitle: meeting.title,
-      });
+      };
+      console.log("generateNotesWithLength payload:", { format: payload.format, length: payload.length, meetingTitle: payload.meetingTitle, transcriptChars: payload.transcript.length });
+      const updated = await generateNotesWithLength(payload);
       if (updated?.notes) {
         setNotesContent(updated.notes);
         toast.success(`Notes regenerated (${newLength})`);
