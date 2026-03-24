@@ -3664,6 +3664,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
                       {/* Main Content - Plain or Editable Sections */}
                       <div ref={notesContentRef} className="relative">
+                        {/* Loading overlay when regenerating by length */}
+                        {isRegeneratingLength && (
+                          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center rounded-b-lg z-10">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Regenerating notes…
+                            </div>
+                          </div>
+                        )}
                         {viewMode === 'plain' ? (
                           <pre 
                             className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
