@@ -498,7 +498,7 @@ export function CorrectionManager({
                       {/* Actions */}
                       {onCorrectionApplied && (
                         <Button
-                          onClick={() => applyNow(c.incorrect_term, c.correct_term)}
+                          onClick={() => applyNow(c.id, c.incorrect_term, c.correct_term)}
                           variant="outline"
                           size="sm"
                           className="h-7 text-xs gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
