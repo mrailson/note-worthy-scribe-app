@@ -31,6 +31,7 @@ interface UserClaim {
 interface AllEntry {
   id: string;
   user_id: string;
+  practice_id: string | null;
   work_date: string;
   start_time: string;
   end_time: string;
@@ -84,6 +85,7 @@ export function AdminClaimsReport() {
   const [userSettings, setUserSettings] = useState<Record<string, number>>({});
   const [userProfiles, setUserProfiles] = useState<Record<string, { name: string; practice_name: string }>>({});
   const [claimants, setClaimants] = useState<Record<string, ClaimantInfo>>({});
+  const [practiceNames, setPracticeNames] = useState<Record<string, string>>({});
   const [startDate, setStartDate] = useState('2020-01-01');
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [viewMode, setViewMode] = useState<'summary' | 'detailed' | 'practice'>('summary');
@@ -138,6 +140,14 @@ export function AdminClaimsReport() {
         console.error('Error fetching claimants:', claimantsError);
       }
 
+      const { data: practicesData, error: practicesError } = await supabase
+        .from('gp_practices')
+        .select('id, name');
+
+      if (practicesError) {
+        console.error('Error fetching practices:', practicesError);
+      }
+
       // Build claimants map by name (for lookup)
       const claimantsMap: Record<string, ClaimantInfo> = {};
       claimantsData?.forEach(c => {
@@ -146,6 +156,11 @@ export function AdminClaimsReport() {
           member_practice: c.member_practice,
           role: c.role
         };
+      });
+
+      const practiceMap: Record<string, string> = {};
+      practicesData?.forEach(practice => {
+        practiceMap[practice.id] = practice.name;
       });
 
       // Build settings map
@@ -178,6 +193,7 @@ export function AdminClaimsReport() {
       setUserSettings(settingsMap);
       setUserProfiles(profileMap);
       setClaimants(claimantsMap);
+      setPracticeNames(practiceMap);
       setSelectedEntries(new Set());
     } catch (error) {
       console.error('Error fetching admin data:', error);
@@ -199,6 +215,11 @@ export function AdminClaimsReport() {
     
     const names = new Set<string>();
     const practices = new Set<string>();
+
+    const resolvePracticeName = (entry: AllEntry, claimant?: ClaimantInfo | null) =>
+      claimant?.member_practice ||
+      (entry.practice_id ? practiceNames[entry.practice_id] : null) ||
+      'Not Set';
     
     entries.forEach(e => {
       const date = parseISO(e.work_date);
@@ -206,12 +227,12 @@ export function AdminClaimsReport() {
         if (e.claimant_name) {
           const claimant = claimants[e.claimant_name];
           names.add(e.claimant_name);
-          practices.add(claimant?.member_practice || 'Not Set');
+          practices.add(resolvePracticeName(e, claimant));
         } else {
           const profile = userProfiles[e.user_id];
           if (profile) {
             names.add(profile.name);
-            practices.add(profile.practice_name);
+            practices.add((e.practice_id ? practiceNames[e.practice_id] : null) || profile.practice_name);
           }
         }
       }
@@ -221,19 +242,24 @@ export function AdminClaimsReport() {
       uniqueNames: Array.from(names).sort(),
       uniquePractices: Array.from(practices).sort()
     };
-  }, [entries, userProfiles, claimants, startDate, endDate]);
+  }, [entries, userProfiles, claimants, practiceNames, startDate, endDate]);
 
   // Filter entries by date range and aggregate by user/claimant
   const { userClaims, detailedEntries } = useMemo(() => {
     const start = parseISO(startDate);
     const end = parseISO(endDate);
 
+    const resolvePracticeName = (entry: AllEntry, claimant?: ClaimantInfo | null) =>
+      claimant?.member_practice ||
+      (entry.practice_id ? practiceNames[entry.practice_id] : null) ||
+      'Not Set';
+
     const getEntryDetails = (e: AllEntry) => {
       if (e.claimant_name) {
         const claimant = claimants[e.claimant_name];
         return {
           displayName: e.claimant_name,
-          practiceName: claimant?.member_practice || 'Not Set',
+          practiceName: resolvePracticeName(e, claimant),
           groupKey: `name:${e.claimant_name}`
         };
       } else {
@@ -241,7 +267,7 @@ export function AdminClaimsReport() {
         const matchingClaimant = claimants[profile.name];
         return {
           displayName: profile.name,
-          practiceName: matchingClaimant?.member_practice || profile.practice_name,
+          practiceName: matchingClaimant?.member_practice || (e.practice_id ? practiceNames[e.practice_id] : null) || profile.practice_name,
           groupKey: `name:${profile.name}`
         };
       }
@@ -341,7 +367,7 @@ export function AdminClaimsReport() {
       userClaims: unsortedClaims,
       detailedEntries: detailed
     };
-  }, [entries, userSettings, userProfiles, claimants, startDate, endDate, filterName, filterPractice, invoiceFilter, sortField, sortDirection]);
+  }, [entries, userSettings, userProfiles, claimants, practiceNames, startDate, endDate, filterName, filterPractice, invoiceFilter, sortField, sortDirection]);
 
   // Sort summary claims
   const sortedUserClaims = useMemo(() => {
