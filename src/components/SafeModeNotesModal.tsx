@@ -4380,7 +4380,21 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       {showCorrections && (
         <CorrectionManager 
           onClose={() => setShowCorrections(false)}
-          onCorrectionApplied={() => {}}
+          onCorrectionApplied={(find, replace) => {
+            if (!notesContent) return;
+            const pattern = new RegExp(`\\b${find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+            const updated = notesContent.replace(pattern, replace);
+            if (updated !== notesContent) {
+              setNotesContent(updated);
+              persistNotesContent(updated);
+              toast.success(`Applied: "${find}" → "${replace}"`);
+            } else {
+              toast.info(`"${find}" not found in current notes`);
+            }
+          }}
+          onCorrectionsChanged={() => {
+            reloadCorrections();
+          }}
         />
       )}
       {/* Export Studio Modal */}
