@@ -3321,12 +3321,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             {/* Divider - hidden on mobile */}
             <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
 
-            {/* Notes Length Selector - hidden on mobile */}
-            <div className="hidden sm:flex flex-1 min-w-[240px]">
+            {/* Notes Length Selector (compact: inline buttons only) - hidden on mobile */}
+            <div className="hidden sm:flex items-center">
               <NotesLengthSelector
                 value={notesLength}
                 onChange={handleLengthChange}
+                compact
               />
+              {isRegeneratingLength && (
+                <Loader2 className="h-4 w-4 animate-spin ml-2 text-primary" />
+              )}
             </div>
 
             {/* Divider - hidden on mobile */}
