@@ -288,7 +288,22 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     if (!meeting?.id) return;
     setIsRegeneratingLength(true);
     try {
-      const transcriptToUse = bestOfAllTranscript || batchTranscript || liveTranscript || transcript || '';
+      let transcriptToUse = bestOfAllTranscript || batchTranscript || liveTranscript || transcript || '';
+
+      // Fallback: fetch directly from DB if local state is empty
+      if (!transcriptToUse.trim() && meeting?.id) {
+        console.log('NOTEWELL: Local transcript empty, fetching from DB…');
+        const { data: txData } = await supabase
+          .from('meetings')
+          .select('whisper_transcript_text, live_transcript_text, best_of_all_transcript')
+          .eq('id', meeting.id)
+          .maybeSingle();
+        transcriptToUse = (txData as any)?.best_of_all_transcript
+          || txData?.whisper_transcript_text
+          || txData?.live_transcript_text
+          || '';
+      }
+
       if (!transcriptToUse.trim()) {
         toast.error('No transcript available to regenerate notes from');
         return;
