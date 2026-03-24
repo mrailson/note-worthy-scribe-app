@@ -175,6 +175,15 @@ serve(async (req) => {
     const wordCount = fullTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
     console.log(`📝 Full transcript: ${fullTranscript.length} chars, ${wordCount} words`);
 
+    // Safety guard: don't overwrite with empty transcript if chunks existed
+    if (!fullTranscript || wordCount === 0) {
+      console.error(`🚫 Stitched transcript is empty despite ${allChunks?.length || 0} chunks — aborting update to prevent data loss`);
+      return new Response(
+        JSON.stringify({ error: "Stitched transcript was empty despite chunks existing", chunks: allChunks?.length }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Update meeting with transcript
     const { error: updateErr } = await supabase
       .from("meetings")
@@ -187,6 +196,19 @@ serve(async (req) => {
       .eq("id", meetingId);
 
     if (updateErr) throw new Error(`Meeting update failed: ${updateErr.message}`);
+
+    // Verification read-back to confirm word_count persisted
+    const { data: verify } = await supabase
+      .from("meetings")
+      .select("word_count")
+      .eq("id", meetingId)
+      .single();
+
+    if (!verify?.word_count || verify.word_count === 0) {
+      console.error(`⚠️ word_count verification failed — DB shows ${verify?.word_count} after update`);
+    } else {
+      console.log(`✅ Verified word_count persisted: ${verify.word_count}`);
+    }
 
     // Trigger note generation
     console.log(`🚀 Triggering note generation...`);
