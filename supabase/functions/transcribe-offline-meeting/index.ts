@@ -157,16 +157,18 @@ serve(async (req) => {
     // === FINAL CHUNK — stitch everything together ===
     console.log(`🧵 All ${totalChunks} chunks done. Stitching transcript...`);
 
+    const sessionId = `offline-retranscribe-${meetingId}`;
     const { data: allChunks, error: fetchErr } = await supabase
       .from("meeting_transcription_chunks")
-      .select("chunk_index, transcript_text")
+      .select("chunk_number, transcription_text")
       .eq("meeting_id", meetingId)
-      .order("chunk_index", { ascending: true });
+      .eq("session_id", sessionId)
+      .order("chunk_number", { ascending: true });
 
     if (fetchErr) throw new Error(`Failed to fetch chunks: ${fetchErr.message}`);
 
     const fullTranscript = (allChunks || [])
-      .map((c: any) => c.transcript_text)
+      .map((c: any) => c.transcription_text)
       .filter(Boolean)
       .join("\n\n");
 
