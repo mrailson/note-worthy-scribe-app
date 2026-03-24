@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderLock, FolderOpen, LayoutGrid, List, GitBranch, Settings } from 'lucide-react';
+import { FolderLock, FolderOpen, LayoutGrid, List, GitBranch, Settings, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { VaultToolbar } from './VaultToolbar';
@@ -138,6 +138,13 @@ export const NRESDocumentVault = () => {
 
   return (
     <>
+      <div className="flex items-center justify-between p-3 mb-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
+        <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
+          <Sparkles className="h-4 w-4" />
+          <span className="font-medium">Version 2 of the Document Vault is coming mid April 2026</span>
+        </div>
+        <VaultV2PreviewModal />
+      </div>
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -146,7 +153,6 @@ export const NRESDocumentVault = () => {
               <span>Welcome to the Document Vault <span className="font-normal text-muted-foreground">— your secure, centralised store for practice documents and files.</span></span>
             </CardTitle>
             <div className="flex items-center gap-2">
-              <VaultV2PreviewModal />
               {isAdmin && (
                 <Tooltip>
                   <TooltipTrigger asChild>
