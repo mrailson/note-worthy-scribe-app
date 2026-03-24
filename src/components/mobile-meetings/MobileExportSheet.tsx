@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FileText, Share2, List, Clock, Mail, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
-import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { toast } from 'sonner';
 import './mobile-meetings.css';
 
@@ -23,13 +22,13 @@ export const MobileExportSheet: React.FC<MobileExportSheetProps> = ({
   onShare,
 }) => {
   const { user } = useAuth();
-  const { sendEmailAutomatically, isSending } = useAutoEmail();
+  const [isSending, setIsSending] = useState(false);
 
   const fetchMeetingData = async () => {
     if (!meetingId || !user) return null;
     const { data } = await supabase
       .from('meetings')
-      .select('id, title, created_at, duration_minutes, word_count, best_of_all_transcript, notes_style_3, overview, meeting_attendees_json')
+      .select('id, title, created_at, start_time, duration_minutes, word_count, best_of_all_transcript, notes_style_3, overview, meeting_attendees_json, participants, meeting_format, meeting_location')
       .eq('id', meetingId)
       .eq('user_id', user.id)
       .maybeSingle();
@@ -75,6 +74,12 @@ export const MobileExportSheet: React.FC<MobileExportSheetProps> = ({
   };
 
   const handleEmailNotes = async () => {
+    if (!user?.email) {
+      toast.error('No email address found in your profile');
+      return;
+    }
+
+    setIsSending(true);
     try {
       const meeting = await fetchMeetingData();
       if (!meeting) {
@@ -82,22 +87,177 @@ export const MobileExportSheet: React.FC<MobileExportSheetProps> = ({
         return;
       }
 
-      const notesContent = meeting.notes_style_3 || meeting.overview || '';
+      // Prefer meeting_summaries.summary (canonical source) over notes_style_3
+      let notesContent = '';
+      try {
+        const { data: summaryData } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId!)
+          .maybeSingle();
+        notesContent = summaryData?.summary || '';
+      } catch {
+        // fallback
+      }
+      if (!notesContent) {
+        notesContent = meeting.notes_style_3 || meeting.overview || '';
+      }
+
       if (!notesContent) {
         toast.error('No notes available. Generate notes first.');
         return;
       }
 
-      const dateStr = new Date(meeting.created_at).toLocaleDateString('en-GB');
-      const subject = `Meeting Notes - ${meeting.title || 'Meeting'} - ${dateStr}`;
-      
-      const sent = await sendEmailAutomatically(notesContent, subject);
-      if (sent) {
-        onClose();
+      // Get user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user!.id)
+        .maybeSingle();
+
+      const senderName = profile?.full_name || user.email?.split('@')[0] || 'Notewell AI';
+
+      // Format meeting date
+      const meetingStartTime = meeting.start_time || meeting.created_at;
+      const meetingDate = new Date(meetingStartTime).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      const meetingTime = new Date(meetingStartTime).toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }) + ' GMT';
+
+      const cleanTitle = (meeting.title || 'Meeting Notes').replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+      const subject = `Notewell AI | ${cleanTitle} — ${meetingDate}`;
+
+      // Build professional NHS-branded email HTML (same as auto-email on meeting create)
+      const { buildProfessionalMeetingEmail } = await import('@/utils/meetingEmailBuilder');
+      const participants = Array.isArray(meeting.participants) ? meeting.participants : [];
+      const htmlContent = buildProfessionalMeetingEmail(
+        notesContent,
+        senderName,
+        cleanTitle,
+        {
+          date: meetingDate,
+          time: meetingTime,
+          duration: meeting.duration_minutes,
+          format: meeting.meeting_format,
+          location: meeting.meeting_location,
+          overview: meeting.overview,
+          wordCount: meeting.word_count,
+          attendees: participants as string[],
+        }
+      );
+
+      // Generate professional Word document attachment (same as auto-email)
+      let wordAttachment = null;
+      try {
+        const { generateProfessionalWordBlob } = await import('@/utils/generateProfessionalMeetingDocx');
+
+        const parsedDetails = {
+          title: cleanTitle,
+          date: meetingDate,
+          time: meetingTime,
+          location: meeting.meeting_format || meeting.meeting_location || undefined,
+          attendees: participants.length > 0 ? (participants as string[]).join(', ') : undefined,
+        };
+
+        // Fetch action items
+        let parsedActionItems: any[] = [];
+        try {
+          const { data: actionItemsData } = await supabase
+            .from('meeting_action_items')
+            .select('action_text, assignee_name, due_date, priority, status')
+            .eq('meeting_id', meetingId!);
+
+          if (actionItemsData && actionItemsData.length > 0) {
+            parsedActionItems = actionItemsData.map((item: any) => ({
+              action: item.action_text,
+              owner: item.assignee_name || 'Unassigned',
+              deadline: item.due_date || undefined,
+              priority: item.priority || 'medium',
+              status: item.status === 'completed' ? 'Completed' as const : item.status === 'in_progress' ? 'In Progress' as const : 'Open' as const,
+              isCompleted: item.status === 'completed',
+            }));
+          }
+        } catch (aiErr) {
+          console.warn('Could not fetch action items for Word attachment:', aiErr);
+        }
+
+        const blob = await generateProfessionalWordBlob(notesContent, cleanTitle, parsedDetails, parsedActionItems);
+
+        const base64Content = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            if (result) {
+              resolve(result.split(',')[1]);
+            } else {
+              reject(new Error('FileReader returned empty result'));
+            }
+          };
+          reader.onerror = () => reject(new Error('FileReader error'));
+          reader.readAsDataURL(blob);
+        });
+
+        const { generateMeetingFilename } = await import('@/utils/meetingFilename');
+        const attachmentFilename = generateMeetingFilename(
+          cleanTitle,
+          new Date(meetingStartTime),
+          'docx'
+        );
+
+        wordAttachment = {
+          content: base64Content,
+          filename: attachmentFilename,
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        };
+        console.log('📎 Professional Word attachment generated:', attachmentFilename);
+      } catch (docError) {
+        console.error('Word document generation failed:', docError);
+        // Fallback: try without parsed data
+        try {
+          const { generateProfessionalWordBlob } = await import('@/utils/generateProfessionalMeetingDocx');
+          const blob = await generateProfessionalWordBlob(notesContent, cleanTitle, undefined, []);
+          const reader = new FileReader();
+          const base64Content = await new Promise<string>((resolve) => {
+            reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+          });
+          reader.readAsDataURL(blob);
+          wordAttachment = {
+            content: await base64Content,
+            filename: `meeting_notes.docx`,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          };
+        } catch (fallbackError) {
+          console.error('All Word generation attempts failed:', fallbackError);
+        }
       }
-    } catch (error) {
+
+      // Send via Resend edge function
+      const { data, error } = await supabase.functions.invoke('send-meeting-email-resend', {
+        body: {
+          to_email: user.email,
+          cc_emails: [],
+          subject,
+          html_content: htmlContent,
+          from_name: senderName,
+          word_attachment: wordAttachment,
+        },
+      });
+
+      if (error) throw new Error(error.message || 'Failed to send email');
+      if (!data?.success) throw new Error(data?.error || 'Failed to send email');
+
+      toast.success(`Meeting notes sent to ${user.email}`);
+      onClose();
+    } catch (error: any) {
       console.error('Email notes error:', error);
-      toast.error('Failed to email notes');
+      toast.error(error.message || 'Failed to email notes');
+    } finally {
+      setIsSending(false);
     }
   };
 
