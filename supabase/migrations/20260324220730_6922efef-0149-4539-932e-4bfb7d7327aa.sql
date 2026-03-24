@@ -1,0 +1,1 @@
+ALTER TABLE public.medical_term_corrections ADD COLUMN IF NOT EXISTS category text NOT NULL DEFAULT 'other' CHECK (category IN ('place', 'person', 'practice', 'clinical', 'acronym', 'other'));

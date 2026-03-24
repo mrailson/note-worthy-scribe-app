@@ -5650,6 +5650,7 @@ export type Database = {
       }
       medical_term_corrections: {
         Row: {
+          category: string
           context_phrase: string | null
           correct_term: string
           created_at: string
@@ -5663,6 +5664,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string
           context_phrase?: string | null
           correct_term: string
           created_at?: string
@@ -5676,6 +5678,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string
           context_phrase?: string | null
           correct_term?: string
           created_at?: string
