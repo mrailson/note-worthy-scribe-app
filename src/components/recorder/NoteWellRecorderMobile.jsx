@@ -1086,7 +1086,7 @@ export default function NoteWellRecorder() {
         return;
       }
 
-      // ── Phase 1: Upload all chunks to storage ──────────────────────────
+      // ── Phase 1: Upload all chunks to storage (with retry) ─────────────
       for (let i = 0; i < totalChunks; i++) {
         const chunk = chunks[i];
         const paddedIndex = String(chunk.index).padStart(3, "0");
@@ -1099,10 +1099,23 @@ export default function NoteWellRecorder() {
           message: `Uploading segment ${i + 1} of ${totalChunks}…`,
         });
 
-        const { error } = await supabase.storage
-          .from("recordings")
-          .upload(storagePath, blob, { contentType: chunk.mimeType || "audio/webm", upsert: true });
-        if (error) throw error;
+        let uploadSuccess = false;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const { error } = await supabase.storage
+            .from("recordings")
+            .upload(storagePath, blob, { contentType: chunk.mimeType || "audio/webm", upsert: true });
+          if (!error) { uploadSuccess = true; break; }
+          console.warn(`[Sync] Chunk ${i + 1} upload attempt ${attempt} failed:`, error.message);
+          if (attempt < 3) {
+            setSyncProgress({
+              phase: "uploading", currentChunk: i + 1, totalChunks,
+              percentComplete: Math.round(((i + 1) / totalChunks) * 30),
+              message: `Retrying segment ${i + 1} (attempt ${attempt + 1}/3)…`,
+            });
+            await new Promise(r => setTimeout(r, 2000 * attempt));
+          }
+        }
+        if (!uploadSuccess) throw new Error(`Failed to upload segment ${i + 1} after 3 attempts`);
       }
 
       await dbPatch(rec.id, { status: "synced" });
