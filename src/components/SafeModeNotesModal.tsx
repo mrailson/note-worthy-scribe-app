@@ -276,6 +276,43 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [noteType, setNoteType] = useState<string>('standard'); // Note type selection
   const [noteTypeLoaded, setNoteTypeLoaded] = useState(false);
   const [isRegeneratingNotes, setIsRegeneratingNotes] = useState(false);
+  
+  // Notes length selector state
+  const [notesLength, setNotesLength] = useState<NotesLength>("standard");
+  const [isRegeneratingLength, setIsRegeneratingLength] = useState(false);
+
+  // Handler — regenerate notes when length changes
+  const handleLengthChange = async (newLength: NotesLength) => {
+    setNotesLength(newLength);
+    if (!meeting?.id) return;
+    setIsRegeneratingLength(true);
+    try {
+      const transcriptToUse = bestOfAllTranscript || batchTranscript || liveTranscript || transcript || '';
+      if (!transcriptToUse.trim()) {
+        toast.error('No transcript available to regenerate notes from');
+        return;
+      }
+      const updated = await generateNotesWithLength({
+        transcript: transcriptToUse,
+        format: (noteType as any) || 'standard',
+        length: newLength,
+        meetingTitle: meeting.title,
+      });
+      if (updated?.notes) {
+        setNotesContent(updated.notes);
+        toast.success(`Notes regenerated (${newLength})`);
+        // Auto-trigger DOCX download for comprehensive/full tier
+        if (updated.generateDocx) {
+          toast.info('Generating Word document…');
+        }
+      }
+    } catch (err: any) {
+      console.error("Notes regeneration failed:", err);
+      toast.error(`Regeneration failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsRegeneratingLength(false);
+    }
+  };
 
   // Load the user's preferred note style from user_settings
   useEffect(() => {
