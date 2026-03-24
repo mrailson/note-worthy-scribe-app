@@ -3194,29 +3194,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </TooltipContent>
             </Tooltip>
 
-            {/* Divider - hidden on mobile */}
-            <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
-
-            {/* View mode toggle - hidden on mobile (in overflow menu) */}
-            <div className="hidden sm:flex">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={viewMode === 'formatted' ? 'secondary' : 'ghost'}
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setViewMode(viewMode === 'plain' ? 'formatted' : 'plain')}
-                  >
-                    {viewMode === 'plain' ? (
-                      <ToggleLeft className="h-4 w-4" />
-                    ) : (
-                      <ToggleRight className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{viewMode === 'plain' ? 'Plain Text' : 'Formatted'}</TooltipContent>
-              </Tooltip>
-            </div>
 
             {/* Name & Term Corrections - hidden on mobile (in overflow menu) */}
             <div className="hidden sm:flex">
