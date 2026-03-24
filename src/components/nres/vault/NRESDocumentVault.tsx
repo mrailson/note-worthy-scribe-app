@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderLock, FolderOpen, LayoutGrid, List, GitBranch, Settings } from 'lucide-react';
+import { FolderLock, FolderOpen, LayoutGrid, List, GitBranch, Settings, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { VaultToolbar } from './VaultToolbar';
