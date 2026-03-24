@@ -137,6 +137,7 @@ export const NRESDocumentVault = () => {
   const currentFolderCreatedByUser = folders.length > 0 || !currentFolderId;
 
   return (
+    <>
       <div className="flex items-center justify-between p-3 mb-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
         <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
           <Sparkles className="h-4 w-4" />
