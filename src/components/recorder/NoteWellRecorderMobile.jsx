@@ -597,7 +597,8 @@ export default function NoteWellRecorder() {
         const { usage, quota } = await navigator.storage.estimate();
         const usedMB = Math.round((usage || 0) / (1024 * 1024));
         const percentUsed = quota ? Math.round(((usage || 0) / quota) * 100) : 0;
-        if (usedMB > 500 || percentUsed > 80) {
+        const hasLocalRecordings = recordings.some(r => r.status === "local" || r.status === "error" || r.status === "transcribed");
+        if ((usedMB > 500 || percentUsed > 80) && hasLocalRecordings) {
           setStorageWarning({ usedMB, percentUsed });
         } else {
           setStorageWarning(null);
