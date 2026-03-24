@@ -2361,6 +2361,38 @@ export const MeetingHistoryList = ({
                         </Badge>
                       )}
                       
+                      {/* Re-transcribe button for mobile meetings with missing transcripts */}
+                      {meeting.import_source?.startsWith('mobile_') && (!meeting.word_count || meeting.word_count === 0) && (
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-700 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (retranscribingMeetings[meeting.id]) return;
+                            setRetranscribingMeetings(prev => ({ ...prev, [meeting.id]: true }));
+                            try {
+                              const { error } = await supabase.functions.invoke('transcribe-offline-meeting', {
+                                body: { meetingId: meeting.id, chunkIndex: 0 }
+                              });
+                              if (error) throw error;
+                              toast.success('Transcription started — this may take a few minutes');
+                            } catch (err) {
+                              console.error('Re-transcribe failed:', err);
+                              toast.error('Failed to start re-transcription');
+                            } finally {
+                              setRetranscribingMeetings(prev => ({ ...prev, [meeting.id]: false }));
+                            }
+                          }}
+                        >
+                          {retranscribingMeetings[meeting.id] ? (
+                            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <Mic className="h-3 w-3 mr-1" />
+                          )}
+                          {retranscribingMeetings[meeting.id] ? 'Transcribing...' : 'Re-transcribe'}
+                        </Badge>
+                      )}
+                      
                       {meeting.meeting_config && Object.keys(meeting.meeting_config).length > 0 && (
                         <Badge variant="secondary" className="text-xs">
                           <MapPin className="h-3 w-3 mr-1" />
