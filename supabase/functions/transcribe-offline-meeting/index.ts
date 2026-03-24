@@ -20,6 +20,17 @@ serve(async (req) => {
 
     console.log(`🎙️ Transcribing offline meeting: ${meetingId}, chunk ${chunkIndex}`);
 
+    // Get meeting user_id for required fields
+    const { data: meeting } = await supabase
+      .from("meetings")
+      .select("user_id")
+      .eq("id", meetingId)
+      .single();
+
+    if (!meeting) throw new Error("Meeting not found");
+    const userId = meeting.user_id;
+    const sessionId = `offline-retranscribe-${meetingId}`;
+
     // List audio files
     const { data: files, error: listErr } = await supabase.storage
       .from("recordings")
@@ -37,8 +48,11 @@ serve(async (req) => {
         notes_generation_status: "transcribing",
       }).eq("id", meetingId);
 
-      // Clear any previous transcription chunks for this meeting (fresh start)
-      await supabase.from("meeting_transcription_chunks").delete().eq("meeting_id", meetingId);
+      // Clear any previous transcription chunks for this session (fresh start)
+      await supabase.from("meeting_transcription_chunks")
+        .delete()
+        .eq("meeting_id", meetingId)
+        .eq("session_id", sessionId);
     }
 
     // Check if this chunk is already transcribed (idempotent)
@@ -46,7 +60,8 @@ serve(async (req) => {
       .from("meeting_transcription_chunks")
       .select("id")
       .eq("meeting_id", meetingId)
-      .eq("chunk_index", chunkIndex)
+      .eq("session_id", sessionId)
+      .eq("chunk_number", chunkIndex)
       .maybeSingle();
 
     let chunkText = "";
@@ -93,11 +108,13 @@ serve(async (req) => {
       console.log(`✅ Chunk ${chunkIndex}: ${chunkText.length} chars`);
 
       // Save chunk transcript to DB
-      await supabase.from("meeting_transcription_chunks").upsert({
+      await supabase.from("meeting_transcription_chunks").insert({
         meeting_id: meetingId,
-        chunk_index: chunkIndex,
-        transcript_text: chunkText,
-      }, { onConflict: "meeting_id,chunk_index" });
+        chunk_number: chunkIndex,
+        transcription_text: chunkText,
+        user_id: userId,
+        session_id: sessionId,
+      });
     }
 
     const nextChunk = chunkIndex + 1;
