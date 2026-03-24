@@ -15,12 +15,12 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   try {
-    const { meetingId } = await req.json();
+    const { meetingId, chunkIndex = 0 } = await req.json();
     if (!meetingId) throw new Error("meetingId required");
 
-    console.log(`🎙️ Transcribing offline meeting: ${meetingId}`);
+    console.log(`🎙️ Transcribing offline meeting: ${meetingId}, chunk ${chunkIndex}`);
 
-    // Get audio chunks from storage
+    // List audio files
     const { data: files, error: listErr } = await supabase.storage
       .from("recordings")
       .list(meetingId, { sortBy: { column: "name", order: "asc" } });
@@ -28,24 +28,44 @@ serve(async (req) => {
     if (listErr) throw new Error(`Storage list failed: ${listErr.message}`);
     if (!files || files.length === 0) throw new Error("No audio files found");
 
-    console.log(`📂 Found ${files.length} audio chunks`);
+    const totalChunks = files.length;
+    console.log(`📂 Total chunks: ${totalChunks}, processing chunk ${chunkIndex}`);
 
-    const transcripts: string[] = [];
+    // Update meeting status on first chunk
+    if (chunkIndex === 0) {
+      await supabase.from("meetings").update({
+        notes_generation_status: "transcribing",
+      }).eq("id", meetingId);
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+      // Clear any previous transcription chunks for this meeting (fresh start)
+      await supabase.from("meeting_transcription_chunks").delete().eq("meeting_id", meetingId);
+    }
+
+    // Check if this chunk is already transcribed (idempotent)
+    const { data: existing } = await supabase
+      .from("meeting_transcription_chunks")
+      .select("id")
+      .eq("meeting_id", meetingId)
+      .eq("chunk_index", chunkIndex)
+      .maybeSingle();
+
+    let chunkText = "";
+
+    if (existing) {
+      console.log(`⏭️ Chunk ${chunkIndex} already transcribed, skipping`);
+    } else {
+      // Process this specific chunk
+      const file = files[chunkIndex];
+      if (!file) throw new Error(`Chunk ${chunkIndex} not found in storage`);
+
       const path = `${meetingId}/${file.name}`;
-      console.log(`🔄 Processing chunk ${i + 1}/${files.length}: ${file.name} (${file.metadata?.size || '?'} bytes)`);
+      console.log(`🔄 Downloading chunk ${chunkIndex}: ${file.name}`);
 
-      // Download from storage
       const { data: blob, error: dlErr } = await supabase.storage
         .from("recordings")
         .download(path);
 
-      if (dlErr || !blob) {
-        console.error(`❌ Download failed for ${file.name}: ${dlErr?.message}`);
-        continue;
-      }
+      if (dlErr || !blob) throw new Error(`Download failed for ${file.name}: ${dlErr?.message}`);
 
       const audioBytes = new Uint8Array(await blob.arrayBuffer());
       console.log(`📦 Downloaded ${audioBytes.length} bytes`);
@@ -65,18 +85,76 @@ serve(async (req) => {
 
       if (!whisperResp.ok) {
         const errText = await whisperResp.text();
-        console.error(`❌ Whisper failed for chunk ${i}: ${whisperResp.status} ${errText}`);
-        continue;
+        throw new Error(`Whisper failed for chunk ${chunkIndex}: ${whisperResp.status} ${errText}`);
       }
 
       const result = await whisperResp.json();
-      const text = result.text?.trim() || "";
-      console.log(`✅ Chunk ${i}: ${text.length} chars`);
-      if (text) transcripts.push(text);
+      chunkText = result.text?.trim() || "";
+      console.log(`✅ Chunk ${chunkIndex}: ${chunkText.length} chars`);
+
+      // Save chunk transcript to DB
+      await supabase.from("meeting_transcription_chunks").upsert({
+        meeting_id: meetingId,
+        chunk_index: chunkIndex,
+        transcript_text: chunkText,
+      }, { onConflict: "meeting_id,chunk_index" });
     }
 
-    const fullTranscript = transcripts.join("\n\n");
-    console.log(`📝 Full transcript: ${fullTranscript.length} chars, ${fullTranscript.split(/\s+/).length} words`);
+    const nextChunk = chunkIndex + 1;
+
+    if (nextChunk < totalChunks) {
+      // Self-invoke for next chunk
+      console.log(`🔗 Chaining to chunk ${nextChunk}/${totalChunks}`);
+      
+      const chainResp = await fetch(`${supabaseUrl}/functions/v1/transcribe-offline-meeting`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+          apikey: serviceKey,
+        },
+        body: JSON.stringify({ meetingId, chunkIndex: nextChunk }),
+      });
+
+      // Don't await the full response body — just check status
+      if (!chainResp.ok) {
+        const errText = await chainResp.text();
+        console.error(`❌ Chain call failed: ${chainResp.status} ${errText}`);
+      } else {
+        // Consume body to avoid leak
+        await chainResp.text();
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: "processing",
+          chunk: chunkIndex,
+          totalChunks,
+          message: `Chunk ${chunkIndex} done, processing ${nextChunk} next`,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // === FINAL CHUNK — stitch everything together ===
+    console.log(`🧵 All ${totalChunks} chunks done. Stitching transcript...`);
+
+    const { data: allChunks, error: fetchErr } = await supabase
+      .from("meeting_transcription_chunks")
+      .select("chunk_index, transcript_text")
+      .eq("meeting_id", meetingId)
+      .order("chunk_index", { ascending: true });
+
+    if (fetchErr) throw new Error(`Failed to fetch chunks: ${fetchErr.message}`);
+
+    const fullTranscript = (allChunks || [])
+      .map((c: any) => c.transcript_text)
+      .filter(Boolean)
+      .join("\n\n");
+
+    const wordCount = fullTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
+    console.log(`📝 Full transcript: ${fullTranscript.length} chars, ${wordCount} words`);
 
     // Update meeting with transcript
     const { error: updateErr } = await supabase
@@ -84,7 +162,7 @@ serve(async (req) => {
       .update({
         whisper_transcript_text: fullTranscript,
         primary_transcript_source: "whisper",
-        word_count: fullTranscript.split(/\s+/).filter((w: string) => w.length > 0).length,
+        word_count: wordCount,
         notes_generation_status: "queued",
       })
       .eq("id", meetingId);
@@ -106,12 +184,16 @@ serve(async (req) => {
     const genResult = await genResp.json();
     console.log(`📋 Note generation response:`, genResult);
 
+    // Clean up transcription chunks
+    await supabase.from("meeting_transcription_chunks").delete().eq("meeting_id", meetingId);
+
     return new Response(
       JSON.stringify({
         success: true,
-        chunks: files.length,
+        status: "completed",
+        chunks: totalChunks,
         transcriptLength: fullTranscript.length,
-        wordCount: fullTranscript.split(/\s+/).filter((w: string) => w.length > 0).length,
+        wordCount,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
