@@ -162,7 +162,18 @@ serve(async (req) => {
       );
     }
 
+    console.log("generate-meeting-notes received:", { format, length, meetingTitle, transcriptLength: transcript?.length });
+
     const systemPrompt = buildSystemPrompt(format, length);
+    console.log("System prompt length tier:", length, "| prompt snippet:", systemPrompt.substring(systemPrompt.indexOf("NOTES LENGTH"), systemPrompt.indexOf("NOTES LENGTH") + 80));
+
+    const MAX_TOKENS_MAP: Record<NotesLength, number> = {
+      brief: 1024,
+      standard: 2048,
+      detailed: 4096,
+      comprehensive: 8192,
+    };
+    const maxTokens = MAX_TOKENS_MAP[length] || 2048;
 
     const userMessage = `
 Meeting title: ${meetingTitle ?? "Untitled meeting"}
