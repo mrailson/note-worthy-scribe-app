@@ -146,6 +146,7 @@ serve(async (req) => {
 
   try {
     const body: RequestBody = await req.json();
+    console.log('EDGE FUNCTION RECEIVED:', JSON.stringify(body));
     const {
       transcript,
       format = "standard",
@@ -162,10 +163,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("generate-meeting-notes received:", { format, length, meetingTitle, transcriptLength: transcript?.length });
-
     const systemPrompt = buildSystemPrompt(format, length);
-    console.log("System prompt length tier:", length, "| prompt snippet:", systemPrompt.substring(systemPrompt.indexOf("NOTES LENGTH"), systemPrompt.indexOf("NOTES LENGTH") + 80));
 
     const MAX_TOKENS_MAP: Record<NotesLength, number> = {
       brief: 1024,
@@ -174,6 +172,15 @@ serve(async (req) => {
       comprehensive: 8192,
     };
     const maxTokens = MAX_TOKENS_MAP[length] || 2048;
+    console.log('EDGE FUNCTION CONFIG:', JSON.stringify({
+      format,
+      length,
+      max_tokens: maxTokens,
+      lengthPrompt: LENGTH_PROMPTS[length],
+      promptPreview: systemPrompt.substring(systemPrompt.indexOf('NOTES LENGTH'), systemPrompt.indexOf('GENERAL RULES')).trim(),
+      meetingTitle,
+      transcriptLength: transcript?.length,
+    }));
 
     const userMessage = `
 Meeting title: ${meetingTitle ?? "Untitled meeting"}

@@ -253,6 +253,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   
   // Track when a local edit is in progress to prevent auto-sync from overwriting
   const isLocalEditInProgressRef = useRef(false);
+  const skipNextActionItemsAutoSyncRef = useRef(false);
   
   // Text selection hook for inline find/replace (Notes tab only)
   const { selection: notesSelection, clearSelection: clearNotesSelection } = useTextSelection(notesContentRef, { maxWords: 3 });
@@ -298,10 +299,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         length: newLength,
         meetingTitle: meeting.title,
       };
-      console.log("generateNotesWithLength payload:", { format: payload.format, length: payload.length, meetingTitle: payload.meetingTitle, transcriptChars: payload.transcript.length });
+      console.log('NOTEWELL PAYLOAD:', {
+        transcript: transcriptToUse,
+        format: payload.format,
+        length: newLength,
+        notesLengthState: notesLength,
+      });
       const updated = await generateNotesWithLength(payload);
       if (updated?.notes) {
-        setNotesContent(updated.notes);
+        skipNextActionItemsAutoSyncRef.current = true;
+        setNotesContent(sanitiseMeetingNotes(updated.notes));
         toast.success(`Notes regenerated (${newLength})`);
         // Auto-trigger DOCX download for comprehensive/full tier
         if (updated.generateDocx) {
@@ -1165,6 +1172,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   // Auto-sync action items to notes if action items exist but notes don't have an ACTION ITEMS section
   useEffect(() => {
     if (!isOpen || !meeting?.id || isLoadingNotes) return;
+
+    if (skipNextActionItemsAutoSyncRef.current) {
+      console.log('[SafeMode] Skipping one auto-sync pass after length regeneration');
+      skipNextActionItemsAutoSyncRef.current = false;
+      return;
+    }
     
     // Skip if a local edit is in progress to prevent overwriting user changes
     if (isLocalEditInProgressRef.current) {
@@ -1174,7 +1187,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     // Check if notes already have an action items section
     const hasActionItemsSection = notesContent && 
-      /##?\s*action\s+items?/i.test(notesContent);
+      /##?\s*(action\s+items?|agreed\s+actions?)/i.test(notesContent);
     
     if (hasActionItemsSection) return; // Already has action items, no need to sync
     
@@ -3682,6 +3695,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
                       {/* Main Content - Plain or Editable Sections */}
                       <div ref={notesContentRef} className="relative">
+                        <div
+                          style={{
+                            background: 'hsl(28 100% 50%)',
+                            color: 'hsl(0 0% 100%)',
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                          }}
+                        >
+                          DEBUG: length = {notesLength}
+                        </div>
                         {/* Loading overlay when regenerating by length */}
                         {isRegeneratingLength && (
                           <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center rounded-b-lg z-10">
