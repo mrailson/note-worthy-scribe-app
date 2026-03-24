@@ -105,6 +105,8 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
+import { NotesLengthSelector, type NotesLength } from "@/components/SafeModal/NotesLengthSelector";
+import { generateNotesWithLength } from "@/lib/notesGenerator";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
 
 import { Separator } from "@/components/ui/separator";
