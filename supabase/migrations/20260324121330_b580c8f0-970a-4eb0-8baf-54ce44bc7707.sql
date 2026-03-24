@@ -1,0 +1,8 @@
+INSERT INTO public.audio_chunks (meeting_id, chunk_number, start_time, end_time, audio_blob_path, chunk_duration_ms, file_size, processing_status) VALUES
+('ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea', 0, '2026-03-24T10:15:00+00:00', '2026-03-24T10:28:00+00:00', 'ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea/chunk_000.webm', 780000, 5874990, 'pending'),
+('ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea', 1, '2026-03-24T10:28:00+00:00', '2026-03-24T10:41:00+00:00', 'ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea/chunk_001.webm', 780000, 5889907, 'pending'),
+('ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea', 2, '2026-03-24T10:41:00+00:00', '2026-03-24T10:54:00+00:00', 'ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea/chunk_002.webm', 780000, 5892765, 'pending'),
+('ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea', 3, '2026-03-24T10:54:00+00:00', '2026-03-24T11:07:00+00:00', 'ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea/chunk_003.webm', 780000, 5867238, 'pending'),
+('ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea', 4, '2026-03-24T11:07:00+00:00', '2026-03-24T11:20:00+00:00', 'ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea/chunk_004.webm', 780000, 5878041, 'pending'),
+('ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea', 5, '2026-03-24T11:20:00+00:00', '2026-03-24T11:33:00+00:00', 'ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea/chunk_005.webm', 780000, 5875251, 'pending'),
+('ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea', 6, '2026-03-24T11:33:00+00:00', '2026-03-24T11:46:00+00:00', 'ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea/chunk_006.webm', 120000, 823836, 'pending');
