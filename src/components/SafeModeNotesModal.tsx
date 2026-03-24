@@ -4392,9 +4392,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               toast.info(`"${find}" not found in current notes`);
             }
           }}
-          onCorrectionsChanged={() => {
-            reloadCorrections();
-          }}
+          onCorrectionsChanged={() => {}}
         />
       )}
       {/* Export Studio Modal */}

@@ -237,9 +237,15 @@ export function CorrectionManager({
   };
 
   /* ── Apply single correction ── */
-  const applyNow = (wrong: string, correct: string) => {
+  const applyNow = async (id: string, wrong: string, correct: string) => {
     if (onCorrectionApplied) {
       onCorrectionApplied(wrong, correct);
+      // Increment use_count
+      await supabase
+        .from("medical_term_corrections")
+        .update({ usage_count: corrections.find(c => c.id === id)?.usage_count ? (corrections.find(c => c.id === id)!.usage_count + 1) : 1 })
+        .eq("id", id);
+      setCorrections(prev => prev.map(c => c.id === id ? { ...c, usage_count: c.usage_count + 1 } : c));
     }
   };
 
@@ -492,7 +498,7 @@ export function CorrectionManager({
                       {/* Actions */}
                       {onCorrectionApplied && (
                         <Button
-                          onClick={() => applyNow(c.incorrect_term, c.correct_term)}
+                          onClick={() => applyNow(c.id, c.incorrect_term, c.correct_term)}
                           variant="outline"
                           size="sm"
                           className="h-7 text-xs gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
