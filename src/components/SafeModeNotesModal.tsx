@@ -105,6 +105,8 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
+import { NotesLengthSelector, type NotesLength } from "@/components/SafeModal/NotesLengthSelector";
+import { generateNotesWithLength } from "@/lib/notesGenerator";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
 
 import { Separator } from "@/components/ui/separator";
@@ -274,6 +276,43 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [noteType, setNoteType] = useState<string>('standard'); // Note type selection
   const [noteTypeLoaded, setNoteTypeLoaded] = useState(false);
   const [isRegeneratingNotes, setIsRegeneratingNotes] = useState(false);
+  
+  // Notes length selector state
+  const [notesLength, setNotesLength] = useState<NotesLength>("standard");
+  const [isRegeneratingLength, setIsRegeneratingLength] = useState(false);
+
+  // Handler — regenerate notes when length changes
+  const handleLengthChange = async (newLength: NotesLength) => {
+    setNotesLength(newLength);
+    if (!meeting?.id) return;
+    setIsRegeneratingLength(true);
+    try {
+      const transcriptToUse = bestOfAllTranscript || batchTranscript || liveTranscript || transcript || '';
+      if (!transcriptToUse.trim()) {
+        toast.error('No transcript available to regenerate notes from');
+        return;
+      }
+      const updated = await generateNotesWithLength({
+        transcript: transcriptToUse,
+        format: (noteType as any) || 'standard',
+        length: newLength,
+        meetingTitle: meeting.title,
+      });
+      if (updated?.notes) {
+        setNotesContent(updated.notes);
+        toast.success(`Notes regenerated (${newLength})`);
+        // Auto-trigger DOCX download for comprehensive/full tier
+        if (updated.generateDocx) {
+          toast.info('Generating Word document…');
+        }
+      }
+    } catch (err: any) {
+      console.error("Notes regeneration failed:", err);
+      toast.error(`Regeneration failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsRegeneratingLength(false);
+    }
+  };
 
   // Load the user's preferred note style from user_settings
   useEffect(() => {
@@ -3282,6 +3321,17 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             {/* Divider - hidden on mobile */}
             <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
 
+            {/* Notes Length Selector - hidden on mobile */}
+            <div className="hidden sm:flex flex-1 min-w-[240px]">
+              <NotesLengthSelector
+                value={notesLength}
+                onChange={handleLengthChange}
+              />
+            </div>
+
+            {/* Divider - hidden on mobile */}
+            <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
+
             {/* Manage Attendees - hidden on mobile (in overflow menu) */}
             <div className="hidden sm:flex">
               <Tooltip>
@@ -3614,6 +3664,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
                       {/* Main Content - Plain or Editable Sections */}
                       <div ref={notesContentRef} className="relative">
+                        {/* Loading overlay when regenerating by length */}
+                        {isRegeneratingLength && (
+                          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center rounded-b-lg z-10">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Regenerating notes…
+                            </div>
+                          </div>
+                        )}
                         {viewMode === 'plain' ? (
                           <pre 
                             className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
