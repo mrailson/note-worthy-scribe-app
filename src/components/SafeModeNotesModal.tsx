@@ -105,7 +105,7 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
-import { NotesLengthSelector, type NotesLength } from "@/components/SafeModal/NotesLengthSelector";
+import { NotesLengthSelector, NotesLengthDescription, type NotesLength } from "@/components/SafeModal/NotesLengthSelector";
 import { generateNotesWithLength } from "@/lib/notesGenerator";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
 
@@ -3321,12 +3321,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             {/* Divider - hidden on mobile */}
             <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
 
-            {/* Notes Length Selector - hidden on mobile */}
-            <div className="hidden sm:flex flex-1 min-w-[240px]">
+            {/* Notes Length Selector (compact: inline buttons only) - hidden on mobile */}
+            <div className="hidden sm:flex items-center">
               <NotesLengthSelector
                 value={notesLength}
                 onChange={handleLengthChange}
+                compact
               />
+              {isRegeneratingLength && (
+                <Loader2 className="h-4 w-4 animate-spin ml-2 text-primary" />
+              )}
             </div>
 
             {/* Divider - hidden on mobile */}
@@ -3420,8 +3424,17 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             </div>
           </div>
 
-          {/* Export Studio button - desktop only */}
+          {/* DOCX Export + Export Studio buttons - desktop only */}
           <div className="hidden sm:flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2.5" onClick={handleDownloadWord}>
+                  <FileDown className="h-4 w-4" />
+                  <span className="text-xs">DOCX</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Export as Word Document</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowExportStudio(true)}>
@@ -3431,6 +3444,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TooltipContent>Export Studio</TooltipContent>
             </Tooltip>
           </div>
+        </div>
+
+        {/* Notes Length description bar — second row below toolbar */}
+        <div className="hidden sm:block px-6 pb-1">
+          <NotesLengthDescription value={notesLength} />
         </div>
 
         {/* Audio Studio Panel (shown when toggled) */}
