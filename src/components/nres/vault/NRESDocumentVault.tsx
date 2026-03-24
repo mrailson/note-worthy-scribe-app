@@ -8,6 +8,7 @@ import { VaultContentView, ClipboardState, VaultViewMode } from './VaultContentV
 import { VaultBreadcrumbs } from './VaultBreadcrumbs';
 import { VaultPermissionManager } from './VaultPermissionManager';
 import { VaultSettingsModal } from './VaultSettingsModal';
+import { VaultV2PreviewModal } from './VaultV2PreviewModal';
 import {
   useVaultFolders,
   useVaultFiles,
@@ -145,6 +146,7 @@ export const NRESDocumentVault = () => {
               <span>Welcome to the Document Vault <span className="font-normal text-muted-foreground">— your secure, centralised store for practice documents and files.</span></span>
             </CardTitle>
             <div className="flex items-center gap-2">
+              <VaultV2PreviewModal />
               {isAdmin && (
                 <Tooltip>
                   <TooltipTrigger asChild>
