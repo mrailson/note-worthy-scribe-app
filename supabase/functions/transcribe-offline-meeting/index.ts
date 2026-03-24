@@ -157,7 +157,7 @@ serve(async (req) => {
     // === FINAL CHUNK — stitch everything together ===
     console.log(`🧵 All ${totalChunks} chunks done. Stitching transcript...`);
 
-    const sessionId = `offline-retranscribe-${meetingId}`;
+    // sessionId already defined above
     const { data: allChunks, error: fetchErr } = await supabase
       .from("meeting_transcription_chunks")
       .select("chunk_number, transcription_text")
