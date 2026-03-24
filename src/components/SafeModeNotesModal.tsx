@@ -3718,16 +3718,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
                       {/* Main Content - Plain or Editable Sections */}
                       <div ref={notesContentRef} className="relative">
-                        <div
-                          style={{
-                            background: 'hsl(28 100% 50%)',
-                            color: 'hsl(0 0% 100%)',
-                            padding: '4px 8px',
-                            fontSize: '12px',
-                          }}
-                        >
-                          DEBUG: length = {notesLength}
-                        </div>
+
                         {/* Loading overlay when regenerating by length */}
                         {isRegeneratingLength && (
                           <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center rounded-b-lg z-10">
