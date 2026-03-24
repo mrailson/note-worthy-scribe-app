@@ -3321,6 +3321,17 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             {/* Divider - hidden on mobile */}
             <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
 
+            {/* Notes Length Selector - hidden on mobile */}
+            <div className="hidden sm:flex flex-1 min-w-[240px]">
+              <NotesLengthSelector
+                value={notesLength}
+                onChange={handleLengthChange}
+              />
+            </div>
+
+            {/* Divider - hidden on mobile */}
+            <div className="w-px h-5 bg-border mx-1.5 hidden sm:block" />
+
             {/* Manage Attendees - hidden on mobile (in overflow menu) */}
             <div className="hidden sm:flex">
               <Tooltip>
