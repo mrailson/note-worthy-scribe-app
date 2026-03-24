@@ -146,7 +146,6 @@ export const NRESDocumentVault = () => {
               <span>Welcome to the Document Vault <span className="font-normal text-muted-foreground">— your secure, centralised store for practice documents and files.</span></span>
             </CardTitle>
             <div className="flex items-center gap-2">
-              <VaultV2PreviewModal />
               {isAdmin && (
                 <Tooltip>
                   <TooltipTrigger asChild>
