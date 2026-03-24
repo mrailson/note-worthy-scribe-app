@@ -8,6 +8,7 @@ import { VaultContentView, ClipboardState, VaultViewMode } from './VaultContentV
 import { VaultBreadcrumbs } from './VaultBreadcrumbs';
 import { VaultPermissionManager } from './VaultPermissionManager';
 import { VaultSettingsModal } from './VaultSettingsModal';
+import { VaultV2PreviewModal } from './VaultV2PreviewModal';
 import {
   useVaultFolders,
   useVaultFiles,
