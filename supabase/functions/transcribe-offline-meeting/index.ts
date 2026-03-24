@@ -204,7 +204,7 @@ serve(async (req) => {
     console.log(`📋 Note generation response:`, genResult);
 
     // Clean up transcription chunks
-    await supabase.from("meeting_transcription_chunks").delete().eq("meeting_id", meetingId);
+    await supabase.from("meeting_transcription_chunks").delete().eq("meeting_id", meetingId).eq("session_id", sessionId);
 
     return new Response(
       JSON.stringify({
