@@ -2050,7 +2050,8 @@ export default function NoteWellRecorder() {
               <RecordingItem key={r.id} rec={r}
                 onDelete={deleteRecording} onSync={syncRecording}
                 onPlay={playRecording} isPlaying={playingId===r.id}
-                onRetranscribe={retranscribeRecording} isRetranscribing={!!retranscribingIds[r.id]} />
+                onRetranscribe={retranscribeRecording} isRetranscribing={!!retranscribingIds[r.id]}
+                onEmailAudio={emailAudioRecording} isEmailing={!!emailingIds[r.id]} />
             ))}
 
             {/* My Meetings card */}
