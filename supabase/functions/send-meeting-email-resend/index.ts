@@ -25,6 +25,11 @@ interface MeetingEmailRequest {
     filename: string;
     type: string;
   };
+  extra_attachments?: Array<{
+    content: string;
+    filename: string;
+    type: string;
+  }>;
 }
 
 const handler = async (req: Request): Promise<Response> => {
