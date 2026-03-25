@@ -210,7 +210,7 @@ function preprocessTextForTTS(text: string): string {
 // Voice preset mappings for Skills Practice scenarios
 const VOICE_PRESETS: Record<string, string> = {
   elderly_female: "XrExE9yKIg1WjnnlVkGX",   // Matilda — warm British female
-  elderly_male:   "N2lVS1w4EtoT3dr4eOWO",    // Callum — warm British male
+  elderly_male:   "75KCCPsTNnzAz3BgOzyC",    // Custom elderly British male
   clinician:      "JBFqnCBsd6RMkjVDRZzb",    // George — professional British male
 };
 
