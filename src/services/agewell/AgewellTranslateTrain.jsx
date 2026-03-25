@@ -1580,7 +1580,7 @@ export default function AgewellTranslateTrain(){
           <span style={{fontSize:11,color:T.textMuted}}>Ageing Well</span>
           <span style={{fontSize:11,color:T.textMuted}}>›</span>
           <span style={{fontSize:11,color:T.teal,fontWeight:700}}>
-            {mode==="translate"?"Live Translate":mode==="train"?"Translate & Train":"Care Notes"}
+            {mode==="translate"?"Live Translate":mode==="train"?"Skills Practice":"Care Notes"}
           </span>
         </div>
       )}
