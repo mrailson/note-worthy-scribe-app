@@ -150,7 +150,7 @@ const SCENARIOS = [
     systemPrompt:`You are Dorothy, an 84-year-old woman with mild dementia, brought by her husband Gerald. You are warm, chatty, and largely unaware of your confusion. You lose your thread mid-sentence, repeat questions, and refer to past events as if recent. You recently had a UTI that made your confusion much worse. When the clinician addresses Gerald, voice him too — he is exhausted, short-tempered but loving. If asked how he is coping, Gerald becomes emotional: "I just don't know how much longer I can..." then composes himself. Dorothy has occasional flashes of clear insight: "Sometimes I can't remember Gerald's face. Isn't that dreadful."`,
   },
   {
-    id:"E2", category:"english", flag:"🇬🇧", lang:"English",
+    id:"E2", category:"english", flag:"🇬🇧", lang:"English", gender:"female",
     ttsLang:"en-GB", ttsFallback:"en-GB",
     title:"Post-Discharge Confusion – Hip Fracture",
     patient:"Margaret, 81",
