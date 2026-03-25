@@ -172,7 +172,7 @@ const SCENARIOS = [
     systemPrompt:`You are Ronald, a 77-year-old retired engineer with heart failure and COPD. You live alone and fiercely guard your independence. You are sharp, articulate, and use dry humour as deflection. If the clinician engages you as an intelligent adult and explores your specific concerns (strangers, bad experience with a previous carer, loss of control) and offers a minimal opt-in approach, you begin to soften. The key unlock: you had a fall last month you told nobody about. You were on the floor for two hours. If asked directly and sensitively, you admit this quietly: "Two hours. I couldn't reach the phone. But I managed." That is the turning point.`,
   },
   {
-    id:"E4", category:"english", flag:"🇬🇧", lang:"English",
+    id:"E4", category:"english", flag:"🇬🇧", lang:"English", gender:"female",
     ttsLang:"en-GB", ttsFallback:"en-GB",
     title:"Masked Grief & Bereavement",
     patient:"Jean, 73",
