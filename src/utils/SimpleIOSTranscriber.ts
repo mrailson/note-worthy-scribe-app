@@ -20,6 +20,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { isLikelyHallucination } from './whisperHallucinationPatterns';
+import { cleanWhisperResponse } from './whisper-chunk-cleaner';
 
 export interface IOSTranscriberCallbacks {
   onTranscription: (text: string, isFinal: boolean, confidence: number) => void;
