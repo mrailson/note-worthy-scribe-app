@@ -685,7 +685,7 @@ function TrainingMode({ onBack }) {
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,flexWrap:"wrap"}}>
           <button onClick={onBack} style={btnStyle("outline")}>← Back</button>
           <div style={{flex:1}}>
-            <div style={{fontWeight:700,color:T.tealDark,fontSize:15}}>🎭 Translate & Train</div>
+            <div style={{fontWeight:700,color:T.tealDark,fontSize:15}}>🎭 Skills Practice</div>
             <div style={{fontSize:12,color:T.textSecondary}}>AI plays the patient · You are the clinician or care worker</div>
           </div>
           <div style={{display:"flex",gap:8}}>
