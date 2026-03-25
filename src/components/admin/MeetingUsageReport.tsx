@@ -517,7 +517,7 @@ export const MeetingUsageReport = () => {
                                         <span>End: {formatTime(meeting.end_time)}</span>
                                       </div>
                                       <div className="flex justify-between text-muted-foreground">
-                                        <span>Duration: {formatDuration(meeting.duration_minutes || 0)}</span>
+                                        <span>Duration: {formatDuration(meeting.duration_minutes || (meeting.start_time && meeting.end_time ? Math.round((new Date(meeting.end_time).getTime() - new Date(meeting.start_time).getTime()) / 60000) : 0))}</span>
                                         <span>Words: {formatNumber(meeting.word_count || 0)}</span>
                                       </div>
                                     </div>
