@@ -1561,17 +1561,20 @@ export default function NoteWellRecorder() {
     if (!rec.meetingId) return;
     try {
       setRetranscribingIds(prev => ({ ...prev, [rec.id]: true }));
-      showToast("Re-transcription started…", "info");
+      showToast("Re-processing started…", "info");
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { showToast("Please sign in first", "error"); return; }
-      const { error } = await supabase.functions.invoke("transcribe-offline-meeting", {
-        body: { meetingId: rec.meetingId, chunkIndex: 0 },
+
+      // Mobile recordings store audio under a random sessionId, not the meetingId.
+      // So we call auto-generate-meeting-notes to regenerate notes from the existing transcript.
+      const { error } = await supabase.functions.invoke("auto-generate-meeting-notes", {
+        body: { meetingId: rec.meetingId, forceRegenerate: true },
       });
       if (error) throw error;
-      showToast("Re-transcription queued — check meeting notes shortly", "success");
+      showToast("Notes regeneration queued — check meeting notes shortly", "success");
     } catch (err) {
-      console.error("Re-transcribe failed:", err);
-      showToast("Re-transcription failed: " + (err.message || "Unknown error"), "error");
+      console.error("Re-process failed:", err);
+      showToast("Re-processing failed: " + (err.message || "Unknown error"), "error");
     } finally {
       setRetranscribingIds(prev => { const n = { ...prev }; delete n[rec.id]; return n; });
     }
