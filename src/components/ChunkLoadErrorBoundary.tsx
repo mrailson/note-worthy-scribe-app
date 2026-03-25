@@ -21,19 +21,11 @@ class ChunkLoadErrorBoundary extends Component<Props, State> {
     isRetrying: false,
   };
 
-  public static getDerivedStateFromError(error: Error): Partial<State> {
-    // Check if this is a chunk loading error
-    const isChunkError = 
-      error.message.includes('Failed to fetch dynamically imported module') ||
-      error.message.includes('Loading chunk') ||
-      error.message.includes('ChunkLoadError');
-    
-    if (isChunkError) {
-      return { hasError: true };
-    }
-    
-    // Re-throw non-chunk errors
-    throw error;
+  public static getDerivedStateFromError(_error: Error): Partial<State> {
+    // Catch ALL errors to prevent a blank white screen.
+    // Previously, non-chunk errors were re-thrown, killing the entire React tree
+    // with no fallback UI — especially problematic on iOS Safari.
+    return { hasError: true };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
