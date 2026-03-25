@@ -1361,9 +1361,12 @@ function HomeScreen({onSelect}){
       {/* Mode cards */}
       <div style={{display:"flex",gap:18,flexWrap:"wrap",justifyContent:"center",width:"100%",maxWidth:960}}>
         {[
-          {key:"translate",title:"Live Translate",desc:"Real-time bilingual support for consultations. Clinician and patient speak — instant translation both ways.",features:["15 languages","Real-time STT","TTS playback","Full transcript"],color:T.teal,light:T.tealLight,border:T.tealBorder},
-          {key:"train",title:"Translate & Train",desc:"AI role-play training with frail elderly patients. 5 language scenarios, 5 English care scenarios.",features:["10 scenarios","Voice interaction","Live transcription","Safeguarding incl."],color:T.green,light:T.greenLight,border:T.greenBorder},
-          {key:"notes",title:"Care Notes",desc:"Live transcription that auto-populates the Ageing Well Patient Support Plan — ready for the clinical system.",features:["8 Ageing Well templates","Multi-speaker STT","Patient Support Plan","Export to record"],color:T.amber,light:T.amberLight,border:T.amberBorder},
+          {key:"translate",title:"Live Translate",desc:"Real-time bilingual support for consultations. Clinician and patient speak — instant translation both ways.",features:["15 languages","Real-time STT","TTS playback","Full transcript"],color:T.teal,light:T.tealLight,border:T.tealBorder,
+            icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>},
+          {key:"train",title:"Translate & Train",desc:"AI role-play training with frail elderly patients. 5 language scenarios, 5 English care scenarios.",features:["10 scenarios","Voice interaction","Live transcription","Safeguarding incl."],color:T.green,light:T.greenLight,border:T.greenBorder,
+            icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#378ADD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>},
+          {key:"notes",title:"Care Notes",desc:"Live transcription that auto-populates the Ageing Well Patient Support Plan — ready for the clinical system.",features:["8 Ageing Well templates","Multi-speaker STT","Patient Support Plan","Export to record"],color:T.amber,light:T.amberLight,border:T.amberBorder,
+            icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4a017" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>},
         ].map(m=>(
           <div key={m.key} onClick={()=>onSelect(m.key)} style={{
             flex:"1 1 260px",maxWidth:300,background:T.surfaceCard,border:`2px solid ${T.border}`,borderRadius:16,
@@ -1372,7 +1375,7 @@ function HomeScreen({onSelect}){
           onMouseEnter={e=>{ e.currentTarget.style.borderColor=m.color; e.currentTarget.style.boxShadow=`0 6px 24px ${m.color}22`; e.currentTarget.style.transform="translateY(-3px)"; }}
           onMouseLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,0.07)"; e.currentTarget.style.transform="translateY(0)"; }}>
             <div style={{position:"absolute",top:0,left:0,right:0,height:5,background:m.color,borderRadius:"16px 16px 0 0"}}/>
-            <div style={{marginBottom:10}}><AgewellLogoSmall/></div>
+            <div style={{marginBottom:10}}>{m.icon}</div>
             <div style={{fontWeight:800,fontSize:17,color:T.textPrimary,marginBottom:6,fontFamily:"Georgia,'Times New Roman',serif"}}>{m.title}</div>
             <p style={{fontSize:12,color:T.textSecondary,lineHeight:1.6,margin:"0 0 14px"}}>{m.desc}</p>
             <div style={{display:"flex",flexDirection:"column",gap:4}}>
