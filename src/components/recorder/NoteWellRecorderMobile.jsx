@@ -1191,9 +1191,10 @@ export default function NoteWellRecorder() {
             showToast("Meeting notes generated ✨", "success");
             triggerPostNoteActions(meetingId);
           })
-          .catch((err) => {
-            console.error("[Sync] Note generation failed:", err);
-            showToast("Meeting saved — note generation failed", "error");
+          .catch(async (err) => {
+            console.error("[Sync] Note generation client error (may be timeout):", err);
+            // The edge function may have succeeded despite client timeout — poll for notes
+            await pollAndEmailIfReady(meetingId, "Meeting saved — checking for notes…");
           })
           .finally(() => { setSyncProgress(null); refresh(); });
         return;
