@@ -27,6 +27,7 @@ class ChunkLoadErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    this.setState({ errorMessage: `${error?.message || 'Unknown error'}\n\n${errorInfo?.componentStack || ''}` });
   }
 
   private handleRetry = () => {
