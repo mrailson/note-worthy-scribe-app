@@ -18,6 +18,7 @@ interface State {
 class ChunkLoadErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
+    errorMessage: '',
   };
 
   public static getDerivedStateFromError(_error: Error): Partial<State> {
