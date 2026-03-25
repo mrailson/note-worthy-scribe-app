@@ -387,6 +387,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             BP Average Service
                           </DropdownMenuItem>
                         )}
+                        {hasServiceAccess('agewell') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/agewell')}
+                            className="cursor-pointer py-3"
+                          >
+                            <span className="h-4 w-4 mr-2 flex items-center justify-center text-sm">🌿</span>
+                            AgeWell
+                          </DropdownMenuItem>
+                        )}
                         {hasMockInspectionAccess && isServiceVisible('mock_cqc_inspection') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/mock-cqc-inspection')}
@@ -638,6 +647,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   BP Average
                                 </Button>
                               </DrawerClose>
+                              {hasServiceAccess('agewell') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/agewell')}>
+                                    <span className="h-4 w-4 mr-2 flex items-center justify-center text-sm">🌿</span>
+                                    AgeWell
+                                  </Button>
+                                </DrawerClose>
+                              )}
                               {hasServiceAccess('nres') && (
                                 <DrawerClose asChild>
                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/NRESDashboard')}>
