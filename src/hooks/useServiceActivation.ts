@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export type ServiceType = 'ai4pm' | 'ai4gp' | 'nres' | 'meeting_recorder' | 'complaints' | 'cqc' | 'lg_capture' | 'bp_service' | 'policy_service';
+export type ServiceType = 'ai4pm' | 'ai4gp' | 'nres' | 'meeting_recorder' | 'complaints' | 'cqc' | 'lg_capture' | 'bp_service' | 'policy_service' | 'agewell';
 
 // Map service types to user_roles column names
 const serviceToRoleColumn: Record<string, string> = {
   'lg_capture': 'lg_capture_access',
   'bp_service': 'bp_service_access',
+  'agewell': 'agewell_access',
 };
 
 export const useServiceActivation = () => {
@@ -44,9 +45,9 @@ export const useServiceActivation = () => {
     queryFn: async () => {
       if (!user?.id) return null;
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('user_roles')
-        .select('lg_capture_access, bp_service_access')
+        .select('lg_capture_access, bp_service_access, agewell_access') as any)
         .eq('user_id', user.id);
 
       if (error) {
@@ -58,8 +59,9 @@ export const useServiceActivation = () => {
       if (!data || data.length === 0) return null;
       
       return {
-        lg_capture_access: data.some(r => r.lg_capture_access === true),
-        bp_service_access: data.some(r => r.bp_service_access === true),
+        lg_capture_access: data.some((r: any) => r.lg_capture_access === true),
+        bp_service_access: data.some((r: any) => r.bp_service_access === true),
+        agewell_access: data.some((r: any) => r.agewell_access === true),
       };
     },
     enabled: !!user?.id,
