@@ -927,6 +927,14 @@ export default function NoteWellRecorder() {
       await recorder.start();
       setActiveStream(recorder.mediaStream);
       startLiveTranscription(recorder.mediaStream);
+      // Re-acquire protections
+      if (wakeLockSupported) {
+        const locked = await requestLock();
+        setWakeLockStatus(locked ? "active" : "inactive");
+      }
+      const keepAlive = isIOSDevice ? iOSAudioKeepAlive : androidAudioKeepAlive;
+      await keepAlive.start();
+      startHealthMonitor(recorder);
       const resumeFrom = Date.now() - prevElapsed;
       timerRef.current = setInterval(() => setElapsed(Date.now() - resumeFrom), 500);
       setRecState("recording");
