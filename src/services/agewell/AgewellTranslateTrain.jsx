@@ -1371,7 +1371,7 @@ function HomeScreen({onSelect}){
         ].map(m=>(
           <div key={m.key} onClick={()=>onSelect(m.key)} style={{
             flex:"1 1 260px",maxWidth:300,background:T.surfaceCard,border:`2px solid ${T.border}`,borderRadius:16,
-            padding:"24px",cursor:"pointer",boxShadow:"0 2px 12px rgba(0,0,0,0.07)",transition:"all 0.2s",position:"relative",overflow:"hidden",
+            padding:"24px",cursor:"pointer",boxShadow:"0 2px 12px rgba(0,0,0,0.07)",transition:"all 0.2s",position:"relative",overflow:"hidden",display:"flex",flexDirection:"column",
           }}
           onMouseEnter={e=>{ e.currentTarget.style.borderColor=m.color; e.currentTarget.style.boxShadow=`0 6px 24px ${m.color}22`; e.currentTarget.style.transform="translateY(-3px)"; }}
           onMouseLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,0.07)"; e.currentTarget.style.transform="translateY(0)"; }}>
@@ -1387,7 +1387,7 @@ function HomeScreen({onSelect}){
                 </div>
               ))}
             </div>
-            <div style={{marginTop:18,display:"flex",justifyContent:"flex-end"}}>
+            <div style={{marginTop:"auto",paddingTop:18,display:"flex",justifyContent:"flex-end"}}>
               <div style={{background:m.color,color:"white",borderRadius:8,padding:"7px 16px",fontSize:12,fontWeight:700}}>Open →</div>
             </div>
           </div>
