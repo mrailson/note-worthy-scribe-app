@@ -608,11 +608,17 @@ function TrainingMode({ onBack }) {
             <div style={{fontSize:11,color:T.textSecondary,marginTop:1}}>{selected.patient} · {selected.context}</div>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            {speaking&&(
+            {ttsActive&&(
               <div style={{display:"flex",alignItems:"center",gap:6,background:T.greenLight,border:`1px solid ${T.greenBorder}`,borderRadius:7,padding:"4px 10px"}}>
-                <Waveform active color={T.green} size={4}/>
-                <span style={{fontSize:10,color:T.green,fontWeight:700}}>SPEAKING</span>
-                <button onClick={stopTTS} style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:T.textMuted,padding:0}}>■</button>
+                {elevenTTS.isLoading?(
+                  <span style={{fontSize:10,color:T.green,fontWeight:700}}>⏳ LOADING</span>
+                ):(
+                  <>
+                    <Waveform active color={T.green} size={4}/>
+                    <span style={{fontSize:10,color:T.green,fontWeight:700}}>SPEAKING</span>
+                  </>
+                )}
+                <button onClick={stopAllTTS} style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:T.textMuted,padding:0}}>■</button>
               </div>
             )}
             {listening&&(
