@@ -941,17 +941,10 @@ NEXT MEETING / REVIEW DATE:
 Keep language professional, concise, and appropriate for an NHS neighbourhood care record.`;
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:2000,
-          messages:[{role:"user",content:prompt}],
-        }),
-      });
-      const data = await res.json();
-      const text = data.content?.find(b=>b.type==="text")?.text || "Error generating notes.";
+      const text = await callAgewellAI({
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 2000,
+      }) || "Error generating notes.";
       setNotes(text);
       setEditedNotes(text);
       setPhase("notes");
