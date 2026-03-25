@@ -1537,7 +1537,7 @@ export default function AgewellTranslateTrain(){
           <button onClick={()=>setMode("home")} style={pillStyle}>⌂ Home</button>
         )}
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          {mode==="home"&&[["translate","Translate"],["train","Train"],["notes","Notes"]].map(([k,l])=>(
+          {mode==="home"&&[["translate","Translate"],["train","Practice"],["notes","Notes"]].map(([k,l])=>(
             <button key={k} onClick={()=>setMode(k)} style={pillStyle}>{l}</button>
           ))}
         </div>
