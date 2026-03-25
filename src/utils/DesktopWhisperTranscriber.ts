@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
 import { isLikelyHallucination, isLaughterNoise } from './whisperHallucinationPatterns';
+import { cleanWhisperResponse } from './whisper-chunk-cleaner';
 
 export interface TranscriptData {
   text: string;
@@ -935,6 +936,14 @@ export class DesktopWhisperTranscriber {
       }
 
       if (data.text && data.text.trim()) {
+        // ── Whisper Chunk Cleaner: strip repetition loops before any merge ──
+        const cleanedResponse = cleanWhisperResponse(data);
+        if (cleanedResponse.cleaningSummary?.totalWordsRemoved > 0) {
+          console.log(`🧹 Desktop chunk ${currentChunkNumber}: cleaner removed ${cleanedResponse.cleaningSummary.totalWordsRemoved} words`);
+        }
+        // Use cleaned text for all downstream processing
+        data.text = cleanedResponse.text;
+
         // ChatGPT recommended guardrails: check quality metrics
         const avgLogprob = data.avg_logprob ?? -0.3;
         const noSpeechProb = data.no_speech_prob ?? 0.0;

@@ -20,6 +20,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { isLikelyHallucination } from './whisperHallucinationPatterns';
+import { cleanWhisperResponse } from './whisper-chunk-cleaner';
 
 export interface IOSTranscriberCallbacks {
   onTranscription: (text: string, isFinal: boolean, confidence: number) => void;
@@ -560,12 +561,23 @@ export class SimpleIOSTranscriber {
       throw error;
     }
 
-    return {
+    const rawResult = {
       text: data?.data?.text || '',
       confidence: data?.confidence,
       noSpeechProb: data?.no_speech_prob,
       avgLogprob: data?.avg_logprob
     };
+
+    // ── Whisper Chunk Cleaner: strip repetition loops ──
+    if (rawResult.text) {
+      const cleaned = cleanWhisperResponse({ text: rawResult.text, confidence: rawResult.confidence });
+      if (cleaned.cleaningSummary?.totalWordsRemoved > 0) {
+        console.log(`🧹 iOS chunk #${item.index}: cleaner removed ${cleaned.cleaningSummary.totalWordsRemoved} words`);
+      }
+      rawResult.text = cleaned.text;
+    }
+
+    return rawResult;
   }
 
   // ========== SMART MERGE DE-DUPLICATION ==========

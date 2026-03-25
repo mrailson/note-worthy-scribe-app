@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { cleanWhisperResponse } from './whisper-chunk-cleaner';
 
 export interface TranscriptData {
   text: string;
@@ -121,11 +122,18 @@ export class WhisperBatchTranscriber {
       if (error) throw error;
       
       if (data?.text) {
-        console.log('✅ Whisper transcription received:', data.text.substring(0, 100));
-        this.fullTranscript = data.text;
+        // ── Whisper Chunk Cleaner: strip repetition loops ──
+        const cleaned = cleanWhisperResponse(data);
+        if (cleaned.cleaningSummary?.totalWordsRemoved > 0) {
+          console.log(`🧹 Batch Whisper: cleaner removed ${cleaned.cleaningSummary.totalWordsRemoved} words`);
+        }
+        const cleanedText = cleaned.text || data.text;
+        
+        console.log('✅ Whisper transcription received:', cleanedText.substring(0, 100));
+        this.fullTranscript = cleanedText;
         
         this.onTranscription({
-          text: data.text,
+          text: cleanedText,
           is_final: true,
           confidence: data.confidence || 0.95
         });
