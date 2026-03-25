@@ -207,15 +207,35 @@ function preprocessTextForTTS(text: string): string {
   return processed;
 }
 
+// Voice preset mappings for Skills Practice scenarios
+const VOICE_PRESETS: Record<string, string> = {
+  elderly_female: "XrExE9yKIg1WjnnlVkGX",   // Matilda — warm British female
+  elderly_male:   "N2lVS1w4EtoT3dr4eOWO",    // Callum — warm British male
+  clinician:      "JBFqnCBsd6RMkjVDRZzb",    // George — professional British male
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { text, voiceId = '9BWtsMINqrJLrRacOk9x' } = await req.json();
+    const {
+      text,
+      voiceId,
+      voice_id,
+      voice_preset,
+      speed = 1.0,
+      stability = 0.5,
+      similarity_boost = 0.75,
+      style = 0.0,
+      raw_audio = false,
+    } = await req.json();
+
+    // Resolve voice: explicit voice_id > voice_preset > legacy voiceId > default
+    const resolvedVoiceId = voice_id || VOICE_PRESETS[voice_preset] || voiceId || '9BWtsMINqrJLrRacOk9x';
     
-    console.log('Received ElevenLabs TTS request, text length:', text?.length, 'voiceId:', voiceId);
+    console.log('Received ElevenLabs TTS request, text length:', text?.length, 'voiceId:', resolvedVoiceId, 'preset:', voice_preset);
     
     if (!text) {
       throw new Error('Text is required');
@@ -236,7 +256,7 @@ serve(async (req) => {
 
     // Call ElevenLabs TTS API
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${resolvedVoiceId}?output_format=mp3_44100_128`,
       {
         method: 'POST',
         headers: {
@@ -247,8 +267,11 @@ serve(async (req) => {
           text: processedText,
           model_id: 'eleven_multilingual_v2',
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
+            stability,
+            similarity_boost,
+            style,
+            use_speaker_boost: true,
+            speed,
           },
         }),
       }
@@ -265,8 +288,19 @@ serve(async (req) => {
     // Get audio as array buffer
     const audioBuffer = await response.arrayBuffer();
     console.log('Audio buffer size:', audioBuffer.byteLength);
+
+    // If raw_audio requested, return binary MP3 directly (for Skills Practice)
+    if (raw_audio) {
+      return new Response(audioBuffer, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'audio/mpeg',
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
+    }
     
-    // Convert to base64 (process in chunks to avoid stack overflow)
+    // Otherwise return base64 JSON (legacy behaviour for audio overview etc.)
     const uint8Array = new Uint8Array(audioBuffer);
     let binaryString = '';
     const chunkSize = 0x8000; // 32KB chunks

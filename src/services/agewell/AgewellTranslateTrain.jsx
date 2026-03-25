@@ -20,6 +20,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useElevenLabsTTS } from "@/hooks/useElevenLabsTTS";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import agewellLogo from "@/assets/agewell-logo.png";
@@ -139,7 +140,7 @@ const SCENARIOS = [
     systemPrompt:`You are Fadumo Hassan, a 71-year-old Somali woman with poorly controlled Type 2 diabetes. You are observing Ramadan and your usual medication schedule no longer fits. Ramadan is non-negotiable — you need the clinician to work around it. Mix short Somali phrases (with translations) into mostly English speech. You had a hypoglycaemic episode last week that frightened you. If the clinician shows cultural sensitivity, you become warm and collaborative. If dismissive, you close down. Ask: "Can my granddaughter learn what to do if it happens again?"`,
   },
   {
-    id:"E1", category:"english", flag:"🇬🇧", lang:"English",
+    id:"E1", category:"english", flag:"🇬🇧", lang:"English", gender:"female",
     ttsLang:"en-GB", ttsFallback:"en-GB",
     title:"Dementia & Carer Strain",
     patient:"Dorothy, 84 (husband Gerald, 81)",
@@ -150,7 +151,7 @@ const SCENARIOS = [
     systemPrompt:`You are Dorothy, an 84-year-old woman with mild dementia, brought by her husband Gerald. You are warm, chatty, and largely unaware of your confusion. You lose your thread mid-sentence, repeat questions, and refer to past events as if recent. You recently had a UTI that made your confusion much worse. When the clinician addresses Gerald, voice him too — he is exhausted, short-tempered but loving. If asked how he is coping, Gerald becomes emotional: "I just don't know how much longer I can..." then composes himself. Dorothy has occasional flashes of clear insight: "Sometimes I can't remember Gerald's face. Isn't that dreadful."`,
   },
   {
-    id:"E2", category:"english", flag:"🇬🇧", lang:"English",
+    id:"E2", category:"english", flag:"🇬🇧", lang:"English", gender:"female",
     ttsLang:"en-GB", ttsFallback:"en-GB",
     title:"Post-Discharge Confusion – Hip Fracture",
     patient:"Margaret, 81",
@@ -161,7 +162,7 @@ const SCENARIOS = [
     systemPrompt:`You are Margaret, an 81-year-old woman discharged from hospital two days ago following a hip fracture. You live alone — your daughter is in Australia. You are anxious, muddled, and in persistent pain you're unsure you can take anything for. You cannot find your discharge paperwork. You are worried about your cat who hasn't been fed properly. You ask repetitive questions. You mention in passing that a neighbour has been helping but you feel guilty asking. If the clinician is reassuring and practical, you visibly relax. You need a care plan, pain review, and community support — but won't ask for these directly.`,
   },
   {
-    id:"E3", category:"english", flag:"🇬🇧", lang:"English",
+    id:"E3", category:"english", flag:"🇬🇧", lang:"English", gender:"male",
     ttsLang:"en-GB", ttsFallback:"en-GB",
     title:"Refusing Care – Proud Elder",
     patient:"Ronald, 77",
@@ -172,7 +173,7 @@ const SCENARIOS = [
     systemPrompt:`You are Ronald, a 77-year-old retired engineer with heart failure and COPD. You live alone and fiercely guard your independence. You are sharp, articulate, and use dry humour as deflection. If the clinician engages you as an intelligent adult and explores your specific concerns (strangers, bad experience with a previous carer, loss of control) and offers a minimal opt-in approach, you begin to soften. The key unlock: you had a fall last month you told nobody about. You were on the floor for two hours. If asked directly and sensitively, you admit this quietly: "Two hours. I couldn't reach the phone. But I managed." That is the turning point.`,
   },
   {
-    id:"E4", category:"english", flag:"🇬🇧", lang:"English",
+    id:"E4", category:"english", flag:"🇬🇧", lang:"English", gender:"female",
     ttsLang:"en-GB", ttsFallback:"en-GB",
     title:"Masked Grief & Bereavement",
     patient:"Jean, 73",
@@ -183,7 +184,7 @@ const SCENARIOS = [
     systemPrompt:`You are Jean, a 73-year-old woman whose husband of 48 years died 8 months ago. You present with insomnia but the underlying issue is profound grief and depression. You are self-effacing and apologetic. You have stopped cooking proper meals, rarely leave the house, and feel guilty when you enjoy yourself. You will not say 'grief' or 'depression' easily. If the clinician slows down and gently reflects back what you are saying, you gradually open up. Near the end of a well-handled consultation, you might cry quietly: "I just didn't think it would be this hard. We were together since I was nineteen." Do not give this away early.`,
   },
   {
-    id:"E5", category:"english", flag:"🇬🇧", lang:"English",
+    id:"E5", category:"english", flag:"🇬🇧", lang:"English", gender:"female",
     ttsLang:"en-GB", ttsFallback:"en-GB",
     title:"Safeguarding – Financial Abuse Indicators",
     patient:"Vera, 80",
@@ -511,8 +512,41 @@ function TrainingMode({ onBack }) {
   const [aiLoading,setAiLoading]=useState(false);
   const [autoSpeak,setAutoSpeak]=useState(true);
   const [manualText,setManualText]=useState("");
+  const [replayingIdx,setReplayingIdx]=useState(-1);
+  const [voicePreset,setVoicePreset]=useState(()=>localStorage.getItem("aw_voice_preset")||"elderly_female");
   const bottomRef=useRef(null);
-  const {speaking,speak,stop:stopTTS}=useTTS();
+  const {speaking,speak:browserSpeak,stop:stopBrowserTTS}=useTTS();
+  const elevenTTS=useElevenLabsTTS();
+
+  // Persist voice preference
+  useEffect(()=>{ localStorage.setItem("aw_voice_preset",voicePreset); },[voicePreset]);
+
+  const isEnglish=selected?.category==="english";
+  const ttsActive=speaking||elevenTTS.isPlaying||elevenTTS.isLoading;
+
+  const speakLine=useCallback(async(text,scenario)=>{
+    const s=scenario||selected;
+    if(!s) return;
+    const clean=text.replace(/\(.*?\)/g,"").replace(/\*+/g,"").replace(/\n+/g,". ").trim();
+    if(s.category==="english"){
+      const preset=s.gender==="male"?"elderly_male":voicePreset;
+      await elevenTTS.speak(clean,{voicePreset:preset});
+    } else {
+      await browserSpeak(clean,s.ttsLang,s.ttsFallback);
+    }
+  },[selected,voicePreset,elevenTTS,browserSpeak]);
+
+  const stopAllTTS=useCallback(()=>{
+    stopBrowserTTS();
+    elevenTTS.stop();
+  },[stopBrowserTTS,elevenTTS]);
+
+  const replayMessage=useCallback(async(text,idx)=>{
+    stopAllTTS();
+    setReplayingIdx(idx);
+    await speakLine(text);
+    setReplayingIdx(-1);
+  },[speakLine,stopAllTTS]);
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages,interim,aiLoading]);
 
@@ -529,7 +563,7 @@ function TrainingMode({ onBack }) {
     const um={role:"user",content:text.trim()};
     const hist=[...messages,um];
     setMessages(hist); setManualText("");
-    setAiLoading(true); stopTTS();
+    setAiLoading(true); stopAllTTS();
     try{
       const reply = await callAgewellAI({
         messages: hist.map(m=>({role:m.role,content:m.content})),
@@ -537,22 +571,22 @@ function TrainingMode({ onBack }) {
         max_tokens: 1000,
       }) || "...";
       setMessages(p=>[...p,{role:"assistant",content:reply}]);
-      if(autoSpeak) await speak(reply,selected.ttsLang,selected.ttsFallback);
+      if(autoSpeak) await speakLine(reply);
     } catch {
       setMessages(p=>[...p,{role:"assistant",content:"⚠️ Connection error. Please try again."}]);
     }
     setAiLoading(false);
-  },[messages,selected,autoSpeak,speak,stopTTS]);
+  },[messages,selected,autoSpeak,speakLine,stopAllTTS]);
 
   const startScenario=(s)=>{
-    stopSTT(); stopTTS();
+    stopSTT(); stopAllTTS();
     setSelected(s);
     setMessages([{role:"assistant",content:s.opening}]);
     setInterim(""); setManualText("");
-    if(autoSpeak) setTimeout(()=>speak(s.opening,s.ttsLang,s.ttsFallback),300);
+    if(autoSpeak) setTimeout(()=>speakLine(s.opening,s),300);
   };
 
-  const endSession=()=>{ stopSTT(); stopTTS(); setSelected(null); setMessages([]); setInterim(""); };
+  const endSession=()=>{ stopSTT(); stopAllTTS(); setSelected(null); setMessages([]); setInterim(""); };
 
   const filtered=tab==="all"?SCENARIOS:SCENARIOS.filter(s=>s.category===tab);
 
@@ -574,11 +608,17 @@ function TrainingMode({ onBack }) {
             <div style={{fontSize:11,color:T.textSecondary,marginTop:1}}>{selected.patient} · {selected.context}</div>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            {speaking&&(
+            {ttsActive&&(
               <div style={{display:"flex",alignItems:"center",gap:6,background:T.greenLight,border:`1px solid ${T.greenBorder}`,borderRadius:7,padding:"4px 10px"}}>
-                <Waveform active color={T.green} size={4}/>
-                <span style={{fontSize:10,color:T.green,fontWeight:700}}>SPEAKING</span>
-                <button onClick={stopTTS} style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:T.textMuted,padding:0}}>■</button>
+                {elevenTTS.isLoading?(
+                  <span style={{fontSize:10,color:T.green,fontWeight:700}}>⏳ LOADING</span>
+                ):(
+                  <>
+                    <Waveform active color={T.green} size={4}/>
+                    <span style={{fontSize:10,color:T.green,fontWeight:700}}>SPEAKING</span>
+                  </>
+                )}
+                <button onClick={stopAllTTS} style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:T.textMuted,padding:0}}>■</button>
               </div>
             )}
             {listening&&(
@@ -623,8 +663,26 @@ function TrainingMode({ onBack }) {
                 border:`1px solid ${m.role==="user"?"#C7D7F8":T.border}`,
                 boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
                 color:T.textPrimary,fontSize:13,lineHeight:1.65,whiteSpace:"pre-wrap",
+                position:"relative",
               }}>
                 {m.content}
+                {/* Replay button for patient messages */}
+                {m.role==="assistant"&&(
+                  <button
+                    onClick={(e)=>{ e.stopPropagation(); replayMessage(m.content,i); }}
+                    disabled={ttsActive&&replayingIdx!==i}
+                    style={{
+                      display:"inline-flex",alignItems:"center",gap:4,
+                      background:"none",border:`1px solid ${T.border}`,borderRadius:6,
+                      padding:"3px 8px",cursor:"pointer",fontSize:10,fontWeight:600,
+                      color:replayingIdx===i?T.green:T.textMuted,marginTop:6,
+                      opacity:ttsActive&&replayingIdx!==i?0.4:1,transition:"all 0.15s",
+                    }}
+                  >
+                    {replayingIdx===i&&elevenTTS.isLoading?"⏳":replayingIdx===i&&elevenTTS.isPlaying?"🔊":"🔁"}{" "}
+                    {replayingIdx===i&&elevenTTS.isLoading?"Loading…":replayingIdx===i&&elevenTTS.isPlaying?"Playing…":"Replay"}
+                  </button>
+                )}
               </div>
               {m.role==="user"&&(
                 <div style={{width:30,height:30,borderRadius:"50%",background:T.surfaceBlue,
@@ -671,7 +729,7 @@ function TrainingMode({ onBack }) {
             <button onClick={()=>sendMsg(manualText)} disabled={!manualText.trim()||aiLoading}
               style={btnStyle("primary")}>Send</button>
           </div>
-          <MicBar listening={listening} speaking={speaking} ok={ok} onToggle={toggle} onStopTTS={stopTTS}
+          <MicBar listening={listening} speaking={ttsActive} ok={ok} onToggle={toggle} onStopTTS={stopAllTTS}
             hint={ok?"Press mic · Speak your response · Auto-sends after pause":"STT unavailable — use text input above (Chrome/Edge)"}/>
         </div>
       </div>
@@ -703,6 +761,31 @@ function TrainingMode({ onBack }) {
               transition:"all 0.15s",fontFamily:"inherit",
             }}>{l}</button>
           ))}
+        </div>
+        {/* Voice selection for English scenarios */}
+        <div style={{display:"flex",alignItems:"center",gap:10,marginTop:10,flexWrap:"wrap"}}>
+          <span style={{fontSize:11,fontWeight:700,color:T.textSecondary}}>🔊 Patient Voice:</span>
+          {[
+            {key:"elderly_female",label:"Elderly Lady"},
+            {key:"elderly_male",label:"Elderly Gentleman"},
+          ].map(v=>(
+            <button key={v.key} onClick={()=>setVoicePreset(v.key)} style={{
+              background:voicePreset===v.key?T.tealLight:"white",
+              border:`1.5px solid ${voicePreset===v.key?T.teal:T.border}`,
+              color:voicePreset===v.key?T.tealDark:T.textSecondary,
+              padding:"4px 12px",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600,
+              transition:"all 0.15s",fontFamily:"inherit",
+            }}>{voicePreset===v.key?"✓ ":""}{v.label}</button>
+          ))}
+          <button onClick={()=>elevenTTS.speak("Hello dear, I've been having a bit of trouble with my legs lately.",{voicePreset})}
+            disabled={elevenTTS.isLoading||elevenTTS.isPlaying}
+            style={{
+              background:"none",border:`1px solid ${T.border}`,borderRadius:7,
+              padding:"4px 10px",cursor:"pointer",fontSize:10,fontWeight:600,
+              color:T.textMuted,fontFamily:"inherit",opacity:elevenTTS.isLoading?0.5:1,
+            }}>
+            {elevenTTS.isLoading?"⏳":"▶️"} Preview
+          </button>
         </div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"18px 20px",
