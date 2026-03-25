@@ -1,63 +1,35 @@
 
 
-# Add "Email Audio" Feature with Expandable Actions Menu
+# Fix: Protect Recording from Screen-Off / Background Suspension
 
-## Overview
-Add an "Email Audio" button to the mobile recorder that emails the recording's audio chunks as attachments, splitting across multiple emails to stay under 15MB per email. Also restructure the "Reprocess" and new "Email Audio" buttons into a collapsible/expandable actions menu for cleaner UI.
+## Problem
+The mobile recorder has **zero protection** against iOS/Android suspending the MediaRecorder when the screen locks or the app is backgrounded. It worked for 90 minutes once by luck, but failed on a 40-minute session (7 words captured). iOS behavior is inconsistent — it depends on memory pressure, battery, and other factors.
 
-## How It Works
+## Solution — Defense in Depth
 
-1. User taps the "⋯ Actions" button on a transcribed recording
-2. An expandable menu slides open showing "⟳ Reprocess" and "📧 Email Audio"
-3. "Email Audio" reads the recording's audio chunks from IndexedDB, converts each to a Blob, then batches them into groups where total size stays under 15MB
-4. Each batch is sent as a separate email via `send-meeting-email-resend` with base64-encoded audio attachments
-5. Emails are numbered (e.g., "Audio Recording — Part 1 of 3") so the user knows how many to expect
-6. Toast notifications show progress ("Sending email 2 of 3…") and final success
+Three independent safeguards, all in `src/components/recorder/NoteWellRecorderMobile.jsx`:
 
-## Changes
+### 1. Wake Lock (prevents screen from locking)
+- Request `navigator.wakeLock.request('screen')` when recording starts
+- Release on stop
+- Re-acquire on `visibilitychange` → `visible` (system releases it when tab backgrounds)
+- Use the existing `useWakeLock` hook from `src/hooks/useWakeLock.ts`
 
-### 1. Refactor `RecordingItem` — Expandable Actions Menu
-**File:** `src/components/recorder/NoteWellRecorderMobile.jsx`
+### 2. iOS/Android Audio Keep-Alive (keeps AudioContext alive if backgrounded)
+- Start `iOSAudioKeepAlive` (or `androidAudioKeepAlive` based on UA) when recording starts
+- Plays inaudible 20Hz oscillator to prevent OS from killing the audio session
+- Stop on recording end
+- These utilities already exist but are **not wired up**
 
-Replace the inline "⟳ Reprocess" button with a small "⋯" toggle button. When tapped, it expands a section below the recording info showing:
-- **⟳ Reprocess** — existing functionality (unchanged)
-- **📧 Email Audio** — new, sends audio chunks via email
+### 3. Stream Health Monitor (detect & warn if recording dies)
+- Every 3 seconds, check `mediaRecorder.state` and `stream.getTracks()[0].readyState`
+- If track becomes `ended` or recorder becomes `inactive` unexpectedly, show a red warning toast: "Recording may have been interrupted — stop and save to preserve what was captured"
+- This won't fix the problem but ensures the user knows immediately rather than discovering 40 minutes later
 
-Use a local `useState` inside `RecordingItem` to toggle the expanded state. The expanded section animates in with a simple max-height transition.
-
-### 2. Add `emailAudio` Handler
-**File:** `src/components/recorder/NoteWellRecorderMobile.jsx`
-
-New async function `emailAudioRecording(rec)`:
-- Gets user email from `supabase.auth.getSession()` → profile lookup
-- Reads `rec.chunks` (ArrayBuffer data stored in IndexedDB)
-- Converts each chunk to a base64 string
-- Batches chunks into groups where cumulative size < 15MB (using raw byte size × 1.37 for base64 overhead)
-- For each batch, calls `supabase.functions.invoke('send-meeting-email-resend', { body: { to_email, subject: "Recording: {title} — Part N of M", html_content: simple HTML body, audio_attachment: { content: base64, filename, type } } })`
-- Since the edge function only supports a single `audio_attachment`, each chunk gets its own email if needed, or we modify the approach slightly:
-  - Actually, the edge function builds an `attachments[]` array — we can extend it to accept `audio_attachments` (plural) as an array
-  - Simpler approach: send one email per chunk, batching multiple small chunks into one email by modifying the edge function to accept an `attachments` array
-
-### 3. Update Edge Function for Multiple Attachments
-**File:** `supabase/functions/send-meeting-email-resend/index.ts`
-
-Add support for a generic `extra_attachments` array field alongside the existing `word_attachment` and `audio_attachment` fields. This allows sending multiple audio files in one email:
-```
-extra_attachments?: Array<{ content: string; filename: string; type: string }>
-```
-
-### 4. Add `emailingIds` State
-Track which recordings are currently being emailed (similar to `retranscribingIds`) to show spinner state on the button.
-
-## Technical Details
-
-- **Size calculation**: Each chunk's `sizeBytes` is stored in IndexedDB. Base64 encoding adds ~37% overhead, so effective limit per email is `15MB / 1.37 ≈ 10.9MB` of raw audio per email
-- **MIME type**: Uses `rec.mimeType` (typically `audio/webm`) for the attachment type
-- **Email subject**: `"{title} — Audio Part 1 of 3"` pattern
-- **Email body**: Simple HTML: "Attached is part N of M of your recording '{title}' ({duration}). Total size: X MB across M emails."
-- **User email**: Fetched from profiles table using the authenticated user's ID
+### 4. UI: "Keep screen on" indicator
+- Small amber pill shown during recording: "🔒 Screen lock prevented" (if wake lock active) or "⚠️ Keep screen on" (if wake lock unsupported)
+- Subtle, non-intrusive
 
 ### Files to Modify
-- `src/components/recorder/NoteWellRecorderMobile.jsx` — expandable menu, email handler, state
-- `supabase/functions/send-meeting-email-resend/index.ts` — support `extra_attachments` array
+- `src/components/recorder/NoteWellRecorderMobile.jsx` — wire up wake lock, keep-alive, health monitor, UI indicator
 
