@@ -20,6 +20,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useElevenLabsTTS } from "@/hooks/useElevenLabsTTS";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import agewellLogo from "@/assets/agewell-logo.png";
