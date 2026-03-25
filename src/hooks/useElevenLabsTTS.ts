@@ -70,6 +70,7 @@ export function useElevenLabsTTS() {
           stability: options.stability ?? 0.6,
           similarity_boost: options.similarityBoost ?? 0.78,
           style: options.style ?? 0.35,
+          raw_audio: true,
         }),
       });
 
