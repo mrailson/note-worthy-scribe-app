@@ -8,6 +8,7 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  errorMessage: string;
 }
 
 /**
@@ -17,6 +18,7 @@ interface State {
 class ChunkLoadErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
+    errorMessage: '',
   };
 
   public static getDerivedStateFromError(_error: Error): Partial<State> {
@@ -25,6 +27,7 @@ class ChunkLoadErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    this.setState({ errorMessage: `${error?.message || 'Unknown error'}\n\n${errorInfo?.componentStack || ''}` });
   }
 
   private handleRetry = () => {
@@ -54,6 +57,11 @@ class ChunkLoadErrorBoundary extends Component<Props, State> {
                 Refresh Page
               </Button>
             </div>
+            {this.state.errorMessage && (
+              <p style={{ fontSize: '12px', color: '#888', marginTop: '16px', wordBreak: 'break-word', textAlign: 'left', whiteSpace: 'pre-wrap' }}>
+                {this.state.errorMessage}
+              </p>
+            )}
           </div>
         </div>
       );
