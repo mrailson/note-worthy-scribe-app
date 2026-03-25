@@ -1010,7 +1010,7 @@ Keep language professional, concise, and appropriate for an NHS neighbourhood ca
       <div style={{background:T.surfaceTeal,borderBottom:`1px solid ${T.tealBorder}`,padding:"12px 20px",display:"flex",alignItems:"center",gap:10}}>
         <button onClick={onBack} style={btnStyle("outline")}>← Back</button>
         <div style={{flex:1}}>
-          <div style={{fontWeight:700,color:T.tealDark,fontSize:15}}>📝 Meeting Notes</div>
+          <div style={{fontWeight:700,color:T.tealDark,fontSize:15}}>Care Notes</div>
           <div style={{fontSize:12,color:T.textSecondary}}>AgeWell branch · Live transcription + AI structured notes</div>
         </div>
         <div style={{fontSize:10,color:T.textMuted,fontFamily:"monospace",background:T.surfaceCard,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 8px"}}>
