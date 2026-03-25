@@ -90,7 +90,7 @@ export const SecurityWrapper = ({ children }: SecurityWrapperProps) => {
         <meta name="X-Frame-Options" content="DENY" />
         <meta name="X-XSS-Protection" content="1; mode=block" />
         <meta name="Referrer-Policy" content="strict-origin-when-cross-origin" />
-        <meta name="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()" />
+        <meta name="Permissions-Policy" content="camera=(self), microphone=(self), geolocation=(), payment=()" />
       </Helmet>
       {children}
     </>
