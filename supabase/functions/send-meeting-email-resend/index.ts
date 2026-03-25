@@ -98,6 +98,19 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("🔊 Adding Audio attachment:", emailData.audio_attachment.filename);
     }
 
+    // Add extra attachments (e.g. multiple audio chunks)
+    if (emailData.extra_attachments?.length) {
+      for (const att of emailData.extra_attachments) {
+        if (att.content) {
+          attachments.push({
+            filename: att.filename || 'attachment',
+            content: att.content,
+          });
+          console.log("📎 Adding extra attachment:", att.filename);
+        }
+      }
+    }
+
     // Send email via Resend - always use Notewell AI as sender name
     const emailResponse = await resend.emails.send({
       from: `Notewell AI <noreply@bluepcn.co.uk>`,
