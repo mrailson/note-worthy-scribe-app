@@ -24,6 +24,7 @@ export const SecurityWrapper = ({ children }: SecurityWrapperProps) => {
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      "worker-src 'self' blob:",
       "upgrade-insecure-requests"
     ].join('; ');
 
