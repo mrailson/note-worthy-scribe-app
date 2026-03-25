@@ -542,7 +542,7 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
           <span style={{fontSize:11,color:"#92400e",flex:1,lineHeight:1.4}}>
             Notes generated {ageDays} day{ageDays !== 1 ? "s" : ""} ago — delete to free up space
           </span>
-          <button onClick={()=>onDelete(rec.id)} style={{
+          <button onClick={()=>setConfirmDelete(true)} style={{
             padding:"4px 10px",borderRadius:8,border:"none",
             background:"#b45309",color:"white",fontSize:10,fontWeight:700,
             cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
