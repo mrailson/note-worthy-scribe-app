@@ -21,6 +21,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import agewellLogo from "@/assets/agewell-logo.png";
 
 const callAgewellAI = async ({ messages, system, max_tokens }) => {
   const { data, error } = await supabase.functions.invoke("agewell-ai", {
@@ -279,30 +280,13 @@ function useTTS(){
 
 // ─── SMALL COMPONENTS ────────────────────────────────────────────────────────
 
-// ─── SVG LOGOS ──────────────────────────────────────────────────────────────
+// ─── LOGO COMPONENTS ────────────────────────────────────────────────────────
 function AgewellLogoLarge(){
-  return(
-    <svg width="48" height="48" viewBox="0 0 100 100">
-      <polygon points="50,8 80,35 75,35 75,32" fill="#3a4f8a"/>
-      <polygon points="50,8 20,35 80,35" fill="#3a4f8a"/>
-      <polygon points="15,35 85,35 80,50 20,50" fill="#2a8c7a"/>
-      <rect x="18" y="50" width="64" height="12" rx="1" fill="#a8d8c0"/>
-      <rect x="20" y="64" width="26" height="16" rx="1" fill="#b094c8"/>
-      <rect x="54" y="64" width="26" height="16" rx="1" fill="#b094c8"/>
-      <rect x="36" y="82" width="12" height="14" rx="1" fill="#6b2d7b"/>
-      <rect x="52" y="82" width="12" height="14" rx="1" fill="#6b2d7b"/>
-    </svg>
-  );
+  return <img src={agewellLogo} alt="AgeWell" width={48} height={48} style={{objectFit:"contain"}}/>;
 }
 function AgewellLogoSmall(){
-  return(
-    <svg width="22" height="22" viewBox="0 0 100 100">
-      <polygon points="50,8 20,35 80,35" fill="#2a8c7a"/>
-      <rect x="18" y="35" width="64" height="10" rx="1" fill="#a8d8c0"/>
-      <rect x="20" y="47" width="26" height="12" rx="1" fill="#b094c8"/>
-      <rect x="54" y="47" width="26" height="12" rx="1" fill="#b094c8"/>
-    </svg>
-  );
+  return <img src={agewellLogo} alt="AgeWell" width={22} height={22} style={{objectFit:"contain"}}/>;
+}
 }
 
 function Waveform({active,color=T.teal,size=5}){
