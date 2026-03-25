@@ -6914,14 +6914,20 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                             
                              {/* Audio Activity Indicator - Hidden on iOS */}
                               {!isPaused && audioActivity && !isIOS && (
-                                <div className="hidden sm:flex items-center gap-1">
-                                 <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-                                 <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-                                 <div className="w-1 h-5 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
-                                 <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '450ms' }} />
-                                 <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '600ms' }} />
-                               </div>
-                             )}
+                                <div className="hidden sm:flex items-center gap-[2px] h-5">
+                                  {Array.from({ length: 16 }).map((_, i) => (
+                                    <div
+                                      key={i}
+                                      className="w-[2px] rounded-full bg-green-500"
+                                      style={{
+                                        animation: `nw-desktop-wave ${0.4 + Math.random() * 0.5}s ease-in-out infinite alternate`,
+                                        animationDelay: `${i * 0.05}s`,
+                                        opacity: 0.35 + Math.random() * 0.45,
+                                      }}
+                                    />
+                                  ))}
+                                </div>
+                              )}
                          </div>
                         <div className="flex items-center gap-2">
                           {/* Pause/Unpause Button */}
