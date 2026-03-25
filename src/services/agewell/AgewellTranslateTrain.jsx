@@ -1362,11 +1362,11 @@ Keep language professional, concise, and appropriate for an NHS neighbourhood ca
 // ─── HOME SCREEN ─────────────────────────────────────────────────────────────
 function HomeScreen({onSelect}){
   return(
-    <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-      padding:"32px 24px",background:T.pageBg,gap:24}}>
-      {/* Service title */}
+    <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
+      padding:"32px 24px",background:T.pageBg,gap:20,overflowY:"auto"}}>
+      {/* Hero: logo + title + subtitle + badge */}
       <div style={{textAlign:"center",maxWidth:500}}>
-        <div style={{fontSize:44,marginBottom:8}}>🌿</div>
+        <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}><AgewellLogoLarge/></div>
         <h1 style={{fontSize:26,fontWeight:800,color:T.tealDark,margin:"0 0 6px",letterSpacing:"-0.5px",
           fontFamily:"Georgia, 'Times New Roman', serif"}}>
           AgeWell Translate &amp; Train
@@ -1381,12 +1381,63 @@ function HomeScreen({onSelect}){
         </div>
       </div>
 
+      {/* Intro text container */}
+      <div style={{maxWidth:720,width:"100%",background:T.surfaceAlt,border:`1px solid ${T.border}`,
+        borderRadius:14,padding:"18px 24px",textAlign:"center"}}>
+        <p style={{fontSize:13,color:T.textSecondary,lineHeight:1.7,margin:"0 0 10px"}}>
+          AI-powered tools for neighbourhood care teams working with frail elderly patients.
+          Translate consultations in real time, build clinical confidence through AI role-play
+          training, and capture structured care notes — automatically formatted into the standard
+          AgeWell Patient Support Plan, ready to add to the patient record.
+        </p>
+        <p style={{fontSize:12,color:T.teal,fontStyle:"italic",margin:0,fontWeight:500,lineHeight:1.6}}>
+          Supporting multilingual care, clinical confidence, and better documentation across your neighbourhood.
+        </p>
+      </div>
+
+      {/* How it works */}
+      <div style={{maxWidth:720,width:"100%",background:T.surfaceAlt,border:`1px solid ${T.border}`,
+        borderRadius:14,padding:"16px 24px"}}>
+        <div style={{fontSize:12,fontWeight:600,color:T.textSecondary,marginBottom:12,textAlign:"center"}}>How it works</div>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:0,flexWrap:"wrap"}}>
+          {[
+            {
+              label:"Record",
+              desc:"Start a live session — consultation, MDT, home visit or care review",
+              bg:"#E1F5EE",text:"#0F6E56",
+              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F6E56" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            },
+            {
+              label:"Generate",
+              desc:"AI structures the notes into the AgeWell Patient Support Plan",
+              bg:"#E6F1FB",text:"#185FA5",
+              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+            },
+            {
+              label:"Export",
+              desc:"Download and add the completed form to the patient record",
+              bg:"#FAEEDA",text:"#854F0B",
+              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#854F0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+            },
+          ].map((step,i)=>(
+            <div key={step.label} style={{display:"flex",alignItems:"flex-start",gap:0}}>
+              <div style={{background:step.bg,borderRadius:10,padding:"12px 14px",
+                minWidth:140,maxWidth:180,textAlign:"center"}}>
+                <div style={{marginBottom:6,display:"flex",justifyContent:"center"}}>{step.icon}</div>
+                <div style={{fontSize:12,fontWeight:700,color:step.text,marginBottom:4}}>{step.label}</div>
+                <div style={{fontSize:11,color:step.text,opacity:0.85,lineHeight:1.5}}>{step.desc}</div>
+              </div>
+              {i<2&&<span style={{fontSize:18,color:T.textMuted,padding:"18px 8px 0",alignSelf:"flex-start"}}>→</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Mode cards */}
       <div style={{display:"flex",gap:18,flexWrap:"wrap",justifyContent:"center",width:"100%",maxWidth:960}}>
         {[
           {
             key:"translate",
-            icon:"🌍",
             title:"Live Translate",
             desc:"Real-time bilingual support for consultations. Clinician and patient speak — instant translation both ways.",
             features:["15 languages","Real-time STT","TTS playback","Full transcript"],
@@ -1394,7 +1445,6 @@ function HomeScreen({onSelect}){
           },
           {
             key:"train",
-            icon:"🎭",
             title:"Translate & Train",
             desc:"AI role-play training with frail elderly patients. 5 language scenarios, 5 English care scenarios.",
             features:["10 scenarios","Voice interaction","Live transcription","Safeguarding incl."],
@@ -1402,10 +1452,9 @@ function HomeScreen({onSelect}){
           },
           {
             key:"notes",
-            icon:"📝",
-            title:"Meeting Notes",
-            desc:"Live transcription with AI-generated structured notes. AgeWell MDT, care review, home visit and frailty templates.",
-            features:["8 AgeWell templates","Multi-speaker STT","AI structured notes","Copy & export"],
+            title:"Care Notes",
+            desc:"Live transcription that auto-populates the AgeWell Patient Support Plan — ready for the clinical system.",
+            features:["8 AgeWell templates","Multi-speaker STT","Patient Support Plan","Export to record"],
             color:T.amber, light:T.amberLight, border:T.amberBorder,
           },
         ].map(m=>(
@@ -1419,7 +1468,7 @@ function HomeScreen({onSelect}){
           onMouseEnter={e=>{ e.currentTarget.style.borderColor=m.color; e.currentTarget.style.boxShadow=`0 6px 24px ${m.color}22`; e.currentTarget.style.transform="translateY(-3px)"; }}
           onMouseLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,0.07)"; e.currentTarget.style.transform="translateY(0)"; }}>
             <div style={{position:"absolute",top:0,left:0,right:0,height:5,background:m.color,borderRadius:"16px 16px 0 0"}}/>
-            <div style={{fontSize:32,marginBottom:10}}>{m.icon}</div>
+            <div style={{marginBottom:10}}><AgewellLogoSmall/></div>
             <div style={{fontWeight:800,fontSize:17,color:T.textPrimary,marginBottom:6,
               fontFamily:"Georgia,'Times New Roman',serif"}}>{m.title}</div>
             <p style={{fontSize:12,color:T.textSecondary,lineHeight:1.6,margin:"0 0 14px"}}>{m.desc}</p>
@@ -1445,7 +1494,7 @@ function HomeScreen({onSelect}){
       <div style={{textAlign:"center",maxWidth:460}}>
         <p style={{fontSize:11,color:T.textMuted,lineHeight:1.7,margin:0}}>
           This service is branched from Notewell GP services to provide AgeWell neighbourhood
-          teams with translation, training, and meeting notes capabilities separate from GP practice deployments.<br/>
+          teams with translation, training, and care notes capabilities separate from GP practice deployments.<br/>
           <strong style={{color:T.textSecondary}}>MHRA Class I · DCB0129 · DTAC compliant · 3 branched services</strong>
         </p>
       </div>
