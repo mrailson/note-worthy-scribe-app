@@ -396,7 +396,7 @@ function SyncProgressBar({ progress }) {
   );
 }
 
-function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying }) {
+function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing }) {
   const colors = {
     local:       { dot:"#f59e0b", bg:"rgba(245,158,11,0.1)",  border:"rgba(245,158,11,0.25)",  label:"Saved locally — tap Sync" },
     syncing:     { dot:"#1565c0", bg:"rgba(21,101,192,0.08)", border:"rgba(21,101,192,0.2)",   label:"Uploading…" },
@@ -462,6 +462,14 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying }) {
         </div>
 
         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+          {rec.status==="transcribed" && rec.meetingId && (
+            <button onClick={()=>onRetranscribe?.(rec)} disabled={isRetranscribing} style={{
+              padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(245,158,11,0.4)",
+              background:isRetranscribing?"rgba(245,158,11,0.15)":"rgba(245,158,11,0.08)",
+              cursor:isRetranscribing?"not-allowed":"pointer",fontSize:11,color:"#b45309",fontWeight:700,fontFamily:"inherit",
+              opacity:isRetranscribing?0.7:1,transition:"all 0.2s",whiteSpace:"nowrap",
+            }}>{isRetranscribing?"⏳ Transcribing…":"⟳ Re-transcribe"}</button>
+          )}
           {(rec.status==="local"||rec.status==="error"||(rec.status==="transcribed"&&!rec.meetingId)) && (
             <button onClick={()=>onSync(rec)} style={{
               padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
@@ -535,6 +543,7 @@ export default function NoteWellRecorder() {
   const [playingId,     setPlayingId]     = useState(null);
   const [toast,         setToast]         = useState(null);
   const [storageWarning, setStorageWarning] = useState(null);
+  const [retranscribingIds, setRetranscribingIds] = useState({});
   const [chunksCompleted, setChunksCompleted] = useState(0);
   const [syncProgress,  setSyncProgress]  = useState(null);
   const [bitrate,       setBitrate]       = useState(getSavedBitrate());
@@ -1548,7 +1557,27 @@ export default function NoteWellRecorder() {
 
   const [deleteConfirm, setDeleteConfirm] = useState(null); // recording id pending delete
 
-  const deleteRecording = async (id) => {
+  const retranscribeRecording = async (rec) => {
+    if (!rec.meetingId) return;
+    try {
+      setRetranscribingIds(prev => ({ ...prev, [rec.id]: true }));
+      showToast("Re-transcription started…", "info");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { showToast("Please sign in first", "error"); return; }
+      const { error } = await supabase.functions.invoke("transcribe-offline-meeting", {
+        body: { meetingId: rec.meetingId, chunkIndex: 0 },
+      });
+      if (error) throw error;
+      showToast("Re-transcription queued — check meeting notes shortly", "success");
+    } catch (err) {
+      console.error("Re-transcribe failed:", err);
+      showToast("Re-transcription failed: " + (err.message || "Unknown error"), "error");
+    } finally {
+      setRetranscribingIds(prev => { const n = { ...prev }; delete n[rec.id]; return n; });
+    }
+  };
+
+
     // Skip confirmation for completed recordings (Meeting Created ✓)
     const rec = recordings.find(r => r.id === id);
     if (rec && rec.status === "transcribed" && rec.meetingId) {
@@ -1894,7 +1923,8 @@ export default function NoteWellRecorder() {
             ) : recordings.map(r => (
               <RecordingItem key={r.id} rec={r}
                 onDelete={deleteRecording} onSync={syncRecording}
-                onPlay={playRecording} isPlaying={playingId===r.id} />
+                onPlay={playRecording} isPlaying={playingId===r.id}
+                onRetranscribe={retranscribeRecording} isRetranscribing={!!retranscribingIds[r.id]} />
             ))}
 
             {/* My Meetings card */}
