@@ -1,11 +1,11 @@
 /**
  * ═══════════════════════════════════════════════════════════════════
- *  AgeWell Translate & Train
+ *  Ageing Well Translate & Train
  *  A Notewell AI Service — branched from Live Translate (notewell-live-translate)
  *
  *  Branch:  agewell-translate-train
  *  Parent:  notewell-live-translate (GP practice service — kept separate)
- *  Reason:  AgeWell neighbourhood teams require training mode, frailty
+ *  Reason:  Ageing Well neighbourhood teams require training mode, frailty
  *           scenarios, and multi-agency care context not needed in GP service.
  *
  *  Modes:
@@ -33,7 +33,7 @@ const callAgewellAI = async ({ messages, system, max_tokens }) => {
 };
 
 // ─── DESIGN TOKENS ──────────────────────────────────────────────────────────
-// Light, warm, accessible — AgeWell brand palette
+// Light, warm, accessible — Ageing Well brand palette
 const T = {
   // Backgrounds
   pageBg:     "#F4F7F5",       // warm off-white with a hint of sage
@@ -43,7 +43,7 @@ const T = {
   surfaceAmb: "#FFF8ED",       // warm amber wash
   surfaceBlue:"#EEF4FF",       // soft blue wash
 
-  // Primary — Teal (AgeWell brand)
+  // Primary — Teal (Ageing Well brand)
   teal:       "#0D9488",
   tealLight:  "#CCFBF1",
   tealDark:   "#0F766E",
@@ -91,7 +91,7 @@ const SCENARIOS = [
     badge:"Live Translate",
     difficulty:"Intermediate",
     opening:"ਮੇਰੀ ਧੀ ਅੱਜ ਨਹੀਂ ਆ ਸਕੀ... ਮੈਨੂੰ ਸਮਝ ਨਹੀਂ ਆਉਂਦੀ।\n(My daughter couldn't come today... I don't understand.)",
-    systemPrompt:`You are Gurmail Kaur, a 79-year-old Punjabi-speaking woman at a GP/AgeWell appointment without her daughter. You have T2DM, hypertension, and recently fell going to the bathroom at 3am. You are confused about your medications — you may have doubled up on insulin yesterday (you have a blue box and a white box and cannot tell them apart). You are anxious and sometimes repeat yourself. Speak mostly in English but include occasional very short Punjabi phrases with English translations in brackets, e.g. "ਹਾਂ ਜੀ (yes)" or "ਮੈਨੂੰ ਨਹੀਂ ਪਤਾ (I don't know)". Keep non-English phrases short so TTS can handle them. You are frightened but cooperative. You worry about being a burden to your family. If asked directly about pain, admit your hip aches but minimise it. Be warm but nervous.`,
+    systemPrompt:`You are Gurmail Kaur, a 79-year-old Punjabi-speaking woman at a GP/Ageing Well appointment without her daughter. You have T2DM, hypertension, and recently fell going to the bathroom at 3am. You are confused about your medications — you may have doubled up on insulin yesterday (you have a blue box and a white box and cannot tell them apart). You are anxious and sometimes repeat yourself. Speak mostly in English but include occasional very short Punjabi phrases with English translations in brackets, e.g. "ਹਾਂ ਜੀ (yes)" or "ਮੈਨੂੰ ਨਹੀਂ ਪਤਾ (I don't know)". Keep non-English phrases short so TTS can handle them. You are frightened but cooperative. You worry about being a burden to your family. If asked directly about pain, admit your hip aches but minimise it. Be warm but nervous.`,
   },
   {
     id:"L2", category:"language", flag:"🇵🇱", lang:"Polish",
@@ -282,10 +282,10 @@ function useTTS(){
 
 // ─── LOGO COMPONENTS ────────────────────────────────────────────────────────
 function AgewellLogoLarge(){
-  return <img src={agewellLogo} alt="AgeWell" width={48} height={48} style={{objectFit:"contain"}}/>;
+  return <img src={agewellLogo} alt="Ageing Well" width={48} height={48} style={{objectFit:"contain"}}/>;
 }
 function AgewellLogoSmall(){
-  return <img src={agewellLogo} alt="AgeWell" width={22} height={22} style={{objectFit:"contain"}}/>;
+  return <img src={agewellLogo} alt="Ageing Well" width={22} height={22} style={{objectFit:"contain"}}/>;
 }
 
 function Waveform({active,color=T.teal,size=5}){
@@ -807,7 +807,7 @@ function btnStyle(v="primary"){
 /**
  *  Branch: agewell-meeting-notes
  *  Parent: notewell-meeting-notes (GP practice service — kept separate)
- *  Reason: AgeWell teams require MDT/neighbourhood/care-review templates,
+ *  Reason: Ageing Well teams require MDT/neighbourhood/care-review templates,
  *          multi-agency attendees, frailty-aware AI summarisation, and
  *          escalation flagging not appropriate in the GP meeting notes service.
  */
@@ -817,7 +817,7 @@ const MEETING_TYPES = [
   { id:"home",      label:"Home Visit",                icon:"🏠", prompt:"home visit assessment by a care worker or clinician" },
   { id:"frailty",   label:"Frailty Assessment",        icon:"🩺", prompt:"frailty and falls risk assessment" },
   { id:"care_plan", label:"Care Plan Review",          icon:"📋", prompt:"care plan review meeting with patient and/or family" },
-  { id:"nbhd",      label:"Neighbourhood Team Meeting",icon:"🌿", prompt:"AgeWell neighbourhood team operational or clinical meeting" },
+  { id:"nbhd",      label:"Neighbourhood Team Meeting",icon:"🌿", prompt:"Ageing Well neighbourhood team operational or clinical meeting" },
   { id:"safeguard", label:"Safeguarding Review",       icon:"🛡️", prompt:"safeguarding concern review involving multiple agencies" },
   { id:"discharge", label:"Discharge Planning",        icon:"🏥", prompt:"hospital discharge planning meeting" },
   { id:"general",   label:"General Meeting",           icon:"📝", prompt:"general team or operational meeting" },
@@ -910,7 +910,7 @@ function MeetingNotesMode({ onBack }) {
     const date    = new Date().toLocaleDateString("en-GB",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
     const attendeeList = attendees.filter(a=>a.name).map(a=>`${a.name}${a.role?` — ${a.role}`:""}`).join(", ") || "Not recorded";
 
-    const prompt = `You are a clinical note-taker for an AgeWell neighbourhood care team. 
+    const prompt = `You are a clinical note-taker for an Ageing Well neighbourhood care team. 
 Generate structured meeting notes from the following transcript of a ${meetingType.prompt}.
 
 MEETING DETAILS:
@@ -964,12 +964,12 @@ Keep language professional, concise, and appropriate for an NHS neighbourhood ca
   };
 
   const copyToClipboard = async () => {
-    const header = `AGEWELL NEIGHBOURHOOD CARE — ${meetingType.label.toUpperCase()}\n`
+    const header = `AGEING WELL NEIGHBOURHOOD CARE — ${meetingType.label.toUpperCase()}\n`
       + `Date: ${new Date().toLocaleDateString("en-GB")}\n`
       + `Location: ${location||"Not specified"}\n`
       + `Attendees: ${attendees.filter(a=>a.name).map(a=>`${a.name}${a.role?` (${a.role})`:""}`).join(", ")||"Not recorded"}\n`
       + `Duration: ${fmtTime(elapsed)}\n`
-      + `Generated by: Notewell AI — AgeWell Meeting Notes Branch\n`
+      + `Generated by: Notewell AI — Ageing Well Meeting Notes Branch\n`
       + `\n${"─".repeat(60)}\n\n`
       + (editingNotes ? editedNotes : notes);
     await navigator.clipboard.writeText(header);
@@ -994,7 +994,7 @@ Keep language professional, concise, and appropriate for an NHS neighbourhood ca
         <button onClick={onBack} style={btnStyle("outline")}>← Back</button>
         <div style={{flex:1}}>
           <div style={{fontWeight:700,color:T.tealDark,fontSize:15}}>Care Notes</div>
-          <div style={{fontSize:12,color:T.textSecondary}}>AgeWell branch · Live transcription + AI structured notes</div>
+          <div style={{fontSize:12,color:T.textSecondary}}>Ageing Well branch · Live transcription + AI structured notes</div>
         </div>
         <div style={{fontSize:10,color:T.textMuted,fontFamily:"monospace",background:T.surfaceCard,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 8px"}}>
           agewell-meeting-notes
@@ -1281,7 +1281,7 @@ Keep language professional, concise, and appropriate for an NHS neighbourhood ca
                     {meetingType.icon} {meetingType.label}
                   </div>
                   <div style={{fontSize:12,color:T.textSecondary,marginTop:2}}>
-                    AgeWell Neighbourhood Care · {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+                    Ageing Well Neighbourhood Care · {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
                   </div>
                 </div>
                 <div style={{textAlign:"right"}}>
@@ -1328,7 +1328,7 @@ Keep language professional, concise, and appropriate for an NHS neighbourhood ca
               <div style={{borderTop:`1px solid ${T.border}`,marginTop:20,paddingTop:12,
                 display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{fontSize:10,color:T.textMuted}}>
-                  Generated by Notewell AI · AgeWell Meeting Notes Branch · MHRA Class I
+                  Generated by Notewell AI · Ageing Well Meeting Notes Branch · MHRA Class I
                 </div>
                 <div style={{fontSize:10,color:T.textMuted}}>
                   {transcript.length} transcript segments · {fmtTime(elapsed)} recorded
@@ -1352,7 +1352,7 @@ function HomeScreen({onSelect}){
         <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}><AgewellLogoLarge/></div>
         <h1 style={{fontSize:26,fontWeight:800,color:T.tealDark,margin:"0 0 6px",letterSpacing:"-0.5px",
           fontFamily:"Georgia, 'Times New Roman', serif"}}>
-          AgeWell Translate &amp; Train
+          Ageing Well Translate &amp; Train
         </h1>
         <p style={{fontSize:13,color:T.textSecondary,margin:"0 0 4px",lineHeight:1.6}}>
           A Notewell AI service for neighbourhood care teams
@@ -1360,7 +1360,7 @@ function HomeScreen({onSelect}){
         <div style={{display:"inline-flex",alignItems:"center",gap:6,background:T.tealLight,
           border:`1px solid ${T.tealBorder}`,borderRadius:20,padding:"3px 12px",marginTop:4}}>
           <div style={{width:6,height:6,borderRadius:"50%",background:T.teal}}/>
-          <span style={{fontSize:10,color:T.tealDark,fontWeight:700,letterSpacing:1}}>NOTEWELL AI · AGEWELL BRANCH</span>
+          <span style={{fontSize:10,color:T.tealDark,fontWeight:700,letterSpacing:1}}>NOTEWELL AI · AGEING WELL BRANCH</span>
         </div>
       </div>
 
@@ -1371,7 +1371,7 @@ function HomeScreen({onSelect}){
           AI-powered tools for neighbourhood care teams working with frail elderly patients.
           Translate consultations in real time, build clinical confidence through AI role-play
           training, and capture structured care notes — automatically formatted into the standard
-          AgeWell Patient Support Plan, ready to add to the patient record.
+          Ageing Well Patient Support Plan, ready to add to the patient record.
         </p>
         <p style={{fontSize:12,color:T.teal,fontStyle:"italic",margin:0,fontWeight:500,lineHeight:1.6}}>
           Supporting multilingual care, clinical confidence, and better documentation across your neighbourhood.
@@ -1392,7 +1392,7 @@ function HomeScreen({onSelect}){
             },
             {
               label:"Generate",
-              desc:"AI structures the notes into the AgeWell Patient Support Plan",
+              desc:"AI structures the notes into the Ageing Well Patient Support Plan",
               bg:"#E6F1FB",text:"#185FA5",
               icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
             },
@@ -1436,8 +1436,8 @@ function HomeScreen({onSelect}){
           {
             key:"notes",
             title:"Care Notes",
-            desc:"Live transcription that auto-populates the AgeWell Patient Support Plan — ready for the clinical system.",
-            features:["8 AgeWell templates","Multi-speaker STT","Patient Support Plan","Export to record"],
+            desc:"Live transcription that auto-populates the Ageing Well Patient Support Plan — ready for the clinical system.",
+            features:["8 Ageing Well templates","Multi-speaker STT","Patient Support Plan","Export to record"],
             color:T.amber, light:T.amberLight, border:T.amberBorder,
           },
         ].map(m=>(
@@ -1476,7 +1476,7 @@ function HomeScreen({onSelect}){
       {/* Footer note */}
       <div style={{textAlign:"center",maxWidth:460}}>
         <p style={{fontSize:11,color:T.textMuted,lineHeight:1.7,margin:0}}>
-          This service is branched from Notewell GP services to provide AgeWell neighbourhood
+          This service is branched from Notewell GP services to provide Ageing Well neighbourhood
           teams with translation, training, and care notes capabilities separate from GP practice deployments.<br/>
           <strong style={{color:T.textSecondary}}>MHRA Class I · DCB0129 · DTAC compliant · 3 branched services</strong>
         </p>
@@ -1514,11 +1514,10 @@ export default function AgewellTranslateTrain(){
         padding:"10px 20px",display:"flex",alignItems:"center",gap:12,flexShrink:0,
         boxShadow:"0 2px 12px rgba(13,148,136,0.2)",
       }}>
-        <AgewellLogoSmall/>
         <div style={{flex:1}}>
           <div style={{fontWeight:800,fontSize:15,color:"white",letterSpacing:"-0.2px",
             fontFamily:"Georgia,'Times New Roman',serif"}}>
-            AgeWell Translate &amp; Train
+            Ageing Well Translate &amp; Train
           </div>
           <div style={{fontSize:10,color:"rgba(255,255,255,0.75)",letterSpacing:"1px",fontWeight:600}}>
             NOTEWELL AI · NEIGHBOURHOOD CARE SERVICE
@@ -1530,12 +1529,13 @@ export default function AgewellTranslateTrain(){
             color:"white",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",
           }}>⌂ Home</button>
         )}
-        <div style={{display:"flex",gap:6}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <AgewellLogoSmall/>
           {mode==="home"&&[["translate","Translate"],["train","Train"],["notes","Notes"]].map(([k,l])=>(
             <button key={k} onClick={()=>setMode(k)} style={{
               background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",
               color:"white",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",
-            }}><span style={{display:"inline-flex",alignItems:"center",gap:4}}><AgewellLogoSmall/> {l}</span></button>
+            }}>{l}</button>
           ))}
         </div>
       </div>
@@ -1544,7 +1544,7 @@ export default function AgewellTranslateTrain(){
       {mode!=="home"&&(
         <div style={{background:T.surfaceCard,borderBottom:`1px solid ${T.border}`,
           padding:"6px 20px",display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-          <span style={{fontSize:11,color:T.textMuted}}>AgeWell</span>
+          <span style={{fontSize:11,color:T.textMuted}}>Ageing Well</span>
           <span style={{fontSize:11,color:T.textMuted}}>›</span>
           <span style={{fontSize:11,color:T.teal,fontWeight:700}}>
             {mode==="translate"?"Live Translate":mode==="train"?"Translate & Train":"Care Notes"}
