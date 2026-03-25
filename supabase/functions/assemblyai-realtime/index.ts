@@ -88,7 +88,9 @@ Deno.serve(async (req: Request) => {
         const tokenData = await tokenResponse.json();
 
         // Build v3 WebSocket URL with parameters
-        let wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&encoding=pcm_s16le&format_turns=true&token=${encodeURIComponent(tokenData.token)}`;
+        // u3-rt-pro: best accuracy model with keyterms + diarization support
+        // speaker_labels: enables streaming speaker diarization (Speaker A, Speaker B, etc.)
+        let wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&encoding=pcm_s16le&format_turns=true&speech_model=u3-rt-pro&speaker_labels=true&token=${encodeURIComponent(tokenData.token)}`;
 
         // Keyterms must be passed as a URL query parameter (v3 does not accept Configure messages)
         if (pendingKeyterms.length > 0) {
@@ -195,7 +197,7 @@ Deno.serve(async (req: Request) => {
             try {
               // @ts-ignore
               if (assemblySocket.readyState === WebSocket.OPEN) {
-                // v3 accepts raw binary PCM frames (after Configure message)
+                // v3 accepts raw binary PCM frames directly
                 // @ts-ignore
                 assemblySocket.send(event.data);
               }
