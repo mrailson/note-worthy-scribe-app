@@ -1620,20 +1620,22 @@ export default function NoteWellRecorder() {
         .single();
       if (!profile?.email) { showToast("No email address found in your profile", "error"); return; }
 
-      // Read audio chunks from IndexedDB
-      const { getSegments } = await import("@/utils/offlineAudioStore");
-      const segments = await getSegments(rec.id);
-      if (!segments || segments.length === 0) { showToast("No audio data found for this recording", "error"); return; }
+      // Read audio chunks from the recording object (same source as play button)
+      const chunks = rec.chunks || [];
+      const audioData = rec.audioData;
+      if (chunks.length === 0 && !audioData) { showToast("No audio data found for this recording", "error"); return; }
 
-      // Convert each segment blob to base64
+      // Convert each chunk's arrayBuffer to base64
       const chunkData = [];
-      for (const seg of segments) {
-        const arrayBuf = await seg.blob.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuf);
+      const sources = chunks.length > 0
+        ? chunks.map((ch, idx) => ({ buf: ch.arrayBuffer, index: idx }))
+        : [{ buf: audioData, index: 0 }];
+      for (const src of sources) {
+        const bytes = new Uint8Array(src.buf);
         let binary = "";
         for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
         const base64 = btoa(binary);
-        chunkData.push({ base64, rawSize: arrayBuf.byteLength, index: seg.index });
+        chunkData.push({ base64, rawSize: src.buf.byteLength, index: src.index });
       }
 
       // Batch chunks so each email stays under 15MB (base64 adds ~37% overhead)
