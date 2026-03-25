@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════
- *  Ageing Well Translate & Train
+ *  Ageing Well Live Services
  *  A Notewell AI Service — branched from Live Translate (notewell-live-translate)
  *
  *  Branch:  agewell-translate-train
@@ -10,7 +10,7 @@
  *
  *  Modes:
  *    1. Live Translate   — real-time bilingual consultation support
- *    2. Translate & Train — AI patient role-play with STT/TTS (10 scenarios)
+ *    2. Skills Practice — AI patient role-play with STT/TTS (10 scenarios)
  *
  *  TTS bridge: window.notewellTTS(text, langCode) — connect your service here
  *  STT:        Web Speech API (en-GB for clinician, target lang for patient TTS)
@@ -685,7 +685,7 @@ function TrainingMode({ onBack }) {
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,flexWrap:"wrap"}}>
           <button onClick={onBack} style={btnStyle("outline")}>← Back</button>
           <div style={{flex:1}}>
-            <div style={{fontWeight:700,color:T.tealDark,fontSize:15}}>🎭 Translate & Train</div>
+            <div style={{fontWeight:700,color:T.tealDark,fontSize:15}}>🎭 Skills Practice</div>
             <div style={{fontSize:12,color:T.textSecondary}}>AI plays the patient · You are the clinician or care worker</div>
           </div>
           <div style={{display:"flex",gap:8}}>
@@ -1352,7 +1352,7 @@ function HomeScreen({onSelect}){
       <div style={{textAlign:"center",maxWidth:500}}>
         <h1 style={{fontSize:26,fontWeight:800,color:T.tealDark,margin:"0 0 6px",letterSpacing:"-0.5px",
           fontFamily:"Georgia, 'Times New Roman', serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
-          <AgewellLogoLarge/> Ageing Well Translate &amp; Train
+          <AgewellLogoLarge/> Ageing Well Live Services
         </h1>
         <p style={{fontSize:13,color:T.textSecondary,margin:0,lineHeight:1.6}}>
           A Notewell AI service for neighbourhood care teams
@@ -1364,7 +1364,7 @@ function HomeScreen({onSelect}){
         {[
           {key:"translate",title:"Live Translate",desc:"Real-time bilingual support for consultations. Clinician and patient speak — instant translation both ways.",features:["15 languages","Real-time STT","TTS playback","Full transcript"],color:T.teal,light:T.tealLight,border:T.tealBorder,
             icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>},
-          {key:"train",title:"Translate & Train",desc:"AI role-play training with frail elderly patients. 5 language scenarios, 5 English care scenarios.",features:["10 scenarios","Voice interaction","Live transcription","Safeguarding incl."],color:T.green,light:T.greenLight,border:T.greenBorder,
+          {key:"train",title:"Skills Practice",desc:"Build confidence with AI role-play — 5 language and 5 English Ageing Well care scenarios",features:["10 scenarios","Voice interaction","Live transcription","Safeguarding incl."],color:T.green,light:T.greenLight,border:T.greenBorder,
             icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#378ADD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>},
           {key:"notes",title:"Care Notes",desc:"Live transcription that auto-populates the Ageing Well Patient Support Plan — ready for the clinical system.",features:["8 Ageing Well templates","Multi-speaker STT","Patient Support Plan","Export to record"],color:T.amber,light:T.amberLight,border:T.amberBorder,
             icon:<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4a017" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>},
@@ -1406,9 +1406,9 @@ function HomeScreen({onSelect}){
         borderRadius:14,padding:"18px 24px",textAlign:"center"}}>
         <p style={{fontSize:13,color:T.textSecondary,lineHeight:1.7,margin:"0 0 10px"}}>
           AI-powered tools for neighbourhood care teams working with frail elderly patients.
-          Translate consultations in real time, build clinical confidence through AI role-play
-          training, and capture structured care notes — automatically formatted into the standard
-          Ageing Well Patient Support Plan, ready to add to the patient record.
+          Translate consultations in real time, capture structured care notes — automatically
+          formatted into the standard Ageing Well Patient Support Plan — and build clinical
+          confidence through AI skills practice scenarios.
         </p>
         <p style={{fontSize:12,color:T.teal,fontStyle:"italic",margin:0,fontWeight:500,lineHeight:1.6}}>
           Supporting multilingual care, clinical confidence, and better documentation across your neighbourhood.
@@ -1522,7 +1522,7 @@ export default function AgewellTranslateTrain(){
         <div>
           <div style={{fontWeight:800,fontSize:15,color:"white",letterSpacing:"-0.2px",
             fontFamily:"Georgia,'Times New Roman',serif"}}>
-            Ageing Well Translate &amp; Train
+            Ageing Well Live Services
           </div>
           <div style={{fontSize:10,color:"rgba(255,255,255,0.75)",letterSpacing:"1px",fontWeight:600}}>
             NOTEWELL AI · NEIGHBOURHOOD CARE SERVICE
@@ -1537,7 +1537,7 @@ export default function AgewellTranslateTrain(){
           <button onClick={()=>setMode("home")} style={pillStyle}>⌂ Home</button>
         )}
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          {mode==="home"&&[["translate","Translate"],["train","Train"],["notes","Notes"]].map(([k,l])=>(
+          {mode==="home"&&[["translate","Translate"],["train","Practice"],["notes","Notes"]].map(([k,l])=>(
             <button key={k} onClick={()=>setMode(k)} style={pillStyle}>{l}</button>
           ))}
         </div>
@@ -1580,7 +1580,7 @@ export default function AgewellTranslateTrain(){
           <span style={{fontSize:11,color:T.textMuted}}>Ageing Well</span>
           <span style={{fontSize:11,color:T.textMuted}}>›</span>
           <span style={{fontSize:11,color:T.teal,fontWeight:700}}>
-            {mode==="translate"?"Live Translate":mode==="train"?"Translate & Train":"Care Notes"}
+            {mode==="translate"?"Live Translate":mode==="train"?"Skills Practice":"Care Notes"}
           </span>
         </div>
       )}
