@@ -877,6 +877,12 @@ export default function NoteWellRecorder() {
 
   const stopRecording = async () => {
     clearInterval(timerRef.current);
+    // ── Release protections ──
+    stopHealthMonitor();
+    await releaseLock();
+    setWakeLockStatus("unsupported");
+    const keepAlive = isIOSDevice ? iOSAudioKeepAlive : androidAudioKeepAlive;
+    keepAlive.stop();
     // Capture live transcript BEFORE stopping (it gets cleared on stop)
     capturedLiveTranscriptRef.current = typeof liveTranscript === "string" ? liveTranscript : "";
     const capturedLiveWC = capturedLiveTranscriptRef.current.split(/\s+/).filter(Boolean).length;
