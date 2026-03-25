@@ -12636,6 +12636,7 @@ export type Database = {
       get_practice_users: {
         Args: { p_practice_id: string }
         Returns: {
+          agewell_access: boolean
           ai4gp_access: boolean
           api_testing_service_access: boolean
           assigned_at: string
