@@ -398,6 +398,7 @@ function SyncProgressBar({ progress }) {
 
 function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing }) {
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const colors = {
     local:       { dot:"#f59e0b", bg:"rgba(245,158,11,0.1)",  border:"rgba(245,158,11,0.25)",  label:"Saved locally — tap Sync" },
     syncing:     { dot:"#1565c0", bg:"rgba(21,101,192,0.08)", border:"rgba(21,101,192,0.2)",   label:"Uploading…" },
