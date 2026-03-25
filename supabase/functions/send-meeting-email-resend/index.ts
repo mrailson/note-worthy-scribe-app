@@ -25,6 +25,11 @@ interface MeetingEmailRequest {
     filename: string;
     type: string;
   };
+  extra_attachments?: Array<{
+    content: string;
+    filename: string;
+    type: string;
+  }>;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -41,7 +46,8 @@ const handler = async (req: Request): Promise<Response> => {
       cc: emailData.cc_emails?.length || 0,
       subject: emailData.subject,
       hasWordAttachment: !!emailData.word_attachment,
-      hasAudioAttachment: !!emailData.audio_attachment
+      hasAudioAttachment: !!emailData.audio_attachment,
+      extraAttachments: emailData.extra_attachments?.length || 0
     });
 
     // Validate required fields
@@ -90,6 +96,19 @@ const handler = async (req: Request): Promise<Response> => {
         content: emailData.audio_attachment.content,
       });
       console.log("🔊 Adding Audio attachment:", emailData.audio_attachment.filename);
+    }
+
+    // Add extra attachments (e.g. multiple audio chunks)
+    if (emailData.extra_attachments?.length) {
+      for (const att of emailData.extra_attachments) {
+        if (att.content) {
+          attachments.push({
+            filename: att.filename || 'attachment',
+            content: att.content,
+          });
+          console.log("📎 Adding extra attachment:", att.filename);
+        }
+      }
     }
 
     // Send email via Resend - always use Notewell AI as sender name
