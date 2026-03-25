@@ -258,7 +258,8 @@ const SystemAdmin = () => {
       lg_capture_access: false,
       bp_service_access: false,
       survey_manager_access: false,
-      document_signoff_access: false
+      document_signoff_access: false,
+      agewell_access: false
     }
   });
   
