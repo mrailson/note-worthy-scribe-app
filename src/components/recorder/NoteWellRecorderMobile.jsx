@@ -396,7 +396,8 @@ function SyncProgressBar({ progress }) {
   );
 }
 
-function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing }) {
+function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing }) {
+  const [actionsOpen, setActionsOpen] = useState(false);
   const colors = {
     local:       { dot:"#f59e0b", bg:"rgba(245,158,11,0.1)",  border:"rgba(245,158,11,0.25)",  label:"Saved locally — tap Sync" },
     syncing:     { dot:"#1565c0", bg:"rgba(21,101,192,0.08)", border:"rgba(21,101,192,0.2)",   label:"Uploading…" },
@@ -406,10 +407,10 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
   };
   const c = colors[rec.status] ?? colors.local;
 
-  // Check if recording is >24h old and already transcribed/synced
   const ageMs = Date.now() - new Date(rec.createdAt).getTime();
   const isOldAndDone = ageMs > 24 * 60 * 60 * 1000 && (rec.status === "transcribed" || rec.meetingId);
   const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+  const showExpandableActions = rec.status === "transcribed" && rec.meetingId;
 
   return (
     <div style={{background:"white",borderRadius:16,padding:"12px 14px",marginBottom:8,
@@ -438,7 +439,6 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
             {fmtDate(rec.createdAt)} · {fmtTime(rec.duration)} · {fmtSize(rec.size)}
             {rec.chunkCount > 1 ? ` · ${rec.chunkCount} segments` : ""}
           </div>
-          {/* Status badge */}
           <span style={{
             display:"inline-flex",alignItems:"center",gap:4,marginTop:4,
             padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,
@@ -453,7 +453,6 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
               return <span style={{marginLeft:2,opacity:0.85}}>· {fmt} Words</span>;
             })()}
           </span>
-          {/* Safe-delete hint for completed recordings */}
           {rec.status === "transcribed" && rec.meetingId && (
             <div style={{fontSize:10,color:"#16a34a",marginTop:3,opacity:0.8,lineHeight:1.3}}>
               ✓ You may now safely delete this recording
@@ -462,13 +461,14 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
         </div>
 
         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-          {rec.status==="transcribed" && rec.meetingId && (
-            <button onClick={()=>onRetranscribe?.(rec)} disabled={isRetranscribing} style={{
-              padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(245,158,11,0.4)",
-              background:isRetranscribing?"rgba(245,158,11,0.15)":"rgba(245,158,11,0.08)",
-              cursor:isRetranscribing?"not-allowed":"pointer",fontSize:11,color:"#b45309",fontWeight:700,fontFamily:"inherit",
-              opacity:isRetranscribing?0.7:1,transition:"all 0.2s",whiteSpace:"nowrap",
-            }}>{isRetranscribing?"⏳ Processing…":"⟳ Reprocess"}</button>
+          {/* Expandable actions toggle for transcribed recordings */}
+          {showExpandableActions && (
+            <button onClick={()=>setActionsOpen(o=>!o)} style={{
+              width:28,height:28,borderRadius:8,border:"1px solid rgba(21,101,192,0.15)",
+              background:actionsOpen?"rgba(21,101,192,0.1)":"rgba(21,101,192,0.04)",
+              cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+              fontSize:14,color:"#1565c0",fontWeight:700,transition:"all 0.2s",
+            }}>⋯</button>
           )}
           {(rec.status==="local"||rec.status==="error"||(rec.status==="transcribed"&&!rec.meetingId)) && (
             <button onClick={()=>onSync(rec)} style={{
@@ -488,6 +488,30 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
           </button>
         </div>
       </div>
+
+      {/* Expandable actions panel */}
+      {showExpandableActions && actionsOpen && (
+        <div style={{
+          marginTop:8,padding:"8px 6px",borderRadius:10,
+          background:"#f8fafc",border:"1px solid rgba(21,101,192,0.08)",
+          display:"flex",gap:8,flexWrap:"wrap",
+          animation:"fadeIn 0.15s ease-out",
+        }}>
+          <button onClick={()=>onRetranscribe?.(rec)} disabled={isRetranscribing} style={{
+            padding:"6px 12px",borderRadius:8,border:"1.5px solid rgba(245,158,11,0.4)",
+            background:isRetranscribing?"rgba(245,158,11,0.15)":"rgba(245,158,11,0.08)",
+            cursor:isRetranscribing?"not-allowed":"pointer",fontSize:11,color:"#b45309",fontWeight:700,fontFamily:"inherit",
+            opacity:isRetranscribing?0.7:1,transition:"all 0.2s",whiteSpace:"nowrap",
+          }}>{isRetranscribing?"⏳ Processing…":"⟳ Reprocess"}</button>
+
+          <button onClick={()=>onEmailAudio?.(rec)} disabled={isEmailing} style={{
+            padding:"6px 12px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
+            background:isEmailing?"rgba(21,101,192,0.12)":"rgba(21,101,192,0.06)",
+            cursor:isEmailing?"not-allowed":"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
+            opacity:isEmailing?0.7:1,transition:"all 0.2s",whiteSpace:"nowrap",
+          }}>{isEmailing?"📧 Sending…":"📧 Email Audio"}</button>
+        </div>
+      )}
 
       {/* Cleanup reminder for old transcribed recordings */}
       {isOldAndDone && (
