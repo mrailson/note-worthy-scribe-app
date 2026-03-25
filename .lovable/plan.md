@@ -1,45 +1,63 @@
 
 
-# Add Re-transcribe / Reprocess Button to Mobile Recorder
+# Add "Email Audio" Feature with Expandable Actions Menu
 
-## Problem
-When a mobile recording produces a truncated transcript (e.g., 900 words for a 55-minute meeting), there is no way to retry transcription from the phone. The desktop MeetingHistoryList has a "Re-transcribe" badge, but the mobile `RecordingItem` component in `NoteWellRecorderMobile.jsx` does not.
+## Overview
+Add an "Email Audio" button to the mobile recorder that emails the recording's audio chunks as attachments, splitting across multiple emails to stay under 15MB per email. Also restructure the "Reprocess" and new "Email Audio" buttons into a collapsible/expandable actions menu for cleaner UI.
 
-## What Changes
+## How It Works
 
-### 1. Add "Re-transcribe" button to `RecordingItem` component
+1. User taps the "⋯ Actions" button on a transcribed recording
+2. An expandable menu slides open showing "⟳ Reprocess" and "📧 Email Audio"
+3. "Email Audio" reads the recording's audio chunks from IndexedDB, converts each to a Blob, then batches them into groups where total size stays under 15MB
+4. Each batch is sent as a separate email via `send-meeting-email-resend` with base64-encoded audio attachments
+5. Emails are numbered (e.g., "Audio Recording — Part 1 of 3") so the user knows how many to expect
+6. Toast notifications show progress ("Sending email 2 of 3…") and final success
+
+## Changes
+
+### 1. Refactor `RecordingItem` — Expandable Actions Menu
 **File:** `src/components/recorder/NoteWellRecorderMobile.jsx`
 
-In the `RecordingItem` component (line ~399), add a new button that appears when:
-- The recording status is `"transcribed"` AND has a `meetingId` (already synced to server)
-- The word count looks suspiciously low relative to duration (< 50 words/min)
-- OR always show it for transcribed meetings as a general "⟳ Re-transcribe" option
+Replace the inline "⟳ Reprocess" button with a small "⋯" toggle button. When tapped, it expands a section below the recording info showing:
+- **⟳ Reprocess** — existing functionality (unchanged)
+- **📧 Email Audio** — new, sends audio chunks via email
 
-The button will call `supabase.functions.invoke('transcribe-offline-meeting', { body: { meetingId, chunkIndex: 0 } })` — the same edge function the desktop version uses.
+Use a local `useState` inside `RecordingItem` to toggle the expanded state. The expanded section animates in with a simple max-height transition.
 
-### 2. Add `onRetranscribe` callback to `RecordingItem`
-Pass a new `onRetranscribe` prop into `RecordingItem`. The parent component will define the handler that:
-- Gets the current user session
-- Calls the `transcribe-offline-meeting` edge function with `meetingId` and `chunkIndex: 0`
-- Shows a toast confirming re-transcription has started
-- Displays a spinner on the button while in progress
+### 2. Add `emailAudio` Handler
+**File:** `src/components/recorder/NoteWellRecorderMobile.jsx`
 
-### 3. Visual design
-- Amber-colored pill button (matching the desktop Re-transcribe badge style)
-- Shows `"⟳ Re-transcribe"` text, switches to a spinner + `"Transcribing…"` while active
-- Positioned in the action buttons area (line ~464), next to the existing Sync/Delete buttons
-- Only visible for recordings with status `"transcribed"` that have a `meetingId`
+New async function `emailAudioRecording(rec)`:
+- Gets user email from `supabase.auth.getSession()` → profile lookup
+- Reads `rec.chunks` (ArrayBuffer data stored in IndexedDB)
+- Converts each chunk to a base64 string
+- Batches chunks into groups where cumulative size < 15MB (using raw byte size × 1.37 for base64 overhead)
+- For each batch, calls `supabase.functions.invoke('send-meeting-email-resend', { body: { to_email, subject: "Recording: {title} — Part N of M", html_content: simple HTML body, audio_attachment: { content: base64, filename, type } } })`
+- Since the edge function only supports a single `audio_attachment`, each chunk gets its own email if needed, or we modify the approach slightly:
+  - Actually, the edge function builds an `attachments[]` array — we can extend it to accept `audio_attachments` (plural) as an array
+  - Simpler approach: send one email per chunk, batching multiple small chunks into one email by modifying the edge function to accept an `attachments` array
 
-### Technical Details
+### 3. Update Edge Function for Multiple Attachments
+**File:** `supabase/functions/send-meeting-email-resend/index.ts`
 
-**Files to modify:**
-- `src/components/recorder/NoteWellRecorderMobile.jsx`
-  - Add `retranscribingIds` state (Set or object) to the main component
-  - Create `retranscribeRecording(rec)` handler that invokes `transcribe-offline-meeting`
-  - Pass `onRetranscribe` and `isRetranscribing` props to `RecordingItem`
-  - In `RecordingItem`, render the amber re-transcribe button when `rec.status === "transcribed" && rec.meetingId`
+Add support for a generic `extra_attachments` array field alongside the existing `word_attachment` and `audio_attachment` fields. This allows sending multiple audio files in one email:
+```
+extra_attachments?: Array<{ content: string; filename: string; type: string }>
+```
 
-**Edge function used:** `transcribe-offline-meeting` (already exists, same as desktop)
+### 4. Add `emailingIds` State
+Track which recordings are currently being emailed (similar to `retranscribingIds`) to show spinner state on the button.
 
-**No database or edge function changes required** — this reuses the existing re-transcription pipeline.
+## Technical Details
+
+- **Size calculation**: Each chunk's `sizeBytes` is stored in IndexedDB. Base64 encoding adds ~37% overhead, so effective limit per email is `15MB / 1.37 ≈ 10.9MB` of raw audio per email
+- **MIME type**: Uses `rec.mimeType` (typically `audio/webm`) for the attachment type
+- **Email subject**: `"{title} — Audio Part 1 of 3"` pattern
+- **Email body**: Simple HTML: "Attached is part N of M of your recording '{title}' ({duration}). Total size: X MB across M emails."
+- **User email**: Fetched from profiles table using the authenticated user's ID
+
+### Files to Modify
+- `src/components/recorder/NoteWellRecorderMobile.jsx` — expandable menu, email handler, state
+- `supabase/functions/send-meeting-email-resend/index.ts` — support `extra_attachments` array
 
