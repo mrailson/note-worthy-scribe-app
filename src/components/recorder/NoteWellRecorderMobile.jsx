@@ -604,6 +604,9 @@ export default function NoteWellRecorder() {
   const recorderRef  = useRef(null);  // ChunkedRecorder instance
   const timerRef     = useRef(null);
   const audioRef     = useRef(new Audio());
+  const healthCheckRef = useRef(null); // Stream health monitor interval
+  const [wakeLockStatus, setWakeLockStatus] = useState("unsupported"); // unsupported|active|inactive
+  const { requestLock, releaseLock, isLocked, isSupported: wakeLockSupported } = useWakeLock();
 
   // ── Connectivity (track online status but don't auto-switch mode) ────────
   useEffect(() => {
