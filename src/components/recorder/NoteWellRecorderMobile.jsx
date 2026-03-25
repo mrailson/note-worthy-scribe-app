@@ -2062,27 +2062,6 @@ export default function NoteWellRecorder() {
               </div>
             )}
 
-  // ── Poll for notes completion after client timeout — still send email ──
-  const pollAndEmailIfReady = async (meetingId, toastMsg) => {
-    showToast(toastMsg, "info");
-    const MAX_POLLS = 12; // 12 × 10s = 2 min max wait
-    for (let i = 0; i < MAX_POLLS; i++) {
-      await new Promise(r => setTimeout(r, 10000));
-      const { data: summary } = await supabase
-        .from("meeting_summaries")
-        .select("id")
-        .eq("meeting_id", meetingId)
-        .maybeSingle();
-      if (summary) {
-        showToast("Meeting notes generated ✨", "success");
-        triggerPostNoteActions(meetingId);
-        return;
-      }
-    }
-    showToast("Meeting saved — note generation may still be processing", "warning");
-  };
-
-
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20}}>
               {active && (
                 <button onClick={stopRecording} style={{width:52,height:52,borderRadius:"50%",border:"2px solid rgba(220,38,38,0.25)",background:"rgba(220,38,38,0.07)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
