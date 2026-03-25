@@ -787,6 +787,34 @@ export default function NoteWellRecorder() {
     setLiveStatus("idle");
   }, []);
 
+  // ── Detect platform for keep-alive ────────────────────────────────────────
+  const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  // ── Start stream health monitor ──────────────────────────────────────────
+  const startHealthMonitor = useCallback((recorder) => {
+    if (healthCheckRef.current) clearInterval(healthCheckRef.current);
+    healthCheckRef.current = setInterval(() => {
+      if (!recorder) return;
+      const mr = recorder.mediaRecorder;
+      const stream = recorder.mediaStream;
+      const mrState = mr?.state;
+      const trackState = stream?.getTracks()?.[0]?.readyState;
+      if (mrState === "inactive" || trackState === "ended") {
+        console.error("🚨 Stream health check failed:", { mrState, trackState });
+        showToast("⚠️ Recording may have been interrupted — stop and save now", "error");
+        clearInterval(healthCheckRef.current);
+        healthCheckRef.current = null;
+      }
+    }, 3000);
+  }, []);
+
+  const stopHealthMonitor = useCallback(() => {
+    if (healthCheckRef.current) {
+      clearInterval(healthCheckRef.current);
+      healthCheckRef.current = null;
+    }
+  }, []);
+
   // ── Recording controls (chunked) ─────────────────────────────────────────
   const startRecording = async () => {
     peakWordCountRef.current = 0;
@@ -806,6 +834,22 @@ export default function NoteWellRecorder() {
       setActiveStream(recorder.mediaStream);
       // Start live transcription with the same stream
       startLiveTranscription(recorder.mediaStream);
+
+      // ── Protection layer 1: Wake Lock ──
+      if (wakeLockSupported) {
+        const locked = await requestLock();
+        setWakeLockStatus(locked ? "active" : "inactive");
+        console.log("🔒 Wake Lock:", locked ? "acquired" : "failed");
+      } else {
+        setWakeLockStatus("unsupported");
+      }
+
+      // ── Protection layer 2: Audio Keep-Alive ──
+      const keepAlive = isIOSDevice ? iOSAudioKeepAlive : androidAudioKeepAlive;
+      await keepAlive.start();
+
+      // ── Protection layer 3: Stream Health Monitor ──
+      startHealthMonitor(recorder);
 
       const startTime = Date.now();
       timerRef.current = setInterval(() => {
