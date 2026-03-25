@@ -106,16 +106,6 @@ Deno.serve(async (req: Request) => {
         
         assemblySocket.onopen = () => {
           console.log('✅ AssemblyAI WebSocket connected');
-          // Send configuration with keyterms over WebSocket after connection opens
-          if (pendingKeyterms.length > 0) {
-            const configMsg = JSON.stringify({
-              type: "Configure",
-              keyterms_prompt: pendingKeyterms
-            });
-            // @ts-ignore
-            assemblySocket!.send(configMsg);
-            console.log(`🔑 Sent ${pendingKeyterms.length} keyterms via Configure message`);
-          }
           safeSend(socket, JSON.stringify({ 
             type: 'session_begins',
             session_id: Date.now().toString()
