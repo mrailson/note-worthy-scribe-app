@@ -1453,7 +1453,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
         fridge_monitoring_access: moduleKey === 'fridge_monitoring_access' ? checked : userFormData.module_access.fridge_monitoring_access,
         cso_governance_access: moduleKey === 'cso_governance_access' ? checked : userFormData.module_access.cso_governance_access,
         lg_capture_access: moduleKey === 'lg_capture_access' ? checked : userFormData.module_access.lg_capture_access,
-        bp_service_access: moduleKey === 'bp_service_access' ? checked : userFormData.module_access.bp_service_access
+        bp_service_access: moduleKey === 'bp_service_access' ? checked : userFormData.module_access.bp_service_access,
+        agewell_access: moduleKey === 'agewell_access' ? checked : userFormData.module_access.agewell_access,
       };
       
       console.log('Auto-saving by inserting new role with data:', insertData);
