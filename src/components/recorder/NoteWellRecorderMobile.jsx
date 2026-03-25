@@ -608,6 +608,13 @@ export default function NoteWellRecorder() {
   const [wakeLockStatus, setWakeLockStatus] = useState("unsupported"); // unsupported|active|inactive
   const { requestLock, releaseLock, isLocked, isSupported: wakeLockSupported } = useWakeLock();
 
+  // ── Sync wake lock status with hook state ──────────────────────────────────
+  useEffect(() => {
+    if (recState !== "idle") {
+      setWakeLockStatus(isLocked ? "active" : (wakeLockSupported ? "inactive" : "unsupported"));
+    }
+  }, [isLocked, recState, wakeLockSupported]);
+
   // ── Connectivity (track online status but don't auto-switch mode) ────────
   useEffect(() => {
     const goOnline  = () => setIsOnline(true);
