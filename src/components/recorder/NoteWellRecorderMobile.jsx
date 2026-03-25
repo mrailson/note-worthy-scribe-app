@@ -462,6 +462,14 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
         </div>
 
         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+          {rec.status==="transcribed" && rec.meetingId && (
+            <button onClick={()=>onRetranscribe?.(rec)} disabled={isRetranscribing} style={{
+              padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(245,158,11,0.4)",
+              background:isRetranscribing?"rgba(245,158,11,0.15)":"rgba(245,158,11,0.08)",
+              cursor:isRetranscribing?"not-allowed":"pointer",fontSize:11,color:"#b45309",fontWeight:700,fontFamily:"inherit",
+              opacity:isRetranscribing?0.7:1,transition:"all 0.2s",whiteSpace:"nowrap",
+            }}>{isRetranscribing?"⏳ Transcribing…":"⟳ Re-transcribe"}</button>
+          )}
           {(rec.status==="local"||rec.status==="error"||(rec.status==="transcribed"&&!rec.meetingId)) && (
             <button onClick={()=>onSync(rec)} style={{
               padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
