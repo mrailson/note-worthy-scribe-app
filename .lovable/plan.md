@@ -1,35 +1,38 @@
 
+Goal: remove the CSP conflicts that can block Safari iPhone script execution, and keep a universal fallback instead of a blank screen.
 
-# Fix: Protect Recording from Screen-Off / Background Suspension
+What I found in the current code:
+- `index.html` already has no static CSP meta tag. That part is effectively done.
+- `src/components/SecurityWrapper.tsx` still defines CSP twice:
+  - once in `useEffect`
+  - once again via `<Helmet><meta httpEquiv="Content-Security-Policy" ... /></Helmet>`
+- The active `useEffect` CSP already does not use `script-src-elem` or `style-src-elem`.
+- `src/components/ChunkLoadErrorBoundary.tsx` already catches all errors in `getDerivedStateFromError`, but it still has chunk-specific comments/logging and an automatic reload path.
 
-## Problem
-The mobile recorder has **zero protection** against iOS/Android suspending the MediaRecorder when the screen locks or the app is backgrounded. It worked for 90 minutes once by luck, but failed on a 40-minute session (7 words captured). iOS behavior is inconsistent — it depends on memory pressure, battery, and other factors.
+Implementation plan:
+1. Keep `index.html` unchanged except to verify there is still no CSP meta tag added back
+- No runtime CSP should exist there.
+- This avoids parse-time CSP blocking the app before React starts.
 
-## Solution — Defense in Depth
+2. Make `SecurityWrapper.tsx` the only CSP source
+- Remove the `<meta httpEquiv="Content-Security-Policy" ... />` from the `<Helmet>` block.
+- Keep the `useEffect` CSP injection as the single runtime source of truth.
+- Add `worker-src 'self' blob:` to the `cspHeader` string.
+- Leave `script-src-elem` and `style-src-elem` absent everywhere.
+- Keep the non-CSP Helmet meta tags (`Permissions-Policy`, etc.) unless they are also duplicated elsewhere.
 
-Three independent safeguards, all in `src/components/recorder/NoteWellRecorderMobile.jsx`:
+3. Clean up `ChunkLoadErrorBoundary.tsx` so it behaves like a true global fallback
+- Keep `getDerivedStateFromError` catching all errors.
+- Remove the chunk-specific assumption in comments/logging text.
+- Remove the automatic reload/sessionStorage loop so errors surface as the fallback UI instead of bouncing silently.
+- Keep a simple fallback with reload action: “Something went wrong” / “Tap to reload”.
 
-### 1. Wake Lock (prevents screen from locking)
-- Request `navigator.wakeLock.request('screen')` when recording starts
-- Release on stop
-- Re-acquire on `visibilitychange` → `visible` (system releases it when tab backgrounds)
-- Use the existing `useWakeLock` hook from `src/hooks/useWakeLock.ts`
+4. Limit scope strictly to the requested files
+- `src/components/SecurityWrapper.tsx`
+- `src/components/ChunkLoadErrorBoundary.tsx`
+- No changes to recorder, wake lock, Whisper cleaner, or other mobile logic.
 
-### 2. iOS/Android Audio Keep-Alive (keeps AudioContext alive if backgrounded)
-- Start `iOSAudioKeepAlive` (or `androidAudioKeepAlive` based on UA) when recording starts
-- Plays inaudible 20Hz oscillator to prevent OS from killing the audio session
-- Stop on recording end
-- These utilities already exist but are **not wired up**
-
-### 3. Stream Health Monitor (detect & warn if recording dies)
-- Every 3 seconds, check `mediaRecorder.state` and `stream.getTracks()[0].readyState`
-- If track becomes `ended` or recorder becomes `inactive` unexpectedly, show a red warning toast: "Recording may have been interrupted — stop and save to preserve what was captured"
-- This won't fix the problem but ensures the user knows immediately rather than discovering 40 minutes later
-
-### 4. UI: "Keep screen on" indicator
-- Small amber pill shown during recording: "🔒 Screen lock prevented" (if wake lock active) or "⚠️ Keep screen on" (if wake lock unsupported)
-- Subtle, non-intrusive
-
-### Files to Modify
-- `src/components/recorder/NoteWellRecorderMobile.jsx` — wire up wake lock, keep-alive, health monitor, UI indicator
-
+Expected result:
+- Safari iPhone no longer gets multiple intersecting CSPs.
+- Script execution is no longer blocked by duplicate/competing policies.
+- If any separate runtime error still exists, users see a fallback instead of a blank white screen, making the next issue debuggable.
