@@ -551,9 +551,9 @@ export default function NoteWellRecorder() {
   const timerRef     = useRef(null);
   const audioRef     = useRef(new Audio());
 
-  // ── Connectivity ──────────────────────────────────────────────────────────
+  // ── Connectivity (track online status but don't auto-switch mode) ────────
   useEffect(() => {
-    const goOnline  = () => { setIsOnline(true);  setMode("live");    };
+    const goOnline  = () => setIsOnline(true);
     const goOffline = () => { setIsOnline(false); setMode("offline"); };
     window.addEventListener("online",  goOnline);
     window.addEventListener("offline", goOffline);
