@@ -1605,7 +1605,105 @@ export default function NoteWellRecorder() {
     }
   };
 
-  const deleteRecording = async (id) => {
+  const emailAudioRecording = async (rec) => {
+    if (!rec.id) return;
+    try {
+      setEmailingIds(prev => ({ ...prev, [rec.id]: true }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { showToast("Please sign in first", "error"); return; }
+
+      // Get user email from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("user_id", session.user.id)
+        .single();
+      if (!profile?.email) { showToast("No email address found in your profile", "error"); return; }
+
+      // Read audio chunks from IndexedDB
+      const { getSegments } = await import("@/utils/offlineAudioStore");
+      const segments = await getSegments(rec.id);
+      if (!segments || segments.length === 0) { showToast("No audio data found for this recording", "error"); return; }
+
+      // Convert each segment blob to base64
+      const chunkData = [];
+      for (const seg of segments) {
+        const arrayBuf = await seg.blob.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuf);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        const base64 = btoa(binary);
+        chunkData.push({ base64, rawSize: arrayBuf.byteLength, index: seg.index });
+      }
+
+      // Batch chunks so each email stays under 15MB (base64 adds ~37% overhead)
+      const MAX_RAW_PER_EMAIL = 10.9 * 1024 * 1024; // ~15MB after base64
+      const batches = [];
+      let currentBatch = [];
+      let currentSize = 0;
+      for (const chunk of chunkData) {
+        if (currentSize + chunk.rawSize > MAX_RAW_PER_EMAIL && currentBatch.length > 0) {
+          batches.push(currentBatch);
+          currentBatch = [];
+          currentSize = 0;
+        }
+        currentBatch.push(chunk);
+        currentSize += chunk.rawSize;
+      }
+      if (currentBatch.length > 0) batches.push(currentBatch);
+
+      const totalEmails = batches.length;
+      const title = rec.title || "Recording";
+      const mimeType = rec.mimeType || "audio/webm";
+      const ext = mimeType.includes("mp4") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
+
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        const partLabel = totalEmails > 1 ? ` — Part ${i + 1} of ${totalEmails}` : "";
+        showToast(`Sending email${totalEmails > 1 ? ` ${i + 1} of ${totalEmails}` : ""}…`, "info");
+
+        const extraAttachments = batch.map((ch, idx) => ({
+          content: ch.base64,
+          filename: `${title.replace(/[^a-zA-Z0-9_-]/g, "_")}_chunk${ch.index + 1}.${ext}`,
+          type: mimeType,
+        }));
+
+        const totalSizeMB = (batch.reduce((s, ch) => s + ch.rawSize, 0) / (1024 * 1024)).toFixed(1);
+        const htmlContent = `
+          <div style="font-family:sans-serif;padding:20px;max-width:600px;margin:0 auto">
+            <h2 style="color:#1565c0;margin-bottom:12px">🎙️ ${title}${partLabel}</h2>
+            <p style="color:#334155;font-size:14px;line-height:1.6">
+              Attached ${batch.length === 1 ? "is 1 audio file" : `are ${batch.length} audio files`}
+              from your recording <strong>"${title}"</strong> (${fmtTime(rec.duration)}).
+            </p>
+            ${totalEmails > 1 ? `<p style="color:#64748b;font-size:13px">This is part ${i + 1} of ${totalEmails} (${totalSizeMB} MB in this email).</p>` : ""}
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0"/>
+            <p style="color:#94a3b8;font-size:11px">Sent from Notewell AI Mobile Recorder</p>
+          </div>
+        `;
+
+        const { data, error } = await supabase.functions.invoke("send-meeting-email-resend", {
+          body: {
+            to_email: profile.email,
+            subject: `${title}${partLabel}`,
+            html_content: htmlContent,
+            from_name: "Notewell AI",
+            extra_attachments: extraAttachments,
+          },
+        });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || "Email send failed");
+      }
+
+      showToast(totalEmails > 1 ? `Audio sent across ${totalEmails} emails ✓` : "Audio emailed successfully ✓", "success");
+    } catch (err) {
+      console.error("Email audio failed:", err);
+      showToast("Email failed: " + (err.message || "Unknown error"), "error");
+    } finally {
+      setEmailingIds(prev => { const n = { ...prev }; delete n[rec.id]; return n; });
+    }
+  };
+
     // Skip confirmation for completed recordings (Meeting Created ✓)
     const rec = recordings.find(r => r.id === id);
     if (rec && rec.status === "transcribed" && rec.meetingId) {
