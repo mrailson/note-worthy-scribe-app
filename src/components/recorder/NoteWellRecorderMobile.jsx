@@ -1592,11 +1592,16 @@ export default function NoteWellRecorder() {
 
       // Mobile recordings store audio under a random sessionId, not the meetingId.
       // So we call auto-generate-meeting-notes to regenerate notes from the existing transcript.
-      const { error } = await supabase.functions.invoke("auto-generate-meeting-notes", {
+      const { data, error } = await supabase.functions.invoke("auto-generate-meeting-notes", {
         body: { meetingId: rec.meetingId, forceRegenerate: true },
       });
-      if (error) throw error;
-      showToast("Notes regeneration queued — check meeting notes shortly", "success");
+      if (error) {
+        // Edge functions may time out on the client side but still complete in the background
+        console.warn("Reprocess invoke returned error (may still complete):", error);
+        showToast("Reprocessing started — notes may take a moment to appear", "info");
+        return;
+      }
+      showToast("Notes regenerated successfully ✓", "success");
     } catch (err) {
       console.error("Re-process failed:", err);
       showToast("Re-processing failed: " + (err.message || "Unknown error"), "error");
