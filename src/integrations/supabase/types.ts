@@ -11737,6 +11737,7 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          agewell_access: boolean
           api_testing_service_access: boolean | null
           assigned_at: string | null
           assigned_by: string | null
@@ -11765,6 +11766,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agewell_access?: boolean
           api_testing_service_access?: boolean | null
           assigned_at?: string | null
           assigned_by?: string | null
@@ -11793,6 +11795,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agewell_access?: boolean
           api_testing_service_access?: boolean | null
           assigned_at?: string | null
           assigned_by?: string | null
