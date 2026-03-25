@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { cleanWhisperResponse } from './whisper-chunk-cleaner';
 
 export interface TranscriptData {
   text: string;
