@@ -468,7 +468,7 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
               background:isRetranscribing?"rgba(245,158,11,0.15)":"rgba(245,158,11,0.08)",
               cursor:isRetranscribing?"not-allowed":"pointer",fontSize:11,color:"#b45309",fontWeight:700,fontFamily:"inherit",
               opacity:isRetranscribing?0.7:1,transition:"all 0.2s",whiteSpace:"nowrap",
-            }}>{isRetranscribing?"⏳ Transcribing…":"⟳ Re-transcribe"}</button>
+            }}>{isRetranscribing?"⏳ Processing…":"⟳ Reprocess"}</button>
           )}
           {(rec.status==="local"||rec.status==="error"||(rec.status==="transcribed"&&!rec.meetingId)) && (
             <button onClick={()=>onSync(rec)} style={{
