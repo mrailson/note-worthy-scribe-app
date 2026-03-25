@@ -46,7 +46,8 @@ const handler = async (req: Request): Promise<Response> => {
       cc: emailData.cc_emails?.length || 0,
       subject: emailData.subject,
       hasWordAttachment: !!emailData.word_attachment,
-      hasAudioAttachment: !!emailData.audio_attachment
+      hasAudioAttachment: !!emailData.audio_attachment,
+      extraAttachments: emailData.extra_attachments?.length || 0
     });
 
     // Validate required fields
