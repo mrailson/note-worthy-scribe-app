@@ -1496,7 +1496,6 @@ export default function AgewellTranslateTrain(){
           }}>⌂ Home</button>
         )}
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <AgewellLogoSmall/>
           {mode==="home"&&[["translate","Translate"],["train","Train"],["notes","Notes"]].map(([k,l])=>(
             <button key={k} onClick={()=>setMode(k)} style={{
               background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",
