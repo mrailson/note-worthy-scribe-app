@@ -1577,7 +1577,7 @@ export default function NoteWellRecorder() {
     }
   };
 
-
+  const deleteRecording = async (id) => {
     // Skip confirmation for completed recordings (Meeting Created ✓)
     const rec = recordings.find(r => r.id === id);
     if (rec && rec.status === "transcribed" && rec.meetingId) {
