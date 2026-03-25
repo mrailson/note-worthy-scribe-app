@@ -287,7 +287,6 @@ function AgewellLogoLarge(){
 function AgewellLogoSmall(){
   return <img src={agewellLogo} alt="AgeWell" width={22} height={22} style={{objectFit:"contain"}}/>;
 }
-}
 
 function Waveform({active,color=T.teal,size=5}){
   return(
