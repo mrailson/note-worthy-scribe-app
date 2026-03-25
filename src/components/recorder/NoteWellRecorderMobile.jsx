@@ -1036,7 +1036,10 @@ export default function NoteWellRecorder() {
       console.log("[Sync] Resuming meeting creation for already-transcribed recording");
       try {
         const wordCount = rec.transcript.split(/\s+/).filter(Boolean).length;
-        const durationMins = Math.round((rec.duration || 0) / 60);
+        let durationMins = Math.round((rec.duration || 0) / 60);
+        if (durationMins === 0 && rec.createdAt) {
+          durationMins = Math.round((Date.now() - new Date(rec.createdAt).getTime()) / 60000);
+        }
         setSyncProgress({ phase: "stitching", currentChunk: 1, totalChunks: 1, percentComplete: 92, message: "Creating meeting record…" });
 
         const { data: meetingData, error: meetingErr } = await supabase
@@ -1272,7 +1275,12 @@ export default function NoteWellRecorder() {
       }
 
       const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
-      const durationMins = Math.round((rec.duration || 0) / 60);
+      let durationMins = Math.round((rec.duration || 0) / 60);
+      // Fallback: compute from timestamps if rec.duration is missing/zero
+      if (durationMins === 0 && rec.createdAt) {
+        durationMins = Math.round((Date.now() - new Date(rec.createdAt).getTime()) / 60000);
+        console.log("[Sync] Duration computed from timestamps:", durationMins, "mins");
+      }
 
       const meetingInsert = {
           title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
