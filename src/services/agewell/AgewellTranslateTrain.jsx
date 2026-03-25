@@ -521,18 +521,11 @@ function TrainingMode({ onBack }) {
     setMessages(hist); setManualText("");
     setAiLoading(true); stopTTS();
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:1000,
-          system:selected.systemPrompt,
-          messages:hist.map(m=>({role:m.role,content:m.content})),
-        }),
-      });
-      const data=await res.json();
-      const reply=data.content?.find(b=>b.type==="text")?.text||"...";
+      const reply = await callAgewellAI({
+        messages: hist.map(m=>({role:m.role,content:m.content})),
+        system: selected.systemPrompt,
+        max_tokens: 1000,
+      }) || "...";
       setMessages(p=>[...p,{role:"assistant",content:reply}]);
       if(autoSpeak) await speak(reply,selected.ttsLang,selected.ttsFallback);
     } catch {
