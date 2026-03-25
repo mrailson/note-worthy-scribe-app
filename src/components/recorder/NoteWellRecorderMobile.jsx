@@ -1557,7 +1557,27 @@ export default function NoteWellRecorder() {
 
   const [deleteConfirm, setDeleteConfirm] = useState(null); // recording id pending delete
 
-  const deleteRecording = async (id) => {
+  const retranscribeRecording = async (rec) => {
+    if (!rec.meetingId) return;
+    try {
+      setRetranscribingIds(prev => ({ ...prev, [rec.id]: true }));
+      showToast("Re-transcription started…", "info");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { showToast("Please sign in first", "error"); return; }
+      const { error } = await supabase.functions.invoke("transcribe-offline-meeting", {
+        body: { meetingId: rec.meetingId, chunkIndex: 0 },
+      });
+      if (error) throw error;
+      showToast("Re-transcription queued — check meeting notes shortly", "success");
+    } catch (err) {
+      console.error("Re-transcribe failed:", err);
+      showToast("Re-transcription failed: " + (err.message || "Unknown error"), "error");
+    } finally {
+      setRetranscribingIds(prev => { const n = { ...prev }; delete n[rec.id]; return n; });
+    }
+  };
+
+
     // Skip confirmation for completed recordings (Meeting Created ✓)
     const rec = recordings.find(r => r.id === id);
     if (rec && rec.status === "transcribed" && rec.meetingId) {
