@@ -663,8 +663,26 @@ function TrainingMode({ onBack }) {
                 border:`1px solid ${m.role==="user"?"#C7D7F8":T.border}`,
                 boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
                 color:T.textPrimary,fontSize:13,lineHeight:1.65,whiteSpace:"pre-wrap",
+                position:"relative",
               }}>
                 {m.content}
+                {/* Replay button for patient messages */}
+                {m.role==="assistant"&&(
+                  <button
+                    onClick={(e)=>{ e.stopPropagation(); replayMessage(m.content,i); }}
+                    disabled={ttsActive&&replayingIdx!==i}
+                    style={{
+                      display:"inline-flex",alignItems:"center",gap:4,
+                      background:"none",border:`1px solid ${T.border}`,borderRadius:6,
+                      padding:"3px 8px",cursor:"pointer",fontSize:10,fontWeight:600,
+                      color:replayingIdx===i?T.green:T.textMuted,marginTop:6,
+                      opacity:ttsActive&&replayingIdx!==i?0.4:1,transition:"all 0.15s",
+                    }}
+                  >
+                    {replayingIdx===i&&elevenTTS.isLoading?"⏳":replayingIdx===i&&elevenTTS.isPlaying?"🔊":"🔁"}{" "}
+                    {replayingIdx===i&&elevenTTS.isLoading?"Loading…":replayingIdx===i&&elevenTTS.isPlaying?"Playing…":"Replay"}
+                  </button>
+                )}
               </div>
               {m.role==="user"&&(
                 <div style={{width:30,height:30,borderRadius:"50%",background:T.surfaceBlue,
