@@ -405,9 +405,9 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
           console.log(`Fetching roles for user ${user.user_id}`);
           
           // Get ALL user_roles for this user and take the first one for display
-          const { data: roleData, error: roleError } = await supabase
+          const { data: roleData, error: roleError } = await (supabase
             .from('user_roles')
-            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access, lg_capture_access, bp_service_access, show_consultation_examples')
+            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access, lg_capture_access, bp_service_access, show_consultation_examples, agewell_access') as any)
             .eq('user_id', user.user_id)
             .limit(1)
             .single();
@@ -1453,7 +1453,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
         fridge_monitoring_access: moduleKey === 'fridge_monitoring_access' ? checked : userFormData.module_access.fridge_monitoring_access,
         cso_governance_access: moduleKey === 'cso_governance_access' ? checked : userFormData.module_access.cso_governance_access,
         lg_capture_access: moduleKey === 'lg_capture_access' ? checked : userFormData.module_access.lg_capture_access,
-        bp_service_access: moduleKey === 'bp_service_access' ? checked : userFormData.module_access.bp_service_access
+        bp_service_access: moduleKey === 'bp_service_access' ? checked : userFormData.module_access.bp_service_access,
+        agewell_access: moduleKey === 'agewell_access' ? checked : userFormData.module_access.agewell_access,
       };
       
       console.log('Auto-saving by inserting new role with data:', insertData);
