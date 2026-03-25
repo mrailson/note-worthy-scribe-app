@@ -90,7 +90,11 @@ Deno.serve(async (req: Request) => {
         // Build v3 WebSocket URL with parameters
         let wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&encoding=pcm_s16le&format_turns=true&token=${encodeURIComponent(tokenData.token)}`;
 
-        // Keyterms sent via Configure message after connection opens (not in URL)
+        // Keyterms must be passed as a URL query parameter (v3 does not accept Configure messages)
+        if (pendingKeyterms.length > 0) {
+          wsUrl += `&keyterms_prompt=${encodeURIComponent(JSON.stringify(pendingKeyterms))}`;
+          console.log(`🔑 Adding ${pendingKeyterms.length} keyterms to connection URL`);
+        }
         
         if (clientClosed) {
           console.log('⚠️ Client already closed; aborting AssemblyAI connection init');
