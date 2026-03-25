@@ -1347,20 +1347,54 @@ function HomeScreen({onSelect}){
   return(
     <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
       padding:"32px 24px",background:T.pageBg,gap:20,overflowY:"auto"}}>
-      {/* Hero: logo + title + subtitle + badge */}
+      {/* Hero: logo + title + subtitle */}
       <div style={{textAlign:"center",maxWidth:500}}>
         <h1 style={{fontSize:26,fontWeight:800,color:T.tealDark,margin:"0 0 6px",letterSpacing:"-0.5px",
           fontFamily:"Georgia, 'Times New Roman', serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
           <AgewellLogoLarge/> Ageing Well Translate &amp; Train
         </h1>
-        <p style={{fontSize:13,color:T.textSecondary,margin:"0 0 4px",lineHeight:1.6}}>
+        <p style={{fontSize:13,color:T.textSecondary,margin:0,lineHeight:1.6}}>
           A Notewell AI service for neighbourhood care teams
         </p>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:T.tealLight,
-          border:`1px solid ${T.tealBorder}`,borderRadius:20,padding:"3px 12px",marginTop:4}}>
-          <div style={{width:6,height:6,borderRadius:"50%",background:T.teal}}/>
-          <span style={{fontSize:10,color:T.tealDark,fontWeight:700,letterSpacing:1}}>NOTEWELL AI · AGEING WELL BRANCH</span>
-        </div>
+      </div>
+
+      {/* Mode cards */}
+      <div style={{display:"flex",gap:18,flexWrap:"wrap",justifyContent:"center",width:"100%",maxWidth:960}}>
+        {[
+          {key:"translate",title:"Live Translate",desc:"Real-time bilingual support for consultations. Clinician and patient speak — instant translation both ways.",features:["15 languages","Real-time STT","TTS playback","Full transcript"],color:T.teal,light:T.tealLight,border:T.tealBorder},
+          {key:"train",title:"Translate & Train",desc:"AI role-play training with frail elderly patients. 5 language scenarios, 5 English care scenarios.",features:["10 scenarios","Voice interaction","Live transcription","Safeguarding incl."],color:T.green,light:T.greenLight,border:T.greenBorder},
+          {key:"notes",title:"Care Notes",desc:"Live transcription that auto-populates the Ageing Well Patient Support Plan — ready for the clinical system.",features:["8 Ageing Well templates","Multi-speaker STT","Patient Support Plan","Export to record"],color:T.amber,light:T.amberLight,border:T.amberBorder},
+        ].map(m=>(
+          <div key={m.key} onClick={()=>onSelect(m.key)} style={{
+            flex:"1 1 260px",maxWidth:300,background:T.surfaceCard,border:`2px solid ${T.border}`,borderRadius:16,
+            padding:"24px",cursor:"pointer",boxShadow:"0 2px 12px rgba(0,0,0,0.07)",transition:"all 0.2s",position:"relative",overflow:"hidden",
+          }}
+          onMouseEnter={e=>{ e.currentTarget.style.borderColor=m.color; e.currentTarget.style.boxShadow=`0 6px 24px ${m.color}22`; e.currentTarget.style.transform="translateY(-3px)"; }}
+          onMouseLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,0.07)"; e.currentTarget.style.transform="translateY(0)"; }}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:5,background:m.color,borderRadius:"16px 16px 0 0"}}/>
+            <div style={{marginBottom:10}}><AgewellLogoSmall/></div>
+            <div style={{fontWeight:800,fontSize:17,color:T.textPrimary,marginBottom:6,fontFamily:"Georgia,'Times New Roman',serif"}}>{m.title}</div>
+            <p style={{fontSize:12,color:T.textSecondary,lineHeight:1.6,margin:"0 0 14px"}}>{m.desc}</p>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {m.features.map(f=>(
+                <div key={f} style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{width:5,height:5,borderRadius:"50%",background:m.color,flexShrink:0}}/>
+                  <span style={{fontSize:11,color:T.textSecondary,fontWeight:500}}>{f}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:18,display:"flex",justifyContent:"flex-end"}}>
+              <div style={{background:m.color,color:"white",borderRadius:8,padding:"7px 16px",fontSize:12,fontWeight:700}}>Open →</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Badge */}
+      <div style={{display:"inline-flex",alignItems:"center",gap:6,background:T.tealLight,
+        border:`1px solid ${T.tealBorder}`,borderRadius:20,padding:"3px 12px"}}>
+        <div style={{width:6,height:6,borderRadius:"50%",background:T.teal}}/>
+        <span style={{fontSize:10,color:T.tealDark,fontWeight:700,letterSpacing:1}}>NOTEWELL AI · AGEING WELL BRANCH</span>
       </div>
 
       {/* Intro text container */}
@@ -1383,28 +1417,15 @@ function HomeScreen({onSelect}){
         <div style={{fontSize:12,fontWeight:600,color:T.textSecondary,marginBottom:12,textAlign:"center"}}>How it works</div>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:0,flexWrap:"wrap"}}>
           {[
-            {
-              label:"Record",
-              desc:"Start a live session — consultation, MDT, home visit or care review",
-              bg:"#E1F5EE",text:"#0F6E56",
-              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F6E56" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-            },
-            {
-              label:"Generate",
-              desc:"AI structures the notes into the Ageing Well Patient Support Plan",
-              bg:"#E6F1FB",text:"#185FA5",
-              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-            },
-            {
-              label:"Export",
-              desc:"Download and add the completed form to the patient record",
-              bg:"#FAEEDA",text:"#854F0B",
-              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#854F0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
-            },
+            {label:"Record",desc:"Start a live session — consultation, MDT, home visit or care review",bg:"#E1F5EE",text:"#0F6E56",
+              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F6E56" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
+            {label:"Generate",desc:"AI structures the notes into the Ageing Well Patient Support Plan",bg:"#E6F1FB",text:"#185FA5",
+              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>},
+            {label:"Export",desc:"Download and add the completed form to the patient record",bg:"#FAEEDA",text:"#854F0B",
+              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#854F0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>},
           ].map((step,i)=>(
             <div key={step.label} style={{display:"flex",alignItems:"flex-start",gap:0}}>
-              <div style={{background:step.bg,borderRadius:10,padding:"12px 14px",
-                minWidth:140,maxWidth:180,textAlign:"center"}}>
+              <div style={{background:step.bg,borderRadius:10,padding:"12px 14px",minWidth:140,maxWidth:180,textAlign:"center"}}>
                 <div style={{marginBottom:6,display:"flex",justifyContent:"center"}}>{step.icon}</div>
                 <div style={{fontSize:12,fontWeight:700,color:step.text,marginBottom:4}}>{step.label}</div>
                 <div style={{fontSize:11,color:step.text,opacity:0.85,lineHeight:1.5}}>{step.desc}</div>
@@ -1413,63 +1434,6 @@ function HomeScreen({onSelect}){
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Mode cards */}
-      <div style={{display:"flex",gap:18,flexWrap:"wrap",justifyContent:"center",width:"100%",maxWidth:960}}>
-        {[
-          {
-            key:"translate",
-            title:"Live Translate",
-            desc:"Real-time bilingual support for consultations. Clinician and patient speak — instant translation both ways.",
-            features:["15 languages","Real-time STT","TTS playback","Full transcript"],
-            color:T.teal, light:T.tealLight, border:T.tealBorder,
-          },
-          {
-            key:"train",
-            title:"Translate & Train",
-            desc:"AI role-play training with frail elderly patients. 5 language scenarios, 5 English care scenarios.",
-            features:["10 scenarios","Voice interaction","Live transcription","Safeguarding incl."],
-            color:T.green, light:T.greenLight, border:T.greenBorder,
-          },
-          {
-            key:"notes",
-            title:"Care Notes",
-            desc:"Live transcription that auto-populates the Ageing Well Patient Support Plan — ready for the clinical system.",
-            features:["8 Ageing Well templates","Multi-speaker STT","Patient Support Plan","Export to record"],
-            color:T.amber, light:T.amberLight, border:T.amberBorder,
-          },
-        ].map(m=>(
-          <div key={m.key} onClick={()=>onSelect(m.key)} style={{
-            flex:"1 1 260px",maxWidth:300,
-            background:T.surfaceCard,border:`2px solid ${T.border}`,borderRadius:16,
-            padding:"24px",cursor:"pointer",
-            boxShadow:"0 2px 12px rgba(0,0,0,0.07)",transition:"all 0.2s",
-            position:"relative",overflow:"hidden",
-          }}
-          onMouseEnter={e=>{ e.currentTarget.style.borderColor=m.color; e.currentTarget.style.boxShadow=`0 6px 24px ${m.color}22`; e.currentTarget.style.transform="translateY(-3px)"; }}
-          onMouseLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,0.07)"; e.currentTarget.style.transform="translateY(0)"; }}>
-            <div style={{position:"absolute",top:0,left:0,right:0,height:5,background:m.color,borderRadius:"16px 16px 0 0"}}/>
-            <div style={{marginBottom:10}}><AgewellLogoSmall/></div>
-            <div style={{fontWeight:800,fontSize:17,color:T.textPrimary,marginBottom:6,
-              fontFamily:"Georgia,'Times New Roman',serif"}}>{m.title}</div>
-            <p style={{fontSize:12,color:T.textSecondary,lineHeight:1.6,margin:"0 0 14px"}}>{m.desc}</p>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}>
-              {m.features.map(f=>(
-                <div key={f} style={{display:"flex",alignItems:"center",gap:6}}>
-                  <div style={{width:5,height:5,borderRadius:"50%",background:m.color,flexShrink:0}}/>
-                  <span style={{fontSize:11,color:T.textSecondary,fontWeight:500}}>{f}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{marginTop:18,display:"flex",justifyContent:"flex-end"}}>
-              <div style={{background:m.color,color:"white",borderRadius:8,
-                padding:"7px 16px",fontSize:12,fontWeight:700}}>
-                Open →
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* Footer note */}
