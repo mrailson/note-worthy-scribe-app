@@ -1503,7 +1503,7 @@ export default function AgewellTranslateTrain(){
             <button key={k} onClick={()=>setMode(k)} style={{
               background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",
               color:"white",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",
-            }}>{l}</button>
+            }}><span style={{display:"inline-flex",alignItems:"center",gap:4}}><AgewellLogoSmall/> {l}</span></button>
           ))}
         </div>
       </div>
