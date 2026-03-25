@@ -1406,9 +1406,9 @@ function HomeScreen({onSelect}){
         borderRadius:14,padding:"18px 24px",textAlign:"center"}}>
         <p style={{fontSize:13,color:T.textSecondary,lineHeight:1.7,margin:"0 0 10px"}}>
           AI-powered tools for neighbourhood care teams working with frail elderly patients.
-          Translate consultations in real time, build clinical confidence through AI role-play
-          training, and capture structured care notes — automatically formatted into the standard
-          Ageing Well Patient Support Plan, ready to add to the patient record.
+          Translate consultations in real time, capture structured care notes — automatically
+          formatted into the standard Ageing Well Patient Support Plan — and build clinical
+          confidence through AI skills practice scenarios.
         </p>
         <p style={{fontSize:12,color:T.teal,fontStyle:"italic",margin:0,fontWeight:500,lineHeight:1.6}}>
           Supporting multilingual care, clinical confidence, and better documentation across your neighbourhood.
