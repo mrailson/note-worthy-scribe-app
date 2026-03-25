@@ -1514,7 +1514,6 @@ export default function AgewellTranslateTrain(){
         padding:"10px 20px",display:"flex",alignItems:"center",gap:12,flexShrink:0,
         boxShadow:"0 2px 12px rgba(13,148,136,0.2)",
       }}>
-        <AgewellLogoSmall/>
         <div style={{flex:1}}>
           <div style={{fontWeight:800,fontSize:15,color:"white",letterSpacing:"-0.2px",
             fontFamily:"Georgia,'Times New Roman',serif"}}>
@@ -1530,12 +1529,13 @@ export default function AgewellTranslateTrain(){
             color:"white",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",
           }}>⌂ Home</button>
         )}
-        <div style={{display:"flex",gap:6}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <AgewellLogoSmall/>
           {mode==="home"&&[["translate","Translate"],["train","Train"],["notes","Notes"]].map(([k,l])=>(
             <button key={k} onClick={()=>setMode(k)} style={{
               background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",
               color:"white",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",
-            }}><span style={{display:"inline-flex",alignItems:"center",gap:4}}><AgewellLogoSmall/> {l}</span></button>
+            }}>{l}</button>
           ))}
         </div>
       </div>
