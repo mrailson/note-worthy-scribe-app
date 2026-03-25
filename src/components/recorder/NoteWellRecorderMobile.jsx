@@ -1274,9 +1274,7 @@ export default function NoteWellRecorder() {
       const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
       const durationMins = Math.round((rec.duration || 0) / 60);
 
-      const { data: meetingData, error: meetingErr } = await supabase
-        .from("meetings")
-        .insert({
+      const meetingInsert = {
           title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
           user_id: activeUser.id,
           status: "completed",
@@ -1287,8 +1285,18 @@ export default function NoteWellRecorder() {
           word_count: wordCount,
           import_source: mode === "live" ? "mobile_live" : "mobile_offline",
           whisper_transcript_text: fullTranscript,
-          primary_transcript_source: "whisper",
-        })
+          primary_transcript_source: usedLiveRescue ? "assemblyai_rescue" : "whisper",
+      };
+      // Store the non-primary transcript for audit
+      if (usedLiveRescue && capturedLive) {
+        meetingInsert.assembly_transcript_text = capturedLive;
+      } else if (capturedLive && liveWordCount2 > 0) {
+        meetingInsert.assembly_transcript_text = capturedLive;
+      }
+
+      const { data: meetingData, error: meetingErr } = await supabase
+        .from("meetings")
+        .insert(meetingInsert)
         .select("id")
         .single();
 
