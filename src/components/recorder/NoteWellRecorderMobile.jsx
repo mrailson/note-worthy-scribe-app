@@ -1473,9 +1473,9 @@ export default function NoteWellRecorder() {
                 showToast("Meeting notes generated ✨", "success");
                 triggerPostNoteActions(meetingId);
               })
-              .catch((err) => {
-                console.error("Note generation failed:", err);
-                showToast("Meeting saved — note generation failed", "error");
+              .catch(async (err) => {
+                console.error("Note generation client error (may be timeout):", err);
+                await pollAndEmailIfReady(meetingId, "Meeting saved — checking for notes…");
               })
               .finally(() => { setSyncProgress(null); refresh(); });
             return;
