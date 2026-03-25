@@ -547,6 +547,7 @@ export default function NoteWellRecorder() {
   const [livePartial,   setLivePartial]   = useState("");
   const [liveStatus,    setLiveStatus]    = useState("idle"); // idle|connecting|connected|error
   const liveClientRef   = useRef(null);  // AssemblyRealtimeClient or UnifiedTranscriber
+  const capturedLiveTranscriptRef = useRef(""); // Captured on stop for rescue fallback
   const recorderRef  = useRef(null);  // ChunkedRecorder instance
   const timerRef     = useRef(null);
   const audioRef     = useRef(new Audio());
