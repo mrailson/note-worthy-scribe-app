@@ -392,7 +392,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             onClick={() => navigate('/agewell')}
                             className="cursor-pointer py-3"
                           >
-                            <span className="h-4 w-4 mr-2 flex items-center justify-center text-sm">🌿</span>
+                            <img src="/images/agewell-house-icon.png" alt="" className="h-4 w-4 mr-2 object-contain" />
                             AgeWell
                           </DropdownMenuItem>
                         )}
