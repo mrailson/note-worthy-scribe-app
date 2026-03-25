@@ -512,8 +512,41 @@ function TrainingMode({ onBack }) {
   const [aiLoading,setAiLoading]=useState(false);
   const [autoSpeak,setAutoSpeak]=useState(true);
   const [manualText,setManualText]=useState("");
+  const [replayingIdx,setReplayingIdx]=useState(-1);
+  const [voicePreset,setVoicePreset]=useState(()=>localStorage.getItem("aw_voice_preset")||"elderly_female");
   const bottomRef=useRef(null);
-  const {speaking,speak,stop:stopTTS}=useTTS();
+  const {speaking,speak:browserSpeak,stop:stopBrowserTTS}=useTTS();
+  const elevenTTS=useElevenLabsTTS();
+
+  // Persist voice preference
+  useEffect(()=>{ localStorage.setItem("aw_voice_preset",voicePreset); },[voicePreset]);
+
+  const isEnglish=selected?.category==="english";
+  const ttsActive=speaking||elevenTTS.isPlaying||elevenTTS.isLoading;
+
+  const speakLine=useCallback(async(text,scenario)=>{
+    const s=scenario||selected;
+    if(!s) return;
+    const clean=text.replace(/\(.*?\)/g,"").replace(/\*+/g,"").replace(/\n+/g,". ").trim();
+    if(s.category==="english"){
+      const preset=s.gender==="male"?"elderly_male":voicePreset;
+      await elevenTTS.speak(clean,{voicePreset:preset});
+    } else {
+      await browserSpeak(clean,s.ttsLang,s.ttsFallback);
+    }
+  },[selected,voicePreset,elevenTTS,browserSpeak]);
+
+  const stopAllTTS=useCallback(()=>{
+    stopBrowserTTS();
+    elevenTTS.stop();
+  },[stopBrowserTTS,elevenTTS]);
+
+  const replayMessage=useCallback(async(text,idx)=>{
+    stopAllTTS();
+    setReplayingIdx(idx);
+    await speakLine(text);
+    setReplayingIdx(-1);
+  },[speakLine,stopAllTTS]);
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages,interim,aiLoading]);
 
@@ -530,7 +563,7 @@ function TrainingMode({ onBack }) {
     const um={role:"user",content:text.trim()};
     const hist=[...messages,um];
     setMessages(hist); setManualText("");
-    setAiLoading(true); stopTTS();
+    setAiLoading(true); stopAllTTS();
     try{
       const reply = await callAgewellAI({
         messages: hist.map(m=>({role:m.role,content:m.content})),
@@ -538,22 +571,22 @@ function TrainingMode({ onBack }) {
         max_tokens: 1000,
       }) || "...";
       setMessages(p=>[...p,{role:"assistant",content:reply}]);
-      if(autoSpeak) await speak(reply,selected.ttsLang,selected.ttsFallback);
+      if(autoSpeak) await speakLine(reply);
     } catch {
       setMessages(p=>[...p,{role:"assistant",content:"⚠️ Connection error. Please try again."}]);
     }
     setAiLoading(false);
-  },[messages,selected,autoSpeak,speak,stopTTS]);
+  },[messages,selected,autoSpeak,speakLine,stopAllTTS]);
 
   const startScenario=(s)=>{
-    stopSTT(); stopTTS();
+    stopSTT(); stopAllTTS();
     setSelected(s);
     setMessages([{role:"assistant",content:s.opening}]);
     setInterim(""); setManualText("");
-    if(autoSpeak) setTimeout(()=>speak(s.opening,s.ttsLang,s.ttsFallback),300);
+    if(autoSpeak) setTimeout(()=>speakLine(s.opening,s),300);
   };
 
-  const endSession=()=>{ stopSTT(); stopTTS(); setSelected(null); setMessages([]); setInterim(""); };
+  const endSession=()=>{ stopSTT(); stopAllTTS(); setSelected(null); setMessages([]); setInterim(""); };
 
   const filtered=tab==="all"?SCENARIOS:SCENARIOS.filter(s=>s.category===tab);
 
