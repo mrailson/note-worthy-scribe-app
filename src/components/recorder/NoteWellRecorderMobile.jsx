@@ -1952,6 +1952,18 @@ export default function NoteWellRecorder() {
                       {chunksCompleted} segment{chunksCompleted !== 1 ? "s" : ""} completed
                     </div>
                   )}
+                  {/* Wake lock / keep-screen-on indicator */}
+                  {active && (
+                    <div style={{
+                      display:"inline-flex",alignItems:"center",gap:4,marginTop:5,
+                      padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:600,
+                      background: wakeLockStatus === "active" ? "rgba(22,163,74,0.08)" : "rgba(245,158,11,0.1)",
+                      color: wakeLockStatus === "active" ? "#16a34a" : "#d97706",
+                      border: `1px solid ${wakeLockStatus === "active" ? "rgba(22,163,74,0.2)" : "rgba(245,158,11,0.3)"}`,
+                    }}>
+                      {wakeLockStatus === "active" ? "🔒 Screen lock prevented" : "⚠️ Keep screen on"}
+                    </div>
+                  )}
                 </>
               )}
             </div>
