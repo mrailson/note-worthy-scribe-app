@@ -1356,7 +1356,7 @@ function HomeScreen({onSelect}){
       </div>
 
       {/* Mode cards */}
-      <div style={{display:"flex",gap:18,flexWrap:"wrap",justifyContent:"center",width:"100%",maxWidth:640}}>
+      <div style={{display:"flex",gap:18,flexWrap:"wrap",justifyContent:"center",width:"100%",maxWidth:960}}>
         {[
           {
             key:"translate",
