@@ -361,17 +361,10 @@ function LiveTranslateMode({ onBack }) {
         ?`Translate the following from English to ${targetLang.label}. Return ONLY the translation, nothing else:\n"${text}"`
         :`Translate the following from ${targetLang.label} to English. Return ONLY the translation, nothing else:\n"${text}"`;
 
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:400,
-          messages:[{role:"user",content:prompt}],
-        }),
-      });
-      const data=await res.json();
-      const translation=data.content?.find(b=>b.type==="text")?.text||"[Translation error]";
+      const translation = await callAgewellAI({
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 400,
+      }) || "[Translation error]";
       setTranscript(prev=>prev.map(e=>e.id===entry.id?{...e,translation}:e));
       // Speak translation in target language (patient hears English translated to their language)
       if(isClinicianSpeaking){
