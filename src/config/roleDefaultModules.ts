@@ -18,11 +18,19 @@ export interface ModuleAccess {
   bp_service_access: boolean;
   survey_manager_access: boolean;
   document_signoff_access: boolean;
+  agewell_access: boolean;
 }
 
-export type UserRole = 'practice_user' | 'practice_manager' | 'pcn_manager' | 'system_admin' | 'gp' | 'nurse' | 'admin_staff' | 'icb_user';
+export type UserRole =
+  | 'practice_user'
+  | 'practice_manager'
+  | 'pcn_manager'
+  | 'system_admin'
+  | 'gp'
+  | 'nurse'
+  | 'admin_staff'
+  | 'icb_user';
 
-// Module categories for organised display
 export const moduleCategories = {
   core: {
     label: 'Core Features',
@@ -44,6 +52,11 @@ export const moduleCategories = {
     description: 'Administrative and operational tools',
     modules: ['enhanced_access', 'fridge_monitoring_access', 'lg_capture_access']
   },
+  neighbourhood: {
+    label: 'Neighbourhood Services',
+    description: 'AgeWell and PCN neighbourhood team services',
+    modules: ['agewell_access']
+  },
   developer: {
     label: 'Developer & Testing',
     description: 'Technical tools for system administrators',
@@ -51,7 +64,6 @@ export const moduleCategories = {
   }
 } as const;
 
-// Human-readable labels and descriptions for each module
 export const moduleInfo: Record<keyof ModuleAccess, { label: string; description: string }> = {
   meeting_notes_access: {
     label: 'Meeting Notes',
@@ -116,12 +128,14 @@ export const moduleInfo: Record<keyof ModuleAccess, { label: string; description
   document_signoff_access: {
     label: 'Document Sign-Off',
     description: 'Send documents for electronic approval and track signatures'
-  }
+  },
+  agewell_access: {
+    label: '🌿 AgeWell',
+    description: 'AgeWell Translate, Train & Meeting Notes — neighbourhood care service'
+  },
 };
 
-// Default module access for each role
 export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
-  // Practice User - minimal access
   practice_user: {
     meeting_notes_access: true,
     gp_scribe_access: false,
@@ -138,10 +152,9 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     lg_capture_access: false,
     bp_service_access: false,
     survey_manager_access: false,
-    document_signoff_access: false
+    document_signoff_access: false,
+    agewell_access: false,
   },
-
-  // Practice Manager - core management access (excludes Shared Drive, GP Scribe, CQC Compliance, Enhanced Access, Fridge Monitoring)
   practice_manager: {
     meeting_notes_access: true,
     gp_scribe_access: false,
@@ -158,10 +171,9 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     lg_capture_access: true,
     bp_service_access: true,
     survey_manager_access: true,
-    document_signoff_access: true
+    document_signoff_access: true,
+    agewell_access: false,
   },
-
-  // PCN Manager - oversight across practices
   pcn_manager: {
     meeting_notes_access: true,
     gp_scribe_access: false,
@@ -178,10 +190,9 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     lg_capture_access: false,
     bp_service_access: false,
     survey_manager_access: true,
-    document_signoff_access: true
+    document_signoff_access: true,
+    agewell_access: true,
   },
-
-  // System Admin - full access to everything
   system_admin: {
     meeting_notes_access: true,
     gp_scribe_access: true,
@@ -198,10 +209,9 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     lg_capture_access: true,
     bp_service_access: true,
     survey_manager_access: true,
-    document_signoff_access: true
+    document_signoff_access: true,
+    agewell_access: true,
   },
-
-  // GP - clinical focus
   gp: {
     meeting_notes_access: true,
     gp_scribe_access: true,
@@ -218,10 +228,9 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     lg_capture_access: false,
     bp_service_access: true,
     survey_manager_access: false,
-    document_signoff_access: false
+    document_signoff_access: false,
+    agewell_access: false,
   },
-
-  // Nurse - clinical with limited admin
   nurse: {
     meeting_notes_access: true,
     gp_scribe_access: true,
@@ -238,10 +247,9 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     lg_capture_access: false,
     bp_service_access: true,
     survey_manager_access: false,
-    document_signoff_access: false
+    document_signoff_access: false,
+    agewell_access: false,
   },
-
-  // Admin Staff - administrative focus
   admin_staff: {
     meeting_notes_access: true,
     gp_scribe_access: false,
@@ -258,10 +266,9 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     lg_capture_access: true,
     bp_service_access: false,
     survey_manager_access: false,
-    document_signoff_access: false
+    document_signoff_access: false,
+    agewell_access: false,
   },
-
-  // ICB User - oversight and governance focus
   icb_user: {
     meeting_notes_access: false,
     gp_scribe_access: false,
@@ -278,16 +285,15 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     lg_capture_access: false,
     bp_service_access: false,
     survey_manager_access: false,
-    document_signoff_access: false
-  }
+    document_signoff_access: false,
+    agewell_access: true,
+  },
 };
 
-// Helper function to get defaults for a role
 export const getDefaultModulesForRole = (role: string): ModuleAccess => {
   const knownRole = role as UserRole;
   if (roleDefaultModules[knownRole]) {
     return { ...roleDefaultModules[knownRole] };
   }
-  // Default to 'practice_user' role if unknown
   return { ...roleDefaultModules.practice_user };
 };
