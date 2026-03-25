@@ -1352,7 +1352,7 @@ function HomeScreen({onSelect}){
       <div style={{textAlign:"center",maxWidth:500}}>
         <h1 style={{fontSize:26,fontWeight:800,color:T.tealDark,margin:"0 0 6px",letterSpacing:"-0.5px",
           fontFamily:"Georgia, 'Times New Roman', serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
-          <AgewellLogoLarge/> Ageing Well Translate &amp; Train
+          <AgewellLogoLarge/> Ageing Well Live Services
         </h1>
         <p style={{fontSize:13,color:T.textSecondary,margin:0,lineHeight:1.6}}>
           A Notewell AI service for neighbourhood care teams
