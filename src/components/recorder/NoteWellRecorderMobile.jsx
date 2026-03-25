@@ -802,12 +802,10 @@ export default function NoteWellRecorder() {
     if (healthCheckRef.current) clearInterval(healthCheckRef.current);
     healthCheckRef.current = setInterval(() => {
       if (!recorder) return;
-      const mr = recorder.mediaRecorder;
       const stream = recorder.mediaStream;
-      const mrState = mr?.state;
-      const trackState = stream?.getTracks()?.[0]?.readyState;
-      if (mrState === "inactive" || trackState === "ended") {
-        console.error("🚨 Stream health check failed:", { mrState, trackState });
+      const track = stream?.getTracks()?.[0];
+      if (!track || track.readyState === "ended") {
+        console.error("🚨 Stream health check failed: track ended or missing");
         showToast("⚠️ Recording may have been interrupted — stop and save now", "error");
         clearInterval(healthCheckRef.current);
         healthCheckRef.current = null;
