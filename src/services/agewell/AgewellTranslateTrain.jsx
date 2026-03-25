@@ -729,7 +729,7 @@ function TrainingMode({ onBack }) {
             <button onClick={()=>sendMsg(manualText)} disabled={!manualText.trim()||aiLoading}
               style={btnStyle("primary")}>Send</button>
           </div>
-          <MicBar listening={listening} speaking={speaking} ok={ok} onToggle={toggle} onStopTTS={stopTTS}
+          <MicBar listening={listening} speaking={ttsActive} ok={ok} onToggle={toggle} onStopTTS={stopAllTTS}
             hint={ok?"Press mic · Speak your response · Auto-sends after pause":"STT unavailable — use text input above (Chrome/Edge)"}/>
         </div>
       </div>
