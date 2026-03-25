@@ -525,7 +525,7 @@ export default function NoteWellRecorder() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOnline,      setIsOnline]      = useState(navigator.onLine);
-  const [mode,          setMode]          = useState(navigator.onLine ? "live" : "offline");
+  const [mode,          setMode]          = useState("offline"); // Default offline — live mode discards transcript on stop
   const [recState,      setRecState]      = useState("idle");   // idle|recording|paused
   const [elapsed,       setElapsed]       = useState(0);        // ms elapsed
   const [recordings,    setRecordings]    = useState([]);
@@ -547,13 +547,14 @@ export default function NoteWellRecorder() {
   const [livePartial,   setLivePartial]   = useState("");
   const [liveStatus,    setLiveStatus]    = useState("idle"); // idle|connecting|connected|error
   const liveClientRef   = useRef(null);  // AssemblyRealtimeClient or UnifiedTranscriber
+  const capturedLiveTranscriptRef = useRef(""); // Captured on stop for rescue fallback
   const recorderRef  = useRef(null);  // ChunkedRecorder instance
   const timerRef     = useRef(null);
   const audioRef     = useRef(new Audio());
 
-  // ── Connectivity ──────────────────────────────────────────────────────────
+  // ── Connectivity (track online status but don't auto-switch mode) ────────
   useEffect(() => {
-    const goOnline  = () => { setIsOnline(true);  setMode("live");    };
+    const goOnline  = () => setIsOnline(true);
     const goOffline = () => { setIsOnline(false); setMode("offline"); };
     window.addEventListener("online",  goOnline);
     window.addEventListener("offline", goOffline);
@@ -776,6 +777,12 @@ export default function NoteWellRecorder() {
 
   const stopRecording = async () => {
     clearInterval(timerRef.current);
+    // Capture live transcript BEFORE stopping (it gets cleared on stop)
+    capturedLiveTranscriptRef.current = typeof liveTranscript === "string" ? liveTranscript : "";
+    const capturedLiveWC = capturedLiveTranscriptRef.current.split(/\s+/).filter(Boolean).length;
+    if (capturedLiveWC > 0) {
+      console.log(`[StopRecording] Captured live transcript: ${capturedLiveWC} words`);
+    }
     stopLiveTranscription();
     if (!recorderRef.current) { setRecState("idle"); return; }
 
@@ -853,7 +860,10 @@ export default function NoteWellRecorder() {
       // Keep audioData as first chunk for playback compatibility
       audioData:  chunkData[0]?.arrayBuffer,
       status:     "local",
+      // Save captured live transcript for rescue fallback
+      capturedLiveTranscript: capturedLiveTranscriptRef.current || "",
     };
+    capturedLiveTranscriptRef.current = ""; // Clear after saving
     await dbPut(rec);
     await refresh();
     setTitleModal(null);
@@ -1194,6 +1204,28 @@ export default function NoteWellRecorder() {
         fullTranscript = chunkTranscripts.map(c => c.text).filter(Boolean).join(" ").trim();
       }
 
+      // ── Live transcript rescue: if Whisper hallucinated, use captured live transcript ──
+      const whisperWordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+      const capturedLive = rec.capturedLiveTranscript || "";
+      const liveWordCount2 = capturedLive.split(/\s+/).filter(Boolean).length;
+      let usedLiveRescue = false;
+      const recordingMinutes = (rec.duration || 0) / 60;
+
+      if (liveWordCount2 > 30 && recordingMinutes >= 2) {
+        // If Whisper produced less than 30% of the live transcript, it likely hallucinated
+        if (whisperWordCount < liveWordCount2 * 0.3) {
+          console.warn(`[LiveRescue] Whisper hallucinated: ${whisperWordCount} words vs live ${liveWordCount2} words. Using live transcript.`);
+          fullTranscript = capturedLive;
+          usedLiveRescue = true;
+        }
+      }
+      // Also rescue if Whisper produced under 30 words for a 5+ minute recording
+      if (!usedLiveRescue && whisperWordCount < 30 && recordingMinutes >= 5 && liveWordCount2 > whisperWordCount) {
+        console.warn(`[LiveRescue] Whisper suspiciously short (${whisperWordCount} words for ${recordingMinutes.toFixed(0)}min). Using live transcript (${liveWordCount2} words).`);
+        fullTranscript = capturedLive;
+        usedLiveRescue = true;
+      }
+
       await dbPatch(rec.id, { status: "transcribed", transcript: fullTranscript });
       await refresh();
 
@@ -1242,9 +1274,7 @@ export default function NoteWellRecorder() {
       const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
       const durationMins = Math.round((rec.duration || 0) / 60);
 
-      const { data: meetingData, error: meetingErr } = await supabase
-        .from("meetings")
-        .insert({
+      const meetingInsert = {
           title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
           user_id: activeUser.id,
           status: "completed",
@@ -1255,8 +1285,18 @@ export default function NoteWellRecorder() {
           word_count: wordCount,
           import_source: mode === "live" ? "mobile_live" : "mobile_offline",
           whisper_transcript_text: fullTranscript,
-          primary_transcript_source: "whisper",
-        })
+          primary_transcript_source: usedLiveRescue ? "assemblyai_rescue" : "whisper",
+      };
+      // Store the non-primary transcript for audit
+      if (usedLiveRescue && capturedLive) {
+        meetingInsert.assembly_transcript_text = capturedLive;
+      } else if (capturedLive && liveWordCount2 > 0) {
+        meetingInsert.assembly_transcript_text = capturedLive;
+      }
+
+      const { data: meetingData, error: meetingErr } = await supabase
+        .from("meetings")
+        .insert(meetingInsert)
         .select("id")
         .single();
 
@@ -1614,7 +1654,7 @@ export default function NoteWellRecorder() {
             <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(21,101,192,0.15)",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}} title="Settings">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
-            <ModePill mode={mode} disabled={active} onTap={()=>setShowSheet(true)} />
+            {/* Mode toggle hidden — defaulting to offline for reliability */}
             <button onClick={()=>navigate("/meetings")} style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(21,101,192,0.15)",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}} title="My Meetings">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </button>
@@ -1799,7 +1839,7 @@ export default function NoteWellRecorder() {
 
             {isIdle && (
               <div style={{textAlign:"center",marginTop:12,fontSize:11,color:"#94a3b8"}}>
-                {mode==="live" ? "📶 Connected · transcript streams in real-time" : "📴 Offline · recording queued for transcription"}
+                🎙️ Record · audio transcribed when you stop
               </div>
             )}
           </div>
@@ -1808,8 +1848,8 @@ export default function NoteWellRecorder() {
           {isIdle && (
             <div style={{margin:"12px 16px 0",display:"flex",gap:8}}>
               {[
-                {n:"1",icon:mode==="live"?"🎙️":"🎙️",label:mode==="live"?"Tap record to start":"Record offline"},
-                {n:"2",icon:mode==="live"?"📝":"💾",label:mode==="live"?"Live transcript appears":"Saved to device"},
+                {n:"1",icon:"🎙️",label:"Tap record to start"},
+                {n:"2",icon:"💾",label:"Saved to device"},
                 {n:"3",icon:"✨",label:"Notes generated on stop"},
               ].map(s=>(
                 <div key={s.n} style={{flex:1,background:"white",borderRadius:14,padding:"12px 8px",textAlign:"center",boxShadow:"0 2px 8px rgba(21,101,192,0.07)",border:"1px solid rgba(21,101,192,0.08)"}}>
