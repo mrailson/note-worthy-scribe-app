@@ -477,16 +477,31 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
               background:"transparent",cursor:"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
             }}>{rec.status==="transcribed"?"⟳ Create Meeting":"↑ Sync"}</button>
           )}
-          <button onClick={()=>onDelete(rec.id)} style={{
-            width:28,height:28,borderRadius:8,border:"1px solid rgba(220,38,38,0.2)",
-            background:"rgba(220,38,38,0.05)",cursor:"pointer",
-            display:"flex",alignItems:"center",justifyContent:"center",
-          }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-              <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-            </svg>
-          </button>
+          {confirmDelete ? (
+            <div style={{display:"flex",gap:4,alignItems:"center"}}>
+              <button onClick={()=>{onDelete(rec.id);setConfirmDelete(false);}} style={{
+                padding:"4px 8px",borderRadius:6,border:"none",
+                background:"#dc2626",color:"white",fontSize:10,fontWeight:700,
+                cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
+              }}>Yes</button>
+              <button onClick={()=>setConfirmDelete(false)} style={{
+                padding:"4px 8px",borderRadius:6,border:"1px solid #cbd5e1",
+                background:"white",color:"#64748b",fontSize:10,fontWeight:700,
+                cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
+              }}>No</button>
+            </div>
+          ) : (
+            <button onClick={()=>setConfirmDelete(true)} style={{
+              width:28,height:28,borderRadius:8,border:"1px solid rgba(220,38,38,0.2)",
+              background:"rgba(220,38,38,0.05)",cursor:"pointer",
+              display:"flex",alignItems:"center",justifyContent:"center",
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
