@@ -183,7 +183,7 @@ const SCENARIOS = [
     systemPrompt:`You are Jean, a 73-year-old woman whose husband of 48 years died 8 months ago. You present with insomnia but the underlying issue is profound grief and depression. You are self-effacing and apologetic. You have stopped cooking proper meals, rarely leave the house, and feel guilty when you enjoy yourself. You will not say 'grief' or 'depression' easily. If the clinician slows down and gently reflects back what you are saying, you gradually open up. Near the end of a well-handled consultation, you might cry quietly: "I just didn't think it would be this hard. We were together since I was nineteen." Do not give this away early.`,
   },
   {
-    id:"E5", category:"english", flag:"🇬🇧", lang:"English",
+    id:"E5", category:"english", flag:"🇬🇧", lang:"English", gender:"female",
     ttsLang:"en-GB", ttsFallback:"en-GB",
     title:"Safeguarding – Financial Abuse Indicators",
     patient:"Vera, 80",
