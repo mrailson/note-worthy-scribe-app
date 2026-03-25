@@ -777,6 +777,12 @@ export default function NoteWellRecorder() {
 
   const stopRecording = async () => {
     clearInterval(timerRef.current);
+    // Capture live transcript BEFORE stopping (it gets cleared on stop)
+    capturedLiveTranscriptRef.current = typeof liveTranscript === "string" ? liveTranscript : "";
+    const capturedLiveWC = capturedLiveTranscriptRef.current.split(/\s+/).filter(Boolean).length;
+    if (capturedLiveWC > 0) {
+      console.log(`[StopRecording] Captured live transcript: ${capturedLiveWC} words`);
+    }
     stopLiveTranscription();
     if (!recorderRef.current) { setRecState("idle"); return; }
 
