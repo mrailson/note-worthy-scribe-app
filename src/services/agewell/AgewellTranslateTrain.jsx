@@ -161,7 +161,7 @@ const SCENARIOS = [
     systemPrompt:`You are Margaret, an 81-year-old woman discharged from hospital two days ago following a hip fracture. You live alone — your daughter is in Australia. You are anxious, muddled, and in persistent pain you're unsure you can take anything for. You cannot find your discharge paperwork. You are worried about your cat who hasn't been fed properly. You ask repetitive questions. You mention in passing that a neighbour has been helping but you feel guilty asking. If the clinician is reassuring and practical, you visibly relax. You need a care plan, pain review, and community support — but won't ask for these directly.`,
   },
   {
-    id:"E3", category:"english", flag:"🇬🇧", lang:"English",
+    id:"E3", category:"english", flag:"🇬🇧", lang:"English", gender:"male",
     ttsLang:"en-GB", ttsFallback:"en-GB",
     title:"Refusing Care – Proud Elder",
     patient:"Ronald, 77",
