@@ -1,33 +1,21 @@
 
 
-## Fix Julia's Meeting word_count + Patch Edge Function Robustness
+## ✅ Mobile Recorder: Default Offline + Live Transcript Rescue
 
-### What happened
-Julia's meeting `ef7711ae-...` has `notes_generation_status: completed` but `word_count: 0`. The edge function code does set `word_count`, so either the stitching initially produced empty text (before re-run), or a separate process reset it. The transcript text exists in `whisper_transcript_text` (confirmed earlier at 84,715 chars / ~16,258 words).
+### Changes made (25 Mar 2026)
 
-### Plan
+**Problem**: Live mode on mobile discarded the AssemblyAI real-time transcript on stop, relying solely on Whisper batch transcription which hallucinated (8 words for an 18-minute meeting).
 
-**1. Fix Julia's meeting word_count now**
+**Fix applied in `NoteWellRecorderMobile.jsx`**:
 
-Run a data update (via the insert/update tool) to set `word_count` to the actual count derived from `whisper_transcript_text`:
-```sql
-UPDATE meetings 
-SET word_count = array_length(
-  regexp_split_to_array(trim(whisper_transcript_text), '\s+'), 1
-)
-WHERE id = 'ef7711ae-2bc8-4c1b-a28c-5b7e075e16ea'
-  AND whisper_transcript_text IS NOT NULL;
-```
+1. **Default to offline mode** — `mode` state initialised as `"offline"` instead of auto-detecting connectivity. The Live/Offline toggle pill is hidden from the UI. Going offline still forces offline mode, but going online no longer auto-switches to live.
 
-**2. Check for any other meetings with the same issue**
+2. **Capture live transcript on stop** — `stopRecording()` now snapshots `liveTranscript` into `capturedLiveTranscriptRef` before clearing. This is persisted into the IndexedDB record as `capturedLiveTranscript`.
 
-Query for meetings where `whisper_transcript_text` has content but `word_count` is 0, and fix those too.
+3. **Live transcript rescue in sync pipeline** — After Whisper stitching, the system compares word counts:
+   - If Whisper produced <30% of the live transcript's words → use live transcript
+   - If Whisper produced <30 words for a 5+ minute recording and live has more → use live transcript
+   - The rescued transcript is stored in `whisper_transcript_text` with `primary_transcript_source: "assemblyai_rescue"`
+   - The live transcript is always saved to `assembly_transcript_text` for audit
 
-**3. Patch edge function for robustness**
-
-In `supabase/functions/transcribe-offline-meeting/index.ts`, add a safety check after stitching: if the stitched transcript is empty but chunks exist, log an error and don't overwrite `word_count` with 0. Also add a verification read-back after the update to confirm `word_count` was persisted.
-
-### Files to modify
-- `supabase/functions/transcribe-offline-meeting/index.ts` — add empty-transcript guard
-- Database update for Julia's meeting (and any others affected)
-
+4. **UI simplified** — Status text and step indicators no longer reference live/offline modes.
