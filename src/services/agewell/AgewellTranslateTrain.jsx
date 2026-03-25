@@ -21,6 +21,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import agewellLogo from "@/assets/agewell-logo.png";
 
 const callAgewellAI = async ({ messages, system, max_tokens }) => {
   const { data, error } = await supabase.functions.invoke("agewell-ai", {
