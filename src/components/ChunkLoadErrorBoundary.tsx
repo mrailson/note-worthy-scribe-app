@@ -57,6 +57,11 @@ class ChunkLoadErrorBoundary extends Component<Props, State> {
                 Refresh Page
               </Button>
             </div>
+            {this.state.errorMessage && (
+              <p style={{ fontSize: '12px', color: '#888', marginTop: '16px', wordBreak: 'break-word', textAlign: 'left', whiteSpace: 'pre-wrap' }}>
+                {this.state.errorMessage}
+              </p>
+            )}
           </div>
         </div>
       );
