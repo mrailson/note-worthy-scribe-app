@@ -20,6 +20,16 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+const callAgewellAI = async ({ messages, system, max_tokens }) => {
+  const { data, error } = await supabase.functions.invoke("agewell-ai", {
+    body: { messages, system, max_tokens },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data.text;
+};
 
 // ─── DESIGN TOKENS ──────────────────────────────────────────────────────────
 // Light, warm, accessible — AgeWell brand palette
