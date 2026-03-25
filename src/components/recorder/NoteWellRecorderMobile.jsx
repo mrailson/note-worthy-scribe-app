@@ -1005,6 +1005,26 @@ export default function NoteWellRecorder() {
     return data;
   };
 
+  // ── Poll for notes completion after client timeout — still send email ──
+  const pollAndEmailIfReady = async (meetingId, toastMsg) => {
+    showToast(toastMsg, "info");
+    const MAX_POLLS = 12; // 12 × 10s = 2 min max wait
+    for (let i = 0; i < MAX_POLLS; i++) {
+      await new Promise(r => setTimeout(r, 10000));
+      const { data: summary } = await supabase
+        .from("meeting_summaries")
+        .select("id")
+        .eq("meeting_id", meetingId)
+        .maybeSingle();
+      if (summary) {
+        showToast("Meeting notes generated ✨", "success");
+        triggerPostNoteActions(meetingId);
+        return;
+      }
+    }
+    showToast("Meeting saved — note generation may still be processing", "warning");
+  };
+
   // ── Post-note-generation actions (auto-email only — overview handled by orchestrator) ──
   const triggerPostNoteActions = async (meetingId) => {
     try {
@@ -1191,9 +1211,10 @@ export default function NoteWellRecorder() {
             showToast("Meeting notes generated ✨", "success");
             triggerPostNoteActions(meetingId);
           })
-          .catch((err) => {
-            console.error("[Sync] Note generation failed:", err);
-            showToast("Meeting saved — note generation failed", "error");
+          .catch(async (err) => {
+            console.error("[Sync] Note generation client error (may be timeout):", err);
+            // The edge function may have succeeded despite client timeout — poll for notes
+            await pollAndEmailIfReady(meetingId, "Meeting saved — checking for notes…");
           })
           .finally(() => { setSyncProgress(null); refresh(); });
         return;
@@ -1472,9 +1493,9 @@ export default function NoteWellRecorder() {
                 showToast("Meeting notes generated ✨", "success");
                 triggerPostNoteActions(meetingId);
               })
-              .catch((err) => {
-                console.error("Note generation failed:", err);
-                showToast("Meeting saved — note generation failed", "error");
+              .catch(async (err) => {
+                console.error("Note generation client error (may be timeout):", err);
+                await pollAndEmailIfReady(meetingId, "Meeting saved — checking for notes…");
               })
               .finally(() => { setSyncProgress(null); refresh(); });
             return;
@@ -1520,9 +1541,9 @@ export default function NoteWellRecorder() {
           showToast("Meeting notes generated ✨", "success");
           triggerPostNoteActions(meetingId);
         })
-        .catch((err) => {
-          console.error("Note generation failed:", err);
-          showToast("Meeting saved — note generation failed", "error");
+        .catch(async (err) => {
+          console.error("Note generation client error (may be timeout):", err);
+          await pollAndEmailIfReady(meetingId, "Meeting saved — checking for notes…");
         })
         .finally(() => { setSyncProgress(null); refresh(); });
     } catch (err) {
@@ -1651,9 +1672,9 @@ export default function NoteWellRecorder() {
           showToast("Meeting notes generated ✨", "success");
           triggerPostNoteActions(meetingData.id);
         })
-        .catch((err) => {
-          console.error("[LegacySync] Note generation failed:", err);
-          showToast("Meeting saved — note generation failed", "error");
+        .catch(async (err) => {
+          console.error("[LegacySync] Note generation client error (may be timeout):", err);
+          await pollAndEmailIfReady(meetingData.id, "Meeting saved — checking for notes…");
         })
         .finally(() => { setSyncProgress(null); refresh(); });
     } catch (err) {
@@ -2060,7 +2081,6 @@ export default function NoteWellRecorder() {
                 )}
               </div>
             )}
-
 
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20}}>
               {active && (
