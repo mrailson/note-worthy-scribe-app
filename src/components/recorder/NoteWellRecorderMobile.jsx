@@ -1204,6 +1204,28 @@ export default function NoteWellRecorder() {
         fullTranscript = chunkTranscripts.map(c => c.text).filter(Boolean).join(" ").trim();
       }
 
+      // ── Live transcript rescue: if Whisper hallucinated, use captured live transcript ──
+      const whisperWordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+      const capturedLive = rec.capturedLiveTranscript || "";
+      const liveWordCount2 = capturedLive.split(/\s+/).filter(Boolean).length;
+      let usedLiveRescue = false;
+      const recordingMinutes = (rec.duration || 0) / 60;
+
+      if (liveWordCount2 > 30 && recordingMinutes >= 2) {
+        // If Whisper produced less than 30% of the live transcript, it likely hallucinated
+        if (whisperWordCount < liveWordCount2 * 0.3) {
+          console.warn(`[LiveRescue] Whisper hallucinated: ${whisperWordCount} words vs live ${liveWordCount2} words. Using live transcript.`);
+          fullTranscript = capturedLive;
+          usedLiveRescue = true;
+        }
+      }
+      // Also rescue if Whisper produced under 30 words for a 5+ minute recording
+      if (!usedLiveRescue && whisperWordCount < 30 && recordingMinutes >= 5 && liveWordCount2 > whisperWordCount) {
+        console.warn(`[LiveRescue] Whisper suspiciously short (${whisperWordCount} words for ${recordingMinutes.toFixed(0)}min). Using live transcript (${liveWordCount2} words).`);
+        fullTranscript = capturedLive;
+        usedLiveRescue = true;
+      }
+
       await dbPatch(rec.id, { status: "transcribed", transcript: fullTranscript });
       await refresh();
 
