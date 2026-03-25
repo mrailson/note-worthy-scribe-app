@@ -62,9 +62,9 @@ class ChunkLoadErrorBoundary extends Component<Props, State> {
             ) : (
               <>
                 <RefreshCw className="h-12 w-12 text-muted-foreground mx-auto" />
-                <h2 className="text-xl font-semibold">Page Update Available</h2>
+                <h2 className="text-xl font-semibold">Something went wrong</h2>
                 <p className="text-muted-foreground">
-                  A newer version of the app is available. Please refresh to continue.
+                  The app encountered an unexpected error. Please refresh to continue.
                 </p>
                 <Button onClick={this.handleManualReload} className="mt-4">
                   <RefreshCw className="h-4 w-4 mr-2" />
