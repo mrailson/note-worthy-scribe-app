@@ -10,7 +10,7 @@
  *
  *  Modes:
  *    1. Live Translate   — real-time bilingual consultation support
- *    2. Translate & Train — AI patient role-play with STT/TTS (10 scenarios)
+ *    2. Skills Practice — AI patient role-play with STT/TTS (10 scenarios)
  *
  *  TTS bridge: window.notewellTTS(text, langCode) — connect your service here
  *  STT:        Web Speech API (en-GB for clinician, target lang for patient TTS)
