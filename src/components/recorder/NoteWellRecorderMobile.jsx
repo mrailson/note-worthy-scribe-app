@@ -525,7 +525,7 @@ export default function NoteWellRecorder() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOnline,      setIsOnline]      = useState(navigator.onLine);
-  const [mode,          setMode]          = useState(navigator.onLine ? "live" : "offline");
+  const [mode,          setMode]          = useState("offline"); // Default offline — live mode discards transcript on stop
   const [recState,      setRecState]      = useState("idle");   // idle|recording|paused
   const [elapsed,       setElapsed]       = useState(0);        // ms elapsed
   const [recordings,    setRecordings]    = useState([]);
