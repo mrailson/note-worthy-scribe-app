@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -8,44 +8,30 @@ interface Props {
 
 interface State {
   hasError: boolean;
-  isRetrying: boolean;
 }
 
 /**
- * Error boundary that catches chunk loading failures (dynamic imports)
- * and provides automatic or manual refresh options.
+ * Global error boundary — catches ALL uncaught errors and shows a
+ * recoverable fallback instead of a blank white screen.
  */
 class ChunkLoadErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
-    isRetrying: false,
   };
 
   public static getDerivedStateFromError(_error: Error): Partial<State> {
-    // Catch ALL errors to prevent a blank white screen.
-    // Previously, non-chunk errors were re-thrown, killing the entire React tree
-    // with no fallback UI — especially problematic on iOS Safari.
     return { hasError: true };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Chunk loading error caught:', error, errorInfo);
-    
-    // Check if we've already tried to reload recently
-    const lastReload = sessionStorage.getItem('chunk_error_reload');
-    const now = Date.now();
-    
-    if (!lastReload || now - parseInt(lastReload, 10) > 30000) {
-      // Auto-reload once if we haven't reloaded in the last 30 seconds
-      sessionStorage.setItem('chunk_error_reload', now.toString());
-      window.location.reload();
-    }
+    console.error('Uncaught error:', error, errorInfo);
   }
 
-  private handleManualReload = () => {
-    this.setState({ isRetrying: true });
-    // Clear cache and reload
-    sessionStorage.removeItem('chunk_error_reload');
+  private handleRetry = () => {
+    this.setState({ hasError: false });
+  };
+
+  private handleReload = () => {
     window.location.reload();
   };
 
@@ -54,24 +40,20 @@ class ChunkLoadErrorBoundary extends Component<Props, State> {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
           <div className="text-center space-y-4 max-w-md">
-            {this.state.isRetrying ? (
-              <>
-                <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-                <p className="text-muted-foreground">Refreshing...</p>
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-12 w-12 text-muted-foreground mx-auto" />
-                <h2 className="text-xl font-semibold">Something went wrong</h2>
-                <p className="text-muted-foreground">
-                  The app encountered an unexpected error. Please refresh to continue.
-                </p>
-                <Button onClick={this.handleManualReload} className="mt-4">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh Page
-                </Button>
-              </>
-            )}
+            <RefreshCw className="h-12 w-12 text-muted-foreground mx-auto" />
+            <h2 className="text-xl font-semibold">Something went wrong</h2>
+            <p className="text-muted-foreground">
+              The app encountered an unexpected error.
+            </p>
+            <div className="flex gap-3 justify-center mt-4">
+              <Button variant="outline" onClick={this.handleRetry}>
+                Try Again
+              </Button>
+              <Button onClick={this.handleReload}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Page
+              </Button>
+            </div>
           </div>
         </div>
       );
