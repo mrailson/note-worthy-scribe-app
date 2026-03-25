@@ -13,6 +13,9 @@ import { attachDeviceInfoToMeeting } from "@/utils/meetingDeviceCapture";
 import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
 import { createTranscriber } from "@/utils/TranscriptionServiceFactory";
 import { WhisperChunkTranscriber } from "@/utils/WhisperChunkTranscriber";
+import { useWakeLock } from "@/hooks/useWakeLock";
+import { iOSAudioKeepAlive } from "@/utils/iOSAudioKeepAlive";
+import { androidAudioKeepAlive } from "@/utils/androidAudioKeepAlive";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
@@ -601,6 +604,16 @@ export default function NoteWellRecorder() {
   const recorderRef  = useRef(null);  // ChunkedRecorder instance
   const timerRef     = useRef(null);
   const audioRef     = useRef(new Audio());
+  const healthCheckRef = useRef(null); // Stream health monitor interval
+  const [wakeLockStatus, setWakeLockStatus] = useState("unsupported"); // unsupported|active|inactive
+  const { requestLock, releaseLock, isLocked, isSupported: wakeLockSupported } = useWakeLock();
+
+  // ── Sync wake lock status with hook state ──────────────────────────────────
+  useEffect(() => {
+    if (recState !== "idle") {
+      setWakeLockStatus(isLocked ? "active" : (wakeLockSupported ? "inactive" : "unsupported"));
+    }
+  }, [isLocked, recState, wakeLockSupported]);
 
   // ── Connectivity (track online status but don't auto-switch mode) ────────
   useEffect(() => {
@@ -781,6 +794,32 @@ export default function NoteWellRecorder() {
     setLiveStatus("idle");
   }, []);
 
+  // ── Detect platform for keep-alive ────────────────────────────────────────
+  const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  // ── Start stream health monitor ──────────────────────────────────────────
+  const startHealthMonitor = useCallback((recorder) => {
+    if (healthCheckRef.current) clearInterval(healthCheckRef.current);
+    healthCheckRef.current = setInterval(() => {
+      if (!recorder) return;
+      const stream = recorder.mediaStream;
+      const track = stream?.getTracks()?.[0];
+      if (!track || track.readyState === "ended") {
+        console.error("🚨 Stream health check failed: track ended or missing");
+        showToast("⚠️ Recording may have been interrupted — stop and save now", "error");
+        clearInterval(healthCheckRef.current);
+        healthCheckRef.current = null;
+      }
+    }, 3000);
+  }, []);
+
+  const stopHealthMonitor = useCallback(() => {
+    if (healthCheckRef.current) {
+      clearInterval(healthCheckRef.current);
+      healthCheckRef.current = null;
+    }
+  }, []);
+
   // ── Recording controls (chunked) ─────────────────────────────────────────
   const startRecording = async () => {
     peakWordCountRef.current = 0;
@@ -800,6 +839,22 @@ export default function NoteWellRecorder() {
       setActiveStream(recorder.mediaStream);
       // Start live transcription with the same stream
       startLiveTranscription(recorder.mediaStream);
+
+      // ── Protection layer 1: Wake Lock ──
+      if (wakeLockSupported) {
+        const locked = await requestLock();
+        setWakeLockStatus(locked ? "active" : "inactive");
+        console.log("🔒 Wake Lock:", locked ? "acquired" : "failed");
+      } else {
+        setWakeLockStatus("unsupported");
+      }
+
+      // ── Protection layer 2: Audio Keep-Alive ──
+      const keepAlive = isIOSDevice ? iOSAudioKeepAlive : androidAudioKeepAlive;
+      await keepAlive.start();
+
+      // ── Protection layer 3: Stream Health Monitor ──
+      startHealthMonitor(recorder);
 
       const startTime = Date.now();
       timerRef.current = setInterval(() => {
@@ -827,6 +882,12 @@ export default function NoteWellRecorder() {
 
   const stopRecording = async () => {
     clearInterval(timerRef.current);
+    // ── Release protections ──
+    stopHealthMonitor();
+    await releaseLock();
+    setWakeLockStatus("unsupported");
+    const keepAlive = isIOSDevice ? iOSAudioKeepAlive : androidAudioKeepAlive;
+    keepAlive.stop();
     // Capture live transcript BEFORE stopping (it gets cleared on stop)
     capturedLiveTranscriptRef.current = typeof liveTranscript === "string" ? liveTranscript : "";
     const capturedLiveWC = capturedLiveTranscriptRef.current.split(/\s+/).filter(Boolean).length;
@@ -871,6 +932,14 @@ export default function NoteWellRecorder() {
       await recorder.start();
       setActiveStream(recorder.mediaStream);
       startLiveTranscription(recorder.mediaStream);
+      // Re-acquire protections
+      if (wakeLockSupported) {
+        const locked = await requestLock();
+        setWakeLockStatus(locked ? "active" : "inactive");
+      }
+      const keepAlive = isIOSDevice ? iOSAudioKeepAlive : androidAudioKeepAlive;
+      await keepAlive.start();
+      startHealthMonitor(recorder);
       const resumeFrom = Date.now() - prevElapsed;
       timerRef.current = setInterval(() => setElapsed(Date.now() - resumeFrom), 500);
       setRecState("recording");
@@ -1886,6 +1955,18 @@ export default function NoteWellRecorder() {
                   {chunksCompleted > 0 && (
                     <div style={{fontSize:10,color:"#94a3b8",marginTop:4}}>
                       {chunksCompleted} segment{chunksCompleted !== 1 ? "s" : ""} completed
+                    </div>
+                  )}
+                  {/* Wake lock / keep-screen-on indicator */}
+                  {active && (
+                    <div style={{
+                      display:"inline-flex",alignItems:"center",gap:4,marginTop:5,
+                      padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:600,
+                      background: wakeLockStatus === "active" ? "rgba(22,163,74,0.08)" : "rgba(245,158,11,0.1)",
+                      color: wakeLockStatus === "active" ? "#16a34a" : "#d97706",
+                      border: `1px solid ${wakeLockStatus === "active" ? "rgba(22,163,74,0.2)" : "rgba(245,158,11,0.3)"}`,
+                    }}>
+                      {wakeLockStatus === "active" ? "🔒 Screen lock prevented" : "⚠️ Keep screen on"}
                     </div>
                   )}
                 </>
