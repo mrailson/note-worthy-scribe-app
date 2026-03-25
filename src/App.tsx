@@ -107,6 +107,7 @@ const BPCalculator = lazy(() => import("./pages/BPCalculator"));
 const PublicBPCalculator = lazy(() => import("./pages/PublicBPCalculator"));
 const QuickRecord = lazy(() => import("./pages/QuickRecord"));
 const GPTranslationService = lazy(() => import("./pages/GPTranslationService"));
+const AgewellTranslateTrain = lazy(() => import("./services/agewell/AgewellTranslateTrain"));
 const AuthConfirm = lazy(() => import("./pages/AuthConfirm"));
 const Scribe = lazy(() => import("./pages/Scribe"));
 const AI4GPPromptGuide = lazy(() => import("./pages/AI4GPPromptGuide"));
