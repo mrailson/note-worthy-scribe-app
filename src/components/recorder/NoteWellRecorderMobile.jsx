@@ -1303,6 +1303,13 @@ export default function NoteWellRecorder() {
           console.warn(`Chunk ${i} transcription failed:`, fnErr);
           chunkTranscripts.push({ index: chunk.index, text: "", segments: [], success: false });
         } else {
+          // ── Whisper Chunk Cleaner: strip repetition loops ──
+          const cleaned = cleanWhisperResponse(transcriptData || {});
+          if (cleaned.cleaningSummary?.totalWordsRemoved > 0) {
+            console.log(`🧹 Mobile chunk ${i}: cleaner removed ${cleaned.cleaningSummary.totalWordsRemoved} words`);
+          }
+          const cleanedText = cleaned.text || transcriptData?.text || "";
+
           const offsetSec = (chunk.startTimeMs || 0) / 1000;
           const segments = (transcriptData?.segments || []).map(seg => ({
             start: seg.start + offsetSec,
@@ -1311,12 +1318,12 @@ export default function NoteWellRecorder() {
           }));
           chunkTranscripts.push({
             index: chunk.index,
-            text: transcriptData?.text || "",
+            text: cleanedText,
             segments,
             success: true,
           });
           // Chain this chunk's text for next chunk's prompt
-          if (transcriptData?.text) previousChunkText = transcriptData.text;
+          if (cleanedText) previousChunkText = cleanedText;
         }
       }
 
