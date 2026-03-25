@@ -1652,9 +1652,9 @@ export default function NoteWellRecorder() {
           showToast("Meeting notes generated ✨", "success");
           triggerPostNoteActions(meetingData.id);
         })
-        .catch((err) => {
-          console.error("[LegacySync] Note generation failed:", err);
-          showToast("Meeting saved — note generation failed", "error");
+        .catch(async (err) => {
+          console.error("[LegacySync] Note generation client error (may be timeout):", err);
+          await pollAndEmailIfReady(meetingData.id, "Meeting saved — checking for notes…");
         })
         .finally(() => { setSyncProgress(null); refresh(); });
     } catch (err) {
