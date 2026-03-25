@@ -543,6 +543,7 @@ export default function NoteWellRecorder() {
   const [playingId,     setPlayingId]     = useState(null);
   const [toast,         setToast]         = useState(null);
   const [storageWarning, setStorageWarning] = useState(null);
+  const [retranscribingIds, setRetranscribingIds] = useState({});
   const [chunksCompleted, setChunksCompleted] = useState(0);
   const [syncProgress,  setSyncProgress]  = useState(null);
   const [bitrate,       setBitrate]       = useState(getSavedBitrate());
