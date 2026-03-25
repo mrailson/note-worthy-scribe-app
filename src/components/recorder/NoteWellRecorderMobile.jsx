@@ -1923,7 +1923,8 @@ export default function NoteWellRecorder() {
             ) : recordings.map(r => (
               <RecordingItem key={r.id} rec={r}
                 onDelete={deleteRecording} onSync={syncRecording}
-                onPlay={playRecording} isPlaying={playingId===r.id} />
+                onPlay={playRecording} isPlaying={playingId===r.id}
+                onRetranscribe={retranscribeRecording} isRetranscribing={!!retranscribingIds[r.id]} />
             ))}
 
             {/* My Meetings card */}
