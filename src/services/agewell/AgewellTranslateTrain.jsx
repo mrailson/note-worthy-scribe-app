@@ -1515,7 +1515,7 @@ export default function AgewellTranslateTrain(){
           <span style={{fontSize:11,color:T.textMuted}}>AgeWell</span>
           <span style={{fontSize:11,color:T.textMuted}}>›</span>
           <span style={{fontSize:11,color:T.teal,fontWeight:700}}>
-            {mode==="translate"?"🌍 Live Translate":mode==="train"?"🎭 Translate & Train":"📝 Meeting Notes"}
+            {mode==="translate"?"Live Translate":mode==="train"?"Translate & Train":"Care Notes"}
           </span>
         </div>
       )}
