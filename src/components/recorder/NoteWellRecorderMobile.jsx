@@ -1596,7 +1596,12 @@ export default function NoteWellRecorder() {
         });
       if (fnErr) throw fnErr;
 
-      const transcriptText = transcriptData?.text || "";
+      // ── Whisper Chunk Cleaner: strip repetition loops ──
+      const cleanedLegacy = cleanWhisperResponse(transcriptData || {});
+      if (cleanedLegacy.cleaningSummary?.totalWordsRemoved > 0) {
+        console.log(`🧹 Mobile legacy sync: cleaner removed ${cleanedLegacy.cleaningSummary.totalWordsRemoved} words`);
+      }
+      const transcriptText = cleanedLegacy.text || transcriptData?.text || "";
       await dbPatch(rec.id, { status: "transcribed", transcript: transcriptText });
       await refresh();
 
