@@ -1482,7 +1482,7 @@ export default function AgewellTranslateTrain(){
         padding:"10px 20px",display:"flex",alignItems:"center",gap:12,flexShrink:0,
         boxShadow:"0 2px 12px rgba(13,148,136,0.2)",
       }}>
-        <div style={{fontSize:20}}>🌿</div>
+        <AgewellLogoSmall/>
         <div style={{flex:1}}>
           <div style={{fontWeight:800,fontSize:15,color:"white",letterSpacing:"-0.2px",
             fontFamily:"Georgia,'Times New Roman',serif"}}>
