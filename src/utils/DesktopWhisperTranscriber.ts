@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
 import { isLikelyHallucination, isLaughterNoise } from './whisperHallucinationPatterns';
+import { cleanWhisperResponse } from './whisper-chunk-cleaner';
 
 export interface TranscriptData {
   text: string;
