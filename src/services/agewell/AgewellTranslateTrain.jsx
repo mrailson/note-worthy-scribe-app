@@ -20,6 +20,16 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+const callAgewellAI = async ({ messages, system, max_tokens }) => {
+  const { data, error } = await supabase.functions.invoke("agewell-ai", {
+    body: { messages, system, max_tokens },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data.text;
+};
 
 // ─── DESIGN TOKENS ──────────────────────────────────────────────────────────
 // Light, warm, accessible — AgeWell brand palette
@@ -351,17 +361,10 @@ function LiveTranslateMode({ onBack }) {
         ?`Translate the following from English to ${targetLang.label}. Return ONLY the translation, nothing else:\n"${text}"`
         :`Translate the following from ${targetLang.label} to English. Return ONLY the translation, nothing else:\n"${text}"`;
 
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:400,
-          messages:[{role:"user",content:prompt}],
-        }),
-      });
-      const data=await res.json();
-      const translation=data.content?.find(b=>b.type==="text")?.text||"[Translation error]";
+      const translation = await callAgewellAI({
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 400,
+      }) || "[Translation error]";
       setTranscript(prev=>prev.map(e=>e.id===entry.id?{...e,translation}:e));
       // Speak translation in target language (patient hears English translated to their language)
       if(isClinicianSpeaking){
@@ -518,18 +521,11 @@ function TrainingMode({ onBack }) {
     setMessages(hist); setManualText("");
     setAiLoading(true); stopTTS();
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:1000,
-          system:selected.systemPrompt,
-          messages:hist.map(m=>({role:m.role,content:m.content})),
-        }),
-      });
-      const data=await res.json();
-      const reply=data.content?.find(b=>b.type==="text")?.text||"...";
+      const reply = await callAgewellAI({
+        messages: hist.map(m=>({role:m.role,content:m.content})),
+        system: selected.systemPrompt,
+        max_tokens: 1000,
+      }) || "...";
       setMessages(p=>[...p,{role:"assistant",content:reply}]);
       if(autoSpeak) await speak(reply,selected.ttsLang,selected.ttsFallback);
     } catch {
@@ -945,17 +941,10 @@ NEXT MEETING / REVIEW DATE:
 Keep language professional, concise, and appropriate for an NHS neighbourhood care record.`;
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:2000,
-          messages:[{role:"user",content:prompt}],
-        }),
-      });
-      const data = await res.json();
-      const text = data.content?.find(b=>b.type==="text")?.text || "Error generating notes.";
+      const text = await callAgewellAI({
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 2000,
+      }) || "Error generating notes.";
       setNotes(text);
       setEditedNotes(text);
       setPhase("notes");
