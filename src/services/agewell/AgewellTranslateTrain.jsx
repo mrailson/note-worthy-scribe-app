@@ -762,6 +762,31 @@ function TrainingMode({ onBack }) {
             }}>{l}</button>
           ))}
         </div>
+        {/* Voice selection for English scenarios */}
+        <div style={{display:"flex",alignItems:"center",gap:10,marginTop:10,flexWrap:"wrap"}}>
+          <span style={{fontSize:11,fontWeight:700,color:T.textSecondary}}>🔊 Patient Voice:</span>
+          {[
+            {key:"elderly_female",label:"Elderly Lady"},
+            {key:"elderly_male",label:"Elderly Gentleman"},
+          ].map(v=>(
+            <button key={v.key} onClick={()=>setVoicePreset(v.key)} style={{
+              background:voicePreset===v.key?T.tealLight:"white",
+              border:`1.5px solid ${voicePreset===v.key?T.teal:T.border}`,
+              color:voicePreset===v.key?T.tealDark:T.textSecondary,
+              padding:"4px 12px",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600,
+              transition:"all 0.15s",fontFamily:"inherit",
+            }}>{voicePreset===v.key?"✓ ":""}{v.label}</button>
+          ))}
+          <button onClick={()=>elevenTTS.speak("Hello dear, I've been having a bit of trouble with my legs lately.",{voicePreset})}
+            disabled={elevenTTS.isLoading||elevenTTS.isPlaying}
+            style={{
+              background:"none",border:`1px solid ${T.border}`,borderRadius:7,
+              padding:"4px 10px",cursor:"pointer",fontSize:10,fontWeight:600,
+              color:T.textMuted,fontFamily:"inherit",opacity:elevenTTS.isLoading?0.5:1,
+            }}>
+            {elevenTTS.isLoading?"⏳":"▶️"} Preview
+          </button>
+        </div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"18px 20px",
         display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",
