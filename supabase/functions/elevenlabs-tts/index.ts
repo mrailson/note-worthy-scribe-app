@@ -288,8 +288,19 @@ serve(async (req) => {
     // Get audio as array buffer
     const audioBuffer = await response.arrayBuffer();
     console.log('Audio buffer size:', audioBuffer.byteLength);
+
+    // If raw_audio requested, return binary MP3 directly (for Skills Practice)
+    if (raw_audio) {
+      return new Response(audioBuffer, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'audio/mpeg',
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
+    }
     
-    // Convert to base64 (process in chunks to avoid stack overflow)
+    // Otherwise return base64 JSON (legacy behaviour for audio overview etc.)
     const uint8Array = new Uint8Array(audioBuffer);
     let binaryString = '';
     const chunkSize = 0x8000; // 32KB chunks
