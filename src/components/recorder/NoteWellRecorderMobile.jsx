@@ -860,7 +860,10 @@ export default function NoteWellRecorder() {
       // Keep audioData as first chunk for playback compatibility
       audioData:  chunkData[0]?.arrayBuffer,
       status:     "local",
+      // Save captured live transcript for rescue fallback
+      capturedLiveTranscript: capturedLiveTranscriptRef.current || "",
     };
+    capturedLiveTranscriptRef.current = ""; // Clear after saving
     await dbPut(rec);
     await refresh();
     setTitleModal(null);
