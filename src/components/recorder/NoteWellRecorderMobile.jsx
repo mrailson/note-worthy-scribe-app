@@ -1839,7 +1839,7 @@ export default function NoteWellRecorder() {
 
             {isIdle && (
               <div style={{textAlign:"center",marginTop:12,fontSize:11,color:"#94a3b8"}}>
-                {mode==="live" ? "📶 Connected · transcript streams in real-time" : "📴 Offline · recording queued for transcription"}
+                🎙️ Record · audio transcribed when you stop
               </div>
             )}
           </div>
