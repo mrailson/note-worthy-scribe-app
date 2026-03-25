@@ -1198,7 +1198,8 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
         lg_capture_access: user.lg_capture_access ?? false,
         bp_service_access: user.bp_service_access ?? false,
         survey_manager_access: user.survey_manager_access ?? false,
-        document_signoff_access: user.document_signoff_access ?? false
+        document_signoff_access: user.document_signoff_access ?? false,
+        agewell_access: (user as any).agewell_access ?? false
       }
     };
     
