@@ -1499,7 +1499,7 @@ export default function AgewellTranslateTrain(){
           }}>⌂ Home</button>
         )}
         <div style={{display:"flex",gap:6}}>
-          {mode==="home"&&[["translate","🌍 Translate"],["train","🎭 Train"],["notes","📝 Notes"]].map(([k,l])=>(
+          {mode==="home"&&[["translate","Translate"],["train","Train"],["notes","Notes"]].map(([k,l])=>(
             <button key={k} onClick={()=>setMode(k)} style={{
               background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",
               color:"white",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",
