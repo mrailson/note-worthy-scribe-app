@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════
- *  Ageing Well Translate & Train
+ *  Ageing Well Live Services
  *  A Notewell AI Service — branched from Live Translate (notewell-live-translate)
  *
  *  Branch:  agewell-translate-train
