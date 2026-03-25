@@ -1387,7 +1387,7 @@ function HomeScreen({onSelect}){
                 </div>
               ))}
             </div>
-            <div style={{marginTop:18,display:"flex",justifyContent:"flex-end"}}>
+            <div style={{marginTop:"auto",paddingTop:18,display:"flex",justifyContent:"flex-end"}}>
               <div style={{background:m.color,color:"white",borderRadius:8,padding:"7px 16px",fontSize:12,fontWeight:700}}>Open →</div>
             </div>
           </div>
