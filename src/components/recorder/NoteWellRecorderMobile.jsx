@@ -13,6 +13,9 @@ import { attachDeviceInfoToMeeting } from "@/utils/meetingDeviceCapture";
 import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
 import { createTranscriber } from "@/utils/TranscriptionServiceFactory";
 import { WhisperChunkTranscriber } from "@/utils/WhisperChunkTranscriber";
+import { useWakeLock } from "@/hooks/useWakeLock";
+import { iOSAudioKeepAlive } from "@/utils/iOSAudioKeepAlive";
+import { androidAudioKeepAlive } from "@/utils/androidAudioKeepAlive";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
