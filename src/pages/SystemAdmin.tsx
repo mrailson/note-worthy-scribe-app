@@ -405,9 +405,9 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
           console.log(`Fetching roles for user ${user.user_id}`);
           
           // Get ALL user_roles for this user and take the first one for display
-          const { data: roleData, error: roleError } = await supabase
+          const { data: roleData, error: roleError } = await (supabase
             .from('user_roles')
-            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access, lg_capture_access, bp_service_access, show_consultation_examples, agewell_access')
+            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access, lg_capture_access, bp_service_access, show_consultation_examples, agewell_access') as any)
             .eq('user_id', user.user_id)
             .limit(1)
             .single();
