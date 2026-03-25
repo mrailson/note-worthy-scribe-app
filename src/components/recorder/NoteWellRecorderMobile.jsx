@@ -16,6 +16,7 @@ import { WhisperChunkTranscriber } from "@/utils/WhisperChunkTranscriber";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { iOSAudioKeepAlive } from "@/utils/iOSAudioKeepAlive";
 import { androidAudioKeepAlive } from "@/utils/androidAudioKeepAlive";
+import { cleanWhisperResponse } from "@/utils/whisper-chunk-cleaner";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
