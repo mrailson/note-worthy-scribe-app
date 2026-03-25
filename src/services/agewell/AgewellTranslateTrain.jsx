@@ -282,10 +282,10 @@ function useTTS(){
 
 // ─── LOGO COMPONENTS ────────────────────────────────────────────────────────
 function AgewellLogoLarge(){
-  return <img src={agewellLogo} alt="AgeWell" width={48} height={48} style={{objectFit:"contain"}}/>;
+  return <img src={agewellLogo} alt="Ageing Well" width={48} height={48} style={{objectFit:"contain"}}/>;
 }
 function AgewellLogoSmall(){
-  return <img src={agewellLogo} alt="AgeWell" width={22} height={22} style={{objectFit:"contain"}}/>;
+  return <img src={agewellLogo} alt="Ageing Well" width={22} height={22} style={{objectFit:"contain"}}/>;
 }
 
 function Waveform({active,color=T.teal,size=5}){
