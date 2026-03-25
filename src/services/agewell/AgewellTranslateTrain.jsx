@@ -1456,6 +1456,38 @@ function HomeScreen({onSelect}){
 
 export default function AgewellTranslateTrain(){
   const [mode,setMode]=useState("home"); // home | translate | train | notes
+  const [userMenuOpen,setUserMenuOpen]=useState(false);
+  const [userInitials,setUserInitials]=useState("?");
+  const navigate=useNavigate();
+  const menuRef=useRef(null);
+
+  useEffect(()=>{
+    supabase.auth.getUser().then(({data})=>{
+      if(data?.user){
+        const meta=data.user.user_metadata||{};
+        const name=meta.full_name||meta.name||data.user.email||"";
+        const parts=name.trim().split(/\s+/);
+        setUserInitials(parts.length>=2?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():name.slice(0,2).toUpperCase());
+      }
+    });
+  },[]);
+
+  useEffect(()=>{
+    if(!userMenuOpen) return;
+    const handler=(e)=>{if(menuRef.current&&!menuRef.current.contains(e.target)) setUserMenuOpen(false);};
+    document.addEventListener("mousedown",handler);
+    return()=>document.removeEventListener("mousedown",handler);
+  },[userMenuOpen]);
+
+  const handleLogout=async()=>{
+    await supabase.auth.signOut();
+    navigate("/");
+  };
+
+  const pillStyle={
+    background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.3)",
+    color:"white",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",
+  };
 
   return(
     <div style={{
@@ -1478,31 +1510,66 @@ export default function AgewellTranslateTrain(){
       {/* Global header */}
       <div style={{
         background:`linear-gradient(135deg, ${T.tealDark} 0%, ${T.teal} 100%)`,
-        padding:"10px 20px",display:"flex",alignItems:"center",gap:12,flexShrink:0,
+        padding:"10px 20px",display:"flex",alignItems:"center",gap:10,flexShrink:0,
         boxShadow:"0 2px 12px rgba(13,148,136,0.2)",
       }}>
-        <div style={{flex:1}}>
+        {/* Back to Notewell */}
+        <button onClick={()=>navigate("/")} style={{
+          ...pillStyle,fontSize:11,padding:"4px 10px",opacity:0.85,
+        }}>← Notewell</button>
+
+        {/* Title */}
+        <div>
           <div style={{fontWeight:800,fontSize:15,color:"white",letterSpacing:"-0.2px",
             fontFamily:"Georgia,'Times New Roman',serif"}}>
-            Ageing Well Translate &amp; Train
+            🏠 Ageing Well Translate &amp; Train
           </div>
           <div style={{fontSize:10,color:"rgba(255,255,255,0.75)",letterSpacing:"1px",fontWeight:600}}>
             NOTEWELL AI · NEIGHBOURHOOD CARE SERVICE
           </div>
         </div>
+
+        {/* Spacer */}
+        <div style={{flex:1}}/>
+
+        {/* Nav pills */}
         {mode!=="home"&&(
-          <button onClick={()=>setMode("home")} style={{
-            background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",
-            color:"white",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",
-          }}>⌂ Home</button>
+          <button onClick={()=>setMode("home")} style={pillStyle}>⌂ Home</button>
         )}
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           {mode==="home"&&[["translate","Translate"],["train","Train"],["notes","Notes"]].map(([k,l])=>(
-            <button key={k} onClick={()=>setMode(k)} style={{
-              background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",
-              color:"white",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",
-            }}>{l}</button>
+            <button key={k} onClick={()=>setMode(k)} style={pillStyle}>{l}</button>
           ))}
+        </div>
+
+        {/* User avatar + dropdown */}
+        <div ref={menuRef} style={{position:"relative"}}>
+          <button onClick={()=>setUserMenuOpen(v=>!v)} style={{
+            width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,0.2)",
+            border:"1px solid rgba(255,255,255,0.3)",color:"white",fontSize:11,fontWeight:700,
+            cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit",
+          }}>{userInitials}</button>
+          {userMenuOpen&&(
+            <div style={{
+              position:"absolute",right:0,top:34,background:"white",borderRadius:10,
+              boxShadow:"0 8px 24px rgba(0,0,0,0.15)",border:`1px solid ${T.border}`,
+              minWidth:180,zIndex:999,overflow:"hidden",animation:"aw-fadein 0.15s ease",
+            }}>
+              <button onClick={()=>{setUserMenuOpen(false);navigate("/profile");}} style={{
+                display:"block",width:"100%",textAlign:"left",padding:"10px 16px",
+                background:"none",border:"none",cursor:"pointer",fontSize:13,color:T.textPrimary,fontFamily:"inherit",
+              }}>My profile</button>
+              <button onClick={()=>{setUserMenuOpen(false);navigate("/");}} style={{
+                display:"block",width:"100%",textAlign:"left",padding:"10px 16px",
+                background:"none",border:"none",cursor:"pointer",fontSize:13,color:T.textPrimary,fontFamily:"inherit",
+              }}>← Back to Notewell</button>
+              <div style={{height:1,background:T.border,margin:"2px 0"}}/>
+              <button onClick={handleLogout} style={{
+                display:"block",width:"100%",textAlign:"left",padding:"10px 16px",
+                background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#DC2626",fontFamily:"inherit",
+              }}>Log out</button>
+            </div>
+          )}
         </div>
       </div>
 
