@@ -1349,10 +1349,9 @@ function HomeScreen({onSelect}){
       padding:"32px 24px",background:T.pageBg,gap:20,overflowY:"auto"}}>
       {/* Hero: logo + title + subtitle + badge */}
       <div style={{textAlign:"center",maxWidth:500}}>
-        <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}><AgewellLogoLarge/></div>
         <h1 style={{fontSize:26,fontWeight:800,color:T.tealDark,margin:"0 0 6px",letterSpacing:"-0.5px",
-          fontFamily:"Georgia, 'Times New Roman', serif"}}>
-          Ageing Well Translate &amp; Train
+          fontFamily:"Georgia, 'Times New Roman', serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+          <AgewellLogoLarge/> Ageing Well Translate &amp; Train
         </h1>
         <p style={{fontSize:13,color:T.textSecondary,margin:"0 0 4px",lineHeight:1.6}}>
           A Notewell AI service for neighbourhood care teams
