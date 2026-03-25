@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
         const tokenData = await tokenResponse.json();
 
         // Build v3 WebSocket URL with parameters
-        let wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&token=${encodeURIComponent(tokenData.token)}`;
+        let wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&encoding=pcm_s16le&format_turns=true&token=${encodeURIComponent(tokenData.token)}`;
 
         // Keyterms sent via Configure message after connection opens (not in URL)
         
