@@ -1,38 +1,54 @@
 
-Goal: remove the CSP conflicts that can block Safari iPhone script execution, and keep a universal fallback instead of a blank screen.
 
-What I found in the current code:
-- `index.html` already has no static CSP meta tag. That part is effectively done.
-- `src/components/SecurityWrapper.tsx` still defines CSP twice:
-  - once in `useEffect`
-  - once again via `<Helmet><meta httpEquiv="Content-Security-Policy" ... /></Helmet>`
-- The active `useEffect` CSP already does not use `script-src-elem` or `style-src-elem`.
-- `src/components/ChunkLoadErrorBoundary.tsx` already catches all errors in `getDerivedStateFromError`, but it still has chunk-specific comments/logging and an automatic reload path.
+# Download Partial Signatures + Auto-Send Toggle
 
-Implementation plan:
-1. Keep `index.html` unchanged except to verify there is still no CSP meta tag added back
-- No runtime CSP should exist there.
-- This avoids parse-time CSP blocking the app before React starts.
+## What you asked for
+1. **Download with signatures so far** — ability to download the document with whatever signatures have been collected, even if not all signatories have signed yet (avoids resending when chasing one manual signature)
+2. **Auto-send toggle on creation** — option to control whether the completed signed document is automatically emailed to all parties when all signatures are in
 
-2. Make `SecurityWrapper.tsx` the only CSP source
-- Remove the `<meta httpEquiv="Content-Security-Policy" ... />` from the `<Helmet>` block.
-- Keep the `useEffect` CSP injection as the single runtime source of truth.
-- Add `worker-src 'self' blob:` to the `cspHeader` string.
-- Leave `script-src-elem` and `style-src-elem` absent everywhere.
-- Keep the non-CSP Helmet meta tags (`Permissions-Policy`, etc.) unless they are also duplicated elsewhere.
+## Current behaviour
+- Download/signed PDF generation only appears when `isCompleted && allApproved` (line 493 of ApprovalDocumentDetail)
+- On completion, `process-approval` automatically calls `generate-signed-pdf-server` which auto-sends the completed email
+- No DB column exists for the auto-send preference
 
-3. Clean up `ChunkLoadErrorBoundary.tsx` so it behaves like a true global fallback
-- Keep `getDerivedStateFromError` catching all errors.
-- Remove the chunk-specific assumption in comments/logging text.
-- Remove the automatic reload/sessionStorage loop so errors surface as the fallback UI instead of bouncing silently.
-- Keep a simple fallback with reload action: “Something went wrong” / “Tap to reload”.
+---
 
-4. Limit scope strictly to the requested files
-- `src/components/SecurityWrapper.tsx`
-- `src/components/ChunkLoadErrorBoundary.tsx`
-- No changes to recorder, wake lock, Whisper cleaner, or other mobile logic.
+## Plan
 
-Expected result:
-- Safari iPhone no longer gets multiple intersecting CSPs.
-- Script execution is no longer blocked by duplicate/competing policies.
-- If any separate runtime error still exists, users see a fallback instead of a blank white screen, making the next issue debuggable.
+### 1. Add "Download Current Progress" button to ApprovalDocumentDetail
+- Show a new button in the action bar when status is `pending` and at least 1 signatory has approved
+- Label: "Download with Signatures So Far"
+- Reuse the existing `generateSignedPdfCore()` logic — it already includes only approved signatories' stamps and skips unsigned ones
+- This generates a PDF with the original document + signature page showing who has signed and who hasn't, then triggers a browser download
+- Does NOT upload to storage or update the document record (it's a transient local download)
+
+### 2. Add `auto_send_on_completion` column to `approval_documents`
+- New migration: `ALTER TABLE approval_documents ADD COLUMN auto_send_on_completion boolean NOT NULL DEFAULT true;`
+- Default true preserves current behaviour
+
+### 3. Add toggle to CreateApprovalFlow review step
+- On the review step (before the Send button), add a Switch/toggle:
+  - Label: "Auto-send signed document on completion"
+  - Description: "When all parties have signed, automatically email the signed document to everyone"
+  - Default: on
+- Store the value in component state, pass it through to `uploadDocument` metadata so it's saved on the `approval_documents` row
+
+### 4. Update `uploadDocument` in useDocumentApproval hook
+- Accept `auto_send_on_completion` in the metadata parameter
+- Include it in the insert to `approval_documents`
+
+### 5. Update process-approval edge function
+- When all signatories approve (single-doc flow, line ~485), read `auto_send_on_completion` from the document row
+- If false, still generate the signed PDF (so it's ready) but pass `skip_email: true` to `generate-signed-pdf-server`
+- For multi-doc groups, same logic: check the flag before sending the completion email
+
+### 6. Update generate-signed-pdf-server edge function
+- Already supports `skip_email` — no change needed here
+
+### Files to modify
+- `src/components/document-approval/ApprovalDocumentDetail.tsx` — add partial download button
+- `src/components/document-approval/CreateApprovalFlow.tsx` — add auto-send toggle on review step
+- `src/hooks/useDocumentApproval.ts` — pass `auto_send_on_completion` through upload
+- `supabase/functions/process-approval/index.ts` — respect the flag
+- New migration for the DB column
+
