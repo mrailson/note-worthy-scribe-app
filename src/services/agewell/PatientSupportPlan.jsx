@@ -637,12 +637,19 @@ export default function PatientSupportPlan() {
             <div style={{fontSize:9,letterSpacing:1.5,textTransform:"uppercase",opacity:0.6}}>Guided Assessment</div>
           </div>
         </div>
-        <div style={{display:"flex",gap:8}}>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <button onClick={() => setRec(!rec)} style={{padding:"6px 14px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,background:rec?C.red:"rgba(255,255,255,0.15)",color:"#fff"}}>
             {rec ? "● REC" : "Start Recording"}
           </button>
           <button onClick={() => setPage("summary")} style={{background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff",padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:600}}>
             View Summary
+          </button>
+          <button onClick={demo.toggleDemoMode} style={{
+            padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:11,fontWeight:800,letterSpacing:1,
+            background: demo.isDemoMode ? C.amber : "rgba(255,255,255,0.15)",
+            color: demo.isDemoMode ? "#000" : "#fff",
+          }}>
+            {demo.isDemoMode ? "DEMO ●" : "DEMO"}
           </button>
         </div>
       </div>
