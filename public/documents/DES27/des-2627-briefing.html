@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Contract DES 2026/27 — PCN Briefing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --nhs: #005EB8;
+    --nhs-dark: #003087;
+    --nhs-light: #E8F1FB;
+    --accent: #007F3B;
+    --warn: #D5281B;
+    --amber: #ED8B00;
+    --surface: #F4F6F9;
+    --card: #ffffff;
+    --text: #1a1a2e;
+    --muted: #5c6b82;
+    --border: #dde3ed;
+    --serif: 'DM Serif Display', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    background: var(--nhs-dark);
+    background-image: 
+      radial-gradient(ellipse at 0% 0%, rgba(0,94,184,0.7) 0%, transparent 60%),
+      radial-gradient(ellipse at 100% 100%, rgba(0,127,59,0.3) 0%, transparent 60%);
+    color: white;
+    padding: 48px 20px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .hero-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    padding: 4px 14px;
+    margin-bottom: 16px;
+    color: rgba(255,255,255,0.9);
+    text-transform: uppercase;
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(26px, 7vw, 38px);
+    line-height: 1.15;
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: #7EC8E3;
+  }
+
+  .hero-sub {
+    font-size: 15px;
+    color: rgba(255,255,255,0.7);
+    font-weight: 300;
+    margin-bottom: 24px;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .hero-meta span {
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .hero-meta span::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #7EC8E3;
+    flex-shrink: 0;
+  }
+
+  /* ─── NAV PILLS ─── */
+  .nav-strip {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .nav-strip::-webkit-scrollbar { display: none; }
+
+  .nav-pills {
+    display: flex;
+    gap: 8px;
+    min-width: max-content;
+  }
+
+  .nav-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .nav-pill:hover, .nav-pill.active {
+    background: var(--nhs);
+    border-color: var(--nhs);
+    color: white;
+  }
+
+  /* ─── LAYOUT ─── */
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+
+  section {
+    padding: 32px 0 16px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--nhs);
+    margin-bottom: 6px;
+  }
+
+  .section-title {
+    font-family: var(--serif);
+    font-size: clamp(22px, 5vw, 28px);
+    font-weight: 400;
+    color: var(--nhs-dark);
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+
+  .card-accent {
+    border-left: 4px solid var(--nhs);
+    border-radius: 0 16px 16px 0;
+    padding-left: 18px;
+  }
+
+  .card-title {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--nhs-dark);
+    margin-bottom: 6px;
+  }
+
+  .card-body {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ─── SUMMARY BOXES ─── */
+  .headline-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .headline-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .headline-box .amount {
+    font-family: var(--serif);
+    font-size: 24px;
+    color: var(--nhs-dark);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .headline-box .change {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    background: #e6f4ee;
+    border-radius: 100px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+
+  .headline-box .change.neutral {
+    color: var(--muted);
+    background: var(--surface);
+  }
+
+  .headline-box .label {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+
+  /* ─── COMPARISON TABLE ─── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .compare-table th {
+    background: var(--nhs-dark);
+    color: white;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+
+  .compare-table th:first-child { border-radius: 10px 0 0 0; }
+  .compare-table th:last-child { border-radius: 0 10px 0 0; }
+
+  .compare-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.4;
+  }
+
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table tr:nth-child(even) td { background: var(--surface); }
+
+  .compare-table .up {
+    color: var(--accent);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .compare-table .same {
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .compare-table tr:last-child td:first-child { border-radius: 0 0 0 10px; }
+  .compare-table tr:last-child td:last-child { border-radius: 0 0 10px 0; }
+
+  .table-wrap {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  /* ─── GP ARRS SECTION ─── */
+  .gp-hero {
+    background: linear-gradient(135deg, var(--nhs-dark) 0%, #004d99 100%);
+    border-radius: 20px;
+    padding: 24px 20px;
+    margin-bottom: 16px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gp-hero::after {
+    content: '£';
+    position: absolute;
+    right: -10px; bottom: -20px;
+    font-family: var(--serif);
+    font-size: 120px;
+    color: rgba(255,255,255,0.06);
+    line-height: 1;
+  }
+
+  .gp-hero .rate-display {
+    margin: 16px 0 8px;
+  }
+
+  .gp-hero .rate-old {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    text-decoration: line-through;
+    margin-bottom: 2px;
+  }
+
+  .gp-hero .rate-new {
+    font-family: var(--serif);
+    font-size: 42px;
+    color: white;
+    line-height: 1;
+  }
+
+  .gp-hero .rate-note {
+    font-size: 13px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 4px;
+  }
+
+  .gp-hero .tag {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 3px 12px;
+    text-transform: uppercase;
+    color: #7EC8E3;
+    display: inline-block;
+  }
+
+  .gp-hero .why-box {
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 16px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.6;
+  }
+
+  .gp-hero .why-box strong {
+    color: white;
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* ─── ELIGIBILITY CARDS ─── */
+  .elig-grid {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .elig-card {
+    border-radius: 16px;
+    padding: 18px;
+    border: 1.5px solid;
+  }
+
+  .elig-card.can {
+    background: #f0faf4;
+    border-color: #a8d5b8;
+  }
+
+  .elig-card.cannot {
+    background: #fdf2f2;
+    border-color: #f0b8b8;
+  }
+
+  .elig-card .elig-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .elig-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .can .elig-icon { background: var(--accent); color: white; }
+  .cannot .elig-icon { background: var(--warn); color: white; }
+
+  .elig-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .can h3 { color: #1a5c34; }
+  .cannot h3 { color: #8b1c1c; }
+
+  .elig-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .elig-list li {
+    font-size: 14px;
+    padding-left: 20px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .can .elig-list li { color: #1a5c34; }
+  .can .elig-list li::before { content: '✓'; position: absolute; left: 0; font-weight: 700; color: var(--accent); }
+
+  .cannot .elig-list li { color: #7a1a1a; }
+  .cannot .elig-list li::before { content: '✕'; position: absolute; left: 0; font-weight: 700; color: var(--warn); }
+
+  /* ─── RATE JOURNEY ─── */
+  .rate-journey {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .rate-journey h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+  }
+
+  .journey-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .journey-step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .step-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .step-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--nhs-light);
+    border: 2px solid var(--nhs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--nhs);
+    flex-shrink: 0;
+  }
+
+  .step-dot.active {
+    background: var(--nhs);
+    color: white;
+    border-color: var(--nhs);
+  }
+
+  .step-connector {
+    width: 2px;
+    height: 28px;
+    background: var(--border);
+    margin: 2px 0;
+  }
+
+  .step-content {
+    padding-bottom: 20px;
+    flex: 1;
+  }
+
+  .step-year {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .step-amount {
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--nhs-dark);
+    line-height: 1.1;
+    margin: 2px 0;
+  }
+
+  .step-amount.current {
+    font-size: 26px;
+    color: var(--nhs);
+  }
+
+  .step-detail {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* ─── WARNING BOX ─── */
+  .alert {
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .alert.warn {
+    background: #fff8e6;
+    border: 1.5px solid #f5c842;
+  }
+
+  .alert.info {
+    background: var(--nhs-light);
+    border: 1.5px solid #b8d4f0;
+  }
+
+  .alert.danger {
+    background: #fdf2f2;
+    border: 1.5px solid #f0b8b8;
+  }
+
+  .alert-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .alert-body {
+    flex: 1;
+  }
+
+  .alert-body strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+
+  .alert.warn strong { color: #7a5a00; }
+  .alert.info strong { color: var(--nhs-dark); }
+  .alert.danger strong { color: #8b1c1c; }
+
+  .alert-body p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .alert.warn p { color: #7a5a00; }
+  .alert.info p { color: var(--nhs-dark); }
+  .alert.danger p { color: #7a1a1a; }
+
+  /* ─── CHANGES TAGS ─── */
+  .changes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .change-item {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .change-tag {
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .tag-new { background: var(--nhs); color: white; }
+  .tag-end { background: var(--warn); color: white; }
+  .tag-clarified { background: var(--amber); color: white; }
+
+  .change-text { flex: 1; }
+  .change-text strong { font-size: 14px; color: var(--text); display: block; margin-bottom: 3px; }
+  .change-text p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* ─── ACTIONS ─── */
+  .actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .action-item {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .action-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--nhs-dark);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .action-text strong {
+    font-size: 14px;
+    color: var(--text);
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .action-text p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .action-text .when {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 2px 10px;
+    margin-bottom: 4px;
+  }
+
+  .action-text .when.now {
+    background: #fdf2f2;
+    border-color: #f0b8b8;
+    color: var(--warn);
+  }
+
+  /* ─── DIVIDER ─── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 0 24px;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: var(--nhs-dark);
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    padding: 32px 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    margin-top: 32px;
+  }
+
+  footer strong {
+    color: white;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero h1, .hero-sub, .hero-meta {
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .hero-sub { animation-delay: 0.1s; }
+  .hero-meta { animation-delay: 0.2s; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 380px) {
+    .headline-grid { grid-template-columns: 1fr; }
+    .gp-hero .rate-new { font-size: 34px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="container">
+    <span class="hero-tag">NHS England</span>
+    <h1>Network Contract DES<br><em>2026/27</em></h1>
+    <p class="hero-sub">PCN Briefing — Key changes, funding uplifts &amp; GP ARRS rules</p>
+    <div class="hero-meta">
+      <span>Published 26 March 2026</span>
+      <span>Effective 1 April 2026</span>
+      <span>Prepared by Malcolm Railson</span>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav-strip">
+  <div class="nav-pills">
+    <a class="nav-pill active" href="#funding">Funding</a>
+    <a class="nav-pill" href="#gp-arrs">GP ARRS</a>
+    <a class="nav-pill" href="#eligibility">Eligibility</a>
+    <a class="nav-pill" href="#other-arrs">Other ARRS</a>
+    <a class="nav-pill" href="#changes">New Changes</a>
+    <a class="nav-pill" href="#actions">Actions</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ═══ FUNDING ═══ -->
+  <section id="funding">
+    <p class="section-label">Financial Entitlements</p>
+    <h2 class="section-title">Funding at a glance</h2>
+
+    <div class="headline-grid">
+      <div class="headline-box">
+        <div class="amount">£3.059</div>
+        <div class="change">+£0.060</div>
+        <div class="label">Core PCN Funding per patient</div>
+      </div>
+      <div class="headline-box">
+        <div class="amount">£8.903</div>
+        <div class="change">+5.6%</div>
+        <div class="label">Enhanced Access per adj. patient</div>
+      </div>
+      <div class="headline-box">
+        <div class="amount">£27.668</div>
+        <div class="change">+3.1%</div>
+        <div class="label">ARRS sum per weighted patient</div>
+      </div>
+      <div class="headline-box">
+        <div class="amount">£1.761</div>
+        <div class="change neutral">+£0.001</div>
+        <div class="label">Network Participation Payment</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Payment</th>
+            <th>2025/26</th>
+            <th>2026/27</th>
+            <th>Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Core PCN Funding</td>
+            <td>£2.999</td>
+            <td>£3.059</td>
+            <td class="up">+2.0%</td>
+          </tr>
+          <tr>
+            <td>Enhanced Access</td>
+            <td>£8.427</td>
+            <td>£8.903</td>
+            <td class="up">+5.6%</td>
+          </tr>
+          <tr>
+            <td>ARRS Sum</td>
+            <td>£26.848</td>
+            <td>£27.668</td>
+            <td class="up">+3.1%</td>
+          </tr>
+          <tr>
+            <td>Care Home Premium</td>
+            <td>—</td>
+            <td>£133.158/bed</td>
+            <td class="up">Confirmed</td>
+          </tr>
+          <tr>
+            <td>IIF (per point)</td>
+            <td>£198 / 58 pts</td>
+            <td>£198 / 58 pts</td>
+            <td class="same">No change</td>
+          </tr>
+          <tr>
+            <td>NPP</td>
+            <td>£1.760</td>
+            <td>£1.761</td>
+            <td class="same">Unchanged</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card card-accent">
+      <div class="card-title">Core PCN Funding breakdown</div>
+      <div class="card-body">£2.311 × registered list size + £0.748 × adjusted population (both at 1 January 2026). This continues to combine Clinical Director and Leadership &amp; Management payments into a single figure — giving PCNs full flexibility in how they lead and manage.</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ═══ GP ARRS ═══ -->
+  <section id="gp-arrs">
+    <p class="section-label">GP ARRS — Major Changes</p>
+    <h2 class="section-title">The GP rate — what changed &amp; why</h2>
+
+    <div class="gp-hero">
+      <span class="tag">2026/27 Maximum</span>
+      <div class="rate-display">
+        <div class="rate-old">2025/26: ~£105,882 (incl. on-costs)</div>
+        <div class="rate-new">£152,900</div>
+        <div class="rate-note">National maximum incl. employer NI &amp; pension</div>
+      </div>
+      <div class="why-box">
+        <strong>Why has it jumped so much?</strong>
+        This is not a straightforward pay uplift. The rate has increased for two reasons acting together: the eligibility restriction has been removed (see below), and NHS England has raised the salary ceiling from the <em>lower quartile</em> to the <em>top</em> of the salaried GP pay range — because experienced GPs earn significantly more than newly qualified ones.
+      </div>
+    </div>
+
+    <!-- Rate journey -->
+    <div class="rate-journey">
+      <h3>Rate journey — salary ceiling over 3 years</h3>
+      <div class="journey-steps">
+
+        <div class="journey-step">
+          <div class="step-line">
+            <div class="step-dot">1</div>
+            <div class="step-connector"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-year">2024/25 (Oct onwards)</div>
+            <div class="step-amount">£73,113 <span style="font-size:14px;color:var(--muted);font-family:var(--sans)">salary only</span></div>
+            <div class="step-detail">Bottom of salaried GP pay range. Only newly qualified GPs within 2 years of CCT eligible. Scheme launched October 2024.</div>
+          </div>
+        </div>
+
+        <div class="journey-step">
+          <div class="step-line">
+            <div class="step-dot">2</div>
+            <div class="step-connector"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-year">2025/26</div>
+            <div class="step-amount">£82,418 <span style="font-size:14px;color:var(--muted);font-family:var(--sans)">salary / ~£105,882 total</span></div>
+            <div class="step-detail">Lower quartile of salaried GP range. Still restricted to GPs within 2 years of CCT. GP ARRS merged into main ARRS pot.</div>
+          </div>
+        </div>
+
+        <div class="journey-step">
+          <div class="step-line">
+            <div class="step-dot active">3</div>
+          </div>
+          <div class="step-content">
+            <div class="step-year">2026/27 — Now</div>
+            <div class="step-amount current">£152,900 total</div>
+            <div class="step-detail">Top of salaried GP pay range, including on-costs. 2-year post-CCT restriction removed. Experienced GPs now eligible.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="alert warn">
+      <div class="alert-icon">⚠️</div>
+      <div class="alert-body">
+        <strong>Important caveat — budget hasn't risen to match</strong>
+        <p>The ARRS pot has only increased by 3.1% per weighted patient. Recruiting an experienced GP at or near £152,900 will consume a very large share of a PCN's total ARRS allocation — potentially at the expense of other roles. This is a strategic trade-off, not a free uplift.</p>
+      </div>
+    </div>
+
+    <div class="alert info">
+      <div class="alert-icon">ℹ️</div>
+      <div class="alert-body">
+        <strong>London weighting</strong>
+        <p>A London-weighted maximum rate for GP ARRS also applies. See Table 3c in the DES specification for the full figure (£155,698).</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ═══ ELIGIBILITY ═══ -->
+  <section id="eligibility">
+    <p class="section-label">GP ARRS</p>
+    <h2 class="section-title">Who you can — and can't — claim for</h2>
+
+    <div class="elig-grid">
+      <div class="elig-card can">
+        <div class="elig-header">
+          <div class="elig-icon">✓</div>
+          <h3>You CAN claim for</h3>
+        </div>
+        <ul class="elig-list">
+          <li>Any GP not substantively employed in a Core Network Practice within the <strong>previous 12 months</strong></li>
+          <li>Experienced GPs — the 2-year post-CCT restriction is <strong>removed from April 2026</strong></li>
+          <li>GPs who were engaged or employed on a <strong>temporary basis</strong> (e.g. to cover maternity or sickness leave) — this is not considered substantive employment</li>
+          <li>A GP already claimed under <strong>2025/26 ARRS rules</strong> who continues in the same post — the claim can simply continue</li>
+          <li>GPs employed by a <strong>third-party organisation</strong> (e.g. federation) that provides the service to the PCN</li>
+        </ul>
+      </div>
+
+      <div class="elig-card cannot">
+        <div class="elig-header">
+          <div class="elig-icon">✕</div>
+          <h3>You CANNOT claim for</h3>
+        </div>
+        <ul class="elig-list">
+          <li>A GP who has been <strong>substantively employed</strong> in any Core Network Practice of the PCN within the previous <strong>12 months</strong></li>
+          <li>A GP being used to <strong>backfill</strong> an existing GP post that was funded before 31 March 2019</li>
+          <li>Any GP where the PCN cannot <strong>demonstrate additionality</strong> — the role must be above the 2019 baseline</li>
+          <li>A GP where a <strong>registration number</strong> has not been provided on the ARRS portal claim (new 2026/27 requirement)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card card-accent">
+      <div class="card-title">What counts as "substantive employment"?</div>
+      <div class="card-body">The DES specification is explicit: a GP engaged or employed on a <em>temporary</em> basis — for example to cover maternity leave, sickness leave or a short-term vacancy — is <strong>not</strong> considered to have been substantively employed. Only those in permanent or ongoing salaried roles are caught by the 12-month rule.</div>
+    </div>
+
+    <div class="alert danger">
+      <div class="alert-icon">🚫</div>
+      <div class="alert-body">
+        <strong>New from 2026/27 — registration numbers on claims</strong>
+        <p>All professionally regulated ARRS staff — including GPs — must have their GMC registration number included on the mandatory online ARRS portal claim. Claims without a registration number will not be compliant.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ═══ OTHER ARRS ═══ -->
+  <section id="other-arrs">
+    <p class="section-label">ARRS Workforce</p>
+    <h2 class="section-title">Other key ARRS rates 2026/27</h2>
+
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Band</th>
+            <th>2026/27 Max</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Digital &amp; Transformation Lead</strong></td>
+            <td>8a</td>
+            <td><strong>£78,534</strong></td>
+          </tr>
+          <tr>
+            <td>Advanced Practitioner</td>
+            <td>8a</td>
+            <td>£78,534</td>
+          </tr>
+          <tr>
+            <td>Consultant Nurse Primary Care</td>
+            <td>8c</td>
+            <td>£109,943</td>
+          </tr>
+          <tr>
+            <td>Clinical Pharmacist</td>
+            <td>7–8a</td>
+            <td>£71,725</td>
+          </tr>
+          <tr>
+            <td>Physician Assistant</td>
+            <td>7</td>
+            <td>£69,515</td>
+          </tr>
+          <tr>
+            <td>First Contact Physiotherapist</td>
+            <td>7–8a</td>
+            <td>£71,725</td>
+          </tr>
+          <tr>
+            <td>Experienced GP Nurse</td>
+            <td>6</td>
+            <td>£57,114</td>
+          </tr>
+          <tr>
+            <td>Pharmacy Technician</td>
+            <td>5</td>
+            <td>£46,447</td>
+          </tr>
+          <tr>
+            <td>Social Prescribing Link Worker</td>
+            <td>Up to 5</td>
+            <td>£46,447</td>
+          </tr>
+          <tr>
+            <td>New to GP Nurse</td>
+            <td>5</td>
+            <td>£46,447</td>
+          </tr>
+          <tr>
+            <td>Care Co-ordinator</td>
+            <td>4</td>
+            <td>£38,739</td>
+          </tr>
+          <tr>
+            <td>Healthcare Support Worker</td>
+            <td>3</td>
+            <td>£34,469</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card card-accent">
+      <div class="card-title">🆕 Non-direct patient care roles — new in 2026/27</div>
+      <div class="card-body">Section 7.3.2-C explicitly opens the ARRS to <strong>non-direct patient care roles</strong> (e.g. operational, admin, transformation support) with commissioner agreement, up to Band 8c. Additionality principles apply. This is a significant new flexibility for PCNs looking to build operational capacity.</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ═══ OTHER CHANGES ═══ -->
+  <section id="changes">
+    <p class="section-label">Contract Requirements</p>
+    <h2 class="section-title">New &amp; changed requirements</h2>
+
+    <div class="changes-list">
+
+      <div class="change-item">
+        <span class="change-tag tag-end">ENDED</span>
+        <div class="change-text">
+          <strong>PCN Grouping for vaccine sharing — abolished</strong>
+          <p>The PCN Grouping mechanism that allowed flu/COVID vaccines to be shared between member practices ends 1 April 2026. Subcontracting or agency arrangements must be in place. This is an immediate operational action.</p>
+        </div>
+      </div>
+
+      <div class="change-item">
+        <span class="change-tag tag-new">NEW</span>
+        <div class="change-text">
+          <strong>Flu/COVID vaccination in Aligned Care Homes</strong>
+          <p>Where Core Network Practices participate in the flu/COVID Enhanced Service, the PCN must ensure all Aligned Care Home residents are offered vaccination. The Network Agreement must be updated to document collaborative arrangements.</p>
+        </div>
+      </div>
+
+      <div class="change-item">
+        <span class="change-tag tag-new">NEW</span>
+        <div class="change-text">
+          <strong>Cancer screening uptake duties</strong>
+          <p>Explicit new duties to improve uptake of breast, cervical, bowel, lung, diabetic eye, AAA, and antenatal/newborn screening — including NHS App signposting. Also a new duty to review cancer referral quality against NICE Guideline 12.</p>
+        </div>
+      </div>
+
+      <div class="change-item">
+        <span class="change-tag tag-new">NEW</span>
+        <div class="change-text">
+          <strong>Digital risk stratification for continuity of care</strong>
+          <p>PCNs should now use digital risk stratification tools to identify patients who would benefit most from continuity of care — including named GP allocation where appropriate.</p>
+        </div>
+      </div>
+
+      <div class="change-item">
+        <span class="change-tag tag-new">NEW</span>
+        <div class="change-text">
+          <strong>Vaccination status review for care home residents</strong>
+          <p>PCNs must review the vaccination status of all Aligned Care Home residents and notify the registered practice of any gaps in routine vaccination programmes.</p>
+        </div>
+      </div>
+
+      <div class="change-item">
+        <span class="change-tag tag-new">NEW</span>
+        <div class="change-text">
+          <strong>GPSS survey — third-party employers</strong>
+          <p>All ARRS staff must participate in the GP Staff Survey. Where employed by a third-party organisation, the employer must provide that individual's email address to the PCN's GPSS key contact.</p>
+        </div>
+      </div>
+
+      <div class="change-item">
+        <span class="change-tag tag-clarified">CLARIFIED</span>
+        <div class="change-text">
+          <strong>Neighbourhood alignment — limited safety net</strong>
+          <p>Where a commissioner (with local authority) defines a neighbourhood not aligned with a PCN's Network Area, the PCN must collaborate on alignment. Described explicitly as limited — not widespread reconfiguration.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ═══ ACTIONS ═══ -->
+  <section id="actions">
+    <p class="section-label">Board Actions Required</p>
+    <h2 class="section-title">What needs to happen now</h2>
+
+    <div class="actions-list">
+
+      <div class="action-item">
+        <div class="action-num">1</div>
+        <div class="action-text">
+          <span class="when now">Immediate — April 2026</span>
+          <strong>Care home vaccine sharing</strong>
+          <p>Confirm any flu/COVID vaccine sharing between practices is formalised via subcontracting or agency arrangement. PCN Grouping ends 1 April 2026.</p>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">2</div>
+        <div class="action-text">
+          <span class="when now">From April 2026</span>
+          <strong>ARRS portal — registration numbers</strong>
+          <p>Ensure registration numbers for all regulated ARRS staff (GPs, pharmacists, physios, etc.) are captured and included in monthly portal claims.</p>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">3</div>
+        <div class="action-text">
+          <span class="when">GPSS — ongoing</span>
+          <strong>Third-party employer email addresses</strong>
+          <p>Where ARRS staff are employed by third parties (e.g. federation, NRES), ensure those employers provide individual email addresses to the PCN's GPSS key contact.</p>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">4</div>
+        <div class="action-text">
+          <span class="when">Strategic — Q1/Q2</span>
+          <strong>GP ARRS — review your position</strong>
+          <p>With experienced GPs now eligible, consider whether recruiting an ARRS GP makes sense for the PCN. Be aware this will significantly reduce headroom for other ARRS roles within the overall pot.</p>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">5</div>
+        <div class="action-text">
+          <span class="when">Strategic — Q1/Q2</span>
+          <strong>Non-direct patient care ARRS roles</strong>
+          <p>Review whether operational or admin roles could now be claimed via ARRS under Section 7.3.2-C. Commissioner agreement required; additionality principles apply.</p>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">6</div>
+        <div class="action-text">
+          <span class="when">By 31 October 2026</span>
+          <strong>Workforce Plan submission</strong>
+          <p>A completed PCN Workforce Plan must be submitted to the commissioner by 31 October 2026. Begin review of staffing mix early to allow preparation time.</p>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">7</div>
+        <div class="action-text">
+          <span class="when">Population health — ongoing</span>
+          <strong>Cancer screening &amp; referral review</strong>
+          <p>Incorporate new screening uptake duties and cancer referral quality review (NICE Guideline 12) into PCN population health management planning and INT discussions.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <strong>Network Contract DES 2026/27 — PCN Briefing</strong>
+  Prepared by Malcolm Railson, PCN Manager / Digital &amp; Transformation Lead<br>
+  Brackley &amp; Towcester PCN · Blue PCN09 · NRES<br><br>
+  Source: PRN02355iii Network Contract DES 2026/27, NHS England, 26 March 2026.<br>
+  For informational purposes. Always refer to the published specification for definitive requirements.
+</footer>
+
+<script>
+  // Active nav pill on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const pills = document.querySelectorAll('.nav-pill');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        pills.forEach(p => p.classList.remove('active'));
+        const active = document.querySelector(`.nav-pill[href="#${e.target.id}"]`);
+        if (active) {
+          active.classList.add('active');
+          active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
