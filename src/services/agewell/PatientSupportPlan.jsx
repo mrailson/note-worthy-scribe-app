@@ -792,6 +792,24 @@ export default function PatientSupportPlan() {
       </div>
 
       <style>{`input:focus,textarea:focus{border-color:${C.blue}!important;box-shadow:0 0 0 3px rgba(0,94,184,.1)!important}::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}`}</style>
+
+      {demo.isDemoMode && (
+        <DemoToolbar
+          isRunning={demo.isRunning}
+          isPaused={demo.isPaused}
+          speed={demo.speed}
+          progress={demo.progress}
+          completedCount={demo.completedCount}
+          totalSections={demo.totalSections}
+          onRun={demo.runDemo}
+          onPause={demo.pause}
+          onResume={demo.resume}
+          onSkipToEnd={demo.skipToEnd}
+          onReset={demo.reset}
+          onSetSpeed={demo.setSpeed}
+          onExit={demo.toggleDemoMode}
+        />
+      )}
     </div>
   );
 }
