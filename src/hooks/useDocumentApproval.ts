@@ -427,6 +427,25 @@ export function useDocumentApproval() {
     toast.success('Document approval revoked');
   }, [user, fetchDocuments]);
 
+  const closeDocument = useCallback(async (documentId: string) => {
+    const { error } = await supabase
+      .from('approval_documents')
+      .update({ status: 'closed', completed_at: new Date().toISOString() })
+      .eq('id', documentId);
+
+    if (error) throw error;
+
+    await supabase.from('approval_audit_log').insert({
+      document_id: documentId,
+      action: 'closed',
+      actor_name: user?.user_metadata?.full_name || user?.email,
+      actor_email: user?.email,
+    });
+
+    await fetchDocuments();
+    toast.success('Document closed — download remains available');
+  }, [user, fetchDocuments]);
+
   const chaseSignatory = useCallback(async (documentId: string, signatoryId: string) => {
     const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
