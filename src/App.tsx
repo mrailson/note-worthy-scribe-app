@@ -108,6 +108,7 @@ const PublicBPCalculator = lazy(() => import("./pages/PublicBPCalculator"));
 const QuickRecord = lazy(() => import("./pages/QuickRecord"));
 const GPTranslationService = lazy(() => import("./pages/GPTranslationService"));
 const AgewellTranslateTrain = lazy(() => import("./services/agewell/AgewellTranslateTrain"));
+const PatientSupportPlan = lazy(() => import("./services/agewell/PatientSupportPlan"));
 const AuthConfirm = lazy(() => import("./pages/AuthConfirm"));
 const Scribe = lazy(() => import("./pages/Scribe"));
 const AI4GPPromptGuide = lazy(() => import("./pages/AI4GPPromptGuide"));
@@ -251,6 +252,11 @@ const App = () => {
                 <Route path="/agewell" element={
                   <ProtectedRoute requiredService="agewell">
                     <AgewellTranslateTrain />
+                  </ProtectedRoute>
+                } />
+                <Route path="/agewell/care-notes/patient-support-plan" element={
+                  <ProtectedRoute requiredService="agewell">
+                    <PatientSupportPlan />
                   </ProtectedRoute>
                 } />
                 <Route path="/translation-tool" element={<Navigate to="/gp-translation" replace />} />
