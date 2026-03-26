@@ -254,6 +254,11 @@ const App = () => {
                     <AgewellTranslateTrain />
                   </ProtectedRoute>
                 } />
+                <Route path="/agewell/care-notes/patient-support-plan" element={
+                  <ProtectedRoute requiredService="agewell">
+                    <PatientSupportPlan />
+                  </ProtectedRoute>
+                } />
                 <Route path="/translation-tool" element={<Navigate to="/gp-translation" replace />} />
                 <Route path="/mobile-translate" element={<MobileTranslation />} />
                 <Route path="/patient-language" element={<PatientLanguageSelection />} />
