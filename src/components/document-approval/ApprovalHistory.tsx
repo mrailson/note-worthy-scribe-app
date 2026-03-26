@@ -29,6 +29,7 @@ import {
   CalendarIcon,
   Eye,
   Layers,
+  Archive,
 } from 'lucide-react';
 import { ApprovalDocumentWithSignatories } from '@/hooks/useDocumentApproval';
 import { format, isWithinInterval, parseISO } from 'date-fns';
@@ -62,7 +63,7 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
 
   // Only history docs
   const historyDocs = useMemo(() =>
-    documents.filter(d => d.status === 'completed' || d.status === 'revoked' || d.status === 'expired'),
+    documents.filter(d => d.status === 'completed' || d.status === 'revoked' || d.status === 'expired' || d.status === 'closed'),
     [documents]
   );
 
@@ -249,6 +250,7 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
                 <SelectItem value="revoked">Revoked</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
               </SelectContent>
@@ -381,9 +383,13 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {doc.status === 'completed' ? (
+                    {doc.status === 'completed' ? (
                         <Badge className="bg-[hsl(var(--approval-completed-bg))] text-[hsl(var(--approval-approved))] border border-[hsl(var(--approval-completed-border))] text-xs gap-1">
                           <CheckCircle2 className="h-3 w-3" /> Completed
+                        </Badge>
+                      ) : doc.status === 'closed' ? (
+                        <Badge className="bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800 text-xs gap-1">
+                          <Archive className="h-3 w-3" /> Closed
                         </Badge>
                       ) : doc.status === 'revoked' ? (
                         <Badge variant="secondary" className="text-xs gap-1">

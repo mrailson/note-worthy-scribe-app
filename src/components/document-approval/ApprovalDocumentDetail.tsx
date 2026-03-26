@@ -5,7 +5,7 @@ import {
   FileText, CheckCircle2, Clock, XCircle, Ban, Loader2, Download, 
   Shield, Send, Copy, Lock, Plus, User, Mail, Building2, Calendar,
   Eye, PenLine, Bell, FileSignature, Award, Trash2, ArrowLeft,
-  ZoomIn, ZoomOut,
+  ZoomIn, ZoomOut, Archive,
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -257,7 +257,7 @@ function InlinePdfPreview({ fileUrl }: { fileUrl: string }) {
 
 
 export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
-  const { fetchSignatories, fetchAuditLog, revokeDocument, deleteDocument } = useDocumentApproval();
+  const { fetchSignatories, fetchAuditLog, revokeDocument, closeDocument, deleteDocument } = useDocumentApproval();
   const [signatories, setSignatories] = useState<ApprovalSignatory[]>([]);
   const [auditLog, setAuditLog] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -265,6 +265,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [revoking, setRevoking] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
 
   const signedFileUrl = (doc as any).signed_file_url as string | null;
@@ -455,6 +456,11 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
     try { await revokeDocument(doc.id); onBack(); } finally { setRevoking(false); }
   };
 
+  const handleClose = async () => {
+    setClosing(true);
+    try { await closeDocument(doc.id); onBack(); } finally { setClosing(false); }
+  };
+
   const tabs: { id: TabId; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'signatories', label: 'Signatories' },
@@ -556,7 +562,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                   </Button>
                 </>
               )}
-              {doc.status === 'pending' && (
+              {(doc.status === 'pending' || doc.status === 'closed') && (
                 <Button
                   variant="outline" size="sm" className="gap-2"
                   onClick={handleDownloadPartialPdf}
@@ -565,6 +571,30 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                   {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                   {approvedCount > 0 ? 'Download with Signatures So Far' : 'Download Document'}
                 </Button>
+              )}
+              {doc.status === 'pending' && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2 text-amber-600 border-amber-300">
+                      {closing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />}
+                      Close
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Close this document?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Chase reminders will stop. You can still download the document with any signatures collected so far.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClose} disabled={closing}>
+                        {closing ? 'Closing…' : 'Close Document'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
               {doc.status === 'pending' && (
                 <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/30" onClick={handleRevoke} disabled={revoking}>
