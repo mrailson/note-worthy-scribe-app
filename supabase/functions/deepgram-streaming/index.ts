@@ -50,6 +50,12 @@ Deno.serve(async (req: Request) => {
         // Handle text/JSON messages
         const message = JSON.parse(event.data);
         console.log('📨 Received message from client:', message.type || 'unknown');
+
+        // Handle keepalive ping/pong
+        if (message.type === 'ping') {
+          socket.send(JSON.stringify({ type: 'pong', ts: Date.now() }));
+          return;
+        }
         
         // Handle session start message to create Deepgram connection
         if (message.type === 'session.start') {
