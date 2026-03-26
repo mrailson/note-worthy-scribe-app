@@ -539,7 +539,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Download the PDF attachment for request/reminder emails (skip if >5MB to avoid memory limits)
     const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5MB — keep low to avoid edge function memory limits
-    let pdfAttachment: { filename: string; content: Uint8Array } | null = null;
+    let pdfAttachment: { filename: string; content: string } | null = null;
     let pdfDownloadUrl: string | null = null;
     if (type === "request" || type === "reminder") {
       const fileSizeBytes = doc.file_size_bytes || 0;
