@@ -559,7 +559,7 @@ const handler = async (req: Request): Promise<Response> => {
             const pdfFilename = originalName.replace(/\.docx?$/i, '.pdf');
             pdfAttachment = {
               filename: pdfFilename,
-              content: new Uint8Array(arrayBuf),
+              content: encodeBase64(new Uint8Array(arrayBuf)),
             };
           }
         } catch (e) {
