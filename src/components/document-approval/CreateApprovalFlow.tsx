@@ -79,6 +79,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [showDocPreview, setShowDocPreview] = useState(false);
   const [previewPages, setPreviewPages] = useState<string[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [autoSendOnCompletion, setAutoSendOnCompletion] = useState(true);
 
   // ─── Step 1: Files & metadata ──────────────────────────────────────
   const [files, setFiles] = useState<DocFile[]>([]);
