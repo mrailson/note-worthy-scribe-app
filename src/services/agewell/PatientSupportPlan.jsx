@@ -8,7 +8,10 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useDemoMode } from "@/hooks/useDemoMode";
+import { DemoToolbar } from "@/components/agewell/DemoToolbar";
+import { DEMO_PATIENT } from "@/constants/demoData";
 
 /* ─── NHS colour palette ──────────────────────────────────────────── */
 const C = {
@@ -434,6 +437,7 @@ function APComp({items, set}) {
  * ═══════════════════════════════════════════════════════════════════ */
 export default function PatientSupportPlan() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [sec, setSec] = useState(0);
   const [states, setStates] = useState({});
   const [data, setData] = useState({});
@@ -449,6 +453,53 @@ export default function PatientSupportPlan() {
   const [page, setPage] = useState("form");
   const tRef = useRef(null);
 
+  const SECTION_IDS = SECS.map(s => s.id);
+
+  const demo = useDemoMode({
+    sectionIds: SECTION_IDS,
+    onNavigateToSection: (_sectionId, index) => {
+      setSec(index);
+    },
+    onFillSection: (sectionId, fieldData) => {
+      // Mark section as done
+      setStates(p => ({...p, [sectionId]: "done"}));
+      // Merge field data with green glow
+      const keys = Object.keys(fieldData);
+      setFilling(new Set(keys));
+      setData(p => ({...p, ...fieldData}));
+      setTimeout(() => setFilling(new Set()), 600);
+    },
+    onTranscriptLine: (line) => {
+      setLines(p => [...p, {
+        s: line.speaker === "clinician" ? "W" : "P",
+        t: line.text,
+      }]);
+    },
+    onComplete: () => {
+      setPage("summary");
+    },
+    onClearAll: () => {
+      setData({});
+      setStates({});
+      setLines([]);
+      setQScores({});
+      setCitS({});
+      setFratS({});
+      setOnsS({});
+      setActions([{s:"",p:"",d:false}]);
+      setFilling(new Set());
+      setBusy(false);
+      setPage("form");
+    },
+  });
+
+  // Auto-activate demo mode via URL param
+  useEffect(() => {
+    if (searchParams.get("demo") === "true" && !demo.isDemoMode) {
+      demo.toggleDemoMode();
+    }
+  }, [searchParams]);
+
   const cur = SECS[sec];
   const doneN = Object.values(states).filter(v => v==="done"||v==="na").length;
   const pct = Math.round((doneN / SECS.length) * 100);
@@ -457,31 +508,37 @@ export default function PatientSupportPlan() {
     if (tRef.current) tRef.current.scrollIntoView({behavior:"smooth"});
   }, [lines]);
 
-  const hasDemo = !!DEMOS[cur.id];
+  const hasDemo = !!DEMOS[cur.id] || !!DEMO_PATIENT[cur.id];
 
-  const runDemo = useCallback(() => {
+  // Per-section demo (existing inline DEMOS or new DEMO_PATIENT data)
+  const runSectionDemo = useCallback(() => {
     const d = DEMOS[cur.id];
-    if (!d || busy) return;
-    setBusy(true);
-    setLines([]);
-    function addLine(i) {
-      if (i >= d.lines.length) { setTimeout(() => fillField(0), 400); return; }
-      setLines(p => [...p, d.lines[i]]);
-      setTimeout(() => addLine(i + 1), 700);
+    if (d && !busy) {
+      // Use existing rich per-section demo with transcript
+      setBusy(true);
+      setLines([]);
+      function addLine(i) {
+        if (i >= d.lines.length) { setTimeout(() => fillField(0), 400); return; }
+        setLines(p => [...p, d.lines[i]]);
+        setTimeout(() => addLine(i + 1), 700);
+      }
+      const keys = Object.keys(d.data);
+      function fillField(i) {
+        if (i >= keys.length) { setFilling(new Set()); setBusy(false); return; }
+        const k = keys[i];
+        setFilling(new Set([k]));
+        setTimeout(() => {
+          setData(p => ({...p, [k]: d.data[k]}));
+          setFilling(new Set());
+          setTimeout(() => fillField(i + 1), 200);
+        }, 400);
+      }
+      addLine(0);
+    } else if (DEMO_PATIENT[cur.id] && !busy) {
+      // Fallback: use new DEMO_PATIENT data (no transcript)
+      demo.fillCurrentSection(cur.id);
     }
-    const keys = Object.keys(d.data);
-    function fillField(i) {
-      if (i >= keys.length) { setFilling(new Set()); setBusy(false); return; }
-      const k = keys[i];
-      setFilling(new Set([k]));
-      setTimeout(() => {
-        setData(p => ({...p, [k]: d.data[k]}));
-        setFilling(new Set());
-        setTimeout(() => fillField(i + 1), 200);
-      }, 400);
-    }
-    addLine(0);
-  }, [cur.id, busy]);
+  }, [cur.id, busy, demo]);
 
   const getTotal = (id) => { const s = qScores[id] || {}; let t = 0; for (const k in s) t += s[k]; return t; };
   const markDone = () => { setStates(p => ({...p, [cur.id]: "done"})); if (sec < SECS.length - 1) setSec(sec + 1); };
@@ -580,12 +637,19 @@ export default function PatientSupportPlan() {
             <div style={{fontSize:9,letterSpacing:1.5,textTransform:"uppercase",opacity:0.6}}>Guided Assessment</div>
           </div>
         </div>
-        <div style={{display:"flex",gap:8}}>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <button onClick={() => setRec(!rec)} style={{padding:"6px 14px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,background:rec?C.red:"rgba(255,255,255,0.15)",color:"#fff"}}>
             {rec ? "● REC" : "Start Recording"}
           </button>
           <button onClick={() => setPage("summary")} style={{background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff",padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:600}}>
             View Summary
+          </button>
+          <button onClick={demo.toggleDemoMode} style={{
+            padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:11,fontWeight:800,letterSpacing:1,
+            background: demo.isDemoMode ? C.amber : "rgba(255,255,255,0.15)",
+            color: demo.isDemoMode ? "#000" : "#fff",
+          }}>
+            {demo.isDemoMode ? "DEMO ●" : "DEMO"}
           </button>
         </div>
       </div>
@@ -641,7 +705,7 @@ export default function PatientSupportPlan() {
             <div style={{flex:1,overflowY:"auto",padding:20}}>
               {/* Demo auto-fill banner */}
               {hasDemo && states[cur.id] !== "na" && (
-                <div onClick={busy ? undefined : runDemo} style={{
+                <div onClick={busy ? undefined : runSectionDemo} style={{
                   background: busy ? "#f0f0f0" : `linear-gradient(135deg,${C.green},#00b347)`,
                   borderRadius:12,padding:18,marginBottom:18,cursor:busy?"wait":"pointer",
                   display:"flex",alignItems:"center",justifyContent:"center",gap:12,
@@ -728,6 +792,24 @@ export default function PatientSupportPlan() {
       </div>
 
       <style>{`input:focus,textarea:focus{border-color:${C.blue}!important;box-shadow:0 0 0 3px rgba(0,94,184,.1)!important}::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}`}</style>
+
+      {demo.isDemoMode && (
+        <DemoToolbar
+          isRunning={demo.isRunning}
+          isPaused={demo.isPaused}
+          speed={demo.speed}
+          progress={demo.progress}
+          completedCount={demo.completedCount}
+          totalSections={demo.totalSections}
+          onRun={demo.runDemo}
+          onPause={demo.pause}
+          onResume={demo.resume}
+          onSkipToEnd={demo.skipToEnd}
+          onReset={demo.reset}
+          onSetSpeed={demo.setSpeed}
+          onExit={demo.toggleDemoMode}
+        />
+      )}
     </div>
   );
 }
