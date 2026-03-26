@@ -556,14 +556,14 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                   </Button>
                 </>
               )}
-              {doc.status === 'pending' && approvedCount > 0 && (
+              {doc.status === 'pending' && (
                 <Button
                   variant="outline" size="sm" className="gap-2"
                   onClick={handleDownloadPartialPdf}
                   disabled={generating}
                 >
                   {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                  Download with Signatures So Far
+                  {approvedCount > 0 ? 'Download with Signatures So Far' : 'Download Document'}
                 </Button>
               )}
               {doc.status === 'pending' && (
