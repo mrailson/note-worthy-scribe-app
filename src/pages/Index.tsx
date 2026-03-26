@@ -20,7 +20,7 @@ import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
 import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 import { showToast } from "@/utils/toastWrapper";
 import { ImportedTranscript } from "@/utils/FileImporter";
-import { Building2, ExternalLink, MessageSquare, FileText, Play } from "lucide-react";
+import { Building2, ExternalLink, MessageSquare, FileText, Play, Newspaper } from "lucide-react";
 const Index = () => {
   const {
     user,
@@ -558,6 +558,39 @@ const Index = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* News & Updates */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <Newspaper className="h-4 w-4" />
+                  Latest News & Updates
+                </h3>
+                <a 
+                  href="/documents/DES27/des-2627-briefing.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">New</span>
+                        <span className="text-[10px] text-muted-foreground">March 2026</span>
+                      </div>
+                      <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">Network Contract DES 2026/27 — PCN Briefing</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Full breakdown of the 2026/27 Network Contract DES changes, service specifications and key dates for PCNs.
+                      </p>
+                      <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-medium mt-2">
+                        Read briefing <ExternalLink className="h-3 w-3" />
+                      </span>
+                    </div>
+                  </div>
+                </a>
               </div>
 
               {/* Who is this for? Section */}
