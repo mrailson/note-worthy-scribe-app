@@ -8,7 +8,10 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useDemoMode } from "@/hooks/useDemoMode";
+import { DemoToolbar } from "@/components/agewell/DemoToolbar";
+import { DEMO_PATIENT } from "@/constants/demoData";
 
 /* ─── NHS colour palette ──────────────────────────────────────────── */
 const C = {
