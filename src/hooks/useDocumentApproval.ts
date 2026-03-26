@@ -175,6 +175,7 @@ export function useDocumentApproval() {
       deadline?: string;
       message?: string;
       signaturePlacement?: Record<string, any>;
+      auto_send_on_completion?: boolean;
     },
     onStatusChange?: (status: string) => void,
   ) => {
