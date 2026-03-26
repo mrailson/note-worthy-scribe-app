@@ -1,0 +1,1 @@
+ALTER TABLE medical_term_corrections DROP CONSTRAINT medical_term_corrections_user_id_incorrect_term_correct_ter_key; ALTER TABLE medical_term_corrections ADD CONSTRAINT medical_term_corrections_user_id_incorrect_term_key UNIQUE (user_id, incorrect_term);
