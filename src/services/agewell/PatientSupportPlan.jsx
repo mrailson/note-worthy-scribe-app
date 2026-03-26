@@ -705,7 +705,7 @@ export default function PatientSupportPlan() {
             <div style={{flex:1,overflowY:"auto",padding:20}}>
               {/* Demo auto-fill banner */}
               {hasDemo && states[cur.id] !== "na" && (
-                <div onClick={busy ? undefined : runDemo} style={{
+                <div onClick={busy ? undefined : runSectionDemo} style={{
                   background: busy ? "#f0f0f0" : `linear-gradient(135deg,${C.green},#00b347)`,
                   borderRadius:12,padding:18,marginBottom:18,cursor:busy?"wait":"pointer",
                   display:"flex",alignItems:"center",justifyContent:"center",gap:12,
