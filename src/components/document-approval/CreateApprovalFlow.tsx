@@ -14,6 +14,7 @@ import {
   GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Eye, ChevronDown, ChevronUp, Pencil, Search,
   Layers, ChevronRight, ChevronLeft,
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
 import { useNotewellDirectory, NotewellUser } from '@/hooks/useNotewellDirectory';
 import { hashFile } from '@/utils/fileHash';
