@@ -249,6 +249,7 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
                 <SelectItem value="revoked">Revoked</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
               </SelectContent>
