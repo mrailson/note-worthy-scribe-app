@@ -570,7 +570,7 @@ const Index = () => {
                   href="/documents/DES27/des-2627-briefing.html"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block p-4 border border-blue-200 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800 hover:shadow-md transition-shadow group"
+                  className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
                 >
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-lg bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] shrink-0">
