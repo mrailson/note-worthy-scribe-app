@@ -298,6 +298,7 @@ export function useDocumentApproval() {
       deadline: metadata.deadline || null,
       status: 'draft',
       message: metadata.message || null,
+      auto_send_on_completion: metadata.auto_send_on_completion !== undefined ? metadata.auto_send_on_completion : true,
     };
 
     if (metadata.signaturePlacement) {

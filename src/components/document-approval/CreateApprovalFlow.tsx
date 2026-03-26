@@ -221,6 +221,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           deadline: deadline || undefined,
           message: message || undefined,
           signaturePlacement: placement,
+          auto_send_on_completion: autoSendOnCompletion,
         }, (status) => setUploadStatus(`${i + 1}/${files.length}: ${status}`));
 
         setFiles(prev => prev.map(pf => pf.localId === f.localId ? { ...pf, docId: doc.id, url: doc.file_url } : pf));
