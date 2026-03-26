@@ -578,7 +578,7 @@ const Index = () => {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">New</span>
+                        <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">New</span>
                         <span className="text-[10px] text-muted-foreground">March 2026</span>
                       </div>
                       <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">Network Contract DES 2026/27 — PCN Briefing</h4>
