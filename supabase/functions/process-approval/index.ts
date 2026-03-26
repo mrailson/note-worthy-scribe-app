@@ -484,6 +484,16 @@ serve(async (req) => {
 
         if (allApproved) {
           console.log('All signatories approved — triggering server-side signed PDF generation');
+          
+          // Check auto_send_on_completion preference
+          const { data: docSettings } = await supabase
+            .from('approval_documents')
+            .select('auto_send_on_completion')
+            .eq('id', document.id)
+            .single();
+          
+          const skipEmail = docSettings?.auto_send_on_completion === false;
+          
           await fetch(
             `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-signed-pdf-server`,
             {
@@ -492,7 +502,7 @@ serve(async (req) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
               },
-              body: JSON.stringify({ document_id: document.id }),
+              body: JSON.stringify({ document_id: document.id, skip_email: skipEmail }),
             }
           );
         }
