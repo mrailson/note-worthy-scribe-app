@@ -265,6 +265,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [revoking, setRevoking] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
 
   const signedFileUrl = (doc as any).signed_file_url as string | null;
