@@ -437,6 +437,7 @@ function APComp({items, set}) {
  * ═══════════════════════════════════════════════════════════════════ */
 export default function PatientSupportPlan() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [sec, setSec] = useState(0);
   const [states, setStates] = useState({});
   const [data, setData] = useState({});
@@ -452,6 +453,53 @@ export default function PatientSupportPlan() {
   const [page, setPage] = useState("form");
   const tRef = useRef(null);
 
+  const SECTION_IDS = SECS.map(s => s.id);
+
+  const demo = useDemoMode({
+    sectionIds: SECTION_IDS,
+    onNavigateToSection: (_sectionId, index) => {
+      setSec(index);
+    },
+    onFillSection: (sectionId, fieldData) => {
+      // Mark section as done
+      setStates(p => ({...p, [sectionId]: "done"}));
+      // Merge field data with green glow
+      const keys = Object.keys(fieldData);
+      setFilling(new Set(keys));
+      setData(p => ({...p, ...fieldData}));
+      setTimeout(() => setFilling(new Set()), 600);
+    },
+    onTranscriptLine: (line) => {
+      setLines(p => [...p, {
+        s: line.speaker === "clinician" ? "W" : "P",
+        t: line.text,
+      }]);
+    },
+    onComplete: () => {
+      setPage("summary");
+    },
+    onClearAll: () => {
+      setData({});
+      setStates({});
+      setLines([]);
+      setQScores({});
+      setCitS({});
+      setFratS({});
+      setOnsS({});
+      setActions([{s:"",p:"",d:false}]);
+      setFilling(new Set());
+      setBusy(false);
+      setPage("form");
+    },
+  });
+
+  // Auto-activate demo mode via URL param
+  useEffect(() => {
+    if (searchParams.get("demo") === "true" && !demo.isDemoMode) {
+      demo.toggleDemoMode();
+    }
+  }, [searchParams]);
+
   const cur = SECS[sec];
   const doneN = Object.values(states).filter(v => v==="done"||v==="na").length;
   const pct = Math.round((doneN / SECS.length) * 100);
@@ -460,31 +508,37 @@ export default function PatientSupportPlan() {
     if (tRef.current) tRef.current.scrollIntoView({behavior:"smooth"});
   }, [lines]);
 
-  const hasDemo = !!DEMOS[cur.id];
+  const hasDemo = !!DEMOS[cur.id] || !!DEMO_PATIENT[cur.id];
 
-  const runDemo = useCallback(() => {
+  // Per-section demo (existing inline DEMOS or new DEMO_PATIENT data)
+  const runSectionDemo = useCallback(() => {
     const d = DEMOS[cur.id];
-    if (!d || busy) return;
-    setBusy(true);
-    setLines([]);
-    function addLine(i) {
-      if (i >= d.lines.length) { setTimeout(() => fillField(0), 400); return; }
-      setLines(p => [...p, d.lines[i]]);
-      setTimeout(() => addLine(i + 1), 700);
+    if (d && !busy) {
+      // Use existing rich per-section demo with transcript
+      setBusy(true);
+      setLines([]);
+      function addLine(i) {
+        if (i >= d.lines.length) { setTimeout(() => fillField(0), 400); return; }
+        setLines(p => [...p, d.lines[i]]);
+        setTimeout(() => addLine(i + 1), 700);
+      }
+      const keys = Object.keys(d.data);
+      function fillField(i) {
+        if (i >= keys.length) { setFilling(new Set()); setBusy(false); return; }
+        const k = keys[i];
+        setFilling(new Set([k]));
+        setTimeout(() => {
+          setData(p => ({...p, [k]: d.data[k]}));
+          setFilling(new Set());
+          setTimeout(() => fillField(i + 1), 200);
+        }, 400);
+      }
+      addLine(0);
+    } else if (DEMO_PATIENT[cur.id] && !busy) {
+      // Fallback: use new DEMO_PATIENT data (no transcript)
+      demo.fillCurrentSection(cur.id);
     }
-    const keys = Object.keys(d.data);
-    function fillField(i) {
-      if (i >= keys.length) { setFilling(new Set()); setBusy(false); return; }
-      const k = keys[i];
-      setFilling(new Set([k]));
-      setTimeout(() => {
-        setData(p => ({...p, [k]: d.data[k]}));
-        setFilling(new Set());
-        setTimeout(() => fillField(i + 1), 200);
-      }, 400);
-    }
-    addLine(0);
-  }, [cur.id, busy]);
+  }, [cur.id, busy, demo]);
 
   const getTotal = (id) => { const s = qScores[id] || {}; let t = 0; for (const k in s) t += s[k]; return t; };
   const markDone = () => { setStates(p => ({...p, [cur.id]: "done"})); if (sec < SECS.length - 1) setSec(sec + 1); };
