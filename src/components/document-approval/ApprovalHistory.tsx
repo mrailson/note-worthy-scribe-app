@@ -29,6 +29,7 @@ import {
   CalendarIcon,
   Eye,
   Layers,
+  Archive,
 } from 'lucide-react';
 import { ApprovalDocumentWithSignatories } from '@/hooks/useDocumentApproval';
 import { format, isWithinInterval, parseISO } from 'date-fns';
