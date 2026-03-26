@@ -62,7 +62,7 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
 
   // Only history docs
   const historyDocs = useMemo(() =>
-    documents.filter(d => d.status === 'completed' || d.status === 'revoked' || d.status === 'expired'),
+    documents.filter(d => d.status === 'completed' || d.status === 'revoked' || d.status === 'expired' || d.status === 'closed'),
     [documents]
   );
 
