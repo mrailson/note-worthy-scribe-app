@@ -1428,6 +1428,7 @@ Keep language professional, concise, and appropriate for an NHS neighbourhood ca
 
 // ─── HOME SCREEN ─────────────────────────────────────────────────────────────
 function HomeScreen({onSelect}){
+  const navigate = useNavigate();
   return(
     <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
       padding:"32px 24px",background:T.pageBg,gap:20,overflowY:"auto"}}>
