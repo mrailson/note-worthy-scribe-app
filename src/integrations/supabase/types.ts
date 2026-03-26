@@ -362,6 +362,7 @@ export type Database = {
       }
       approval_documents: {
         Row: {
+          auto_send_on_completion: boolean
           batch_id: string | null
           category: string | null
           completed_at: string | null
@@ -386,6 +387,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          auto_send_on_completion?: boolean
           batch_id?: string | null
           category?: string | null
           completed_at?: string | null
@@ -410,6 +412,7 @@ export type Database = {
           title: string
         }
         Update: {
+          auto_send_on_completion?: boolean
           batch_id?: string | null
           category?: string | null
           completed_at?: string | null

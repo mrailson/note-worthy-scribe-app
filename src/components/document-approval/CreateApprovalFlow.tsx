@@ -14,6 +14,7 @@ import {
   GripVertical, FileText, Shield, CheckCircle2, Mail, Calendar, Hash, Eye, ChevronDown, ChevronUp, Pencil, Search,
   Layers, ChevronRight, ChevronLeft,
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useDocumentApproval, ApprovalContact } from '@/hooks/useDocumentApproval';
 import { useNotewellDirectory, NotewellUser } from '@/hooks/useNotewellDirectory';
 import { hashFile } from '@/utils/fileHash';
@@ -78,6 +79,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
   const [showDocPreview, setShowDocPreview] = useState(false);
   const [previewPages, setPreviewPages] = useState<string[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [autoSendOnCompletion, setAutoSendOnCompletion] = useState(true);
 
   // ─── Step 1: Files & metadata ──────────────────────────────────────
   const [files, setFiles] = useState<DocFile[]>([]);
@@ -219,6 +221,7 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
           deadline: deadline || undefined,
           message: message || undefined,
           signaturePlacement: placement,
+          auto_send_on_completion: autoSendOnCompletion,
         }, (status) => setUploadStatus(`${i + 1}/${files.length}: ${status}`));
 
         setFiles(prev => prev.map(pf => pf.localId === f.localId ? { ...pf, docId: doc.id, url: doc.file_url } : pf));
@@ -905,6 +908,22 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
                 </div>
               </Card>
             )}
+
+            {/* Auto-send toggle */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Auto-send signed document on completion</Label>
+                  <p className="text-xs text-muted-foreground">
+                    When all parties have signed, automatically email the signed document to everyone
+                  </p>
+                </div>
+                <Switch
+                  checked={autoSendOnCompletion}
+                  onCheckedChange={setAutoSendOnCompletion}
+                />
+              </div>
+            </Card>
 
             {/* Email preview / editor */}
             <Card className="p-6 space-y-3">

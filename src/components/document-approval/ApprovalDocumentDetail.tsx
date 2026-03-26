@@ -379,6 +379,51 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
     await handleGenerateSignedPdf();
   };
 
+  const handleDownloadPartialPdf = async () => {
+    setGenerating(true);
+    try {
+      const fileName = doc.original_filename?.toLowerCase() || '';
+      const isPdf = fileName.endsWith('.pdf') || doc.file_url?.toLowerCase().includes('.pdf');
+      let pdfBytes: ArrayBuffer;
+      if (!isPdf) {
+        const { PDFDocument } = await import('pdf-lib');
+        const blankDoc = await PDFDocument.create();
+        pdfBytes = (await blankDoc.save()).buffer as ArrayBuffer;
+      } else {
+        const blob = await downloadFromStorage(doc.file_url);
+        pdfBytes = await blob.arrayBuffer();
+      }
+      const sigInfos: SignatoryInfo[] = signatories.map(s => ({
+        id: s.id, name: s.name, email: s.email, role: s.role, organisation: s.organisation,
+        signed_at: s.signed_at, signed_name: s.signed_name, signed_role: s.signed_role,
+        signed_organisation: s.signed_organisation,
+        signed_ip: (s as any).signed_ip || null,
+        signatory_title: s.signatory_title || null,
+      }));
+      const auditLogEntries: AuditLogEntry[] = auditLog.map((e: any) => ({
+        action: e.action, actor_name: e.actor_name, actor_email: e.actor_email,
+        created_at: e.created_at, ip_address: e.ip_address,
+      }));
+      const placement: SignaturePlacement = !isPdf ? { method: 'append' } : (signaturePlacement || { method: 'append' });
+      const signedPdfBytes = await generateSignedPdf({
+        originalPdfBytes: pdfBytes, title: doc.title, originalFilename: doc.original_filename,
+        certificateId, fileHash: doc.file_hash, signatories: sigInfos, placement,
+        auditLog: auditLogEntries, completedAt: null,
+      });
+      const partialBlob = new Blob([signedPdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+      const downloadUrl = URL.createObjectURL(partialBlob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${doc.title.replace(/[^a-zA-Z0-9-_ ]/g, '')}-partial-signatures.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      toast.success(`Downloaded with ${approvedCount} of ${totalCount} signature${approvedCount !== 1 ? 's' : ''}`);
+    } catch (err) {
+      console.error('Failed to generate partial PDF:', err);
+      toast.error('Failed to generate document with partial signatures');
+    } finally { setGenerating(false); }
+  };
+
   const handleSendCompletedDocument = async () => {
     setSending(true);
     try {
@@ -510,6 +555,16 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                     {sending ? 'Sending…' : 'Send Completed Document'}
                   </Button>
                 </>
+              )}
+              {doc.status === 'pending' && approvedCount > 0 && (
+                <Button
+                  variant="outline" size="sm" className="gap-2"
+                  onClick={handleDownloadPartialPdf}
+                  disabled={generating}
+                >
+                  {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  Download with Signatures So Far
+                </Button>
               )}
               {doc.status === 'pending' && (
                 <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/30" onClick={handleRevoke} disabled={revoking}>

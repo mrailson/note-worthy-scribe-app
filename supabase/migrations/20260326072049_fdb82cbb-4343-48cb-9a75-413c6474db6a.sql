@@ -1,0 +1,1 @@
+ALTER TABLE public.approval_documents ADD COLUMN auto_send_on_completion boolean NOT NULL DEFAULT true;

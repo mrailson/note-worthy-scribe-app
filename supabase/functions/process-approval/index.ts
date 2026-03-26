@@ -202,6 +202,15 @@ serve(async (req) => {
           if (allGroupCompleted) {
             console.log('All documents in multi-doc group completed — generating signed PDFs');
 
+            // Check auto_send preference from the first document in the group
+            const { data: firstDoc } = await supabase
+              .from('approval_documents')
+              .select('auto_send_on_completion')
+              .eq('multi_doc_group_id', multiDocGroupId)
+              .limit(1)
+              .single();
+            const skipGroupEmail = firstDoc?.auto_send_on_completion === false;
+
             // Generate signed PDFs for each document
             for (const gd of (groupDocs || [])) {
               try {
@@ -221,24 +230,28 @@ serve(async (req) => {
               }
             }
 
-            // Send one consolidated completion email
-            try {
-              await fetch(
-                `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-approval-email`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                  },
-                  body: JSON.stringify({
-                    type: 'multi_send_completed',
-                    group_id: multiDocGroupId,
-                  }),
-                }
-              );
-            } catch (e) {
-              console.error('Failed to send multi-doc completion email:', e);
+            // Send one consolidated completion email (unless auto-send is disabled)
+            if (!skipGroupEmail) {
+              try {
+                await fetch(
+                  `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-approval-email`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                    },
+                    body: JSON.stringify({
+                      type: 'multi_send_completed',
+                      group_id: multiDocGroupId,
+                    }),
+                  }
+                );
+              } catch (e) {
+                console.error('Failed to send multi-doc completion email:', e);
+              }
+            } else {
+              console.log('Auto-send disabled — skipping multi-doc completion email');
             }
           }
         }
@@ -484,6 +497,16 @@ serve(async (req) => {
 
         if (allApproved) {
           console.log('All signatories approved — triggering server-side signed PDF generation');
+          
+          // Check auto_send_on_completion preference
+          const { data: docSettings } = await supabase
+            .from('approval_documents')
+            .select('auto_send_on_completion')
+            .eq('id', document.id)
+            .single();
+          
+          const skipEmail = docSettings?.auto_send_on_completion === false;
+          
           await fetch(
             `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-signed-pdf-server`,
             {
@@ -492,7 +515,7 @@ serve(async (req) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
               },
-              body: JSON.stringify({ document_id: document.id }),
+              body: JSON.stringify({ document_id: document.id, skip_email: skipEmail }),
             }
           );
         }
