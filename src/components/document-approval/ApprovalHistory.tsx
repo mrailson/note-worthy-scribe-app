@@ -383,9 +383,13 @@ export function ApprovalHistory({ documents, onSelectDoc }: Props) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {doc.status === 'completed' ? (
+                    {doc.status === 'completed' ? (
                         <Badge className="bg-[hsl(var(--approval-completed-bg))] text-[hsl(var(--approval-approved))] border border-[hsl(var(--approval-completed-border))] text-xs gap-1">
                           <CheckCircle2 className="h-3 w-3" /> Completed
+                        </Badge>
+                      ) : doc.status === 'closed' ? (
+                        <Badge className="bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800 text-xs gap-1">
+                          <Archive className="h-3 w-3" /> Closed
                         </Badge>
                       ) : doc.status === 'revoked' ? (
                         <Badge variant="secondary" className="text-xs gap-1">

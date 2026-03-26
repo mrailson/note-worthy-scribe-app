@@ -562,7 +562,7 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                   </Button>
                 </>
               )}
-              {doc.status === 'pending' && (
+              {(doc.status === 'pending' || doc.status === 'closed') && (
                 <Button
                   variant="outline" size="sm" className="gap-2"
                   onClick={handleDownloadPartialPdf}
@@ -571,6 +571,30 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
                   {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                   {approvedCount > 0 ? 'Download with Signatures So Far' : 'Download Document'}
                 </Button>
+              )}
+              {doc.status === 'pending' && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2 text-amber-600 border-amber-300">
+                      {closing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />}
+                      Close
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Close this document?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Chase reminders will stop. You can still download the document with any signatures collected so far.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClose} disabled={closing}>
+                        {closing ? 'Closing…' : 'Close Document'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
               {doc.status === 'pending' && (
                 <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/30" onClick={handleRevoke} disabled={revoking}>

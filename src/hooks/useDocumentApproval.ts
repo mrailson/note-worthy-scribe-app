@@ -821,6 +821,7 @@ export function useDocumentApproval() {
     sendForApproval,
     sendMultiDocForApproval,
     revokeDocument,
+    closeDocument,
     deleteDocument,
     chaseSignatory,
     chaseAllPending,

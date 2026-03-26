@@ -101,6 +101,7 @@ export function SignatureCertificate({ document: doc, signatories, auditLog, cer
       approved: { emoji: '✍️', label: 'Document signed' },
       declined: { emoji: '❌', label: 'Document declined' },
       revoked: { emoji: '🚫', label: 'Approval revoked' },
+      closed: { emoji: '📁', label: 'Document closed' },
       reminder_sent: { emoji: '🔔', label: 'Reminder sent' },
       signed_document_generated: { emoji: '✅', label: 'Certificate of Completion issued' },
     };
