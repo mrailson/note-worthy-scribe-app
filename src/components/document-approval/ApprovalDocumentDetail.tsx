@@ -456,6 +456,11 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
     try { await revokeDocument(doc.id); onBack(); } finally { setRevoking(false); }
   };
 
+  const handleClose = async () => {
+    setClosing(true);
+    try { await closeDocument(doc.id); onBack(); } finally { setClosing(false); }
+  };
+
   const tabs: { id: TabId; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'signatories', label: 'Signatories' },
