@@ -257,7 +257,7 @@ function InlinePdfPreview({ fileUrl }: { fileUrl: string }) {
 
 
 export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
-  const { fetchSignatories, fetchAuditLog, revokeDocument, deleteDocument } = useDocumentApproval();
+  const { fetchSignatories, fetchAuditLog, revokeDocument, closeDocument, deleteDocument } = useDocumentApproval();
   const [signatories, setSignatories] = useState<ApprovalSignatory[]>([]);
   const [auditLog, setAuditLog] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
