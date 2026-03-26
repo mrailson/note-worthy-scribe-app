@@ -908,6 +908,22 @@ export function CreateApprovalFlow({ onBack }: CreateApprovalFlowProps) {
               </Card>
             )}
 
+            {/* Auto-send toggle */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Auto-send signed document on completion</Label>
+                  <p className="text-xs text-muted-foreground">
+                    When all parties have signed, automatically email the signed document to everyone
+                  </p>
+                </div>
+                <Switch
+                  checked={autoSendOnCompletion}
+                  onCheckedChange={setAutoSendOnCompletion}
+                />
+              </div>
+            </Card>
+
             {/* Email preview / editor */}
             <Card className="p-6 space-y-3">
               <div className="flex items-center justify-between">
