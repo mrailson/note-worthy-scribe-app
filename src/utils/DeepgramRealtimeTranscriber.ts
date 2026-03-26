@@ -1,4 +1,5 @@
 import { createPcmStream } from '@/lib/audio/pcm16';
+import { WebSocketReconnectManager } from '@/lib/audio/WebSocketReconnectManager';
 
 export interface TranscriptData {
   text: string;
@@ -17,15 +18,11 @@ export interface TranscriptData {
 }
 
 export class DeepgramRealtimeTranscriber {
-  private ws: WebSocket | null = null;
+  private manager: WebSocketReconnectManager | null = null;
   private audioStream: { stop: () => void } | null = null;
   private isRecording = false;
   private sessionId: string | null = null;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectTimeout: number | null = null;
-  private isReconnecting = false;
-  private shouldReconnect = true;
+  private keepaliveInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -38,132 +35,56 @@ export class DeepgramRealtimeTranscriber {
     console.log('🚀 Starting Deepgram realtime transcription...');
     
     try {
-      this.shouldReconnect = true;
       this.onStatusChange('Connecting...');
       
-      // Connect to our WebSocket proxy
       const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming`;
       console.log('📡 Connecting to Deepgram WebSocket at:', wsUrl);
-      this.ws = new WebSocket(wsUrl);
-      this.ws.binaryType = 'arraybuffer';
 
-      this.ws.onopen = async () => {
-        console.log('✅ Connected to Deepgram WebSocket proxy');
-        this.onStatusChange('connected');
-        
-        // Send session start message to initialize Deepgram connection
-        this.ws?.send(JSON.stringify({ type: 'session.start' }));
-      };
+      this.manager = new WebSocketReconnectManager({
+        label: 'Deepgram',
+        maxAttempts: 8,
+        baseDelayMs: 1000,
+        maxDelayMs: 30000,
+        jitterFactor: 0.3,
 
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('📝 Deepgram message received:', data.type || data.message_type || 'transcription');
-          
-          // Handle error messages
-          if (data.type === 'error') {
-            console.error('❌ Deepgram error:', data.error);
-            this.onError(`Deepgram error: ${data.error}`);
-            return;
-          }
-          
-          // Handle session start confirmation
-          if (data.type === 'session_begins') {
-            console.log('✅ Deepgram session began, starting audio capture...');
-            this.sessionId = data.session_id || Date.now().toString();
-            this.onStatusChange('connected');
-            this.startAudioCapture();
-            return;
-          }
-          
-          // Handle Deepgram transcription results
-          // Deepgram sends results in channel.alternatives format
-          if (data.channel?.alternatives || data.results?.channels) {
-            const channels = data.channel?.alternatives 
-              ? [{ alternatives: data.channel.alternatives }]
-              : (data.results?.channels || []);
-            
-            for (const channel of channels) {
-              const alternatives = channel.alternatives || [];
-              if (alternatives.length > 0) {
-                const bestAlt = alternatives[0];
-                const transcript = bestAlt.transcript?.trim();
-                
-                if (transcript) {
-                  // Extract speaker from word-level data if available
-                  const words = bestAlt.words || [];
-                  let speakerLabel: string | undefined;
-                  if (words.length > 0 && words[0]?.speaker !== undefined) {
-                    speakerLabel = `Speaker ${words[0].speaker + 1}`;
-                  }
-                  
-                  const transcriptData: TranscriptData = {
-                    text: transcript,
-                    is_final: data.is_final || data.speech_final || false,
-                    confidence: bestAlt.confidence || 0.9,
-                    speaker: speakerLabel,
-                    words: bestAlt.words?.map((w: any) => ({
-                      word: w.word,
-                      start: w.start,
-                      end: w.end,
-                      confidence: w.confidence,
-                      speaker: w.speaker
-                    }))
-                  };
-                  
-                  console.log(`📝 ${transcriptData.is_final ? 'Final' : 'Partial'} Deepgram transcript${speakerLabel ? ` [${speakerLabel}]` : ''}:`, transcript.substring(0, 50));
-                  this.onTranscription(transcriptData);
-                }
-              }
-            }
-            return;
-          }
-          
-          // Handle session termination
-          if (data.type === 'session_terminated') {
-            console.log('🔌 Deepgram session terminated');
-            this.isRecording = false;
-            this.onStatusChange('Disconnected');
-            return;
-          }
-          
-          // Handle VAD events (Voice Activity Detection)
-          if (data.type === 'SpeechStarted' || data.type === 'speech_started') {
-            console.log('🎤 Speech detected');
-            return;
-          }
-          
-          // Handle utterance end
-          if (data.type === 'UtteranceEnd' || data.speech_final) {
-            console.log('🔚 Utterance ended');
-            return;
-          }
-          
-          console.log('❓ Unknown Deepgram message type:', data.type);
-          
-        } catch (parseError) {
-          console.error('❌ Error parsing Deepgram message:', parseError, 'Raw data:', event.data);
-        }
-      };
+        createWebSocket: () => {
+          const ws = new WebSocket(wsUrl);
+          ws.binaryType = 'arraybuffer';
+          return ws;
+        },
 
-      this.ws.onerror = (error) => {
-        console.error('❌ Deepgram WebSocket error:', error);
-        this.onError('WebSocket connection error');
-      };
+        onConnected: (ws) => {
+          console.log('✅ Connected to Deepgram WebSocket proxy');
+          this.onStatusChange('connected');
+          // Send session start message to initialise Deepgram connection
+          ws.send(JSON.stringify({ type: 'session.start' }));
+          this.startKeepalive();
+        },
 
-      this.ws.onclose = (event) => {
-        console.log('🔌 Deepgram WebSocket closed - Code:', event.code, 'Reason:', event.reason);
-        this.isRecording = false;
-        
-        if (event.code !== 1000 && this.shouldReconnect) {
-          console.log('🔄 Connection lost unexpectedly, attempting reconnection...');
-          this.handleReconnection();
-        } else {
-          console.log('🔌 Clean WebSocket closure');
+        onMessage: (event) => {
+          this.handleMessage(event);
+        },
+
+        onAttempt: (attempt, max, delayMs) => {
+          console.log(`🔄 Reconnection attempt ${attempt}/${max} in ${delayMs}ms`);
+          this.onStatusChange(`Reconnecting... (${attempt}/${max})`);
+          this.stopKeepalive();
+        },
+
+        onGaveUp: (attempts) => {
+          console.log(`❌ Max reconnection attempts (${attempts}) reached. Stopping.`);
+          this.onError(`Failed to reconnect after ${attempts} attempts`);
+          this.onStatusChange('Failed');
+          this.stopKeepalive();
+        },
+
+        onFinalClose: () => {
           this.onStatusChange('Disconnected');
-          this.cleanup();
-        }
-      };
+          this.stopKeepalive();
+        },
+      });
+
+      this.manager.connect();
 
     } catch (error) {
       console.error('❌ Failed to start Deepgram:', error);
@@ -172,16 +93,111 @@ export class DeepgramRealtimeTranscriber {
     }
   }
 
+  private handleMessage(event: MessageEvent) {
+    try {
+      const data = JSON.parse(event.data);
+      console.log('📝 Deepgram message received:', data.type || data.message_type || 'transcription');
+
+      // Handle keepalive pong
+      if (data.type === 'pong') return;
+
+      // Handle error messages
+      if (data.type === 'error') {
+        console.error('❌ Deepgram error:', data.error);
+        this.onError(`Deepgram error: ${data.error}`);
+        return;
+      }
+
+      // Handle session start confirmation
+      if (data.type === 'session_begins') {
+        console.log('✅ Deepgram session began, starting audio capture...');
+        this.sessionId = data.session_id || Date.now().toString();
+        this.onStatusChange('connected');
+        this.startAudioCapture();
+        return;
+      }
+
+      // Handle Deepgram transcription results
+      if (data.channel?.alternatives || data.results?.channels) {
+        const channels = data.channel?.alternatives 
+          ? [{ alternatives: data.channel.alternatives }]
+          : (data.results?.channels || []);
+        
+        for (const channel of channels) {
+          const alternatives = channel.alternatives || [];
+          if (alternatives.length > 0) {
+            const bestAlt = alternatives[0];
+            const transcript = bestAlt.transcript?.trim();
+            
+            if (transcript) {
+              const words = bestAlt.words || [];
+              let speakerLabel: string | undefined;
+              if (words.length > 0 && words[0]?.speaker !== undefined) {
+                speakerLabel = `Speaker ${words[0].speaker + 1}`;
+              }
+              
+              const transcriptData: TranscriptData = {
+                text: transcript,
+                is_final: data.is_final || data.speech_final || false,
+                confidence: bestAlt.confidence || 0.9,
+                speaker: speakerLabel,
+                words: bestAlt.words?.map((w: any) => ({
+                  word: w.word,
+                  start: w.start,
+                  end: w.end,
+                  confidence: w.confidence,
+                  speaker: w.speaker
+                }))
+              };
+              
+              console.log(`📝 ${transcriptData.is_final ? 'Final' : 'Partial'} Deepgram transcript${speakerLabel ? ` [${speakerLabel}]` : ''}:`, transcript.substring(0, 50));
+              this.onTranscription(transcriptData);
+            }
+          }
+        }
+        return;
+      }
+
+      // Handle session termination
+      if (data.type === 'session_terminated') {
+        console.log('🔌 Deepgram session terminated');
+        this.isRecording = false;
+        this.onStatusChange('Disconnected');
+        return;
+      }
+
+      // Handle VAD events
+      if (data.type === 'SpeechStarted' || data.type === 'speech_started') {
+        console.log('🎤 Speech detected');
+        return;
+      }
+
+      // Handle utterance end
+      if (data.type === 'UtteranceEnd' || data.speech_final) {
+        console.log('🔚 Utterance ended');
+        return;
+      }
+
+      console.log('❓ Unknown Deepgram message type:', data.type);
+
+    } catch (parseError) {
+      console.error('❌ Error parsing Deepgram message:', parseError, 'Raw data:', event.data);
+    }
+  }
+
   private async startAudioCapture() {
+    // Don't restart audio if it's already running (survives reconnections)
+    if (this.audioStream) {
+      console.log('🎙️ Audio capture already active — reusing across reconnection');
+      return;
+    }
+
     try {
       console.log('🎙️ Starting audio capture for Deepgram...');
       
-      // Start audio capture and streaming using PCM16 format
       this.audioStream = await createPcmStream((audioBuffer) => {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-          // Send raw PCM audio bytes to Deepgram
-          this.ws.send(audioBuffer);
-        }
+        // Send through the manager — silently drops if not connected
+        this.manager?.send(audioBuffer);
       });
       
       this.isRecording = true;
@@ -196,25 +212,31 @@ export class DeepgramRealtimeTranscriber {
 
   stopTranscription() {
     console.log('🛑 Stopping Deepgram transcription...');
-    this.shouldReconnect = false;
     this.isRecording = false;
+    this.stopKeepalive();
     
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
-    
-    // Send terminate message before closing
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    // Send terminate message before the manager closes
+    if (this.manager?.connected) {
       try {
         console.log('📤 Sending terminate message to Deepgram...');
-        this.ws.send(JSON.stringify({ type: 'terminate' }));
+        this.manager.send(JSON.stringify({ type: 'terminate' }));
       } catch (e) {
         console.log('Could not send terminate message:', e);
       }
     }
+
+    // Manager handles removing handlers before closing — no zombie onclose
+    if (this.manager) {
+      this.manager.stop();
+      this.manager = null;
+    }
+
+    // Stop audio stream only on intentional stop
+    if (this.audioStream) {
+      this.audioStream.stop();
+      this.audioStream = null;
+    }
     
-    this.cleanup();
     this.onStatusChange('Stopped');
   }
 
@@ -223,52 +245,37 @@ export class DeepgramRealtimeTranscriber {
   }
 
   private cleanup() {
+    this.stopKeepalive();
+
     if (this.audioStream) {
       this.audioStream.stop();
       this.audioStream = null;
     }
     
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
+    if (this.manager) {
+      this.manager.stop();
+      this.manager = null;
     }
   }
 
-  private handleReconnection() {
-    if (!this.shouldReconnect || this.isReconnecting) {
-      return;
-    }
-
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log('❌ Max reconnection attempts reached. Stopping.');
-      this.onError(`Failed to reconnect after ${this.maxReconnectAttempts} attempts`);
-      this.onStatusChange('Failed');
-      return;
-    }
-
-    this.isReconnecting = true;
-    this.reconnectAttempts++;
-    
-    // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 16000);
-    
-    console.log(`🔄 Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
-    this.onStatusChange(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-    
-    this.reconnectTimeout = window.setTimeout(async () => {
-      if (!this.shouldReconnect) return;
-      
-      try {
-        await this.startTranscription();
-        this.reconnectAttempts = 0; // Reset on successful connection
-        this.isReconnecting = false;
-        console.log('✅ Reconnection successful');
-      } catch (error) {
-        console.error('❌ Reconnection failed:', error);
-        this.isReconnecting = false;
-        this.handleReconnection(); // Try again
+  private startKeepalive() {
+    this.stopKeepalive();
+    this.keepaliveInterval = setInterval(() => {
+      if (this.manager?.connected) {
+        try {
+          this.manager.send(JSON.stringify({ type: 'ping' }));
+        } catch {
+          // Will be caught by onerror/onclose in manager
+        }
       }
-    }, delay);
+    }, 20000); // Every 20 seconds
+  }
+
+  private stopKeepalive() {
+    if (this.keepaliveInterval) {
+      clearInterval(this.keepaliveInterval);
+      this.keepaliveInterval = null;
+    }
   }
 
   async clearSummary() {
