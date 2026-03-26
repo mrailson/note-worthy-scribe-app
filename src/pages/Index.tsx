@@ -560,6 +560,39 @@ const Index = () => {
                 </div>
               </div>
 
+              {/* News & Updates */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <Newspaper className="h-4 w-4" />
+                  Latest News & Updates
+                </h3>
+                <a 
+                  href="/documents/DES27/des-2627-briefing.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block p-4 border border-blue-200 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800 hover:shadow-md transition-shadow group"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">New</span>
+                        <span className="text-[10px] text-muted-foreground">March 2026</span>
+                      </div>
+                      <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">Network Contract DES 2026/27 — PCN Briefing</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Full breakdown of the 2026/27 Network Contract DES changes, service specifications and key dates for PCNs.
+                      </p>
+                      <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-medium mt-2">
+                        Read briefing <ExternalLink className="h-3 w-3" />
+                      </span>
+                    </div>
+                  </div>
+                </a>
+              </div>
+
               {/* Who is this for? Section */}
               <div className="mt-6 p-4 bg-accent/30 rounded-lg border border-accent">
                 <h3 className="text-sm font-semibold text-foreground mb-3 text-center">Who uses Notewell?</h3>
