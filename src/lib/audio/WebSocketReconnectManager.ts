@@ -109,7 +109,7 @@ export class WebSocketReconnectManager {
    * Send data through the WebSocket if it's open.
    * Returns true if sent, false if not connected.
    */
-  send(data: string | ArrayBuffer | Blob | Uint8Array): boolean {
+  send(data: string | ArrayBuffer | Blob): boolean {
     if (this.ws?.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(data);
