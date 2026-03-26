@@ -5,7 +5,7 @@ import {
   FileText, CheckCircle2, Clock, XCircle, Ban, Loader2, Download, 
   Shield, Send, Copy, Lock, Plus, User, Mail, Building2, Calendar,
   Eye, PenLine, Bell, FileSignature, Award, Trash2, ArrowLeft,
-  ZoomIn, ZoomOut,
+  ZoomIn, ZoomOut, Archive,
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
