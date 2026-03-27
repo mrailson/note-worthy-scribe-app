@@ -1480,5 +1480,16 @@
   sections.forEach(s => observer.observe(s));
 </script>
 
+<!-- INFOGRAPHIC MODAL -->
+<div id="infographicModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="position:relative;max-width:95vw;max-height:95vh;display:flex;flex-direction:column;align-items:center;gap:12px;">
+    <div style="display:flex;gap:10px;align-items:center;">
+      <a href="PCN_DES2627_infographic.png" download style="background:white;color:#003087;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">⬇️ Download</a>
+      <button onclick="document.getElementById('infographicModal').style.display='none'" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:8px 18px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500;">✕ Close</button>
+    </div>
+    <img src="PCN_DES2627_infographic.png" alt="PCN DES 2026/27 Network Contract Changes Infographic" style="max-width:100%;max-height:calc(95vh - 60px);object-fit:contain;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+  </div>
+</div>
+
 </body>
 </html>
