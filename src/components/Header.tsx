@@ -825,6 +825,27 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
         </div>
       </div>
       
+      {/* DES 2026/27 Announcement Banner */}
+      {user && (
+        <div className="bg-white/10 border-t border-white/20">
+          <div className="container mx-auto px-3 sm:px-4 py-1.5 flex items-center justify-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+            </span>
+            <a 
+              href="/documents/DES27/des-2627-briefing.html" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs sm:text-sm text-white/90 hover:text-white font-medium transition-colors"
+            >
+              <span className="bg-amber-500 text-white text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded mr-1.5 uppercase">New</span>
+              PCN DES 2026/27 Network Contract Briefing — View Now →
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* User Profile Modal */}
       <UserProfileModal 
         open={showProfileModal} 
