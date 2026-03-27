@@ -18,11 +18,11 @@ const PM_TOP_10: string[] = [
   'meeting_minutes',
   'cqc_preparation',
   'policy_summariser',
+  'policy_review_update',
   'business_case',
   'hr_document',
   'staff_appraisal',
   'risk_assessment',
-  'service_change_impact',
 ];
 
 // Top 10 type_keys for GPs
