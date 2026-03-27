@@ -26,10 +26,8 @@ export class WordProcessor {
 
     if (ext === 'doc') {
       throw new Error(
-        "This Word document couldn't be processed. Please try:\n" +
-        '1. Open in Word and Save As PDF, then upload the PDF\n' +
-        '2. Open in Google Docs and download as PDF\n' +
-        '3. If this is a .doc file, re-save as .docx first'
+        `The file "${file.name}" is in the old .doc format which is not supported. ` +
+        'Please re-save it as .docx or PDF and try again.'
       );
     }
 

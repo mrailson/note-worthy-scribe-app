@@ -147,6 +147,12 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       });
     } catch (error) {
       console.error('Error processing files:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process file(s)';
+      toast({
+        title: 'File Processing Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
       // Remove failed loading files
       setUploadedFiles(prev => prev.filter(f => !loadingFiles.some(lf => lf.name === f.name && f.isLoading)));
     } finally {
