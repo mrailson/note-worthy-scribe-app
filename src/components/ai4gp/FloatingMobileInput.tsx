@@ -186,6 +186,12 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
       setUploadedFiles(prev => [...prev, ...processedFiles]);
     } catch (error) {
       console.error('Error processing files:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process file(s)';
+      toast({
+        title: 'File Processing Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

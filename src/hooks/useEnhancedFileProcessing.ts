@@ -98,10 +98,10 @@ export const useEnhancedFileProcessing = () => {
         hasLargeWordDoc
       });
 
-      const filePromises = Array.from(files).map(async (file) => {
+      const filePromises = Array.from(files).map(async (file): Promise<UploadedFile> => {
         // Validate file type
         if (!FileProcessorManager.isSupported(file.name)) {
-          throw new Error(`Unsupported file type: ${file.name}. Supported: Word, Excel, PDF, Text, Images`);
+          throw new Error(`Unsupported file type: ${file.name}. Supported: Word (.docx), Excel, PDF, Text, Images`);
         }
         
         // Process file
@@ -138,8 +138,28 @@ export const useEnhancedFileProcessing = () => {
         return enhancedFile;
       });
 
-      const processedFiles = await Promise.all(filePromises);
-      return processedFiles;
+      const results = await Promise.allSettled(filePromises);
+      const successfulFiles: UploadedFile[] = [];
+      const failedFiles: string[] = [];
+
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          successfulFiles.push(result.value);
+        } else {
+          const fileName = Array.from(files)[index]?.name || 'Unknown file';
+          const reason = result.reason instanceof Error ? result.reason.message : 'Processing failed';
+          failedFiles.push(`${fileName}: ${reason}`);
+          console.error(`Failed to process ${fileName}:`, result.reason);
+        }
+      });
+
+      if (failedFiles.length > 0) {
+        failedFiles.forEach(msg => {
+          toast.error(msg);
+        });
+      }
+
+      return successfulFiles;
       
     } catch (error) {
       console.error('Error processing files:', error);
