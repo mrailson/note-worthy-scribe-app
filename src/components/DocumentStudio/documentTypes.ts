@@ -471,6 +471,22 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     ],
     system_prompt_template: `${sharedPreamble}\n\nGenerate the appropriate HR document following ACAS Code of Practice and NHS employment best practice. Use correct legal phrasing for the stage of process. Include: reference to relevant policy, factual description of events, specific allegations or concerns (if disciplinary), process steps, right of accompaniment, right of appeal. If legally sensitive, flag that the practice should seek HR/legal advice before sending.`,
   },
+  {
+    type_key: 'policy_review_update',
+    display_name: 'Policy Review & Update',
+    icon: RefreshCw,
+    category: 'governance',
+    use_when: 'You have an existing policy or protocol and want it checked and updated against current guidance',
+    description: 'Upload an existing policy or protocol. AI checks it against current NICE/NHS guidance and returns an updated version preserving your original structure.',
+    default_input_fields: ['Existing policy/protocol document', 'Relevant NICE guidelines', 'Previous review notes'],
+    output_format: 'structured',
+    default_questions: [
+      { question: 'What type of document is this?', type: 'pills', options: ['Clinical Protocol', 'Practice Policy', 'SOP', 'Prescribing Guideline', 'Other'], required: true },
+      { question: 'Which guidance should it be checked against?', type: 'pills', options: ['Latest NICE Guidelines', 'BNF', 'CQC Standards', 'NHS England', 'All applicable'], multiSelect: true, required: true },
+      { question: 'What level of changes are acceptable?', type: 'pills', options: ['Minor updates only', 'Full revision where needed', 'Flag issues but don\'t change'], required: true },
+    ],
+    system_prompt_template: `${sharedPreamble}\n\nCRITICAL INSTRUCTION: You are REVIEWING AND UPDATING an existing document — NOT summarising it.\n\nReturn the COMPLETE updated document in its ORIGINAL structure. Do NOT summarise, shorten, or restructure. Preserve ALL sections, headings, tables, numbering, and formatting from the uploaded document.\n\nFor each section of the document:\n1. Check the content against current NICE guidelines, CQC standards, BNF, and NHS best practice\n2. Update any outdated references, doses, pathways, clinical thresholds, or recommendations\n3. Correct any terminology that has changed\n4. Add any new requirements from updated guidance that are missing\n5. Mark every change with [UPDATED] at the start of the changed paragraph or line\n6. If you cannot verify a change or are uncertain, mark it with [VERIFY] and explain why\n\nAt the END of the document, add a section titled "CHANGES MADE IN THIS REVIEW" with:\n- A numbered list of every change made\n- The reason for each change (e.g. "Updated per NICE NG136 2024 update")\n- Any items flagged for manual verification\n- The date of review\n\nDo NOT fabricate guidance references. If you are not confident about a specific guideline update, flag it with [VERIFY] rather than guessing. It is better to flag something for the user to check than to insert incorrect guidance.\n\nThe output must be the FULL document — if the input is 10 pages, the output should be approximately 10 pages with updates applied inline.`,
+  },
 ];
 
 export function getDocumentType(typeKey: string): DocumentType | undefined {
