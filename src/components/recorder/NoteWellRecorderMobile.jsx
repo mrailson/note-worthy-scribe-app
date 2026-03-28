@@ -1661,6 +1661,16 @@ export default function NoteWellRecorder() {
 
       // Create meeting
       const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
+
+      if (wordCount < 100) {
+        console.log(`[LegacySync] Recording too short (${wordCount} words) — skipping meeting creation`);
+        showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+        await dbPatch(rec.id, { status: "too_short", transcript: transcriptText });
+        await refresh();
+        setSyncProgress(null);
+        return;
+      }
+
       const sessionId = crypto.randomUUID();
       console.log("[LegacySync] Inserting meeting. wordCount:", wordCount, "title:", rec.title);
       const { data: meetingData, error: meetingErr } = await supabase
