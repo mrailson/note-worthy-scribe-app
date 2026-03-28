@@ -155,32 +155,32 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
 
           
             {/* Navigation */}
-            <div className="hidden sm:flex gap-2">
+            <div className="hidden sm:flex gap-2 items-center">
               {user && (
-                <Button 
-                  onClick={() => navigate('/?from=home')}
-                  variant="secondary"
-                  size="sm"
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-                >
-                  <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Home</span>
-                </Button>
-              )}
-
-              {user && (
-                <a
-                  href="/documents/DES27/des-2627-briefing.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-amber-500/90 hover:bg-amber-500 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors animate-pulse"
-                >
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-75 animate-ping"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
-                  </span>
-                  PCN DES 26/27
-                </a>
+                <>
+                  <a
+                    href="/documents/DES27/des-2627-briefing.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-amber-500/90 hover:bg-amber-500 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors animate-pulse"
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-75 animate-ping"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                    </span>
+                    PCN DES 26/27
+                  </a>
+                  <div className="w-[100px]" />
+                  <Button 
+                    onClick={() => navigate('/?from=home')}
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+                  >
+                    <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Home</span>
+                  </Button>
+                </>
               )}
             
             {user && (
