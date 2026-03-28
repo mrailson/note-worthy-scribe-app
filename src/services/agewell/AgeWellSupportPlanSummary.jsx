@@ -573,7 +573,7 @@ function ActionPlanTab({ data }) {
 }
 
 // ─── Main Component ───
-export default function AgeWellSupportPlanSummary() {
+export default function AgeWellSupportPlanSummary({ onBack }) {
   const [activeTab, setActiveTab] = useState("overview");
 
   const renderTab = () => {
