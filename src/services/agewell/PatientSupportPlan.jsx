@@ -703,21 +703,7 @@ export default function PatientSupportPlan() {
           <div style={{flex:1,display:"flex",overflow:"hidden"}}>
             {/* Main form */}
             <div style={{flex:1,overflowY:"auto",padding:20}}>
-              {/* Demo auto-fill banner */}
-              {hasDemo && states[cur.id] !== "na" && (
-                <div onClick={busy ? undefined : runSectionDemo} style={{
-                  background: busy ? "#f0f0f0" : `linear-gradient(135deg,${C.green},#00b347)`,
-                  borderRadius:12,padding:18,marginBottom:18,cursor:busy?"wait":"pointer",
-                  display:"flex",alignItems:"center",justifyContent:"center",gap:12,
-                  boxShadow: busy ? "none" : "0 4px 16px rgba(0,150,57,0.25)",
-                }}>
-                  <span style={{fontSize:28}}>{busy ? "⏳" : "✨"}</span>
-                  <div style={{color:busy?"#666":"#fff"}}>
-                    <div style={{fontSize:16,fontWeight:700}}>{busy ? "Listening and auto-filling..." : "Demo Auto-Fill"}</div>
-                    <div style={{fontSize:12,opacity:0.85,marginTop:2}}>{busy ? "Watch the transcript and fields update live" : "Click to simulate live transcription filling this section"}</div>
-                  </div>
-                </div>
-              )}
+              {/* Demo auto-fill banner removed — use toolbar instead */}
 
               {/* Form content */}
               {states[cur.id] === "na" ? (
