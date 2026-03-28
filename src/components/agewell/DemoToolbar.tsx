@@ -1,7 +1,7 @@
 // src/components/agewell/DemoToolbar.tsx
 // Floating demo control toolbar for AgeWell PSP presentations
 
-import React from "react";
+import React, { useState } from "react";
 import type { DemoSpeed } from "@/hooks/useDemoMode";
 
 interface DemoToolbarProps {
@@ -43,6 +43,38 @@ export const DemoToolbar: React.FC<DemoToolbarProps> = ({
   onSetSpeed,
   onExit,
 }) => {
+  const [hidden, setHidden] = useState(false);
+
+  if (hidden) {
+    return (
+      <button
+        onClick={() => setHidden(false)}
+        style={{
+          position: "fixed",
+          bottom: 12,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 9999,
+          background: "rgba(0, 48, 135, 0.8)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(255,255,255,0.2)",
+          borderRadius: 20,
+          padding: "6px 16px",
+          color: "#fff",
+          fontSize: 11,
+          fontWeight: 600,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+        }}
+      >
+        <span style={{ background: C.amber, color: "#000", padding: "1px 6px", borderRadius: 4, fontWeight: 800, fontSize: 9, letterSpacing: 1 }}>DEMO</span>
+        Show Controls
+      </button>
+    );
+  }
+
   return (
     <div
       style={{
@@ -229,6 +261,23 @@ export const DemoToolbar: React.FC<DemoToolbarProps> = ({
 
       {/* Divider */}
       <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.2)" }} />
+
+      {/* Hide button */}
+      <button
+        onClick={() => setHidden(true)}
+        title="Hide toolbar"
+        style={{
+          padding: "4px 8px",
+          borderRadius: 6,
+          border: "none",
+          cursor: "pointer",
+          fontSize: 11,
+          background: "rgba(255,255,255,0.1)",
+          color: "rgba(255,255,255,0.6)",
+        }}
+      >
+        ▼ Hide
+      </button>
 
       <button
         onClick={onExit}
