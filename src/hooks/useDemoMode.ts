@@ -33,8 +33,10 @@ interface UseDemoModeOptions {
 export function useDemoMode(options: UseDemoModeOptions) {
   const {
     sectionIds,
+    specialSectionIds = [],
     onNavigateToSection,
     onFillSection,
+    onFillSpecialSection,
     onTranscriptLine,
     onComplete,
     onClearAll,
