@@ -21,8 +21,10 @@ const SLOW_NORMAL_MS = 3000;
 
 interface UseDemoModeOptions {
   sectionIds: string[];
+  specialSectionIds?: string[];
   onNavigateToSection: (sectionId: string, index: number) => void;
   onFillSection: (sectionId: string, data: Record<string, string>) => void;
+  onFillSpecialSection?: (sectionId: string, speed: DemoSpeed, delayFn: (ms: number) => Promise<void>, cancelRef: React.MutableRefObject<boolean>) => Promise<void>;
   onTranscriptLine: (line: (typeof DEMO_TRANSCRIPT_LINES)[number]) => void;
   onComplete: () => void;
   onClearAll: () => void;
@@ -31,8 +33,10 @@ interface UseDemoModeOptions {
 export function useDemoMode(options: UseDemoModeOptions) {
   const {
     sectionIds,
+    specialSectionIds = [],
     onNavigateToSection,
     onFillSection,
+    onFillSpecialSection,
     onTranscriptLine,
     onComplete,
     onClearAll,
@@ -93,12 +97,14 @@ export function useDemoMode(options: UseDemoModeOptions) {
         for (const [fieldKey, fieldValue] of fields) {
           if (cancelRef.current) break;
           onFillSection(sectionId, { [fieldKey]: fieldValue });
-          // For slow speed, use extra-slow for first 3 sections then normal slow
           const effectiveMs = speed === "slow" && i >= SLOW_INTRO_SECTIONS
             ? SLOW_NORMAL_MS
             : SPEED_MS[speed];
           await delay(Math.max(50, effectiveMs / fields.length));
         }
+      } else if (specialSectionIds.includes(sectionId) && onFillSpecialSection) {
+        await onFillSpecialSection(sectionId, speed, delay, cancelRef);
+        if (cancelRef.current) break;
       }
 
       if (tIndex < DEMO_TRANSCRIPT_LINES.length && i % 2 === 0) {
@@ -128,11 +134,13 @@ export function useDemoMode(options: UseDemoModeOptions) {
   }, [
     currentDemoIndex,
     sectionIds,
+    specialSectionIds,
     speed,
     transcriptIndex,
     delay,
     onNavigateToSection,
     onFillSection,
+    onFillSpecialSection,
     onTranscriptLine,
     onComplete,
   ]);
@@ -149,6 +157,16 @@ export function useDemoMode(options: UseDemoModeOptions) {
       }
     }
 
+    // Also handle special sections instantly via onFillSpecialSection with null delay
+    if (onFillSpecialSection) {
+      for (const sectionId of specialSectionIds) {
+        // Pass a no-op delay and a cancelled ref so it fills instantly
+        const instantDelay = () => Promise.resolve();
+        const cancelledRef = { current: true };
+        onFillSpecialSection(sectionId, "fast", instantDelay, cancelledRef);
+      }
+    }
+
     for (const line of DEMO_TRANSCRIPT_LINES) {
       onTranscriptLine(line);
     }
@@ -157,7 +175,7 @@ export function useDemoMode(options: UseDemoModeOptions) {
     setCurrentDemoIndex(sectionIds.length - 1);
     setTranscriptIndex(DEMO_TRANSCRIPT_LINES.length);
     onComplete();
-  }, [sectionIds, onFillSection, onTranscriptLine, onComplete]);
+  }, [sectionIds, specialSectionIds, onFillSection, onFillSpecialSection, onTranscriptLine, onComplete]);
 
   const pause = useCallback(() => {
     pauseRef.current = true;

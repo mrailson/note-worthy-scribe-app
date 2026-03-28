@@ -6,6 +6,48 @@ export interface DemoPatient {
   [sectionId: string]: Record<string, string>;
 }
 
+// Demo data for questionnaire sections (PHQ-9, GAD-7, 6-CIT, FRAT, ONS4)
+export const DEMO_QUESTIONNAIRE_DATA: Record<string, Record<string, number>> = {
+  phq9: { 0: 0, 1: 1, 2: 1, 3: 1, 4: 0, 5: 0, 6: 1, 7: 0, 8: 0 }, // Total=4, Minimal
+  gad7: { 0: 1, 1: 0, 2: 1, 3: 0, 4: 0, 5: 1, 6: 0 },               // Total=3, Mild
+};
+
+export const DEMO_CIT_DATA: Record<number, number> = {
+  0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 2, // Total=2, Normal
+};
+
+export const DEMO_FRAT_DATA: Record<number, number> = {
+  0: 1, 1: 1, 2: 0, 3: 0, 4: 0, // Total=2, Lower risk
+};
+
+export const DEMO_ONS_DATA: Record<string, number> = {
+  sat: 7, worth: 8, happy: 6, anx: 3,
+};
+
+export interface DemoActionItem {
+  s: string;
+  p: string;
+  d: boolean;
+}
+
+export const DEMO_ACTION_PLAN: DemoActionItem[] = [
+  { s: "Refer to community hearing assessment service", p: "Sarah Mitchell", d: true },
+  { s: "Provide community transport information and timetables", p: "Sarah Mitchell", d: true },
+  { s: "Refer David Thompson to Northamptonshire Carers", p: "Sarah Mitchell", d: true },
+  { s: "Send information about local lunch clubs and WI groups", p: "Sarah Mitchell", d: false },
+  { s: "Follow up on lifeline pendant — son to arrange", p: "David Thompson", d: false },
+  { s: "Discuss raised toilet seat at 6-week review", p: "Sarah Mitchell", d: false },
+  { s: "Register with energy company priority services", p: "David Thompson", d: false },
+  { s: "Apply for Blue Badge — forms provided", p: "David Thompson", d: false },
+  { s: "Notify GP surgery of assessment outcomes", p: "Sarah Mitchell", d: true },
+  { s: "Schedule 6-week review for 09/05/2026", p: "Sarah Mitchell", d: true },
+  { s: "Share support plan summary with patient and son", p: "Sarah Mitchell", d: false },
+  { s: "Explore pain management course availability", p: "Sarah Mitchell", d: false },
+  { s: "Register with National Grid priority services", p: "David Thompson", d: false },
+  { s: "Provide information about get up and go classes", p: "Sarah Mitchell", d: false },
+  { s: "Discuss RSV vaccine eligibility with GP", p: "Sarah Mitchell", d: false },
+];
+
 export const DEMO_PATIENT: DemoPatient = {
   demo: {
     nhsNumber: "943 281 7205",
