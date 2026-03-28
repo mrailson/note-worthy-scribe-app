@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 import { useState, useEffect, useRef, useCallback } from "react";
+import AgeWellSupportPlanSummary from "./AgeWellSupportPlanSummary";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDemoMode } from "@/hooks/useDemoMode";
 import { DemoToolbar } from "@/components/agewell/DemoToolbar";
