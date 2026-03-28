@@ -1,56 +1,31 @@
 
 
-# Fix: Document Studio Needs a "Review & Update Against Guidance" Document Type
+# Skip Meeting Creation for Short Offline Recordings (< 100 Words)
 
-## What Happened to Julia
+## Problem
+When offline recordings are synced and the transcript is under 100 words, a meeting is still created and notes are generated. The AI hallucinates content from the detailed system prompt, producing emails full of fabricated information.
 
-Julia uploaded her blood protocol document to the Document Studio using the **"Policy / Guidance Summariser"** type. She wanted the AI to **check her document against the latest NICE guidance and update it accordingly**.
+## Solution
+Add a word count guard at all three meeting creation points in `NoteWellRecorderMobile.jsx`. When the transcript is under 100 words, skip meeting creation entirely — show a clear toast explaining the recording was too short, mark the recording as complete, and don't generate notes or send emails.
 
-However, the Policy Summariser's system prompt is hardcoded to generate a staff-facing summary + Top 10 one-pager — it **completely rewrites the input into a summary format** rather than preserving the original document structure and updating it.
+## Changes
 
-Result: 696-word summary output instead of her updated multi-page blood protocol. The original document content was effectively discarded.
+### `src/components/recorder/NoteWellRecorderMobile.jsx`
 
-## Root Cause
+Add a `MIN_WORDS_FOR_MEETING = 100` constant and guard at these three locations:
 
-There is no Document Studio type for "review my existing document against current guidance and update it". The two closest options are:
-- **Policy Summariser** — summarises (wrong output format)
-- **Policy Hub** — has gap analysis + update generation, but it's a separate feature not accessible from Document Studio
+1. **Resumed transcribed recording sync** (~line 1178): After computing `wordCount`, check if < 100. If so, show toast "Recording too short (X words) — meeting not created. At least 100 words needed.", set sync progress to complete, and return early.
 
-## Proposed Fix
+2. **Main chunked sync** (~line 1410-1450): After stitching `fullTranscript` and computing `wordCount`, same guard before the `meetingInsert` block.
 
-### 1. Add a new document type: "Policy Review & Update"
+3. **Legacy single-file sync** (~line 1642): After computing `wordCount`, same guard before the legacy meeting insert.
 
-Add a new entry in `documentTypes.ts` with type_key `policy_review_update`:
-- **Display name**: "Policy Review & Update"
-- **Description**: "Upload an existing policy or protocol. AI checks it against current NICE/NHS guidance and returns an updated version preserving your original structure."
-- **Category**: `governance`
-- **System prompt**: Instructs the AI to:
-  - Preserve the original document's structure, headings, and formatting
-  - Check content against current NICE guidelines, CQC standards, and NHS best practice
-  - Update outdated references, doses, pathways, or recommendations
-  - Add a "Changes Made" summary section at the end listing what was updated and why
-  - Flag anything it cannot verify with a clear `[VERIFY]` marker
-  - Use British English throughout
-  - NOT fabricate guidance — only update where it has confident knowledge
+In all three cases:
+- Show an informative toast: "Recording too short (X words) — at least 100 words needed for meeting notes"
+- Update the IndexedDB record status to `"too_short"` so it's visually distinct from errors
+- Set sync progress to complete so the UI doesn't hang
+- Do **not** create a meeting, generate notes, or trigger email
 
-### 2. Add clarifying questions specific to this type
-
-- "What type of policy/protocol is this?" (pills: Clinical Protocol, Practice Policy, SOP, Prescribing Guideline, Other)
-- "Which guidance should it be checked against?" (pills: Latest NICE Guidelines, BNF, CQC Standards, NHS England, All applicable)
-- "What level of changes are acceptable?" (pills: Minor updates only, Full revision where needed, Flag issues but don't change)
-
-### 3. Update the system prompt to be explicit about preservation
-
-The key differentiator from the summariser: the prompt will say "Return the COMPLETE updated document in its original structure. Do NOT summarise or shorten. Preserve all sections, tables, and formatting."
-
-## Files to Change
-
-- `src/components/DocumentStudio/documentTypes.ts` — add new `policy_review_update` type with system prompt
-- `src/components/DocumentStudio/StepChoose.tsx` — add `policy_review_update` to the visible types list (in the ordered array)
-
-## Technical Detail
-
-- No edge function changes needed — the existing `generate-document-studio` `generate_document` action will work, as the system prompt drives the output format
-- The `callAI` timeout is already 120s which should be sufficient for longer policy documents
-- File upload processing is already handled by `processUploadedFiles()` in StepGenerate
+### UI indicator
+In the recordings list rendering, handle `status === "too_short"` with an amber badge saying "Too short" so the user understands why no meeting was created.
 
