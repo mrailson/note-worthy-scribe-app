@@ -610,9 +610,9 @@ export default function AgeWellSupportPlanSummary() {
         <span style={{ color: TEXT_SECONDARY }}>Age: {patientData.demographics.age}</span>
         <span style={{ color: TEXT_SECONDARY }}>{patientData.demographics.surgery}</span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button style={{ padding: "5px 14px", fontSize: 12, fontWeight: 600, background: NHS_BLUE, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
+          <a href="/documents/AgeWell_Support_Plan_Maggie_Thompson.docx" download style={{ padding: "5px 14px", fontSize: 12, fontWeight: 600, background: NHS_BLUE, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
             📄 Export DOCX
-          </button>
+          </a>
           <button style={{ padding: "5px 14px", fontSize: 12, fontWeight: 600, background: "transparent", color: NHS_BLUE, border: `1px solid ${NHS_BLUE}`, borderRadius: 6, cursor: "pointer" }}>
             🖨️ Print
           </button>
