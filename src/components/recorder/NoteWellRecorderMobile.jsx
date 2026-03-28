@@ -1434,6 +1434,16 @@ export default function NoteWellRecorder() {
       }
 
       const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+
+      if (wordCount < 100) {
+        console.log(`[Sync] Recording too short (${wordCount} words) — skipping meeting creation`);
+        showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+        await dbPatch(rec.id, { status: "too_short", transcript: fullTranscript });
+        await refresh();
+        setSyncProgress(null);
+        return;
+      }
+
       let durationMins = Math.round((rec.duration || 0) / 60);
       // Fallback: compute from timestamps if rec.duration is missing/zero
       if (durationMins === 0 && rec.createdAt) {
