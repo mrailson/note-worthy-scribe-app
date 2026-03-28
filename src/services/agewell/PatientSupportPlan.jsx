@@ -455,21 +455,93 @@ export default function PatientSupportPlan() {
   const tRef = useRef(null);
 
   const SECTION_IDS = SECS.map(s => s.id);
+  const SPECIAL_SECTION_IDS = ["phq9", "gad7", "cit6", "frat2", "ons4", "action"];
+
+  const SPEED_MS_LOCAL = { slow: 7000, medium: 1000, fast: 400 };
+
+  // Animated step-by-step filling for questionnaire and action plan sections
+  const handleFillSpecialSection = useCallback(async (sectionId, speed, delayFn, cancelRefArg) => {
+    const speedMs = SPEED_MS_LOCAL[speed] || 1000;
+    const isSkipping = cancelRefArg.current;
+
+    if (sectionId === "phq9" || sectionId === "gad7") {
+      const qId = sectionId === "phq9" ? "phq9" : "gad7";
+      const answers = DEMO_QUESTIONNAIRE_DATA[qId];
+      if (!answers) return;
+      const keys = Object.keys(answers);
+      if (isSkipping) {
+        setQScores(p => ({...p, [qId]: {...answers}}));
+      } else {
+        for (const k of keys) {
+          if (cancelRefArg.current) break;
+          setQScores(p => ({...p, [qId]: {...(p[qId]||{}), [k]: answers[k]}}));
+          await delayFn(Math.max(80, speedMs / keys.length));
+        }
+      }
+    } else if (sectionId === "cit6") {
+      const keys = Object.keys(DEMO_CIT_DATA);
+      if (isSkipping) {
+        setCitS({...DEMO_CIT_DATA});
+      } else {
+        for (const k of keys) {
+          if (cancelRefArg.current) break;
+          setCitS(p => ({...p, [k]: DEMO_CIT_DATA[k]}));
+          await delayFn(Math.max(80, speedMs / keys.length));
+        }
+      }
+    } else if (sectionId === "frat2") {
+      const keys = Object.keys(DEMO_FRAT_DATA);
+      if (isSkipping) {
+        setFratS({...DEMO_FRAT_DATA});
+      } else {
+        for (const k of keys) {
+          if (cancelRefArg.current) break;
+          setFratS(p => ({...p, [k]: DEMO_FRAT_DATA[k]}));
+          await delayFn(Math.max(80, speedMs / keys.length));
+        }
+      }
+    } else if (sectionId === "ons4") {
+      const keys = Object.keys(DEMO_ONS_DATA);
+      if (isSkipping) {
+        setOnsS({...DEMO_ONS_DATA});
+      } else {
+        for (const k of keys) {
+          if (cancelRefArg.current) break;
+          setOnsS(p => ({...p, [k]: DEMO_ONS_DATA[k]}));
+          await delayFn(Math.max(120, speedMs / keys.length));
+        }
+      }
+    } else if (sectionId === "action") {
+      if (isSkipping) {
+        setActions([...DEMO_ACTION_PLAN]);
+      } else {
+        setActions([]);
+        for (let i = 0; i < DEMO_ACTION_PLAN.length; i++) {
+          if (cancelRefArg.current) break;
+          const item = DEMO_ACTION_PLAN[i];
+          setActions(p => [...p, item]);
+          await delayFn(Math.max(80, speedMs / DEMO_ACTION_PLAN.length));
+        }
+      }
+    }
+    // Mark section done
+    setStates(p => ({...p, [sectionId]: "done"}));
+  }, []);
 
   const demo = useDemoMode({
     sectionIds: SECTION_IDS,
+    specialSectionIds: SPECIAL_SECTION_IDS,
     onNavigateToSection: (_sectionId, index) => {
       setSec(index);
     },
     onFillSection: (sectionId, fieldData) => {
-      // Mark section as done
       setStates(p => ({...p, [sectionId]: "done"}));
-      // Merge field data with green glow
       const keys = Object.keys(fieldData);
       setFilling(new Set(keys));
       setData(p => ({...p, ...fieldData}));
       setTimeout(() => setFilling(new Set()), 600);
     },
+    onFillSpecialSection: handleFillSpecialSection,
     onTranscriptLine: (line) => {
       setLines(p => [...p, {
         s: line.speaker === "clinician" ? "W" : "P",
