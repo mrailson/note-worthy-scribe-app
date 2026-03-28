@@ -10,10 +10,14 @@ import {
 export type DemoSpeed = "slow" | "medium" | "fast";
 
 const SPEED_MS: Record<DemoSpeed, number> = {
-  slow: 1800,
+  slow: 3600,
   medium: 1000,
   fast: 400,
 };
+
+// After this many sections, "slow" reverts to normal slow speed
+const SLOW_INTRO_SECTIONS = 3;
+const SLOW_NORMAL_MS = 1800;
 
 interface UseDemoModeOptions {
   sectionIds: string[];
@@ -89,7 +93,11 @@ export function useDemoMode(options: UseDemoModeOptions) {
         for (const [fieldKey, fieldValue] of fields) {
           if (cancelRef.current) break;
           onFillSection(sectionId, { [fieldKey]: fieldValue });
-          await delay(Math.max(50, SPEED_MS[speed] / fields.length));
+          // For slow speed, use extra-slow for first 3 sections then normal slow
+          const effectiveMs = speed === "slow" && i >= SLOW_INTRO_SECTIONS
+            ? SLOW_NORMAL_MS
+            : SPEED_MS[speed];
+          await delay(Math.max(50, effectiveMs / fields.length));
         }
       }
 
