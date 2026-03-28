@@ -755,7 +755,7 @@ export default function PatientSupportPlan() {
                 {lines.length === 0 ? (
                   <div style={{textAlign:"center",padding:24,color:C.dim,fontSize:12}}>
                     <div style={{fontSize:24,marginBottom:6}}>🎙️</div>
-                    {hasDemo ? "Click the green Demo Auto-Fill button to see live transcription" : "No demo data for this section — use recording in production"}
+                    {hasDemo ? "Use the Demo toolbar to run the demo" : "No demo data for this section — use recording in production"}
                   </div>
                 ) : lines.map((l, i) => (
                   <div key={i} style={{marginBottom:8}}>
