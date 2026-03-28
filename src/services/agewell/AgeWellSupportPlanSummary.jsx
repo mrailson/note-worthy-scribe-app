@@ -613,9 +613,14 @@ export default function AgeWellSupportPlanSummary({ onBack }) {
           <a href="/documents/AgeWell_Support_Plan_Maggie_Thompson.docx" download style={{ padding: "5px 14px", fontSize: 12, fontWeight: 600, background: NHS_BLUE, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
             📄 Export DOCX
           </a>
-          <button style={{ padding: "5px 14px", fontSize: 12, fontWeight: 600, background: "transparent", color: NHS_BLUE, border: `1px solid ${NHS_BLUE}`, borderRadius: 6, cursor: "pointer" }}>
+          <button onClick={() => window.print()} style={{ padding: "5px 14px", fontSize: 12, fontWeight: 600, background: "transparent", color: NHS_BLUE, border: `1px solid ${NHS_BLUE}`, borderRadius: 6, cursor: "pointer" }}>
             🖨️ Print
           </button>
+          {onBack && (
+            <button onClick={onBack} style={{ padding: "5px 14px", fontSize: 12, fontWeight: 600, background: "transparent", color: NHS_BLUE, border: `1px solid ${NHS_BLUE}`, borderRadius: 6, cursor: "pointer" }}>
+              ← Back
+            </button>
+          )}
         </div>
       </div>
 
