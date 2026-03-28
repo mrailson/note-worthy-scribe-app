@@ -97,12 +97,14 @@ export function useDemoMode(options: UseDemoModeOptions) {
         for (const [fieldKey, fieldValue] of fields) {
           if (cancelRef.current) break;
           onFillSection(sectionId, { [fieldKey]: fieldValue });
-          // For slow speed, use extra-slow for first 3 sections then normal slow
           const effectiveMs = speed === "slow" && i >= SLOW_INTRO_SECTIONS
             ? SLOW_NORMAL_MS
             : SPEED_MS[speed];
           await delay(Math.max(50, effectiveMs / fields.length));
         }
+      } else if (specialSectionIds.includes(sectionId) && onFillSpecialSection) {
+        await onFillSpecialSection(sectionId, speed, delay, cancelRef);
+        if (cancelRef.current) break;
       }
 
       if (tIndex < DEMO_TRANSCRIPT_LINES.length && i % 2 === 0) {
