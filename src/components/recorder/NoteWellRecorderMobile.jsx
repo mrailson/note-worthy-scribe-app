@@ -409,6 +409,7 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
     synced:      { dot:"#16a34a", bg:"rgba(22,163,74,0.08)",  border:"rgba(22,163,74,0.2)",    label:"Synced" },
     transcribed: { dot:"#16a34a", bg:"rgba(22,163,74,0.06)",  border:"rgba(22,163,74,0.2)",    label:"Meeting Created ✓" },
     error:       { dot:"#dc2626", bg:"rgba(220,38,38,0.07)",  border:"rgba(220,38,38,0.2)",    label:"Sync failed — retry?" },
+    too_short:   { dot:"#f59e0b", bg:"rgba(245,158,11,0.08)", border:"rgba(245,158,11,0.25)", label:"Too short — no meeting created" },
   };
   const c = colors[rec.status] ?? colors.local;
 
