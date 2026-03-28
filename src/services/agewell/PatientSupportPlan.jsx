@@ -12,7 +12,7 @@ import AgeWellSupportPlanSummary from "./AgeWellSupportPlanSummary";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDemoMode } from "@/hooks/useDemoMode";
 import { DemoToolbar } from "@/components/agewell/DemoToolbar";
-import { DEMO_PATIENT } from "@/constants/demoData";
+import { DEMO_PATIENT, DEMO_QUESTIONNAIRE_DATA, DEMO_CIT_DATA, DEMO_FRAT_DATA, DEMO_ONS_DATA, DEMO_ACTION_PLAN } from "@/constants/demoData";
 
 /* ─── NHS colour palette ──────────────────────────────────────────── */
 const C = {
