@@ -409,6 +409,7 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
     synced:      { dot:"#16a34a", bg:"rgba(22,163,74,0.08)",  border:"rgba(22,163,74,0.2)",    label:"Synced" },
     transcribed: { dot:"#16a34a", bg:"rgba(22,163,74,0.06)",  border:"rgba(22,163,74,0.2)",    label:"Meeting Created ✓" },
     error:       { dot:"#dc2626", bg:"rgba(220,38,38,0.07)",  border:"rgba(220,38,38,0.2)",    label:"Sync failed — retry?" },
+    too_short:   { dot:"#f59e0b", bg:"rgba(245,158,11,0.08)", border:"rgba(245,158,11,0.25)", label:"Too short — no meeting created" },
   };
   const c = colors[rec.status] ?? colors.local;
 
@@ -1176,6 +1177,16 @@ export default function NoteWellRecorder() {
       console.log("[Sync] Resuming meeting creation for already-transcribed recording");
       try {
         const wordCount = rec.transcript.split(/\s+/).filter(Boolean).length;
+
+        if (wordCount < 100) {
+          console.log(`[Sync] Recording too short (${wordCount} words) — skipping meeting creation`);
+          showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+          await dbPatch(rec.id, { status: "too_short" });
+          await refresh();
+          setSyncProgress(null);
+          return;
+        }
+
         let durationMins = Math.round((rec.duration || 0) / 60);
         if (durationMins === 0 && rec.createdAt) {
           durationMins = Math.round((Date.now() - new Date(rec.createdAt).getTime()) / 60000);
@@ -1423,6 +1434,16 @@ export default function NoteWellRecorder() {
       }
 
       const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+
+      if (wordCount < 100) {
+        console.log(`[Sync] Recording too short (${wordCount} words) — skipping meeting creation`);
+        showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+        await dbPatch(rec.id, { status: "too_short", transcript: fullTranscript });
+        await refresh();
+        setSyncProgress(null);
+        return;
+      }
+
       let durationMins = Math.round((rec.duration || 0) / 60);
       // Fallback: compute from timestamps if rec.duration is missing/zero
       if (durationMins === 0 && rec.createdAt) {
@@ -1640,6 +1661,16 @@ export default function NoteWellRecorder() {
 
       // Create meeting
       const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
+
+      if (wordCount < 100) {
+        console.log(`[LegacySync] Recording too short (${wordCount} words) — skipping meeting creation`);
+        showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+        await dbPatch(rec.id, { status: "too_short", transcript: transcriptText });
+        await refresh();
+        setSyncProgress(null);
+        return;
+      }
+
       const sessionId = crypto.randomUUID();
       console.log("[LegacySync] Inserting meeting. wordCount:", wordCount, "title:", rec.title);
       const { data: meetingData, error: meetingErr } = await supabase
