@@ -21,8 +21,10 @@ const SLOW_NORMAL_MS = 3000;
 
 interface UseDemoModeOptions {
   sectionIds: string[];
+  specialSectionIds?: string[];
   onNavigateToSection: (sectionId: string, index: number) => void;
   onFillSection: (sectionId: string, data: Record<string, string>) => void;
+  onFillSpecialSection?: (sectionId: string, speed: DemoSpeed, delayFn: (ms: number) => Promise<void>, cancelRef: React.MutableRefObject<boolean>) => Promise<void>;
   onTranscriptLine: (line: (typeof DEMO_TRANSCRIPT_LINES)[number]) => void;
   onComplete: () => void;
   onClearAll: () => void;
