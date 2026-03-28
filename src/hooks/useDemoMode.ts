@@ -157,6 +157,16 @@ export function useDemoMode(options: UseDemoModeOptions) {
       }
     }
 
+    // Also handle special sections instantly via onFillSpecialSection with null delay
+    if (onFillSpecialSection) {
+      for (const sectionId of specialSectionIds) {
+        // Pass a no-op delay and a cancelled ref so it fills instantly
+        const instantDelay = () => Promise.resolve();
+        const cancelledRef = { current: true };
+        onFillSpecialSection(sectionId, "fast", instantDelay, cancelledRef);
+      }
+    }
+
     for (const line of DEMO_TRANSCRIPT_LINES) {
       onTranscriptLine(line);
     }
@@ -165,7 +175,7 @@ export function useDemoMode(options: UseDemoModeOptions) {
     setCurrentDemoIndex(sectionIds.length - 1);
     setTranscriptIndex(DEMO_TRANSCRIPT_LINES.length);
     onComplete();
-  }, [sectionIds, onFillSection, onTranscriptLine, onComplete]);
+  }, [sectionIds, specialSectionIds, onFillSection, onFillSpecialSection, onTranscriptLine, onComplete]);
 
   const pause = useCallback(() => {
     pauseRef.current = true;
