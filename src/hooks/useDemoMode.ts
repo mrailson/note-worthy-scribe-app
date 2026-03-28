@@ -134,11 +134,13 @@ export function useDemoMode(options: UseDemoModeOptions) {
   }, [
     currentDemoIndex,
     sectionIds,
+    specialSectionIds,
     speed,
     transcriptIndex,
     delay,
     onNavigateToSection,
     onFillSection,
+    onFillSpecialSection,
     onTranscriptLine,
     onComplete,
   ]);
