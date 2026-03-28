@@ -8,6 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 import { useState, useEffect, useRef, useCallback } from "react";
+import AgeWellSupportPlanSummary from "./AgeWellSupportPlanSummary";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDemoMode } from "@/hooks/useDemoMode";
 import { DemoToolbar } from "@/components/agewell/DemoToolbar";
@@ -546,75 +547,7 @@ export default function PatientSupportPlan() {
 
   /* ─── SUMMARY VIEW ──────────────────────────────────────────────── */
   if (page === "summary") {
-    return (
-      <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Segoe UI',system-ui,sans-serif",padding:20}}>
-        <div style={{maxWidth:750,margin:"0 auto"}}>
-          <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
-            <button onClick={() => setPage("form")} style={{background:C.blue,color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:600,fontSize:13}}>← Back to Assessment</button>
-          </div>
-          <h2 style={{color:C.dark,marginBottom:4,fontFamily:"Georgia,'Times New Roman',serif"}}>Patient Support Plan Summary</h2>
-          <p style={{color:C.mid,marginTop:0,fontSize:13}}>{new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</p>
-
-          {data.name && (
-            <div style={{background:`linear-gradient(135deg,${C.dark},${C.blue})`,borderRadius:12,padding:18,color:"#fff",marginBottom:16}}>
-              <div style={{fontSize:20,fontWeight:700}}>{data.name}</div>
-              <div style={{marginTop:6,fontSize:14,opacity:0.85}}>
-                {data.preferredName && `Preferred: ${data.preferredName}  |  `}
-                {data.dob && `DOB: ${data.dob}  |  `}
-                {data.age && `Age: ${data.age}`}
-                {data.surgery && `  |  ${data.surgery}`}
-              </div>
-            </div>
-          )}
-
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
-            {[
-              ["PHQ-9", getTotal("phq9"), 27],
-              ["GAD-7", getTotal("gad7"), 21],
-              ["6-CIT", Object.values(citS).reduce((a,b) => a+b, 0), 28],
-              ["FRAT", Object.values(fratS).reduce((a,b) => a+b, 0), 5],
-            ].map(x => (
-              <div key={x[0]} style={{background:"#fff",borderRadius:10,padding:12,textAlign:"center",border:`1px solid ${C.bdr}`}}>
-                <div style={{fontSize:10,fontWeight:700,color:C.dim}}>{x[0]}</div>
-                <div style={{fontSize:24,fontWeight:800,color:C.blue}}>{x[1]}<span style={{fontSize:12,color:C.dim}}>/{x[2]}</span></div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
-            <div style={{background:"#E8F5E9",borderRadius:10,padding:12,textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:C.green}}>{Object.values(states).filter(v => v==="done").length}</div><div style={{fontSize:11,color:C.mid}}>Completed</div></div>
-            <div style={{background:"#FFF3E0",borderRadius:10,padding:12,textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:C.amber}}>{Object.values(states).filter(v => v==="na").length}</div><div style={{fontSize:11,color:C.mid}}>N/A</div></div>
-            <div style={{background:"#fff",borderRadius:10,padding:12,textAlign:"center",border:`1px solid ${C.bdr}`}}><div style={{fontSize:22,fontWeight:800,color:C.dim}}>{SECS.length - doneN}</div><div style={{fontSize:11,color:C.mid}}>Pending</div></div>
-          </div>
-
-          <div style={{background:"#fff",borderRadius:10,padding:16,border:`1px solid ${C.bdr}`}}>
-            <div style={{fontWeight:700,marginBottom:10}}>Captured Data</div>
-            {Object.keys(data).filter(k => data[k]).map(k => (
-              <div key={k} style={{display:"flex",padding:"5px 0",borderBottom:`1px solid ${C.bdr}`,fontSize:13,gap:10}}>
-                <span style={{fontWeight:600,color:C.mid,minWidth:130,flexShrink:0}}>{k}</span>
-                <span style={{color:C.text,lineHeight:1.4}}>{data[k]}</span>
-              </div>
-            ))}
-            {Object.keys(data).filter(k => data[k]).length === 0 && (
-              <div style={{color:C.dim,fontSize:13,padding:20,textAlign:"center"}}>No data captured yet. Use the demo auto-fill or enter data manually.</div>
-            )}
-          </div>
-
-          {actions.some(a => a.s) && (
-            <div style={{background:"#fff",borderRadius:10,padding:16,border:`1px solid ${C.bdr}`,marginTop:12}}>
-              <div style={{fontWeight:700,marginBottom:10}}>Action Plan</div>
-              {actions.filter(a => a.s).map((a, i) => (
-                <div key={i} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:`1px solid ${C.bdr}`,fontSize:13}}>
-                  <span style={{color:a.d?C.green:C.dim}}>{a.d?"✅":"⬜"}</span>
-                  <span style={{flex:1,textDecoration:a.d?"line-through":"none"}}>{a.s}</span>
-                  {a.p && <span style={{color:C.mid,fontSize:12}}>({a.p})</span>}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    return <AgeWellSupportPlanSummary onBack={() => setPage("form")} />;
   }
 
   /* ─── MAIN FORM VIEW ────────────────────────────────────────────── */
