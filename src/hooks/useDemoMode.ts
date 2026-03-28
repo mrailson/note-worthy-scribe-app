@@ -10,14 +10,14 @@ import {
 export type DemoSpeed = "slow" | "medium" | "fast";
 
 const SPEED_MS: Record<DemoSpeed, number> = {
-  slow: 3600,
+  slow: 7000,
   medium: 1000,
   fast: 400,
 };
 
 // After this many sections, "slow" reverts to normal slow speed
 const SLOW_INTRO_SECTIONS = 3;
-const SLOW_NORMAL_MS = 1800;
+const SLOW_NORMAL_MS = 3000;
 
 interface UseDemoModeOptions {
   sectionIds: string[];
