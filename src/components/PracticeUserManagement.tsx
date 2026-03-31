@@ -1088,7 +1088,7 @@ export const PracticeUserManagement = () => {
                 )}
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="pt-4 border-t">
             <Button
