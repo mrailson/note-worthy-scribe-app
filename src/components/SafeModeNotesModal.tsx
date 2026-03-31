@@ -3110,20 +3110,31 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     <Input
                       value={titleDraft}
                       onChange={(e) => setTitleDraft(e.target.value)}
-                      className="text-lg font-semibold h-8"
+                      className="text-lg font-semibold h-8 flex-1"
                       autoFocus
-                      onBlur={() => setEditingTitle(false)}
                       onKeyDown={(e) => { if (e.key === 'Escape') setEditingTitle(false); }}
                     />
+                    <Button type="submit" size="sm" variant="default" className="h-8 px-3">
+                      Save
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" className="h-8 px-3" onClick={() => setEditingTitle(false)}>
+                      Cancel
+                    </Button>
                   </form>
                 ) : (
-                  <DialogTitle
-                    className="text-lg font-semibold cursor-pointer hover:text-primary/80 transition-colors group flex items-center gap-2"
-                    onClick={() => { setTitleDraft(meeting?.title || ''); setEditingTitle(true); }}
-                  >
-                    <span className="truncate">{meeting?.title || 'Meeting Notes'}</span>
-                    <Pencil className="h-3.5 w-3.5 opacity-0 group-hover:opacity-60 transition-opacity flex-shrink-0" />
-                  </DialogTitle>
+                  <div className="flex items-center gap-2">
+                    <DialogTitle className="text-lg font-semibold truncate">
+                      {meeting?.title || 'Meeting Notes'}
+                    </DialogTitle>
+                    <button
+                      type="button"
+                      onClick={() => { setTitleDraft(meeting?.title || ''); setEditingTitle(true); }}
+                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                      title="Edit title"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
                 <p className="text-xs text-muted-foreground mt-0.5">
                   View and manage meeting notes
