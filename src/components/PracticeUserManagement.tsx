@@ -826,7 +826,7 @@ export const PracticeUserManagement = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="space-y-4 px-8 sm:px-10 py-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
