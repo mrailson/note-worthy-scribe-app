@@ -1090,7 +1090,7 @@ export const PracticeUserManagement = () => {
             </div>
           </div>
 
-          <DialogFooter className="pt-4 border-t">
+          <DialogFooter className="pt-4 border-t shrink-0">
             <Button
               variant="outline"
               onClick={() => {
