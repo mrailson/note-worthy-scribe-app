@@ -3093,10 +3093,36 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <div className="p-2 bg-primary/10 rounded-lg">
                 <FileText className="h-5 w-5 text-primary" />
               </div>
-              <div>
-                <DialogTitle className="text-lg font-semibold">
-                  {meeting?.title || 'Meeting Notes'}
-                </DialogTitle>
+              <div className="min-w-0 flex-1">
+                {editingTitle ? (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!meeting?.id || !titleDraft.trim()) return;
+                    try {
+                      await supabase.from('meetings').update({ title: titleDraft.trim() }).eq('id', meeting.id);
+                      if (meeting) (meeting as any).title = titleDraft.trim();
+                      toast.success('Title updated');
+                    } catch { toast.error('Failed to update title'); }
+                    setEditingTitle(false);
+                  }} className="flex items-center gap-2">
+                    <Input
+                      value={titleDraft}
+                      onChange={(e) => setTitleDraft(e.target.value)}
+                      className="text-lg font-semibold h-8"
+                      autoFocus
+                      onBlur={() => setEditingTitle(false)}
+                      onKeyDown={(e) => { if (e.key === 'Escape') setEditingTitle(false); }}
+                    />
+                  </form>
+                ) : (
+                  <DialogTitle
+                    className="text-lg font-semibold cursor-pointer hover:text-primary/80 transition-colors group flex items-center gap-2"
+                    onClick={() => { setTitleDraft(meeting?.title || ''); setEditingTitle(true); }}
+                  >
+                    <span className="truncate">{meeting?.title || 'Meeting Notes'}</span>
+                    <Pencil className="h-3.5 w-3.5 opacity-0 group-hover:opacity-60 transition-opacity flex-shrink-0" />
+                  </DialogTitle>
+                )}
                 <p className="text-xs text-muted-foreground mt-0.5">
                   View and manage meeting notes
                 </p>
