@@ -3090,9 +3090,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         }}
       >
         <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="p-2 bg-primary/10 rounded-lg shrink-0">
                 <FileText className="h-5 w-5 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
@@ -3100,9 +3100,21 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                   <form onSubmit={async (e) => {
                     e.preventDefault();
                     if (!meeting?.id || !titleDraft.trim()) return;
+                    const oldTitle = meeting?.title || '';
+                    const newTitle = titleDraft.trim();
                     try {
-                      await supabase.from('meetings').update({ title: titleDraft.trim() }).eq('id', meeting.id);
-                      if (meeting) (meeting as any).title = titleDraft.trim();
+                      await supabase.from('meetings').update({ title: newTitle }).eq('id', meeting.id);
+                      if (meeting) (meeting as any).title = newTitle;
+                      // Also update the title inside the notes content
+                      if (notesContent && oldTitle) {
+                        const updatedNotes = notesContent.replace(oldTitle, newTitle);
+                        if (updatedNotes !== notesContent) {
+                          setNotesContent(updatedNotes);
+                          // Persist updated notes
+                          const notesField = 'notes_style_3';
+                          await supabase.from('meetings').update({ [notesField]: updatedNotes }).eq('id', meeting.id);
+                        }
+                      }
                       toast.success('Title updated');
                     } catch { toast.error('Failed to update title'); }
                     setEditingTitle(false);
@@ -3119,7 +3131,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                   </form>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <DialogTitle className="text-lg font-semibold truncate">
+                    <DialogTitle className="text-lg font-semibold break-words">
                       {meeting?.title || 'Meeting Notes'}
                     </DialogTitle>
                     <button
