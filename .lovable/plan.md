@@ -1,25 +1,61 @@
 
 
-# Fix: Meeting Overview UI Not Updating After Note Generation
+# Gemini Live API Voice Agent — Browser Integration
 
 ## Problem
-The "Generate Meeting Notes" button successfully generates notes on the server (confirmed in logs and database — status is `completed`, overview exists), but the UI stays stuck showing "Transcript available but notes haven't been generated yet." There is no mechanism to detect when generation finishes and refresh the displayed data.
+The provided Python script uses desktop-only libraries (PyAudio, OpenCV, mss). It cannot run in a browser. We need to adapt the same Gemini Live API concept into a React component using the `@google/genai` JavaScript SDK and Web Audio APIs.
 
-## Root Cause
-`MeetingDetailsTabs.tsx` fires the edge function and sets status to `queued`, but has no realtime subscription or polling to detect when `notes_generation_status` changes to `completed`. The parent `MeetingHistoryList` passes `notesGenerationStatus` and `currentOverview` as props but never re-fetches after generation.
+## Architecture
 
-## Solution
-Add a Supabase realtime subscription inside `MeetingDetailsTabs` that listens for changes to the meeting row. When `notes_generation_status` transitions to `completed`, trigger `onOverviewChange` with the new overview and update the local generation status — causing the "generate" prompt to disappear and the overview to render.
+```text
+Browser                          Edge Function                  Google
+┌──────────────┐    POST /token  ┌──────────────┐   REST API   ┌─────────┐
+│ React UI     │ ───────────────►│ gemini-live- │ ────────────►│ Gemini  │
+│ (AudioWorklet│    { token }    │ token        │   ephemeral  │ API     │
+│  + WebSocket)│ ◄───────────── │              │   token      │         │
+│              │                 └──────────────┘              │         │
+│              │    WebSocket (wss://)                          │         │
+│              │ ──────────────────────────────────────────────►│ Live API│
+└──────────────┘                                               └─────────┘
+```
 
-### Changes
+## What We'll Build
 
-**`src/components/meeting-details/MeetingDetailsTabs.tsx`**
-1. After `handleGenerateNotes` sets status to `queued`, subscribe to realtime changes on the specific meeting row
-2. When a `completed` status is received, re-fetch the meeting's `overview` and `notes_generation_status` from the database
-3. Call `onOverviewChange(newOverview)` to update the parent state
-4. Show a success toast: "Meeting notes generated successfully"
-5. Clean up the subscription on unmount or when generation completes
-6. Handle `failed`/`error` status with an error toast
+### 1. Edge function: `gemini-live-token`
+- Uses the existing `GEMINI_API_KEY` secret to generate an ephemeral token via `@google/genai` SDK
+- Returns `{ token, model }` to the client
+- Token is short-lived (~30 min), single-use — keeps the API key secure
 
-This is a targeted fix — no other files need changing. The parent already handles `onOverviewChange` to update local state (line 2831-2835 of MeetingHistoryList).
+### 2. React component: `GeminiLiveVoiceAgent`
+- Replaces the placeholder content in `VoiceConversationTab.tsx`
+- Uses `@google/genai` JS SDK's `ai.live.connect()` with the ephemeral token
+- Captures microphone via `navigator.mediaDevices.getUserMedia` + AudioWorklet (reusing existing `pcm16-writer.js` worklet for 16kHz PCM resampling)
+- Sends 16-bit PCM audio chunks to the Gemini Live session
+- Receives 24kHz PCM audio responses and plays them via Web Audio API
+- Mirrors the Python script's config: model `gemini-3.1-flash-live-preview`, voice "Zephyr", audio-only response modality, context window compression
+
+### 3. UI Features
+- **Connect/Disconnect button** with status indicator (connecting, connected, listening, agent speaking)
+- **Audio visualisation** — simple pulsing orb showing input/output levels
+- **Text transcript display** — shows any text responses from the agent
+- **Mode selector** — audio-only (default), matching the Python script's modes minus camera/screen (not applicable for this test)
+- **Volume control** slider for output audio
+
+### 4. npm dependency
+- Install `@google/genai` package
+
+## Key Technical Details
+
+- **Audio format**: Input 16kHz mono 16-bit PCM (matches the existing `pcm16-writer.js` worklet), output 24kHz mono 16-bit PCM
+- **Playback**: Create an `AudioContext` at 24kHz, decode raw PCM into `AudioBuffer`, queue for gapless playback
+- **Interruption handling**: When user speaks while agent is playing, clear the audio playback queue (same pattern as the Python script's `receive_audio` method)
+- **Session config**: Matches the Python script — `response_modalities: ["AUDIO"]`, `media_resolution: "MEDIA_RESOLUTION_MEDIUM"`, Zephyr voice, context window compression with 104857 trigger tokens
+
+## Files to Create/Modify
+
+| File | Action |
+|------|--------|
+| `supabase/functions/gemini-live-token/index.ts` | Create — ephemeral token endpoint |
+| `src/components/gemini/GeminiLiveVoiceAgent.tsx` | Create — main voice agent component |
+| `src/components/document-email/VoiceConversationTab.tsx` | Modify — embed the new component |
 
