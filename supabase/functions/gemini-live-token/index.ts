@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
@@ -16,18 +16,37 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
-    // The Gemini Live API doesn't have a dedicated ephemeral token endpoint.
-    // Instead, we return the API key wrapped so the client can connect directly.
-    // The edge function keeps the key server-side and returns a short-lived proxy config.
-    // For production, consider using Vertex AI with OAuth tokens.
-    
     const model = "gemini-3.1-flash-live-preview";
+
+    // Mint an ephemeral token via the Gemini Auth Tokens API
+    const expireTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    
+    const tokenResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1alpha/authTokens?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uses: 1,
+          expire_time: expireTime,
+        }),
+      }
+    );
+
+    if (!tokenResponse.ok) {
+      const errText = await tokenResponse.text();
+      console.error("Ephemeral token error:", tokenResponse.status, errText);
+      throw new Error(`Failed to create ephemeral token: ${tokenResponse.status}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+    console.log("Ephemeral token created:", tokenData.name ? "success" : "no name field", JSON.stringify(Object.keys(tokenData)));
 
     return new Response(
       JSON.stringify({
-        apiKey: GEMINI_API_KEY,
+        token: tokenData.name, // e.g. "auth_tokens/abc123..."
         model,
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        expiresAt: expireTime,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
