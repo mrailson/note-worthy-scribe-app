@@ -813,7 +813,7 @@ export const PracticeUserManagement = () => {
 
       {/* User Modal */}
       <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
-        <DialogContent className="max-w-2xl max-h-[calc(100vh-3rem)] flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[calc(100vh-3rem)] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>
               {editingUser ? 'Edit User' : 'Add New User'}
@@ -826,7 +826,7 @@ export const PracticeUserManagement = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="space-y-4 px-8 sm:px-10 py-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -1088,9 +1088,9 @@ export const PracticeUserManagement = () => {
                 )}
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
-          <DialogFooter className="pt-4 border-t">
+          <DialogFooter className="pt-4 border-t shrink-0">
             <Button
               variant="outline"
               onClick={() => {
