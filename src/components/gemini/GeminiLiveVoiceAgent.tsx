@@ -135,95 +135,105 @@ export const GeminiLiveVoiceAgent: React.FC = () => {
       workletNode.connect(audioCtx.destination);
 
       // Connect to Gemini Live API
+      console.log('🔗 Connecting to Gemini Live with model:', data.model);
       const ai = new GoogleGenAI({ apiKey: data.apiKey });
       
-      const session = await ai.live.connect({
-        model: data.model,
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Zephyr' },
+      let session: any;
+      try {
+        session = await ai.live.connect({
+          model: data.model,
+          config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: 'Zephyr' },
+              },
             },
           },
-        },
-        callbacks: {
-          onopen: () => {
-            console.log('🎙️ Gemini Live session opened');
-            setStatus('connected');
-          },
-          onmessage: (message: any) => {
-            // Handle audio data
-            const serverContent = message?.serverContent;
-            if (serverContent?.modelTurn?.parts) {
-              for (const part of serverContent.modelTurn.parts) {
-                if (part.inlineData?.data) {
-                  // Decode base64 PCM audio
-                  const binaryStr = atob(part.inlineData.data);
-                  const bytes = new Uint8Array(binaryStr.length);
-                  for (let i = 0; i < binaryStr.length; i++) {
-                    bytes[i] = binaryStr.charCodeAt(i);
+          callbacks: {
+            onopen: () => {
+              console.log('🎙️ Gemini Live session opened');
+              setStatus('connected');
+            },
+            onmessage: (message: any) => {
+              // Handle audio data
+              const serverContent = message?.serverContent;
+              if (serverContent?.modelTurn?.parts) {
+                for (const part of serverContent.modelTurn.parts) {
+                  if (part.inlineData?.data) {
+                    // Decode base64 PCM audio
+                    const binaryStr = atob(part.inlineData.data);
+                    const bytes = new Uint8Array(binaryStr.length);
+                    for (let i = 0; i < binaryStr.length; i++) {
+                      bytes[i] = binaryStr.charCodeAt(i);
+                    }
+                    audioQueueRef.current.push(bytes.buffer);
+                    playNextChunk();
                   }
-                  audioQueueRef.current.push(bytes.buffer);
-                  playNextChunk();
+                  if (part.text) {
+                    setTranscript(prev => [
+                      ...prev,
+                      { role: 'agent', text: part.text, timestamp: new Date() },
+                    ]);
+                  }
                 }
-                if (part.text) {
+              }
+
+              // When turn completes, clear queue (handles interruptions)
+              if (serverContent?.turnComplete) {
+                clearAudioQueue();
+              }
+
+              // Handle input transcription
+              if (message?.serverContent?.inputTranscription?.text) {
+                const text = message.serverContent.inputTranscription.text;
+                if (text.trim()) {
                   setTranscript(prev => [
                     ...prev,
-                    { role: 'agent', text: part.text, timestamp: new Date() },
+                    { role: 'user', text, timestamp: new Date() },
                   ]);
                 }
               }
-            }
 
-            // When turn completes, clear queue (handles interruptions)
-            if (serverContent?.turnComplete) {
-              clearAudioQueue();
-            }
-
-            // Handle input transcription
-            if (message?.serverContent?.inputTranscription?.text) {
-              const text = message.serverContent.inputTranscription.text;
-              if (text.trim()) {
-                setTranscript(prev => [
-                  ...prev,
-                  { role: 'user', text, timestamp: new Date() },
-                ]);
+              // Handle output transcription
+              if (message?.serverContent?.outputTranscription?.text) {
+                const text = message.serverContent.outputTranscription.text;
+                if (text.trim()) {
+                  setTranscript(prev => {
+                    // Update last agent entry or add new
+                    const last = prev[prev.length - 1];
+                    if (last?.role === 'agent') {
+                      return [
+                        ...prev.slice(0, -1),
+                        { ...last, text: last.text + text },
+                      ];
+                    }
+                    return [...prev, { role: 'agent', text, timestamp: new Date() }];
+                  });
+                }
               }
-            }
-
-            // Handle output transcription
-            if (message?.serverContent?.outputTranscription?.text) {
-              const text = message.serverContent.outputTranscription.text;
-              if (text.trim()) {
-                setTranscript(prev => {
-                  // Update last agent entry or add new
-                  const last = prev[prev.length - 1];
-                  if (last?.role === 'agent') {
-                    return [
-                      ...prev.slice(0, -1),
-                      { ...last, text: last.text + text },
-                    ];
-                  }
-                  return [...prev, { role: 'agent', text, timestamp: new Date() }];
+            },
+            onerror: (error: any) => {
+              console.error('❌ Gemini Live WebSocket error event:', error);
+              // Don't show toast here - onclose will fire next with more detail
+            },
+            onclose: (event: any) => {
+              console.log('🔌 Gemini Live session closed:', event?.code, event?.reason, event);
+              setStatus('disconnected');
+              if (event?.code && event.code !== 1000) {
+                toast({
+                  variant: 'destructive',
+                  title: 'Connection Error',
+                  description: `Voice agent disconnected: ${event?.reason || `code ${event?.code}`}`,
                 });
               }
-            }
+            },
           },
-          onerror: (error: any) => {
-            console.error('❌ Gemini Live error:', error, JSON.stringify(error, Object.getOwnPropertyNames(error || {})));
-            toast({
-              variant: 'destructive',
-              title: 'Connection Error',
-              description: 'Voice agent connection failed. Please try again.',
-            });
-          },
-          onclose: () => {
-            console.log('🔌 Gemini Live session closed');
-            setStatus('disconnected');
-          },
-        },
-      });
+        });
+      } catch (connectError: any) {
+        console.error('❌ Gemini Live connect() threw:', connectError?.message, connectError);
+        throw new Error(connectError?.message || 'Failed to establish Gemini Live session');
+      }
 
       sessionRef.current = session;
 
