@@ -13,6 +13,7 @@
   "dependencies": {
     "@11labs/react": "^0.1.4",
     "@emailjs/browser": "^4.4.1",
+    "@google/genai": "^1.47.0",
     "@hookform/resolvers": "^3.9.0",
     "@pdf-lib/fontkit": "^1.1.1",
     "@playwright/test": "^1.57.0",
