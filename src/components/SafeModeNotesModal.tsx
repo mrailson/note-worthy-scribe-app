@@ -161,6 +161,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 }) => {
   // State
   const [activeTab, setActiveTab] = useState<'notes' | 'transcript' | 'actions' | 'ask-ai' | 'audio' | 'documents'>('notes');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
   
   // Get action items count for badge
   const { openItemsCount } = useActionItemsCount(meeting?.id || '');
