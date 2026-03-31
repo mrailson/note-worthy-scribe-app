@@ -1,31 +1,25 @@
 
 
-# Skip Meeting Creation for Short Offline Recordings (< 100 Words)
+# Fix: Meeting Overview UI Not Updating After Note Generation
 
 ## Problem
-When offline recordings are synced and the transcript is under 100 words, a meeting is still created and notes are generated. The AI hallucinates content from the detailed system prompt, producing emails full of fabricated information.
+The "Generate Meeting Notes" button successfully generates notes on the server (confirmed in logs and database — status is `completed`, overview exists), but the UI stays stuck showing "Transcript available but notes haven't been generated yet." There is no mechanism to detect when generation finishes and refresh the displayed data.
+
+## Root Cause
+`MeetingDetailsTabs.tsx` fires the edge function and sets status to `queued`, but has no realtime subscription or polling to detect when `notes_generation_status` changes to `completed`. The parent `MeetingHistoryList` passes `notesGenerationStatus` and `currentOverview` as props but never re-fetches after generation.
 
 ## Solution
-Add a word count guard at all three meeting creation points in `NoteWellRecorderMobile.jsx`. When the transcript is under 100 words, skip meeting creation entirely — show a clear toast explaining the recording was too short, mark the recording as complete, and don't generate notes or send emails.
+Add a Supabase realtime subscription inside `MeetingDetailsTabs` that listens for changes to the meeting row. When `notes_generation_status` transitions to `completed`, trigger `onOverviewChange` with the new overview and update the local generation status — causing the "generate" prompt to disappear and the overview to render.
 
-## Changes
+### Changes
 
-### `src/components/recorder/NoteWellRecorderMobile.jsx`
+**`src/components/meeting-details/MeetingDetailsTabs.tsx`**
+1. After `handleGenerateNotes` sets status to `queued`, subscribe to realtime changes on the specific meeting row
+2. When a `completed` status is received, re-fetch the meeting's `overview` and `notes_generation_status` from the database
+3. Call `onOverviewChange(newOverview)` to update the parent state
+4. Show a success toast: "Meeting notes generated successfully"
+5. Clean up the subscription on unmount or when generation completes
+6. Handle `failed`/`error` status with an error toast
 
-Add a `MIN_WORDS_FOR_MEETING = 100` constant and guard at these three locations:
-
-1. **Resumed transcribed recording sync** (~line 1178): After computing `wordCount`, check if < 100. If so, show toast "Recording too short (X words) — meeting not created. At least 100 words needed.", set sync progress to complete, and return early.
-
-2. **Main chunked sync** (~line 1410-1450): After stitching `fullTranscript` and computing `wordCount`, same guard before the `meetingInsert` block.
-
-3. **Legacy single-file sync** (~line 1642): After computing `wordCount`, same guard before the legacy meeting insert.
-
-In all three cases:
-- Show an informative toast: "Recording too short (X words) — at least 100 words needed for meeting notes"
-- Update the IndexedDB record status to `"too_short"` so it's visually distinct from errors
-- Set sync progress to complete so the UI doesn't hang
-- Do **not** create a meeting, generate notes, or trigger email
-
-### UI indicator
-In the recordings list rendering, handle `status === "too_short"` with an amber badge saying "Too short" so the user understands why no meeting was created.
+This is a targeted fix — no other files need changing. The parent already handles `onOverviewChange` to update local state (line 2831-2835 of MeetingHistoryList).
 
