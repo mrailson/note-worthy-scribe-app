@@ -14,6 +14,7 @@ import { Loader2 } from "lucide-react";
 // Lazy-load all pages to reduce initial bundle size
 const Index = lazy(() => import("./pages/Index"));
 const AI4GP = lazy(() => import("./pages/AI4GP"));
+const VoiceAgent = lazy(() => import("./pages/VoiceAgent"));
 const GPScribe = lazy(() => import("./pages/GPScribe"));
 const GPScribeSettings = lazy(() => import("./pages/GPScribeSettings"));
 const MeetingHistory = lazy(() => import("./pages/MeetingHistory"));
@@ -216,6 +217,7 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/ai4gp" element={<AI4GP />} />
+                <Route path="/voice-agent" element={<VoiceAgent />} />
                 <Route path="/gp-scribe" element={<Navigate to="/scribe" replace />} />
                 <Route path="/gp-scribe/settings" element={<Navigate to="/scribe" replace />} />
                 <Route path="/meetings" element={<MeetingHistory />} />
