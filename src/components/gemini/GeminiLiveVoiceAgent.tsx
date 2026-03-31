@@ -135,7 +135,7 @@ export const GeminiLiveVoiceAgent: React.FC = () => {
       workletNode.connect(audioCtx.destination);
 
       // Connect to Gemini Live API
-      const ai = new GoogleGenAI({ apiKey: data.apiKey, httpOptions: { apiVersion: 'v1alpha' } });
+      const ai = new GoogleGenAI({ apiKey: data.apiKey });
       
       const session = await ai.live.connect({
         model: data.model,
