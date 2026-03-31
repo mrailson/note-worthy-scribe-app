@@ -148,8 +148,8 @@ export const MeetingDetailsTabs = ({
     }
   };
 
-  const showGeneratePrompt = !currentOverview && wordCount >= 100 && notesGenerationStatus !== 'queued' && notesGenerationStatus !== 'generating';
-  const showGeneratingStatus = (notesGenerationStatus === 'queued' || notesGenerationStatus === 'generating') && !currentOverview;
+  const showGeneratePrompt = !currentOverview && wordCount >= 100 && localGenerationStatus !== 'queued' && localGenerationStatus !== 'generating';
+  const showGeneratingStatus = (localGenerationStatus === 'queued' || localGenerationStatus === 'generating') && !currentOverview;
 
   return (
     <div className={`bg-card border border-border rounded-lg ${className}`}>
