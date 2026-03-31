@@ -3106,20 +3106,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                       toast.success('Title updated');
                     } catch { toast.error('Failed to update title'); }
                     setEditingTitle(false);
-                  }} className="flex items-center gap-2">
+                  }} className="w-full flex items-center gap-2">
                     <Input
                       value={titleDraft}
                       onChange={(e) => setTitleDraft(e.target.value)}
-                      className="text-lg font-semibold h-8 flex-1"
+                      className="w-full min-w-0 flex-1 h-10 text-lg font-semibold"
                       autoFocus
                       onKeyDown={(e) => { if (e.key === 'Escape') setEditingTitle(false); }}
                     />
-                    <Button type="submit" size="sm" variant="default" className="h-8 px-3">
-                      Save
-                    </Button>
-                    <Button type="button" size="sm" variant="ghost" className="h-8 px-3" onClick={() => setEditingTitle(false)}>
-                      Cancel
-                    </Button>
+                    <Button type="submit" size="sm" className="h-10 shrink-0">Save</Button>
+                    <Button type="button" size="sm" variant="ghost" className="h-10 shrink-0" onClick={() => setEditingTitle(false)}>Cancel</Button>
                   </form>
                 ) : (
                   <div className="flex items-center gap-2">
