@@ -1,5 +1,10 @@
 project_id = "dphcnbricafkbtizkoal"
 
+[functions.gemini-live-token]
+verify_jwt = false
+
+
+
 [functions.contract-ask-ai]
 verify_jwt = false
 
