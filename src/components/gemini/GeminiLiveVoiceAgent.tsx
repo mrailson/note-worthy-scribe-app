@@ -135,7 +135,7 @@ export const GeminiLiveVoiceAgent: React.FC = () => {
       workletNode.connect(audioCtx.destination);
 
       // Connect to Gemini Live API
-      const ai = new GoogleGenAI({ apiKey: data.apiKey });
+      const ai = new GoogleGenAI({ apiKey: data.apiKey, httpOptions: { apiVersion: 'v1alpha' } });
       
       const session = await ai.live.connect({
         model: data.model,
@@ -211,7 +211,7 @@ export const GeminiLiveVoiceAgent: React.FC = () => {
             }
           },
           onerror: (error: any) => {
-            console.error('❌ Gemini Live error:', error);
+            console.error('❌ Gemini Live error:', error, JSON.stringify(error, Object.getOwnPropertyNames(error || {})));
             toast({
               variant: 'destructive',
               title: 'Connection Error',
