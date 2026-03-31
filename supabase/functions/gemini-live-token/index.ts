@@ -17,12 +17,11 @@ serve(async (req) => {
     }
 
     const model = "gemini-3.1-flash-live-preview";
-
-    // Mint an ephemeral token via the Gemini Auth Tokens API
     const expireTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-    
+
+    // Mint ephemeral token via Gemini auth_tokens endpoint
     const tokenResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1alpha/authTokens?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1alpha/auth_tokens?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,15 +35,19 @@ serve(async (req) => {
     if (!tokenResponse.ok) {
       const errText = await tokenResponse.text();
       console.error("Ephemeral token error:", tokenResponse.status, errText);
-      throw new Error(`Failed to create ephemeral token: ${tokenResponse.status}`);
+      throw new Error(`Failed to create ephemeral token: ${tokenResponse.status} ${errText}`);
     }
 
     const tokenData = await tokenResponse.json();
-    console.log("Ephemeral token created:", tokenData.name ? "success" : "no name field", JSON.stringify(Object.keys(tokenData)));
+    console.log("Ephemeral token created successfully:", tokenData.name?.substring(0, 30));
+
+    if (!tokenData.name) {
+      throw new Error("No token name in response");
+    }
 
     return new Response(
       JSON.stringify({
-        token: tokenData.name, // e.g. "auth_tokens/abc123..."
+        token: tokenData.name,
         model,
         expiresAt: expireTime,
       }),
