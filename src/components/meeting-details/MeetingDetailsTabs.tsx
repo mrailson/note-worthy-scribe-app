@@ -8,7 +8,6 @@ import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { MeetingQAPanel } from "./MeetingQAPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
 interface MeetingDetailsTabsProps {
   meetingId: string;
   meetingTitle: string;
@@ -39,6 +38,54 @@ export const MeetingDetailsTabs = ({
 }: MeetingDetailsTabsProps) => {
   const [documentCount, setDocumentCount] = useState<number>(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [localGenerationStatus, setLocalGenerationStatus] = useState(notesGenerationStatus);
+
+  // Keep local status in sync with prop
+  useEffect(() => {
+    setLocalGenerationStatus(notesGenerationStatus);
+  }, [notesGenerationStatus]);
+
+  // Realtime subscription to detect when notes generation completes
+  useEffect(() => {
+    if (localGenerationStatus !== 'queued' && localGenerationStatus !== 'generating') return;
+
+    const channel = supabase
+      .channel(`meeting-notes-${meetingId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'meetings',
+        filter: `id=eq.${meetingId}`
+      }, async (payload: any) => {
+        const newStatus = payload.new?.notes_generation_status;
+        if (newStatus === 'completed') {
+          // Re-fetch the overview
+          const { data } = await supabase
+            .from('meetings')
+            .select('overview')
+            .eq('id', meetingId)
+            .maybeSingle();
+
+          if (data?.overview) {
+            onOverviewChange(data.overview);
+          }
+          setLocalGenerationStatus('completed');
+          toast.success('Meeting notes generated successfully');
+          supabase.removeChannel(channel);
+        } else if (newStatus === 'failed' || newStatus === 'error') {
+          setLocalGenerationStatus(newStatus);
+          toast.error('Notes generation failed. Please try again.');
+          supabase.removeChannel(channel);
+        } else if (newStatus) {
+          setLocalGenerationStatus(newStatus);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [meetingId, localGenerationStatus, onOverviewChange]);
 
   // Fetch document count
   useEffect(() => {
@@ -101,8 +148,8 @@ export const MeetingDetailsTabs = ({
     }
   };
 
-  const showGeneratePrompt = !currentOverview && wordCount >= 100 && notesGenerationStatus !== 'queued' && notesGenerationStatus !== 'generating';
-  const showGeneratingStatus = (notesGenerationStatus === 'queued' || notesGenerationStatus === 'generating') && !currentOverview;
+  const showGeneratePrompt = !currentOverview && wordCount >= 100 && localGenerationStatus !== 'queued' && localGenerationStatus !== 'generating';
+  const showGeneratingStatus = (localGenerationStatus === 'queued' || localGenerationStatus === 'generating') && !currentOverview;
 
   return (
     <div className={`bg-card border border-border rounded-lg ${className}`}>
