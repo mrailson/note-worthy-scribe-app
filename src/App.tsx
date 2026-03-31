@@ -217,6 +217,7 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/ai4gp" element={<AI4GP />} />
+                <Route path="/voice-agent" element={<VoiceAgent />} />
                 <Route path="/gp-scribe" element={<Navigate to="/scribe" replace />} />
                 <Route path="/gp-scribe/settings" element={<Navigate to="/scribe" replace />} />
                 <Route path="/meetings" element={<MeetingHistory />} />
