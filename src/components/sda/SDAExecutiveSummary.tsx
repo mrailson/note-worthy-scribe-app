@@ -17,6 +17,14 @@ export interface SDAExecutiveSummaryProps {
     contractValue: string;
     contractDetail: string;
   };
+  /** Override the default patient list size */
+  patientListSize?: number;
+  /** Override the default practice count */
+  practiceCount?: number;
+  /** Override the default annual capacity figure */
+  annualCapacity?: number;
+  /** Override the population breakdown for the pie chart */
+  populationBreakdown?: { name: string; value: number; color: string }[];
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
@@ -31,7 +39,7 @@ import BoardPresentationExplainer from "@/components/nres/hours-tracker/BoardPre
 
 const NRESReportingRequirements = lazy(() => import("@/components/sda/NRESReportingRequirements"));
 
-const populationData = [
+const defaultPopulationData = [
   { name: "The Parks MC", value: 22827, color: "#005EB8" },
   { name: "Brackley MC", value: 16212, color: "#41B6E6" },
   { name: "Springfield", value: 12611, color: "#768692" },
@@ -46,7 +54,8 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = ({ customLogos, customMetrics }: SDAExecutiveSummaryProps = {}) => {
+export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown }: SDAExecutiveSummaryProps = {}) => {
+  const populationData = populationBreakdown || defaultPopulationData;
   const [chartsOpen, setChartsOpen] = useState(false);
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
   const [actionLogOpen, setActionLogOpen] = useState(true);
