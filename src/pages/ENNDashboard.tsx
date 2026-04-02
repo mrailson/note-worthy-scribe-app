@@ -139,6 +139,7 @@ const ENNDashboard = () => {
                   contractValue: '£2.38m',
                   contractDetail: '£2,376,045.53 p/a · 2-year pilot',
                 }}
+                goLiveDate={new Date(2026, 6, 1)}
               />
             </TabsContent>
             <TabsContent value="estates" className="mt-0">
