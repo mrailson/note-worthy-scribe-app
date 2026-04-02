@@ -75,8 +75,10 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer }: SDAExecutiveSummaryProps = {}) => {
+export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer, customActionLogData, customActionLogMetadata, customApptStats }: SDAExecutiveSummaryProps = {}) => {
   const populationData = populationBreakdown || defaultPopulationData;
+  const activeActionLogData = customActionLogData ?? actionLogData;
+  const activeActionLogMetadata = customActionLogMetadata ?? actionLogMetadata;
   const [chartsOpen, setChartsOpen] = useState(false);
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
   const [actionLogOpen, setActionLogOpen] = useState(true);
