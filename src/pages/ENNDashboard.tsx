@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Header } from "@/components/Header";
+import ennPcnLogo from "@/assets/enn-pcn-logo.png";
+import threeSixtyLogo from "@/assets/3sixty-logo.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
 import { SDAEstatesCapacity } from "@/components/sda/SDAEstatesCapacity";
@@ -30,15 +32,22 @@ const ENNDashboard = () => {
       <div className="bg-gradient-to-r from-[#005EB8] via-[#003087] to-[#002060] text-white">
         <div className="max-w-[1500px] w-full mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <p className="text-blue-200 text-sm font-medium tracking-wider uppercase mb-1">
-                East Northants Neighbourhood
-              </p>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Neighbourhood SDA Programme
-              </h1>
+            <div className="flex items-center gap-4">
+              <img src={ennPcnLogo} alt="East Northants PCN" className="h-16 w-auto object-contain rounded-lg bg-white/90 p-1" />
+              <div>
+                <p className="text-blue-200 text-sm font-medium tracking-wider uppercase mb-1">
+                  East Northants Neighbourhood
+                </p>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                  Neighbourhood SDA Programme
+                </h1>
+              </div>
             </div>
             <div className="flex flex-col items-start md:items-end gap-3">
+              <img src={threeSixtyLogo} alt="3Sixty Care Partnership" className="h-14 w-auto object-contain rounded-lg bg-white/90 p-1" />
+              <p className="text-blue-200 text-sm">
+                Projected Go-Live: <span className="text-white font-semibold">1st April 2026</span>
+              </p>
               <p className="text-blue-200 text-sm">
                 Projected Go-Live: <span className="text-white font-semibold">1st April 2026</span>
               </p>
