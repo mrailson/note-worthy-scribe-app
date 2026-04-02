@@ -164,7 +164,7 @@ const ENNDashboard = () => {
               />
             </TabsContent>
             <TabsContent value="estates" className="mt-0">
-              <SDAEstatesCapacity />
+              <ENNEstatesCapacity />
             </TabsContent>
             <TabsContent value="digital" className="mt-0">
               <SDADigitalIntegration />
