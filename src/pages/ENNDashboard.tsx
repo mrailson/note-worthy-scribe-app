@@ -1,5 +1,6 @@
 import { useState, lazy } from "react";
 import { ennProgrammePlan } from "@/data/ennProgrammePlanData";
+import { ennGuideItems } from "@/data/ennGuideItems";
 import { Header } from "@/components/Header";
 import ennPcnLogo from "@/assets/enn-pcn-logo.png";
 import threeSixtyLogo from "@/assets/3sixty-logo.png";
@@ -159,6 +160,7 @@ const ENNDashboard = () => {
                 }}
                 customProgrammePlan={ennProgrammePlan}
                 customMaintainedBy={{ name: 'Rebecca Gane', organisation: '3Sixty Care Partnership', email: 'Rebecca.Gane@nhft.nhs.uk' }}
+                customGuideItems={ennGuideItems}
               />
             </TabsContent>
             <TabsContent value="estates" className="mt-0">

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-interface GuideItem {
+export interface GuideItem {
   number: number;
   title: string;
   description: string;
@@ -31,7 +31,7 @@ interface GuideItem {
   category: "overview" | "requirements" | "benefits" | "operations";
 }
 
-const guideItems: GuideItem[] = [
+const defaultGuideItems: GuideItem[] = [
   {
     number: 1,
     title: "What is the SDA Neighbourhood Pilot?",
@@ -188,7 +188,8 @@ const categoryLabels = {
   operations: "Operations"
 };
 
-export const SDAPartnerQuickGuide = ({ neighbourhoodName = 'NRES' }: { neighbourhoodName?: string }) => {
+export const SDAPartnerQuickGuide = ({ neighbourhoodName = 'NRES', customGuideItems }: { neighbourhoodName?: string; customGuideItems?: GuideItem[] }) => {
+  const guideItems = customGuideItems || defaultGuideItems;
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 mb-4">

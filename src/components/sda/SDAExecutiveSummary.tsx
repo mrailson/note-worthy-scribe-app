@@ -50,6 +50,8 @@ export interface SDAExecutiveSummaryProps {
   customProgrammePlan?: import("@/types/sdaProgrammePlan").ProgrammePlan;
   /** Custom maintained-by info for the programme plan */
   customMaintainedBy?: { name: string; organisation: string; email: string };
+  /** Custom guide items for the Partner Quick Guide */
+  customGuideItems?: import("./SDAPartnerQuickGuide").GuideItem[];
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
@@ -79,7 +81,7 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer, customActionLogData, customActionLogMetadata, customApptStats, customProgrammePlan, customMaintainedBy }: SDAExecutiveSummaryProps = {}) => {
+export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer, customActionLogData, customActionLogMetadata, customApptStats, customProgrammePlan, customMaintainedBy, customGuideItems }: SDAExecutiveSummaryProps = {}) => {
   const populationData = populationBreakdown || defaultPopulationData;
   const activeActionLogData = customActionLogData ?? actionLogData;
   const activeActionLogMetadata = customActionLogMetadata ?? actionLogMetadata;
@@ -486,7 +488,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                   <p className="text-sm text-slate-600">
                     Essential information for GP practice partners about the {neighbourhoodName} Neighbourhood SDA Pilot – what it is, how it works, and what's expected from member practices.
                   </p>
-                  <SDAPartnerQuickGuide neighbourhoodName={neighbourhoodName} />
+                  <SDAPartnerQuickGuide neighbourhoodName={neighbourhoodName} customGuideItems={customGuideItems} />
                 </div>
 
               </div>
