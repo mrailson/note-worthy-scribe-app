@@ -777,7 +777,7 @@ const ENNReportingComprehensive = () => {
 
       {/* Key Metrics Bar */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <MetricCard title="Neighbourhood" value="ENN" subtitle="Rural East & South" color="purple" icon={Building2} />
+        <MetricCard title="Neighbourhood" value="ENN" subtitle="East Northants" color="purple" icon={Building2} />
         <MetricCard title="Practices" value="7" subtitle="GP practices" icon={Building2} />
         <MetricCard title="Population" value="89,584" subtitle="Registered patients" icon={Users} />
         <MetricCard title="Contract Value" value="£2.36M" subtitle="£26.33 per patient" color="green" icon={Banknote} />
