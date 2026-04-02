@@ -46,6 +46,8 @@ export interface SDAExecutiveSummaryProps {
     spokePercent: string;
     spokeAppts: string;
   };
+  /** Custom programme plan data for the Gantt chart */
+  customProgrammePlan?: import("@/types/sdaProgrammePlan").ProgrammePlan;
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
