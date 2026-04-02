@@ -147,6 +147,7 @@ const ENNDashboard = () => {
                 CustomReportingRequirements={ENNReportingRequirements}
                 CustomBuybackExplainer={ENNBoardPresentationExplainer}
               />
+            </TabsContent>
             <TabsContent value="estates" className="mt-0">
               <SDAEstatesCapacity />
             </TabsContent>
