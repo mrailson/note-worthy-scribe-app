@@ -327,21 +327,34 @@ export const SDAExecutiveSummary = ({ customLogos }: SDAExecutiveSummaryProps = 
 
                 <div className="flex flex-col gap-4 h-full">
                   <div className="flex justify-center items-center gap-6">
-                    <img 
-                      src={NRESLogo} 
-                      alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
-                      className="h-20 w-auto object-contain"
-                    />
-                    <img 
-                      src={DocMedLogo} 
-                      alt="DocMed Northamptonshire - PML" 
-                      className="h-20 w-auto object-contain"
-                    />
-                    <img 
-                      src={SNVBLogo} 
-                      alt="SNVB - Supporting Voluntary Activity" 
-                      className="h-20 w-auto object-contain"
-                    />
+                    {customLogos ? (
+                      customLogos.map((logo, i) => (
+                        <img 
+                          key={i}
+                          src={logo.src} 
+                          alt={logo.alt} 
+                          className="h-20 w-auto object-contain"
+                        />
+                      ))
+                    ) : (
+                      <>
+                        <img 
+                          src={NRESLogo} 
+                          alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
+                          className="h-20 w-auto object-contain"
+                        />
+                        <img 
+                          src={DocMedLogo} 
+                          alt="DocMed Northamptonshire - PML" 
+                          className="h-20 w-auto object-contain"
+                        />
+                        <img 
+                          src={SNVBLogo} 
+                          alt="SNVB - Supporting Voluntary Activity" 
+                          className="h-20 w-auto object-contain"
+                        />
+                      </>
+                    )}
                   </div>
                   {/* Working Days Countdown */}
                   {(() => {
