@@ -1,4 +1,5 @@
 import { useState, lazy } from "react";
+import { ennProgrammePlan } from "@/data/ennProgrammePlanData";
 import { Header } from "@/components/Header";
 import ennPcnLogo from "@/assets/enn-pcn-logo.png";
 import threeSixtyLogo from "@/assets/3sixty-logo.png";
@@ -156,6 +157,7 @@ const ENNDashboard = () => {
                   spokePercent: '20%',
                   spokeAppts: '14,969',
                 }}
+                customProgrammePlan={ennProgrammePlan}
               />
             </TabsContent>
             <TabsContent value="estates" className="mt-0">

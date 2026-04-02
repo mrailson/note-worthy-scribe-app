@@ -85,11 +85,15 @@ interface FlatRow {
   sectionId?: string;
 }
 
-export const ProgrammePlanGantt: React.FC = () => {
+interface ProgrammePlanGanttProps {
+  customPlanData?: ProgrammePlan;
+}
+
+export const ProgrammePlanGantt: React.FC<ProgrammePlanGanttProps> = ({ customPlanData }) => {
   const { user } = useAuth();
   const userEmail = user?.email || "Unknown";
 
-  const [planData, setPlanData] = useState<ProgrammePlan>(() => JSON.parse(JSON.stringify(sdaProgrammePlan)));
+  const [planData, setPlanData] = useState<ProgrammePlan>(() => JSON.parse(JSON.stringify(customPlanData || sdaProgrammePlan)));
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set(["discovery-setup"]));
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(
     sdaProgrammePlan.phases[0]?.sections?.map(s => s.id) || []

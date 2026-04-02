@@ -46,6 +46,8 @@ export interface SDAExecutiveSummaryProps {
     spokePercent: string;
     spokeAppts: string;
   };
+  /** Custom programme plan data for the Gantt chart */
+  customProgrammePlan?: import("@/types/sdaProgrammePlan").ProgrammePlan;
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
@@ -75,7 +77,7 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer, customActionLogData, customActionLogMetadata, customApptStats }: SDAExecutiveSummaryProps = {}) => {
+export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer, customActionLogData, customActionLogMetadata, customApptStats, customProgrammePlan }: SDAExecutiveSummaryProps = {}) => {
   const populationData = populationBreakdown || defaultPopulationData;
   const activeActionLogData = customActionLogData ?? actionLogData;
   const activeActionLogMetadata = customActionLogMetadata ?? actionLogMetadata;
@@ -542,7 +544,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="p-4 pt-2">
-            <ProgrammePlanGantt />
+            <ProgrammePlanGantt customPlanData={customProgrammePlan} />
           </CollapsibleContent>
         </Card>
       </Collapsible>
