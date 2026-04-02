@@ -1,4 +1,4 @@
-import { useState, lazy } from "react";
+import { useState, lazy, Suspense } from "react";
 import { ennProgrammePlan } from "@/data/ennProgrammePlanData";
 import { ennGuideItems } from "@/data/ennGuideItems";
 import { Header } from "@/components/Header";
