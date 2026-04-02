@@ -221,6 +221,7 @@ const SystemAdmin = () => {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [userServiceActivations, setUserServiceActivations] = useState<{
     nres: boolean;
+    enn: boolean;
     ai4pm: boolean;
     ai4gp: boolean;
     meeting_recorder: boolean;
@@ -229,6 +230,7 @@ const SystemAdmin = () => {
     lg_capture: boolean;
   }>({
     nres: false,
+    enn: false,
     ai4pm: false,
     ai4gp: false,
     meeting_recorder: false,
@@ -1093,6 +1095,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     setEditingUser(null);
     setUserServiceActivations({
       nres: false,
+      enn: false,
       ai4pm: false,
       ai4gp: false,
       meeting_recorder: false,
@@ -1153,9 +1156,10 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       console.error('Error fetching service activations:', activationsError);
     }
     
-    const activatedServices = activations?.map(a => a.service) || [];
+    const activatedServices = (activations?.map(a => a.service) || []) as string[];
     setUserServiceActivations({
       nres: activatedServices.includes('nres'),
+      enn: activatedServices.includes('enn'),
       ai4pm: activatedServices.includes('ai4pm'),
       ai4gp: activatedServices.includes('ai4gp'),
       meeting_recorder: activatedServices.includes('meeting_recorder'),
@@ -1214,13 +1218,13 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
   };
 
   // Toggle service activation for a user
-  const toggleServiceActivation = async (serviceKey: 'nres' | 'ai4pm' | 'ai4gp' | 'meeting_recorder' | 'complaints' | 'cqc' | 'lg_capture', enabled: boolean) => {
+  const toggleServiceActivation = async (serviceKey: 'nres' | 'enn' | 'ai4pm' | 'ai4gp' | 'meeting_recorder' | 'complaints' | 'cqc' | 'lg_capture', enabled: boolean) => {
     if (!editingUser) return;
     
     try {
       if (enabled) {
         // Upsert activation record (handles case where it already exists)
-        const { error } = await supabase
+        const { error } = await (supabase
           .from('user_service_activations')
           .upsert(
             {
@@ -1228,11 +1232,11 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
               service: serviceKey,
               activated_by: user?.id,
               activated_at: new Date().toISOString(),
-            },
+            } as any,
             {
               onConflict: 'user_id,service',
             }
-          );
+          ) as any);
 
         // If a record already exists, treat as success (defensive guard)
         if (error) {
@@ -1245,11 +1249,11 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
         toast.success(`${serviceKey.toUpperCase()} activated for user`);
       } else {
         // Remove activation record
-        const { error } = await supabase
+        const { error } = await (supabase
           .from('user_service_activations')
           .delete()
           .eq('user_id', editingUser.user_id)
-          .eq('service', serviceKey);
+          .eq('service', serviceKey as any) as any);
         
         if (error) throw error;
         toast.success(`${serviceKey.toUpperCase()} deactivated for user`);
@@ -4704,6 +4708,18 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                         id="nres_activation"
                         checked={userServiceActivations.nres}
                         onCheckedChange={(checked) => toggleServiceActivation('nres', checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between py-2">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="enn_activation">ENN Dashboard</Label>
+                        <p className="text-xs text-muted-foreground">Access to East Northants Neighbourhood dashboard and reporting</p>
+                      </div>
+                      <Switch
+                        id="enn_activation"
+                        checked={userServiceActivations.enn}
+                        onCheckedChange={(checked) => toggleServiceActivation('enn', checked)}
                       />
                     </div>
 
