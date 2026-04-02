@@ -27,6 +27,12 @@ export interface SDAExecutiveSummaryProps {
   populationBreakdown?: { name: string; value: number; color: string }[];
   /** Override the go-live date for the countdown (default: 1st April 2026) */
   goLiveDate?: Date;
+  /** Override the neighbourhood name used in text (default: 'NRES') */
+  neighbourhoodName?: string;
+  /** Custom reporting requirements component */
+  CustomReportingRequirements?: React.ComponentType;
+  /** Custom buy-back explainer component */
+  CustomBuybackExplainer?: React.ComponentType;
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
@@ -56,7 +62,7 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate }: SDAExecutiveSummaryProps = {}) => {
+export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer }: SDAExecutiveSummaryProps = {}) => {
   const populationData = populationBreakdown || defaultPopulationData;
   const [chartsOpen, setChartsOpen] = useState(false);
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
