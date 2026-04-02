@@ -1159,6 +1159,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     const activatedServices = activations?.map(a => a.service) || [];
     setUserServiceActivations({
       nres: activatedServices.includes('nres'),
+      enn: activatedServices.includes('enn'),
       ai4pm: activatedServices.includes('ai4pm'),
       ai4gp: activatedServices.includes('ai4gp'),
       meeting_recorder: activatedServices.includes('meeting_recorder'),
