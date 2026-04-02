@@ -59,7 +59,7 @@ const ENNDashboard = () => {
             <div className="flex flex-col items-start md:items-end gap-3">
               
               <p className="text-blue-200 text-sm">
-                Projected Go-Live: <span className="text-white font-semibold">1st April 2026</span>
+                Projected Go-Live: <span className="text-white font-semibold">1st July 2026</span>
               </p>
               <SDAFeedbackButton currentSection={activeTab} />
             </div>
