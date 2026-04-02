@@ -48,9 +48,6 @@ const ENNDashboard = () => {
               <p className="text-blue-200 text-sm">
                 Projected Go-Live: <span className="text-white font-semibold">1st April 2026</span>
               </p>
-              <p className="text-blue-200 text-sm">
-                Projected Go-Live: <span className="text-white font-semibold">1st April 2026</span>
-              </p>
               <SDAFeedbackButton currentSection={activeTab} />
             </div>
           </div>
@@ -113,7 +110,10 @@ const ENNDashboard = () => {
 
           <div className="mt-6 pb-8">
             <TabsContent value="executive" className="mt-0">
-              <SDAExecutiveSummary />
+              <SDAExecutiveSummary customLogos={[
+                { src: ennPcnLogo, alt: "East Northants PCN" },
+                { src: threeSixtyLogo, alt: "3Sixty Care Partnership" }
+              ]} />
             </TabsContent>
             <TabsContent value="estates" className="mt-0">
               <SDAEstatesCapacity />

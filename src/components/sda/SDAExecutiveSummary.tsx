@@ -7,6 +7,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import NRESLogo from "@/assets/nres-logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
 import SNVBLogo from "@/assets/snvb-logo.png";
+
+export interface SDAExecutiveSummaryProps {
+  customLogos?: { src: string; alt: string }[];
+}
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
 import { actionLogData, actionLogMetadata } from "@/data/nresBoardActionsData";
@@ -35,7 +39,7 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = () => {
+export const SDAExecutiveSummary = ({ customLogos }: SDAExecutiveSummaryProps = {}) => {
   const [chartsOpen, setChartsOpen] = useState(false);
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
   const [actionLogOpen, setActionLogOpen] = useState(true);
@@ -323,21 +327,34 @@ export const SDAExecutiveSummary = () => {
 
                 <div className="flex flex-col gap-4 h-full">
                   <div className="flex justify-center items-center gap-6">
-                    <img 
-                      src={NRESLogo} 
-                      alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
-                      className="h-20 w-auto object-contain"
-                    />
-                    <img 
-                      src={DocMedLogo} 
-                      alt="DocMed Northamptonshire - PML" 
-                      className="h-20 w-auto object-contain"
-                    />
-                    <img 
-                      src={SNVBLogo} 
-                      alt="SNVB - Supporting Voluntary Activity" 
-                      className="h-20 w-auto object-contain"
-                    />
+                    {customLogos ? (
+                      customLogos.map((logo, i) => (
+                        <img 
+                          key={i}
+                          src={logo.src} 
+                          alt={logo.alt} 
+                          className="h-20 w-auto object-contain"
+                        />
+                      ))
+                    ) : (
+                      <>
+                        <img 
+                          src={NRESLogo} 
+                          alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
+                          className="h-20 w-auto object-contain"
+                        />
+                        <img 
+                          src={DocMedLogo} 
+                          alt="DocMed Northamptonshire - PML" 
+                          className="h-20 w-auto object-contain"
+                        />
+                        <img 
+                          src={SNVBLogo} 
+                          alt="SNVB - Supporting Voluntary Activity" 
+                          className="h-20 w-auto object-contain"
+                        />
+                      </>
+                    )}
                   </div>
                   {/* Working Days Countdown */}
                   {(() => {
