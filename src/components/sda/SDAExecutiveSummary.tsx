@@ -34,7 +34,7 @@ export interface SDAExecutiveSummaryProps {
   /** Custom buy-back explainer component */
   CustomBuybackExplainer?: React.ComponentType;
   /** Custom action log data (empty array to clear) */
-  customActionLogData?: ActionLogItem[];
+  customActionLogData?: import("@/data/nresBoardActionsData").ActionLogItem[];
   /** Custom action log metadata */
   customActionLogMetadata?: { lastUpdated: string; nextMeeting: string };
   /** Custom appointment allocation stats */
