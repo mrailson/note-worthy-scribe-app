@@ -4713,6 +4713,18 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
                     <div className="flex items-center justify-between py-2">
                       <div className="space-y-0.5">
+                        <Label htmlFor="enn_activation">ENN Dashboard</Label>
+                        <p className="text-xs text-muted-foreground">Access to East Northants Neighbourhood dashboard and reporting</p>
+                      </div>
+                      <Switch
+                        id="enn_activation"
+                        checked={userServiceActivations.enn}
+                        onCheckedChange={(checked) => toggleServiceActivation('enn', checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between py-2">
+                      <div className="space-y-0.5">
                         <Label htmlFor="ai4pm_activation">AI4PM</Label>
                         <p className="text-xs text-muted-foreground">AI-powered practice management tools</p>
                       </div>
