@@ -1224,7 +1224,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     try {
       if (enabled) {
         // Upsert activation record (handles case where it already exists)
-        const { error } = await supabase
+        const { error } = await (supabase
           .from('user_service_activations')
           .upsert(
             {
@@ -1232,11 +1232,11 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
               service: serviceKey,
               activated_by: user?.id,
               activated_at: new Date().toISOString(),
-            },
+            } as any,
             {
               onConflict: 'user_id,service',
             }
-          );
+          ) as any);
 
         // If a record already exists, treat as success (defensive guard)
         if (error) {
