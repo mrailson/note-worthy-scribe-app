@@ -146,6 +146,16 @@ const ENNDashboard = () => {
                 neighbourhoodName="ENN"
                 CustomReportingRequirements={ENNReportingRequirements}
                 CustomBuybackExplainer={ENNBoardPresentationExplainer}
+                customActionLogData={[]}
+                customActionLogMetadata={{ sourceMeeting: '', nextMeeting: 'TBC', lastUpdated: '02/04/2026' }}
+                customApptStats={{
+                  remoteAppts: '37,423',
+                  f2fAppts: '37,423',
+                  hubPercent: '30%',
+                  hubAppts: '22,454',
+                  spokePercent: '20%',
+                  spokeAppts: '14,969',
+                }}
               />
             </TabsContent>
             <TabsContent value="estates" className="mt-0">
