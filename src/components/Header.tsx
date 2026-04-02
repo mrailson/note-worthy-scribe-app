@@ -686,6 +686,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   </Button>
                                 </DrawerClose>
                               )}
+                              {hasServiceAccess('enn') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/enn')}>
+                                    <Building2 className="h-4 w-4 mr-2" />
+                                    ENN Dashboard
+                                  </Button>
+                                </DrawerClose>
+                              )}
                             </CollapsibleContent>
                           </Collapsible>
 
