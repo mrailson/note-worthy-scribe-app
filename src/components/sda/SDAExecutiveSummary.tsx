@@ -7,6 +7,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import NRESLogo from "@/assets/nres-logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
 import SNVBLogo from "@/assets/snvb-logo.png";
+
+export interface SDAExecutiveSummaryProps {
+  customLogos?: { src: string; alt: string }[];
+}
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
 import { actionLogData, actionLogMetadata } from "@/data/nresBoardActionsData";
