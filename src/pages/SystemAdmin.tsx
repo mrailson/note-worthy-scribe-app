@@ -1218,7 +1218,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
   };
 
   // Toggle service activation for a user
-  const toggleServiceActivation = async (serviceKey: 'nres' | 'ai4pm' | 'ai4gp' | 'meeting_recorder' | 'complaints' | 'cqc' | 'lg_capture', enabled: boolean) => {
+  const toggleServiceActivation = async (serviceKey: 'nres' | 'enn' | 'ai4pm' | 'ai4gp' | 'meeting_recorder' | 'complaints' | 'cqc' | 'lg_capture', enabled: boolean) => {
     if (!editingUser) return;
     
     try {
