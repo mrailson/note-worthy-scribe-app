@@ -158,6 +158,7 @@ const ENNDashboard = () => {
                   spokeAppts: '14,969',
                 }}
                 customProgrammePlan={ennProgrammePlan}
+                customMaintainedBy={{ name: 'Rebecca Gane', organisation: '3Sixty Care Partnership', email: 'Rebecca.Gane@nhft.nhs.uk' }}
               />
             </TabsContent>
             <TabsContent value="estates" className="mt-0">
