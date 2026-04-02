@@ -1095,6 +1095,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     setEditingUser(null);
     setUserServiceActivations({
       nres: false,
+      enn: false,
       ai4pm: false,
       ai4gp: false,
       meeting_recorder: false,
