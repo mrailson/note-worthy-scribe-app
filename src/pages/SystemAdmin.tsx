@@ -1156,7 +1156,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       console.error('Error fetching service activations:', activationsError);
     }
     
-    const activatedServices = activations?.map(a => a.service) || [];
+    const activatedServices = (activations?.map(a => a.service) || []) as string[];
     setUserServiceActivations({
       nres: activatedServices.includes('nres'),
       enn: activatedServices.includes('enn'),
