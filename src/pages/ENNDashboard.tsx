@@ -33,7 +33,6 @@ const ENNDashboard = () => {
         <div className="max-w-[1500px] w-full mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <img src={ennPcnLogo} alt="East Northants PCN" className="h-16 w-auto object-contain rounded-lg bg-white/90 p-1" />
               <div>
                 <p className="text-blue-200 text-sm font-medium tracking-wider uppercase mb-1">
                   East Northants Neighbourhood
@@ -44,7 +43,7 @@ const ENNDashboard = () => {
               </div>
             </div>
             <div className="flex flex-col items-start md:items-end gap-3">
-              <img src={threeSixtyLogo} alt="3Sixty Care Partnership" className="h-14 w-auto object-contain rounded-lg bg-white/90 p-1" />
+              
               <p className="text-blue-200 text-sm">
                 Projected Go-Live: <span className="text-white font-semibold">1st April 2026</span>
               </p>
