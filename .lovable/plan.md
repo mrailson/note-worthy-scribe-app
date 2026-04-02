@@ -1,96 +1,52 @@
 
 
-# Phase 1: ENN Dashboard — Core Build
+# Rebuild ENN Dashboard as a Copy of the NRES SDA Programme Dashboard
 
-## Overview
-Create a standalone East Northants Neighbourhood (ENN) dashboard at `/enn`, replicating the NRES dashboard layout and features but populated with ENN-specific practice/hub data from Supabase. All 10 ENN practices already exist in `gp_practices` (neighbourhood_id `e1824813-4d90-4911-9104-e6ac0ba9be15`).
+## Problem
+The current ENN dashboard (`/enn`) was built as a results/consultations tracker. You wanted it to mirror the **NRES SDA Programme dashboard** (`/NRESDashboard`) — the one with the hero header, Executive Summary, Estates & Capacity, IT & Reporting, Workforce, Claims & Oversight, and Document Vault tabs.
 
-## Database Changes (Migration)
+## Approach
+Rebuild `ENNDashboard.tsx` to replicate the `SDADashboard.tsx` structure and layout, but with ENN-specific branding and data:
 
-### 1. New tables
+- **Hero header**: "EAST NORTHANTS NEIGHBOURHOOD" / "Neighbourhood SDA Programme" with Rebecca Gane contact, go-live date, feedback button
+- **Same 6 tabs**: Executive Summary, Estates & Capacity, IT & Reporting, Workforce, Claims & Oversight, Document Vault
+- **Same styling**: Gradient hero, floating tab bar, NHS blue theme
 
-**`enn_hubs`** — The 3 ENN hub providers
-- `id` uuid PK
-- `practice_id` uuid → gp_practices.id (the hub provider practice)
-- `hub_name` text
-- `hub_list_size` integer
-- `annual_income` numeric
-- `weekly_appts_required` integer
-- `created_at` timestamptz
+## What Changes
 
-**`enn_hub_practice_mappings`** — Which practices are served by which hub
-- `id` uuid PK
-- `hub_id` uuid → enn_hubs.id
-- `practice_id` uuid → gp_practices.id
-- `created_at` timestamptz
+### 1. Rewrite `src/pages/ENNDashboard.tsx`
+Replace the current results-dashboard layout with the SDA Programme layout:
+- Hero header with ENN branding (East Northants Neighbourhood, 3Sixty Care Partnership, Rebecca Gane)
+- 6 tabs matching SDADashboard exactly
+- Reuse the same SDA tab components initially (SDAExecutiveSummary, SDAEstatesCapacity, etc.) — these can be swapped for ENN-specific versions later
+- Wrap in NRESPeopleProvider (same as SDA dashboard)
 
-**`enn_practice_data`** — ENN-specific practice data (list size, appointments, winter data)
-- `id` uuid PK
-- `practice_id` uuid → gp_practices.id
-- `ods_code` text
-- `list_size` integer
-- `address` text
-- `annual_appts_required` integer
-- `weekly_appts_required` integer
-- `participating_winter` boolean default true
-- `winter_appts_required` integer
-- `non_winter_appts_required` integer
-- `weekly_non_winter_appts` integer
-- `created_at` timestamptz
+### 2. Update ENN-specific data in Executive Summary
+The shared SDAExecutiveSummary component currently shows NRES data (7 practices, 89,584 patients, £2.36m). For Phase 1, we reuse these components as-is to get the structure right. In a follow-up, we create ENN-specific versions with:
+- 10 practices, 90,241 patients, £2,376,045.53 budget
+- ENN practice population chart
+- ENN-specific action log and programme plan
 
-### 2. Update `gp_practices` — Set `list_size` and `address` for the 10 ENN practices (via insert tool / UPDATE)
+### 3. Keep existing ENN components
+The Practice Overview, Hub Reporting, and Winter Access components already built remain available — they can be integrated as sub-sections or additional tabs later.
 
-### 3. Seed data — Insert all hub, mapping, and practice data from the prompt into the new tables
+## Files to Modify
 
-### 4. Add `'enn'` to the `ServiceType` — Update `useServiceActivation.ts` to recognise `enn` service access
+| File | Change |
+|------|--------|
+| `src/pages/ENNDashboard.tsx` | Rewrite to match SDADashboard structure with ENN branding |
 
-## Frontend Changes
+## ENN Dashboard Header Content
+- Subtitle: "EAST NORTHANTS NEIGHBOURHOOD"
+- Title: "Neighbourhood SDA Programme"
+- Go-Live: "1st April 2026"
+- Feedback button with current section context
+- Transformation Manager: Rebecca Gane
 
-### 1. `src/data/ennPractices.ts`
-ENN equivalent of `nresPractices.ts` — 10 practice keys, display names, ODS codes.
+## What's Deferred
+- ENN-specific Executive Summary component (with ENN practice data, population chart, budget)
+- ENN-specific Estates, IT, Workforce components
+- ENN-specific Claims & Document Vault
 
-### 2. `src/data/ennMockData.ts`
-ENN-specific mock consultation data for the results dashboard tab (same structure as `nresMockData.ts` but with ENN practice names, ENN hub names, and sample clinicians).
-
-### 3. `src/components/enn/` — Component directory
-Copy and adapt the following NRES components, replacing all NRES references with ENN:
-- `ENNDashboardHeader.tsx` — Practice selector with 10 ENN practices + "All Practices"
-- `ENNMetricCard.tsx` — Reuse `MetricCard` directly (no copy needed)
-- `ENNPerformanceChart.tsx` — Wrapper using ENN practice performance data
-- `ENNPracticeOverview.tsx` — **New** — Practice cards showing list size, hub assignment, appointment data, utilisation metrics
-- `ENNHubSummary.tsx` — **New** — Hub-level cards with income, list size, weekly appointments
-- `ENNWinterAccessPanel.tsx` — **New** — Winter vs non-winter appointment split display
-
-### 4. `src/pages/ENNDashboard.tsx`
-Main page with tabs:
-- **Dashboard** — Key metrics, priority actions, consultations table, performance chart, escalations log (same layout as NRES)
-- **Practice Overview** — Practice cards with list size, hub, appointment data
-- **Hub Reporting** — Hub-level summaries with income and utilisation
-- **Winter Access** — Winter participation and appointment tracking
-
-### 5. `src/hooks/useENNData.ts`
-Hook to fetch ENN practices, hubs, and mappings from Supabase.
-
-### 6. Routing — `src/App.tsx`
-Add `/enn` route with `<ProtectedRoute requiredService="enn">`.
-
-### 7. Service activation — `src/hooks/useServiceActivation.ts`
-Add `'enn'` to the `ServiceType` union.
-
-## Key Details
-
-- **Neighbourhood identity**: Title shows "ENN Results Dashboard", subtitle "East Northants Neighbourhood — 3Sixty Care Partnership"
-- **Transformation Manager**: Rebecca Gane contact details shown in dashboard header/info tooltip
-- **Budget display**: £2,376,045.53 total annual budget shown in executive metrics
-- **10 practices, 3 hubs**: All data from the prompt seeded into Supabase
-- **No shared state with NRES**: Completely separate tables, routes, and data
-- **Existing components reused where possible**: MetricCard, InfoTooltip, CollapsibleCard, StatusBadge
-
-## What's NOT in Phase 1 (future phases)
-- Claims & Oversight (Hours Tracker) for ENN
-- Document Vault for ENN
-- SDA Programme dashboard for ENN
-- Comms Strategy for ENN
-- Complex Care for ENN
-- Presentation mode for ENN
+These will be built in follow-up phases, replacing the shared NRES components with ENN-specific ones.
 
