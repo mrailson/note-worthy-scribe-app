@@ -221,6 +221,7 @@ const SystemAdmin = () => {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [userServiceActivations, setUserServiceActivations] = useState<{
     nres: boolean;
+    enn: boolean;
     ai4pm: boolean;
     ai4gp: boolean;
     meeting_recorder: boolean;
@@ -229,6 +230,7 @@ const SystemAdmin = () => {
     lg_capture: boolean;
   }>({
     nres: false,
+    enn: false,
     ai4pm: false,
     ai4gp: false,
     meeting_recorder: false,
