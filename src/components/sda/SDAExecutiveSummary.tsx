@@ -27,6 +27,12 @@ export interface SDAExecutiveSummaryProps {
   populationBreakdown?: { name: string; value: number; color: string }[];
   /** Override the go-live date for the countdown (default: 1st April 2026) */
   goLiveDate?: Date;
+  /** Override the neighbourhood name used in text (default: 'NRES') */
+  neighbourhoodName?: string;
+  /** Custom reporting requirements component */
+  CustomReportingRequirements?: React.ComponentType;
+  /** Custom buy-back explainer component */
+  CustomBuybackExplainer?: React.ComponentType;
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
@@ -56,7 +62,7 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate }: SDAExecutiveSummaryProps = {}) => {
+export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer }: SDAExecutiveSummaryProps = {}) => {
   const populationData = populationBreakdown || defaultPopulationData;
   const [chartsOpen, setChartsOpen] = useState(false);
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
@@ -91,7 +97,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
             </Button>
           </div>
           <Suspense fallback={<div className="flex items-center justify-center h-screen text-slate-400">Loading preview…</div>}>
-            <NRESReportingRequirements />
+            {CustomReportingRequirements ? <CustomReportingRequirements /> : <NRESReportingRequirements />}
           </Suspense>
         </div>
       )}
@@ -99,7 +105,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
       {/* Buy-Back Explainer Fullscreen Dialog */}
       <Dialog open={showBuybackExplainer} onOpenChange={setShowBuybackExplainer}>
         <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
-          <BoardPresentationExplainer />
+          {CustomBuybackExplainer ? <CustomBuybackExplainer /> : <BoardPresentationExplainer />}
         </DialogContent>
       </Dialog>
     <div className="space-y-6">
@@ -459,7 +465,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <h3 className="font-semibold text-slate-900">GP Partner Quick Guide: 20 Things You Need to Know</h3>
                   </div>
                   <p className="text-sm text-slate-600">
-                    Essential information for GP practice partners about the NRES Neighbourhood SDA Pilot – what it is, how it works, and what's expected from member practices.
+                    Essential information for GP practice partners about the {neighbourhoodName} Neighbourhood SDA Pilot – what it is, how it works, and what's expected from member practices.
                   </p>
                   <SDAPartnerQuickGuide />
                 </div>
