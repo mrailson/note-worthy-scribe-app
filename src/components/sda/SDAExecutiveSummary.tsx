@@ -33,6 +33,19 @@ export interface SDAExecutiveSummaryProps {
   CustomReportingRequirements?: React.ComponentType;
   /** Custom buy-back explainer component */
   CustomBuybackExplainer?: React.ComponentType;
+  /** Custom action log data (empty array to clear) */
+  customActionLogData?: import("@/data/nresBoardActionsData").ActionLogItem[];
+  /** Custom action log metadata */
+  customActionLogMetadata?: { lastUpdated: string; nextMeeting: string; sourceMeeting: string };
+  /** Custom appointment allocation stats */
+  customApptStats?: {
+    remoteAppts: string;
+    f2fAppts: string;
+    hubPercent: string;
+    hubAppts: string;
+    spokePercent: string;
+    spokeAppts: string;
+  };
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
@@ -62,8 +75,10 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer }: SDAExecutiveSummaryProps = {}) => {
+export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer, customActionLogData, customActionLogMetadata, customApptStats }: SDAExecutiveSummaryProps = {}) => {
   const populationData = populationBreakdown || defaultPopulationData;
+  const activeActionLogData = customActionLogData ?? actionLogData;
+  const activeActionLogMetadata = customActionLogMetadata ?? actionLogMetadata;
   const [chartsOpen, setChartsOpen] = useState(false);
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
   const [actionLogOpen, setActionLogOpen] = useState(true);
@@ -498,9 +513,9 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
-              <ActionLogTable actions={actionLogData} metadata={actionLogMetadata} />
+              <ActionLogTable actions={activeActionLogData} metadata={activeActionLogMetadata} />
               <p className="text-xs text-slate-500 pt-2 mt-3 border-t border-slate-100">
-                Next Programme Board Meeting: {actionLogMetadata.nextMeeting}
+                Next Programme Board Meeting: {activeActionLogMetadata.nextMeeting}
               </p>
             </CardContent>
           </CollapsibleContent>
@@ -610,20 +625,20 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <div className="text-center">
                       <p className="text-2xl font-bold text-[#005EB8]">50%</p>
                       <p className="text-sm text-slate-600">REMOTE</p>
-                      <p className="text-xs text-slate-500 mt-1">36,888 appts/year</p>
+                      <p className="text-xs text-slate-500 mt-1">{customApptStats?.remoteAppts || '36,888'} appts/year</p>
                     </div>
                     <div className="text-center border-l border-slate-200 pl-6">
                       <p className="text-2xl font-bold text-slate-700">50%</p>
                       <p className="text-sm text-slate-600">FACE TO FACE</p>
-                      <p className="text-xs text-slate-500 mt-1">36,887 appts/year</p>
+                      <p className="text-xs text-slate-500 mt-1">{customApptStats?.f2fAppts || '36,887'} appts/year</p>
                       <div className="flex gap-3 mt-2 text-xs">
                         <span className="flex items-center gap-1">
                           <span className="w-3 h-3 rounded" style={{ backgroundColor: "#41B6E6" }}></span>
-                          Hub 30% (22,133)
+                          Hub {customApptStats?.hubPercent || '30%'} ({customApptStats?.hubAppts || '22,133'})
                         </span>
                         <span className="flex items-center gap-1">
                           <span className="w-3 h-3 rounded" style={{ backgroundColor: "#768692" }}></span>
-                          Spoke 20% (14,755)
+                          Spoke {customApptStats?.spokePercent || '20%'} ({customApptStats?.spokeAppts || '14,755'})
                         </span>
                       </div>
                     </div>
