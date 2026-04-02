@@ -465,7 +465,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <h3 className="font-semibold text-slate-900">GP Partner Quick Guide: 20 Things You Need to Know</h3>
                   </div>
                   <p className="text-sm text-slate-600">
-                    Essential information for GP practice partners about the NRES Neighbourhood SDA Pilot – what it is, how it works, and what's expected from member practices.
+                    Essential information for GP practice partners about the {neighbourhoodName} Neighbourhood SDA Pilot – what it is, how it works, and what's expected from member practices.
                   </p>
                   <SDAPartnerQuickGuide />
                 </div>
