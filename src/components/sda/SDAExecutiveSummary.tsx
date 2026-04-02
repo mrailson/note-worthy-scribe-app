@@ -48,6 +48,8 @@ export interface SDAExecutiveSummaryProps {
   };
   /** Custom programme plan data for the Gantt chart */
   customProgrammePlan?: import("@/types/sdaProgrammePlan").ProgrammePlan;
+  /** Custom maintained-by info for the programme plan */
+  customMaintainedBy?: { name: string; organisation: string; email: string };
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
