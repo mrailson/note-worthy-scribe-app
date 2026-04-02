@@ -510,16 +510,16 @@ const ENNReportingComprehensive = () => {
   ];
 
   const practices = [
-    { name: 'Harborough Field Surgery', patients: 13991, share: '15.5%', lead: 'TBC', status: 'pending' },
-    { name: 'Oundle Medical Practice', patients: 10600, share: '11.7%', lead: 'TBC', status: 'pending' },
-    { name: 'Rushden Medical Centre', patients: 9143, share: '10.1%', lead: 'TBC', status: 'pending' },
-    { name: 'Spinney Brook Medical Centre', patients: 11537, share: '12.8%', lead: 'TBC', status: 'pending' },
-    { name: 'The Cottons', patients: 9372, share: '10.4%', lead: 'TBC', status: 'pending' },
-    { name: 'Parklands Medical Practice', patients: 13612, share: '15.1%', lead: 'TBC', status: 'pending' },
-    { name: 'Nene Valley Surgery', patients: 6921, share: '7.7%', lead: 'TBC', status: 'pending' },
-    { name: 'Marshalls Road Surgery', patients: 3156, share: '3.5%', lead: 'TBC', status: 'pending' },
-    { name: 'Higham Ferrers Surgery', patients: 5569, share: '6.2%', lead: 'TBC', status: 'pending' },
-    { name: 'The Meadows Surgery', patients: 6340, share: '7.0%', lead: 'TBC', status: 'pending' },
+    { name: 'Harborough Field Surgery', patients: 13991, share: '15.5%', lead: 'TBC', status: 'pending', weeklyNonWinter: 213, weeklyWinter: 255 },
+    { name: 'Oundle Medical Practice', patients: 10600, share: '11.7%', lead: 'TBC', status: 'pending', weeklyNonWinter: 161, weeklyWinter: 193 },
+    { name: 'Rushden Medical Centre', patients: 9143, share: '10.1%', lead: 'TBC', status: 'pending', weeklyNonWinter: 139, weeklyWinter: 166 },
+    { name: 'Spinney Brook Medical Centre', patients: 11537, share: '12.8%', lead: 'TBC', status: 'pending', weeklyNonWinter: 175, weeklyWinter: 210 },
+    { name: 'The Cottons', patients: 9372, share: '10.4%', lead: 'TBC', status: 'pending', weeklyNonWinter: 142, weeklyWinter: 171 },
+    { name: 'Parklands Medical Practice', patients: 13612, share: '15.1%', lead: 'TBC', status: 'pending', weeklyNonWinter: 207, weeklyWinter: 248 },
+    { name: 'Nene Valley Surgery', patients: 6921, share: '7.7%', lead: 'TBC', status: 'pending', weeklyNonWinter: 105, weeklyWinter: 126 },
+    { name: 'Marshalls Road Surgery', patients: 3156, share: '3.5%', lead: 'TBC', status: 'pending', weeklyNonWinter: 48, weeklyWinter: 57 },
+    { name: 'Higham Ferrers Surgery', patients: 5569, share: '6.2%', lead: 'TBC', status: 'pending', weeklyNonWinter: 85, weeklyWinter: 101 },
+    { name: 'The Meadows Surgery', patients: 6340, share: '7.0%', lead: 'TBC', status: 'pending', weeklyNonWinter: 96, weeklyWinter: 115 },
   ];
 
   // ==================== REUSABLE COMPONENTS ====================
@@ -873,7 +873,8 @@ const ENNReportingComprehensive = () => {
                     <th className="text-left p-3 font-medium">Practice</th>
                     <th className="text-right p-3 font-medium">List Size</th>
                     <th className="text-right p-3 font-medium">% Share</th>
-                    <th className="text-right p-3 font-medium">Weekly Target</th>
+                    <th className="text-right p-3 font-medium">Weekly Non-Winter</th>
+                    <th className="text-right p-3 font-medium">Weekly Winter</th>
                     <th className="text-left p-3 font-medium">Reporting Lead</th>
                     <th className="text-center p-3 font-medium">Status</th>
                   </tr>
@@ -884,7 +885,8 @@ const ENNReportingComprehensive = () => {
                       <td className="p-3 font-medium">{p.name}</td>
                       <td className="p-3 text-right">{p.patients.toLocaleString()}</td>
                       <td className="p-3 text-right">{p.share}</td>
-                      <td className="p-3 text-right text-blue-600">{Math.round(p.patients * 15.2 / 1000)}</td>
+                      <td className="p-3 text-right text-blue-600">{p.weeklyNonWinter}</td>
+                      <td className="p-3 text-right text-orange-600">{p.weeklyWinter}</td>
                       <td className="p-3">{p.lead}</td>
                       <td className="p-3 text-center">
                         <StatusBadge status={p.status} />
@@ -895,7 +897,8 @@ const ENNReportingComprehensive = () => {
                     <td className="p-3">TOTAL</td>
                     <td className="p-3 text-right">90,241</td>
                     <td className="p-3 text-right">100%</td>
-                    <td className="p-3 text-right text-blue-600">{practices.reduce((sum, p) => sum + Math.round(p.patients * 15.2 / 1000), 0).toLocaleString()}</td>
+                    <td className="p-3 text-right text-blue-600">{practices.reduce((sum, p) => sum + p.weeklyNonWinter, 0).toLocaleString()}</td>
+                    <td className="p-3 text-right text-orange-600">{practices.reduce((sum, p) => sum + p.weeklyWinter, 0).toLocaleString()}</td>
                     <td className="p-3" colSpan={2}></td>
                   </tr>
                 </tbody>
