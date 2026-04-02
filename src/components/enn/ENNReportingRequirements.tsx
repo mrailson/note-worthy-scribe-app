@@ -7,6 +7,17 @@ const ENNReportingComprehensive = () => {
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [expandedRequirements, setExpandedRequirements] = useState<Record<string, boolean>>({});
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
 
   const toggleCard = (cardId: string) => {
     setExpandedCards(prev => ({ ...prev, [cardId]: !prev[cardId] }));
@@ -509,18 +520,39 @@ const ENNReportingComprehensive = () => {
     { id: 'governance', label: 'Governance & Compliance', icon: Scale, subSections: ['board', 'foi', 'data', 'insurance'] },
   ];
 
-  const practices = [
-    { name: 'Harborough Field Surgery', patients: 13991, share: '15.5%', lead: 'TBC', status: 'pending', weeklyNonWinter: 213, weeklyWinter: 255 },
-    { name: 'Oundle Medical Practice', patients: 10600, share: '11.7%', lead: 'TBC', status: 'pending', weeklyNonWinter: 161, weeklyWinter: 193 },
-    { name: 'Rushden Medical Centre', patients: 9143, share: '10.1%', lead: 'TBC', status: 'pending', weeklyNonWinter: 139, weeklyWinter: 166 },
-    { name: 'Spinney Brook Medical Centre', patients: 11537, share: '12.8%', lead: 'TBC', status: 'pending', weeklyNonWinter: 175, weeklyWinter: 210 },
-    { name: 'The Cottons', patients: 9372, share: '10.4%', lead: 'TBC', status: 'pending', weeklyNonWinter: 142, weeklyWinter: 171 },
-    { name: 'Parklands Medical Practice', patients: 13612, share: '15.1%', lead: 'TBC', status: 'pending', weeklyNonWinter: 207, weeklyWinter: 248 },
-    { name: 'Nene Valley Surgery', patients: 6921, share: '7.7%', lead: 'TBC', status: 'pending', weeklyNonWinter: 105, weeklyWinter: 126 },
-    { name: 'Marshalls Road Surgery', patients: 3156, share: '3.5%', lead: 'TBC', status: 'pending', weeklyNonWinter: 48, weeklyWinter: 57 },
-    { name: 'Higham Ferrers Surgery', patients: 5569, share: '6.2%', lead: 'TBC', status: 'pending', weeklyNonWinter: 85, weeklyWinter: 101 },
-    { name: 'The Meadows Surgery', patients: 6340, share: '7.0%', lead: 'TBC', status: 'pending', weeklyNonWinter: 96, weeklyWinter: 115 },
+  const practicesRaw = [
+    { name: 'Harborough Field Surgery', patients: 13991, share: '15.5%', shareNum: 15.5, lead: 'TBC', status: 'pending', weeklyNonWinter: 213, weeklyWinter: 255 },
+    { name: 'Oundle Medical Practice', patients: 10600, share: '11.7%', shareNum: 11.7, lead: 'TBC', status: 'pending', weeklyNonWinter: 161, weeklyWinter: 193 },
+    { name: 'Rushden Medical Centre', patients: 9143, share: '10.1%', shareNum: 10.1, lead: 'TBC', status: 'pending', weeklyNonWinter: 139, weeklyWinter: 166 },
+    { name: 'Spinney Brook Medical Centre', patients: 11537, share: '12.8%', shareNum: 12.8, lead: 'TBC', status: 'pending', weeklyNonWinter: 175, weeklyWinter: 210 },
+    { name: 'The Cottons', patients: 9372, share: '10.4%', shareNum: 10.4, lead: 'TBC', status: 'pending', weeklyNonWinter: 142, weeklyWinter: 171 },
+    { name: 'Parklands Medical Practice', patients: 13612, share: '15.1%', shareNum: 15.1, lead: 'TBC', status: 'pending', weeklyNonWinter: 207, weeklyWinter: 248 },
+    { name: 'Nene Valley Surgery', patients: 6921, share: '7.7%', shareNum: 7.7, lead: 'TBC', status: 'pending', weeklyNonWinter: 105, weeklyWinter: 126 },
+    { name: 'Marshalls Road Surgery', patients: 3156, share: '3.5%', shareNum: 3.5, lead: 'TBC', status: 'pending', weeklyNonWinter: 48, weeklyWinter: 57 },
+    { name: 'Higham Ferrers Surgery', patients: 5569, share: '6.2%', shareNum: 6.2, lead: 'TBC', status: 'pending', weeklyNonWinter: 85, weeklyWinter: 101 },
+    { name: 'The Meadows Surgery', patients: 6340, share: '7.0%', shareNum: 7.0, lead: 'TBC', status: 'pending', weeklyNonWinter: 96, weeklyWinter: 115 },
   ];
+
+  const practices = React.useMemo(() => {
+    if (!sortColumn) return practicesRaw;
+    const sorted = [...practicesRaw].sort((a, b) => {
+      let valA: string | number, valB: string | number;
+      switch (sortColumn) {
+        case 'name': valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); break;
+        case 'patients': valA = a.patients; valB = b.patients; break;
+        case 'share': valA = a.shareNum; valB = b.shareNum; break;
+        case 'weeklyNonWinter': valA = a.weeklyNonWinter; valB = b.weeklyNonWinter; break;
+        case 'weeklyWinter': valA = a.weeklyWinter; valB = b.weeklyWinter; break;
+        case 'lead': valA = a.lead.toLowerCase(); valB = b.lead.toLowerCase(); break;
+        case 'status': valA = a.status; valB = b.status; break;
+        default: return 0;
+      }
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [sortColumn, sortDirection]);
 
   // ==================== REUSABLE COMPONENTS ====================
 
@@ -870,13 +902,28 @@ const ENNReportingComprehensive = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="text-left p-3 font-medium">Practice</th>
-                    <th className="text-right p-3 font-medium">List Size</th>
-                    <th className="text-right p-3 font-medium">% Share</th>
-                    <th className="text-right p-3 font-medium">Weekly Non-Winter</th>
-                    <th className="text-right p-3 font-medium">Weekly Winter</th>
-                    <th className="text-left p-3 font-medium">Reporting Lead</th>
-                    <th className="text-center p-3 font-medium">Status</th>
+                    {[
+                      { key: 'name', label: 'Practice', align: 'text-left' },
+                      { key: 'patients', label: 'List Size', align: 'text-right' },
+                      { key: 'share', label: '% Share', align: 'text-right' },
+                      { key: 'weeklyNonWinter', label: 'Weekly Non-Winter', align: 'text-right' },
+                      { key: 'weeklyWinter', label: 'Weekly Winter', align: 'text-right' },
+                      { key: 'lead', label: 'Reporting Lead', align: 'text-left' },
+                      { key: 'status', label: 'Status', align: 'text-center' },
+                    ].map(col => (
+                      <th
+                        key={col.key}
+                        className={`${col.align} p-3 font-medium cursor-pointer hover:bg-gray-100 select-none transition-colors`}
+                        onClick={() => handleSort(col.key)}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {col.label}
+                          <span className="text-gray-400 text-xs">
+                            {sortColumn === col.key ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                          </span>
+                        </span>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
