@@ -128,8 +128,8 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-slate-500 font-medium">Patient List Size</p>
-                        <p className="text-3xl font-bold text-slate-900 mt-1">{customMetrics?.patientListSize || '89,584'}</p>
-                        <p className="text-sm text-slate-600 mt-1">{customMetrics?.practiceCount || '7'} Practices Across Neighbourhood</p>
+                        <p className="text-3xl font-bold text-slate-900 mt-1">{customMetrics?.patientListSize || patientListSize.toLocaleString()}</p>
+                        <p className="text-sm text-slate-600 mt-1">{customMetrics?.practiceCount || practiceCount} Practices Across Neighbourhood</p>
                       </div>
                       <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
                         <Users className="w-6 h-6 text-[#005EB8]" />
@@ -138,7 +138,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <div className="mt-3 pt-3 border-t border-slate-200 flex items-center gap-3">
                       <div>
                         <p className="text-xs text-slate-500 font-medium">Annual Capacity</p>
-                        <p className="text-xl font-bold text-slate-900">{customMetrics?.annualCapacity || '74,301'}</p>
+                        <p className="text-xl font-bold text-slate-900">{customMetrics?.annualCapacity || annualCapacity.toLocaleString()}</p>
                       </div>
                       <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-medium rounded-full">
                         50% Remote Assumption

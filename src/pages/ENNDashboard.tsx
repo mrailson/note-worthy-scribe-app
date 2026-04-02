@@ -114,6 +114,10 @@ const ENNDashboard = () => {
                   { src: ennPcnLogo, alt: "East Northants PCN" },
                   { src: threeSixtyLogo, alt: "3Sixty Care Partnership" }
                 ]}
+                patientListSize={90241}
+                practiceCount={10}
+                annualCapacity={74846}
+                populationBreakdown={ennPopulationData}
                 customMetrics={{
                   patientListSize: '90,241',
                   practiceCount: '10',
