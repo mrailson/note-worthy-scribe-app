@@ -1,5 +1,6 @@
 import { useState, lazy } from "react";
 import { ennProgrammePlan } from "@/data/ennProgrammePlanData";
+import { ennGuideItems } from "@/data/ennGuideItems";
 import { Header } from "@/components/Header";
 import ennPcnLogo from "@/assets/enn-pcn-logo.png";
 import threeSixtyLogo from "@/assets/3sixty-logo.png";
