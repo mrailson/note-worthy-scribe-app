@@ -109,10 +109,19 @@ const ENNDashboard = () => {
 
           <div className="mt-6 pb-8">
             <TabsContent value="executive" className="mt-0">
-              <SDAExecutiveSummary customLogos={[
-                { src: ennPcnLogo, alt: "East Northants PCN" },
-                { src: threeSixtyLogo, alt: "3Sixty Care Partnership" }
-              ]} />
+              <SDAExecutiveSummary 
+                customLogos={[
+                  { src: ennPcnLogo, alt: "East Northants PCN" },
+                  { src: threeSixtyLogo, alt: "3Sixty Care Partnership" }
+                ]}
+                customMetrics={{
+                  patientListSize: '90,241',
+                  practiceCount: '10',
+                  annualCapacity: '74,846',
+                  contractValue: '£2.38m',
+                  contractDetail: '£2,376,045.53 p/a · 2-year pilot',
+                }}
+              />
             </TabsContent>
             <TabsContent value="estates" className="mt-0">
               <SDAEstatesCapacity />
