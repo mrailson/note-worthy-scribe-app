@@ -188,7 +188,7 @@ const categoryLabels = {
   operations: "Operations"
 };
 
-export const SDAPartnerQuickGuide = () => {
+export const SDAPartnerQuickGuide = ({ neighbourhoodName = 'NRES' }: { neighbourhoodName?: string }) => {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 mb-4">
@@ -245,7 +245,7 @@ export const SDAPartnerQuickGuide = () => {
 
       <div className="mt-4 p-4 bg-slate-100 rounded-lg border border-slate-200">
         <p className="text-xs text-slate-600 text-center">
-          <strong>Questions?</strong> Contact your Practice Manager or the NRES Programme Lead for more information about the SDA Neighbourhood Pilot.
+          <strong>Questions?</strong> Contact your Practice Manager or the {neighbourhoodName} Programme Lead for more information about the SDA Neighbourhood Pilot.
         </p>
       </div>
     </div>
