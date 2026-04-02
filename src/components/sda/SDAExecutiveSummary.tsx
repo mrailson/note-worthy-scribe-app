@@ -25,6 +25,8 @@ export interface SDAExecutiveSummaryProps {
   annualCapacity?: number;
   /** Override the population breakdown for the pie chart */
   populationBreakdown?: { name: string; value: number; color: string }[];
+  /** Override the go-live date for the countdown (default: 1st April 2026) */
+  goLiveDate?: Date;
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
@@ -54,7 +56,7 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown }: SDAExecutiveSummaryProps = {}) => {
+export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate }: SDAExecutiveSummaryProps = {}) => {
   const populationData = populationBreakdown || defaultPopulationData;
   const [chartsOpen, setChartsOpen] = useState(false);
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
@@ -376,7 +378,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                   {(() => {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
-                    const goLive = new Date(2026, 3, 1); // 1st April 2026
+                    const goLive = goLiveDate || new Date(2026, 3, 1); // default 1st April 2026
                     let count = 0;
                     const d = new Date(today);
                     while (d < goLive) {
