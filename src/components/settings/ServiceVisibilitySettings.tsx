@@ -27,6 +27,7 @@ interface ServiceVisibility {
   bp_service: boolean;
   survey_manager: boolean;
   mock_cqc_inspection: boolean;
+  enn: boolean;
 }
 
 const defaultVisibility: ServiceVisibility = {
