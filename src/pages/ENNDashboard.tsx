@@ -6,7 +6,7 @@ import ennPcnLogo from "@/assets/enn-pcn-logo.png";
 import threeSixtyLogo from "@/assets/3sixty-logo.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
-import { SDAEstatesCapacity } from "@/components/sda/SDAEstatesCapacity";
+import { ENNEstatesCapacity } from "@/components/enn/ENNEstatesCapacity";
 import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
 import { SDAWorkforceInnovation } from "@/components/sda/SDAWorkforceInnovation";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
