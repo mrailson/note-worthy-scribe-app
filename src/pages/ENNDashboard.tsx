@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy } from "react";
 import { Header } from "@/components/Header";
 import ennPcnLogo from "@/assets/enn-pcn-logo.png";
 import threeSixtyLogo from "@/assets/3sixty-logo.png";
@@ -10,6 +10,9 @@ import { SDAWorkforceInnovation } from "@/components/sda/SDAWorkforceInnovation"
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
+
+const ENNBoardPresentationExplainer = lazy(() => import("@/components/enn/ENNBoardPresentationExplainer"));
+const ENNReportingRequirements = lazy(() => import("@/components/enn/ENNReportingRequirements"));
 import { 
   LayoutDashboard, 
   Building2, 
@@ -140,8 +143,10 @@ const ENNDashboard = () => {
                   contractDetail: '£2,376,045.53 p/a · 2-year pilot',
                 }}
                 goLiveDate={new Date(2026, 6, 1)}
+                neighbourhoodName="ENN"
+                CustomReportingRequirements={ENNReportingRequirements}
+                CustomBuybackExplainer={ENNBoardPresentationExplainer}
               />
-            </TabsContent>
             <TabsContent value="estates" className="mt-0">
               <SDAEstatesCapacity />
             </TabsContent>
