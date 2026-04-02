@@ -20,6 +20,7 @@ export interface ServiceVisibility {
   survey_manager: boolean;
   policy_service: boolean;
   mock_cqc_inspection: boolean;
+  enn: boolean;
 }
 
 const defaultVisibility: ServiceVisibility = {
@@ -40,6 +41,7 @@ const defaultVisibility: ServiceVisibility = {
   survey_manager: true,
   policy_service: true,
   mock_cqc_inspection: true,
+  enn: true,
 };
 
 export const useServiceVisibility = () => {
