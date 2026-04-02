@@ -170,7 +170,9 @@ const ENNDashboard = () => {
               <SDADigitalIntegration />
             </TabsContent>
             <TabsContent value="workforce" className="mt-0">
-              <ENNWorkforceInnovation />
+              <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+                <ENNWorkforceInnovation />
+              </Suspense>
             </TabsContent>
             <TabsContent value="hours" className="mt-0">
               <NRESHoursTracker />
