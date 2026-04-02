@@ -179,9 +179,9 @@ export default function SDAClaimingGuide(){
 <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
 <div style={{padding:"16px 22px",borderBottom:`1px solid ${T.border}`,background:`${T.r1}04`}}><div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,color:T.r1}}>ROUTE 1 EXAMPLE</div><div style={{fontFamily:fonts,fontSize:18,fontWeight:800,color:T.navy,marginTop:2}}>New SDA Resource</div></div>
 <div style={{padding:22}}>
-<div style={{background:T.surface,borderRadius:8,padding:14,marginBottom:18,fontSize:12,color:T.sub,lineHeight:1.7}}><strong style={{color:T.navy}}>Practice:</strong> The Parks MC · <strong style={{color:T.navy}}>Clinician:</strong> Dr Aamer Badshah (GP)<br/><strong style={{color:T.navy}}>Arrangement:</strong> Newly recruited, 4 SDA sessions/week, wholly dedicated<br/><strong style={{color:T.navy}}>Start:</strong> April 2026</div>
-{[{n:"1",t:"Claim submitted",d:"Registers Dr Badshah: GP, 4 sessions, New SDA. Uploads SDA Slot Type and Rota. Confirms declaration."},
-{n:"2",t:"Approved by SNO",d:"Dr Gray reviews — genuinely additional, didn't exist before. Approved."},
+<div style={{background:T.surface,borderRadius:8,padding:14,marginBottom:18,fontSize:12,color:T.sub,lineHeight:1.7}}><strong style={{color:T.navy}}>Practice:</strong> Harborough Fields Surgery · <strong style={{color:T.navy}}>Clinician:</strong> Dr Sarah Patel (GP)<br/><strong style={{color:T.navy}}>Arrangement:</strong> Newly recruited, 4 SDA sessions/week, wholly dedicated<br/><strong style={{color:T.navy}}>Start:</strong> July 2026</div>
+{[{n:"1",t:"Claim submitted",d:"Registers Dr Patel: GP, 4 sessions, New SDA. Uploads SDA Slot Type and Rota. Confirms declaration."},
+{n:"2",t:"Approved by SNO",d:"SNO reviews — genuinely additional, didn't exist before. Approved."},
 {n:"3",t:"Monthly amount",d:"4 × £11,000 × 1.2938 ÷ 12 = £4,739.73/month"},
 {n:"4",t:"LTC evidence follows",d:"Practice uploads LTC reports showing matching provision. System tracks until complete."}
 ].map((s,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:12}}><div style={{width:24,height:24,borderRadius:"50%",background:T.r1,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{s.n}</div><div><div style={{fontSize:12,fontWeight:700,color:T.navy}}>{s.t}</div><div style={{fontSize:11,color:T.sub,lineHeight:1.6}}>{s.d}</div></div></div>)}
@@ -189,7 +189,7 @@ export default function SDAClaimingGuide(){
 <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
 <div style={{padding:"16px 22px",borderBottom:`1px solid ${T.border}`,background:`${T.r2}04`}}><div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,color:T.r2}}>ROUTE 2 EXAMPLE</div><div style={{fontFamily:fonts,fontSize:18,fontWeight:800,color:T.navy,marginTop:2}}>Buyback of Existing Staff</div></div>
 <div style={{padding:22}}>
-<div style={{background:T.surface,borderRadius:8,padding:14,marginBottom:18,fontSize:12,color:T.sub,lineHeight:1.7}}><strong style={{color:T.navy}}>Practice:</strong> The Parks MC · <strong style={{color:T.navy}}>Clinician:</strong> Jane Smith (ACP)<br/><strong style={{color:T.navy}}>Arrangement:</strong> 0.4 WTE buyback, existing SDA mornings (Mon/Wed/Fri AM)<br/><strong style={{color:T.navy}}>Goal:</strong> Dedicate freed capacity to new LTC reviews</div>
+<div style={{background:T.surface,borderRadius:8,padding:14,marginBottom:18,fontSize:12,color:T.sub,lineHeight:1.7}}><strong style={{color:T.navy}}>Practice:</strong> Rushden Medical Centre · <strong style={{color:T.navy}}>Clinician:</strong> Jane Smith (ACP)<br/><strong style={{color:T.navy}}>Arrangement:</strong> 0.4 WTE buyback, existing SDA mornings (Mon/Wed/Fri AM)<br/><strong style={{color:T.navy}}>Goal:</strong> Dedicate freed capacity to new LTC reviews</div>
 {[{n:"1",t:"Part A evidence uploaded",d:"SDA Slot Type Report (coded 'Same Day Access') and SDA Rota (Mon/Wed/Fri AM sessions)."},
 {n:"2",t:"Part B evidence uploaded",d:"LTC Slot Type (new LTC Review appointments) and LTC Rota (new sessions). All 4 mandatory — submit unlocks."},
 {n:"3",t:"Verified by ENN team",d:"Rebecca/Team check all 4 docs — clinician matches, period correct, LTC is demonstrably new."},
