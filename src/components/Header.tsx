@@ -351,8 +351,19 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 )}
                               </DropdownMenuSubContent>
                           </DropdownMenuSub>
-                          )}
-                         
+                           )}
+
+                           {/* ENN Dashboard */}
+                           {hasServiceAccess('enn') && isServiceVisible('enn') && (
+                             <DropdownMenuItem 
+                               onClick={() => navigate('/enn')}
+                               className="cursor-pointer py-3"
+                             >
+                               <Building2 className="h-4 w-4 mr-2" />
+                               ENN Dashboard
+                             </DropdownMenuItem>
+                           )}
+
                          {hasModuleAccess('mic_test_service_access') && isServiceVisible('mic_test') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/mic-test')}
