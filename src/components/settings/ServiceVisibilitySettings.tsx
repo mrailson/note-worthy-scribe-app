@@ -68,6 +68,7 @@ const serviceConfig = [
   { key: 'bp_service', label: 'BP Average Service', icon: Heart, accessKey: 'bp_service' },
   { key: 'survey_manager', label: 'Survey Manager', icon: FileText, accessKey: 'survey_manager_access' },
   { key: 'mock_cqc_inspection', label: 'Mock CQC Inspection', icon: ClipboardCheck, accessKey: 'cqc_compliance_access' },
+  { key: 'enn', label: 'ENN Dashboard', icon: Building2, accessKey: 'enn' },
 ] as const;
 
 export const ServiceVisibilitySettings = () => {

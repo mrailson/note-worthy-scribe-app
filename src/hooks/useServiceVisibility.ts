@@ -41,6 +41,7 @@ const defaultVisibility: ServiceVisibility = {
   survey_manager: true,
   policy_service: true,
   mock_cqc_inspection: true,
+  enn: true,
 };
 
 export const useServiceVisibility = () => {
