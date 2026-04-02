@@ -87,9 +87,10 @@ interface FlatRow {
 
 interface ProgrammePlanGanttProps {
   customPlanData?: ProgrammePlan;
+  maintainedBy?: { name: string; organisation: string; email: string };
 }
 
-export const ProgrammePlanGantt: React.FC<ProgrammePlanGanttProps> = ({ customPlanData }) => {
+export const ProgrammePlanGantt: React.FC<ProgrammePlanGanttProps> = ({ customPlanData, maintainedBy }) => {
   const { user } = useAuth();
   const userEmail = user?.email || "Unknown";
 
