@@ -3995,6 +3995,133 @@ export type Database = {
           },
         ]
       }
+      enn_hub_practice_mappings: {
+        Row: {
+          created_at: string
+          hub_id: string
+          id: string
+          practice_id: string
+        }
+        Insert: {
+          created_at?: string
+          hub_id: string
+          id?: string
+          practice_id: string
+        }
+        Update: {
+          created_at?: string
+          hub_id?: string
+          id?: string
+          practice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enn_hub_practice_mappings_hub_id_fkey"
+            columns: ["hub_id"]
+            isOneToOne: false
+            referencedRelation: "enn_hubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enn_hub_practice_mappings_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enn_hubs: {
+        Row: {
+          annual_income: number
+          created_at: string
+          hub_list_size: number
+          hub_name: string
+          id: string
+          practice_id: string
+          weekly_appts_required: number
+        }
+        Insert: {
+          annual_income?: number
+          created_at?: string
+          hub_list_size?: number
+          hub_name: string
+          id?: string
+          practice_id: string
+          weekly_appts_required?: number
+        }
+        Update: {
+          annual_income?: number
+          created_at?: string
+          hub_list_size?: number
+          hub_name?: string
+          id?: string
+          practice_id?: string
+          weekly_appts_required?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enn_hubs_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enn_practice_data: {
+        Row: {
+          address: string | null
+          annual_appts_required: number
+          created_at: string
+          id: string
+          list_size: number
+          non_winter_appts_required: number
+          ods_code: string
+          participating_winter: boolean
+          practice_id: string
+          weekly_appts_required: number
+          weekly_non_winter_appts: number
+          winter_appts_required: number
+        }
+        Insert: {
+          address?: string | null
+          annual_appts_required?: number
+          created_at?: string
+          id?: string
+          list_size?: number
+          non_winter_appts_required?: number
+          ods_code: string
+          participating_winter?: boolean
+          practice_id: string
+          weekly_appts_required?: number
+          weekly_non_winter_appts?: number
+          winter_appts_required?: number
+        }
+        Update: {
+          address?: string | null
+          annual_appts_required?: number
+          created_at?: string
+          id?: string
+          list_size?: number
+          non_winter_appts_required?: number
+          ods_code?: string
+          participating_winter?: boolean
+          practice_id?: string
+          weekly_appts_required?: number
+          weekly_non_winter_appts?: number
+          winter_appts_required?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enn_practice_data_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: true
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fridge_status_changes: {
         Row: {
           changed_at: string
