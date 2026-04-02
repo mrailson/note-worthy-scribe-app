@@ -48,9 +48,6 @@ const ENNDashboard = () => {
               <p className="text-blue-200 text-sm">
                 Projected Go-Live: <span className="text-white font-semibold">1st April 2026</span>
               </p>
-              <p className="text-blue-200 text-sm">
-                Projected Go-Live: <span className="text-white font-semibold">1st April 2026</span>
-              </p>
               <SDAFeedbackButton currentSection={activeTab} />
             </div>
           </div>
