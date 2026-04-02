@@ -20,6 +20,20 @@ import {
 } from "lucide-react";
 import { NRESPeopleProvider } from "@/contexts/NRESPeopleContext";
 
+/** ENN practice population breakdown (Jan 2026 list sizes) */
+const ennPopulationData = [
+  { name: "Harborough Fields", value: 13991, color: "#005EB8" },
+  { name: "Parklands", value: 13612, color: "#003087" },
+  { name: "Spinney Brook", value: 11537, color: "#41B6E6" },
+  { name: "Oundle", value: 10600, color: "#768692" },
+  { name: "The Cottons", value: 9372, color: "#0072CE" },
+  { name: "Rushden", value: 9143, color: "#AE2573" },
+  { name: "Nene Valley", value: 6921, color: "#00A499" },
+  { name: "The Meadows", value: 6340, color: "#330072" },
+  { name: "Higham Ferrers", value: 5569, color: "#ED8B00" },
+  { name: "Marshalls Road", value: 3156, color: "#DA291C" },
+];
+
 const ENNDashboard = () => {
   const [activeTab, setActiveTab] = useState("executive");
 
@@ -114,6 +128,10 @@ const ENNDashboard = () => {
                   { src: ennPcnLogo, alt: "East Northants PCN" },
                   { src: threeSixtyLogo, alt: "3Sixty Care Partnership" }
                 ]}
+                patientListSize={90241}
+                practiceCount={10}
+                annualCapacity={74846}
+                populationBreakdown={ennPopulationData}
                 customMetrics={{
                   patientListSize: '90,241',
                   practiceCount: '10',
