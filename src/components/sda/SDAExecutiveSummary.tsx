@@ -33,6 +33,19 @@ export interface SDAExecutiveSummaryProps {
   CustomReportingRequirements?: React.ComponentType;
   /** Custom buy-back explainer component */
   CustomBuybackExplainer?: React.ComponentType;
+  /** Custom action log data (empty array to clear) */
+  customActionLogData?: ActionLogItem[];
+  /** Custom action log metadata */
+  customActionLogMetadata?: { lastUpdated: string; nextMeeting: string };
+  /** Custom appointment allocation stats */
+  customApptStats?: {
+    remoteAppts: string;
+    f2fAppts: string;
+    hubPercent: string;
+    hubAppts: string;
+    spokePercent: string;
+    spokeAppts: string;
+  };
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
