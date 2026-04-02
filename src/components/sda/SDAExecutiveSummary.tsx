@@ -10,6 +10,13 @@ import SNVBLogo from "@/assets/snvb-logo.png";
 
 export interface SDAExecutiveSummaryProps {
   customLogos?: { src: string; alt: string }[];
+  customMetrics?: {
+    patientListSize: string;
+    practiceCount: string;
+    annualCapacity: string;
+    contractValue: string;
+    contractDetail: string;
+  };
 }
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
@@ -39,7 +46,7 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = ({ customLogos }: SDAExecutiveSummaryProps = {}) => {
+export const SDAExecutiveSummary = ({ customLogos, customMetrics }: SDAExecutiveSummaryProps = {}) => {
   const [chartsOpen, setChartsOpen] = useState(false);
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
   const [actionLogOpen, setActionLogOpen] = useState(true);
