@@ -548,7 +548,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="p-4 pt-2">
-            <ProgrammePlanGantt customPlanData={customProgrammePlan} />
+            <ProgrammePlanGantt customPlanData={customProgrammePlan} maintainedBy={customMaintainedBy} />
           </CollapsibleContent>
         </Card>
       </Collapsible>
