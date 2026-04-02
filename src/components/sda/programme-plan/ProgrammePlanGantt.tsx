@@ -613,11 +613,11 @@ export const ProgrammePlanGantt: React.FC<ProgrammePlanGanttProps> = ({ customPl
           <ProgrammePlanLegend />
           <div className="text-xs text-muted-foreground border-l pl-3 ml-2">
             <span className="font-medium text-foreground">Maintained by:</span>{" "}
-            <span>Anshal Pratyush, Principal Medical Limited (PML)</span>
+            <span>{maintainedBy?.name || 'Anshal Pratyush'}, {maintainedBy?.organisation || 'Principal Medical Limited (PML)'}</span>
             <span className="mx-2">•</span>
-            <a href="mailto:a.pratyush@nhs.net" className="inline-flex items-center gap-1 hover:text-primary">
+            <a href={`mailto:${maintainedBy?.email || 'a.pratyush@nhs.net'}`} className="inline-flex items-center gap-1 hover:text-primary">
               <Mail className="h-3 w-3" />
-              a.pratyush@nhs.net
+              {maintainedBy?.email || 'a.pratyush@nhs.net'}
             </a>
           </div>
         </div>
