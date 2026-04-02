@@ -47,6 +47,7 @@ const defaultVisibility: ServiceVisibility = {
   bp_service: true,
   survey_manager: true,
   mock_cqc_inspection: true,
+  enn: true,
 };
 
 // Service config with access check keys
