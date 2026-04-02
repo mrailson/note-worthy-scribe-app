@@ -239,7 +239,7 @@ const ENNReportingComprehensive = () => {
       section: '2.2.1 Reporting',
       status: 'mandatory',
       quote: '"Each practice must nominate a named reporting lead responsible for timely and accurate data submission"',
-      context: 'Non-negotiable. Each of the 7 practices must have a confirmed lead.',
+      context: 'Non-negotiable. Each of the 10 practices must have a confirmed lead.',
       frequency: 'Ongoing',
       owner: 'Programme Manager'
     },
@@ -905,7 +905,7 @@ const ENNReportingComprehensive = () => {
               </table>
             </div>
             <ExplainerBox title="Named Reporting Leads Required" type="warning" requirementId="named-reporting-leads">
-              <p>Each practice <strong>MUST</strong> nominate a named reporting lead responsible for timely and accurate data submission (ICB Section 2.2.1). Only Brackley MC has confirmed their lead — all other practices need to nominate urgently.</p>
+              <p>Each practice <strong>MUST</strong> nominate a named reporting lead responsible for timely and accurate data submission (ICB Section 2.2.1). All practices need to nominate their lead.</p>
             </ExplainerBox>
           </div>
         </>
@@ -1277,7 +1277,7 @@ const ENNReportingComprehensive = () => {
                   })}
                   <tr className="bg-gray-50 font-bold">
                     <td className="p-3">TOTAL</td>
-                    <td className="p-3 text-right">89,584</td>
+                    <td className="p-3 text-right">90,241</td>
                     <td className="p-3 text-right text-blue-600">1,362</td>
                     <td className="p-3 text-right text-amber-600">1,630</td>
                     <td className="p-3 text-right">74,316</td>
@@ -1600,8 +1600,8 @@ const ENNReportingComprehensive = () => {
       </ExplainerBox>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard title="Contract Value" value="£2.36M" subtitle="Annual" color="green" size="large" icon={Banknote} />
-        <MetricCard title="Per Patient" value="£26.33" subtitle="Annual rate" color="blue" />
+        <MetricCard title="Contract Value" value="£2.38M" subtitle="Annual" color="green" size="large" icon={Banknote} />
+        <MetricCard title="Per Patient" value="£26.36" subtitle="Annual rate" color="blue" />
         <MetricCard title="Quarterly Publish" value="Required" subtitle="Practice-level" color="amber" requirementId="quarterly-publish" />
         <MetricCard title="Benefits Tracking" value="Quarterly" subtitle="Realisation prog." color="purple" requirementId="benefits-realisation" />
       </div>
@@ -1731,9 +1731,9 @@ const ENNReportingComprehensive = () => {
               <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded font-medium">GOVERNANCE ESSENTIAL</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">7 Practices</span>
-              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">89,584 Patients</span>
-              <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">£2.36M</span>
+              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">10 Practices</span>
+              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">90,241 Patients</span>
+              <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">£2.38M</span>
             </div>
           </div>
         </div>
