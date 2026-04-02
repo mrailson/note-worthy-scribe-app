@@ -36,7 +36,7 @@ export interface SDAExecutiveSummaryProps {
   /** Custom action log data (empty array to clear) */
   customActionLogData?: import("@/data/nresBoardActionsData").ActionLogItem[];
   /** Custom action log metadata */
-  customActionLogMetadata?: { lastUpdated: string; nextMeeting: string };
+  customActionLogMetadata?: { lastUpdated: string; nextMeeting: string; sourceMeeting: string };
   /** Custom appointment allocation stats */
   customApptStats?: {
     remoteAppts: string;
