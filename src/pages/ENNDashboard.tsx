@@ -1,4 +1,4 @@
-import { useState, lazy } from "react";
+import { useState, lazy, Suspense } from "react";
 import { ennProgrammePlan } from "@/data/ennProgrammePlanData";
 import { ennGuideItems } from "@/data/ennGuideItems";
 import { Header } from "@/components/Header";
@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
 import { ENNEstatesCapacity } from "@/components/enn/ENNEstatesCapacity";
 import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
-import { SDAWorkforceInnovation } from "@/components/sda/SDAWorkforceInnovation";
+const ENNWorkforceInnovation = lazy(() => import("@/components/enn/ENNWorkforceInnovation"));
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
@@ -170,7 +170,9 @@ const ENNDashboard = () => {
               <SDADigitalIntegration />
             </TabsContent>
             <TabsContent value="workforce" className="mt-0">
-              <SDAWorkforceInnovation />
+              <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+                <ENNWorkforceInnovation />
+              </Suspense>
             </TabsContent>
             <TabsContent value="hours" className="mt-0">
               <NRESHoursTracker />
