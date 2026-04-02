@@ -510,13 +510,16 @@ const ENNReportingComprehensive = () => {
   ];
 
   const practices = [
-    { name: 'The Parks Medical Centre', patients: 25500, share: '28.5%', lead: 'TBC', status: 'pending' },
-    { name: 'Brackley Medical Centre', patients: 16200, share: '18.1%', lead: 'Amanda Palin', status: 'confirmed' },
-    { name: 'Springfield Surgery', patients: 12600, share: '14.1%', lead: 'TBC', status: 'pending' },
-    { name: 'Towcester Medical Centre', patients: 11700, share: '13.1%', lead: 'TBC', status: 'pending' },
-    { name: 'Bugbrooke Surgery', patients: 10800, share: '12.0%', lead: 'TBC', status: 'pending' },
-    { name: 'Brook Health Centre', patients: 9000, share: '10.1%', lead: 'TBC', status: 'pending' },
-    { name: 'Denton Village Practice', patients: 3784, share: '4.2%', lead: 'TBC', status: 'pending' },
+    { name: 'Harborough Field Surgery', patients: 13991, share: '15.5%', lead: 'TBC', status: 'pending' },
+    { name: 'Oundle Medical Practice', patients: 10600, share: '11.7%', lead: 'TBC', status: 'pending' },
+    { name: 'Rushden Medical Centre', patients: 9143, share: '10.1%', lead: 'TBC', status: 'pending' },
+    { name: 'Spinney Brook Medical Centre', patients: 11537, share: '12.8%', lead: 'TBC', status: 'pending' },
+    { name: 'The Cottons', patients: 9372, share: '10.4%', lead: 'TBC', status: 'pending' },
+    { name: 'Parklands Medical Practice', patients: 13612, share: '15.1%', lead: 'TBC', status: 'pending' },
+    { name: 'Nene Valley Surgery', patients: 6921, share: '7.7%', lead: 'TBC', status: 'pending' },
+    { name: 'Marshalls Road Surgery', patients: 3156, share: '3.5%', lead: 'TBC', status: 'pending' },
+    { name: 'Higham Ferrers Surgery', patients: 5569, share: '6.2%', lead: 'TBC', status: 'pending' },
+    { name: 'The Meadows Surgery', patients: 6340, share: '7.0%', lead: 'TBC', status: 'pending' },
   ];
 
   // ==================== REUSABLE COMPONENTS ====================
@@ -778,9 +781,9 @@ const ENNReportingComprehensive = () => {
       {/* Key Metrics Bar */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <MetricCard title="Neighbourhood" value="ENN" subtitle="East Northants" color="purple" icon={Building2} />
-        <MetricCard title="Practices" value="7" subtitle="GP practices" icon={Building2} />
-        <MetricCard title="Population" value="89,584" subtitle="Registered patients" icon={Users} />
-        <MetricCard title="Contract Value" value="£2.36M" subtitle="£26.33 per patient" color="green" icon={Banknote} />
+        <MetricCard title="Practices" value="10" subtitle="GP practices" icon={Building2} />
+        <MetricCard title="Population" value="90,241" subtitle="Registered patients" icon={Users} />
+        <MetricCard title="Contract Value" value="£2.38M" subtitle="£26.36 per patient" color="green" icon={Banknote} />
         <MetricCard title="Contract Term" value="2 Years" subtitle="Min. from April 2026" icon={Calendar} />
       </div>
 
@@ -890,9 +893,9 @@ const ENNReportingComprehensive = () => {
                   ))}
                   <tr className="bg-gray-50 font-medium">
                     <td className="p-3">TOTAL</td>
-                    <td className="p-3 text-right">89,584</td>
+                    <td className="p-3 text-right">90,241</td>
                     <td className="p-3 text-right">100%</td>
-                    <td className="p-3 text-right text-blue-600">1,362</td>
+                    <td className="p-3 text-right text-blue-600">{practices.reduce((sum, p) => sum + Math.round(p.patients * 15.2 / 1000), 0).toLocaleString()}</td>
                     <td className="p-3" colSpan={2}></td>
                   </tr>
                 </tbody>
