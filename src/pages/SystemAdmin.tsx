@@ -1249,11 +1249,11 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
         toast.success(`${serviceKey.toUpperCase()} activated for user`);
       } else {
         // Remove activation record
-        const { error } = await supabase
+        const { error } = await (supabase
           .from('user_service_activations')
           .delete()
           .eq('user_id', editingUser.user_id)
-          .eq('service', serviceKey);
+          .eq('service', serviceKey as any) as any);
         
         if (error) throw error;
         toast.success(`${serviceKey.toUpperCase()} deactivated for user`);
