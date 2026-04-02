@@ -134,7 +134,7 @@ export default function SDAClaimingGuide(){
 <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:"28px",marginBottom:20}}>
 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}><div style={{width:3,height:18,borderRadius:2,background:T.r2}}/><span style={{fontFamily:fonts,fontSize:18,fontWeight:800,color:T.navy}}>Route 2: Buyback — Two-Stage Approval</span></div>
 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:0,marginBottom:20}}>
-{[{n:"1",l:"Draft",s:"Practice builds",c:T.muted},{n:"2",l:"Submitted",s:"4 evidence uploaded",c:T.r1},{n:"3",l:"Verified",s:"Rebecca / Team",c:"#D97706",a:true},{n:"4",l:"Approved",s:"SNO (Dr Gray)",c:T.emerald},{n:"5",l:"Paid",s:"PML Finance",c:"#7C3AED"}].map((s,i)=>
+{[{n:"1",l:"Draft",s:"Practice builds",c:T.muted},{n:"2",l:"Submitted",s:"4 evidence uploaded",c:T.r1},{n:"3",l:"Verified",s:"Rebecca / Team",c:"#D97706",a:true},{n:"4",l:"Approved",s:"SNO",c:T.emerald},{n:"5",l:"Paid",s:"SNO Finance",c:"#7C3AED"}].map((s,i)=>
 <div key={i} style={{display:"flex",alignItems:"center",flex:i<4?1:"none"}}>
 <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:80}}>
 <div style={{width:s.a?40:32,height:s.a?40:32,borderRadius:"50%",background:s.c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:s.a?15:13,color:"#fff",fontWeight:700,boxShadow:s.a?`0 0 0 4px ${s.c}22`:"none"}}>{s.n}</div>
@@ -147,7 +147,7 @@ export default function SDAClaimingGuide(){
 <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:"28px",marginBottom:28}}>
 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}><div style={{width:3,height:18,borderRadius:2,background:T.r1}}/><span style={{fontFamily:fonts,fontSize:18,fontWeight:800,color:T.navy}}>Route 1: New SDA — Direct to SNO</span></div>
 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:0,marginBottom:20}}>
-{[{n:"1",l:"Draft",s:"Practice builds",c:T.muted},{n:"2",l:"Submitted",s:"SDA evidence uploaded",c:T.r1},{n:"3",l:"Approved",s:"SNO (Dr Gray)",c:T.emerald},{n:"4",l:"Paid",s:"PML Finance",c:"#7C3AED"}].map((s,i)=>
+{[{n:"1",l:"Draft",s:"Practice builds",c:T.muted},{n:"2",l:"Submitted",s:"SDA evidence uploaded",c:T.r1},{n:"3",l:"Approved",s:"SNO",c:T.emerald},{n:"4",l:"Paid",s:"SNO Finance",c:"#7C3AED"}].map((s,i)=>
 <div key={i} style={{display:"flex",alignItems:"center",flex:i<3?1:"none"}}>
 <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:90}}>
 <div style={{width:32,height:32,borderRadius:"50%",background:s.c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",fontWeight:700}}>{s.n}</div>
@@ -162,8 +162,8 @@ export default function SDAClaimingGuide(){
 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:14}}>
 {[{who:"Practice Manager",icon:"🏥",tasks:["Maintain staff roster","Upload evidence from EMIS/SystmOne","Submit monthly claims","Confirm declaration","Confirm payment receipt"],c:T.r1},
 {who:"Rebecca / Team",icon:"🔍",tasks:["Verify buyback evidence (Route 2)","Check all 4 docs present & correct","Return with notes if incomplete","Pass verified claims to SNO","Track LTC evidence obligations"],c:"#D97706"},
-{who:"Dr Mark Gray (SNO)",icon:"✅",tasks:["Final approval on all claims","Route 1: approves from submitted","Route 2: approves from verified","Can return claims with notes","Approval authorises payment"],c:T.emerald},
-{who:"PML Finance",icon:"💰",tasks:["Set payment due dates","Process BACS payments","Confirm payment made","Send remittance advice","Maintain payment records"],c:"#7C3AED"}
+{who:"SNO",icon:"✅",tasks:["Final approval on all claims","Route 1: approves from submitted","Route 2: approves from verified","Can return claims with notes","Approval authorises payment"],c:T.emerald},
+{who:"SNO Finance",icon:"💰",tasks:["Set payment due dates","Process BACS payments","Confirm payment made","Send remittance advice","Maintain payment records"],c:"#7C3AED"}
 ].map((p,i)=>
 <div key={i} style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:"18px 16px"}}>
 <div style={{fontSize:22,marginBottom:8}}>{p.icon}</div>
