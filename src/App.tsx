@@ -202,6 +202,11 @@ const App = () => {
                     <SDADashboard />
                   </ProtectedRoute>
                 } />
+                <Route path="/enn" element={
+                  <ProtectedRoute requiredService="enn">
+                    <ENNDashboard />
+                  </ProtectedRoute>
+                } />
                 <Route path="/nres-presentation" element={
                   <ProtectedRoute requiredService="nres">
                     <NRESPresentationPage />
