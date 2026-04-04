@@ -216,9 +216,10 @@ function HubPanel({ hubId, isExpanded, onToggle }: { hubId: string; isExpanded: 
 function MapView({ selected, setSelected }: { selected: number | null; setSelected: (v: number | null) => void }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const [driveScope, setDriveScope] = useState<"hub" | "all">("hub");
-  const W = 520, H = 520;
-  const toX = (pct: number) => 30 + (pct / 100) * (W - 60);
-  const toY = (pct: number) => 25 + (pct / 100) * (H - 50);
+  const W = 700, H = 700;
+  const pad = 80;
+  const toX = (pct: number) => pad + (pct / 100) * (W - pad * 2);
+  const toY = (pct: number) => pad + (pct / 100) * (H - pad * 2);
 
   const handleMarkerClick = (i: number) => {
     const p = practices[i];
