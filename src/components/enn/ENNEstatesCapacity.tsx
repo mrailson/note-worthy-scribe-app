@@ -200,17 +200,20 @@ export const ENNEstatesCapacity = () => {
       const percentage = (hubListSize / totalListSize) * 100;
       const sessionsNeeded = currentCapacity.sessionsPerWeek * (hubListSize / totalListSize);
       const displayValue = viewMode === "appointments" ? sessionsNeeded * APPTS_PER_SESSION : sessionsNeeded;
+      const hubOnsite = hubOnsitePcts[hubName] ?? onsitePct;
+      const hubRemote = 100 - hubOnsite;
       return {
         hubName,
         practices,
         listSize: hubListSize,
         percentage,
         totalRequired: displayValue,
-        f2f: displayValue * (onsitePct / 100),
-        remote: displayValue * (remotePct / 100),
+        f2f: displayValue * (hubOnsite / 100),
+        remote: displayValue * (hubRemote / 100),
+        onsitePct: hubOnsite,
       };
     });
-  }, [currentCapacity.sessionsPerWeek, viewMode, onsitePct, remotePct]);
+  }, [currentCapacity.sessionsPerWeek, viewMode, onsitePct, hubOnsitePcts]);
 
   const cycleSitesMode = () => {
     const modes: SitesDisplayMode[] = ["total", "hub", "spoke"];
