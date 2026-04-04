@@ -487,9 +487,29 @@ export const ENNEstatesCapacity = () => {
                     <p className="text-[10px] text-indigo-600">{uLabel}</p>
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-500 text-center mb-3">
+                <p className="text-[10px] text-slate-500 text-center mb-2">
                   {(hub.f2f / APPTS_PER_SESSION).toFixed(1)} sessions on-site • {(hub.remote / APPTS_PER_SESSION).toFixed(1)} sessions remote
                 </p>
+
+                {/* Per-hub on-site slider */}
+                <div className="mb-3 px-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-medium text-slate-500">On-Site Split</span>
+                    <span className="text-[10px] font-semibold text-slate-700">{hub.onsitePct}% On-Site / {100 - hub.onsitePct}% Remote</span>
+                  </div>
+                  <Slider
+                    value={[hub.onsitePct]}
+                    onValueChange={(val) => setHubOnsitePct(hub.hubName, val[0])}
+                    min={50}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                    <span>50%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
 
                 <div className="border-t border-blue-200 pt-3">
                   <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">Assigned Practices</p>
