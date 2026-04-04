@@ -816,7 +816,7 @@ const ENNReportingComprehensive = () => {
         <MetricCard title="Practices" value="10" subtitle="GP practices" icon={Building2} />
         <MetricCard title="Population" value="90,241" subtitle="Registered patients" icon={Users} />
         <MetricCard title="Contract Value" value="£2.38M" subtitle="£26.36 per patient" color="green" icon={Banknote} />
-        <MetricCard title="Contract Term" value="2 Years" subtitle="Min. from April 2026" icon={Calendar} />
+        <MetricCard title="Contract Term" value="2 Years" subtitle="Min. from July 2026" icon={Calendar} />
       </div>
 
       {(!activeSubSection || activeSubSection === 'context') && (
