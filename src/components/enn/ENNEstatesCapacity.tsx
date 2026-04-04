@@ -2,12 +2,12 @@ import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers } from "lucide-react";
+import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 
 const APPTS_PER_SESSION = 14;
 
-type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
+type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote" | "annualAppts" | "weeklyAppts" | "winterAppts" | "nonWinterAppts" | "weeklyWinter" | "weeklyNonWinter" | "annualIncome" | "hub";
 type SortDirection = "asc" | "desc";
 type Season = "nonWinter" | "winter" | "total";
 type SitesDisplayMode = "total" | "hub" | "spoke";
@@ -18,22 +18,31 @@ type ViewLevel = "practice" | "hub";
 
 interface ENNPracticeSummary {
   practice: string;
+  odsCode: string;
   listSize: number;
+  annualAppts: number;
+  weeklyAppts: number;
+  winterAppts: number;
+  nonWinterAppts: number;
+  weeklyWinter: number;
+  weeklyNonWinter: number;
+  annualIncome: number;
   role: "HUB" | "SPOKE";
+  hub: string;
   system: string;
 }
 
 const ennPracticeSummary: ENNPracticeSummary[] = [
-  { practice: "Harborough Field Surgery", listSize: 13991, role: "HUB", system: "SystmOne" },
-  { practice: "Parklands Surgery", listSize: 13612, role: "SPOKE", system: "SystmOne" },
-  { practice: "Spinney Brook MC", listSize: 11537, role: "SPOKE", system: "SystmOne" },
-  { practice: "Oundle Medical Practice", listSize: 10600, role: "SPOKE", system: "SystmOne" },
-  { practice: "The Cottons MC", listSize: 9372, role: "HUB", system: "SystmOne" },
-  { practice: "Rushden Medical Centre", listSize: 9143, role: "SPOKE", system: "SystmOne" },
-  { practice: "Nene Valley Surgery", listSize: 6921, role: "SPOKE", system: "SystmOne" },
-  { practice: "The Meadows Surgery", listSize: 6340, role: "HUB", system: "SystmOne" },
-  { practice: "Higham Ferrers Surgery", listSize: 5569, role: "SPOKE", system: "SystmOne" },
-  { practice: "Marshalls Road Surgery", listSize: 3156, role: "SPOKE", system: "SystmOne" },
+  { practice: "Harborough Field Surgery", odsCode: "K83007", listSize: 13991, annualAppts: 11604, weeklyAppts: 222, winterAppts: 3310, nonWinterAppts: 8294, weeklyWinter: 255, weeklyNonWinter: 213, annualIncome: 366383.03, role: "HUB", hub: "Harborough Field Surgery", system: "SystmOne" },
+  { practice: "Oundle Medical Practice", odsCode: "K83023", listSize: 10600, annualAppts: 8792, weeklyAppts: 169, winterAppts: 2509, nonWinterAppts: 6284, weeklyWinter: 193, weeklyNonWinter: 161, annualIncome: 279098.00, role: "SPOKE", hub: "The Meadows Surgery", system: "SystmOne" },
+  { practice: "Rushden Medical Centre", odsCode: "K83024", listSize: 9143, annualAppts: 7583, weeklyAppts: 146, winterAppts: 2163, nonWinterAppts: 5420, weeklyWinter: 166, weeklyNonWinter: 139, annualIncome: 240735.19, role: "SPOKE", hub: "Harborough Field Surgery", system: "SystmOne" },
+  { practice: "Spinney Brook MC", odsCode: "K83028", listSize: 11537, annualAppts: 9569, weeklyAppts: 184, winterAppts: 2730, nonWinterAppts: 6839, weeklyWinter: 210, weeklyNonWinter: 175, annualIncome: 303769.21, role: "SPOKE", hub: "The Cottons MC", system: "SystmOne" },
+  { practice: "The Cottons MC", odsCode: "K83030", listSize: 9372, annualAppts: 7773, weeklyAppts: 149, winterAppts: 2217, nonWinterAppts: 5556, weeklyWinter: 171, weeklyNonWinter: 142, annualIncome: 246764.76, role: "HUB", hub: "The Cottons MC", system: "SystmOne" },
+  { practice: "Parklands Surgery", odsCode: "K83044", listSize: 13612, annualAppts: 11290, weeklyAppts: 217, winterAppts: 3221, nonWinterAppts: 8069, weeklyWinter: 248, weeklyNonWinter: 207, annualIncome: 358403.96, role: "SPOKE", hub: "Harborough Field Surgery", system: "SystmOne" },
+  { practice: "Nene Valley Surgery", odsCode: "K83065", listSize: 6921, annualAppts: 5740, weeklyAppts: 110, winterAppts: 1638, nonWinterAppts: 4103, weeklyWinter: 126, weeklyNonWinter: 105, annualIncome: 182229.93, role: "SPOKE", hub: "The Meadows Surgery", system: "SystmOne" },
+  { practice: "Marshalls Road Surgery", odsCode: "K83069", listSize: 3156, annualAppts: 2618, weeklyAppts: 50, winterAppts: 747, nonWinterAppts: 1871, weeklyWinter: 57, weeklyNonWinter: 48, annualIncome: 83097.48, role: "SPOKE", hub: "The Cottons MC", system: "SystmOne" },
+  { practice: "Higham Ferrers Surgery", odsCode: "K83080", listSize: 5569, annualAppts: 4619, weeklyAppts: 89, winterAppts: 1318, nonWinterAppts: 3301, weeklyWinter: 101, weeklyNonWinter: 85, annualIncome: 146631.77, role: "SPOKE", hub: "Harborough Field Surgery", system: "SystmOne" },
+  { practice: "The Meadows Surgery", odsCode: "K83616", listSize: 6340, annualAppts: 5258, weeklyAppts: 101, winterAppts: 1500, nonWinterAppts: 3758, weeklyWinter: 115, weeklyNonWinter: 96, annualIncome: 166932.20, role: "HUB", hub: "The Meadows Surgery", system: "SystmOne" },
 ];
 
 const hubPracticeMapping: Record<string, string[]> = {
@@ -134,11 +143,19 @@ export const ENNEstatesCapacity = () => {
       let aVal: number | string, bVal: number | string;
       switch (practiceSortField) {
         case "practice": aVal = a.practice.toLowerCase(); bVal = b.practice.toLowerCase(); break;
+        case "hub": aVal = a.hub.toLowerCase(); bVal = b.hub.toLowerCase(); break;
         case "listSize": aVal = a.listSize; bVal = b.listSize; break;
         case "percentage": aVal = a.percentage; bVal = b.percentage; break;
         case "sessionsWeek": aVal = a.sessionsWeek; bVal = b.sessionsWeek; break;
         case "f2f": aVal = a.f2f; bVal = b.f2f; break;
         case "remote": aVal = a.remote; bVal = b.remote; break;
+        case "annualAppts": aVal = a.annualAppts; bVal = b.annualAppts; break;
+        case "weeklyAppts": aVal = a.weeklyAppts; bVal = b.weeklyAppts; break;
+        case "winterAppts": aVal = a.winterAppts; bVal = b.winterAppts; break;
+        case "nonWinterAppts": aVal = a.nonWinterAppts; bVal = b.nonWinterAppts; break;
+        case "weeklyWinter": aVal = a.weeklyWinter; bVal = b.weeklyWinter; break;
+        case "weeklyNonWinter": aVal = a.weeklyNonWinter; bVal = b.weeklyNonWinter; break;
+        case "annualIncome": aVal = a.annualIncome; bVal = b.annualIncome; break;
         default: return 0;
       }
       if (typeof aVal === "string" && typeof bVal === "string") {
@@ -575,68 +592,94 @@ export const ENNEstatesCapacity = () => {
           </div>
         </div>
 
-        {/* Practice Breakdown Table */}
+        {/* ENN Neighbourhood Appointment Allocation */}
         <div className="mt-6">
-          <h4 className="font-semibold text-slate-900 mb-3">
-            {viewMode === "appointments" ? "Appointments" : "Sessions"} Required by Practice (Based on List Size)
-          </h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-slate-900">ENN Neighbourhood Appointment Allocation</h4>
+          </div>
+
+          {/* Info Banner */}
+          <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-[#005EB8] mt-0.5 shrink-0" />
+              <div className="space-y-1.5 text-sm text-slate-700">
+                <p><strong className="text-[#003087]">How these numbers are calculated:</strong></p>
+                <ul className="list-disc list-inside space-y-1 text-xs text-slate-600">
+                  <li><strong>Non-Winter rate:</strong> 15.2 appointments per 1,000 patients (39 weeks)</li>
+                  <li><strong>Winter rate:</strong> 18.2 appointments per 1,000 patients (13 weeks)</li>
+                  <li><strong>Clinician split:</strong> Minimum 50% GP appointments · remaining 50% ANP/ACP</li>
+                  <li><strong>Delivery split:</strong> 50% on-site (hub/spoke) · up to 50% remote</li>
+                  <li><strong>Session size:</strong> {APPTS_PER_SESSION} × 15 min appointments per session (4h 10m including admin)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50">
-                  <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("practice")}>
+                  <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("practice")}>
                     <div className="flex items-center">Practice{getSortIcon("practice")}</div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("listSize")}>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("listSize")}>
                     <div className="flex items-center justify-end">List Size{getSortIcon("listSize")}</div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("percentage")}>
-                    <div className="flex items-center justify-end">% of Total{getSortIcon("percentage")}</div>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("annualAppts")}>
+                    <div className="flex items-center justify-end">Annual Appts{getSortIcon("annualAppts")}</div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("sessionsWeek")}>
-                    <div className="flex items-center justify-end">{viewMode === "appointments" ? "Appts" : "Sessions"}/Week{getSortIcon("sessionsWeek")}</div>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyAppts")}>
+                    <div className="flex items-center justify-end">Weekly Appts{getSortIcon("weeklyAppts")}</div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("f2f")}>
-                    <div className="flex items-center justify-end">F2F ({activeSplit}%){getSortIcon("f2f")}</div>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("annualIncome")}>
+                    <div className="flex items-center justify-end">Annual Income{getSortIcon("annualIncome")}</div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("remote")}>
-                    <div className="flex items-center justify-end">Remote ({remoteSplitPct}%){getSortIcon("remote")}</div>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("winterAppts")}>
+                    <div className="flex items-center justify-end">Winter Appts{getSortIcon("winterAppts")}</div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyWinter")}>
+                    <div className="flex items-center justify-end">Weekly Winter{getSortIcon("weeklyWinter")}</div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("nonWinterAppts")}>
+                    <div className="flex items-center justify-end">Non-Winter Appts{getSortIcon("nonWinterAppts")}</div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyNonWinter")}>
+                    <div className="flex items-center justify-end">Weekly Non-Winter{getSortIcon("weeklyNonWinter")}</div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("hub")}>
+                    <div className="flex items-center justify-end">Hub{getSortIcon("hub")}</div>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedPracticeSummary.map((practice, index) => (
                   <TableRow key={index}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium whitespace-nowrap">
                       {practice.practice}
                       {practice.role === "HUB" && <Badge variant="outline" className="ml-2 text-[10px] bg-[#005EB8] text-white border-[#005EB8]">HUB</Badge>}
                     </TableCell>
                     <TableCell className="text-right">{practice.listSize.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{practice.percentage.toFixed(1)}%</TableCell>
-                    <TableCell className="text-right font-semibold">{Math.round(practice.sessionsWeek).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-green-700">{Math.round(practice.f2f).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-blue-700">{Math.round(practice.remote).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{practice.annualAppts.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-semibold">{practice.weeklyAppts.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">£{practice.annualIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right text-blue-700">{practice.winterAppts.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-blue-700 font-semibold">{practice.weeklyWinter.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-amber-700">{practice.nonWinterAppts.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-amber-700 font-semibold">{practice.weeklyNonWinter.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-xs text-slate-600 whitespace-nowrap">{practice.hub}</TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-slate-100 font-bold">
                   <TableCell>Total</TableCell>
                   <TableCell className="text-right">{totalListSize.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">100%</TableCell>
-                  <TableCell className="text-right">
-                    {viewMode === "appointments"
-                      ? Math.round(currentCapacity.sessionsPerWeek * APPTS_PER_SESSION).toLocaleString()
-                      : currentCapacity.sessionsPerWeek}
-                  </TableCell>
-                  <TableCell className="text-right text-green-700">
-                    {viewMode === "appointments"
-                      ? Math.round(currentCapacity.f2fRequired * APPTS_PER_SESSION).toLocaleString()
-                      : currentCapacity.f2fRequired.toFixed(1)}
-                  </TableCell>
-                  <TableCell className="text-right text-blue-700">
-                    {viewMode === "appointments"
-                      ? Math.round(currentCapacity.remoteRequired * APPTS_PER_SESSION).toLocaleString()
-                      : currentCapacity.remoteRequired.toFixed(1)}
-                  </TableCell>
+                  <TableCell className="text-right">{ennPracticeSummary.reduce((s, p) => s + p.annualAppts, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{ennPracticeSummary.reduce((s, p) => s + p.weeklyAppts, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right">£{ennPracticeSummary.reduce((s, p) => s + p.annualIncome, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                  <TableCell className="text-right text-blue-700">{ennPracticeSummary.reduce((s, p) => s + p.winterAppts, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-blue-700">{ennPracticeSummary.reduce((s, p) => s + p.weeklyWinter, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-amber-700">{ennPracticeSummary.reduce((s, p) => s + p.nonWinterAppts, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-amber-700">{ennPracticeSummary.reduce((s, p) => s + p.weeklyNonWinter, 0).toLocaleString()}</TableCell>
+                  <TableCell></TableCell>
                 </TableRow>
               </TableBody>
             </Table>
