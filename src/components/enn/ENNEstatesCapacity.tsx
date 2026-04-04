@@ -318,8 +318,8 @@ export const ENNEstatesCapacity = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {ennPracticeSummary.map((practice, index) => {
               const totalRequired = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize);
-              const f2fRequired = totalRequired * (activeSplit / 100);
-              const remoteRequired = totalRequired * (remoteSplitPct / 100);
+              const f2fRequired = totalRequired * (onsitePct / 100);
+              const remoteRequired = totalRequired * (remotePct / 100);
               const mul = viewMode === "appointments" ? APPTS_PER_SESSION : 1;
 
               return (
