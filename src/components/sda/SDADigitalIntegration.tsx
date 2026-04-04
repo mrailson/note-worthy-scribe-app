@@ -47,7 +47,11 @@ const excelTabs = [
 ];
 
 
-export const SDADigitalIntegration = () => {
+interface SDADigitalIntegrationProps {
+  CustomReportingRequirements?: React.ComponentType;
+}
+
+export const SDADigitalIntegration = ({ CustomReportingRequirements }: SDADigitalIntegrationProps = {}) => {
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; title: string } | null>(null);
   const [tabExplorerOpen, setTabExplorerOpen] = useState(false);
   const [reportingPreviewOpen, setReportingPreviewOpen] = useState(false);
