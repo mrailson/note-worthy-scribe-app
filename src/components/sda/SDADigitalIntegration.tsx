@@ -89,7 +89,7 @@ export const SDADigitalIntegration = ({ CustomReportingRequirements }: SDADigita
             </Button>
           </div>
           <Suspense fallback={<div className="flex items-center justify-center h-screen text-slate-400">Loading preview…</div>}>
-            <NRESReportingRequirements />
+            {CustomReportingRequirements ? <CustomReportingRequirements /> : <NRESReportingRequirements />}
           </Suspense>
         </div>
       )}
