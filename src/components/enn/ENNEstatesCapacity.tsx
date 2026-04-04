@@ -91,8 +91,8 @@ export const ENNEstatesCapacity = () => {
       apptsPerWeek: 1371,
       sessionsPerWeek: Math.round(1371 / APPTS_PER_SESSION * 10) / 10,
       sessionLength: "4h 10m",
-      f2fRequired: Math.round(1371 / APPTS_PER_SESSION * 10) / 10 * (activeSplit / 100),
-      remoteRequired: Math.round(1371 / APPTS_PER_SESSION * 10) / 10 * (remoteSplitPct / 100),
+      f2fRequired: Math.round(1371 / APPTS_PER_SESSION * 10) / 10 * (onsitePct / 100),
+      remoteRequired: Math.round(1371 / APPTS_PER_SESSION * 10) / 10 * (remotePct / 100),
     },
     winter: {
       rate: "18.2 per 1,000",
@@ -100,10 +100,10 @@ export const ENNEstatesCapacity = () => {
       apptsPerWeek: 1642,
       sessionsPerWeek: Math.round(1642 / APPTS_PER_SESSION * 10) / 10,
       sessionLength: "4h 10m",
-      f2fRequired: Math.round(1642 / APPTS_PER_SESSION * 10) / 10 * (activeSplit / 100),
-      remoteRequired: Math.round(1642 / APPTS_PER_SESSION * 10) / 10 * (remoteSplitPct / 100),
+      f2fRequired: Math.round(1642 / APPTS_PER_SESSION * 10) / 10 * (onsitePct / 100),
+      remoteRequired: Math.round(1642 / APPTS_PER_SESSION * 10) / 10 * (remotePct / 100),
     },
-  }), []);
+  }), [onsitePct, remotePct]);
 
   const totalCapacity = useMemo(() => ({
     rate: "15.2–18.2 per 1,000",
@@ -112,9 +112,9 @@ export const ENNEstatesCapacity = () => {
     apptsPerWeek: Math.round(ANNUAL_APPTS / 52),
     sessionsPerWeek: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * 10) / 10,
     sessionLength: "4h 10m",
-    f2fRequired: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * (activeSplit / 100) * 10) / 10,
-    remoteRequired: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * (remoteSplitPct / 100) * 10) / 10,
-  }), []);
+    f2fRequired: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * (onsitePct / 100) * 10) / 10,
+    remoteRequired: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * (remotePct / 100) * 10) / 10,
+  }), [onsitePct, remotePct]);
 
   const currentCapacity = season === "winter"
     ? capacityData.winter
