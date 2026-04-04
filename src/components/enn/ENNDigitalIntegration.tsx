@@ -624,8 +624,6 @@ export const SDADigitalIntegration = () => {
         </div>
       </CollapsibleCard>
 
-        </div>
-      </CollapsibleCard>
     </div>
 
       {/* Baseline Dashboard Fullscreen Modal */}
