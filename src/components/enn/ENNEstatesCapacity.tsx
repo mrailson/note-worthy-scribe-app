@@ -37,9 +37,9 @@ const ennPracticeSummary: ENNPracticeSummary[] = [
 ];
 
 const hubPracticeMapping: Record<string, string[]> = {
-  "Harborough Field Surgery": ["Harborough Field Surgery", "Rushden Medical Centre", "Parklands Surgery", "Higham Ferrers Surgery"],
-  "The Cottons MC": ["Spinney Brook MC", "The Cottons MC", "Marshalls Road Surgery"],
-  "The Meadows Surgery": ["Oundle Medical Practice", "Nene Valley Surgery", "The Meadows Surgery"],
+  "Harborough Field Surgery": ["Harborough Field Surgery", "Parklands Surgery", "Rushden Medical Centre", "Higham Ferrers Surgery"],
+  "The Cottons MC": ["The Cottons MC", "Spinney Brook MC", "Marshalls Road Surgery"],
+  "The Meadows Surgery": ["The Meadows Surgery", "Oundle Medical Practice", "Nene Valley Surgery"],
 };
 
 const totalListSize = ennPracticeSummary.reduce((sum, p) => sum + p.listSize, 0);
