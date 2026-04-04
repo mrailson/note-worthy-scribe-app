@@ -338,7 +338,10 @@ export const ENNEstatesCapacity = () => {
           </div>
           <Slider
             value={[onsitePct]}
-            onValueChange={(val) => setOnsitePct(val[0])}
+            onValueChange={(val) => {
+              setOnsitePct(val[0]);
+              setHubOnsitePcts(Object.fromEntries(hubNames.map(h => [h, val[0]])));
+            }}
             min={50}
             max={100}
             step={5}
