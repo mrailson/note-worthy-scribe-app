@@ -242,13 +242,13 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                               background: buybackBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(13,148,136,0.1)",
                               color: buybackBtnHovered ? "rgba(255,255,255,0.9)" : "#0D9488",
                               transition: "all 0.3s ease",
-                            }}>GUIDE</span>
+                            }}>{customBuybackLabel?.badge || 'GUIDE'}</span>
                           </div>
                           <div style={{
                             fontSize: "9px", marginTop: "2px",
                             color: buybackBtnHovered ? "rgba(255,255,255,0.8)" : "#5a8d8a",
                             transition: "color 0.3s ease",
-                          }}>SDA buy-back rules, process & quick reference</div>
+                          }}>{customBuybackLabel?.subtitle || 'SDA buy-back rules, process & quick reference'}</div>
                         </div>
                         <div style={{
                           width: "24px", height: "24px", borderRadius: "6px",
