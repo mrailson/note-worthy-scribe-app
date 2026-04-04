@@ -69,6 +69,14 @@ export const ENNEstatesCapacity = () => {
   const [onsitePct, setOnsitePct] = useState(50);
   const remotePct = 100 - onsitePct;
 
+  const hubNames = Object.keys(hubPracticeMapping);
+  const [hubOnsitePcts, setHubOnsitePcts] = useState<Record<string, number>>(
+    () => Object.fromEntries(hubNames.map(h => [h, 50]))
+  );
+  const setHubOnsitePct = (hubName: string, val: number) => {
+    setHubOnsitePcts(prev => ({ ...prev, [hubName]: val }));
+  };
+
   type ColumnGroup = "listIncome" | "winter" | "nonWinter";
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
 
@@ -192,17 +200,20 @@ export const ENNEstatesCapacity = () => {
       const percentage = (hubListSize / totalListSize) * 100;
       const sessionsNeeded = currentCapacity.sessionsPerWeek * (hubListSize / totalListSize);
       const displayValue = viewMode === "appointments" ? sessionsNeeded * APPTS_PER_SESSION : sessionsNeeded;
+      const hubOnsite = hubOnsitePcts[hubName] ?? onsitePct;
+      const hubRemote = 100 - hubOnsite;
       return {
         hubName,
         practices,
         listSize: hubListSize,
         percentage,
         totalRequired: displayValue,
-        f2f: displayValue * (onsitePct / 100),
-        remote: displayValue * (remotePct / 100),
+        f2f: displayValue * (hubOnsite / 100),
+        remote: displayValue * (hubRemote / 100),
+        onsitePct: hubOnsite,
       };
     });
-  }, [currentCapacity.sessionsPerWeek, viewMode, onsitePct, remotePct]);
+  }, [currentCapacity.sessionsPerWeek, viewMode, onsitePct, hubOnsitePcts]);
 
   const cycleSitesMode = () => {
     const modes: SitesDisplayMode[] = ["total", "hub", "spoke"];
@@ -327,7 +338,10 @@ export const ENNEstatesCapacity = () => {
           </div>
           <Slider
             value={[onsitePct]}
-            onValueChange={(val) => setOnsitePct(val[0])}
+            onValueChange={(val) => {
+              setOnsitePct(val[0]);
+              setHubOnsitePcts(Object.fromEntries(hubNames.map(h => [h, val[0]])));
+            }}
             min={50}
             max={100}
             step={5}
@@ -476,9 +490,29 @@ export const ENNEstatesCapacity = () => {
                     <p className="text-[10px] text-indigo-600">{uLabel}</p>
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-500 text-center mb-3">
+                <p className="text-[10px] text-slate-500 text-center mb-2">
                   {(hub.f2f / APPTS_PER_SESSION).toFixed(1)} sessions on-site • {(hub.remote / APPTS_PER_SESSION).toFixed(1)} sessions remote
                 </p>
+
+                {/* Per-hub on-site slider */}
+                <div className="mb-3 px-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-medium text-slate-500">On-Site Split</span>
+                    <span className="text-[10px] font-semibold text-slate-700">{hub.onsitePct}% On-Site / {100 - hub.onsitePct}% Remote</span>
+                  </div>
+                  <Slider
+                    value={[hub.onsitePct]}
+                    onValueChange={(val) => setHubOnsitePct(hub.hubName, val[0])}
+                    min={50}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                    <span>50%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
 
                 <div className="border-t border-blue-200 pt-3">
                   <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">Assigned Practices</p>
