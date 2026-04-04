@@ -4,8 +4,6 @@ import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
 
 export const SDAWorkforceInnovation = () => {
-  const [isLantumSlideshowOpen, setIsLantumSlideshowOpen] = useState(false);
-  const [isRecruitmentTrackerOpen, setIsRecruitmentTrackerOpen] = useState(false);
 
   return (
     <div className="space-y-6">
