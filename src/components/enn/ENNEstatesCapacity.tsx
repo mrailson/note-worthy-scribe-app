@@ -425,6 +425,9 @@ export const ENNEstatesCapacity = () => {
                   <p className="text-[10px] text-indigo-600">{uLabel}</p>
                 </div>
               </div>
+              <p className="text-[10px] text-slate-500 text-center mt-1.5">
+                {currentCapacity.f2fRequired.toFixed(1)} sessions on-site • {currentCapacity.remoteRequired.toFixed(1)} sessions remote
+              </p>
               <div className="flex items-center justify-between mt-2">
                 <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
                   {season === "winter" ? "Winter" : season === "total" ? "Combined" : "Non-Winter"}
