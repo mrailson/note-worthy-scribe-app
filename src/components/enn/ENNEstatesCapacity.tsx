@@ -68,6 +68,18 @@ export const ENNEstatesCapacity = () => {
   const activeSplit = 50;
   const remoteSplitPct = 50;
 
+  type ColumnGroup = "listIncome" | "winter" | "nonWinter";
+  const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
+
+  const toggleGroup = (group: ColumnGroup) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(group)) next.delete(group);
+      else next.add(group);
+      return next;
+    });
+  };
+
   const multiplier = viewMode === "appointments" ? APPTS_PER_SESSION : 1;
   const unitLabel = viewMode === "appointments" ? "appointments" : "sessions";
 
