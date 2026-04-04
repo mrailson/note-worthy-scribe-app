@@ -2,8 +2,10 @@ import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake } from "lucide-react";
+import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+
+const APPTS_PER_SESSION = 14;
 
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
 type SortDirection = "asc" | "desc";
@@ -12,6 +14,7 @@ type SitesDisplayMode = "total" | "hub" | "spoke";
 type SessionsDisplayMode = "total" | "winter" | "nonWinter" | "onsite" | "remote";
 type DurationDisplayMode = "perSession" | "perDay" | "perWeek";
 type ApptsDisplayMode = "perSession" | "perHour" | "perDay";
+type ViewLevel = "practice" | "hub";
 
 interface ENNPracticeSummary {
   practice: string;
@@ -33,12 +36,19 @@ const ennPracticeSummary: ENNPracticeSummary[] = [
   { practice: "Marshalls Road Surgery", listSize: 3156, role: "SPOKE", system: "SystmOne" },
 ];
 
+const hubPracticeMapping: Record<string, string[]> = {
+  "Harborough Field Surgery": ["Harborough Field Surgery", "Rushden Medical Centre", "Parklands Surgery", "Higham Ferrers Surgery"],
+  "The Cottons MC": ["Spinney Brook MC", "The Cottons MC", "Marshalls Road Surgery"],
+  "The Meadows Surgery": ["Oundle Medical Practice", "Nene Valley Surgery", "The Meadows Surgery"],
+};
+
 const totalListSize = ennPracticeSummary.reduce((sum, p) => sum + p.listSize, 0);
 const ANNUAL_APPTS = 74846;
 
 export const ENNEstatesCapacity = () => {
   const [season, setSeason] = useState<Season>("nonWinter");
   const [viewMode, setViewMode] = useState<"sessions" | "appointments">("sessions");
+  const [viewLevel, setViewLevel] = useState<ViewLevel>("practice");
   const [practiceSortField, setPracticeSortField] = useState<PracticeSortField>("listSize");
   const [practiceSortDirection, setPracticeSortDirection] = useState<SortDirection>("desc");
   const [sitesDisplayMode, setSitesDisplayMode] = useState<SitesDisplayMode>("total");
@@ -49,7 +59,7 @@ export const ENNEstatesCapacity = () => {
   const activeSplit = 50;
   const remoteSplitPct = 50;
 
-  const multiplier = viewMode === "appointments" ? 12 : 1;
+  const multiplier = viewMode === "appointments" ? APPTS_PER_SESSION : 1;
   const unitLabel = viewMode === "appointments" ? "appointments" : "sessions";
 
   const capacityData = useMemo(() => ({
@@ -57,19 +67,19 @@ export const ENNEstatesCapacity = () => {
       rate: "15.2 per 1,000",
       weeks: 39,
       apptsPerWeek: 1371,
-      sessionsPerWeek: 114.3,
+      sessionsPerWeek: Math.round(1371 / APPTS_PER_SESSION * 10) / 10,
       sessionLength: "4h 10m",
-      f2fRequired: 114.3 * (activeSplit / 100),
-      remoteRequired: 114.3 * (remoteSplitPct / 100),
+      f2fRequired: Math.round(1371 / APPTS_PER_SESSION * 10) / 10 * (activeSplit / 100),
+      remoteRequired: Math.round(1371 / APPTS_PER_SESSION * 10) / 10 * (remoteSplitPct / 100),
     },
     winter: {
       rate: "18.2 per 1,000",
       weeks: 13,
       apptsPerWeek: 1642,
-      sessionsPerWeek: 136.8,
+      sessionsPerWeek: Math.round(1642 / APPTS_PER_SESSION * 10) / 10,
       sessionLength: "4h 10m",
-      f2fRequired: 136.8 * (activeSplit / 100),
-      remoteRequired: 136.8 * (remoteSplitPct / 100),
+      f2fRequired: Math.round(1642 / APPTS_PER_SESSION * 10) / 10 * (activeSplit / 100),
+      remoteRequired: Math.round(1642 / APPTS_PER_SESSION * 10) / 10 * (remoteSplitPct / 100),
     },
   }), []);
 
@@ -78,10 +88,10 @@ export const ENNEstatesCapacity = () => {
     weeks: 52,
     annualAppts: ANNUAL_APPTS,
     apptsPerWeek: Math.round(ANNUAL_APPTS / 52),
-    sessionsPerWeek: Math.round(ANNUAL_APPTS / 52 / 12 * 10) / 10,
+    sessionsPerWeek: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * 10) / 10,
     sessionLength: "4h 10m",
-    f2fRequired: Math.round(ANNUAL_APPTS / 52 / 12 * (activeSplit / 100) * 10) / 10,
-    remoteRequired: Math.round(ANNUAL_APPTS / 52 / 12 * (remoteSplitPct / 100) * 10) / 10,
+    f2fRequired: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * (activeSplit / 100) * 10) / 10,
+    remoteRequired: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * (remoteSplitPct / 100) * 10) / 10,
   }), []);
 
   const currentCapacity = season === "winter"
@@ -110,7 +120,7 @@ export const ENNEstatesCapacity = () => {
     const withCalc = ennPracticeSummary.map(p => {
       const percentage = (p.listSize / totalListSize) * 100;
       const sessionsNeeded = currentCapacity.sessionsPerWeek * (p.listSize / totalListSize);
-      const displayValue = viewMode === "appointments" ? sessionsNeeded * 12 : sessionsNeeded;
+      const displayValue = viewMode === "appointments" ? sessionsNeeded * APPTS_PER_SESSION : sessionsNeeded;
       return {
         ...p,
         percentage,
@@ -137,6 +147,26 @@ export const ENNEstatesCapacity = () => {
       return practiceSortDirection === "asc" ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
   }, [practiceSortField, practiceSortDirection, currentCapacity.sessionsPerWeek, viewMode]);
+
+  // Hub aggregation data
+  const hubAggregatedData = useMemo(() => {
+    return Object.entries(hubPracticeMapping).map(([hubName, practiceNames]) => {
+      const practices = ennPracticeSummary.filter(p => practiceNames.includes(p.practice));
+      const hubListSize = practices.reduce((sum, p) => sum + p.listSize, 0);
+      const percentage = (hubListSize / totalListSize) * 100;
+      const sessionsNeeded = currentCapacity.sessionsPerWeek * (hubListSize / totalListSize);
+      const displayValue = viewMode === "appointments" ? sessionsNeeded * APPTS_PER_SESSION : sessionsNeeded;
+      return {
+        hubName,
+        practices,
+        listSize: hubListSize,
+        percentage,
+        totalRequired: displayValue,
+        f2f: displayValue * (activeSplit / 100),
+        remote: displayValue * (remoteSplitPct / 100),
+      };
+    });
+  }, [currentCapacity.sessionsPerWeek, viewMode]);
 
   const cycleSitesMode = () => {
     const modes: SitesDisplayMode[] = ["total", "hub", "spoke"];
@@ -188,9 +218,9 @@ export const ENNEstatesCapacity = () => {
 
   const getApptsDisplay = () => {
     switch (apptsDisplayMode) {
-      case "perHour": return { value: "2.9", label: "Appts/Hour" };
-      case "perDay": return { value: "24", label: "Appts/Day" };
-      default: return { value: "12", label: "Appts/Session" };
+      case "perHour": return { value: "3.4", label: "Appts/Hour" };
+      case "perDay": return { value: "28", label: "Appts/Day" };
+      default: return { value: String(APPTS_PER_SESSION), label: "Appts/Session" };
     }
   };
 
@@ -198,6 +228,7 @@ export const ENNEstatesCapacity = () => {
   const sessionsDisplay = getSessionsDisplay();
   const durationDisplay = getDurationDisplay();
   const apptsDisplay = getApptsDisplay();
+  const uLabel = viewMode === "appointments" ? "appts/week" : "sessions/week";
 
   return (
     <div className="space-y-6">
@@ -214,9 +245,19 @@ export const ENNEstatesCapacity = () => {
           </div>
         }
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <p className="text-sm text-slate-500">Weekly session requirements by practice</p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* View Level Toggle */}
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+              <button onClick={() => setViewLevel("practice")} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${viewLevel === "practice" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}>
+                <LayoutGrid className="w-3 h-3" /> By Practice
+              </button>
+              <button onClick={() => setViewLevel("hub")} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${viewLevel === "hub" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}>
+                <Layers className="w-3 h-3" /> By Hub
+              </button>
+            </div>
+            {/* Season Toggle */}
             <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
               <button onClick={() => setSeason("nonWinter")} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${season === "nonWinter" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}>
                 <Sun className="w-3 h-3" /> Non-Winter
@@ -228,6 +269,7 @@ export const ENNEstatesCapacity = () => {
                 <CalendarRange className="w-3 h-3" /> Combined
               </button>
             </div>
+            {/* Sessions/Appointments Toggle */}
             <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
               <button onClick={() => setViewMode("sessions")} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${viewMode === "sessions" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}>Sessions</button>
               <button onClick={() => setViewMode("appointments")} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${viewMode === "appointments" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}>Appointments</button>
@@ -235,97 +277,192 @@ export const ENNEstatesCapacity = () => {
           </div>
         </div>
 
-        {/* Practice cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {ennPracticeSummary.map((practice, index) => {
-            const totalRequired = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize);
-            const f2fRequired = totalRequired * (activeSplit / 100);
-            const remoteRequired = totalRequired * (remoteSplitPct / 100);
-            const mul = viewMode === "appointments" ? 12 : 1;
-            const uLabel = viewMode === "appointments" ? "appts/week" : "sessions/week";
+        {viewLevel === "practice" ? (
+          /* Practice cards */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {ennPracticeSummary.map((practice, index) => {
+              const totalRequired = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize);
+              const f2fRequired = totalRequired * (activeSplit / 100);
+              const remoteRequired = totalRequired * (remoteSplitPct / 100);
+              const mul = viewMode === "appointments" ? APPTS_PER_SESSION : 1;
 
-            return (
+              return (
+                <div
+                  key={index}
+                  className={`rounded-xl p-4 border transition-all hover:shadow-md ${practice.role === "HUB" ? "bg-blue-50 border-blue-200" : "bg-slate-50 border-slate-200"}`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-semibold text-slate-900">{practice.practice}</h4>
+                    <Badge variant="outline" className={practice.role === "HUB" ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-200 text-slate-700 border-slate-300"}>
+                      {practice.role}
+                    </Badge>
+                  </div>
+
+                  <div className="mb-3 pb-2 border-b border-slate-200">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Required</p>
+                    <p className="text-2xl font-bold text-slate-900">{(totalRequired * mul).toFixed(1)}</p>
+                    <p className="text-xs text-slate-500">{uLabel}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
+                      <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
+                      <p className="text-lg font-bold text-green-900">{(f2fRequired * mul).toFixed(1)}</p>
+                      <p className="text-[10px] text-green-600">{uLabel}</p>
+                    </div>
+                    <div className="bg-indigo-50 rounded-lg p-2 text-center border border-indigo-200">
+                      <p className="text-xs font-medium text-indigo-700">Remote</p>
+                      <p className="text-lg font-bold text-indigo-900">{(remoteRequired * mul).toFixed(1)}</p>
+                      <p className="text-[10px] text-indigo-600">{uLabel}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-slate-200">
+                    <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">Recruitment</p>
+                    <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-200">
+                      <div className="bg-slate-300 w-full" />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 italic">Not yet populated</p>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-2">
+                    <Badge variant="outline" className="text-xs">{practice.system}</Badge>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Neighbourhood Totals Box */}
+            <div className="rounded-xl p-4 border bg-gradient-to-br from-slate-100 to-blue-50 border-blue-300">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <h4 className="font-semibold text-slate-900">Neighbourhood Total</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">All practices combined</p>
+                </div>
+                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">TOTAL</Badge>
+              </div>
+              <div className="mb-3 pb-2 border-b border-slate-200">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Required</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  {(currentCapacity.sessionsPerWeek * multiplier).toFixed(1)}
+                </p>
+                <p className="text-xs text-slate-500">{uLabel}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
+                  <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
+                  <p className="text-lg font-bold text-green-900">{(currentCapacity.f2fRequired * multiplier).toFixed(1)}</p>
+                  <p className="text-[10px] text-green-600">{uLabel}</p>
+                </div>
+                <div className="bg-indigo-50 rounded-lg p-2 text-center border border-indigo-200">
+                  <p className="text-xs font-medium text-indigo-700">Remote</p>
+                  <p className="text-lg font-bold text-indigo-900">{(currentCapacity.remoteRequired * multiplier).toFixed(1)}</p>
+                  <p className="text-[10px] text-indigo-600">{uLabel}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
+                  {season === "winter" ? "Winter" : season === "total" ? "Combined" : "Non-Winter"}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Hub aggregated view */
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {hubAggregatedData.map((hub) => (
               <div
-                key={index}
-                className={`rounded-xl p-4 border transition-all hover:shadow-md ${practice.role === "HUB" ? "bg-blue-50 border-blue-200" : "bg-slate-50 border-slate-200"}`}
+                key={hub.hubName}
+                className="rounded-xl p-5 border-2 bg-blue-50 border-blue-300 transition-all hover:shadow-lg"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-semibold text-slate-900">{practice.practice}</h4>
-                  <Badge variant="outline" className={practice.role === "HUB" ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-200 text-slate-700 border-slate-300"}>
-                    {practice.role}
-                  </Badge>
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h4 className="font-bold text-lg text-slate-900">{hub.hubName}</h4>
+                    <p className="text-xs text-slate-500">{hub.practices.length} practices assigned</p>
+                  </div>
+                  <Badge className="bg-[#005EB8] text-white border-[#005EB8]">HUB</Badge>
                 </div>
 
-                <div className="mb-3 pb-2 border-b border-slate-200">
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Required</p>
-                  <p className="text-2xl font-bold text-slate-900">{(totalRequired * mul).toFixed(1)}</p>
+                <div className="mb-3 pb-3 border-b border-blue-200">
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-bold text-slate-900">{hub.listSize.toLocaleString()}</p>
+                    <p className="text-sm text-slate-500">patients ({hub.percentage.toFixed(1)}%)</p>
+                  </div>
+                </div>
+
+                <div className="mb-3 pb-3 border-b border-blue-200">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Total Required</p>
+                  <p className="text-2xl font-bold text-slate-900">{hub.totalRequired.toFixed(1)}</p>
                   <p className="text-xs text-slate-500">{uLabel}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
                     <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
-                    <p className="text-lg font-bold text-green-900">{(f2fRequired * mul).toFixed(1)}</p>
+                    <p className="text-xl font-bold text-green-900">{hub.f2f.toFixed(1)}</p>
                     <p className="text-[10px] text-green-600">{uLabel}</p>
                   </div>
-                  <div className="bg-indigo-50 rounded-lg p-2 text-center border border-indigo-200">
+                  <div className="bg-indigo-50 rounded-lg p-3 text-center border border-indigo-200">
                     <p className="text-xs font-medium text-indigo-700">Remote</p>
-                    <p className="text-lg font-bold text-indigo-900">{(remoteRequired * mul).toFixed(1)}</p>
+                    <p className="text-xl font-bold text-indigo-900">{hub.remote.toFixed(1)}</p>
                     <p className="text-[10px] text-indigo-600">{uLabel}</p>
                   </div>
                 </div>
 
-                {/* Empty recruitment placeholder */}
-                <div className="mt-3 pt-2 border-t border-slate-200">
-                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">Recruitment</p>
-                  <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-200">
-                    <div className="bg-slate-300 w-full" />
+                <div className="border-t border-blue-200 pt-3">
+                  <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">Assigned Practices</p>
+                  <div className="space-y-1.5">
+                    {hub.practices.map(p => (
+                      <div key={p.practice} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.role === "HUB" ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-200 text-slate-600 border-slate-300"}`}>
+                            {p.role}
+                          </Badge>
+                          <span className="text-slate-700">{p.practice}</span>
+                        </div>
+                        <span className="text-slate-500 text-xs">{p.listSize.toLocaleString()}</span>
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1 italic">Not yet populated</p>
-                </div>
-
-                <div className="flex items-center justify-between mt-2">
-                  <Badge variant="outline" className="text-xs">{practice.system}</Badge>
                 </div>
               </div>
-            );
-          })}
+            ))}
 
-          {/* Neighbourhood Totals Box */}
-          <div className="rounded-xl p-4 border bg-gradient-to-br from-slate-100 to-blue-50 border-blue-300">
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <h4 className="font-semibold text-slate-900">Neighbourhood Total</h4>
-                <p className="text-xs text-slate-500 mt-0.5">All practices combined</p>
+            {/* Neighbourhood Totals Box */}
+            <div className="rounded-xl p-5 border-2 bg-gradient-to-br from-slate-100 to-blue-50 border-blue-300">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h4 className="font-bold text-lg text-slate-900">Neighbourhood Total</h4>
+                  <p className="text-xs text-slate-500">All 3 hubs combined</p>
+                </div>
+                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">TOTAL</Badge>
               </div>
-              <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">TOTAL</Badge>
-            </div>
-            <div className="mb-3 pb-2 border-b border-slate-200">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Required</p>
-              <p className="text-2xl font-bold text-slate-900">
-                {(currentCapacity.sessionsPerWeek * multiplier).toFixed(1)}
-              </p>
-              <p className="text-xs text-slate-500">{viewMode === "appointments" ? "appts/week" : "sessions/week"}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
-                <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
-                <p className="text-lg font-bold text-green-900">{(currentCapacity.f2fRequired * multiplier).toFixed(1)}</p>
-                <p className="text-[10px] text-green-600">{viewMode === "appointments" ? "appts/week" : "sessions/week"}</p>
+              <div className="mb-3 pb-3 border-b border-slate-200">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-3xl font-bold text-slate-900">{totalListSize.toLocaleString()}</p>
+                  <p className="text-sm text-slate-500">patients (100%)</p>
+                </div>
               </div>
-              <div className="bg-indigo-50 rounded-lg p-2 text-center border border-indigo-200">
-                <p className="text-xs font-medium text-indigo-700">Remote</p>
-                <p className="text-lg font-bold text-indigo-900">{(currentCapacity.remoteRequired * multiplier).toFixed(1)}</p>
-                <p className="text-[10px] text-indigo-600">{viewMode === "appointments" ? "appts/week" : "sessions/week"}</p>
+              <div className="mb-3 pb-3 border-b border-slate-200">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Total Required</p>
+                <p className="text-2xl font-bold text-slate-900">{(currentCapacity.sessionsPerWeek * multiplier).toFixed(1)}</p>
+                <p className="text-xs text-slate-500">{uLabel}</p>
               </div>
-            </div>
-            <div className="flex items-center justify-between mt-2">
-              <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
-                {season === "winter" ? "Winter" : season === "total" ? "Combined" : "Non-Winter"}
-              </Badge>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
+                  <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
+                  <p className="text-xl font-bold text-green-900">{(currentCapacity.f2fRequired * multiplier).toFixed(1)}</p>
+                  <p className="text-[10px] text-green-600">{uLabel}</p>
+                </div>
+                <div className="bg-indigo-50 rounded-lg p-3 text-center border border-indigo-200">
+                  <p className="text-xs font-medium text-indigo-700">Remote</p>
+                  <p className="text-xl font-bold text-indigo-900">{(currentCapacity.remoteRequired * multiplier).toFixed(1)}</p>
+                  <p className="text-[10px] text-indigo-600">{uLabel}</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </CollapsibleCard>
 
       {/* Capacity Modelling */}
@@ -385,9 +522,9 @@ export const ENNEstatesCapacity = () => {
             <p className="text-sm text-slate-500">{season === "total" ? "Annual Sessions" : `${unitLabel}/Week`}</p>
             <p className="text-xl font-bold text-slate-900">
               {season === "total"
-                ? Math.round(ANNUAL_APPTS / 12).toLocaleString()
+                ? Math.round(ANNUAL_APPTS / APPTS_PER_SESSION).toLocaleString()
                 : viewMode === "appointments"
-                  ? Math.round(currentCapacity.sessionsPerWeek * 12).toLocaleString()
+                  ? Math.round(currentCapacity.sessionsPerWeek * APPTS_PER_SESSION).toLocaleString()
                   : currentCapacity.sessionsPerWeek}
             </p>
             <p className="text-xs text-slate-400">{season === "total" ? "combined average" : "total needed"}</p>
@@ -408,7 +545,7 @@ export const ENNEstatesCapacity = () => {
               {season === "total"
                 ? Math.round(ANNUAL_APPTS * (activeSplit / 100)).toLocaleString()
                 : viewMode === "appointments"
-                  ? Math.round(currentCapacity.f2fRequired * 12).toLocaleString()
+                  ? Math.round(currentCapacity.f2fRequired * APPTS_PER_SESSION).toLocaleString()
                   : currentCapacity.f2fRequired.toFixed(1)}
             </p>
             <p className="text-sm text-green-600">
@@ -423,7 +560,7 @@ export const ENNEstatesCapacity = () => {
               {season === "total"
                 ? Math.round(ANNUAL_APPTS * (remoteSplitPct / 100)).toLocaleString()
                 : viewMode === "appointments"
-                  ? Math.round(currentCapacity.remoteRequired * 12).toLocaleString()
+                  ? Math.round(currentCapacity.remoteRequired * APPTS_PER_SESSION).toLocaleString()
                   : currentCapacity.remoteRequired.toFixed(1)}
             </p>
             <p className="text-sm text-blue-600">
@@ -481,17 +618,17 @@ export const ENNEstatesCapacity = () => {
                   <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">
                     {viewMode === "appointments"
-                      ? Math.round(currentCapacity.sessionsPerWeek * 12).toLocaleString()
+                      ? Math.round(currentCapacity.sessionsPerWeek * APPTS_PER_SESSION).toLocaleString()
                       : currentCapacity.sessionsPerWeek}
                   </TableCell>
                   <TableCell className="text-right text-green-700">
                     {viewMode === "appointments"
-                      ? Math.round(currentCapacity.f2fRequired * 12).toLocaleString()
+                      ? Math.round(currentCapacity.f2fRequired * APPTS_PER_SESSION).toLocaleString()
                       : currentCapacity.f2fRequired.toFixed(1)}
                   </TableCell>
                   <TableCell className="text-right text-blue-700">
                     {viewMode === "appointments"
-                      ? Math.round(currentCapacity.remoteRequired * 12).toLocaleString()
+                      ? Math.round(currentCapacity.remoteRequired * APPTS_PER_SESSION).toLocaleString()
                       : currentCapacity.remoteRequired.toFixed(1)}
                   </TableCell>
                 </TableRow>
@@ -502,7 +639,7 @@ export const ENNEstatesCapacity = () => {
 
         <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
           <p className="text-sm text-amber-800">
-            <strong>Note:</strong> 1 session = 12 × 15 min appointments (F2F and Virtual). Initially 15 mins for virtual appointments but the board may change to 10 mins at a later date.
+            <strong>Note:</strong> 1 session = {APPTS_PER_SESSION} × 15 min appointments (F2F and Virtual). Initially 15 mins for virtual appointments but the board may change to 10 mins at a later date.
           </p>
         </div>
       </CollapsibleCard>
@@ -513,35 +650,31 @@ export const ENNEstatesCapacity = () => {
         icon={<Building2 className="w-5 h-5" />}
         badge={<span className="text-xs text-slate-500 font-normal">ENN Neighbourhood</span>}
       >
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Badge className="bg-blue-100 text-blue-800 border-blue-300">Hub</Badge>
-            <span className="font-medium text-slate-900">Harborough Field Surgery</span>
-            <span className="text-slate-600 text-sm">— Hub Location</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Badge className="bg-blue-100 text-blue-800 border-blue-300">Hub</Badge>
-            <span className="font-medium text-slate-900">The Cottons Medical Centre</span>
-            <span className="text-slate-600 text-sm">— Hub Location</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Badge className="bg-blue-100 text-blue-800 border-blue-300">Hub</Badge>
-            <span className="font-medium text-slate-900">The Meadows Surgery</span>
-            <span className="text-slate-600 text-sm">— Hub Location</span>
-          </div>
-        </div>
-
-        <div className="mt-4 pt-4 border-t border-slate-200">
-          <h4 className="text-sm font-semibold text-slate-700 mb-2">Spoke Practices</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {ennPracticeSummary.filter(p => p.role === "SPOKE").map((p, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300 text-xs">Spoke</Badge>
-                <span className="text-slate-700">{p.practice}</span>
-                <span className="text-slate-400 text-xs">({p.listSize.toLocaleString()} patients)</span>
+        <div className="space-y-6">
+          {Object.entries(hubPracticeMapping).map(([hubName, practiceNames]) => {
+            const practices = ennPracticeSummary.filter(p => practiceNames.includes(p.practice));
+            const hubListSize = practices.reduce((sum, p) => sum + p.listSize, 0);
+            return (
+              <div key={hubName} className="border rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Badge className="bg-blue-100 text-blue-800 border-blue-300">Hub</Badge>
+                  <span className="font-semibold text-slate-900">{hubName}</span>
+                  <span className="text-slate-500 text-sm">— {hubListSize.toLocaleString()} patients</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-6">
+                  {practices.map(p => (
+                    <div key={p.practice} className="flex items-center gap-2 text-sm">
+                      <Badge variant="outline" className={`text-xs ${p.role === "HUB" ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-100 text-slate-600 border-slate-300"}`}>
+                        {p.role}
+                      </Badge>
+                      <span className="text-slate-700">{p.practice}</span>
+                      <span className="text-slate-400 text-xs">({p.listSize.toLocaleString()})</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </CollapsibleCard>
 
