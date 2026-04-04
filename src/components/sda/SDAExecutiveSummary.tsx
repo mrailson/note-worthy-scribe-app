@@ -368,7 +368,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                         </div>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-2">Updated: 09 March 2026</p>
+                    <p className="text-[10px] text-slate-400 mt-2">Updated: 04 April 2026</p>
                   </CardContent>
                 </Card>
 
