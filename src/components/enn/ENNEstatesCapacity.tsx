@@ -18,22 +18,31 @@ type ViewLevel = "practice" | "hub";
 
 interface ENNPracticeSummary {
   practice: string;
+  odsCode: string;
   listSize: number;
+  annualAppts: number;
+  weeklyAppts: number;
+  winterAppts: number;
+  nonWinterAppts: number;
+  weeklyWinter: number;
+  weeklyNonWinter: number;
+  annualIncome: number;
   role: "HUB" | "SPOKE";
+  hub: string;
   system: string;
 }
 
 const ennPracticeSummary: ENNPracticeSummary[] = [
-  { practice: "Harborough Field Surgery", listSize: 13991, role: "HUB", system: "SystmOne" },
-  { practice: "Parklands Surgery", listSize: 13612, role: "SPOKE", system: "SystmOne" },
-  { practice: "Spinney Brook MC", listSize: 11537, role: "SPOKE", system: "SystmOne" },
-  { practice: "Oundle Medical Practice", listSize: 10600, role: "SPOKE", system: "SystmOne" },
-  { practice: "The Cottons MC", listSize: 9372, role: "HUB", system: "SystmOne" },
-  { practice: "Rushden Medical Centre", listSize: 9143, role: "SPOKE", system: "SystmOne" },
-  { practice: "Nene Valley Surgery", listSize: 6921, role: "SPOKE", system: "SystmOne" },
-  { practice: "The Meadows Surgery", listSize: 6340, role: "HUB", system: "SystmOne" },
-  { practice: "Higham Ferrers Surgery", listSize: 5569, role: "SPOKE", system: "SystmOne" },
-  { practice: "Marshalls Road Surgery", listSize: 3156, role: "SPOKE", system: "SystmOne" },
+  { practice: "Harborough Field Surgery", odsCode: "K83007", listSize: 13991, annualAppts: 11604, weeklyAppts: 222, winterAppts: 3310, nonWinterAppts: 8294, weeklyWinter: 255, weeklyNonWinter: 213, annualIncome: 366383.03, role: "HUB", hub: "Harborough Field Surgery", system: "SystmOne" },
+  { practice: "Oundle Medical Practice", odsCode: "K83023", listSize: 10600, annualAppts: 8792, weeklyAppts: 169, winterAppts: 2509, nonWinterAppts: 6284, weeklyWinter: 193, weeklyNonWinter: 161, annualIncome: 279098.00, role: "SPOKE", hub: "The Meadows Surgery", system: "SystmOne" },
+  { practice: "Rushden Medical Centre", odsCode: "K83024", listSize: 9143, annualAppts: 7583, weeklyAppts: 146, winterAppts: 2163, nonWinterAppts: 5420, weeklyWinter: 166, weeklyNonWinter: 139, annualIncome: 240735.19, role: "SPOKE", hub: "Harborough Field Surgery", system: "SystmOne" },
+  { practice: "Spinney Brook MC", odsCode: "K83028", listSize: 11537, annualAppts: 9569, weeklyAppts: 184, winterAppts: 2730, nonWinterAppts: 6839, weeklyWinter: 210, weeklyNonWinter: 175, annualIncome: 303769.21, role: "SPOKE", hub: "The Cottons MC", system: "SystmOne" },
+  { practice: "The Cottons MC", odsCode: "K83030", listSize: 9372, annualAppts: 7773, weeklyAppts: 149, winterAppts: 2217, nonWinterAppts: 5556, weeklyWinter: 171, weeklyNonWinter: 142, annualIncome: 246764.76, role: "HUB", hub: "The Cottons MC", system: "SystmOne" },
+  { practice: "Parklands Surgery", odsCode: "K83044", listSize: 13612, annualAppts: 11290, weeklyAppts: 217, winterAppts: 3221, nonWinterAppts: 8069, weeklyWinter: 248, weeklyNonWinter: 207, annualIncome: 358403.96, role: "SPOKE", hub: "Harborough Field Surgery", system: "SystmOne" },
+  { practice: "Nene Valley Surgery", odsCode: "K83065", listSize: 6921, annualAppts: 5740, weeklyAppts: 110, winterAppts: 1638, nonWinterAppts: 4103, weeklyWinter: 126, weeklyNonWinter: 105, annualIncome: 182229.93, role: "SPOKE", hub: "The Meadows Surgery", system: "SystmOne" },
+  { practice: "Marshalls Road Surgery", odsCode: "K83069", listSize: 3156, annualAppts: 2618, weeklyAppts: 50, winterAppts: 747, nonWinterAppts: 1871, weeklyWinter: 57, weeklyNonWinter: 48, annualIncome: 83097.48, role: "SPOKE", hub: "The Cottons MC", system: "SystmOne" },
+  { practice: "Higham Ferrers Surgery", odsCode: "K83080", listSize: 5569, annualAppts: 4619, weeklyAppts: 89, winterAppts: 1318, nonWinterAppts: 3301, weeklyWinter: 101, weeklyNonWinter: 85, annualIncome: 146631.77, role: "SPOKE", hub: "Harborough Field Surgery", system: "SystmOne" },
+  { practice: "The Meadows Surgery", odsCode: "K83616", listSize: 6340, annualAppts: 5258, weeklyAppts: 101, winterAppts: 1500, nonWinterAppts: 3758, weeklyWinter: 115, weeklyNonWinter: 96, annualIncome: 166932.20, role: "HUB", hub: "The Meadows Surgery", system: "SystmOne" },
 ];
 
 const hubPracticeMapping: Record<string, string[]> = {
