@@ -143,11 +143,19 @@ export const ENNEstatesCapacity = () => {
       let aVal: number | string, bVal: number | string;
       switch (practiceSortField) {
         case "practice": aVal = a.practice.toLowerCase(); bVal = b.practice.toLowerCase(); break;
+        case "hub": aVal = a.hub.toLowerCase(); bVal = b.hub.toLowerCase(); break;
         case "listSize": aVal = a.listSize; bVal = b.listSize; break;
         case "percentage": aVal = a.percentage; bVal = b.percentage; break;
         case "sessionsWeek": aVal = a.sessionsWeek; bVal = b.sessionsWeek; break;
         case "f2f": aVal = a.f2f; bVal = b.f2f; break;
         case "remote": aVal = a.remote; bVal = b.remote; break;
+        case "annualAppts": aVal = a.annualAppts; bVal = b.annualAppts; break;
+        case "weeklyAppts": aVal = a.weeklyAppts; bVal = b.weeklyAppts; break;
+        case "winterAppts": aVal = a.winterAppts; bVal = b.winterAppts; break;
+        case "nonWinterAppts": aVal = a.nonWinterAppts; bVal = b.nonWinterAppts; break;
+        case "weeklyWinter": aVal = a.weeklyWinter; bVal = b.weeklyWinter; break;
+        case "weeklyNonWinter": aVal = a.weeklyNonWinter; bVal = b.weeklyNonWinter; break;
+        case "annualIncome": aVal = a.annualIncome; bVal = b.annualIncome; break;
         default: return 0;
       }
       if (typeof aVal === "string" && typeof bVal === "string") {
