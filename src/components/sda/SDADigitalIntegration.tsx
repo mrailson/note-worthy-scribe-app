@@ -481,10 +481,6 @@ export const SDADigitalIntegration = ({ CustomReportingRequirements }: SDADigita
         </div>
       </CollapsibleCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Verification Status */}
-        <CollapsibleCard
-          title="Verification Complete"
           icon={<CheckCircle2 className="w-5 h-5" />}
           defaultOpen={false}
           className="bg-gradient-to-br from-green-50 to-emerald-50"
