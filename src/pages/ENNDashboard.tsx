@@ -147,7 +147,13 @@ const ENNDashboard = () => {
                 goLiveDate={new Date(2026, 6, 1)}
                 neighbourhoodName="ENN"
                 CustomReportingRequirements={ENNReportingRequirements}
-                CustomBuybackExplainer={ENNBoardPresentationExplainer}
+                CustomBuybackExplainer={ENNNeighbourhoodMap}
+                customBuybackLabel={{
+                  title: "Neighbourhood Map & Drive Times",
+                  subtitle: "Interactive hub, spoke & drive time explorer",
+                  badge: "INTERACTIVE",
+                  date: "04 April 2026",
+                }}
                 customActionLogData={[]}
                 customActionLogMetadata={{ sourceMeeting: '', nextMeeting: 'TBC', lastUpdated: '02/04/2026' }}
                 customApptStats={{
