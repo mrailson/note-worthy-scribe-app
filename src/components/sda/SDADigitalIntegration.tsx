@@ -863,8 +863,6 @@ export const SDADigitalIntegration = ({ CustomReportingRequirements }: SDADigita
         </div>
       </CollapsibleCard>
 
-        </div>
-      </CollapsibleCard>
     </div>
 
       {/* Baseline Dashboard Fullscreen Modal */}
