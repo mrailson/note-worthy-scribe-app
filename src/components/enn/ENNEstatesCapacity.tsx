@@ -66,8 +66,8 @@ export const ENNEstatesCapacity = () => {
   const [durationDisplayMode, setDurationDisplayMode] = useState<DurationDisplayMode>("perSession");
   const [apptsDisplayMode, setApptsDisplayMode] = useState<ApptsDisplayMode>("perSession");
 
-  const activeSplit = 50;
-  const remoteSplitPct = 50;
+  const [onsitePct, setOnsitePct] = useState(50);
+  const remotePct = 100 - onsitePct;
 
   type ColumnGroup = "listIncome" | "winter" | "nonWinter";
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
