@@ -33,6 +33,8 @@ export interface SDAExecutiveSummaryProps {
   CustomReportingRequirements?: React.ComponentType;
   /** Custom buy-back explainer component */
   CustomBuybackExplainer?: React.ComponentType;
+  /** Custom label for the buyback/explainer button */
+  customBuybackLabel?: { title: string; subtitle: string; badge: string; date: string };
   /** Custom action log data (empty array to clear) */
   customActionLogData?: import("@/data/nresBoardActionsData").ActionLogItem[];
   /** Custom action log metadata */

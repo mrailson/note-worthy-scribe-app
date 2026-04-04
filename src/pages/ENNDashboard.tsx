@@ -13,7 +13,7 @@ import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
 
-const ENNBoardPresentationExplainer = lazy(() => import("@/components/enn/ENNBoardPresentationExplainer"));
+const ENNNeighbourhoodMap = lazy(() => import("@/components/enn/ENNNeighbourhoodMap").then(m => ({ default: m.ENNNeighbourhoodMap })));
 const ENNReportingRequirements = lazy(() => import("@/components/enn/ENNReportingRequirements"));
 import { 
   LayoutDashboard, 
