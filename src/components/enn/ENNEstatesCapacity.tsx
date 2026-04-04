@@ -198,11 +198,11 @@ export const ENNEstatesCapacity = () => {
         listSize: hubListSize,
         percentage,
         totalRequired: displayValue,
-        f2f: displayValue * (activeSplit / 100),
-        remote: displayValue * (remoteSplitPct / 100),
+        f2f: displayValue * (onsitePct / 100),
+        remote: displayValue * (remotePct / 100),
       };
     });
-  }, [currentCapacity.sessionsPerWeek, viewMode]);
+  }, [currentCapacity.sessionsPerWeek, viewMode, onsitePct, remotePct]);
 
   const cycleSitesMode = () => {
     const modes: SitesDisplayMode[] = ["total", "hub", "spoke"];
