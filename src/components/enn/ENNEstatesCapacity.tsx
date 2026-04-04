@@ -147,8 +147,8 @@ export const ENNEstatesCapacity = () => {
         ...p,
         percentage,
         sessionsWeek: displayValue,
-        f2f: displayValue * (activeSplit / 100),
-        remote: displayValue * (remoteSplitPct / 100),
+        f2f: displayValue * (onsitePct / 100),
+        remote: displayValue * (remotePct / 100),
       };
     });
 
@@ -176,7 +176,7 @@ export const ENNEstatesCapacity = () => {
       }
       return practiceSortDirection === "asc" ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
-  }, [practiceSortField, practiceSortDirection, currentCapacity.sessionsPerWeek, viewMode]);
+  }, [practiceSortField, practiceSortDirection, currentCapacity.sessionsPerWeek, viewMode, onsitePct, remotePct]);
 
   // Hub aggregation data
   const hubAggregatedData = useMemo(() => {
