@@ -3,7 +3,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp, Download, PoundSterling, X, ChevronDown, ChevronUp, Play } from "lucide-react";
+import { ClipboardList, BarChart3, FileText, AlertTriangle, Users, Download, X, ChevronDown, ChevronUp, Play } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
