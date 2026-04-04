@@ -13,7 +13,7 @@ import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
 
-const ENNBoardPresentationExplainer = lazy(() => import("@/components/enn/ENNBoardPresentationExplainer"));
+const ENNNeighbourhoodMap = lazy(() => import("@/components/enn/ENNNeighbourhoodMap").then(m => ({ default: m.ENNNeighbourhoodMap })));
 const ENNReportingRequirements = lazy(() => import("@/components/enn/ENNReportingRequirements"));
 import { 
   LayoutDashboard, 
@@ -147,7 +147,13 @@ const ENNDashboard = () => {
                 goLiveDate={new Date(2026, 6, 1)}
                 neighbourhoodName="ENN"
                 CustomReportingRequirements={ENNReportingRequirements}
-                CustomBuybackExplainer={ENNBoardPresentationExplainer}
+                CustomBuybackExplainer={ENNNeighbourhoodMap}
+                customBuybackLabel={{
+                  title: "Neighbourhood Map & Drive Times",
+                  subtitle: "Interactive hub, spoke & drive time explorer",
+                  badge: "INTERACTIVE",
+                  date: "04 April 2026",
+                }}
                 customActionLogData={[]}
                 customActionLogMetadata={{ sourceMeeting: '', nextMeeting: 'TBC', lastUpdated: '02/04/2026' }}
                 customApptStats={{

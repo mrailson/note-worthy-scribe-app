@@ -33,6 +33,8 @@ export interface SDAExecutiveSummaryProps {
   CustomReportingRequirements?: React.ComponentType;
   /** Custom buy-back explainer component */
   CustomBuybackExplainer?: React.ComponentType;
+  /** Custom label for the buyback/explainer button */
+  customBuybackLabel?: { title: string; subtitle: string; badge: string; date: string };
   /** Custom action log data (empty array to clear) */
   customActionLogData?: import("@/data/nresBoardActionsData").ActionLogItem[];
   /** Custom action log metadata */
@@ -81,7 +83,7 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
-export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer, customActionLogData, customActionLogMetadata, customApptStats, customProgrammePlan, customMaintainedBy, customGuideItems }: SDAExecutiveSummaryProps = {}) => {
+export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSize = 89584, practiceCount = 7, annualCapacity = 74301, populationBreakdown, goLiveDate, neighbourhoodName = 'NRES', CustomReportingRequirements, CustomBuybackExplainer, customBuybackLabel, customActionLogData, customActionLogMetadata, customApptStats, customProgrammePlan, customMaintainedBy, customGuideItems }: SDAExecutiveSummaryProps = {}) => {
   const populationData = populationBreakdown || defaultPopulationData;
   const activeActionLogData = customActionLogData ?? actionLogData;
   const activeActionLogMetadata = customActionLogMetadata ?? actionLogMetadata;
@@ -233,20 +235,20 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                               color: buybackBtnHovered ? "#fff" : "#0f766e",
                               transition: "color 0.3s ease",
                               whiteSpace: "nowrap",
-                            }}>Workforce Buy-Back Explainer</span>
+                            }}>{customBuybackLabel?.title || 'Workforce Buy-Back Explainer'}</span>
                             <span style={{
                               fontSize: "7px", fontWeight: 700, letterSpacing: "1.5px",
                               padding: "2px 5px", borderRadius: "4px",
                               background: buybackBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(13,148,136,0.1)",
                               color: buybackBtnHovered ? "rgba(255,255,255,0.9)" : "#0D9488",
                               transition: "all 0.3s ease",
-                            }}>GUIDE</span>
+                            }}>{customBuybackLabel?.badge || 'GUIDE'}</span>
                           </div>
                           <div style={{
                             fontSize: "9px", marginTop: "2px",
                             color: buybackBtnHovered ? "rgba(255,255,255,0.8)" : "#5a8d8a",
                             transition: "color 0.3s ease",
-                          }}>SDA buy-back rules, process & quick reference</div>
+                          }}>{customBuybackLabel?.subtitle || 'SDA buy-back rules, process & quick reference'}</div>
                         </div>
                         <div style={{
                           width: "24px", height: "24px", borderRadius: "6px",
@@ -260,7 +262,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                         </div>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-2">Updated: 09 March 2026</p>
+                    <p className="text-[10px] text-slate-400 mt-2">Updated: {customBuybackLabel?.date || '09 March 2026'}</p>
                   </CardContent>
                 </Card>
 
