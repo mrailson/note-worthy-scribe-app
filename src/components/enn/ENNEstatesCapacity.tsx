@@ -313,6 +313,32 @@ export const ENNEstatesCapacity = () => {
           </div>
         </div>
 
+        {/* On-Site Provision Slider */}
+        <div className="mb-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">On-Site Provision</p>
+              <p className="text-xs text-slate-500">Adjust the on-site vs remote appointment split</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-green-100 text-green-800 border-green-200">{onsitePct}% On-Site</Badge>
+              <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200">{remotePct}% Remote</Badge>
+            </div>
+          </div>
+          <Slider
+            value={[onsitePct]}
+            onValueChange={(val) => setOnsitePct(val[0])}
+            min={50}
+            max={100}
+            step={5}
+            className="w-full"
+          />
+          <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+            <span>50% On-Site</span>
+            <span>100% On-Site</span>
+          </div>
+        </div>
+
         {viewLevel === "practice" ? (
           /* Practice cards */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
