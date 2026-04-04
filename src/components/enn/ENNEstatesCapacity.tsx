@@ -592,68 +592,94 @@ export const ENNEstatesCapacity = () => {
           </div>
         </div>
 
-        {/* Practice Breakdown Table */}
+        {/* ENN Neighbourhood Appointment Allocation */}
         <div className="mt-6">
-          <h4 className="font-semibold text-slate-900 mb-3">
-            {viewMode === "appointments" ? "Appointments" : "Sessions"} Required by Practice (Based on List Size)
-          </h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-slate-900">ENN Neighbourhood Appointment Allocation</h4>
+          </div>
+
+          {/* Info Banner */}
+          <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-[#005EB8] mt-0.5 shrink-0" />
+              <div className="space-y-1.5 text-sm text-slate-700">
+                <p><strong className="text-[#003087]">How these numbers are calculated:</strong></p>
+                <ul className="list-disc list-inside space-y-1 text-xs text-slate-600">
+                  <li><strong>Non-Winter rate:</strong> 15.2 appointments per 1,000 patients (39 weeks)</li>
+                  <li><strong>Winter rate:</strong> 18.2 appointments per 1,000 patients (13 weeks)</li>
+                  <li><strong>Clinician split:</strong> Minimum 50% GP appointments · remaining 50% ANP/ACP</li>
+                  <li><strong>Delivery split:</strong> 50% on-site (hub/spoke) · up to 50% remote</li>
+                  <li><strong>Session size:</strong> {APPTS_PER_SESSION} × 15 min appointments per session (4h 10m including admin)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50">
-                  <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("practice")}>
+                  <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("practice")}>
                     <div className="flex items-center">Practice{getSortIcon("practice")}</div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("listSize")}>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("listSize")}>
                     <div className="flex items-center justify-end">List Size{getSortIcon("listSize")}</div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("percentage")}>
-                    <div className="flex items-center justify-end">% of Total{getSortIcon("percentage")}</div>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("annualAppts")}>
+                    <div className="flex items-center justify-end">Annual Appts{getSortIcon("annualAppts")}</div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("sessionsWeek")}>
-                    <div className="flex items-center justify-end">{viewMode === "appointments" ? "Appts" : "Sessions"}/Week{getSortIcon("sessionsWeek")}</div>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyAppts")}>
+                    <div className="flex items-center justify-end">Weekly Appts{getSortIcon("weeklyAppts")}</div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("f2f")}>
-                    <div className="flex items-center justify-end">F2F ({activeSplit}%){getSortIcon("f2f")}</div>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("annualIncome")}>
+                    <div className="flex items-center justify-end">Annual Income{getSortIcon("annualIncome")}</div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => togglePracticeSort("remote")}>
-                    <div className="flex items-center justify-end">Remote ({remoteSplitPct}%){getSortIcon("remote")}</div>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("winterAppts")}>
+                    <div className="flex items-center justify-end">Winter Appts{getSortIcon("winterAppts")}</div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyWinter")}>
+                    <div className="flex items-center justify-end">Weekly Winter{getSortIcon("weeklyWinter")}</div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("nonWinterAppts")}>
+                    <div className="flex items-center justify-end">Non-Winter Appts{getSortIcon("nonWinterAppts")}</div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyNonWinter")}>
+                    <div className="flex items-center justify-end">Weekly Non-Winter{getSortIcon("weeklyNonWinter")}</div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("hub")}>
+                    <div className="flex items-center justify-end">Hub{getSortIcon("hub")}</div>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedPracticeSummary.map((practice, index) => (
                   <TableRow key={index}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium whitespace-nowrap">
                       {practice.practice}
                       {practice.role === "HUB" && <Badge variant="outline" className="ml-2 text-[10px] bg-[#005EB8] text-white border-[#005EB8]">HUB</Badge>}
                     </TableCell>
                     <TableCell className="text-right">{practice.listSize.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{practice.percentage.toFixed(1)}%</TableCell>
-                    <TableCell className="text-right font-semibold">{Math.round(practice.sessionsWeek).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-green-700">{Math.round(practice.f2f).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-blue-700">{Math.round(practice.remote).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{practice.annualAppts.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-semibold">{practice.weeklyAppts.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">£{practice.annualIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right text-blue-700">{practice.winterAppts.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-blue-700 font-semibold">{practice.weeklyWinter.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-amber-700">{practice.nonWinterAppts.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-amber-700 font-semibold">{practice.weeklyNonWinter.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-xs text-slate-600 whitespace-nowrap">{practice.hub}</TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-slate-100 font-bold">
                   <TableCell>Total</TableCell>
                   <TableCell className="text-right">{totalListSize.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">100%</TableCell>
-                  <TableCell className="text-right">
-                    {viewMode === "appointments"
-                      ? Math.round(currentCapacity.sessionsPerWeek * APPTS_PER_SESSION).toLocaleString()
-                      : currentCapacity.sessionsPerWeek}
-                  </TableCell>
-                  <TableCell className="text-right text-green-700">
-                    {viewMode === "appointments"
-                      ? Math.round(currentCapacity.f2fRequired * APPTS_PER_SESSION).toLocaleString()
-                      : currentCapacity.f2fRequired.toFixed(1)}
-                  </TableCell>
-                  <TableCell className="text-right text-blue-700">
-                    {viewMode === "appointments"
-                      ? Math.round(currentCapacity.remoteRequired * APPTS_PER_SESSION).toLocaleString()
-                      : currentCapacity.remoteRequired.toFixed(1)}
-                  </TableCell>
+                  <TableCell className="text-right">{ennPracticeSummary.reduce((s, p) => s + p.annualAppts, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{ennPracticeSummary.reduce((s, p) => s + p.weeklyAppts, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right">£{ennPracticeSummary.reduce((s, p) => s + p.annualIncome, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                  <TableCell className="text-right text-blue-700">{ennPracticeSummary.reduce((s, p) => s + p.winterAppts, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-blue-700">{ennPracticeSummary.reduce((s, p) => s + p.weeklyWinter, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-amber-700">{ennPracticeSummary.reduce((s, p) => s + p.nonWinterAppts, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-amber-700">{ennPracticeSummary.reduce((s, p) => s + p.weeklyNonWinter, 0).toLocaleString()}</TableCell>
+                  <TableCell></TableCell>
                 </TableRow>
               </TableBody>
             </Table>
