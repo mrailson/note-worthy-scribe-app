@@ -1838,7 +1838,7 @@ const ENNReportingComprehensive = () => {
               ENN ICB Reporting Requirements Guide v1.0 — Based on ICB New Models Programme Specification
             </p>
             <p className="text-xs text-gray-400">
-              April 2026 — Northamptonshire ICB
+              July 2026 — Northamptonshire ICB
             </p>
           </div>
         </div>
