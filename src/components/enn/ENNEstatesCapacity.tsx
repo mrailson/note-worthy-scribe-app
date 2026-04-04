@@ -55,9 +55,9 @@ const totalListSize = ennPracticeSummary.reduce((sum, p) => sum + p.listSize, 0)
 const ANNUAL_APPTS = 74846;
 
 export const ENNEstatesCapacity = () => {
-  const [season, setSeason] = useState<Season>("nonWinter");
-  const [viewMode, setViewMode] = useState<"sessions" | "appointments">("sessions");
-  const [viewLevel, setViewLevel] = useState<ViewLevel>("practice");
+  const [season, setSeason] = useState<Season>("total");
+  const [viewMode, setViewMode] = useState<"sessions" | "appointments">("appointments");
+  const [viewLevel, setViewLevel] = useState<ViewLevel>("hub");
   const [practiceSortField, setPracticeSortField] = useState<PracticeSortField>("listSize");
   const [practiceSortDirection, setPracticeSortDirection] = useState<SortDirection>("desc");
   const [sitesDisplayMode, setSitesDisplayMode] = useState<SitesDisplayMode>("total");
