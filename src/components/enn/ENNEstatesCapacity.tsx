@@ -531,6 +531,9 @@ export const ENNEstatesCapacity = () => {
                   <p className="text-[10px] text-indigo-600">{uLabel}</p>
                 </div>
               </div>
+              <p className="text-[10px] text-slate-500 text-center mt-1.5">
+                {currentCapacity.f2fRequired.toFixed(1)} sessions on-site • {currentCapacity.remoteRequired.toFixed(1)} sessions remote
+              </p>
             </div>
           </div>
         )}
