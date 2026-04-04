@@ -151,7 +151,13 @@ export const ENNEstatesCapacity = () => {
   // Hub aggregation data
   const hubAggregatedData = useMemo(() => {
     return Object.entries(hubPracticeMapping).map(([hubName, practiceNames]) => {
-      const practices = ennPracticeSummary.filter(p => practiceNames.includes(p.practice));
+      const practices = ennPracticeSummary
+        .filter(p => practiceNames.includes(p.practice))
+        .sort((a, b) => {
+          if (a.role === "HUB" && b.role !== "HUB") return -1;
+          if (a.role !== "HUB" && b.role === "HUB") return 1;
+          return b.listSize - a.listSize;
+        });
       const hubListSize = practices.reduce((sum, p) => sum + p.listSize, 0);
       const percentage = (hubListSize / totalListSize) * 100;
       const sessionsNeeded = currentCapacity.sessionsPerWeek * (hubListSize / totalListSize);
