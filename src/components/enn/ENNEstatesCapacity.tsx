@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Slider } from "@/components/ui/slider";
 import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 
@@ -65,8 +66,8 @@ export const ENNEstatesCapacity = () => {
   const [durationDisplayMode, setDurationDisplayMode] = useState<DurationDisplayMode>("perSession");
   const [apptsDisplayMode, setApptsDisplayMode] = useState<ApptsDisplayMode>("perSession");
 
-  const activeSplit = 50;
-  const remoteSplitPct = 50;
+  const [onsitePct, setOnsitePct] = useState(50);
+  const remotePct = 100 - onsitePct;
 
   type ColumnGroup = "listIncome" | "winter" | "nonWinter";
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
@@ -90,8 +91,8 @@ export const ENNEstatesCapacity = () => {
       apptsPerWeek: 1371,
       sessionsPerWeek: Math.round(1371 / APPTS_PER_SESSION * 10) / 10,
       sessionLength: "4h 10m",
-      f2fRequired: Math.round(1371 / APPTS_PER_SESSION * 10) / 10 * (activeSplit / 100),
-      remoteRequired: Math.round(1371 / APPTS_PER_SESSION * 10) / 10 * (remoteSplitPct / 100),
+      f2fRequired: Math.round(1371 / APPTS_PER_SESSION * 10) / 10 * (onsitePct / 100),
+      remoteRequired: Math.round(1371 / APPTS_PER_SESSION * 10) / 10 * (remotePct / 100),
     },
     winter: {
       rate: "18.2 per 1,000",
@@ -99,10 +100,10 @@ export const ENNEstatesCapacity = () => {
       apptsPerWeek: 1642,
       sessionsPerWeek: Math.round(1642 / APPTS_PER_SESSION * 10) / 10,
       sessionLength: "4h 10m",
-      f2fRequired: Math.round(1642 / APPTS_PER_SESSION * 10) / 10 * (activeSplit / 100),
-      remoteRequired: Math.round(1642 / APPTS_PER_SESSION * 10) / 10 * (remoteSplitPct / 100),
+      f2fRequired: Math.round(1642 / APPTS_PER_SESSION * 10) / 10 * (onsitePct / 100),
+      remoteRequired: Math.round(1642 / APPTS_PER_SESSION * 10) / 10 * (remotePct / 100),
     },
-  }), []);
+  }), [onsitePct, remotePct]);
 
   const totalCapacity = useMemo(() => ({
     rate: "15.2–18.2 per 1,000",
@@ -111,9 +112,9 @@ export const ENNEstatesCapacity = () => {
     apptsPerWeek: Math.round(ANNUAL_APPTS / 52),
     sessionsPerWeek: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * 10) / 10,
     sessionLength: "4h 10m",
-    f2fRequired: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * (activeSplit / 100) * 10) / 10,
-    remoteRequired: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * (remoteSplitPct / 100) * 10) / 10,
-  }), []);
+    f2fRequired: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * (onsitePct / 100) * 10) / 10,
+    remoteRequired: Math.round(ANNUAL_APPTS / 52 / APPTS_PER_SESSION * (remotePct / 100) * 10) / 10,
+  }), [onsitePct, remotePct]);
 
   const currentCapacity = season === "winter"
     ? capacityData.winter
@@ -146,8 +147,8 @@ export const ENNEstatesCapacity = () => {
         ...p,
         percentage,
         sessionsWeek: displayValue,
-        f2f: displayValue * (activeSplit / 100),
-        remote: displayValue * (remoteSplitPct / 100),
+        f2f: displayValue * (onsitePct / 100),
+        remote: displayValue * (remotePct / 100),
       };
     });
 
@@ -175,7 +176,7 @@ export const ENNEstatesCapacity = () => {
       }
       return practiceSortDirection === "asc" ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
-  }, [practiceSortField, practiceSortDirection, currentCapacity.sessionsPerWeek, viewMode]);
+  }, [practiceSortField, practiceSortDirection, currentCapacity.sessionsPerWeek, viewMode, onsitePct, remotePct]);
 
   // Hub aggregation data
   const hubAggregatedData = useMemo(() => {
@@ -197,11 +198,11 @@ export const ENNEstatesCapacity = () => {
         listSize: hubListSize,
         percentage,
         totalRequired: displayValue,
-        f2f: displayValue * (activeSplit / 100),
-        remote: displayValue * (remoteSplitPct / 100),
+        f2f: displayValue * (onsitePct / 100),
+        remote: displayValue * (remotePct / 100),
       };
     });
-  }, [currentCapacity.sessionsPerWeek, viewMode]);
+  }, [currentCapacity.sessionsPerWeek, viewMode, onsitePct, remotePct]);
 
   const cycleSitesMode = () => {
     const modes: SitesDisplayMode[] = ["total", "hub", "spoke"];
@@ -312,13 +313,39 @@ export const ENNEstatesCapacity = () => {
           </div>
         </div>
 
+        {/* On-Site Provision Slider */}
+        <div className="mb-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">On-Site Provision</p>
+              <p className="text-xs text-slate-500">Adjust the on-site vs remote appointment split</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-green-100 text-green-800 border-green-200">{onsitePct}% On-Site</Badge>
+              <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200">{remotePct}% Remote</Badge>
+            </div>
+          </div>
+          <Slider
+            value={[onsitePct]}
+            onValueChange={(val) => setOnsitePct(val[0])}
+            min={50}
+            max={100}
+            step={5}
+            className="w-full"
+          />
+          <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+            <span>50% On-Site</span>
+            <span>100% On-Site</span>
+          </div>
+        </div>
+
         {viewLevel === "practice" ? (
           /* Practice cards */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {ennPracticeSummary.map((practice, index) => {
               const totalRequired = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize);
-              const f2fRequired = totalRequired * (activeSplit / 100);
-              const remoteRequired = totalRequired * (remoteSplitPct / 100);
+              const f2fRequired = totalRequired * (onsitePct / 100);
+              const remoteRequired = totalRequired * (remotePct / 100);
               const mul = viewMode === "appointments" ? APPTS_PER_SESSION : 1;
 
               return (
@@ -351,6 +378,9 @@ export const ENNEstatesCapacity = () => {
                       <p className="text-[10px] text-indigo-600">{uLabel}</p>
                     </div>
                   </div>
+                  <p className="text-[10px] text-slate-500 text-center mt-1.5">
+                    {(f2fRequired).toFixed(1)} sessions on-site • {(remoteRequired).toFixed(1)} sessions remote
+                  </p>
 
                   <div className="mt-3 pt-2 border-t border-slate-200">
                     <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">Recruitment</p>
@@ -395,6 +425,9 @@ export const ENNEstatesCapacity = () => {
                   <p className="text-[10px] text-indigo-600">{uLabel}</p>
                 </div>
               </div>
+              <p className="text-[10px] text-slate-500 text-center mt-1.5">
+                {currentCapacity.f2fRequired.toFixed(1)} sessions on-site • {currentCapacity.remoteRequired.toFixed(1)} sessions remote
+              </p>
               <div className="flex items-center justify-between mt-2">
                 <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
                   {season === "winter" ? "Winter" : season === "total" ? "Combined" : "Non-Winter"}
@@ -443,6 +476,9 @@ export const ENNEstatesCapacity = () => {
                     <p className="text-[10px] text-indigo-600">{uLabel}</p>
                   </div>
                 </div>
+                <p className="text-[10px] text-slate-500 text-center mb-3">
+                  {(hub.f2f / APPTS_PER_SESSION).toFixed(1)} sessions on-site • {(hub.remote / APPTS_PER_SESSION).toFixed(1)} sessions remote
+                </p>
 
                 <div className="border-t border-blue-200 pt-3">
                   <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">Assigned Practices</p>
@@ -495,6 +531,9 @@ export const ENNEstatesCapacity = () => {
                   <p className="text-[10px] text-indigo-600">{uLabel}</p>
                 </div>
               </div>
+              <p className="text-[10px] text-slate-500 text-center mt-1.5">
+                {currentCapacity.f2fRequired.toFixed(1)} sessions on-site • {currentCapacity.remoteRequired.toFixed(1)} sessions remote
+              </p>
             </div>
           </div>
         )}
