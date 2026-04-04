@@ -7,7 +7,7 @@ import threeSixtyLogo from "@/assets/3sixty-logo.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
 import { ENNEstatesCapacity } from "@/components/enn/ENNEstatesCapacity";
-import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
+import { SDADigitalIntegration as ENNDigitalIntegration } from "@/components/enn/ENNDigitalIntegration";
 const ENNWorkforceInnovation = lazy(() => import("@/components/enn/ENNWorkforceInnovation"));
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
@@ -173,7 +173,7 @@ const ENNDashboard = () => {
               <ENNEstatesCapacity />
             </TabsContent>
             <TabsContent value="digital" className="mt-0">
-              <SDADigitalIntegration CustomReportingRequirements={ENNReportingRequirements} />
+              <ENNDigitalIntegration />
             </TabsContent>
             <TabsContent value="workforce" className="mt-0">
               <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
