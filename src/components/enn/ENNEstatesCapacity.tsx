@@ -528,6 +528,29 @@ export const ENNEstatesCapacity = () => {
           </div>
         </div>
 
+        {/* Column group toggles */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className="text-xs text-slate-500 font-medium">Show columns:</span>
+          <button
+            onClick={() => toggleGroup("listIncome")}
+            className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${expandedGroups.has("listIncome") ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"}`}
+          >
+            List & Income
+          </button>
+          <button
+            onClick={() => toggleGroup("winter")}
+            className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${expandedGroups.has("winter") ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"}`}
+          >
+            <span className="inline-flex items-center gap-1"><Snowflake className="w-3 h-3" />Winter</span>
+          </button>
+          <button
+            onClick={() => toggleGroup("nonWinter")}
+            className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${expandedGroups.has("nonWinter") ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"}`}
+          >
+            <span className="inline-flex items-center gap-1"><Sun className="w-3 h-3" />Non-Winter</span>
+          </button>
+        </div>
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -535,30 +558,42 @@ export const ENNEstatesCapacity = () => {
                 <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("practice")}>
                   <div className="flex items-center">Practice{getSortIcon("practice")}</div>
                 </TableHead>
-                <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("listSize")}>
-                  <div className="flex items-center justify-end">List Size{getSortIcon("listSize")}</div>
-                </TableHead>
+                {expandedGroups.has("listIncome") && (
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("listSize")}>
+                    <div className="flex items-center justify-end">List Size{getSortIcon("listSize")}</div>
+                  </TableHead>
+                )}
                 <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("annualAppts")}>
                   <div className="flex items-center justify-end">Annual Appts{getSortIcon("annualAppts")}</div>
                 </TableHead>
                 <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyAppts")}>
                   <div className="flex items-center justify-end">Weekly Appts{getSortIcon("weeklyAppts")}</div>
                 </TableHead>
-                <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("annualIncome")}>
-                  <div className="flex items-center justify-end">Annual Income{getSortIcon("annualIncome")}</div>
-                </TableHead>
-                <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("winterAppts")}>
-                  <div className="flex items-center justify-end">Winter Appts{getSortIcon("winterAppts")}</div>
-                </TableHead>
-                <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyWinter")}>
-                  <div className="flex items-center justify-end">Weekly Winter{getSortIcon("weeklyWinter")}</div>
-                </TableHead>
-                <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("nonWinterAppts")}>
-                  <div className="flex items-center justify-end">Non-Winter Appts{getSortIcon("nonWinterAppts")}</div>
-                </TableHead>
-                <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyNonWinter")}>
-                  <div className="flex items-center justify-end">Weekly Non-Winter{getSortIcon("weeklyNonWinter")}</div>
-                </TableHead>
+                {expandedGroups.has("listIncome") && (
+                  <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("annualIncome")}>
+                    <div className="flex items-center justify-end">Annual Income{getSortIcon("annualIncome")}</div>
+                  </TableHead>
+                )}
+                {expandedGroups.has("winter") && (
+                  <>
+                    <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("winterAppts")}>
+                      <div className="flex items-center justify-end">Winter Appts{getSortIcon("winterAppts")}</div>
+                    </TableHead>
+                    <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyWinter")}>
+                      <div className="flex items-center justify-end">Weekly Winter{getSortIcon("weeklyWinter")}</div>
+                    </TableHead>
+                  </>
+                )}
+                {expandedGroups.has("nonWinter") && (
+                  <>
+                    <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("nonWinterAppts")}>
+                      <div className="flex items-center justify-end">Non-Winter Appts{getSortIcon("nonWinterAppts")}</div>
+                    </TableHead>
+                    <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("weeklyNonWinter")}>
+                      <div className="flex items-center justify-end">Weekly Non-Winter{getSortIcon("weeklyNonWinter")}</div>
+                    </TableHead>
+                  </>
+                )}
                 <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap" onClick={() => togglePracticeSort("hub")}>
                   <div className="flex items-center justify-end">Hub{getSortIcon("hub")}</div>
                 </TableHead>
@@ -571,27 +606,51 @@ export const ENNEstatesCapacity = () => {
                     {practice.practice}
                     {practice.role === "HUB" && <Badge variant="outline" className="ml-2 text-[10px] bg-[#005EB8] text-white border-[#005EB8]">HUB</Badge>}
                   </TableCell>
-                  <TableCell className="text-right">{practice.listSize.toLocaleString()}</TableCell>
+                  {expandedGroups.has("listIncome") && (
+                    <TableCell className="text-right">{practice.listSize.toLocaleString()}</TableCell>
+                  )}
                   <TableCell className="text-right">{practice.annualAppts.toLocaleString()}</TableCell>
                   <TableCell className="text-right font-semibold">{practice.weeklyAppts.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">£{practice.annualIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                  <TableCell className="text-right text-blue-700">{practice.winterAppts.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-blue-700 font-semibold">{practice.weeklyWinter.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-amber-700">{practice.nonWinterAppts.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-amber-700 font-semibold">{practice.weeklyNonWinter.toLocaleString()}</TableCell>
+                  {expandedGroups.has("listIncome") && (
+                    <TableCell className="text-right">£{practice.annualIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                  )}
+                  {expandedGroups.has("winter") && (
+                    <>
+                      <TableCell className="text-right text-blue-700">{practice.winterAppts.toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-blue-700 font-semibold">{practice.weeklyWinter.toLocaleString()}</TableCell>
+                    </>
+                  )}
+                  {expandedGroups.has("nonWinter") && (
+                    <>
+                      <TableCell className="text-right text-amber-700">{practice.nonWinterAppts.toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-amber-700 font-semibold">{practice.weeklyNonWinter.toLocaleString()}</TableCell>
+                    </>
+                  )}
                   <TableCell className="text-right text-xs text-slate-600 whitespace-nowrap">{practice.hub}</TableCell>
                 </TableRow>
               ))}
               <TableRow className="bg-slate-100 font-bold">
                 <TableCell>Total</TableCell>
-                <TableCell className="text-right">{totalListSize.toLocaleString()}</TableCell>
+                {expandedGroups.has("listIncome") && (
+                  <TableCell className="text-right">{totalListSize.toLocaleString()}</TableCell>
+                )}
                 <TableCell className="text-right">{ennPracticeSummary.reduce((s, p) => s + p.annualAppts, 0).toLocaleString()}</TableCell>
                 <TableCell className="text-right">{ennPracticeSummary.reduce((s, p) => s + p.weeklyAppts, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right">£{ennPracticeSummary.reduce((s, p) => s + p.annualIncome, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                <TableCell className="text-right text-blue-700">{ennPracticeSummary.reduce((s, p) => s + p.winterAppts, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-blue-700">{ennPracticeSummary.reduce((s, p) => s + p.weeklyWinter, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-amber-700">{ennPracticeSummary.reduce((s, p) => s + p.nonWinterAppts, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-amber-700">{ennPracticeSummary.reduce((s, p) => s + p.weeklyNonWinter, 0).toLocaleString()}</TableCell>
+                {expandedGroups.has("listIncome") && (
+                  <TableCell className="text-right">£{ennPracticeSummary.reduce((s, p) => s + p.annualIncome, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                )}
+                {expandedGroups.has("winter") && (
+                  <>
+                    <TableCell className="text-right text-blue-700">{ennPracticeSummary.reduce((s, p) => s + p.winterAppts, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-blue-700">{ennPracticeSummary.reduce((s, p) => s + p.weeklyWinter, 0).toLocaleString()}</TableCell>
+                  </>
+                )}
+                {expandedGroups.has("nonWinter") && (
+                  <>
+                    <TableCell className="text-right text-amber-700">{ennPracticeSummary.reduce((s, p) => s + p.nonWinterAppts, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-amber-700">{ennPracticeSummary.reduce((s, p) => s + p.weeklyNonWinter, 0).toLocaleString()}</TableCell>
+                  </>
+                )}
                 <TableCell></TableCell>
               </TableRow>
             </TableBody>
