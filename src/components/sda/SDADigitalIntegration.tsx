@@ -481,9 +481,8 @@ export const SDADigitalIntegration = ({ CustomReportingRequirements }: SDADigita
         </div>
       </CollapsibleCard>
 
-          icon={<CheckCircle2 className="w-5 h-5" />}
-          defaultOpen={false}
-          className="bg-gradient-to-br from-green-50 to-emerald-50"
+
+
           badge={<Badge className="bg-green-600">100% ACCESS GRANTED</Badge>}
         >
           <p className="text-sm text-green-700">
