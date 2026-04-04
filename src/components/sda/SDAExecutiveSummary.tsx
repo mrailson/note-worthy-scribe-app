@@ -235,7 +235,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                               color: buybackBtnHovered ? "#fff" : "#0f766e",
                               transition: "color 0.3s ease",
                               whiteSpace: "nowrap",
-                            }}>Workforce Buy-Back Explainer</span>
+                            }}>{customBuybackLabel?.title || 'Workforce Buy-Back Explainer'}</span>
                             <span style={{
                               fontSize: "7px", fontWeight: 700, letterSpacing: "1.5px",
                               padding: "2px 5px", borderRadius: "4px",
