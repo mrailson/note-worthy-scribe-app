@@ -521,12 +521,12 @@ const ENNReportingComprehensive = () => {
   ];
 
   const practicesRaw = [
-    { name: 'Harborough Field Surgery', patients: 13991, share: '15.5%', shareNum: 15.5, lead: 'TBC', status: 'pending', weeklyNonWinter: 213, weeklyWinter: 255 },
+    { name: 'Harborough Field Surgery', patients: 13991, share: '15.5%', shareNum: 15.5, lead: 'TBC', status: 'pending', weeklyNonWinter: 213, weeklyWinter: 253 },
     { name: 'Oundle Medical Practice', patients: 10600, share: '11.7%', shareNum: 11.7, lead: 'TBC', status: 'pending', weeklyNonWinter: 161, weeklyWinter: 193 },
     { name: 'Rushden Medical Centre', patients: 9143, share: '10.1%', shareNum: 10.1, lead: 'TBC', status: 'pending', weeklyNonWinter: 139, weeklyWinter: 166 },
     { name: 'Spinney Brook Medical Centre', patients: 11537, share: '12.8%', shareNum: 12.8, lead: 'TBC', status: 'pending', weeklyNonWinter: 175, weeklyWinter: 210 },
-    { name: 'The Cottons', patients: 9372, share: '10.4%', shareNum: 10.4, lead: 'TBC', status: 'pending', weeklyNonWinter: 142, weeklyWinter: 171 },
-    { name: 'Parklands Medical Practice', patients: 13612, share: '15.1%', shareNum: 15.1, lead: 'TBC', status: 'pending', weeklyNonWinter: 207, weeklyWinter: 248 },
+    { name: 'The Cottons Medical Centre', patients: 9372, share: '10.4%', shareNum: 10.4, lead: 'TBC', status: 'pending', weeklyNonWinter: 142, weeklyWinter: 171 },
+    { name: 'Parklands Medical Centre', patients: 13612, share: '15.1%', shareNum: 15.1, lead: 'TBC', status: 'pending', weeklyNonWinter: 207, weeklyWinter: 248 },
     { name: 'Nene Valley Surgery', patients: 6921, share: '7.7%', shareNum: 7.7, lead: 'TBC', status: 'pending', weeklyNonWinter: 105, weeklyWinter: 126 },
     { name: 'Marshalls Road Surgery', patients: 3156, share: '3.5%', shareNum: 3.5, lead: 'TBC', status: 'pending', weeklyNonWinter: 48, weeklyWinter: 57 },
     { name: 'Higham Ferrers Surgery', patients: 5569, share: '6.2%', shareNum: 6.2, lead: 'TBC', status: 'pending', weeklyNonWinter: 85, weeklyWinter: 101 },
@@ -966,7 +966,7 @@ const ENNReportingComprehensive = () => {
               Single Nominated Organisation (SNO) Requirements
               <ICBRequirementTooltip requirementId="open-book" position="right"><span /></ICBRequirementTooltip>
             </h3>
-            <p className="text-gray-600 mb-4">PML Ltd acts as the Single Nominated Organisation, responsible for:</p>
+            <p className="text-gray-600 mb-4">3Sixty Care Partnership acts as the Single Nominated Organisation, responsible for:</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
@@ -1835,10 +1835,10 @@ const ENNReportingComprehensive = () => {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <p className="text-xs text-gray-400">
-              ENN ICB Reporting Requirements Guide v1.7 — Based on ICB New Models Programme Specification
+              ENN ICB Reporting Requirements Guide v1.0 — Based on ICB New Models Programme Specification
             </p>
             <p className="text-xs text-gray-400">
-              February 2026 — Northamptonshire ICB
+              April 2026 — Northamptonshire ICB
             </p>
           </div>
         </div>
