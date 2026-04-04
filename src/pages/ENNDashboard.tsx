@@ -7,7 +7,7 @@ import threeSixtyLogo from "@/assets/3sixty-logo.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
 import { ENNEstatesCapacity } from "@/components/enn/ENNEstatesCapacity";
-import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
+import { SDADigitalIntegration as ENNDigitalIntegration } from "@/components/enn/ENNDigitalIntegration";
 const ENNWorkforceInnovation = lazy(() => import("@/components/enn/ENNWorkforceInnovation"));
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
