@@ -69,6 +69,14 @@ export const ENNEstatesCapacity = () => {
   const [onsitePct, setOnsitePct] = useState(50);
   const remotePct = 100 - onsitePct;
 
+  const hubNames = Object.keys(hubPracticeMapping);
+  const [hubOnsitePcts, setHubOnsitePcts] = useState<Record<string, number>>(
+    () => Object.fromEntries(hubNames.map(h => [h, 50]))
+  );
+  const setHubOnsitePct = (hubName: string, val: number) => {
+    setHubOnsitePcts(prev => ({ ...prev, [hubName]: val }));
+  };
+
   type ColumnGroup = "listIncome" | "winter" | "nonWinter";
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
 
