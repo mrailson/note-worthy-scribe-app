@@ -158,16 +158,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             <div className="hidden sm:flex gap-2 items-center">
               {user && (
                 <>
-                  <a
-                    href="/documents/DES27/des-2627-briefing.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 bg-amber-500/90 hover:bg-amber-500 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors"
-                  >
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
-                    PCN DES 26/27
-                  </a>
-                  <div className="w-[100px]" />
                   <Button 
                     onClick={() => navigate('/?from=home')}
                     variant="secondary"
