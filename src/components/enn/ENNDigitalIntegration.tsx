@@ -12,12 +12,12 @@ import patientCommsRiskStrat from "@/assets/patient_comms_riskstrat_red_flag.png
 
 
 const ENNReportingRequirements = lazy(() => 
-  import("@/components/sda/ENNReportingRequirements").catch(() => ({
+  import("@/components/enn/ENNReportingRequirements").catch(() => ({
     default: () => (
       <div className="flex items-center justify-center h-64 text-slate-400">
         <div className="text-center">
           <p className="text-lg font-semibold mb-2">ENNReportingRequirements component not found</p>
-          <p className="text-sm">Place the ENNReportingRequirements.tsx file in /components/sda/</p>
+          <p className="text-sm">Place the ENNReportingRequirements.tsx file in /components/enn/</p>
         </div>
       </div>
     )
