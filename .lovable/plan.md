@@ -1,52 +1,41 @@
 
 
-# Rebuild ENN Dashboard as a Copy of the NRES SDA Programme Dashboard
+## Plan: Update ENN Estates — 14 Appts/Session, Hub View Toggle
 
-## Problem
-The current ENN dashboard (`/enn`) was built as a results/consultations tracker. You wanted it to mirror the **NRES SDA Programme dashboard** (`/NRESDashboard`) — the one with the hero header, Executive Summary, Estates & Capacity, IT & Reporting, Workforce, Claims & Oversight, and Document Vault tabs.
+### What Changes
 
-## Approach
-Rebuild `ENNDashboard.tsx` to replicate the `SDADashboard.tsx` structure and layout, but with ENN-specific branding and data:
+**1. Change session size from 12 to 14 appointments**
+Currently the component uses `12` as the multiplier (12 × 15 min = 3h). ENN uses 14 × 15 min = 3h 30m per session (note: the stated 4h 10m session length includes breaks/admin). All calculations dividing/multiplying by 12 will change to 14. The note at the bottom will update to "1 session = 14 × 15 min appointments".
 
-- **Hero header**: "EAST NORTHANTS NEIGHBOURHOOD" / "Neighbourhood SDA Programme" with Rebecca Gane contact, go-live date, feedback button
-- **Same 6 tabs**: Executive Summary, Estates & Capacity, IT & Reporting, Workforce, Claims & Oversight, Document Vault
-- **Same styling**: Gradient hero, floating tab bar, NHS blue theme
+**2. Add a Practice/Hub view toggle (slider)**
+Add a toggle button group alongside the existing Season and Sessions/Appointments toggles. Options: **"By Practice"** (current per-practice cards) and **"By Hub"** (aggregated hub view).
 
-## What Changes
+**3. Hub view — 3 hub cards with aggregated data**
+When "By Hub" is selected, show 3 large cards instead of 10 practice cards:
+- **Harborough Field Surgery** — serves Harborough (13,991), Rushden (9,143), Parklands (13,612), Higham Ferrers (5,569) = 42,315 patients
+- **The Cottons** — serves Spinney Brook (11,537), The Cottons (9,372), Marshalls Road (3,156) = 24,065 patients  
+- **The Meadows Surgery** — serves Oundle (10,600), Nene Valley (6,921), The Meadows (6,340) = 23,861 patients
 
-### 1. Rewrite `src/pages/ENNDashboard.tsx`
-Replace the current results-dashboard layout with the SDA Programme layout:
-- Hero header with ENN branding (East Northants Neighbourhood, 3Sixty Care Partnership, Rebecca Gane)
-- 6 tabs matching SDADashboard exactly
-- Reuse the same SDA tab components initially (SDAExecutiveSummary, SDAEstatesCapacity, etc.) — these can be swapped for ENN-specific versions later
-- Wrap in NRESPeopleProvider (same as SDA dashboard)
+Each hub card will show:
+- Hub name with HUB badge
+- Aggregated list size and % of total
+- Total sessions/appointments required (F2F + Remote split)
+- List of assigned practices with their individual list sizes underneath
 
-### 2. Update ENN-specific data in Executive Summary
-The shared SDAExecutiveSummary component currently shows NRES data (7 practices, 89,584 patients, £2.36m). For Phase 1, we reuse these components as-is to get the structure right. In a follow-up, we create ENN-specific versions with:
-- 10 practices, 90,241 patients, £2,376,045.53 budget
-- ENN practice population chart
-- ENN-specific action log and programme plan
+**4. Update the practice breakdown table and summary cards**
+- The capacity modelling section and table will also use 14 as the multiplier
+- Appts/Session summary card changes from 12 to 14
+- Appts/Day changes from 24 to 28
 
-### 3. Keep existing ENN components
-The Practice Overview, Hub Reporting, and Winter Access components already built remain available — they can be integrated as sub-sections or additional tabs later.
+### Technical Details
 
-## Files to Modify
+**File modified:** `src/components/enn/ENNEstatesCapacity.tsx`
 
-| File | Change |
-|------|--------|
-| `src/pages/ENNDashboard.tsx` | Rewrite to match SDADashboard structure with ENN branding |
-
-## ENN Dashboard Header Content
-- Subtitle: "EAST NORTHANTS NEIGHBOURHOOD"
-- Title: "Neighbourhood SDA Programme"
-- Go-Live: "1st April 2026"
-- Feedback button with current section context
-- Transformation Manager: Rebecca Gane
-
-## What's Deferred
-- ENN-specific Executive Summary component (with ENN practice data, population chart, budget)
-- ENN-specific Estates, IT, Workforce components
-- ENN-specific Claims & Document Vault
-
-These will be built in follow-up phases, replacing the shared NRES components with ENN-specific ones.
+- Add hub-practice mapping data structure linking each practice to its hub
+- Add `viewLevel` state: `"practice" | "hub"`
+- Add toggle UI for Practice/Hub view in the toolbar
+- Create hub aggregation logic using `useMemo` that sums list sizes and proportional sessions for each hub's practices
+- In hub view, render 3 hub cards + neighbourhood total card, each showing assigned practices as badges/list
+- Replace all instances of `12` (appointments per session) with `14`
+- Update the note text and summary card values accordingly
 
