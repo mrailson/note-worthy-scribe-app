@@ -7,7 +7,7 @@ import { CollapsibleCard } from "@/components/ui/collapsible-card";
 
 const APPTS_PER_SESSION = 14;
 
-type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
+type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote" | "annualAppts" | "weeklyAppts" | "winterAppts" | "nonWinterAppts" | "weeklyWinter" | "weeklyNonWinter" | "annualIncome" | "hub";
 type SortDirection = "asc" | "desc";
 type Season = "nonWinter" | "winter" | "total";
 type SitesDisplayMode = "total" | "hub" | "spoke";
