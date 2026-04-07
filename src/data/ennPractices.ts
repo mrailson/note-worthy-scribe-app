@@ -1,16 +1,16 @@
 /** The 11 ENN (East Northants Neighbourhood) practices (incl. Woodford branch) */
 export const ENN_PRACTICES = {
   harborough: 'Harborough Fields Surgery',
+  higham: 'Higham Ferrers Surgery',
+  marshalls: "Marshalls Road Surgery",
+  neneValley: 'Nene Valley Surgery',
   oundle: 'Oundle Medical Practice',
+  parklands: 'Parklands Surgery',
   rushden: 'Rushden Medical Centre',
   spinney: 'Spinney Brook Medical Centre',
-  woodford: 'Woodford Surgery (Spinney Branch)',
   cottons: 'The Cottons Medical Centre',
-  parklands: 'Parklands Surgery',
-  neneValley: 'Nene Valley Surgery',
-  marshalls: "Marshalls Road Surgery",
-  higham: 'Higham Ferrers Surgery',
   meadows: 'The Meadows Surgery',
+  woodford: 'Woodford Surgery (Spinney Branch)',
 } as const;
 
 export type ENNPracticeKey = keyof typeof ENN_PRACTICES;

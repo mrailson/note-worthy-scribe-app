@@ -13,8 +13,9 @@ export type NRESPracticeKey = keyof typeof NRES_PRACTICES;
 
 export const NRES_PRACTICE_KEYS = Object.keys(NRES_PRACTICES) as NRESPracticeKey[];
 
-/** Get the display name for a practice key, or fallback */
+/** Get the display name for a practice key, checking both NRES and ENN practices */
 export function getPracticeName(key: string | null | undefined): string {
   if (!key) return '—';
-  return NRES_PRACTICES[key as NRESPracticeKey] ?? key;
+  if (key in NRES_PRACTICES) return NRES_PRACTICES[key as NRESPracticeKey];
+  return key;
 }
