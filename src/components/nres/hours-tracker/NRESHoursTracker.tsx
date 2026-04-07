@@ -262,7 +262,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
       </TabsContent>
 
       <TabsContent value="risks">
-        <SDARisksMitigation />
+        <SDARisksMitigation neighbourhoodName={neighbourhoodName} />
       </TabsContent>
 
       {!hideEvidenceLibrary && (
