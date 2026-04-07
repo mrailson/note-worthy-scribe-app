@@ -33,9 +33,10 @@ interface NRESHoursTrackerProps {
   customInsuranceChecklist?: Array<{ practice: string; insurances: Array<{ confirmed: boolean; amount: string; type: string }> }>;
   customInsuranceCheckedBy?: string;
   customInsuranceUpdatedDate?: string;
+  neighbourhoodName?: 'NRES' | 'ENN';
 }
 
-export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeadership = false, customInsuranceChecklist, customInsuranceCheckedBy, customInsuranceUpdatedDate }: NRESHoursTrackerProps = {}) {
+export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeadership = false, customInsuranceChecklist, customInsuranceCheckedBy, customInsuranceUpdatedDate, neighbourhoodName = 'NRES' }: NRESHoursTrackerProps = {}) {
   const { user } = useAuth();
   const isAdmin = !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
   
