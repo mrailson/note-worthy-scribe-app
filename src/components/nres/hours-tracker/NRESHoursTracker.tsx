@@ -126,11 +126,12 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
             <AlertTriangle className="w-4 h-4" />
             Risks & Mitigation
           </TabsTrigger>
-          <TabsTrigger value="evidence" className="flex items-center gap-2">
-            <FolderOpen className="w-4 h-4" />
-            Evidence Library
-          </TabsTrigger>
-        </TabsList>
+          {!hideEvidenceLibrary && (
+            <TabsTrigger value="evidence" className="flex items-center gap-2">
+              <FolderOpen className="w-4 h-4" />
+              Evidence Library
+            </TabsTrigger>
+          )}
         {activeTab === 'buy-back' && admin && (
           <TooltipProvider>
             <Tooltip>
