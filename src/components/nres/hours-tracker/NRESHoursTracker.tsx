@@ -158,11 +158,11 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
           <div className="text-sm text-foreground space-y-2">
             <p className="font-semibold">Pre Go-Live Time Reclaim</p>
             <p>
-              This facility is for reclaiming time spent by Practice Managers, Member Practice GPs, and PCN Support staff involved in preparing the NRES neighbourhood project before go-live. The maximum budget for this programme is <strong>£30,000</strong>. Hours are claimed at agreed rates:
+              This facility is for reclaiming time spent by Practice Managers, Member Practice GPs, and {neighbourhoodName === 'ENN' ? '3Sixty' : 'PCN'} Support staff involved in preparing the {neighbourhoodName} neighbourhood project before go-live. The maximum budget for this programme is <strong>£30,000</strong>. Hours are claimed at agreed rates:
             </p>
             <ul className="list-disc list-inside space-y-1 ml-1">
-              <li><strong>Attending GP</strong> (NRES business): £100 per hour</li>
-              <li><strong>Practice Manager / PCN Support</strong>: £50 per hour</li>
+              <li><strong>Attending GP</strong> ({neighbourhoodName} business): £100 per hour</li>
+              <li><strong>Practice Manager / {neighbourhoodName === 'ENN' ? '3Sixty' : 'PCN'} Support</strong>: £50 per hour</li>
             </ul>
           </div>
         </div>
