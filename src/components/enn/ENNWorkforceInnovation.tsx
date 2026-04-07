@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
-import { Users, AlertCircle, FileText, ExternalLink } from "lucide-react";
+import { Users, AlertCircle, FileText, ExternalLink, Download } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { Button } from "@/components/ui/button";
 
 const ENNWorkforceInnovation = () => {
   return (
