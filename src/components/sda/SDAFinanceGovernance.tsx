@@ -538,7 +538,7 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
                 <span className="flex-shrink-0 h-6 w-6 rounded-full bg-[#005EB8] text-white text-xs font-semibold flex items-center justify-center">
                   {index + 1}
                 </span>
-                <p className="text-sm text-slate-700">{responsibility}</p>
+                <p className="text-sm text-slate-700">{isENN ? responsibility.replace('PML Board', '3Sixty Care Partnership Board') : responsibility}</p>
               </div>
             ))}
           </div>
