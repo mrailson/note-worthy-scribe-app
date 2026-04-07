@@ -9,6 +9,20 @@ import { ENNNeighbourhoodMap } from "@/components/enn/ENNNeighbourhoodMap";
 
 const APPTS_PER_SESSION = 14;
 
+/** Approximate drive time in minutes from each spoke to its hub site */
+const SPOKE_DRIVE_TIMES: Record<string, number> = {
+  // Harborough Field Surgery hub spokes
+  'Parklands Surgery': 5,
+  'Rushden Medical Centre': 7,
+  'Higham Ferrers Surgery': 8,
+  // The Cottons MC hub spokes
+  'Spinney Brook Medical Centre': 10,
+  'Marshalls Road Surgery': 4,
+  // The Meadows Surgery hub spokes
+  'Oundle Medical Practice': 22,
+  'Nene Valley Surgery': 12,
+};
+
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote" | "annualAppts" | "weeklyAppts" | "winterAppts" | "nonWinterAppts" | "weeklyWinter" | "weeklyNonWinter" | "annualIncome" | "hub";
 type SortDirection = "asc" | "desc";
 type Season = "nonWinter" | "winter" | "total";
