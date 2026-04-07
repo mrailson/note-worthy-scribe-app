@@ -65,6 +65,7 @@ export const SDADigitalIntegration = () => {
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (e.data === 'openBaselineFullscreen') setBaselineFullscreen(true);
+      if (e.data === 'closeBaselineFullscreen') setBaselineFullscreen(false);
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
