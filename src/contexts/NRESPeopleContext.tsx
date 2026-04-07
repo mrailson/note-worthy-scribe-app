@@ -24,7 +24,7 @@ interface NRESPeopleContextType {
   auditLog: PeopleAuditEntry[];
 }
 
-const NRESPeopleContext = createContext<NRESPeopleContextType | undefined>(undefined);
+export const NRESPeopleContext = createContext<NRESPeopleContextType | undefined>(undefined);
 
 export const NRESPeopleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [people, setPeople] = useState<ProgrammePerson[]>(defaultPeople);
