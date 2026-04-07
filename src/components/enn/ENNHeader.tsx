@@ -69,7 +69,7 @@ export const ENNHeader = ({ activeTab }: ENNHeaderProps) => {
               East Northants Neighbourhood
             </span>
             <span className="text-[10px] text-white/60 font-medium uppercase tracking-wider shrink-0 hidden md:inline">
-              SDA Programme
+              New Models of Care — SDA Programme
             </span>
           </div>
         </div>
