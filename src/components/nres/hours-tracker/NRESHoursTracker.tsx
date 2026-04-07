@@ -254,15 +254,16 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
       </TabsContent>
 
       <TabsContent value="finance-governance">
-        <SDAFinanceGovernance />
+        <SDAFinanceGovernance hideBoardLeadership={hideBoardLeadership} />
       </TabsContent>
 
       <TabsContent value="risks">
         <SDARisksMitigation />
       </TabsContent>
 
-      <TabsContent value="evidence">
-        <SDAEvidenceLibrary />
+      {!hideEvidenceLibrary && (
+        <TabsContent value="evidence">
+          <SDAEvidenceLibrary />
       </TabsContent>
 
       {/* Access Settings Modal (lifted from BuyBackClaimsTab) */}
