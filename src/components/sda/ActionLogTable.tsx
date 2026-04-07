@@ -48,6 +48,7 @@ interface ActionLogMetadata {
 interface ActionLogTableProps {
   actions: ActionLogItem[];
   metadata?: ActionLogMetadata;
+  neighbourhoodName?: 'NRES' | 'ENN';
 }
 
 type SortField = "actionId" | "dateRaised" | "owner" | "dueDate" | "priority" | "status";
@@ -91,7 +92,7 @@ const parseDate = (dateStr: string): Date => {
   return new Date(year, month - 1, day);
 };
 
-export const ActionLogTable = ({ actions: initialActions, metadata }: ActionLogTableProps) => {
+export const ActionLogTable = ({ actions: initialActions, metadata, neighbourhoodName = 'NRES' }: ActionLogTableProps) => {
   const { user } = useAuth();
   const { people, groups } = useNRESPeople();
   const [actions, setActions] = useState<ActionLogItem[]>(initialActions);
@@ -296,10 +297,10 @@ export const ActionLogTable = ({ actions: initialActions, metadata }: ActionLogT
 
 
     // Row 1: Title
-    rows.push(['NRES Programme Board - Action Log']);
+    rows.push([`${neighbourhoodName} Programme Board - Action Log`]);
     
     // Row 2: Subtitle
-    rows.push(['Rural East & South Neighbourhood Access Service']);
+    rows.push([neighbourhoodName === 'ENN' ? 'East Northants Neighbourhood Access Service' : 'Rural East & South Neighbourhood Access Service']);
     
     // Row 3: Last Updated
     rows.push([`Last Updated: ${lastUpdatedStr}`]);
@@ -391,7 +392,7 @@ export const ActionLogTable = ({ actions: initialActions, metadata }: ActionLogT
     
     XLSX.utils.book_append_sheet(wb, ws, "Action Log");
     const dateStr = format(new Date(), "yyyy-MM-dd");
-    XLSX.writeFile(wb, `NRES_Programme_Board_Action_Log_${dateStr}.xlsx`);
+    XLSX.writeFile(wb, `${neighbourhoodName}_Programme_Board_Action_Log_${dateStr}.xlsx`);
   };
 
   return (
