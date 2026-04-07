@@ -22,7 +22,7 @@ import {
   FolderLock,
   Clock,
 } from "lucide-react";
-import { NRESPeopleProvider } from "@/contexts/NRESPeopleContext";
+import { ENNPeopleProvider } from "@/contexts/ENNPeopleContext";
 
 /** ENN practice population breakdown (Jan 2026 list sizes) */
 const ennPopulationData = [
@@ -51,7 +51,7 @@ const ENNDashboard = () => {
   const [activeTab, setActiveTab] = useState("executive");
 
   return (
-    <NRESPeopleProvider>
+    <ENNPeopleProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
         {/* Band 1: Combined app bar + programme context */}
         <ENNHeader activeTab={activeTab} />
@@ -216,13 +216,13 @@ const ENNDashboard = () => {
                 />
               </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
-                <NRESDocumentVault />
+                <NRESDocumentVault scope="enn_vault" />
               </TabsContent>
             </div>
           </Tabs>
         </div>
       </div>
-    </NRESPeopleProvider>
+    </ENNPeopleProvider>
   );
 };
 

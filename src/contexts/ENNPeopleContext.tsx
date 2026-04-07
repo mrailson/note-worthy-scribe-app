@@ -1,34 +1,12 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
-import { ProgrammePerson, ProgrammeGroup, defaultPeople, defaultGroups } from "@/data/nresPeopleDirectory";
+import React, { useState, useCallback } from "react";
+import { ProgrammePerson, ProgrammeGroup } from "@/data/nresPeopleDirectory";
+import { NRESPeopleContext } from "@/contexts/NRESPeopleContext";
+import type { PeopleAuditEntry } from "@/contexts/NRESPeopleContext";
+import { defaultENNPeople, defaultENNGroups } from "@/data/ennPeopleDirectory";
 
-export interface PeopleAuditEntry {
-  id: string;
-  timestamp: Date;
-  userEmail: string;
-  action: "Added" | "Edited" | "Deleted";
-  personName: string;
-  field?: string;
-  oldValue?: string;
-  newValue?: string;
-}
-
-interface NRESPeopleContextType {
-  people: ProgrammePerson[];
-  groups: ProgrammeGroup[];
-  addPerson: (person: Omit<ProgrammePerson, "id">, userEmail: string) => void;
-  updatePerson: (id: string, updates: Partial<ProgrammePerson>, userEmail: string) => void;
-  deletePerson: (id: string, userEmail: string) => void;
-  addGroup: (group: Omit<ProgrammeGroup, "id">, userEmail: string) => void;
-  updateGroup: (id: string, updates: Partial<ProgrammeGroup>, userEmail: string) => void;
-  deleteGroup: (id: string, userEmail: string) => void;
-  auditLog: PeopleAuditEntry[];
-}
-
-export const NRESPeopleContext = createContext<NRESPeopleContextType | undefined>(undefined);
-
-export const NRESPeopleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [people, setPeople] = useState<ProgrammePerson[]>(defaultPeople);
-  const [groups, setGroups] = useState<ProgrammeGroup[]>(defaultGroups);
+export const ENNPeopleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [people, setPeople] = useState<ProgrammePerson[]>(defaultENNPeople);
+  const [groups, setGroups] = useState<ProgrammeGroup[]>(defaultENNGroups);
   const [auditLog, setAuditLog] = useState<PeopleAuditEntry[]>([]);
 
   const addAudit = useCallback(
@@ -126,10 +104,4 @@ export const NRESPeopleProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       {children}
     </NRESPeopleContext.Provider>
   );
-};
-
-export const useNRESPeople = () => {
-  const ctx = useContext(NRESPeopleContext);
-  if (!ctx) throw new Error("useNRESPeople must be used within NRESPeopleProvider");
-  return ctx;
 };
