@@ -32,7 +32,13 @@ type SortDirection = 'asc' | 'desc';
 export const SDARisksMitigation = ({ neighbourhoodName = 'NRES' }: { neighbourhoodName?: 'NRES' | 'ENN' }) => {
   const isENN = neighbourhoodName === 'ENN';
   const orgName = isENN ? '3Sixty Care Partnership' : 'PML';
-  const [risks, setRisks] = useState<ProjectRisk[]>(initialProjectRisks);
+  const [risks, setRisks] = useState<ProjectRisk[]>(() => {
+    if (!isENN) return initialProjectRisks;
+    return initialProjectRisks.map(r => ({
+      ...r,
+      owner: r.owner.replace(/PML Board/g, '3Sixty Care Partnership').replace(/PML Chair/g, 'Rebecca Gane').replace(/PML/g, '3Sixty Care Partnership'),
+    }));
+  });
   const [editingRisk, setEditingRisk] = useState<ProjectRisk | null>(null);
   const [sortField, setSortField] = useState<SortField>('currentScore');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
