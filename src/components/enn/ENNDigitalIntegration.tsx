@@ -59,63 +59,8 @@ const excelTabs = [
 
 export const SDADigitalIntegration = () => {
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; title: string } | null>(null);
-  const [tabExplorerOpen, setTabExplorerOpen] = useState(false);
   const [reportingPreviewOpen, setReportingPreviewOpen] = useState(false);
   const [baselineFullscreen, setBaselineFullscreen] = useState(false);
-  const [hubFilter, setHubFilter] = useState<string>('all');
-  const [sortField, setSortField] = useState<string>('name');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-
-  // ENN Practice data — SIMULATED (15% below NRES observed rates)
-  const ennPractices = [
-    { ods: 'K83007', name: 'Harborough Field Surgery', short: 'Harborough Field', list: 13991, hub: 'harborough', isHub: true, simGP: 28842, simNurse: 19228, simOther: 16023, weeklyReq: 222, annualReq: 11604, winterWk: 253, nonWinterWk: 213 },
-    { ods: 'K83023', name: 'Oundle Medical Practice', short: 'Oundle', list: 10600, hub: 'harborough', isHub: false, simGP: 21845, simNurse: 14563, simOther: 12136, weeklyReq: 169, annualReq: 8792, winterWk: 193, nonWinterWk: 161 },
-    { ods: 'K83024', name: 'Rushden Medical Centre', short: 'Rushden MC', list: 9143, hub: 'harborough', isHub: false, simGP: 18843, simNurse: 12562, simOther: 10468, weeklyReq: 146, annualReq: 7583, winterWk: 166, nonWinterWk: 139 },
-    { ods: 'K83028', name: 'Spinney Brook Medical Centre', short: 'Spinney Brook', list: 11537, hub: 'cottons', isHub: false, simGP: 23777, simNurse: 15851, simOther: 13209, weeklyReq: 184, annualReq: 9569, winterWk: 210, nonWinterWk: 175 },
-    { ods: 'K83030', name: 'The Cottons Medical Centre', short: 'The Cottons', list: 9372, hub: 'cottons', isHub: true, simGP: 19315, simNurse: 12877, simOther: 10731, weeklyReq: 149, annualReq: 7773, winterWk: 171, nonWinterWk: 142 },
-    { ods: 'K83044', name: 'Parklands Medical Centre', short: 'Parklands', list: 13612, hub: 'harborough', isHub: false, simGP: 28060, simNurse: 18707, simOther: 15589, weeklyReq: 217, annualReq: 11290, winterWk: 248, nonWinterWk: 207 },
-    { ods: 'K83065', name: 'Nene Valley Surgery', short: 'Nene Valley', list: 6921, hub: 'harborough', isHub: false, simGP: 14266, simNurse: 9511, simOther: 7926, weeklyReq: 110, annualReq: 5740, winterWk: 126, nonWinterWk: 105 },
-    { ods: 'K83069', name: 'Marshalls Road Surgery', short: 'Marshalls Rd', list: 3156, hub: 'cottons', isHub: false, simGP: 6505, simNurse: 4337, simOther: 3614, weeklyReq: 50, annualReq: 2618, winterWk: 57, nonWinterWk: 48 },
-    { ods: 'K83080', name: 'Higham Ferrers Surgery', short: 'Higham Ferrers', list: 5569, hub: 'meadows', isHub: false, simGP: 11479, simNurse: 7653, simOther: 6377, weeklyReq: 89, annualReq: 4619, winterWk: 101, nonWinterWk: 85 },
-    { ods: 'K83616', name: 'The Meadows Surgery', short: 'The Meadows', list: 6340, hub: 'meadows', isHub: true, simGP: 13068, simNurse: 8712, simOther: 7260, weeklyReq: 101, annualReq: 5258, winterWk: 115, nonWinterWk: 96 },
-  ];
-
-  const hubMeta: Record<string, { name: string; color: string; bg: string; border: string }> = {
-    harborough: { name: 'Harborough Field Hub', color: '#005EB8', bg: 'bg-blue-50', border: 'border-blue-200' },
-    cottons: { name: 'The Cottons Hub', color: '#00875A', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-    meadows: { name: 'The Meadows Hub', color: '#D4531E', bg: 'bg-orange-50', border: 'border-orange-200' },
-  };
-
-  const filteredPractices = ennPractices
-    .filter(p => hubFilter === 'all' || p.hub === hubFilter)
-    .sort((a, b) => {
-      let va: any, vb: any;
-      switch (sortField) {
-        case 'list': va = a.list; vb = b.list; break;
-        case 'total': va = a.simGP + a.simNurse + a.simOther; vb = b.simGP + b.simNurse + b.simOther; break;
-        case 'weekly': va = a.weeklyReq; vb = b.weeklyReq; break;
-        default: va = a.name; vb = b.name;
-      }
-      if (va < vb) return sortDir === 'asc' ? -1 : 1;
-      if (va > vb) return sortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-  const totals = filteredPractices.reduce((acc, p) => ({
-    list: acc.list + p.list,
-    gp: acc.gp + p.simGP,
-    nurse: acc.nurse + p.simNurse,
-    other: acc.other + p.simOther,
-    weeklyReq: acc.weeklyReq + p.weeklyReq,
-    annualReq: acc.annualReq + p.annualReq,
-    winterWk: acc.winterWk + p.winterWk,
-    nonWinterWk: acc.nonWinterWk + p.nonWinterWk,
-  }), { list: 0, gp: 0, nurse: 0, other: 0, weeklyReq: 0, annualReq: 0, winterWk: 0, nonWinterWk: 0 });
-
-  const handleBaselineSort = (field: string) => {
-    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortField(field); setSortDir('asc'); }
-  };
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
