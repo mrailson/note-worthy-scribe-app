@@ -51,10 +51,16 @@ const downloadFromStorage = async (fileUrl: string): Promise<Blob> => {
   const storagePath = fileUrl.split('/approval-documents/')[1];
   if (storagePath) {
     const { data, error } = await supabase.storage.from('approval-documents').download(storagePath);
-    if (error || !data) throw error || new Error('Download failed');
+    if (error || !data) {
+      console.error('Storage download failed for path:', storagePath, error);
+      throw new Error('The source document file is no longer available in storage. It may have been deleted or moved. Please re-upload the document.');
+    }
     return data;
   }
   const res = await fetch(fileUrl);
+  if (!res.ok) {
+    throw new Error('The source document file could not be retrieved. It may have been deleted or moved. Please re-upload the document.');
+  }
   return res.blob();
 };
 
