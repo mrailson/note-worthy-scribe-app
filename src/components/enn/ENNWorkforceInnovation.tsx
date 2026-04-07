@@ -70,6 +70,12 @@ const ENNWorkforceInnovation = () => {
           </div>
 
           <div className="flex items-center gap-3 pt-2">
+            <a href="/documents/ENN_GP_Redundancy_Briefing.docx" download>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Download className="w-4 h-4" />
+                Download Full Briefing Paper (Word)
+              </Button>
+            </a>
             <Badge variant="outline" className="text-xs text-muted-foreground">Confidential – Programme Board Only</Badge>
           </div>
         </div>
