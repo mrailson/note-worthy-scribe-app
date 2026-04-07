@@ -1,28 +1,19 @@
 import { useState, lazy, Suspense } from "react";
 import { ennProgrammePlan } from "@/data/ennProgrammePlanData";
 import { ennGuideItems } from "@/data/ennGuideItems";
-import { Header } from "@/components/Header";
+import { ENNHeader } from "@/components/enn/ENNHeader";
 import ennPcnLogo from "@/assets/enn-pcn-logo.png";
 import threeSixtyLogo from "@/assets/3sixty-logo.png";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
 import { ENNEstatesCapacity } from "@/components/enn/ENNEstatesCapacity";
 import { SDADigitalIntegration as ENNDigitalIntegration } from "@/components/enn/ENNDigitalIntegration";
 const ENNWorkforceInnovation = lazy(() => import("@/components/enn/ENNWorkforceInnovation"));
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
-import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
 
 const ENNNeighbourhoodMap = lazy(() => import("@/components/enn/ENNNeighbourhoodMap").then(m => ({ default: m.ENNNeighbourhoodMap })));
 const ENNReportingRequirements = lazy(() => import("@/components/enn/ENNReportingRequirements"));
-import { 
-  LayoutDashboard, 
-  Building2, 
-  Monitor, 
-  Users, 
-  FolderLock,
-  Clock
-} from "lucide-react";
 import { NRESPeopleProvider } from "@/contexts/NRESPeopleContext";
 
 /** ENN practice population breakdown (Jan 2026 list sizes) */
