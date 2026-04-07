@@ -730,15 +730,32 @@ export const ENNEstatesCapacity = () => {
                   <span className="text-slate-500 text-sm">— {hubListSize.toLocaleString()} patients</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-6">
-                  {practices.map(p => (
-                    <div key={p.practice} className="flex items-center gap-2 text-sm">
-                      <Badge variant="outline" className={`text-xs ${p.role === "HUB" ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-100 text-slate-600 border-slate-300"}`}>
-                        {p.role}
-                      </Badge>
-                      <span className="text-slate-700">{p.practice}</span>
-                      <span className="text-slate-400 text-xs">({p.listSize.toLocaleString()})</span>
-                    </div>
-                  ))}
+                  {practices.map(p => {
+                    const driveMin = SPOKE_DRIVE_TIMES[p.practice];
+                    const isHub = p.role === "HUB";
+                    let driveColour = "";
+                    let driveLabel = "";
+                    if (!isHub && driveMin != null) {
+                      if (driveMin < 15) { driveColour = "text-green-700 bg-green-50"; }
+                      else if (driveMin <= 20) { driveColour = "text-amber-700 bg-amber-50"; }
+                      else { driveColour = "text-red-700 bg-red-50"; }
+                      driveLabel = `${driveMin} min`;
+                    }
+                    return (
+                      <div key={p.practice} className="flex items-center gap-2 text-sm">
+                        <Badge variant="outline" className={`text-xs ${isHub ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-100 text-slate-600 border-slate-300"}`}>
+                          {p.role}
+                        </Badge>
+                        <span className="text-slate-700">{p.practice}</span>
+                        <span className="text-slate-400 text-xs">({p.listSize.toLocaleString()})</span>
+                        {driveLabel && (
+                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${driveColour}`}>
+                            {driveLabel}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
