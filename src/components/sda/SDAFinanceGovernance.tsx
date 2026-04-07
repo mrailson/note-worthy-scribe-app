@@ -691,9 +691,10 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
                     </div>
                     <div className="flex flex-wrap gap-1.5 ml-6">
                       {practice.insurances.map((ins, insIndex) => {
-                        const isPublicNotConfirmed = ins.type === "Public" && !ins.confirmed;
+                        const isTbc = ins.amount === "TBC";
+                        const isPublicNotConfirmed = ins.type === "Public" && !ins.confirmed && !isTbc;
                         const isPublicLowAmount = ins.type === "Public" && ins.confirmed && ins.amount !== "£10m";
-                        const isAmber = (!ins.confirmed && ins.type !== "Public") || isPublicLowAmount;
+                        const isAmber = isTbc || (!ins.confirmed && ins.type !== "Public") || isPublicLowAmount;
                         return (
                           <Badge 
                             key={insIndex}
