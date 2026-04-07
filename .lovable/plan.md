@@ -1,61 +1,82 @@
 
 
-## Investigation Results: Recording Stopped on Its Own (Edge Browser)
+## Plan: ENN People Directory + Independent ENN Document Vault
 
-### What Happened
+### What We're Doing
+Two changes: (1) Give the ENN dashboard its own People Directory with the correct ENN practices, ICB, and Rebecca Gane as defaults — completely separate from NRES people. (2) Create the ENN Document Vault with its own folder structure (copied from the existing NRES structure) using `scope = 'enn_vault'`, ensuring complete data isolation.
 
-Meeting `6194d489` on **Edge/Windows** was recording successfully — 15 chunks delivered every ~90–120 seconds from 07:27 to 07:52. Then the client silently stopped sending chunks. The meeting remains stuck in `recording` status with 3,595 words but **no whisper or assembly transcript text** (all stored in `meeting_transcription_chunks` only). Notes generation never triggered because the meeting never transitioned to `completed`.
+---
 
-**Root cause (most likely):** Microsoft Edge's "Sleeping Tabs" / efficiency mode suspended the tab or throttled timers, causing `MediaRecorder` to silently stop firing `ondataavailable` events and the chunked recording `setTimeout` loop to freeze. When this happens, no error event fires — the recording just stops silently.
+### Part 1: ENN People Directory
 
-### Existing Protections (already in code)
+**Problem**: The ENN dashboard currently wraps everything in `NRESPeopleProvider` which loads NRES default people (Maureen Green, Malcolm Railson, Amanda Taylor, etc.). These are wrong for ENN.
 
-| Protection | Status |
-|---|---|
-| Wake Lock API | ✅ Acquired — prevents screen dimming but does NOT prevent Edge sleeping tabs |
-| Track health monitoring (3s poll) | ✅ Active — but only detects `ended` tracks, not frozen timers |
-| Visibility change handler | ✅ Active — recovers on tab re-focus, but doesn't help if user never returns |
-| AudioContext resume on visibility | ✅ Active |
-| Microphone recovery (3 attempts) | ✅ Active — only triggers on track `ended` event |
-| Auto-close service (90 min) | ✅ Running — but meeting has "recent activity" so it's kept alive indefinitely |
+**Solution**:
 
-### Gaps Identified
+1. **Create `src/data/ennPeopleDirectory.ts`** — new defaults file with ENN-specific people:
+   - Rebecca Gane (RG) — Transformation Manager, 3Sixty Care Partnership
+   - Representatives from each of the 10 ENN practices (from the uploaded image):
+     - Parklands Surgery
+     - The Cottons Medical Centre
+     - Spinney Brook Medical Centre
+     - Woodford Surgery (Spinney Branch)
+     - Nene Valley Surgery
+     - The Meadows Surgery
+     - Higham Ferrers Surgery
+     - Marshalls Road Surgery
+     - Harborough Fields Surgery
+     - Rushden Medical Centre
+     - Oundle Medical Practice
+   - ICB representative(s)
+   - Practice addresses from the uploaded table
+   
+2. **Create `src/contexts/ENNPeopleContext.tsx`** — identical structure to `NRESPeopleContext` but initialised with ENN defaults. This keeps the two completely independent.
 
-1. **No chunk delivery watchdog** — If chunks stop arriving (timer frozen by Edge), nothing detects it client-side
-2. **Auto-close "recent activity" check is too generous** — it considers `updated_at` which gets bumped by any DB write, even the last chunk before the freeze
-3. **No Edge-specific tab lifecycle handling** — Edge fires `freeze` and `resume` events (Page Lifecycle API) which are distinct from `visibilitychange`
-4. **No server-side orphan detection** — A meeting in `recording` status with no new chunks for 15+ minutes is almost certainly dead, but the auto-close only checks the 90-minute window
+3. **Update `src/pages/ENNDashboard.tsx`** — replace `NRESPeopleProvider` with `ENNPeopleProvider` so all child components (Finance & Governance, Action Log, PersonSelect) automatically use ENN people instead of NRES people.
 
-### Plan: Reliability Improvements
+---
 
-#### 1. Add client-side chunk delivery watchdog (DesktopWhisperTranscriber)
-- Track `lastChunkDeliveredAt` timestamp, updated each time `processAudioChunks` completes
-- Every 60 seconds, check if >3 minutes have passed since last successful chunk delivery
-- If stalled: log a warning, attempt to restart `MediaRecorder` (stop + start), and show a toast: "Recording may have stalled — attempting recovery"
-- If recovery fails after 2 attempts: show persistent warning toast with "Save & Stop" action
+### Part 2: Independent ENN Document Vault
 
-#### 2. Add Edge Page Lifecycle API listeners (DesktopWhisperTranscriber)
-- Listen for `freeze` event (Edge-specific) — log it and set a `frozenAt` timestamp
-- Listen for `resume` event — when fired, check elapsed time since freeze; if >30s, trigger full recovery (restart MediaRecorder, re-acquire mic, flush audio)
-- This catches Edge sleeping tabs that `visibilitychange` misses
+**Problem**: The ENN dashboard currently renders `<NRESDocumentVault />` which hardcodes `scope: 'nres_vault'` in every query and mutation. ENN users see NRES folders and files.
 
-#### 3. Improve auto-close edge function orphan detection
-- Change "recent activity" check from using `updated_at` to checking the **most recent `meeting_transcription_chunks.created_at`** for that meeting
-- If the latest chunk is older than 15 minutes AND the meeting has been in `recording` status for >20 minutes total, auto-close it and trigger note generation
-- This catches orphaned meetings much faster than the current 90-minute window
+**Solution**:
 
-#### 4. Add structured diagnostic logging
-- Log `edge_recorder.chunk_watchdog_stall` with timestamps when chunk delivery stalls
-- Log `edge_recorder.page_frozen` and `edge_recorder.page_resumed` with freeze duration
-- Log `edge_recorder.recovery_attempt` with attempt number and outcome
-- Log `edge_recorder.mediarecorder_state` periodically (every 5th chunk) showing MediaRecorder.state, track readyState, and AudioContext.state
+1. **Make all vault hooks scope-aware** — update `useNRESVaultData.ts`:
+   - Every hook (`useVaultFolders`, `useVaultFiles`, `useVaultBreadcrumbs`, `useVaultSearch`, `useCreateVaultFolder`, `useUploadVaultFile`, `useDeleteVaultItem`, `useRenameVaultItem`, `useMoveVaultItem`, `useCopyVaultFile`, `useUpdateFileDescription`, `useReplaceVaultFile`) gains an optional `scope` parameter, defaulting to `'nres_vault'`
+   - All `.eq('scope', 'nres_vault')` becomes `.eq('scope', scope)`
+   - All `.insert({ scope: 'nres_vault' })` becomes `.insert({ scope })`
+   - All React Query keys include scope: `['nres-vault-folders', parentId]` → `['vault-folders', scope, parentId]`
+   - Storage path prefix changes from `nres-vault/` to use the scope value
+
+2. **Make `NRESDocumentVault.tsx` accept a `scope` prop** — default `'nres_vault'`, pass through to all hooks. Update naming hint text to show `ENN_` prefix when scope is `enn_vault`.
+
+3. **Update `ENNDashboard.tsx`** — pass `scope="enn_vault"` to the vault component.
+
+4. **Database migration** — insert the full NRES folder structure as new rows with `scope = 'enn_vault'` (new UUIDs, same names and hierarchy). This gives ENN ~153 pre-built folders matching the NRES structure. No files are copied — just the empty folder skeleton.
+
+5. **Update vault audit logging** — ensure `useNRESVaultAudit.ts` also passes scope so ENN audit entries are distinguishable.
+
+---
 
 ### Technical Details
 
-**Files to modify:**
-- `src/utils/DesktopWhisperTranscriber.ts` — chunk watchdog, freeze/resume listeners, diagnostic logging
-- `supabase/functions/auto-close-inactive-meetings/index.ts` — smarter orphan detection using chunk timestamps
-- `src/hooks/useRecordingHealthMonitor.ts` — surface chunk watchdog warnings in the UI
+**Files to create**:
+| File | Purpose |
+|------|---------|
+| `src/data/ennPeopleDirectory.ts` | ENN default people + groups + practice addresses |
+| `src/contexts/ENNPeopleContext.tsx` | Independent state provider for ENN people |
 
-**Immediate fix for the stuck meeting:** The user can click "Generate Meeting Notes" manually on meeting `6194d489` from the meeting history, or the auto-close will eventually catch it at the 90-minute mark.
+**Files to modify**:
+| File | Change |
+|------|--------|
+| `src/hooks/useNRESVaultData.ts` | Add `scope` param to all 12+ hooks, update query keys |
+| `src/hooks/useNRESVaultAudit.ts` | Add `scope` param to audit logging |
+| `src/components/nres/vault/NRESDocumentVault.tsx` | Accept `scope` prop, pass to hooks, conditional branding |
+| `src/pages/ENNDashboard.tsx` | Switch to `ENNPeopleProvider`, pass `scope="enn_vault"` to vault |
+
+**Database migration**:
+- Recursive INSERT of ~153 folder rows with `scope = 'enn_vault'`, preserving the parent-child hierarchy with new UUIDs
+
+**Zero regression guarantee**: All existing NRES code continues to work unchanged — the `scope` parameter defaults to `'nres_vault'` everywhere, so no existing queries or cache keys are affected.
 
