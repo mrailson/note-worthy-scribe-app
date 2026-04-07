@@ -264,7 +264,8 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
       {!hideEvidenceLibrary && (
         <TabsContent value="evidence">
           <SDAEvidenceLibrary />
-      </TabsContent>
+        </TabsContent>
+      )}
 
       {/* Access Settings Modal (lifted from BuyBackClaimsTab) */}
       <BuyBackAccessSettingsModal
