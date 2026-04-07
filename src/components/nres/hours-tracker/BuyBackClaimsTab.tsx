@@ -28,6 +28,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import BoardPresentationExplainer from './BoardPresentationExplainer';
+import ENNBoardPresentationExplainer from '@/components/enn/ENNBoardPresentationExplainer';
 import BoardPresentation from './BoardPresentation';
 
 /** Format a number as £X,XXX.XX */
@@ -531,7 +532,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
-                    <BoardPresentationExplainer />
+                    {isENN ? <ENNBoardPresentationExplainer /> : <BoardPresentationExplainer />}
                   </DialogContent>
                 </Dialog>
               </div>
