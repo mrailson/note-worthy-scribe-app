@@ -70,7 +70,7 @@ const getRiskLevelConfig = (score: number) => {
   return { level: "Low", color: "bg-green-500", textColor: "text-white", description: "Accept with routine monitoring" };
 };
 
-export const RiskAssessmentGuidance = () => {
+export const RiskAssessmentGuidance = ({ orgName = 'PML' }: { orgName?: string }) => {
   return (
     <AccordionItem value="risk-guidance" className="border-0">
       <Card className="bg-white border-0 shadow-sm border-t-4 border-t-purple-600">
