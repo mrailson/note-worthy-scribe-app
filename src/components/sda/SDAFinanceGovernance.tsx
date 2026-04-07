@@ -454,8 +454,8 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
                 <tbody className="divide-y divide-slate-200">
                   <tr className="bg-white">
                     <td className="p-3 text-slate-700">SRO / Chair</td>
-                    <td className="p-3 text-slate-600">Medical Director, PML</td>
-                    <td className="p-3 text-slate-600">Noted; excluded from PML-specific financial votes</td>
+                    <td className="p-3 text-slate-600">{isENN ? 'Transformation Manager, 3Sixty Care Partnership' : 'Medical Director, PML'}</td>
+                    <td className="p-3 text-slate-600">{isENN ? 'Noted; excluded from 3Sixty-specific financial votes' : 'Noted; excluded from PML-specific financial votes'}</td>
                   </tr>
                   <tr className="bg-slate-50">
                     <td className="p-3 text-slate-700">Clinical Lead</td>
@@ -469,8 +469,8 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
                   </tr>
                   <tr className="bg-slate-50">
                     <td className="p-3 text-slate-700">Programme Director</td>
-                    <td className="p-3 text-slate-600">Director of Community Services, PML</td>
-                    <td className="p-3 text-slate-600">Noted; excluded from PML contract discussions</td>
+                    <td className="p-3 text-slate-600">{isENN ? 'Director, 3Sixty Care Partnership' : 'Director of Community Services, PML'}</td>
+                    <td className="p-3 text-slate-600">{isENN ? 'Noted; excluded from 3Sixty contract discussions' : 'Noted; excluded from PML contract discussions'}</td>
                   </tr>
                   <tr className="bg-white">
                     <td className="p-3 text-slate-700">Managerial Lead</td>
@@ -538,7 +538,7 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
                 <span className="flex-shrink-0 h-6 w-6 rounded-full bg-[#005EB8] text-white text-xs font-semibold flex items-center justify-center">
                   {index + 1}
                 </span>
-                <p className="text-sm text-slate-700">{responsibility}</p>
+                <p className="text-sm text-slate-700">{isENN ? responsibility.replace('PML Board', '3Sixty Care Partnership Board') : responsibility}</p>
               </div>
             ))}
           </div>
@@ -671,7 +671,7 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500">Updated: {customInsuranceUpdatedDate || '11 Mar 2026'}</span>
                 <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
-                  {customInsuranceCheckedBy || 'Amanda Taylor'} Checked
+                  {customInsuranceCheckedBy || (isENN ? 'Rebecca Gane' : 'Amanda Taylor')} Checked
                 </Badge>
               </div>
             </div>
