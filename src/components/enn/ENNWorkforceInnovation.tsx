@@ -84,9 +84,9 @@ const ENNWorkforceInnovation = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-blue-50 rounded-xl p-4 text-center">
-              <p className="text-4xl font-bold text-[#005EB8]">8.5</p>
+              <p className="text-4xl font-bold text-[#005EB8]">4.9</p>
               <p className="font-semibold text-slate-900 mt-1">GP WTE Sessions</p>
-              <p className="text-sm text-slate-500">Assumes 12 appointments per session.</p>
+              <p className="text-sm text-slate-500">Based on 14 appointments per session · 15.2/1,000/wk</p>
               <a
                 href="https://www.jobs.nhs.uk/candidate/search/results?distance=5&searchFormType=main&keyword=GP&location=Rushden&language=en#"
                 target="_blank"
@@ -98,9 +98,9 @@ const ENNWorkforceInnovation = () => {
               </a>
             </div>
             <div className="bg-cyan-50 rounded-xl p-4 text-center">
-              <p className="text-4xl font-bold text-cyan-600">6.9</p>
+              <p className="text-4xl font-bold text-cyan-600">4.9</p>
               <p className="font-semibold text-slate-900 mt-1">ACP WTE Sessions</p>
-              <p className="text-sm text-slate-500">Advanced Clinical Practitioners (Prescribing).</p>
+              <p className="text-sm text-slate-500">Advanced Clinical Practitioners (Prescribing) · 14 appts/session</p>
               <a
                 href="https://www.jobs.nhs.uk/candidate/search/results?distance=5&searchFormType=main&keyword=GP&location=Rushden&language=en#"
                 target="_blank"
