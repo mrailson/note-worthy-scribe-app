@@ -145,7 +145,7 @@ const ENNDashboard = () => {
                 </Suspense>
               </TabsContent>
               <TabsContent value="hours" className="mt-0">
-                <NRESHoursTracker />
+                <NRESHoursTracker hideEvidenceLibrary hideBoardLeadership />
               </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
                 <NRESDocumentVault />
