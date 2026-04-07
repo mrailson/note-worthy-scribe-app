@@ -348,8 +348,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
 
   return (
     <div className="space-y-6">
-      {/* Programme Board Proposal */}
-      <div className="bg-white rounded-lg shadow-sm border-2 border-amber-300 overflow-hidden">
+      {/* Programme Board Proposal - only show for NRES */}
+      {!isENN && <div className="bg-white rounded-lg shadow-sm border-2 border-amber-300 overflow-hidden">
         <Collapsible>
           <CollapsibleTrigger asChild>
             <button className="w-full flex items-center justify-between p-4 hover:bg-amber-50/50 transition-colors text-left">
@@ -397,7 +397,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             </div>
           </CollapsibleContent>
         </Collapsible>
-      </div>
+      </div>}
 
       {/* Guide */}
       <Collapsible open={guideOpen} onOpenChange={setGuideOpen}>
