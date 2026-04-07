@@ -283,6 +283,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   // Determine which practices to show based on access assignments
   const ALL_PRACTICE_KEYS = isENN ? ENN_PRACTICE_KEYS as string[] : NRES_PRACTICE_KEYS as string[];
   const ALL_PRACTICES: Record<string, string> = isENN ? ENN_PRACTICES : NRES_PRACTICES;
+  const resolvePracticeName = (key: string | null | undefined) => {
+    if (!key) return '—';
+    return ALL_PRACTICES[key] ?? getPracticeName(key);
+  };
 
   // Admins with no assignments see everything; otherwise filtered
   const hasAnyAssignment = myPractices.length > 0;
