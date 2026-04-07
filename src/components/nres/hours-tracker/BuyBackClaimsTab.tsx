@@ -239,7 +239,13 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams }: {
   );
 }
 
-export function BuyBackClaimsTab() {
+export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhoodName?: 'NRES' | 'ENN' } = {}) {
+  const isENN = neighbourhoodName === 'ENN';
+  const practiceCount = isENN ? '10' : '7';
+  const contractValue = isENN ? '£2.38M' : '£2.34M';
+  const patientCount = isENN ? '~90,241' : '~89,584';
+  const neighbourhoodLabel = isENN ? 'ENN' : 'NRES';
+  const managerName = isENN ? 'Rebecca Gane (Transformation Manager, 3Sixty Care Partnership)' : 'Malcolm Railson (Neighbourhood Manager, PCN Services Ltd)';
   const { user } = useAuth();
   const { activeStaff, loading: loadingStaff, saving: savingStaff, admin, addStaff, updateStaff, removeStaff } = useNRESBuyBackStaff();
   const { staffRoles, settings: rateSettings, onCostMultiplier, getAnnualRate, loading: loadingRates } = useNRESBuyBackRateSettings();
