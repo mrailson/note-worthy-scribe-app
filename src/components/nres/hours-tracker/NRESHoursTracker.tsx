@@ -30,9 +30,12 @@ import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRig
 interface NRESHoursTrackerProps {
   hideEvidenceLibrary?: boolean;
   hideBoardLeadership?: boolean;
+  customInsuranceChecklist?: Array<{ practice: string; insurances: Array<{ confirmed: boolean; amount: string; type: string }> }>;
+  customInsuranceCheckedBy?: string;
+  customInsuranceUpdatedDate?: string;
 }
 
-export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeadership = false }: NRESHoursTrackerProps = {}) {
+export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeadership = false, customInsuranceChecklist, customInsuranceCheckedBy, customInsuranceUpdatedDate }: NRESHoursTrackerProps = {}) {
   const { user } = useAuth();
   const isAdmin = !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
   
@@ -254,7 +257,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
       </TabsContent>
 
       <TabsContent value="finance-governance">
-        <SDAFinanceGovernance hideBoardLeadership={hideBoardLeadership} />
+        <SDAFinanceGovernance hideBoardLeadership={hideBoardLeadership} customInsuranceChecklist={customInsuranceChecklist} customInsuranceCheckedBy={customInsuranceCheckedBy} customInsuranceUpdatedDate={customInsuranceUpdatedDate} />
       </TabsContent>
 
       <TabsContent value="risks">

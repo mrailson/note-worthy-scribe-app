@@ -127,7 +127,14 @@ const practiceInsuranceChecklist = [
   ]},
 ];
 
-export const SDAFinanceGovernance = ({ hideBoardLeadership = false }: { hideBoardLeadership?: boolean }) => {
+interface SDAFinanceGovernanceProps {
+  hideBoardLeadership?: boolean;
+  customInsuranceChecklist?: typeof practiceInsuranceChecklist;
+  customInsuranceCheckedBy?: string;
+  customInsuranceUpdatedDate?: string;
+}
+
+export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsuranceChecklist, customInsuranceCheckedBy, customInsuranceUpdatedDate }: SDAFinanceGovernanceProps) => {
   const { people } = useNRESPeople();
   const [peopleDialogOpen, setPeopleDialogOpen] = useState(false);
 
@@ -652,14 +659,14 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false }: { hideBoar
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-semibold text-slate-900">Practice Confirmation Checklist</h4>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Updated: 11 Mar 2026</span>
+                <span className="text-xs text-slate-500">Updated: {customInsuranceUpdatedDate || '11 Mar 2026'}</span>
                 <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
-                  Amanda Taylor Checked
+                  {customInsuranceCheckedBy || 'Amanda Taylor'} Checked
                 </Badge>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {practiceInsuranceChecklist.map((practice, index) => {
+              {(customInsuranceChecklist || practiceInsuranceChecklist).map((practice, index) => {
                 const allConfirmed = practice.insurances.every(ins => ins.confirmed);
                 
                 const formatBadgeText = (type: string, amount: string) => {
@@ -684,9 +691,10 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false }: { hideBoar
                     </div>
                     <div className="flex flex-wrap gap-1.5 ml-6">
                       {practice.insurances.map((ins, insIndex) => {
-                        const isPublicNotConfirmed = ins.type === "Public" && !ins.confirmed;
+                        const isTbc = ins.amount === "TBC";
+                        const isPublicNotConfirmed = ins.type === "Public" && !ins.confirmed && !isTbc;
                         const isPublicLowAmount = ins.type === "Public" && ins.confirmed && ins.amount !== "£10m";
-                        const isAmber = (!ins.confirmed && ins.type !== "Public") || isPublicLowAmount;
+                        const isAmber = isTbc || (!ins.confirmed && ins.type !== "Public") || isPublicLowAmount;
                         return (
                           <Badge 
                             key={insIndex}
