@@ -132,6 +132,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
               Evidence Library
             </TabsTrigger>
           )}
+        </TabsList>
         {activeTab === 'buy-back' && admin && (
           <TooltipProvider>
             <Tooltip>
