@@ -36,7 +36,13 @@ export const SDARisksMitigation = ({ neighbourhoodName = 'NRES' }: { neighbourho
     if (!isENN) return initialProjectRisks;
     return initialProjectRisks.map(r => ({
       ...r,
-      owner: r.owner.replace(/PML Board/g, '3Sixty Care Partnership').replace(/PML Chair/g, 'Rebecca Gane').replace(/PML/g, '3Sixty Care Partnership'),
+      lastReviewed: 'Apr-26',
+      owner: r.owner
+        .replace(/PML Board/g, '3Sixty Care Partnership')
+        .replace(/PML Chair/g, 'Rebecca Gane')
+        .replace(/PML/g, '3Sixty Care Partnership')
+        .replace(/Amanda Taylor/g, 'Rebecca Gane')
+        .replace(/MR\/AT/g, 'Rebecca Gane'),
     }));
   });
   const [editingRisk, setEditingRisk] = useState<ProjectRisk | null>(null);
