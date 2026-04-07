@@ -44,6 +44,7 @@ interface Message {
 interface ContractAskAIProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  neighbourhoodName?: string;
 }
 
 const quickPrompts = [
