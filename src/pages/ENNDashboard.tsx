@@ -145,7 +145,74 @@ const ENNDashboard = () => {
                 </Suspense>
               </TabsContent>
               <TabsContent value="hours" className="mt-0">
-                <NRESHoursTracker hideEvidenceLibrary hideBoardLeadership />
+                <NRESHoursTracker
+                  hideEvidenceLibrary
+                  hideBoardLeadership
+                  customInsuranceCheckedBy="Rebecca Gane"
+                  customInsuranceUpdatedDate="07 Apr 2026"
+                  customInsuranceChecklist={[
+                    { practice: "Harborough Fields Surgery", insurances: [
+                      { confirmed: false, amount: "TBC", type: "Public" },
+                      { confirmed: false, amount: "TBC", type: "Employers" },
+                      { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+                      { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+                    ]},
+                    { practice: "Parklands Surgery", insurances: [
+                      { confirmed: false, amount: "TBC", type: "Public" },
+                      { confirmed: false, amount: "TBC", type: "Employers" },
+                      { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+                      { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+                    ]},
+                    { practice: "Spinney Brook Medical Centre", insurances: [
+                      { confirmed: false, amount: "TBC", type: "Public" },
+                      { confirmed: false, amount: "TBC", type: "Employers" },
+                      { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+                      { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+                    ]},
+                    { practice: "Oundle Medical Practice", insurances: [
+                      { confirmed: false, amount: "TBC", type: "Public" },
+                      { confirmed: false, amount: "TBC", type: "Employers" },
+                      { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+                      { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+                    ]},
+                    { practice: "The Cottons Medical Centre", insurances: [
+                      { confirmed: false, amount: "TBC", type: "Public" },
+                      { confirmed: false, amount: "TBC", type: "Employers" },
+                      { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+                      { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+                    ]},
+                    { practice: "Rushden Medical Centre", insurances: [
+                      { confirmed: false, amount: "TBC", type: "Public" },
+                      { confirmed: false, amount: "TBC", type: "Employers" },
+                      { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+                      { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+                    ]},
+                    { practice: "Nene Valley Surgery", insurances: [
+                      { confirmed: false, amount: "TBC", type: "Public" },
+                      { confirmed: false, amount: "TBC", type: "Employers" },
+                      { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+                      { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+                    ]},
+                    { practice: "The Meadows Surgery", insurances: [
+                      { confirmed: false, amount: "TBC", type: "Public" },
+                      { confirmed: false, amount: "TBC", type: "Employers" },
+                      { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+                      { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+                    ]},
+                    { practice: "Higham Ferrers Surgery", insurances: [
+                      { confirmed: false, amount: "TBC", type: "Public" },
+                      { confirmed: false, amount: "TBC", type: "Employers" },
+                      { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+                      { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+                    ]},
+                    { practice: "Marshalls Road Surgery", insurances: [
+                      { confirmed: false, amount: "TBC", type: "Public" },
+                      { confirmed: false, amount: "TBC", type: "Employers" },
+                      { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+                      { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+                    ]},
+                  ]}
+                />
               </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
                 <NRESDocumentVault />
