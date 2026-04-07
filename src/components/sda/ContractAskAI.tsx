@@ -44,6 +44,7 @@ interface Message {
 interface ContractAskAIProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  neighbourhoodName?: string;
 }
 
 const quickPrompts = [
@@ -89,7 +90,7 @@ const quickPrompts = [
   },
 ];
 
-export const ContractAskAI = ({ open, onOpenChange }: ContractAskAIProps) => {
+export const ContractAskAI = ({ open, onOpenChange, neighbourhoodName = 'NRES' }: ContractAskAIProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -360,7 +361,7 @@ export const ContractAskAI = ({ open, onOpenChange }: ContractAskAIProps) => {
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Bot className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-2">
-                  Ask questions about the <span className="font-medium text-foreground">NRES SDA Programme</span>
+                  Ask questions about the <span className="font-medium text-foreground">{neighbourhoodName} SDA Programme</span>
                 </p>
                 <p className="text-xs text-muted-foreground mb-6 max-w-md">
                   Connected to the Service Specification, Action Log, Risk Register, Hours Tracker &amp; Evidence Library
