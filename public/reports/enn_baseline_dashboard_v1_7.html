@@ -939,6 +939,7 @@ document.querySelectorAll('.pt').forEach(grp=>{
 
 // Init
 // ---- FULLSCREEN ----
+var isParentFullscreen = false;
 function openFullscreen(){
   // 1. Notify Lovable parent iframe container
   try { window.parent.postMessage('openBaselineFullscreen', '*'); } catch(e){}
@@ -951,6 +952,19 @@ function closeFullscreen(){
   try { window.parent.postMessage('closeBaselineFullscreen', '*'); } catch(e){}
   const ex = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
   if(ex) ex.call(document).catch(()=>{});
+  isParentFullscreen = false;
+  updateFullscreenButton();
+}
+function updateFullscreenButton(){
+  var btn = document.getElementById('btn-fullscreen');
+  if(!btn) return;
+  if(isParentFullscreen){
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg> Click to Close Full Screen';
+    btn.onclick = closeFullscreen;
+  } else {
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> Click for Full Screen View';
+    btn.onclick = openFullscreen;
+  }
 }
 // Show/hide close button based on native fullscreen state
 document.addEventListener('fullscreenchange', ()=>{
@@ -959,9 +973,10 @@ document.addEventListener('fullscreenchange', ()=>{
 document.addEventListener('webkitfullscreenchange', ()=>{
   document.getElementById('btn-close-fs').style.display = document.webkitFullscreenElement ? 'block' : 'none';
 });
-// Listen for parent closing fullscreen (e.g. Lovable X button)
+// Listen for parent messages
 window.addEventListener('message', e => {
   if(e.data === 'closeBaselineFullscreen') closeFullscreen();
+  if(e.data === 'parentFullscreenActive') { isParentFullscreen = true; updateFullscreenButton(); }
 });
 
 renderOverview();

@@ -383,6 +383,10 @@ export const SDADigitalIntegration = () => {
             src="/reports/enn_baseline_dashboard_v1_7.html"
             className="w-full h-full border-0"
             title="ENN Baseline Dashboard Full Screen"
+            onLoad={(e) => {
+              const iframe = e.target as HTMLIFrameElement;
+              iframe.contentWindow?.postMessage('parentFullscreenActive', '*');
+            }}
           />
         </div>
       )}
