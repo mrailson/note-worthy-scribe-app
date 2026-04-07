@@ -301,7 +301,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
 
   // Filter staff by practice — respect access assignments
   const accessFilteredStaff = activeStaff.filter(s =>
-    !s.practice_key || accessFilteredPracticeKeys.includes(s.practice_key as NRESPracticeKey)
+    !s.practice_key || accessFilteredPracticeKeys.includes(s.practice_key as string)
   );
   const filteredStaff = filterPractice === 'all'
     ? accessFilteredStaff
@@ -323,7 +323,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
 
   // Filter claims by access then practice/status
   const accessFilteredClaims = claims.filter(c =>
-    !c.practice_key || accessFilteredPracticeKeys.includes(c.practice_key as NRESPracticeKey)
+    !c.practice_key || accessFilteredPracticeKeys.includes(c.practice_key as string)
   );
   const practiceFilteredClaims = filterPractice === 'all'
     ? accessFilteredClaims
