@@ -31,15 +31,19 @@ serve(async (req) => {
 
     console.log('🔄 Starting auto-close check for inactive meetings...');
 
-    // Calculate cutoff time (90 minutes - allows for long backgrounded recordings)
-    // This extended timeout supports users who:
-    // - Open new tabs during recording
-    // - Have long meetings that may pause naturally
-    // - Want recordings to persist through temporary disconnections
-    // A 60-minute warning is shown client-side before this threshold
-    const INACTIVITY_THRESHOLD_MINUTES = 90;
-    const cutoffTime = new Date(Date.now() - INACTIVITY_THRESHOLD_MINUTES * 60 * 1000).toISOString();
-    console.log(`⏰ Checking for meetings inactive since: ${cutoffTime} (${INACTIVITY_THRESHOLD_MINUTES} min threshold)`);
+    // Two-tier threshold:
+    // 1. ORPHAN detection: 15 min of no chunks + 20 min meeting age (catches Edge sleeping tabs)
+    // 2. LEGACY inactivity: 90 min with no activity at all (original behaviour)
+    const ORPHAN_CHUNK_SILENCE_MINUTES = 15;
+    const ORPHAN_MIN_MEETING_AGE_MINUTES = 20;
+    const LEGACY_INACTIVITY_THRESHOLD_MINUTES = 90;
+    
+    const orphanChunkCutoff = new Date(Date.now() - ORPHAN_CHUNK_SILENCE_MINUTES * 60 * 1000).toISOString();
+    const orphanAgeCutoff = new Date(Date.now() - ORPHAN_MIN_MEETING_AGE_MINUTES * 60 * 1000).toISOString();
+    const legacyCutoff = new Date(Date.now() - LEGACY_INACTIVITY_THRESHOLD_MINUTES * 60 * 1000).toISOString();
+    
+    console.log(`⏰ Orphan detection: no chunks since ${orphanChunkCutoff} (${ORPHAN_CHUNK_SILENCE_MINUTES}min) + meeting older than ${ORPHAN_MIN_MEETING_AGE_MINUTES}min`);
+    console.log(`⏰ Legacy threshold: ${LEGACY_INACTIVITY_THRESHOLD_MINUTES}min inactivity`);
 
     // Also compute a 5-minute window reference used elsewhere
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -82,80 +86,73 @@ serve(async (req) => {
     for (const meeting of recordingMeetings) {
       console.log(`🔍 Checking meeting ${meeting.id} (${meeting.title})`);
 
-      // Check for recent transcript chunks
-      const { data: recentChunks, error: chunksError } = await supabase
+      // Get the MOST RECENT chunk timestamp for this meeting (primary signal)
+      const { data: latestChunk, error: latestChunkError } = await supabase
         .from('meeting_transcription_chunks')
         .select('created_at')
         .eq('meeting_id', meeting.id)
-        .gte('created_at', cutoffTime)
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (chunksError) {
-        console.error(`❌ Error checking transcript chunks for meeting ${meeting.id}:`, chunksError);
+      if (latestChunkError) {
+        console.error(`❌ Error checking chunks for meeting ${meeting.id}:`, latestChunkError);
         continue;
       }
 
-      // If no recent chunks, check legacy transcript tables
-      let hasRecentActivity = recentChunks && recentChunks.length > 0;
+      const latestChunkTime = latestChunk?.[0]?.created_at ? new Date(latestChunk[0].created_at) : null;
+      const meetingAgeMs = Date.now() - new Date(meeting.created_at).getTime();
+      const meetingAgeMinutes = Math.round(meetingAgeMs / 60000);
+      const chunkSilenceMs = latestChunkTime ? Date.now() - latestChunkTime.getTime() : null;
+      const chunkSilenceMinutes = chunkSilenceMs ? Math.round(chunkSilenceMs / 60000) : null;
 
-      if (!hasRecentActivity) {
-        const { data: recentTranscripts, error: transcriptsError } = await supabase
+      console.log(`📊 Meeting ${meeting.id}: age=${meetingAgeMinutes}min, lastChunk=${chunkSilenceMinutes ?? 'none'}min ago`);
+
+      // TIER 1: Orphan detection — meeting has chunks but they stopped >15min ago and meeting is >20min old
+      if (latestChunkTime && chunkSilenceMs && 
+          chunkSilenceMs > ORPHAN_CHUNK_SILENCE_MINUTES * 60 * 1000 &&
+          meetingAgeMs > ORPHAN_MIN_MEETING_AGE_MINUTES * 60 * 1000) {
+        console.log(`🔴 ORPHAN DETECTED: Meeting ${meeting.id} — last chunk ${chunkSilenceMinutes}min ago, age ${meetingAgeMinutes}min`);
+        meetingsToClose.push(meeting);
+        continue;
+      }
+
+      // TIER 2: Legacy inactivity — no chunks at all AND no recent update AND old enough
+      if (!latestChunkTime) {
+        // No chunks at all — check legacy tables and updated_at
+        let hasRecentActivity = false;
+
+        // Check legacy transcript tables
+        const { data: recentTranscripts } = await supabase
           .from('meeting_transcripts')
           .select('created_at')
           .eq('meeting_id', meeting.id)
-          .gte('created_at', cutoffTime)
-          .order('created_at', { ascending: false })
+          .gte('created_at', legacyCutoff)
           .limit(1);
+        hasRecentActivity = (recentTranscripts?.length ?? 0) > 0;
 
-        if (transcriptsError) {
-          console.error(`❌ Error checking transcripts for meeting ${meeting.id}:`, transcriptsError);
-          continue;
+        if (!hasRecentActivity) {
+          const { data: legacyChunks } = await supabase
+            .from('transcription_chunks')
+            .select('created_at')
+            .eq('meeting_id', meeting.id)
+            .gte('created_at', legacyCutoff)
+            .limit(1);
+          hasRecentActivity = (legacyChunks?.length ?? 0) > 0;
         }
 
-        hasRecentActivity = recentTranscripts && recentTranscripts.length > 0;
-      }
+        const meetingUpdatedRecently = new Date(meeting.updated_at) > new Date(fiveMinutesAgo);
 
-      // If still no recent activity, check legacy transcription_chunks
-      if (!hasRecentActivity) {
-        const { data: legacyChunks, error: legacyError } = await supabase
-          .from('transcription_chunks')
-          .select('created_at')
-          .eq('meeting_id', meeting.id)
-          .gte('created_at', cutoffTime)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (legacyError) {
-          console.error(`❌ Error checking legacy chunks for meeting ${meeting.id}:`, legacyError);
-          continue;
-        }
-
-        hasRecentActivity = legacyChunks && legacyChunks.length > 0;
-      }
-
-      // Check if meeting itself was updated recently (user interaction)
-      const meetingUpdatedRecently = new Date(meeting.updated_at) > new Date(fiveMinutesAgo);
-
-      if (!hasRecentActivity && !meetingUpdatedRecently) {
-        // IMPORTANT:
-        // With long (90-minute) timeouts, we must NOT close meetings just because they are >5 minutes old.
-        // Some recordings may take a while to start producing transcript chunks (or chunk writes may stall).
-        // Only consider auto-closing once the meeting itself is older than the inactivity threshold.
-        const meetingAgeMs = Date.now() - new Date(meeting.created_at).getTime();
-        const inactivityThresholdMs = INACTIVITY_THRESHOLD_MINUTES * 60 * 1000;
-
-        if (meetingAgeMs > inactivityThresholdMs) {
-          console.log(`⚠️ Meeting ${meeting.id} (${meeting.title}) has no recent activity - marking for closure`);
+        if (!hasRecentActivity && !meetingUpdatedRecently && meetingAgeMs > LEGACY_INACTIVITY_THRESHOLD_MINUTES * 60 * 1000) {
+          console.log(`⚠️ Meeting ${meeting.id} — no chunks ever, no recent activity, age ${meetingAgeMinutes}min — marking for closure`);
           meetingsToClose.push(meeting);
         } else {
-          console.log(
-            `⏳ Meeting ${meeting.id} is ${Math.round(meetingAgeMs / 60000)} min old with no recent activity - skipping (threshold ${INACTIVITY_THRESHOLD_MINUTES} min)`
-          );
+          console.log(`⏳ Meeting ${meeting.id} — no chunks yet but still within threshold or recently updated`);
         }
-      } else {
-        console.log(`✅ Meeting ${meeting.id} has recent activity - keeping active`);
+        continue;
       }
+
+      // Meeting has recent chunks — keep alive
+      console.log(`✅ Meeting ${meeting.id} has recent chunk activity (${chunkSilenceMinutes}min ago) — keeping active`);
     }
 
     console.log(`🎯 Found ${meetingsToClose.length} meetings to auto-close`);
