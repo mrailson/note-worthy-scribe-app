@@ -29,7 +29,9 @@ type SortDirection = 'asc' | 'desc';
 
 
 
-export const SDARisksMitigation = () => {
+export const SDARisksMitigation = ({ neighbourhoodName = 'NRES' }: { neighbourhoodName?: 'NRES' | 'ENN' }) => {
+  const isENN = neighbourhoodName === 'ENN';
+  const orgName = isENN ? '3Sixty Care Partnership' : 'PML';
   const [risks, setRisks] = useState<ProjectRisk[]>(initialProjectRisks);
   const [editingRisk, setEditingRisk] = useState<ProjectRisk | null>(null);
   const [sortField, setSortField] = useState<SortField>('currentScore');
@@ -165,8 +167,8 @@ export const SDARisksMitigation = () => {
     <div className="space-y-4">
       <Accordion type="multiple" defaultValue={["risk-guidance", "risks-register"]} className="space-y-4">
         
-        {/* PML Risk Assessment Framework */}
-        <RiskAssessmentGuidance />
+        {/* Risk Assessment Framework */}
+        <RiskAssessmentGuidance orgName={orgName} />
 
         {/* Project Risks Register */}
         <AccordionItem value="risks-register" className="border-0">
@@ -177,7 +179,7 @@ export const SDARisksMitigation = () => {
                   <AlertTriangle className="w-6 h-6 text-amber-500" />
                   <div className="text-left">
                     <CardTitle className="text-lg font-semibold text-slate-900">Project Risks Register</CardTitle>
-                    <p className="text-sm text-slate-500">Full risk register with PML framework – {risks.length} risks tracked</p>
+                    <p className="text-sm text-slate-500">Full risk register with {orgName} framework – {risks.length} risks tracked</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -372,7 +374,7 @@ export const SDARisksMitigation = () => {
                     <h4 className="font-semibold text-purple-900">Governance Escalation Required</h4>
                   </div>
                   <p className="text-sm text-purple-700">
-                    <strong>{riskSummary.requiresEscalation} risks</strong> have a score of ≥12 and require review by the Programme Board and ICB per the PML Risk Assessment Framework.
+                    <strong>{riskSummary.requiresEscalation} risks</strong> have a score of ≥12 and require review by the Programme Board and ICB per the {orgName} Risk Assessment Framework.
                   </p>
                 </div>
 
