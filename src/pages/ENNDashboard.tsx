@@ -146,6 +146,7 @@ const ENNDashboard = () => {
               </TabsContent>
               <TabsContent value="hours" className="mt-0">
                 <NRESHoursTracker
+                  neighbourhoodName="ENN"
                   hideEvidenceLibrary
                   hideBoardLeadership
                   customInsuranceCheckedBy="Rebecca Gane"
