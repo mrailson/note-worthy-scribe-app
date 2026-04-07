@@ -169,17 +169,23 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
               <div>
                 <h3 className="font-semibold text-lg">Terms of Reference</h3>
                 <p className="text-sm text-blue-100">Official Programme Board governance document</p>
-                <p className="text-sm text-green-300 mt-1">✓ Approved as final by Programme Board on 23rd December 2025</p>
+                {isENN ? (
+                  <p className="text-sm text-amber-300 mt-1">⏳ TBC — awaiting creation for ENN Programme Board</p>
+                ) : (
+                  <p className="text-sm text-green-300 mt-1">✓ Approved as final by Programme Board on 23rd December 2025</p>
+                )}
               </div>
             </div>
-            <Button 
-              onClick={handleDownloadTOR}
-              variant="secondary"
-              className="bg-white text-[#005EB8] hover:bg-blue-50"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download TOR (PDF)
-            </Button>
+            {!isENN && (
+              <Button 
+                onClick={handleDownloadTOR}
+                variant="secondary"
+                className="bg-white text-[#005EB8] hover:bg-blue-50"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download TOR (PDF)
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
