@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";
 import { Button } from "@/components/ui/button";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +13,6 @@ import { SDAFeedbackModal } from "@/components/sda/SDAFeedbackModal";
 import { Home, Grid3X3, ChevronDown, Stars, Circle, MessageSquareWarning, User, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import notewellLogo from "@/assets/notewell-logo.png";
 
 interface ENNHeaderProps {
   activeTab: string;
