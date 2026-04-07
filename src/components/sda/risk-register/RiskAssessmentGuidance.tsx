@@ -81,7 +81,7 @@ export const RiskAssessmentGuidance = () => {
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div className="text-left">
-                <CardTitle className="text-lg font-semibold text-slate-900">PML Risk Assessment Framework (DCB0129 Aligned)</CardTitle>
+                <CardTitle className="text-lg font-semibold text-slate-900">{orgName} Risk Assessment Framework (DCB0129 Aligned)</CardTitle>
                 <p className="text-sm text-slate-500">Scoring guidance, thresholds, and governance rules – Version 1.2</p>
               </div>
             </div>
