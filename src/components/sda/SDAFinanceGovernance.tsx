@@ -199,7 +199,9 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
         <CardContent className="space-y-4">
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
             <h3 className="font-semibold text-lg text-[#005EB8] mb-2">
-              Same Day Access Innovator – Rural East and South Programme Board
+              {isENN 
+                ? 'Same Day Access Innovator – East Northants Neighbourhood Programme Board'
+                : 'Same Day Access Innovator – Rural East and South Programme Board'}
             </h3>
             <p className="text-sm text-slate-600 mb-3">
               Part of Northamptonshire ICB New Models of Care programme, helping patients stay well for longer 
@@ -208,7 +210,7 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
             <div className="flex flex-wrap gap-2">
               <Badge className="bg-[#005EB8]">
                 <Calendar className="h-3 w-3 mr-1" />
-                Launch: April 2026
+                Launch: {isENN ? 'July 2026' : 'April 2026'}
               </Badge>
               <Badge variant="outline" className="border-[#005EB8] text-[#005EB8]">Neighbourhood Access Service</Badge>
               <Badge variant="outline" className="border-[#005EB8] text-[#005EB8]">Complex Care & Long-Term Conditions</Badge>
@@ -323,16 +325,16 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
             <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
               <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-slate-900">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                Voting Members (8 Total)
+                Voting Members ({isENN ? '11' : '8'} Total)
               </h4>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
                   <span className="text-[#005EB8] font-bold">•</span>
-                  <span><strong>7 Practices</strong> - 1 GP + 1 Practice Manager per practice = 1 vote per practice (7 votes total)</span>
+                  <span><strong>{isENN ? '10 Practices' : '7 Practices'}</strong> - 1 GP + 1 Practice Manager per practice = 1 vote per practice ({isENN ? '10' : '7'} votes total)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#005EB8] font-bold">•</span>
-                  <span><strong>SRO (Dr Mark Gray)</strong> - Deciding vote in event of a tie</span>
+                  <span><strong>{isENN ? 'SRO (TBC)' : 'SRO (Dr Mark Gray)'}</strong> - Deciding vote in event of a tie</span>
                 </li>
               </ul>
             </div>
@@ -343,7 +345,7 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
                 Quorum Requirements
               </h4>
               <p className="text-sm text-slate-600 mb-2">
-                <strong>Quorum:</strong> One representative from each of the 7 Practices required
+                <strong>Quorum:</strong> One representative from each of the {isENN ? '10' : '7'} Practices required
               </p>
               <p className="text-sm text-slate-600">
                 <strong>Voting:</strong> Majority wins. In a tie, the SRO has the deciding vote.
