@@ -17,10 +17,5 @@ export const NRES_PRACTICE_KEYS = Object.keys(NRES_PRACTICES) as NRESPracticeKey
 export function getPracticeName(key: string | null | undefined): string {
   if (!key) return '—';
   if (key in NRES_PRACTICES) return NRES_PRACTICES[key as NRESPracticeKey];
-  // Also check ENN practices for shared components
-  try {
-    const { ENN_PRACTICES } = require('@/data/ennPractices');
-    if (key in ENN_PRACTICES) return ENN_PRACTICES[key];
-  } catch {}
   return key;
 }
