@@ -132,9 +132,11 @@ interface SDAFinanceGovernanceProps {
   customInsuranceChecklist?: typeof practiceInsuranceChecklist;
   customInsuranceCheckedBy?: string;
   customInsuranceUpdatedDate?: string;
+  neighbourhoodName?: 'NRES' | 'ENN';
 }
 
-export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsuranceChecklist, customInsuranceCheckedBy, customInsuranceUpdatedDate }: SDAFinanceGovernanceProps) => {
+export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsuranceChecklist, customInsuranceCheckedBy, customInsuranceUpdatedDate, neighbourhoodName = 'NRES' }: SDAFinanceGovernanceProps) => {
+  const isENN = neighbourhoodName === 'ENN';
   const { people } = useNRESPeople();
   const [peopleDialogOpen, setPeopleDialogOpen] = useState(false);
 
