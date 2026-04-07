@@ -181,28 +181,6 @@ export const SDADigitalIntegration = () => {
       )}
       {/* ===== SDA Rota / Buy-Back Service Management ===== */}
 
-      {/* SIMULATED DATA BANNER */}
-      <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 flex items-start gap-4">
-        <div className="bg-amber-400 rounded-lg p-2 mt-0.5">
-          <AlertTriangle className="w-6 h-6 text-white" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h3 className="text-lg font-bold text-amber-900">SIMULATED DATA — East Northants Neighbourhood (ENN)</h3>
-            <span className="bg-amber-200 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">4 April 2026</span>
-          </div>
-          <p className="text-sm text-amber-800 mt-1">
-            All appointment figures on this page are <strong>simulated estimates</strong> based on practice list sizes, modelled at approximately 15% below NRES observed rates. 
-            These numbers will be replaced with actual GPAD appointment data once raw exports are received from each ENN practice.
-          </p>
-          <div className="flex flex-wrap gap-4 mt-3 text-xs text-amber-700">
-            <span>📊 <strong>10 practices</strong> · 3 hubs</span>
-            <span>👥 <strong>90,241</strong> registered patients</span>
-            <span>💷 <strong>£2.38M</strong> annual budget</span>
-            <span>🏥 <strong>3Sixty Care Partnership</strong> (SNO)</span>
-          </div>
-        </div>
-      </div>
 
       <div className="space-y-4">
         {/* 3. Section Divider — GPAD BASELINE REPORTS */}
