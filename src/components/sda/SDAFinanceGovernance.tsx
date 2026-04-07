@@ -127,7 +127,7 @@ const practiceInsuranceChecklist = [
   ]},
 ];
 
-export const SDAFinanceGovernance = () => {
+export const SDAFinanceGovernance = ({ hideBoardLeadership = false }: { hideBoardLeadership?: boolean }) => {
   const { people } = useNRESPeople();
   const [peopleDialogOpen, setPeopleDialogOpen] = useState(false);
 
@@ -233,7 +233,7 @@ export const SDAFinanceGovernance = () => {
       </Card>
 
       {/* Programme Board Members */}
-      <Card className="bg-white border-0 shadow-sm">
+      {!hideBoardLeadership && <Card className="bg-white border-0 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
@@ -292,7 +292,7 @@ export const SDAFinanceGovernance = () => {
             </ul>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Voting Structure & Meeting Schedule */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

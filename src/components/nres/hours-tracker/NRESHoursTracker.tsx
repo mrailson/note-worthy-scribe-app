@@ -27,7 +27,12 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info } from 'lucide-react';
 
-export function NRESHoursTracker() {
+interface NRESHoursTrackerProps {
+  hideEvidenceLibrary?: boolean;
+  hideBoardLeadership?: boolean;
+}
+
+export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeadership = false }: NRESHoursTrackerProps = {}) {
   const { user } = useAuth();
   const isAdmin = !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
   
@@ -121,10 +126,12 @@ export function NRESHoursTracker() {
             <AlertTriangle className="w-4 h-4" />
             Risks & Mitigation
           </TabsTrigger>
-          <TabsTrigger value="evidence" className="flex items-center gap-2">
-            <FolderOpen className="w-4 h-4" />
-            Evidence Library
-          </TabsTrigger>
+          {!hideEvidenceLibrary && (
+            <TabsTrigger value="evidence" className="flex items-center gap-2">
+              <FolderOpen className="w-4 h-4" />
+              Evidence Library
+            </TabsTrigger>
+          )}
         </TabsList>
         {activeTab === 'buy-back' && admin && (
           <TooltipProvider>
@@ -247,16 +254,18 @@ export function NRESHoursTracker() {
       </TabsContent>
 
       <TabsContent value="finance-governance">
-        <SDAFinanceGovernance />
+        <SDAFinanceGovernance hideBoardLeadership={hideBoardLeadership} />
       </TabsContent>
 
       <TabsContent value="risks">
         <SDARisksMitigation />
       </TabsContent>
 
-      <TabsContent value="evidence">
-        <SDAEvidenceLibrary />
-      </TabsContent>
+      {!hideEvidenceLibrary && (
+        <TabsContent value="evidence">
+          <SDAEvidenceLibrary />
+        </TabsContent>
+      )}
 
       {/* Access Settings Modal (lifted from BuyBackClaimsTab) */}
       <BuyBackAccessSettingsModal
