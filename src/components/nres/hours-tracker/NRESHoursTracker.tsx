@@ -27,7 +27,12 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info } from 'lucide-react';
 
-export function NRESHoursTracker() {
+interface NRESHoursTrackerProps {
+  hideEvidenceLibrary?: boolean;
+  hideBoardLeadership?: boolean;
+}
+
+export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeadership = false }: NRESHoursTrackerProps = {}) {
   const { user } = useAuth();
   const isAdmin = !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
   
