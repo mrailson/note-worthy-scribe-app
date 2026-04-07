@@ -521,7 +521,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
-              <ActionLogTable actions={activeActionLogData} metadata={activeActionLogMetadata} />
+              <ActionLogTable actions={activeActionLogData} metadata={activeActionLogMetadata} neighbourhoodName={neighbourhoodName as 'NRES' | 'ENN'} />
               <p className="text-xs text-slate-500 pt-2 mt-3 border-t border-slate-100">
                 Next Programme Board Meeting: {activeActionLogMetadata.nextMeeting}
               </p>
