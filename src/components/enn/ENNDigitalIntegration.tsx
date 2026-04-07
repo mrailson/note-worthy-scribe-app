@@ -371,7 +371,7 @@ export const SDADigitalIntegration = () => {
 
       {/* Baseline Dashboard Fullscreen Modal */}
       {baselineFullscreen && (
-        <div className="fixed inset-0 z-[9999] bg-white overflow-auto" onClick={() => setBaselineFullscreen(false)}>
+        <div className="fixed inset-0 z-[9999] bg-white overflow-auto">
           <button
             onClick={() => setBaselineFullscreen(false)}
             className="absolute top-4 right-4 z-[10000] bg-slate-100 hover:bg-slate-200 rounded-full p-2 shadow-lg transition-colors"
@@ -379,14 +379,11 @@ export const SDADigitalIntegration = () => {
           >
             <X className="w-5 h-5 text-slate-700" />
           </button>
-          <div className="max-w-5xl mx-auto p-8" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-6 text-center">
-              <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-amber-900 mb-2">ENN Baseline Dashboard — Simulated Data</h2>
-              <p className="text-amber-800 mb-4">Full interactive dashboard will be available once GPAD appointment exports are received from each of the 10 ENN practices.</p>
-              <p className="text-sm text-amber-600">Use the inline dashboard in the main view for simulated data with hub/spoke filtering.</p>
-            </div>
-          </div>
+          <iframe
+            src="/reports/enn_baseline_dashboard_v1_7.html"
+            className="w-full h-full border-0"
+            title="ENN Baseline Dashboard Full Screen"
+          />
         </div>
       )}
     </>
