@@ -12250,6 +12250,10 @@ export type Database = {
         }
         Returns: string
       }
+      can_access_enn_vault_item: {
+        Args: { p_target_id: string; p_target_type: string; p_user_id: string }
+        Returns: boolean
+      }
       can_access_nres_vault_item: {
         Args: { p_target_id: string; p_target_type: string; p_user_id: string }
         Returns: boolean
@@ -12265,6 +12269,10 @@ export type Database = {
       can_view_consultation_examples: {
         Args: { _user_id?: string }
         Returns: boolean
+      }
+      check_enn_vault_permission: {
+        Args: { p_target_id: string; p_target_type: string; p_user_id: string }
+        Returns: string
       }
       check_nres_vault_permission: {
         Args: { p_target_id: string; p_target_type: string; p_user_id: string }
@@ -12932,6 +12940,7 @@ export type Database = {
         Returns: boolean
       }
       has_document_signoff_access: { Args: never; Returns: boolean }
+      has_enn_vault_access: { Args: { p_user_id: string }; Returns: boolean }
       has_mock_inspection_access: {
         Args: { p_session_id: string; p_user_id: string }
         Returns: boolean
