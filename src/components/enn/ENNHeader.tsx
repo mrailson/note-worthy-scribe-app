@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";
-import { useServiceActivation } from "@/hooks/useServiceActivation";
-import { useServiceVisibility } from "@/hooks/useServiceVisibility";
+import { Button } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
