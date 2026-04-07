@@ -66,11 +66,13 @@ const DECLARATION_TEXT =
 // STAFF_ROLES is now dynamic — see BuyBackClaimsTab below
 
 /** Isolated add-staff form – keeps its own state so typing never loses focus */
-function AddStaffForm({ saving, onAdd, staffRoles, rateParams }: {
+function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, practiceNames }: {
   saving: boolean;
   onAdd: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   staffRoles: string[];
   rateParams?: RateParams;
+  practiceKeys: string[];
+  practiceNames: Record<string, string>;
 }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('GP');
