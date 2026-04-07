@@ -59,63 +59,8 @@ const excelTabs = [
 
 export const SDADigitalIntegration = () => {
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; title: string } | null>(null);
-  const [tabExplorerOpen, setTabExplorerOpen] = useState(false);
   const [reportingPreviewOpen, setReportingPreviewOpen] = useState(false);
   const [baselineFullscreen, setBaselineFullscreen] = useState(false);
-  const [hubFilter, setHubFilter] = useState<string>('all');
-  const [sortField, setSortField] = useState<string>('name');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-
-  // ENN Practice data — SIMULATED (15% below NRES observed rates)
-  const ennPractices = [
-    { ods: 'K83007', name: 'Harborough Field Surgery', short: 'Harborough Field', list: 13991, hub: 'harborough', isHub: true, simGP: 28842, simNurse: 19228, simOther: 16023, weeklyReq: 222, annualReq: 11604, winterWk: 253, nonWinterWk: 213 },
-    { ods: 'K83023', name: 'Oundle Medical Practice', short: 'Oundle', list: 10600, hub: 'harborough', isHub: false, simGP: 21845, simNurse: 14563, simOther: 12136, weeklyReq: 169, annualReq: 8792, winterWk: 193, nonWinterWk: 161 },
-    { ods: 'K83024', name: 'Rushden Medical Centre', short: 'Rushden MC', list: 9143, hub: 'harborough', isHub: false, simGP: 18843, simNurse: 12562, simOther: 10468, weeklyReq: 146, annualReq: 7583, winterWk: 166, nonWinterWk: 139 },
-    { ods: 'K83028', name: 'Spinney Brook Medical Centre', short: 'Spinney Brook', list: 11537, hub: 'cottons', isHub: false, simGP: 23777, simNurse: 15851, simOther: 13209, weeklyReq: 184, annualReq: 9569, winterWk: 210, nonWinterWk: 175 },
-    { ods: 'K83030', name: 'The Cottons Medical Centre', short: 'The Cottons', list: 9372, hub: 'cottons', isHub: true, simGP: 19315, simNurse: 12877, simOther: 10731, weeklyReq: 149, annualReq: 7773, winterWk: 171, nonWinterWk: 142 },
-    { ods: 'K83044', name: 'Parklands Medical Centre', short: 'Parklands', list: 13612, hub: 'harborough', isHub: false, simGP: 28060, simNurse: 18707, simOther: 15589, weeklyReq: 217, annualReq: 11290, winterWk: 248, nonWinterWk: 207 },
-    { ods: 'K83065', name: 'Nene Valley Surgery', short: 'Nene Valley', list: 6921, hub: 'harborough', isHub: false, simGP: 14266, simNurse: 9511, simOther: 7926, weeklyReq: 110, annualReq: 5740, winterWk: 126, nonWinterWk: 105 },
-    { ods: 'K83069', name: 'Marshalls Road Surgery', short: 'Marshalls Rd', list: 3156, hub: 'cottons', isHub: false, simGP: 6505, simNurse: 4337, simOther: 3614, weeklyReq: 50, annualReq: 2618, winterWk: 57, nonWinterWk: 48 },
-    { ods: 'K83080', name: 'Higham Ferrers Surgery', short: 'Higham Ferrers', list: 5569, hub: 'meadows', isHub: false, simGP: 11479, simNurse: 7653, simOther: 6377, weeklyReq: 89, annualReq: 4619, winterWk: 101, nonWinterWk: 85 },
-    { ods: 'K83616', name: 'The Meadows Surgery', short: 'The Meadows', list: 6340, hub: 'meadows', isHub: true, simGP: 13068, simNurse: 8712, simOther: 7260, weeklyReq: 101, annualReq: 5258, winterWk: 115, nonWinterWk: 96 },
-  ];
-
-  const hubMeta: Record<string, { name: string; color: string; bg: string; border: string }> = {
-    harborough: { name: 'Harborough Field Hub', color: '#005EB8', bg: 'bg-blue-50', border: 'border-blue-200' },
-    cottons: { name: 'The Cottons Hub', color: '#00875A', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-    meadows: { name: 'The Meadows Hub', color: '#D4531E', bg: 'bg-orange-50', border: 'border-orange-200' },
-  };
-
-  const filteredPractices = ennPractices
-    .filter(p => hubFilter === 'all' || p.hub === hubFilter)
-    .sort((a, b) => {
-      let va: any, vb: any;
-      switch (sortField) {
-        case 'list': va = a.list; vb = b.list; break;
-        case 'total': va = a.simGP + a.simNurse + a.simOther; vb = b.simGP + b.simNurse + b.simOther; break;
-        case 'weekly': va = a.weeklyReq; vb = b.weeklyReq; break;
-        default: va = a.name; vb = b.name;
-      }
-      if (va < vb) return sortDir === 'asc' ? -1 : 1;
-      if (va > vb) return sortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-  const totals = filteredPractices.reduce((acc, p) => ({
-    list: acc.list + p.list,
-    gp: acc.gp + p.simGP,
-    nurse: acc.nurse + p.simNurse,
-    other: acc.other + p.simOther,
-    weeklyReq: acc.weeklyReq + p.weeklyReq,
-    annualReq: acc.annualReq + p.annualReq,
-    winterWk: acc.winterWk + p.winterWk,
-    nonWinterWk: acc.nonWinterWk + p.nonWinterWk,
-  }), { list: 0, gp: 0, nurse: 0, other: 0, weeklyReq: 0, annualReq: 0, winterWk: 0, nonWinterWk: 0 });
-
-  const handleBaselineSort = (field: string) => {
-    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortField(field); setSortDir('asc'); }
-  };
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
@@ -201,12 +146,12 @@ export const SDADigitalIntegration = () => {
                 <div>
                   <h3 className="text-base font-semibold text-slate-900">
                     ENN Appointment Baseline Dashboard
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                      ⏳ Simulated Data
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                      v1.7
                     </span>
                   </h3>
                   <p className="text-sm text-slate-500 mt-0.5">
-                    Practice-level GPAD data · 10 practices · 3 hubs · 90,241 patients · Awaiting raw GPAD exports
+                    Practice-level GPAD data · 10 practices · 3 hubs · 90,241 patients
                   </p>
                 </div>
               </div>
@@ -230,151 +175,13 @@ export const SDADigitalIntegration = () => {
             </div>
           </div>
 
-          {/* Description */}
-          <div className="px-5 py-3 bg-amber-50 border-b border-amber-200 text-xs text-amber-800 leading-relaxed">
-            <strong>⚠️ Simulated baseline data</strong> for the ENN neighbourhood. Once GPAD exports are received from each of the 10 practices, 
-            this dashboard will be populated with actual appointment data. Filters will include individual practice, 
-            hub grouping (Harborough Field / The Cottons / The Meadows), workforce role, and time period. 
-            Prepared for 3Sixty Care Partnership programme requirements.
-          </div>
-
-          {/* Inline Baseline Dashboard */}
-          <div className="p-5 space-y-4">
-            {/* Hub Filter Bar */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">View:</span>
-              {[
-                { value: 'all', label: 'All ENN Practices', count: 10 },
-                { value: 'harborough', label: '🔵 Harborough Field Hub', count: 5 },
-                { value: 'cottons', label: '🟢 The Cottons Hub', count: 3 },
-                { value: 'meadows', label: '🟠 The Meadows Hub', count: 2 },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setHubFilter(opt.value)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                    hubFilter === opt.value
-                      ? 'bg-[#005EB8] text-white border-[#005EB8] shadow-sm'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  {opt.label} ({opt.count})
-                </button>
-              ))}
-            </div>
-
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-              {[
-                { label: 'Practices', value: filteredPractices.length.toString(), color: '#005EB8' },
-                { label: 'Patients', value: totals.list.toLocaleString(), color: '#005EB8' },
-                { label: 'Sim. GP Appts', value: totals.gp.toLocaleString(), color: '#7C3AED' },
-                { label: 'Sim. Nurse Appts', value: totals.nurse.toLocaleString(), color: '#0D9488' },
-                { label: 'Sim. Other Appts', value: totals.other.toLocaleString(), color: '#6B7280' },
-                { label: 'Sim. Total (48wk)', value: (totals.gp + totals.nurse + totals.other).toLocaleString(), color: '#D97706' },
-              ].map((card, i) => (
-                <div key={i} className="bg-white rounded-lg border border-slate-200 p-3 text-center" style={{ borderTop: `3px solid ${card.color}` }}>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{card.label}</p>
-                  <p className="text-lg font-bold mt-1" style={{ color: card.color }}>{card.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* SDA Requirements Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-blue-50 rounded-lg border border-blue-200 p-3 text-center">
-                <p className="text-[10px] text-blue-500 uppercase tracking-wider font-semibold">Weekly Required</p>
-                <p className="text-xl font-bold text-blue-700 mt-1">{totals.weeklyReq.toLocaleString()}</p>
-              </div>
-              <div className="bg-emerald-50 rounded-lg border border-emerald-200 p-3 text-center">
-                <p className="text-[10px] text-emerald-500 uppercase tracking-wider font-semibold">Non-Winter /wk</p>
-                <p className="text-xl font-bold text-emerald-700 mt-1">{totals.nonWinterWk.toLocaleString()}</p>
-              </div>
-              <div className="bg-orange-50 rounded-lg border border-orange-200 p-3 text-center">
-                <p className="text-[10px] text-orange-500 uppercase tracking-wider font-semibold">Winter /wk</p>
-                <p className="text-xl font-bold text-orange-700 mt-1">{totals.winterWk.toLocaleString()}</p>
-              </div>
-              <div className="bg-amber-50 rounded-lg border border-amber-200 p-3 text-center">
-                <p className="text-[10px] text-amber-500 uppercase tracking-wider font-semibold">Annual Required</p>
-                <p className="text-xl font-bold text-amber-700 mt-1">{totals.annualReq.toLocaleString()}</p>
-              </div>
-            </div>
-
-            {/* Practice Table */}
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 text-left">
-                    {[
-                      { key: 'name', label: 'Practice' },
-                      { key: 'hub', label: 'Hub' },
-                      { key: 'list', label: 'List Size' },
-                      { key: 'total', label: 'Sim. Total (48wk)' },
-                      { key: 'gp', label: 'GP' },
-                      { key: 'nurse', label: 'Nurse' },
-                      { key: 'other', label: 'Other' },
-                      { key: 'weekly', label: 'Weekly Req' },
-                      { key: 'nonwinter', label: 'Non-Win /wk' },
-                      { key: 'winter', label: 'Winter /wk' },
-                    ].map(col => (
-                      <th
-                        key={col.key}
-                        className="p-2.5 font-semibold text-slate-600 text-xs cursor-pointer hover:bg-slate-100 select-none whitespace-nowrap"
-                        onClick={() => handleBaselineSort(col.key)}
-                      >
-                        {col.label} {sortField === col.key ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPractices.map((p, i) => {
-                    const hm = hubMeta[p.hub];
-                    return (
-                      <tr key={p.ods} className={`border-t border-slate-100 ${p.isHub ? hm.bg : i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
-                        <td className="p-2.5 font-medium text-slate-800 whitespace-nowrap">
-                          {p.isHub && <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: hm.color }} />}
-                          {p.short}
-                          {p.isHub && <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: hm.color }}>HUB</span>}
-                        </td>
-                        <td className="p-2.5 text-xs" style={{ color: hm.color }}>{hm.name.replace(' Hub', '')}</td>
-                        <td className="p-2.5 text-right font-medium">{p.list.toLocaleString()}</td>
-                        <td className="p-2.5 text-right font-bold text-amber-700">{(p.simGP + p.simNurse + p.simOther).toLocaleString()}</td>
-                        <td className="p-2.5 text-right text-purple-600">{p.simGP.toLocaleString()}</td>
-                        <td className="p-2.5 text-right text-teal-600">{p.simNurse.toLocaleString()}</td>
-                        <td className="p-2.5 text-right text-slate-500">{p.simOther.toLocaleString()}</td>
-                        <td className="p-2.5 text-right font-semibold text-blue-700">{p.weeklyReq}</td>
-                        <td className="p-2.5 text-right text-emerald-600">{p.nonWinterWk}</td>
-                        <td className="p-2.5 text-right text-orange-600">{p.winterWk}</td>
-                      </tr>
-                    );
-                  })}
-                  {/* Totals row */}
-                  <tr className="bg-slate-100 font-bold border-t-2 border-slate-300">
-                    <td className="p-2.5 text-slate-800">{hubFilter === 'all' ? 'ENN TOTAL' : hubMeta[hubFilter]?.name + ' Total'}</td>
-                    <td className="p-2.5"></td>
-                    <td className="p-2.5 text-right">{totals.list.toLocaleString()}</td>
-                    <td className="p-2.5 text-right text-amber-700">{(totals.gp + totals.nurse + totals.other).toLocaleString()}</td>
-                    <td className="p-2.5 text-right text-purple-600">{totals.gp.toLocaleString()}</td>
-                    <td className="p-2.5 text-right text-teal-600">{totals.nurse.toLocaleString()}</td>
-                    <td className="p-2.5 text-right text-slate-500">{totals.other.toLocaleString()}</td>
-                    <td className="p-2.5 text-right text-blue-700">{totals.weeklyReq}</td>
-                    <td className="p-2.5 text-right text-emerald-600">{totals.nonWinterWk}</td>
-                    <td className="p-2.5 text-right text-orange-600">{totals.winterWk}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="text-[10px] text-slate-400 italic text-center">
-              ⚠️ Simulated appointment data · Based on list sizes at ~15% below NRES observed rates (5.32 appts/patient/48wk) · Role split: 45% GP / 30% Nurse / 25% Other · 4 April 2026
-            </div>
-          </div>
-
-          {/* Card Footer */}
-          <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-            <span>Data source: Simulated from list sizes · Harborough Field · Oundle · Rushden MC · Spinney Brook · The Cottons · Parklands · Nene Valley · Marshalls Rd · Higham Ferrers · The Meadows</span>
-            <span>Simulated: 4 April 2026 · Awaiting raw GPAD data</span>
+          {/* Embedded Baseline Dashboard */}
+          <div className="w-full" style={{ height: "800px" }}>
+            <iframe
+              src="/reports/enn_baseline_dashboard_v1_7.html"
+              className="w-full h-full border-0"
+              title="ENN Baseline Dashboard"
+            />
           </div>
         </div>
 
