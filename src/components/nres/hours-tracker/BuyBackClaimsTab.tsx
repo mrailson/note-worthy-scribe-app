@@ -7,6 +7,7 @@ import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
+import { ENN_PRACTICES, ENN_PRACTICE_KEYS, type ENNPracticeKey } from '@/data/ennPractices';
 
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
