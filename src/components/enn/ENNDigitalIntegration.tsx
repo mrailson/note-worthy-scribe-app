@@ -158,9 +158,9 @@ export const SDADigitalIntegration = () => {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild>
-                  <a href="/documents/ENN_ICB_Metrics_Requirements_Report_v1_0.docx" download="ENN_ICB_Metrics_Requirements_Report_v1_0.docx">
+                  <a href="/documents/ENN_ICB_Metrics_Requirements_Report_v1.docx" download="ENN_ICB_Metrics_Requirements_Report_v1.docx">
                     <Download className="h-3.5 w-3.5 mr-1" />
-                    Download Reporting Requirements Report
+                    ICB Key Metrics & Reporting Requirements
                   </a>
                 </Button>
               </div>
