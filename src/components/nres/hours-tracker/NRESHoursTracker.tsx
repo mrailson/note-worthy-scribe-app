@@ -258,7 +258,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
       </TabsContent>
 
       <TabsContent value="finance-governance">
-        <SDAFinanceGovernance hideBoardLeadership={hideBoardLeadership} customInsuranceChecklist={customInsuranceChecklist} customInsuranceCheckedBy={customInsuranceCheckedBy} customInsuranceUpdatedDate={customInsuranceUpdatedDate} />
+        <SDAFinanceGovernance hideBoardLeadership={hideBoardLeadership} customInsuranceChecklist={customInsuranceChecklist} customInsuranceCheckedBy={customInsuranceCheckedBy} customInsuranceUpdatedDate={customInsuranceUpdatedDate} neighbourhoodName={neighbourhoodName} />
       </TabsContent>
 
       <TabsContent value="risks">
