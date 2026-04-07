@@ -110,9 +110,11 @@ export const ENNHeader = ({ activeTab }: ENNHeaderProps) => {
                 <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer py-2">
                   Meeting Notes
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/NRESDashboard')} className="cursor-pointer py-2">
-                  NRES Dashboard
-                </DropdownMenuItem>
+                {hasServiceAccess('nres') && (
+                  <DropdownMenuItem onClick={() => navigate('/NRESDashboard')} className="cursor-pointer py-2">
+                    NRES Dashboard
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => navigate('/enn')} className="cursor-pointer py-2">
                   ENN Dashboard
                 </DropdownMenuItem>
