@@ -532,7 +532,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
-                    <BoardPresentationExplainer />
+                    {isENN ? <ENNBoardPresentationExplainer /> : <BoardPresentationExplainer />}
                   </DialogContent>
                 </Dialog>
               </div>
