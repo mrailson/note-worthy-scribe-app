@@ -43,7 +43,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
   const [expensesOpen, setExpensesOpen] = useState(false);
   const [claimantsOpen, setClaimantsOpen] = useState(false);
   
-  const [activeTab, setActiveTab] = useState('time-expenses');
+  const [activeTab, setActiveTab] = useState(neighbourhoodName === 'ENN' ? 'buy-back' : 'time-expenses');
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { 
@@ -114,10 +114,12 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
       <div className="flex items-center gap-2">
         <TabsList>
-          <TabsTrigger value="time-expenses" className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Pre Go-Live Time & Expenses
-          </TabsTrigger>
+          {neighbourhoodName !== 'ENN' && (
+            <TabsTrigger value="time-expenses" className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Pre Go-Live Time & Expenses
+            </TabsTrigger>
+          )}
           <TabsTrigger value="buy-back" className="flex items-center gap-2">
             <ArrowLeftRight className="w-4 h-4" />
             SDA Resource &amp; Buy-Back Claims
