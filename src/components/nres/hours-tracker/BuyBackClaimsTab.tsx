@@ -28,6 +28,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import BoardPresentationExplainer from './BoardPresentationExplainer';
+import ENNBoardPresentationExplainer from '@/components/enn/ENNBoardPresentationExplainer';
 import BoardPresentation from './BoardPresentation';
 
 /** Format a number as £X,XXX.XX */
