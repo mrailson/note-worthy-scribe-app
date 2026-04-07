@@ -254,7 +254,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
       </TabsContent>
 
       <TabsContent value="buy-back">
-        <BuyBackClaimsTab />
+        <BuyBackClaimsTab neighbourhoodName={neighbourhoodName} />
       </TabsContent>
 
       <TabsContent value="finance-governance">

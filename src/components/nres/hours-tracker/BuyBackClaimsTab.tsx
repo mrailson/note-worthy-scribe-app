@@ -239,7 +239,13 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams }: {
   );
 }
 
-export function BuyBackClaimsTab() {
+export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhoodName?: 'NRES' | 'ENN' } = {}) {
+  const isENN = neighbourhoodName === 'ENN';
+  const practiceCount = isENN ? '10' : '7';
+  const contractValue = isENN ? '£2.38M' : '£2.34M';
+  const patientCount = isENN ? '~90,241' : '~89,584';
+  const neighbourhoodLabel = isENN ? 'ENN' : 'NRES';
+  const managerName = isENN ? 'Rebecca Gane (Transformation Manager, 3Sixty Care Partnership)' : 'Malcolm Railson (Neighbourhood Manager, PCN Services Ltd)';
   const { user } = useAuth();
   const { activeStaff, loading: loadingStaff, saving: savingStaff, admin, addStaff, updateStaff, removeStaff } = useNRESBuyBackStaff();
   const { staffRoles, settings: rateSettings, onCostMultiplier, getAnnualRate, loading: loadingRates } = useNRESBuyBackRateSettings();
@@ -357,7 +363,7 @@ export function BuyBackClaimsTab() {
                     <Badge className="bg-amber-100 text-amber-800 text-xs">FOR DECISION</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    SDA Part A Claims System — Digital Enhancement Proposal for Board consideration. Compares the manual process (Option A) with a digital solution (Option B) for managing claims, evidence, and payments across 7 NRES practices.
+                    SDA Part A Claims System — Digital Enhancement Proposal for Board consideration. Compares the manual process (Option A) with a digital solution (Option B) for managing claims, evidence, and payments across {practiceCount} {neighbourhoodLabel} practices.
                   </p>
                 </div>
               </div>
@@ -368,7 +374,7 @@ export function BuyBackClaimsTab() {
             <div className="border-t border-amber-200 p-4 bg-amber-50/30 space-y-3">
               <div className="text-sm text-muted-foreground leading-relaxed">
                 <p className="mb-2">
-                  This proposal has been prepared by Malcolm Railson (Neighbourhood Manager, PCN Services Ltd) for the NRES Programme Board meeting on <strong>10th March 2026</strong>. It presents two options for managing the SDA Part A reimbursement claims process across the seven NRES member practices for the £2.34M Neighbourhood Access Service contract.
+                  This proposal has been prepared by {managerName} for the {neighbourhoodLabel} Programme Board meeting on <strong>10th March 2026</strong>. It presents two options for managing the SDA Part A reimbursement claims process across the {isENN ? 'ten' : 'seven'} {neighbourhoodLabel} member practices for the {contractValue} Neighbourhood Access Service contract.
                 </p>
                 <p className="mb-2">
                   <strong>Option A</strong> outlines a fully manual process using email, spreadsheets, and shared drives. <strong>Option B</strong> proposes a digital enhancement to the existing Notewell platform, adding end-to-end claims, evidence, workflow, and payment tracking capabilities.
@@ -417,7 +423,7 @@ export function BuyBackClaimsTab() {
               <div>
                 <h3 className="font-semibold text-[#003087] mb-1">Overview</h3>
                 <p className="text-sm text-muted-foreground">
-                  This tab manages claims for two categories of staff working on the NRES SDA Programme:
+                  This tab manages claims for two categories of staff working on the {neighbourhoodLabel} SDA Programme:
                 </p>
                 <ul className="text-sm text-muted-foreground list-disc list-inside mt-1 space-y-1">
                   <li><strong>Buy-Back Staff</strong> — existing practice staff whose time is bought back for 100% SDA (Part A) work.</li>
@@ -556,7 +562,7 @@ export function BuyBackClaimsTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Users className="w-5 h-5" />
-            NRES SDA Staff
+            {neighbourhoodLabel} SDA Staff
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
