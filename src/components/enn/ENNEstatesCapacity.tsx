@@ -3,8 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info } from "lucide-react";
+import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, MapPin } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { ENNNeighbourhoodMap } from "@/components/enn/ENNNeighbourhoodMap";
 
 const APPTS_PER_SESSION = 14;
 
@@ -710,13 +711,14 @@ export const ENNEstatesCapacity = () => {
         </div>
       </CollapsibleCard>
 
-      {/* Hub Location Status */}
+      {/* Hub Location Status & Drive Times */}
       <CollapsibleCard
-        title="Hub Location Status"
+        title="Hub Location Status & Drive Times"
         icon={<Building2 className="w-5 h-5" />}
         badge={<span className="text-xs text-slate-500 font-normal">ENN Neighbourhood</span>}
       >
         <div className="space-y-6">
+          {/* Hub Practice Listings */}
           {Object.entries(hubPracticeMapping).map(([hubName, practiceNames]) => {
             const practices = ennPracticeSummary.filter(p => practiceNames.includes(p.practice));
             const hubListSize = practices.reduce((sum, p) => sum + p.listSize, 0);
@@ -741,6 +743,20 @@ export const ENNEstatesCapacity = () => {
               </div>
             );
           })}
+
+          {/* Drive Times Overview */}
+          <div className="border-t pt-6">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-slate-900 mb-2">Neighbourhood Drive Time Overview</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                The interactive map below shows the geographical spread of all 10 ENN practices across the 3 hub sites. 
+                Use <strong>Hub View</strong> to see practice groupings and patient volumes, or switch to <strong>Map &amp; Drive Times</strong> to 
+                explore estimated travel distances between practices. Drive time data helps inform session planning, clinician routing, 
+                and ensures equitable access across the neighbourhood — particularly for outlying practices such as Oundle and Nene Valley.
+              </p>
+            </div>
+            <ENNNeighbourhoodMap />
+          </div>
         </div>
       </CollapsibleCard>
 
