@@ -371,8 +371,8 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
               </div>
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
                 <MapPin className="h-6 w-6 text-green-600 mx-auto mb-2" />
-                <h4 className="font-semibold text-sm">In-Person</h4>
-                <p className="text-xs text-slate-600">At DocMed</p>
+               <h4 className="font-semibold text-sm">In-Person</h4>
+                <p className="text-xs text-slate-600">{isENN ? 'TBC' : 'At DocMed'}</p>
               </div>
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
                 <Monitor className="h-6 w-6 text-[#005EB8] mx-auto mb-2" />
@@ -400,7 +400,7 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
           {/* Governance Statement */}
           <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-slate-700 leading-relaxed">
-              NRES operates in line with <strong>NHS England conflicts of interest guidance</strong>. All Board members, clinical leads, and individuals involved in decision-making are required to declare relevant interests. Declarations are reviewed at least annually and at meetings where decisions are made.
+              {neighbourhoodName} operates in line with <strong>NHS England conflicts of interest guidance</strong>. All Board members, clinical leads, and individuals involved in decision-making are required to declare relevant interests. Declarations are reviewed at least annually and at meetings where decisions are made.
             </p>
           </div>
 
@@ -498,7 +498,7 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-[#005EB8]" />
               <span className="text-sm font-medium text-slate-900">Full Conflicts of Interest Register</span>
-              <span className="text-xs text-slate-500">(Held by NRES governance team / PML)</span>
+              <span className="text-xs text-slate-500">(Held by {isENN ? 'ENN' : 'NRES'} governance team{isENN ? ' / 3Sixty Care Partnership' : ' / PML'})</span>
             </div>
             <Badge variant="outline" className="border-[#005EB8] text-[#005EB8]">
               <ExternalLink className="h-3 w-3 mr-1" />
@@ -512,7 +512,7 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
               <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm text-slate-700 leading-relaxed">
-                  <strong>Conflicts of Interest Declaration:</strong> All individuals involved in NRES governance and decision-making are required to declare relevant interests in line with NHS England guidance. A register of interests is maintained and reviewed at least annually and at meetings where relevant decisions are made. Where a conflict is identified, appropriate mitigating actions are taken and recorded.
+                  <strong>Conflicts of Interest Declaration:</strong> All individuals involved in {neighbourhoodName} governance and decision-making are required to declare relevant interests in line with NHS England guidance. A register of interests is maintained and reviewed at least annually and at meetings where relevant decisions are made. Where a conflict is identified, appropriate mitigating actions are taken and recorded.
                 </p>
               </div>
             </div>
