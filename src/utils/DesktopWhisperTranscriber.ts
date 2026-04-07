@@ -91,6 +91,22 @@ export class DesktopWhisperTranscriber {
   
   // Wake Lock
   private wakeLockSentinel: WakeLockSentinel | null = null;
+  
+  // Chunk delivery watchdog — detects stalls from Edge sleeping tabs
+  private lastChunkDeliveredAt = 0;
+  private chunkWatchdogInterval: NodeJS.Timeout | null = null;
+  private chunkWatchdogRecoveryAttempts = 0;
+  private readonly CHUNK_WATCHDOG_CHECK_MS = 60000; // Check every 60s
+  private readonly CHUNK_STALL_THRESHOLD_MS = 180000; // 3 minutes = stall
+  private readonly MAX_WATCHDOG_RECOVERY_ATTEMPTS = 2;
+  
+  // Page Lifecycle API (Edge freeze/resume)
+  private freezeHandler: (() => void) | null = null;
+  private resumeHandler: (() => void) | null = null;
+  private frozenAt = 0;
+  
+  // Callback for chunk stall events (consumed by health monitor)
+  public onChunkStall?: (info: { stalledSeconds: number; recoveryAttempt: number }) => void;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -474,6 +490,12 @@ export class DesktopWhisperTranscriber {
       // Setup track health monitoring for device disconnect detection
       this.setupTrackMonitoring();
       
+      // Setup chunk delivery watchdog (detects Edge sleeping tab stalls)
+      this.setupChunkWatchdog();
+      
+      // Setup Page Lifecycle API listeners (Edge freeze/resume)
+      this.setupPageLifecycleListeners();
+      
       // Acquire Wake Lock to prevent screen dimming during recording
       await this.acquireWakeLock();
       
@@ -828,6 +850,133 @@ export class DesktopWhisperTranscriber {
       this.visibilityHandler = null;
     }
   }
+  
+  /**
+   * Chunk delivery watchdog — detects when chunks stop arriving (Edge sleeping tabs)
+   */
+  private setupChunkWatchdog(): void {
+    this.lastChunkDeliveredAt = Date.now();
+    this.chunkWatchdogRecoveryAttempts = 0;
+    
+    this.chunkWatchdogInterval = setInterval(() => {
+      if (!this.isRecording) return;
+      
+      const stalledMs = Date.now() - this.lastChunkDeliveredAt;
+      
+      if (stalledMs > this.CHUNK_STALL_THRESHOLD_MS) {
+        const stalledSecs = Math.round(stalledMs / 1000);
+        console.warn(`🐕 CHUNK_WATCHDOG: No chunk delivered for ${stalledSecs}s — possible Edge sleeping tab`);
+        
+        // Diagnostic log
+        console.warn(`🐕 CHUNK_WATCHDOG_DIAG: MediaRecorder.state=${this.mediaRecorder?.state}, tracks=${this.stream?.getAudioTracks().map(t => t.readyState).join(',')}, AudioContext.state=${this.audioContext?.state}`);
+        
+        this.onChunkStall?.({ stalledSeconds: stalledSecs, recoveryAttempt: this.chunkWatchdogRecoveryAttempts + 1 });
+        
+        if (this.chunkWatchdogRecoveryAttempts < this.MAX_WATCHDOG_RECOVERY_ATTEMPTS) {
+          this.chunkWatchdogRecoveryAttempts++;
+          console.log(`🔄 CHUNK_WATCHDOG: Recovery attempt ${this.chunkWatchdogRecoveryAttempts}/${this.MAX_WATCHDOG_RECOVERY_ATTEMPTS} — restarting MediaRecorder`);
+          this.attemptMediaRecorderRestart();
+        } else {
+          console.error(`🛑 CHUNK_WATCHDOG: ${this.MAX_WATCHDOG_RECOVERY_ATTEMPTS} recovery attempts failed — recording likely dead`);
+        }
+      }
+    }, this.CHUNK_WATCHDOG_CHECK_MS);
+  }
+  
+  private stopChunkWatchdog(): void {
+    if (this.chunkWatchdogInterval) {
+      clearInterval(this.chunkWatchdogInterval);
+      this.chunkWatchdogInterval = null;
+    }
+  }
+  
+  /**
+   * Attempt to restart MediaRecorder after a detected stall
+   */
+  private attemptMediaRecorderRestart(): void {
+    try {
+      // Stop current MediaRecorder
+      if (this.mediaRecorder?.state === 'recording') {
+        this.mediaRecorder.stop();
+      }
+      
+      // Restart after a brief pause
+      setTimeout(() => {
+        if (this.mediaRecorder && this.isRecording) {
+          this.chunkStartTime = Date.now();
+          this.lastSpeechTime = Date.now();
+          try {
+            this.mediaRecorder.start();
+            this.scheduleNextChunk();
+            this.lastChunkDeliveredAt = Date.now(); // Reset watchdog
+            console.log('✅ CHUNK_WATCHDOG: MediaRecorder restarted successfully');
+          } catch (err) {
+            console.error('❌ CHUNK_WATCHDOG: MediaRecorder restart failed:', err);
+            // Try full mic recovery
+            if (!this.recoveryInProgress) {
+              this.recoverMicrophone();
+            }
+          }
+        }
+      }, 200);
+    } catch (err) {
+      console.error('❌ CHUNK_WATCHDOG: Restart attempt error:', err);
+    }
+  }
+  
+  /**
+   * Page Lifecycle API — detects Edge/Chrome freeze and resume events
+   */
+  private setupPageLifecycleListeners(): void {
+    this.freezeHandler = () => {
+      this.frozenAt = Date.now();
+      console.warn(`🧊 PAGE_LIFECYCLE: Page frozen at ${new Date().toISOString()}`);
+    };
+    
+    this.resumeHandler = () => {
+      const frozenDuration = this.frozenAt ? Date.now() - this.frozenAt : 0;
+      console.log(`🔥 PAGE_LIFECYCLE: Page resumed after ${Math.round(frozenDuration / 1000)}s freeze`);
+      
+      if (this.isRecording && frozenDuration > 30000) {
+        console.warn(`🔥 PAGE_LIFECYCLE: Extended freeze (${Math.round(frozenDuration / 1000)}s) — triggering full recovery`);
+        
+        // Resume AudioContext
+        if (this.audioContext?.state === 'suspended') {
+          this.audioContext.resume().catch(err => console.warn('AudioContext resume failed:', err));
+        }
+        
+        // Re-acquire wake lock
+        this.acquireWakeLock();
+        
+        // Check if MediaRecorder is still alive
+        if (this.mediaRecorder?.state !== 'recording') {
+          console.warn('🔥 PAGE_LIFECYCLE: MediaRecorder not recording after freeze — restarting');
+          this.attemptMediaRecorderRestart();
+        } else {
+          // Flush any buffered audio
+          if (this.audioChunks.length > 0) {
+            this.flushCurrentChunk();
+          }
+        }
+      }
+      
+      this.frozenAt = 0;
+    };
+    
+    document.addEventListener('freeze', this.freezeHandler);
+    document.addEventListener('resume', this.resumeHandler);
+  }
+  
+  private removePageLifecycleListeners(): void {
+    if (this.freezeHandler) {
+      document.removeEventListener('freeze', this.freezeHandler);
+      this.freezeHandler = null;
+    }
+    if (this.resumeHandler) {
+      document.removeEventListener('resume', this.resumeHandler);
+      this.resumeHandler = null;
+    }
+  }
 
   private async processAudioChunks(chunkNumber?: number) {
     if (this.audioChunks.length === 0) return;
@@ -856,6 +1005,16 @@ export class DesktopWhisperTranscriber {
       // Update activity time when chunks are being sent (not just when results arrive)
       // This prevents false auto-stop when tab is backgrounded but audio is still flowing
       this.lastTranscriptActivityTime = Date.now();
+      
+      // Update watchdog timestamp — chunk successfully delivered
+      this.lastChunkDeliveredAt = Date.now();
+      this.chunkWatchdogRecoveryAttempts = 0; // Reset recovery counter on success
+      
+      // Periodic diagnostic log (every 5th chunk)
+      if (this.chunkCounter % 5 === 0) {
+        console.log(`📊 DIAG[chunk ${this.chunkCounter}]: MediaRecorder.state=${this.mediaRecorder?.state}, tracks=${this.stream?.getAudioTracks().map(t => t.readyState).join(',')}, AudioContext.state=${this.audioContext?.state}`);
+      }
+      this.chunkCounter++;
       
       this.audioChunks = []; // Clear current chunks after processing
 
@@ -1198,6 +1357,10 @@ export class DesktopWhisperTranscriber {
     
     // Stop track health monitoring
     this.stopTrackMonitoring();
+    
+    // Stop chunk watchdog and page lifecycle listeners
+    this.stopChunkWatchdog();
+    this.removePageLifecycleListeners();
     
     // Release Wake Lock
     await this.releaseWakeLock();
