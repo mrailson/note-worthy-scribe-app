@@ -20,13 +20,18 @@ import {
   useRenameVaultItem,
   useMoveVaultItem,
   useCopyVaultFile,
+  VaultScope,
 } from '@/hooks/useNRESVaultData';
 import { useVaultPermission, useIsVaultAdmin, canUpload, canDelete, canManageAccess } from '@/hooks/useNRESVaultPermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-export const NRESDocumentVault = () => {
+interface NRESDocumentVaultProps {
+  scope?: VaultScope;
+}
+
+export const NRESDocumentVault = ({ scope = 'nres_vault' }: NRESDocumentVaultProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -40,23 +45,26 @@ export const NRESDocumentVault = () => {
   const [viewMode, setViewMode] = useState<VaultViewMode>('tree');
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Data queries
-  const { data: folders = [], isLoading: foldersLoading } = useVaultFolders(currentFolderId);
-  const { data: files = [], isLoading: filesLoading } = useVaultFiles(currentFolderId);
-  const { data: breadcrumbs = [] } = useVaultBreadcrumbs(currentFolderId);
-  const { data: searchResults } = useVaultSearch(searchQuery);
+  const isENN = scope === 'enn_vault';
+  const namingPrefix = isENN ? 'ENN' : 'NRES';
+
+  // Data queries — scope-aware
+  const { data: folders = [], isLoading: foldersLoading } = useVaultFolders(currentFolderId, scope);
+  const { data: files = [], isLoading: filesLoading } = useVaultFiles(currentFolderId, scope);
+  const { data: breadcrumbs = [] } = useVaultBreadcrumbs(currentFolderId, scope);
+  const { data: searchResults } = useVaultSearch(searchQuery, scope);
 
   // Permission queries
   const { data: currentPermission = 'full_access' } = useVaultPermission(currentFolderId, 'folder');
   const { data: isAdmin = false } = useIsVaultAdmin();
 
-  // Mutations
-  const createFolder = useCreateVaultFolder();
-  const uploadFile = useUploadVaultFile();
-  const deleteItem = useDeleteVaultItem();
-  const renameItem = useRenameVaultItem();
-  const moveItem = useMoveVaultItem();
-  const copyFile = useCopyVaultFile();
+  // Mutations — scope-aware
+  const createFolder = useCreateVaultFolder(scope);
+  const uploadFile = useUploadVaultFile(scope);
+  const deleteItem = useDeleteVaultItem(scope);
+  const renameItem = useRenameVaultItem(scope);
+  const moveItem = useMoveVaultItem(scope);
+  const copyFile = useCopyVaultFile(scope);
 
   const handleNavigate = useCallback((folderId: string | null) => {
     setCurrentFolderId(folderId);
@@ -67,13 +75,12 @@ export const NRESDocumentVault = () => {
     const folderId = targetFolderId !== undefined ? targetFolderId : currentFolderId;
     try {
       await Promise.all(fileList.map((file) => uploadFile.mutateAsync({ file, folderId })));
-      // Force immediate refetch after all uploads complete
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
+      queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
+      queryClient.invalidateQueries({ queryKey: ['vault-folders', scope] });
     } catch {
       // Individual errors already handled by mutation's onError
     }
-  }, [uploadFile, currentFolderId, queryClient]);
+  }, [uploadFile, currentFolderId, queryClient, scope]);
 
   const handleDelete = useCallback(async (id: string, type: 'folder' | 'file', filePath?: string, name?: string) => {
     try {
@@ -89,12 +96,10 @@ export const NRESDocumentVault = () => {
 
   const handleCopy = useCallback((items: ClipboardState['items']) => {
     setClipboard({ items, operation: 'copy' });
-    // toast removed
   }, []);
 
   const handleCut = useCallback((items: ClipboardState['items']) => {
     setClipboard({ items, operation: 'cut' });
-    // toast removed
   }, []);
 
   const handlePaste = useCallback(() => {
@@ -105,9 +110,6 @@ export const NRESDocumentVault = () => {
         moveItem.mutate({ id: item.id, type: item.type, targetFolderId: currentFolderId });
       } else if (item.type === 'file') {
         copyFile.mutate({ fileId: item.id, targetFolderId: currentFolderId });
-      } else {
-        // Copying folders not supported yet - just inform the user
-        // Folder copying not yet supported — silent
       }
     });
 
@@ -125,9 +127,9 @@ export const NRESDocumentVault = () => {
   }, [renameItem]);
 
   const handleRefresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
-    queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-  }, [queryClient]);
+    queryClient.invalidateQueries({ queryKey: ['vault-folders', scope] });
+    queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
+  }, [queryClient, scope]);
 
   // Determine what to show
   const isSearching = searchQuery.trim().length > 0;
@@ -225,19 +227,21 @@ export const NRESDocumentVault = () => {
                     <li>Templates &amp; standard forms</li>
                     <li>Reports &amp; audits (anonymised/aggregated)</li>
                   </ul>
-                  <a
-                    href="/documents/NRES_Document_Vault_Folder_Structure.docx"
-                    download
-                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#005EB8] hover:text-[#003087] hover:underline transition-colors pt-1 border-t border-border/40 mt-1"
-                  >
-                    <FolderOpen className="h-3.5 w-3.5" />
-                    Proposed Folder Structure &amp; Access Matrix
-                  </a>
+                  {!isENN && (
+                    <a
+                      href="/documents/NRES_Document_Vault_Folder_Structure.docx"
+                      download
+                      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#005EB8] hover:text-[#003087] hover:underline transition-colors pt-1 border-t border-border/40 mt-1"
+                    >
+                      <FolderOpen className="h-3.5 w-3.5" />
+                      Proposed Folder Structure &amp; Access Matrix
+                    </a>
+                  )}
                 </div>
                 <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs space-y-1.5">
                   <p className="font-medium text-foreground text-sm">Document hygiene tips</p>
                   <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-                    <li>Use clear naming (e.g. <span className="font-mono text-[10px]">NRES_Policy_InfectionControl_v1.2_Jan2026</span>)</li>
+                    <li>Use clear naming (e.g. <span className="font-mono text-[10px]">{namingPrefix}_Policy_InfectionControl_v1.2_Jan2026</span>)</li>
                     <li>Archive outdated versions rather than deleting</li>
                     <li>Finalise documents before uploading to shared folders</li>
                   </ul>
@@ -279,7 +283,6 @@ export const NRESDocumentVault = () => {
             viewMode={viewMode}
             onNavigateToFolder={(id) => handleNavigate(id)}
             onNavigateUp={() => {
-              // Find parent of current folder from breadcrumbs
               const parentCrumb = breadcrumbs.length >= 2 ? breadcrumbs[breadcrumbs.length - 2] : null;
               handleNavigate(parentCrumb?.id ?? null);
             }}

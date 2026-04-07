@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logVaultAction } from './useNRESVaultAudit';
 
+export type VaultScope = 'nres_vault' | 'enn_vault';
+
 export interface VaultFolder {
   id: string;
   name: string;
@@ -35,14 +37,16 @@ export interface BreadcrumbItem {
   name: string;
 }
 
-export const useVaultFolders = (parentId: string | null) => {
+const storagePrefix = (scope: VaultScope) => scope === 'enn_vault' ? 'enn-vault' : 'nres-vault';
+
+export const useVaultFolders = (parentId: string | null, scope: VaultScope = 'nres_vault') => {
   return useQuery({
-    queryKey: ['nres-vault-folders', parentId],
+    queryKey: ['vault-folders', scope, parentId],
     queryFn: async () => {
       let query = supabase
         .from('shared_drive_folders')
         .select('id, name, parent_id, created_by, created_at, updated_at, path')
-        .eq('scope', 'nres_vault')
+        .eq('scope', scope)
         .order('name');
 
       if (parentId) {
@@ -58,14 +62,14 @@ export const useVaultFolders = (parentId: string | null) => {
   });
 };
 
-export const useVaultFiles = (folderId: string | null) => {
+export const useVaultFiles = (folderId: string | null, scope: VaultScope = 'nres_vault') => {
   return useQuery({
-    queryKey: ['nres-vault-files', folderId],
+    queryKey: ['vault-files', scope, folderId],
     queryFn: async () => {
       let query = supabase
         .from('shared_drive_files')
         .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description')
-        .eq('scope', 'nres_vault')
+        .eq('scope', scope)
         .order('name');
 
       if (folderId) {
@@ -81,9 +85,9 @@ export const useVaultFiles = (folderId: string | null) => {
   });
 };
 
-export const useVaultBreadcrumbs = (folderId: string | null) => {
+export const useVaultBreadcrumbs = (folderId: string | null, _scope: VaultScope = 'nres_vault') => {
   return useQuery({
-    queryKey: ['nres-vault-breadcrumbs', folderId],
+    queryKey: ['vault-breadcrumbs', _scope, folderId],
     queryFn: async (): Promise<BreadcrumbItem[]> => {
       if (!folderId) return [{ id: null, name: 'Document Vault Home' }];
 
@@ -102,7 +106,6 @@ export const useVaultBreadcrumbs = (folderId: string | null) => {
         currentId = data.parent_id;
       }
 
-      // ancestors is [current, parent, grandparent, ...] — reverse to get root-first
       ancestors.reverse();
       return [{ id: null, name: 'Document Vault Home' }, ...ancestors];
     },
@@ -110,9 +113,9 @@ export const useVaultBreadcrumbs = (folderId: string | null) => {
   });
 };
 
-export const useVaultSearch = (searchQuery: string) => {
+export const useVaultSearch = (searchQuery: string, scope: VaultScope = 'nres_vault') => {
   return useQuery({
-    queryKey: ['nres-vault-search', searchQuery],
+    queryKey: ['vault-search', scope, searchQuery],
     queryFn: async () => {
       if (!searchQuery.trim()) return { folders: [], files: [] };
 
@@ -120,13 +123,13 @@ export const useVaultSearch = (searchQuery: string) => {
         supabase
           .from('shared_drive_folders')
           .select('id, name, parent_id, created_by, created_at, updated_at, path')
-          .eq('scope', 'nres_vault')
+          .eq('scope', scope)
           .ilike('name', `%${searchQuery}%`)
           .limit(20),
         supabase
           .from('shared_drive_files')
           .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description')
-          .eq('scope', 'nres_vault')
+          .eq('scope', scope)
           .ilike('name', `%${searchQuery}%`)
           .limit(20),
       ]);
@@ -140,7 +143,7 @@ export const useVaultSearch = (searchQuery: string) => {
   });
 };
 
-export const useCreateVaultFolder = () => {
+export const useCreateVaultFolder = (scope: VaultScope = 'nres_vault') => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -157,14 +160,13 @@ export const useCreateVaultFolder = () => {
           parent_id: parentId,
           created_by: user.id,
           path,
-          scope: 'nres_vault',
+          scope,
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Auto-assign owner permission so folder is private by default
       const { error: permissionError } = await supabase
         .from('shared_drive_permissions')
         .insert({
@@ -185,8 +187,7 @@ export const useCreateVaultFolder = () => {
       return data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
-      // toast removed
+      queryClient.invalidateQueries({ queryKey: ['vault-folders', scope] });
       if (user?.id) logVaultAction(user.id, { action: 'create_folder', target_type: 'folder', target_id: data.id, target_name: variables.name });
     },
     onError: (error: any) => {
@@ -195,7 +196,7 @@ export const useCreateVaultFolder = () => {
   });
 };
 
-export const useUploadVaultFile = () => {
+export const useUploadVaultFile = (scope: VaultScope = 'nres_vault') => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -205,7 +206,7 @@ export const useUploadVaultFile = () => {
 
       const timestamp = Date.now();
       const ext = file.name.split('.').pop();
-      const storagePath = `nres-vault/${user.id}/${timestamp}.${ext}`;
+      const storagePath = `${storagePrefix(scope)}/${user.id}/${timestamp}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('shared-drive')
@@ -224,7 +225,7 @@ export const useUploadVaultFile = () => {
           file_type: ext || null,
           mime_type: file.type || null,
           created_by: user.id,
-          scope: 'nres_vault',
+          scope,
         })
         .select()
         .single();
@@ -233,8 +234,7 @@ export const useUploadVaultFile = () => {
       return data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      // toast removed
+      queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
       if (user?.id) logVaultAction(user.id, { action: 'upload_file', target_type: 'file', target_id: data?.id, target_name: variables.file.name });
     },
     onError: (error: any) => {
@@ -243,7 +243,7 @@ export const useUploadVaultFile = () => {
   });
 };
 
-export const useReplaceVaultFile = () => {
+export const useReplaceVaultFile = (scope: VaultScope = 'nres_vault') => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -251,10 +251,9 @@ export const useReplaceVaultFile = () => {
     mutationFn: async ({ fileId, oldFilePath, newFile }: { fileId: string; oldFilePath: string; newFile: File }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      // Upload new file to a new storage path
       const timestamp = Date.now();
       const ext = newFile.name.split('.').pop();
-      const storagePath = `nres-vault/${user.id}/${timestamp}.${ext}`;
+      const storagePath = `${storagePrefix(scope)}/${user.id}/${timestamp}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('shared-drive')
@@ -262,10 +261,8 @@ export const useReplaceVaultFile = () => {
 
       if (uploadError) throw uploadError;
 
-      // Remove old file from storage
       await supabase.storage.from('shared-drive').remove([oldFilePath]);
 
-      // Update the DB record with new file details
       const { error } = await supabase
         .from('shared_drive_files')
         .update({
@@ -281,8 +278,7 @@ export const useReplaceVaultFile = () => {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      // toast removed
+      queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
       if (user?.id) logVaultAction(user.id, { action: 'replace_file', target_type: 'file', target_id: variables.fileId, target_name: variables.newFile.name });
     },
     onError: (error: any) => {
@@ -291,7 +287,7 @@ export const useReplaceVaultFile = () => {
   });
 };
 
-export const useDeleteVaultItem = () => {
+export const useDeleteVaultItem = (scope: VaultScope = 'nres_vault') => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -310,12 +306,10 @@ export const useDeleteVaultItem = () => {
       return { id, type, name };
     },
     onSuccess: (result) => {
-      // Yield before invalidation so React can finish dialog close animation
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
-        queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
+        queryClient.invalidateQueries({ queryKey: ['vault-folders', scope] });
+        queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
       }, 0);
-      // Fire-and-forget audit log – never blocks UI
       if (user?.id) {
         queueMicrotask(() => {
           logVaultAction(user.id, { action: result.type === 'folder' ? 'delete_folder' : 'delete_file', target_type: result.type, target_id: result.id, target_name: result.name });
@@ -328,7 +322,7 @@ export const useDeleteVaultItem = () => {
   });
 };
 
-export const useRenameVaultItem = () => {
+export const useRenameVaultItem = (scope: VaultScope = 'nres_vault') => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -344,9 +338,8 @@ export const useRenameVaultItem = () => {
       return { id, type, newName };
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      // toast removed
+      queryClient.invalidateQueries({ queryKey: ['vault-folders', scope] });
+      queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
       if (user?.id) logVaultAction(user.id, { action: result.type === 'folder' ? 'rename_folder' : 'rename_file', target_type: result.type, target_id: result.id, target_name: result.newName });
     },
     onError: (error: any) => {
@@ -355,7 +348,7 @@ export const useRenameVaultItem = () => {
   });
 };
 
-export const useMoveVaultItem = () => {
+export const useMoveVaultItem = (scope: VaultScope = 'nres_vault') => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -371,9 +364,8 @@ export const useMoveVaultItem = () => {
       return { id, type };
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-folders'] });
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      // toast removed
+      queryClient.invalidateQueries({ queryKey: ['vault-folders', scope] });
+      queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
       if (user?.id) logVaultAction(user.id, { action: result.type === 'folder' ? 'move_folder' : 'move_file', target_type: result.type, target_id: result.id });
     },
     onError: (error: any) => {
@@ -382,7 +374,7 @@ export const useMoveVaultItem = () => {
   });
 };
 
-export const useCopyVaultFile = () => {
+export const useCopyVaultFile = (scope: VaultScope = 'nres_vault') => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -390,7 +382,6 @@ export const useCopyVaultFile = () => {
     mutationFn: async ({ fileId, targetFolderId }: { fileId: string; targetFolderId: string | null }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      // Get original file record
       const { data: original, error: fetchError } = await supabase
         .from('shared_drive_files')
         .select('*')
@@ -398,22 +389,19 @@ export const useCopyVaultFile = () => {
         .single();
       if (fetchError || !original) throw fetchError || new Error('File not found');
 
-      // Download from storage
       const { data: blob, error: dlError } = await supabase.storage
         .from('shared-drive')
         .download(original.file_path);
       if (dlError) throw dlError;
 
-      // Upload copy
       const timestamp = Date.now();
       const ext = original.name.split('.').pop();
-      const newPath = `nres-vault/${user.id}/${timestamp}.${ext}`;
+      const newPath = `${storagePrefix(scope)}/${user.id}/${timestamp}.${ext}`;
       const { error: upError } = await supabase.storage
         .from('shared-drive')
         .upload(newPath, blob);
       if (upError) throw upError;
 
-      // Insert new record
       const { error: insertError } = await supabase
         .from('shared_drive_files')
         .insert({
@@ -425,13 +413,12 @@ export const useCopyVaultFile = () => {
           file_type: original.file_type,
           mime_type: original.mime_type,
           created_by: user.id,
-          scope: 'nres_vault',
+          scope,
         });
       if (insertError) throw insertError;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      // toast removed
+      queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
       if (user?.id) logVaultAction(user.id, { action: 'copy_file', target_type: 'file', target_id: variables.fileId });
     },
     onError: (error: any) => {
@@ -440,7 +427,7 @@ export const useCopyVaultFile = () => {
   });
 };
 
-export const useUpdateFileDescription = () => {
+export const useUpdateFileDescription = (scope: VaultScope = 'nres_vault') => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -453,9 +440,8 @@ export const useUpdateFileDescription = () => {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-files'] });
-      queryClient.invalidateQueries({ queryKey: ['nres-vault-search'] });
-      // toast removed
+      queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
+      queryClient.invalidateQueries({ queryKey: ['vault-search', scope] });
       if (user?.id) logVaultAction(user.id, { action: 'edit_description', target_type: 'file', target_id: variables.fileId });
     },
     onError: (error: any) => {
