@@ -10,6 +10,8 @@ interface UseRecordingHealthMonitorProps {
   onRecordingStalled?: () => void;
   micStreamRef?: React.RefObject<MediaStream | null>;
   onTracksDied?: () => void;
+  /** Called when the chunk delivery watchdog detects a stall */
+  onChunkDeliveryStall?: (info: { stalledSeconds: number; recoveryAttempt: number }) => void;
 }
 
 interface HealthMonitorState {
@@ -17,6 +19,7 @@ interface HealthMonitorState {
   serverStatus: 'recording' | 'completed' | 'unknown';
   stalledWarningShown: boolean;
   criticalWarningShown: boolean;
+  chunkDeliveryStalled: boolean;
 }
 
 /**
@@ -35,13 +38,15 @@ export const useRecordingHealthMonitor = ({
   onServerClosureDetected,
   onRecordingStalled,
   micStreamRef,
-  onTracksDied
+  onTracksDied,
+  onChunkDeliveryStall
 }: UseRecordingHealthMonitorProps) => {
   const [state, setState] = useState<HealthMonitorState>({
     lastServerCheck: null,
     serverStatus: 'unknown',
     stalledWarningShown: false,
-    criticalWarningShown: false
+    criticalWarningShown: false,
+    chunkDeliveryStalled: false
   });
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -238,7 +243,8 @@ export const useRecordingHealthMonitor = ({
         lastServerCheck: null,
         serverStatus: 'unknown',
         stalledWarningShown: false,
-        criticalWarningShown: false
+        criticalWarningShown: false,
+        chunkDeliveryStalled: false
       });
       return;
     }
@@ -265,11 +271,37 @@ export const useRecordingHealthMonitor = ({
     };
   }, [isRecording, meetingId, checkMeetingStatus, checkForStalls]);
 
+  /**
+   * Handle chunk delivery stall events from the DesktopWhisperTranscriber watchdog.
+   * Call this from the component that owns the transcriber instance.
+   */
+  const handleChunkDeliveryStall = useCallback((info: { stalledSeconds: number; recoveryAttempt: number }) => {
+    console.warn(`🐕 Health monitor: Chunk delivery stall — ${info.stalledSeconds}s, recovery attempt ${info.recoveryAttempt}`);
+    
+    setState(prev => ({ ...prev, chunkDeliveryStalled: true }));
+    
+    if (info.recoveryAttempt === 1) {
+      showToast.warning('Recording may have stalled — attempting recovery…', {
+        section: 'meeting_manager',
+        duration: 10000
+      });
+    } else if (info.recoveryAttempt >= 2) {
+      showToast.error('Recording appears to have stopped. Please save your notes and restart.', {
+        section: 'meeting_manager',
+        duration: 30000
+      });
+    }
+    
+    onChunkDeliveryStall?.(info);
+  }, [onChunkDeliveryStall]);
+
   return {
     lastServerCheck: state.lastServerCheck,
     serverStatus: state.serverStatus,
     isStalled: state.stalledWarningShown || state.criticalWarningShown,
+    chunkDeliveryStalled: state.chunkDeliveryStalled,
     tracksAlive: !trackDeathNotifiedRef.current,
-    forceCheck: checkMeetingStatus
+    forceCheck: checkMeetingStatus,
+    handleChunkDeliveryStall
   };
 };
