@@ -575,7 +575,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 pt-0">
+            <div className="space-y-6 p-4 pt-0">
               {/* Population Mix Chart */}
               <Card className="bg-slate-50 border shadow-none">
                 <CardHeader className="pb-2">
@@ -611,47 +611,57 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                 </CardContent>
               </Card>
 
-              {/* Appointment Allocation */}
+              {/* Key Practice Info Table */}
               <Card className="bg-slate-50 border shadow-none">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold text-slate-900">Appointment Allocation Model</CardTitle>
-                  <p className="text-sm text-slate-500">Mandatory Split</p>
+                  <CardTitle className="text-lg font-semibold text-slate-900">Key Practice Information</CardTitle>
+                  <p className="text-sm text-slate-500">ODS codes, addresses &amp; hub assignments — January 2026 data</p>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-[150px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={appointmentData} layout="vertical">
-                        <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                        <YAxis type="category" dataKey="name" width={100} />
-                        <Tooltip />
-                        <Bar dataKey="hub" stackId="a" fill="#41B6E6" name="Hub" radius={[0, 0, 0, 0]} />
-                        <Bar dataKey="spoke" stackId="a" fill="#768692" name="Spoke" radius={[0, 8, 8, 0]} />
-                        <Bar dataKey="remote" stackId="b" fill="#005EB8" name="Remote" radius={[0, 8, 8, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex justify-center gap-6 mt-4">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-[#005EB8]">50%</p>
-                      <p className="text-sm text-slate-600">REMOTE</p>
-                      <p className="text-xs text-slate-500 mt-1">{customApptStats?.remoteAppts || '36,888'} appts/year</p>
-                    </div>
-                    <div className="text-center border-l border-slate-200 pl-6">
-                      <p className="text-2xl font-bold text-slate-700">50%</p>
-                      <p className="text-sm text-slate-600">FACE TO FACE</p>
-                      <p className="text-xs text-slate-500 mt-1">{customApptStats?.f2fAppts || '36,887'} appts/year</p>
-                      <div className="flex gap-3 mt-2 text-xs">
-                        <span className="flex items-center gap-1">
-                          <span className="w-3 h-3 rounded" style={{ backgroundColor: "#41B6E6" }}></span>
-                          Hub {customApptStats?.hubPercent || '30%'} ({customApptStats?.hubAppts || '22,133'})
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="w-3 h-3 rounded" style={{ backgroundColor: "#768692" }}></span>
-                          Spoke {customApptStats?.spokePercent || '20%'} ({customApptStats?.spokeAppts || '14,755'})
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                <CardContent className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider">
+                        <th className="text-left p-2 border-b font-semibold">ODS Code</th>
+                        <th className="text-left p-2 border-b font-semibold">Practice</th>
+                        <th className="text-right p-2 border-b font-semibold">List Size</th>
+                        <th className="text-right p-2 border-b font-semibold">Annual Appts</th>
+                        <th className="text-right p-2 border-b font-semibold">Weekly Appts</th>
+                        <th className="text-left p-2 border-b font-semibold">Hub</th>
+                        <th className="text-left p-2 border-b font-semibold">Address</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { ods: 'K83007', name: 'Harborough Field Surgery', list: 13991, annual: 11604, weekly: 222, hub: 'Harborough Field Surgery', address: '160 Newton Rd, Rushden NN10 0GP' },
+                        { ods: 'K83023', name: 'Oundle Medical Practice', list: 10600, annual: 8792, weekly: 169, hub: 'The Meadows Surgery', address: 'Glapthorn Rd, Peterborough PE8 4JA' },
+                        { ods: 'K83024', name: 'Rushden Medical Centre', list: 9143, annual: 7583, weekly: 146, hub: 'Harborough Field Surgery', address: 'Adnitt Road, Rushden NN10 9TR' },
+                        { ods: 'K83028', name: 'Spinney Brook Medical Centre', list: 11537, annual: 9569, weekly: 184, hub: 'The Cottons', address: '59 High St, Irthlingborough NN9 5GA' },
+                        { ods: 'K83030', name: 'The Cottons Medical Centre', list: 9372, annual: 7773, weekly: 149, hub: 'The Cottons', address: 'Meadow Lane, Raunds NN9 6UA' },
+                        { ods: 'K83044', name: 'Parklands Medical Centre', list: 13612, annual: 11290, weekly: 217, hub: 'Harborough Field Surgery', address: 'Wymington Road, Rushden NN10 9EB' },
+                        { ods: 'K83065', name: 'Nene Valley Surgery', list: 6921, annual: 5740, weekly: 110, hub: 'The Meadows Surgery', address: 'Green Lane, Thrapston NN14 4QL' },
+                        { ods: 'K83069', name: 'Marshalls Road Surgery', list: 3156, annual: 2618, weekly: 50, hub: 'The Cottons', address: "7 Marshall's Rd, Raunds NN9 6ET" },
+                        { ods: 'K83080', name: 'Higham Ferrers Surgery', list: 5569, annual: 4619, weekly: 89, hub: 'Harborough Field Surgery', address: 'Saffron Rd, Higham Ferrers NN10 8ED' },
+                        { ods: 'K83616', name: 'The Meadows Surgery', list: 6340, annual: 5258, weekly: 101, hub: 'The Meadows Surgery', address: 'Meadow Lane, Wellingborough NN14 4GD' },
+                      ].map((p, i) => (
+                        <tr key={p.ods} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                          <td className="p-2 border-b font-mono text-xs text-slate-600">{p.ods}</td>
+                          <td className="p-2 border-b font-medium text-slate-900">{p.name}</td>
+                          <td className="p-2 border-b text-right tabular-nums">{p.list.toLocaleString()}</td>
+                          <td className="p-2 border-b text-right tabular-nums">{p.annual.toLocaleString()}</td>
+                          <td className="p-2 border-b text-right tabular-nums">{p.weekly.toLocaleString()}</td>
+                          <td className="p-2 border-b text-slate-700 text-xs">{p.hub}</td>
+                          <td className="p-2 border-b text-slate-500 text-xs">{p.address}</td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-200 font-semibold">
+                        <td className="p-2 border-b" colSpan={2}>Total</td>
+                        <td className="p-2 border-b text-right tabular-nums">90,241</td>
+                        <td className="p-2 border-b text-right tabular-nums">74,846</td>
+                        <td className="p-2 border-b text-right tabular-nums">1,438</td>
+                        <td className="p-2 border-b" colSpan={2}>10 practices · 3 hubs</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </CardContent>
               </Card>
             </div>
