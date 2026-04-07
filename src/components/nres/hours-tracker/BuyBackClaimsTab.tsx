@@ -7,6 +7,7 @@ import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
+import { ENN_PRACTICES, ENN_PRACTICE_KEYS, type ENNPracticeKey } from '@/data/ennPractices';
 
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
@@ -65,11 +66,13 @@ const DECLARATION_TEXT =
 // STAFF_ROLES is now dynamic — see BuyBackClaimsTab below
 
 /** Isolated add-staff form – keeps its own state so typing never loses focus */
-function AddStaffForm({ saving, onAdd, staffRoles, rateParams }: {
+function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, practiceNames }: {
   saving: boolean;
   onAdd: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   staffRoles: string[];
   rateParams?: RateParams;
+  practiceKeys: string[];
+  practiceNames: Record<string, string>;
 }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('GP');
@@ -128,8 +131,8 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams }: {
           <Select value={practice} onValueChange={setPractice}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Select" /></SelectTrigger>
             <SelectContent>
-              {NRES_PRACTICE_KEYS.map(k => (
-                <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
+              {practiceKeys.map(k => (
+                <SelectItem key={k} value={k}>{practiceNames[k]}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -278,20 +281,27 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
+  const ALL_PRACTICE_KEYS = isENN ? ENN_PRACTICE_KEYS as string[] : NRES_PRACTICE_KEYS as string[];
+  const ALL_PRACTICES: Record<string, string> = isENN ? ENN_PRACTICES : NRES_PRACTICES;
+  const resolvePracticeName = (key: string | null | undefined) => {
+    if (!key) return '—';
+    return ALL_PRACTICES[key] ?? getPracticeName(key);
+  };
+
   // Admins with no assignments see everything; otherwise filtered
   const hasAnyAssignment = myPractices.length > 0;
   const accessFilteredPracticeKeys = isAdmin && !hasAnyAssignment
-    ? NRES_PRACTICE_KEYS
-    : NRES_PRACTICE_KEYS.filter(k => myPractices.includes(k));
+    ? ALL_PRACTICE_KEYS
+    : ALL_PRACTICE_KEYS.filter(k => myPractices.includes(k));
 
   // Practices user can submit claims for
   const submitPracticeKeys = isAdmin && !hasAnyAssignment
-    ? NRES_PRACTICE_KEYS
-    : NRES_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k));
+    ? ALL_PRACTICE_KEYS
+    : ALL_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k));
 
   // Filter staff by practice — respect access assignments
   const accessFilteredStaff = activeStaff.filter(s =>
-    !s.practice_key || accessFilteredPracticeKeys.includes(s.practice_key as NRESPracticeKey)
+    !s.practice_key || accessFilteredPracticeKeys.includes(s.practice_key as string)
   );
   const filteredStaff = filterPractice === 'all'
     ? accessFilteredStaff
@@ -313,7 +323,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
 
   // Filter claims by access then practice/status
   const accessFilteredClaims = claims.filter(c =>
-    !c.practice_key || accessFilteredPracticeKeys.includes(c.practice_key as NRESPracticeKey)
+    !c.practice_key || accessFilteredPracticeKeys.includes(c.practice_key as string)
   );
   const practiceFilteredClaims = filterPractice === 'all'
     ? accessFilteredClaims
@@ -551,7 +561,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             <SelectContent>
               <SelectItem value="all">All Practices</SelectItem>
               {accessFilteredPracticeKeys.map(k => (
-                <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
+                <SelectItem key={k} value={k}>{ALL_PRACTICES[k]}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -567,7 +577,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} />
+          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={ALL_PRACTICE_KEYS} practiceNames={ALL_PRACTICES} />
 
           {/* Staff list */}
           {filteredStaff.length > 0 && (
@@ -591,7 +601,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                      const monthly = calculateStaffMonthlyAmount(s, undefined, undefined, rateParams);
                      return (
                        <tr key={s.id} className="border-t">
-                          <td className="p-2 text-xs">{getPracticeName(s.practice_key)}</td>
+                          <td className="p-2 text-xs">{resolvePracticeName(s.practice_key)}</td>
                           <td className="p-2">{categoryBadge(s.staff_category)}</td>
                          <td className="p-2">{displayName}</td>
                          <td className="p-2">{s.staff_role}</td>
@@ -644,7 +654,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                 </SelectTrigger>
                 <SelectContent>
                   {submitPracticeKeys.map(k => (
-                    <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
+                    <SelectItem key={k} value={k}>{ALL_PRACTICES[k]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -950,7 +960,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
       {/* Header */}
       <div className="bg-muted/50 px-3 py-2 flex items-center justify-between">
         <div className="flex items-center gap-3 text-sm">
-          <span className="font-medium">{getPracticeName(claim.practice_key)}</span>
+          <span className="font-medium">{resolvePracticeName(claim.practice_key)}</span>
           <span className="text-muted-foreground">—</span>
           <span>{format(new Date(claim.claim_month), 'MMMM yyyy')}</span>
           {statusBadge(claim.status)}
@@ -1190,7 +1200,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
           <div className="px-3 py-2 border-t bg-amber-50 dark:bg-amber-950/30 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
             <div className="text-xs text-amber-800 dark:text-amber-200">
-              <strong>Practice mismatch warning:</strong> The following staff {mismatched.length === 1 ? 'member is' : 'members are'} assigned to a different practice than this claim ({getPracticeName(claim.practice_key)}):
+              <strong>Practice mismatch warning:</strong> The following staff {mismatched.length === 1 ? 'member is' : 'members are'} assigned to a different practice than this claim ({resolvePracticeName(claim.practice_key)}):
               <ul className="list-disc list-inside mt-1">
                 {mismatched.map((s, i) => (
                   <li key={i}>{s.staff_name} — assigned to {getPracticeName(s.practice_key)}</li>
