@@ -131,8 +131,8 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
           <Select value={practice} onValueChange={setPractice}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Select" /></SelectTrigger>
             <SelectContent>
-              {NRES_PRACTICE_KEYS.map(k => (
-                <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
+              {practiceKeys.map(k => (
+                <SelectItem key={k} value={k}>{practiceNames[k]}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -281,16 +281,19 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
+  const ALL_PRACTICE_KEYS = isENN ? ENN_PRACTICE_KEYS as string[] : NRES_PRACTICE_KEYS as string[];
+  const ALL_PRACTICES: Record<string, string> = isENN ? ENN_PRACTICES : NRES_PRACTICES;
+
   // Admins with no assignments see everything; otherwise filtered
   const hasAnyAssignment = myPractices.length > 0;
   const accessFilteredPracticeKeys = isAdmin && !hasAnyAssignment
-    ? NRES_PRACTICE_KEYS
-    : NRES_PRACTICE_KEYS.filter(k => myPractices.includes(k));
+    ? ALL_PRACTICE_KEYS
+    : ALL_PRACTICE_KEYS.filter(k => myPractices.includes(k));
 
   // Practices user can submit claims for
   const submitPracticeKeys = isAdmin && !hasAnyAssignment
-    ? NRES_PRACTICE_KEYS
-    : NRES_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k));
+    ? ALL_PRACTICE_KEYS
+    : ALL_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k));
 
   // Filter staff by practice — respect access assignments
   const accessFilteredStaff = activeStaff.filter(s =>
@@ -554,7 +557,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             <SelectContent>
               <SelectItem value="all">All Practices</SelectItem>
               {accessFilteredPracticeKeys.map(k => (
-                <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
+                <SelectItem key={k} value={k}>{ALL_PRACTICES[k]}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -570,7 +573,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} />
+          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={ALL_PRACTICE_KEYS} practiceNames={ALL_PRACTICES} />
 
           {/* Staff list */}
           {filteredStaff.length > 0 && (
@@ -647,7 +650,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                 </SelectTrigger>
                 <SelectContent>
                   {submitPracticeKeys.map(k => (
-                    <SelectItem key={k} value={k}>{NRES_PRACTICES[k]}</SelectItem>
+                    <SelectItem key={k} value={k}>{ALL_PRACTICES[k]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
