@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";
+import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,6 +23,7 @@ export const ENNHeader = ({ activeTab }: ENNHeaderProps) => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { isRecording: isGlobalRecording } = useRecording();
+  const { hasServiceAccess } = useServiceActivation();
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
@@ -108,9 +110,11 @@ export const ENNHeader = ({ activeTab }: ENNHeaderProps) => {
                 <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer py-2">
                   Meeting Notes
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/NRESDashboard')} className="cursor-pointer py-2">
-                  NRES Dashboard
-                </DropdownMenuItem>
+                {hasServiceAccess('nres') && (
+                  <DropdownMenuItem onClick={() => navigate('/NRESDashboard')} className="cursor-pointer py-2">
+                    NRES Dashboard
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => navigate('/enn')} className="cursor-pointer py-2">
                   ENN Dashboard
                 </DropdownMenuItem>
