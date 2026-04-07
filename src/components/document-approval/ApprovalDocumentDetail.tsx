@@ -427,7 +427,12 @@ export function ApprovalDocumentDetail({ document: doc, onBack }: Props) {
       toast.success(`Downloaded with ${approvedCount} of ${totalCount} signature${approvedCount !== 1 ? 's' : ''}`);
     } catch (err) {
       console.error('Failed to generate partial PDF:', err);
-      toast.error('Failed to generate document with partial signatures');
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      if (errMsg.includes('no longer available') || errMsg.includes('could not be retrieved')) {
+        toast.error('The source document file has been deleted from storage. Please re-upload the document to continue.');
+      } else {
+        toast.error('Failed to generate document with partial signatures');
+      }
     } finally { setGenerating(false); }
   };
 
