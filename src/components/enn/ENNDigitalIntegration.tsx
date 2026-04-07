@@ -418,48 +418,6 @@ export const SDADigitalIntegration = () => {
             </div>
           </div>
 
-          {/* Document reference */}
-          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <FileText className="w-5 h-5 text-[#005EB8]" />
-            <div className="flex-1">
-              <h4 className="font-semibold text-slate-900">ENN SDA Reporting Requirements from Specification — Overview & Planning</h4>
-              <p className="text-sm text-slate-600">Version 1.7.1 | March 2026</p>
-            </div>
-            <Button variant="outline" size="sm" asChild className="flex-shrink-0">
-              <a href="/documents/ENN_SDA_Reporting_Plan_v1_0.docx" download>
-                <Download className="h-4 w-4 mr-1" /> Word
-              </a>
-            </Button>
-          </div>
-
-          {/* Reporting Resource Projection */}
-          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-5 border border-indigo-200">
-            <div className="flex items-start gap-4">
-              <div className="bg-indigo-100 rounded-lg p-2.5 mt-0.5">
-                <Users className="w-6 h-6 text-indigo-600" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-slate-900 text-lg mb-1">Reporting Resource Projection</h4>
-                <p className="text-sm text-slate-600 mb-3">
-                  A detailed resource analysis projecting the staffing effort required to meet all ICB reporting obligations. 
-                  Covers first-time setup vs business-as-usual (BAU) effort for both the central management team and each of the 
-                  10 GP practices — including monthly, quarterly, and annual reporting cycles. Identifies high-workload reports 
-                  and estimates approximately 52 central hours/month and 4–6 practice hours/month once established.
-                </p>
-                <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <span className="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-1 rounded-full font-medium">Central: ~52 hrs/mth BAU</span>
-                  <span className="bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">Per Practice: 4–6 hrs/mth</span>
-                  <span className="bg-amber-100 text-amber-700 text-xs px-2.5 py-1 rounded-full font-medium">Setup: 80–100 hrs/practice</span>
-                  <span className="bg-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-medium">4 High-Workload Reports</span>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href="/documents/ENN_Reporting_Resource_Analysis_v1_0.docx" download>
-                    <Download className="h-4 w-4 mr-1" /> Download Resource Projection (Word)
-                  </a>
-                </Button>
-              </div>
-            </div>
-          </div>
 
           {/* KPI Grid */}
           <div>
