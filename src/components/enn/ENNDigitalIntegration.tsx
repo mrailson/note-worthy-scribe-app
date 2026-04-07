@@ -34,7 +34,7 @@ const digitalTfActions = [
   { id: 6, description: "Confirm hub premises capacity and room availability for each hub site", owner: "Rebecca Gane", organisation: "3Sixty", dueDate: "", status: "In progress", dateCompleted: "" },
   { id: 7, description: "Establish Practice Manager reporting leads for each of the 10 practices", owner: "Rebecca Gane", organisation: "3Sixty", dueDate: "", status: "In progress", dateCompleted: "" },
   { id: 8, description: "Confirm telephony platform status across all 10 ENN practices", owner: "TBC", organisation: "3Sixty", dueDate: "", status: "Pending", dateCompleted: "" },
-  { id: 9, description: "Set up GPAD data exports and baseline reporting for ENN practices", owner: "Malcolm Railson", organisation: "PCN Services", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 9, description: "Set up GPAD data exports and baseline reporting for ENN practices", owner: "Rebecca Gane", organisation: "3Sixty", dueDate: "", status: "In progress", dateCompleted: "" },
   { id: 10, description: "Confirm DSA and DPIA status for neighbourhood data sharing", owner: "Rebecca Gane", organisation: "3Sixty", dueDate: "", status: "Pending", dateCompleted: "" },
 ];
 
@@ -262,7 +262,7 @@ export const SDADigitalIntegration = () => {
                 </thead>
                 <tbody>
                   {[
-                    { report: "Appointment Activity Report", frequency: "Monthly", owner: "Malcolm Railson", to: "ICB / Programme Board" },
+                    { report: "Appointment Activity Report", frequency: "Monthly", owner: "Rebecca Gane", to: "ICB / Programme Board" },
                     { report: "Workforce Rota Summary", frequency: "Monthly", owner: "Practice Managers", to: "3Sixty Care Partnership" },
                     { report: "Financial Reconciliation", frequency: "Monthly", owner: "Finance Lead", to: "ICB Finance Team" },
                     { report: "Patient Satisfaction Dashboard", frequency: "Quarterly", owner: "Quality Lead", to: "Programme Board" },
