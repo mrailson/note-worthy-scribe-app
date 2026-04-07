@@ -23,6 +23,7 @@ export const ENNHeader = ({ activeTab }: ENNHeaderProps) => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { isRecording: isGlobalRecording } = useRecording();
+  const { hasServiceAccess } = useServiceActivation();
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
