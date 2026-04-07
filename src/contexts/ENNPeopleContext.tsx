@@ -1,39 +1,16 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { ProgrammePerson, ProgrammeGroup } from "@/data/nresPeopleDirectory";
+import { NRESPeopleContext } from "@/contexts/NRESPeopleContext";
+import type { PeopleAuditEntry } from "@/contexts/NRESPeopleContext";
 import { defaultENNPeople, defaultENNGroups } from "@/data/ennPeopleDirectory";
-
-export interface ENNPeopleAuditEntry {
-  id: string;
-  timestamp: Date;
-  userEmail: string;
-  action: "Added" | "Edited" | "Deleted";
-  personName: string;
-  field?: string;
-  oldValue?: string;
-  newValue?: string;
-}
-
-interface ENNPeopleContextType {
-  people: ProgrammePerson[];
-  groups: ProgrammeGroup[];
-  addPerson: (person: Omit<ProgrammePerson, "id">, userEmail: string) => void;
-  updatePerson: (id: string, updates: Partial<ProgrammePerson>, userEmail: string) => void;
-  deletePerson: (id: string, userEmail: string) => void;
-  addGroup: (group: Omit<ProgrammeGroup, "id">, userEmail: string) => void;
-  updateGroup: (id: string, updates: Partial<ProgrammeGroup>, userEmail: string) => void;
-  deleteGroup: (id: string, userEmail: string) => void;
-  auditLog: ENNPeopleAuditEntry[];
-}
-
-const ENNPeopleContext = createContext<ENNPeopleContextType | undefined>(undefined);
 
 export const ENNPeopleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [people, setPeople] = useState<ProgrammePerson[]>(defaultENNPeople);
   const [groups, setGroups] = useState<ProgrammeGroup[]>(defaultENNGroups);
-  const [auditLog, setAuditLog] = useState<ENNPeopleAuditEntry[]>([]);
+  const [auditLog, setAuditLog] = useState<PeopleAuditEntry[]>([]);
 
   const addAudit = useCallback(
-    (userEmail: string, action: ENNPeopleAuditEntry["action"], personName: string, field?: string, oldValue?: string, newValue?: string) => {
+    (userEmail: string, action: PeopleAuditEntry["action"], personName: string, field?: string, oldValue?: string, newValue?: string) => {
       setAuditLog((prev) => [
         { id: crypto.randomUUID(), timestamp: new Date(), userEmail, action, personName, field, oldValue, newValue },
         ...prev,
@@ -123,14 +100,8 @@ export const ENNPeopleProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 
   return (
-    <ENNPeopleContext.Provider value={{ people, groups, addPerson, updatePerson, deletePerson, addGroup, updateGroup, deleteGroup, auditLog }}>
+    <NRESPeopleContext.Provider value={{ people, groups, addPerson, updatePerson, deletePerson, addGroup, updateGroup, deleteGroup, auditLog }}>
       {children}
-    </ENNPeopleContext.Provider>
+    </NRESPeopleContext.Provider>
   );
-};
-
-export const useENNPeople = () => {
-  const ctx = useContext(ENNPeopleContext);
-  if (!ctx) throw new Error("useENNPeople must be used within ENNPeopleProvider");
-  return ctx;
 };
