@@ -97,7 +97,7 @@ const ENNCUCCAttendance = () => {
   }, []);
 
   // Compute metrics based on selected practice or all
-  const { displayTotal, displayAvg, displayMonthlyValues, highestMonth, lowestMonth } = useMemo(() => {
+  const { displayTotal, displayAvg, highestMonth, lowestMonth } = useMemo(() => {
     if (selectedPractice === "all") {
       const mv = CUCC_DATA.map((m) => PRACTICES.reduce((s, p) => s + (Number(m[p.key]) || 0), 0));
       const total = mv.reduce((s, v) => s + v, 0);
@@ -295,8 +295,8 @@ const ENNCUCCAttendance = () => {
                   {monthlyTotals.map((t, i) => (
                     <TableCell key={i} className="text-center text-xs tabular-nums">{t.toLocaleString()}</TableCell>
                   ))}
-                  <TableCell className="text-center text-xs tabular-nums bg-blue-100">{grandTotal.toLocaleString()}</TableCell>
-                  <TableCell className="text-center text-xs tabular-nums">{avgMonthly}</TableCell>
+                  <TableCell className="text-center text-xs tabular-nums bg-blue-100">{monthlyTotals.reduce((s, v) => s + v, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-center text-xs tabular-nums">{Math.round(monthlyTotals.reduce((s, v) => s + v, 0) / monthlyTotals.length)}</TableCell>
                   <TableCell className="text-center text-xs tabular-nums bg-amber-100">74,846</TableCell>
                 </TableRow>
               </TableBody>
