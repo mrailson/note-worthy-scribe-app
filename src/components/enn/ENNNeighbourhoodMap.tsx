@@ -43,6 +43,34 @@ const driveTimes = [
   [14, 28, 12,  6, 16, 11, 20, 17, 11,  0],
 ];
 
+/** Miles from each spoke to its assigned hub */
+const hubMiles: Record<string, number> = {
+  "K83007": 0, "K83044": 1.1, "K83024": 1.1, "K83080": 2.4,
+  "K83030": 0, "K83028": 5.2, "K83069": 0.4,
+  "K83616": 0, "K83023": 8, "K83065": 0,
+};
+
+/** Bus service from spoke to hub */
+const hubBus: Record<string, string> = {
+  "K83044": "25", "K83024": "X46", "K83080": "94",
+  "K83028": "X47", "K83069": "X47",
+  "K83023": "94/DTRS", "K83065": "16",
+};
+
+/** Travel from each practice to Corby Urgent Care Centre */
+const cuccTravel: Record<string, { miles: number; carMin: number; publicTransport: string; bus: string }> = {
+  "K83007": { miles: 21.3, carMin: 34, publicTransport: "2h 8m", bus: "X46/EMR/X4/1" },
+  "K83028": { miles: 17.8, carMin: 30, publicTransport: "1h 28m", bus: "48/EMR/X4" },
+  "K83030": { miles: 23, carMin: 33, publicTransport: "1h 43m", bus: "16/X4/1" },
+  "K83044": { miles: 22.3, carMin: 38, publicTransport: "1h 55m", bus: "46/X4" },
+  "K83065": { miles: 19.4, carMin: 29, publicTransport: "1h 23m", bus: "X16/X4/DTRS" },
+  "K83069": { miles: 23.4, carMin: 33, publicTransport: "2h 5m", bus: "16/X4/1" },
+  "K83080": { miles: 19.6, carMin: 11, publicTransport: "2h 12m", bus: "50/X4" },
+  "K83616": { miles: 19.3, carMin: 29, publicTransport: "1h 23m", bus: "X16/DTRS/X4" },
+  "K83023": { miles: 12.9, carMin: 26, publicTransport: "0h 56m", bus: "X4" },
+  "K83024": { miles: 21.9, carMin: 37, publicTransport: "1h 30m", bus: "X47/X4" },
+};
+
 const hubAssignments: Record<string, string> = {
   "K83007": "K83007", "K83024": "K83007", "K83044": "K83007", "K83080": "K83007",
   "K83028": "K83030", "K83030": "K83030", "K83069": "K83030",
@@ -72,56 +100,90 @@ function SpokeRow({ practice, hubId, isLast }: { practice: Practice; hubId: stri
   const driveCol = getDriveColor(mins);
   const isHubSelf = practice.id === hubId;
   const hc = hubColors[hubId];
+  const miles = hubMiles[practice.id];
+  const bus = hubBus[practice.id] || "";
+  const cucc = cuccTravel[practice.id];
+  const cuccColor = cucc ? (cucc.carMin <= 20 ? "#00875A" : cucc.carMin <= 30 ? "#C68A00" : "#CC3333") : "#ccc";
+
+  const gridCols = "minmax(150px, 1.3fr) 75px 75px 75px 75px 75px 60px 55px 55px 50px 85px";
 
   return (
     <div style={{
-      display: "grid", gridTemplateColumns: "minmax(170px, 1.4fr) 80px 85px 85px 85px 85px 80px",
-      gap: 8, padding: "10px 16px", borderBottom: isLast ? "none" : "1px solid #f0f2f5",
+      display: "grid", gridTemplateColumns: gridCols,
+      gap: 4, padding: "8px 12px", borderBottom: isLast ? "none" : "1px solid #f0f2f5",
       alignItems: "center", background: isHubSelf ? hc.light : "white", transition: "background 0.15s ease",
+      fontSize: 11,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         {isHubSelf ? (
-          <span style={{ color: "white", fontSize: 7, fontWeight: 700, letterSpacing: 1, fontFamily: mono, background: hc.main, padding: "2px 8px", borderRadius: 4 }}>HUB</span>
+          <span style={{ color: "white", fontSize: 7, fontWeight: 700, letterSpacing: 1, fontFamily: mono, background: hc.main, padding: "2px 6px", borderRadius: 4 }}>HUB</span>
         ) : (
-          <span style={{ color: "#8a9aaa", fontSize: 7, fontWeight: 600, letterSpacing: 1, fontFamily: mono, background: "#f0f2f5", padding: "2px 6px", borderRadius: 4 }}>SPOKE</span>
+          <span style={{ color: "#8a9aaa", fontSize: 7, fontWeight: 600, letterSpacing: 1, fontFamily: mono, background: "#f0f2f5", padding: "2px 5px", borderRadius: 4 }}>SPOKE</span>
         )}
         <div>
-          <div style={{ color: "#1a2a3a", fontSize: 11, fontWeight: isHubSelf ? 700 : 600, fontFamily: sans }}>{practice.short}</div>
-          <div style={{ color: "#aabbcc", fontSize: 8, fontFamily: mono }}>{practice.id}</div>
+          <div style={{ color: "#1a2a3a", fontSize: 10, fontWeight: isHubSelf ? 700 : 600, fontFamily: sans }}>{practice.short}</div>
+          <div style={{ color: "#aabbcc", fontSize: 7, fontFamily: mono }}>{practice.id}</div>
           {practice.id === "K83028" && (
-            <div style={{ color: "#8a9aaa", fontSize: 7, fontFamily: sans, fontStyle: "italic", marginTop: 1 }}>Incl. Woodford Surgery (branch)</div>
+            <div style={{ color: "#8a9aaa", fontSize: 7, fontFamily: sans, fontStyle: "italic", marginTop: 1 }}>Incl. Woodford (branch)</div>
           )}
         </div>
       </div>
       <div style={{ textAlign: "right" }}>
-        <div style={{ color: "#1a2a3a", fontSize: 13, fontWeight: 700, fontFamily: mono }}>{practice.list.toLocaleString()}</div>
+        <div style={{ color: "#1a2a3a", fontSize: 12, fontWeight: 700, fontFamily: mono }}>{practice.list.toLocaleString()}</div>
         <div style={{ color: "#aabbcc", fontSize: 6, fontFamily: mono, letterSpacing: 1 }}>PATIENTS</div>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ color: hc.main, fontSize: 13, fontWeight: 700, fontFamily: mono }}>{practice.weeklyAppts}</div>
+        <div style={{ color: hc.main, fontSize: 12, fontWeight: 700, fontFamily: mono }}>{practice.weeklyAppts}</div>
         <div style={{ color: "#aabbcc", fontSize: 6, fontFamily: mono, letterSpacing: 1 }}>WEEKLY</div>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ color: "#6a7a8a", fontSize: 12, fontWeight: 600, fontFamily: mono }}>{practice.annualAppts.toLocaleString()}</div>
+        <div style={{ color: "#6a7a8a", fontSize: 11, fontWeight: 600, fontFamily: mono }}>{practice.annualAppts.toLocaleString()}</div>
         <div style={{ color: "#aabbcc", fontSize: 6, fontFamily: mono, letterSpacing: 1 }}>ANNUAL</div>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ color: "#00875A", fontSize: 13, fontWeight: 700, fontFamily: mono }}>{practice.nonWinterWk}</div>
+        <div style={{ color: "#00875A", fontSize: 12, fontWeight: 700, fontFamily: mono }}>{practice.nonWinterWk}</div>
         <div style={{ color: "#aabbcc", fontSize: 6, fontFamily: mono, letterSpacing: 1 }}>NON-WIN</div>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ color: "#D4531E", fontSize: 13, fontWeight: 700, fontFamily: mono }}>{practice.winterWk}</div>
+        <div style={{ color: "#D4531E", fontSize: 12, fontWeight: 700, fontFamily: mono }}>{practice.winterWk}</div>
         <div style={{ color: "#aabbcc", fontSize: 6, fontFamily: mono, letterSpacing: 1 }}>WINTER</div>
       </div>
+      {/* Hub Drive */}
       <div style={{ textAlign: "center" }}>
         {isHubSelf ? (
-          <div style={{ color: hc.main, fontSize: 9, fontFamily: mono, fontWeight: 700 }}>📍 Base</div>
+          <div style={{ color: hc.main, fontSize: 8, fontFamily: mono, fontWeight: 700 }}>📍 Base</div>
         ) : (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: driveCol.bg, padding: "4px 10px", borderRadius: 6, border: `1px solid ${driveCol.color}25` }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: driveCol.color }} />
-            <span style={{ color: driveCol.color, fontSize: 11, fontWeight: 700, fontFamily: mono }}>{mins}m</span>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 3, background: driveCol.bg, padding: "3px 6px", borderRadius: 5, border: `1px solid ${driveCol.color}25` }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: driveCol.color }} />
+            <span style={{ color: driveCol.color, fontSize: 10, fontWeight: 700, fontFamily: mono }}>{mins}m</span>
           </div>
         )}
+      </div>
+      {/* Miles to Hub */}
+      <div style={{ textAlign: "center" }}>
+        <div style={{ color: "#6a7a8a", fontSize: 10, fontWeight: 600, fontFamily: mono }}>
+          {miles != null ? (miles === 0 ? "—" : miles.toFixed(1)) : ""}
+        </div>
+        <div style={{ color: "#aabbcc", fontSize: 5, fontFamily: mono, letterSpacing: 1 }}>MILES</div>
+      </div>
+      {/* CUCC car */}
+      <div style={{ textAlign: "center" }}>
+        {cucc ? (
+          <>
+            <div style={{ color: cuccColor, fontSize: 10, fontWeight: 700, fontFamily: mono }}>{cucc.carMin}m</div>
+            <div style={{ color: "#aabbcc", fontSize: 5, fontFamily: mono, letterSpacing: 1 }}>CUCC</div>
+          </>
+        ) : <div style={{ color: "#ccc", fontSize: 9 }}>—</div>}
+      </div>
+      {/* Bus to Hub */}
+      <div style={{ textAlign: "center" }}>
+        <div style={{ color: "#005EB8", fontSize: 8, fontWeight: 600, fontFamily: mono }}>{bus || (isHubSelf ? "—" : "")}</div>
+        <div style={{ color: "#aabbcc", fontSize: 5, fontFamily: mono, letterSpacing: 1 }}>🚌 HUB</div>
+      </div>
+      {/* Bus to CUCC */}
+      <div style={{ textAlign: "center" }}>
+        <div style={{ color: "#8B5CF6", fontSize: 7, fontWeight: 600, fontFamily: mono, lineHeight: 1.3 }}>{cucc?.bus || "—"}</div>
+        <div style={{ color: "#aabbcc", fontSize: 5, fontFamily: mono, letterSpacing: 1 }}>🚌 CUCC</div>
       </div>
     </div>
   );
@@ -188,26 +250,30 @@ function HubPanel({ hubId, isExpanded, onToggle }: { hubId: string; isExpanded: 
       {isExpanded && (
         <div>
           <div style={{
-            display: "grid", gridTemplateColumns: "minmax(170px, 1.4fr) 80px 85px 85px 85px 85px 80px",
-            gap: 8, padding: "8px 16px", borderBottom: "1px solid #e8ecf0", background: "#f8f9fb",
+            display: "grid", gridTemplateColumns: "minmax(150px, 1.3fr) 75px 75px 75px 75px 75px 60px 55px 55px 50px 85px",
+            gap: 4, padding: "6px 12px", borderBottom: "1px solid #e8ecf0", background: "#f8f9fb",
           }}>
-            {["Practice", "List Size", "Weekly", "Annual", "Non-Winter", "Winter", "Drive"].map((h, i) => (
-              <div key={i} style={{ color: "#8a9aaa", fontSize: 7, fontFamily: mono, fontWeight: 700, letterSpacing: 1.5, textAlign: i === 0 ? "left" : i === 1 ? "right" : "center" }}>{h}</div>
+            {["Practice", "List Size", "Weekly", "Annual", "Non-Win", "Winter", "🚗 Hub", "Miles", "🚗 CUCC", "🚌 Hub", "🚌 CUCC"].map((h, i) => (
+              <div key={i} style={{ color: "#8a9aaa", fontSize: 6, fontFamily: mono, fontWeight: 700, letterSpacing: 1.2, textAlign: i === 0 ? "left" : i === 1 ? "right" : "center" }}>{h}</div>
             ))}
           </div>
           {sorted.map((p, i) => (
             <SpokeRow key={p.id} practice={p} hubId={hubId} isLast={i === sorted.length - 1} />
           ))}
           <div style={{
-            display: "grid", gridTemplateColumns: "minmax(170px, 1.4fr) 80px 85px 85px 85px 85px 80px",
-            gap: 8, padding: "10px 16px", background: hc.light, borderTop: `2px solid ${hc.main}20`,
+            display: "grid", gridTemplateColumns: "minmax(150px, 1.3fr) 75px 75px 75px 75px 75px 60px 55px 55px 50px 85px",
+            gap: 4, padding: "8px 12px", background: hc.light, borderTop: `2px solid ${hc.main}20`,
           }}>
             <div style={{ color: hc.dark, fontSize: 10, fontWeight: 700, fontFamily: sans, display: "flex", alignItems: "center" }}>Hub Total</div>
-            <div style={{ textAlign: "right", color: hc.dark, fontSize: 13, fontWeight: 800, fontFamily: mono }}>{totalList.toLocaleString()}</div>
-            <div style={{ textAlign: "center", color: hc.dark, fontSize: 13, fontWeight: 800, fontFamily: mono }}>{totalWeekly}</div>
-            <div style={{ textAlign: "center", color: hc.dark, fontSize: 12, fontWeight: 700, fontFamily: mono }}>{totalAnnual.toLocaleString()}</div>
-            <div style={{ textAlign: "center", color: "#00875A", fontSize: 13, fontWeight: 800, fontFamily: mono }}>{totalNonWinter}</div>
-            <div style={{ textAlign: "center", color: "#D4531E", fontSize: 13, fontWeight: 800, fontFamily: mono }}>{totalWinter}</div>
+            <div style={{ textAlign: "right", color: hc.dark, fontSize: 12, fontWeight: 800, fontFamily: mono }}>{totalList.toLocaleString()}</div>
+            <div style={{ textAlign: "center", color: hc.dark, fontSize: 12, fontWeight: 800, fontFamily: mono }}>{totalWeekly}</div>
+            <div style={{ textAlign: "center", color: hc.dark, fontSize: 11, fontWeight: 700, fontFamily: mono }}>{totalAnnual.toLocaleString()}</div>
+            <div style={{ textAlign: "center", color: "#00875A", fontSize: 12, fontWeight: 800, fontFamily: mono }}>{totalNonWinter}</div>
+            <div style={{ textAlign: "center", color: "#D4531E", fontSize: 12, fontWeight: 800, fontFamily: mono }}>{totalWinter}</div>
+            <div style={{ textAlign: "center", color: "#8a9aaa", fontSize: 8, fontFamily: mono }}>—</div>
+            <div style={{ textAlign: "center", color: "#8a9aaa", fontSize: 8, fontFamily: mono }}>—</div>
+            <div style={{ textAlign: "center", color: "#8a9aaa", fontSize: 8, fontFamily: mono }}>—</div>
+            <div style={{ textAlign: "center", color: "#8a9aaa", fontSize: 8, fontFamily: mono }}>—</div>
             <div style={{ textAlign: "center", color: "#8a9aaa", fontSize: 8, fontFamily: mono }}>—</div>
           </div>
         </div>
