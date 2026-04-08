@@ -802,19 +802,29 @@ export const ENNEstatesCapacity = () => {
               </div>
               <div className="mb-3 pb-3 border-b border-slate-200">
                 <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Total Required</p>
-                <p className="text-2xl font-bold text-slate-900">{(currentCapacity.sessionsPerWeek * multiplier).toFixed(1)}</p>
-                <p className="text-xs text-slate-500">{uLabel}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900">{(currentCapacity.sessionsPerWeek * multiplier).toFixed(1)}</p>
+                    <p className="text-xs text-slate-500">{uLabel} / week</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900">{(currentCapacity.sessionsPerWeek * multiplier * 52).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</p>
+                    <p className="text-xs text-slate-500">{uLabel} / year</p>
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
                   <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
                   <p className="text-xl font-bold text-green-900">{(currentCapacity.f2fRequired * multiplier).toFixed(1)}</p>
-                  <p className="text-[10px] text-green-600">{uLabel}</p>
+                  <p className="text-[10px] text-green-600">{uLabel} / week</p>
+                  <p className="text-sm font-semibold text-green-800 mt-1">{(currentCapacity.f2fRequired * multiplier * 52).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} / yr</p>
                 </div>
                 <div className="bg-indigo-50 rounded-lg p-3 text-center border border-indigo-200">
                   <p className="text-xs font-medium text-indigo-700">Remote</p>
                   <p className="text-xl font-bold text-indigo-900">{(currentCapacity.remoteRequired * multiplier).toFixed(1)}</p>
-                  <p className="text-[10px] text-indigo-600">{uLabel}</p>
+                  <p className="text-[10px] text-indigo-600">{uLabel} / week</p>
+                  <p className="text-sm font-semibold text-indigo-800 mt-1">{(currentCapacity.remoteRequired * multiplier * 52).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} / yr</p>
                 </div>
               </div>
               <p className="text-[10px] text-slate-500 text-center mt-1.5">
