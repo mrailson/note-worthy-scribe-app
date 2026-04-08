@@ -167,7 +167,7 @@ const ENNCUCCAttendance = () => {
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground">Total Attendances</p>
             <p className="text-xl font-bold text-[#005EB8]">{displayTotal.toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground">Apr 2024 – Feb 2025</p>
+            <p className="text-[10px] text-muted-foreground">Apr 2025 – Feb 2026</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-[#00A499]">
