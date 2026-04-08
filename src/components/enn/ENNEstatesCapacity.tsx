@@ -804,11 +804,11 @@ export const ENNEstatesCapacity = () => {
                           </div>
                         </div>
                         <p className="text-[9px] text-slate-400 italic">Excludes overhead &amp; innovation costs. Changes auto-save locally.</p>
-                        <PopoverPrimitive.Close asChild>
+                        <PopoverClose asChild>
                           <button type="button" className="w-full mt-1 py-2 rounded-md bg-[#005EB8] text-white text-sm font-medium hover:bg-[#004a93] transition-colors">
                             Save &amp; Close
                           </button>
-                        </PopoverPrimitive.Close>
+                        </PopoverClose>
                       </div>
                     </PopoverContent>
                   </Popover>
