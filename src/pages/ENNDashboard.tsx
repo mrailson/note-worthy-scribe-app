@@ -139,6 +139,11 @@ const ENNDashboard = () => {
               <TabsContent value="estates" className="mt-0">
                 <ENNEstatesCapacity />
               </TabsContent>
+              <TabsContent value="cucc" className="mt-0">
+                <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+                  <ENNCUCCAttendance />
+                </Suspense>
+              </TabsContent>
               <TabsContent value="digital" className="mt-0">
                 <ENNDigitalIntegration />
               </TabsContent>
