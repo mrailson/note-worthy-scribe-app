@@ -250,26 +250,30 @@ function HubPanel({ hubId, isExpanded, onToggle }: { hubId: string; isExpanded: 
       {isExpanded && (
         <div>
           <div style={{
-            display: "grid", gridTemplateColumns: "minmax(170px, 1.4fr) 80px 85px 85px 85px 85px 80px",
-            gap: 8, padding: "8px 16px", borderBottom: "1px solid #e8ecf0", background: "#f8f9fb",
+            display: "grid", gridTemplateColumns: "minmax(150px, 1.3fr) 75px 75px 75px 75px 75px 60px 55px 55px 50px 85px",
+            gap: 4, padding: "6px 12px", borderBottom: "1px solid #e8ecf0", background: "#f8f9fb",
           }}>
-            {["Practice", "List Size", "Weekly", "Annual", "Non-Winter", "Winter", "Drive"].map((h, i) => (
-              <div key={i} style={{ color: "#8a9aaa", fontSize: 7, fontFamily: mono, fontWeight: 700, letterSpacing: 1.5, textAlign: i === 0 ? "left" : i === 1 ? "right" : "center" }}>{h}</div>
+            {["Practice", "List Size", "Weekly", "Annual", "Non-Win", "Winter", "🚗 Hub", "Miles", "🚗 CUCC", "🚌 Hub", "🚌 CUCC"].map((h, i) => (
+              <div key={i} style={{ color: "#8a9aaa", fontSize: 6, fontFamily: mono, fontWeight: 700, letterSpacing: 1.2, textAlign: i === 0 ? "left" : i === 1 ? "right" : "center" }}>{h}</div>
             ))}
           </div>
           {sorted.map((p, i) => (
             <SpokeRow key={p.id} practice={p} hubId={hubId} isLast={i === sorted.length - 1} />
           ))}
           <div style={{
-            display: "grid", gridTemplateColumns: "minmax(170px, 1.4fr) 80px 85px 85px 85px 85px 80px",
-            gap: 8, padding: "10px 16px", background: hc.light, borderTop: `2px solid ${hc.main}20`,
+            display: "grid", gridTemplateColumns: "minmax(150px, 1.3fr) 75px 75px 75px 75px 75px 60px 55px 55px 50px 85px",
+            gap: 4, padding: "8px 12px", background: hc.light, borderTop: `2px solid ${hc.main}20`,
           }}>
             <div style={{ color: hc.dark, fontSize: 10, fontWeight: 700, fontFamily: sans, display: "flex", alignItems: "center" }}>Hub Total</div>
-            <div style={{ textAlign: "right", color: hc.dark, fontSize: 13, fontWeight: 800, fontFamily: mono }}>{totalList.toLocaleString()}</div>
-            <div style={{ textAlign: "center", color: hc.dark, fontSize: 13, fontWeight: 800, fontFamily: mono }}>{totalWeekly}</div>
-            <div style={{ textAlign: "center", color: hc.dark, fontSize: 12, fontWeight: 700, fontFamily: mono }}>{totalAnnual.toLocaleString()}</div>
-            <div style={{ textAlign: "center", color: "#00875A", fontSize: 13, fontWeight: 800, fontFamily: mono }}>{totalNonWinter}</div>
-            <div style={{ textAlign: "center", color: "#D4531E", fontSize: 13, fontWeight: 800, fontFamily: mono }}>{totalWinter}</div>
+            <div style={{ textAlign: "right", color: hc.dark, fontSize: 12, fontWeight: 800, fontFamily: mono }}>{totalList.toLocaleString()}</div>
+            <div style={{ textAlign: "center", color: hc.dark, fontSize: 12, fontWeight: 800, fontFamily: mono }}>{totalWeekly}</div>
+            <div style={{ textAlign: "center", color: hc.dark, fontSize: 11, fontWeight: 700, fontFamily: mono }}>{totalAnnual.toLocaleString()}</div>
+            <div style={{ textAlign: "center", color: "#00875A", fontSize: 12, fontWeight: 800, fontFamily: mono }}>{totalNonWinter}</div>
+            <div style={{ textAlign: "center", color: "#D4531E", fontSize: 12, fontWeight: 800, fontFamily: mono }}>{totalWinter}</div>
+            <div style={{ textAlign: "center", color: "#8a9aaa", fontSize: 8, fontFamily: mono }}>—</div>
+            <div style={{ textAlign: "center", color: "#8a9aaa", fontSize: 8, fontFamily: mono }}>—</div>
+            <div style={{ textAlign: "center", color: "#8a9aaa", fontSize: 8, fontFamily: mono }}>—</div>
+            <div style={{ textAlign: "center", color: "#8a9aaa", fontSize: 8, fontFamily: mono }}>—</div>
             <div style={{ textAlign: "center", color: "#8a9aaa", fontSize: 8, fontFamily: mono }}>—</div>
           </div>
         </div>
