@@ -133,7 +133,7 @@ export const ENNEstatesCapacity = () => {
   const [gpRate, setGpRate] = useState<number>(saved.gpRate ?? 11000);
   const [anpRate, setAnpRate] = useState<number>(saved.anpRate ?? 60000);
   const [onCostsPct, setOnCostsPct] = useState<number>(saved.onCostsPct ?? 30);
-  const [showCostSettings, setShowCostSettings] = useState(false);
+  
 
   const updateGpPct = (val: number) => { setGpPct(val); persistSettings({ gpPct: val }); };
   const updateOnsitePct = (val: number) => { setOnsitePct(val); persistSettings({ onsitePct: val }); };
