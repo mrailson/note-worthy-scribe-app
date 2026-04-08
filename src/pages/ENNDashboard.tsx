@@ -14,6 +14,7 @@ import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTrack
 
 const ENNNeighbourhoodMap = lazy(() => import("@/components/enn/ENNNeighbourhoodMap").then(m => ({ default: m.ENNNeighbourhoodMap })));
 const ENNReportingRequirements = lazy(() => import("@/components/enn/ENNReportingRequirements"));
+const ENNCUCCAttendance = lazy(() => import("@/components/enn/ENNCUCCAttendance"));
 import {
   LayoutDashboard,
   Building2,
@@ -21,6 +22,7 @@ import {
   Users,
   FolderLock,
   Clock,
+  Hospital,
 } from "lucide-react";
 import { ENNPeopleProvider } from "@/contexts/ENNPeopleContext";
 
@@ -41,6 +43,7 @@ const ennPopulationData = [
 const tabs = [
   { value: "executive", label: "Executive Summary", shortLabel: "Summary", icon: LayoutDashboard },
   { value: "estates", label: "Estates & Capacity", shortLabel: "Estates", icon: Building2 },
+  { value: "cucc", label: "CUCC Attendance", shortLabel: "CUCC", icon: Hospital },
   { value: "digital", label: "IT & Reporting", shortLabel: "Digital", icon: Monitor },
   { value: "workforce", label: "Workforce", shortLabel: "Workforce", icon: Users },
   { value: "hours", label: "Claims & Oversight", shortLabel: "Claims", icon: Clock },
@@ -135,6 +138,11 @@ const ENNDashboard = () => {
               </TabsContent>
               <TabsContent value="estates" className="mt-0">
                 <ENNEstatesCapacity />
+              </TabsContent>
+              <TabsContent value="cucc" className="mt-0">
+                <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+                  <ENNCUCCAttendance />
+                </Suspense>
               </TabsContent>
               <TabsContent value="digital" className="mt-0">
                 <ENNDigitalIntegration />
