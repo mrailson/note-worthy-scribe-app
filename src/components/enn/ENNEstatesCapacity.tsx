@@ -30,7 +30,7 @@ const PRACTICE_TRAVEL: Record<string, TravelInfo> = {
   'Marshalls Road Surgery': { miles: 0.4, carMin: 2, publicTransportMin: 5, busService: 'X47' },
   'The Meadows Surgery': { miles: 0 },
   'Oundle Medical Practice': { miles: 8, carMin: 13, publicTransportMin: 34, busService: '94 or DTRS' },
-  'Nene Valley Surgery': { carMin: 0, publicTransportMin: 0, busService: '16' },
+  'Nene Valley Surgery': { miles: 0, carMin: 0, publicTransportMin: 0, busService: '16' },
 };
 
 /** Travel data from each practice to Corby Urgent Care Centre */
