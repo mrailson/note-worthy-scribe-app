@@ -14,6 +14,7 @@ import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTrack
 
 const ENNNeighbourhoodMap = lazy(() => import("@/components/enn/ENNNeighbourhoodMap").then(m => ({ default: m.ENNNeighbourhoodMap })));
 const ENNReportingRequirements = lazy(() => import("@/components/enn/ENNReportingRequirements"));
+const ENNCUCCAttendance = lazy(() => import("@/components/enn/ENNCUCCAttendance"));
 import {
   LayoutDashboard,
   Building2,
@@ -21,6 +22,7 @@ import {
   Users,
   FolderLock,
   Clock,
+  Hospital,
 } from "lucide-react";
 import { ENNPeopleProvider } from "@/contexts/ENNPeopleContext";
 
