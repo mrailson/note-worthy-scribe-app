@@ -1,30 +1,32 @@
 
 
-## Plan: Apply ENN Compact Header Style to NRES Dashboard
+## Plan: Upgrade NRES Document Vault to V2 Layout
 
-### What Changes
+### What We're Doing
+Replace the current NRES Document Vault (single folder view with V2 preview banner) with the full V2 tabbed interface already live on ENN. This brings six tabs (Folders, Latest Edits, New Uploads, My Documents, Favourites, All Documents), the unified toolbar, file-type filters, collapsible guidance cards, and the document table with avatars, type badges, and favourites.
 
-**1. Create `src/components/nres/NRESHeader.tsx`**
-A new compact 48px sticky header, mirroring `ENNHeader.tsx` exactly but with NRES branding:
-- Left: "Notewell AI ✦" logo → divider → "Rural East & South" → "SDA Programme" subtitle
-- Right: "Go-Live: 1st April 2026" green pill, Home, Services dropdown, User menu, Feedback icon
-- Same auth/navigation logic as ENNHeader
+### Safety Guarantees
+- **No database changes** — all V2 hooks (`useAllVaultFiles`, `useVaultFolderMap`, `useVaultFavourites`, `useToggleFavourite`) already accept a `scope` parameter and will use `nres_vault`
+- **No folder/file data affected** — the same queries, same storage bucket paths, same scope filtering
+- **No permission changes** — same `useVaultPermission` and `useIsVaultAdmin` hooks used identically
+- **All existing vault components shared** — `VaultContentView`, `VaultBreadcrumbs`, `VaultPermissionManager`, `VaultSettingsModal`, `VaultDocumentTable`, `VaultFileTypeFilter` are all reused
 
-**2. Update `src/pages/SDADashboard.tsx`**
-- Remove `<Header />` import and the tall hero section (lines 30–52)
-- Add `<NRESHeader activeTab={activeTab} />` in its place
-- Replace the floating `TabsList` with a slim sticky `<nav>` bar (white background, `sticky top-12 z-40`, bottom border) using plain `<button>` elements — identical pattern to ENNDashboard lines 60–90
-- Keep all `TabsContent` blocks and content components completely unchanged
-- Remove `SDAFeedbackButton` import (feedback moves into the header icon)
+### Changes
 
-### What Does NOT Change
-- `Header.tsx` — untouched, still used by other pages
-- All tab content components (SDAExecutiveSummary, SDAEstatesCapacity, etc.)
-- All NRES data, providers, and business logic
-- ENN dashboard — completely unaffected
+| File | Action |
+|---|---|
+| `src/components/nres/vault/NRESDocumentVault.tsx` | **Rewrite** — adopt the ENNDocumentVaultV2 structure with `SCOPE = 'nres_vault'`. Remove the V2 preview banner and `VaultV2PreviewModal` import. Keep NRES-specific branding (title says "NRES Document Vault", naming prefix uses `NRES_`). Retain the "Proposed Folder Structure & Access Matrix" download link in the guidance cards. Add the six-tab navigation, file-type filters, favourites, and document table views. |
+| `src/pages/SDADashboard.tsx` | No change needed — already imports `NRESDocumentVault` |
+| `src/pages/NRESDashboard.tsx` | No change needed — already imports `NRESDocumentVault` |
 
-### Responsiveness
-- Compact header uses `truncate`, `hidden sm:inline`, `hidden md:inline` — proven patterns from ENNHeader
-- Tab bar uses `overflow-x-auto no-scrollbar` with `shrink-0` tabs — scrollable on small screens, wraps naturally on larger ones
-- Saves ~80px vertical space, benefiting 1366×768 NHS laptop viewports
+### Technical Detail
+The rewrite is essentially a copy of `ENNDocumentVaultV2.tsx` with three substitutions:
+1. `SCOPE = 'nres_vault'` instead of `'enn_vault'`
+2. Card title: "NRES Document Vault" instead of "ENN Document Vault"
+3. Guidance card naming example uses `NRES_Policy_...` prefix
+4. Retains the "Proposed Folder Structure & Access Matrix" download link (NRES-only)
+5. Removes the V2 preview banner (no longer needed — this IS V2)
+6. Removes the `VaultV2PreviewModal` import
+
+All shared components (`VaultDocumentTable`, `VaultFileTypeFilter`, `VaultContentView`, etc.) are already in place and scope-aware — no modifications needed.
 
