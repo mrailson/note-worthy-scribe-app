@@ -1,82 +1,67 @@
 
 
-## Plan: ENN People Directory + Independent ENN Document Vault
+## Document Vault V2 — Live Implementation for ENN Only
 
 ### What We're Doing
-Two changes: (1) Give the ENN dashboard its own People Directory with the correct ENN practices, ICB, and Rebecca Gane as defaults — completely separate from NRES people. (2) Create the ENN Document Vault with its own folder structure (copied from the existing NRES structure) using `scope = 'enn_vault'`, ensuring complete data isolation.
+Replace the ENN Document Vault with the full V2 design shown in the screenshots. NRES continues to use the existing V1 vault untouched. The V2 vault will use real data from the `enn_vault` scoped hooks — not static HTML.
 
----
+### Design (from screenshots)
+Six tabs: **Folders** (existing tree/folder view), **Latest edits** (sorted by `updated_at`), **New uploads** (sorted by `created_at`), **My documents** (filtered by `created_by = user.id`), **Favourites** (starred items), **All documents** (flat list of every file).
 
-### Part 1: ENN People Directory
+Each tab has: search/filter input, file-type filter chips (All types, .docx, .pdf, .xlsx), document table with type badges, user avatars, relative timestamps, and star/favourite toggle.
 
-**Problem**: The ENN dashboard currently wraps everything in `NRESPeopleProvider` which loads NRES default people (Maureen Green, Malcolm Railson, Amanda Taylor, etc.). These are wrong for ENN.
+### Plan
 
-**Solution**:
+**Step 1 — New hooks for V2 data views**
+Add to `useNRESVaultData.ts`:
+- `useAllVaultFiles(scope)` — fetches all files across all folders (no folder filter), used by Latest edits, New uploads, My documents, All documents tabs
+- `useVaultFavourites(scope)` — fetches user's starred files from a new `vault_favourites` table
+- `useToggleFavourite(scope)` — mutation to star/unstar a file
 
-1. **Create `src/data/ennPeopleDirectory.ts`** — new defaults file with ENN-specific people:
-   - Rebecca Gane (RG) — Transformation Manager, 3Sixty Care Partnership
-   - Representatives from each of the 10 ENN practices (from the uploaded image):
-     - Parklands Surgery
-     - The Cottons Medical Centre
-     - Spinney Brook Medical Centre
-     - Woodford Surgery (Spinney Branch)
-     - Nene Valley Surgery
-     - The Meadows Surgery
-     - Higham Ferrers Surgery
-     - Marshalls Road Surgery
-     - Harborough Fields Surgery
-     - Rushden Medical Centre
-     - Oundle Medical Practice
-   - ICB representative(s)
-   - Practice addresses from the uploaded table
-   
-2. **Create `src/contexts/ENNPeopleContext.tsx`** — identical structure to `NRESPeopleContext` but initialised with ENN defaults. This keeps the two completely independent.
+**Step 2 — Database migration for favourites**
+Create `vault_favourites` table:
+- `id` (uuid, PK), `user_id` (uuid, FK → auth.users), `file_id` (uuid, FK → shared_drive_files), `scope` (text), `created_at` (timestamptz)
+- Unique constraint on `(user_id, file_id)`
+- RLS: users can only read/write their own rows
 
-3. **Update `src/pages/ENNDashboard.tsx`** — replace `NRESPeopleProvider` with `ENNPeopleProvider` so all child components (Finance & Governance, Action Log, PersonSelect) automatically use ENN people instead of NRES people.
+**Step 3 — Create `ENNDocumentVaultV2` component**
+New file `src/components/enn/vault/ENNDocumentVaultV2.tsx`:
+- Tabbed UI with 6 tabs matching the V2 design
+- **Folders tab**: Reuses existing `VaultContentView`, `VaultBreadcrumbs`, `VaultToolbar` components with `scope="enn_vault"`
+- **Latest edits tab**: All files sorted by `updated_at` desc, grouped by time period (Today, This week, Earlier), columns: Document+path, Type badge, Edited by (avatar+name), When, Star
+- **New uploads tab**: Same layout, sorted by `created_at` desc, "Uploaded by" column
+- **My documents tab**: Filtered to `created_by = current user`, columns: Document+path, Type, Uploaded date, Last edited, Star
+- **Favourites tab**: Only starred files, columns: Document+path, Type, Location (folder path), Last edited, Star
+- **All documents tab**: Every file flat, columns: Document+path, Type, Location, Edited by, Last edited, Star
+- Each non-folder tab includes: search input, filter chips (All types, .docx, .pdf, .xlsx), styled document table
+- Keeps the existing vault info cards (what to store, hygiene tips, important notice) on the Folders tab
+- Retains all existing mutation capabilities (create folder, upload, delete, rename, move, copy)
 
----
+**Step 4 — Shared sub-components**
+Create helper components in `src/components/enn/vault/`:
+- `VaultDocumentTable.tsx` — reusable table with type badges, user avatars (initials circle), relative timestamps, star toggle
+- `VaultFileTypeFilter.tsx` — filter chip row (All types, .docx, .pdf, .xlsx)
 
-### Part 2: Independent ENN Document Vault
+**Step 5 — Wire up in ENN dashboard**
+Change `ENNDashboard.tsx` to import and render `ENNDocumentVaultV2` instead of `<NRESDocumentVault scope="enn_vault" />`.
 
-**Problem**: The ENN dashboard currently renders `<NRESDocumentVault />` which hardcodes `scope: 'nres_vault'` in every query and mutation. ENN users see NRES folders and files.
+**Step 6 — Remove V2 preview banner from ENN vault**
+Since ENN now IS V2, the "Version 2 coming soon" banner and preview modal are not needed in the ENN vault.
 
-**Solution**:
-
-1. **Make all vault hooks scope-aware** — update `useNRESVaultData.ts`:
-   - Every hook (`useVaultFolders`, `useVaultFiles`, `useVaultBreadcrumbs`, `useVaultSearch`, `useCreateVaultFolder`, `useUploadVaultFile`, `useDeleteVaultItem`, `useRenameVaultItem`, `useMoveVaultItem`, `useCopyVaultFile`, `useUpdateFileDescription`, `useReplaceVaultFile`) gains an optional `scope` parameter, defaulting to `'nres_vault'`
-   - All `.eq('scope', 'nres_vault')` becomes `.eq('scope', scope)`
-   - All `.insert({ scope: 'nres_vault' })` becomes `.insert({ scope })`
-   - All React Query keys include scope: `['nres-vault-folders', parentId]` → `['vault-folders', scope, parentId]`
-   - Storage path prefix changes from `nres-vault/` to use the scope value
-
-2. **Make `NRESDocumentVault.tsx` accept a `scope` prop** — default `'nres_vault'`, pass through to all hooks. Update naming hint text to show `ENN_` prefix when scope is `enn_vault`.
-
-3. **Update `ENNDashboard.tsx`** — pass `scope="enn_vault"` to the vault component.
-
-4. **Database migration** — insert the full NRES folder structure as new rows with `scope = 'enn_vault'` (new UUIDs, same names and hierarchy). This gives ENN ~153 pre-built folders matching the NRES structure. No files are copied — just the empty folder skeleton.
-
-5. **Update vault audit logging** — ensure `useNRESVaultAudit.ts` also passes scope so ENN audit entries are distinguishable.
-
----
-
-### Technical Details
-
-**Files to create**:
+### Files to create
 | File | Purpose |
 |------|---------|
-| `src/data/ennPeopleDirectory.ts` | ENN default people + groups + practice addresses |
-| `src/contexts/ENNPeopleContext.tsx` | Independent state provider for ENN people |
+| `src/components/enn/vault/ENNDocumentVaultV2.tsx` | Main V2 vault component with 6 tabs |
+| `src/components/enn/vault/VaultDocumentTable.tsx` | Reusable document table with badges/avatars/stars |
+| `src/components/enn/vault/VaultFileTypeFilter.tsx` | File type filter chips |
+| Migration SQL | `vault_favourites` table |
 
-**Files to modify**:
+### Files to modify
 | File | Change |
 |------|--------|
-| `src/hooks/useNRESVaultData.ts` | Add `scope` param to all 12+ hooks, update query keys |
-| `src/hooks/useNRESVaultAudit.ts` | Add `scope` param to audit logging |
-| `src/components/nres/vault/NRESDocumentVault.tsx` | Accept `scope` prop, pass to hooks, conditional branding |
-| `src/pages/ENNDashboard.tsx` | Switch to `ENNPeopleProvider`, pass `scope="enn_vault"` to vault |
+| `src/hooks/useNRESVaultData.ts` | Add `useAllVaultFiles`, `useVaultFavourites`, `useToggleFavourite` hooks |
+| `src/pages/ENNDashboard.tsx` | Switch to `ENNDocumentVaultV2` |
 
-**Database migration**:
-- Recursive INSERT of ~153 folder rows with `scope = 'enn_vault'`, preserving the parent-child hierarchy with new UUIDs
-
-**Zero regression guarantee**: All existing NRES code continues to work unchanged — the `scope` parameter defaults to `'nres_vault'` everywhere, so no existing queries or cache keys are affected.
+### NRES safety
+NRES vault is completely untouched — it continues rendering `<NRESDocumentVault scope="nres_vault" />` with no changes to its component, hooks (all default to `'nres_vault'`), or data.
 
