@@ -101,55 +101,85 @@ function SpokeRow({ practice, hubId, isLast }: { practice: Practice; hubId: stri
   const isHubSelf = practice.id === hubId;
   const hc = hubColors[hubId];
 
+  const gridCols = "minmax(150px, 1.3fr) 75px 75px 75px 75px 75px 60px 55px 55px 50px 85px";
+
   return (
     <div style={{
-      display: "grid", gridTemplateColumns: "minmax(170px, 1.4fr) 80px 85px 85px 85px 85px 80px",
-      gap: 8, padding: "10px 16px", borderBottom: isLast ? "none" : "1px solid #f0f2f5",
+      display: "grid", gridTemplateColumns: gridCols,
+      gap: 4, padding: "8px 12px", borderBottom: isLast ? "none" : "1px solid #f0f2f5",
       alignItems: "center", background: isHubSelf ? hc.light : "white", transition: "background 0.15s ease",
+      fontSize: 11,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         {isHubSelf ? (
-          <span style={{ color: "white", fontSize: 7, fontWeight: 700, letterSpacing: 1, fontFamily: mono, background: hc.main, padding: "2px 8px", borderRadius: 4 }}>HUB</span>
+          <span style={{ color: "white", fontSize: 7, fontWeight: 700, letterSpacing: 1, fontFamily: mono, background: hc.main, padding: "2px 6px", borderRadius: 4 }}>HUB</span>
         ) : (
-          <span style={{ color: "#8a9aaa", fontSize: 7, fontWeight: 600, letterSpacing: 1, fontFamily: mono, background: "#f0f2f5", padding: "2px 6px", borderRadius: 4 }}>SPOKE</span>
+          <span style={{ color: "#8a9aaa", fontSize: 7, fontWeight: 600, letterSpacing: 1, fontFamily: mono, background: "#f0f2f5", padding: "2px 5px", borderRadius: 4 }}>SPOKE</span>
         )}
         <div>
-          <div style={{ color: "#1a2a3a", fontSize: 11, fontWeight: isHubSelf ? 700 : 600, fontFamily: sans }}>{practice.short}</div>
-          <div style={{ color: "#aabbcc", fontSize: 8, fontFamily: mono }}>{practice.id}</div>
+          <div style={{ color: "#1a2a3a", fontSize: 10, fontWeight: isHubSelf ? 700 : 600, fontFamily: sans }}>{practice.short}</div>
+          <div style={{ color: "#aabbcc", fontSize: 7, fontFamily: mono }}>{practice.id}</div>
           {practice.id === "K83028" && (
-            <div style={{ color: "#8a9aaa", fontSize: 7, fontFamily: sans, fontStyle: "italic", marginTop: 1 }}>Incl. Woodford Surgery (branch)</div>
+            <div style={{ color: "#8a9aaa", fontSize: 7, fontFamily: sans, fontStyle: "italic", marginTop: 1 }}>Incl. Woodford (branch)</div>
           )}
         </div>
       </div>
       <div style={{ textAlign: "right" }}>
-        <div style={{ color: "#1a2a3a", fontSize: 13, fontWeight: 700, fontFamily: mono }}>{practice.list.toLocaleString()}</div>
+        <div style={{ color: "#1a2a3a", fontSize: 12, fontWeight: 700, fontFamily: mono }}>{practice.list.toLocaleString()}</div>
         <div style={{ color: "#aabbcc", fontSize: 6, fontFamily: mono, letterSpacing: 1 }}>PATIENTS</div>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ color: hc.main, fontSize: 13, fontWeight: 700, fontFamily: mono }}>{practice.weeklyAppts}</div>
+        <div style={{ color: hc.main, fontSize: 12, fontWeight: 700, fontFamily: mono }}>{practice.weeklyAppts}</div>
         <div style={{ color: "#aabbcc", fontSize: 6, fontFamily: mono, letterSpacing: 1 }}>WEEKLY</div>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ color: "#6a7a8a", fontSize: 12, fontWeight: 600, fontFamily: mono }}>{practice.annualAppts.toLocaleString()}</div>
+        <div style={{ color: "#6a7a8a", fontSize: 11, fontWeight: 600, fontFamily: mono }}>{practice.annualAppts.toLocaleString()}</div>
         <div style={{ color: "#aabbcc", fontSize: 6, fontFamily: mono, letterSpacing: 1 }}>ANNUAL</div>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ color: "#00875A", fontSize: 13, fontWeight: 700, fontFamily: mono }}>{practice.nonWinterWk}</div>
+        <div style={{ color: "#00875A", fontSize: 12, fontWeight: 700, fontFamily: mono }}>{practice.nonWinterWk}</div>
         <div style={{ color: "#aabbcc", fontSize: 6, fontFamily: mono, letterSpacing: 1 }}>NON-WIN</div>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ color: "#D4531E", fontSize: 13, fontWeight: 700, fontFamily: mono }}>{practice.winterWk}</div>
+        <div style={{ color: "#D4531E", fontSize: 12, fontWeight: 700, fontFamily: mono }}>{practice.winterWk}</div>
         <div style={{ color: "#aabbcc", fontSize: 6, fontFamily: mono, letterSpacing: 1 }}>WINTER</div>
       </div>
+      {/* Hub Drive */}
       <div style={{ textAlign: "center" }}>
         {isHubSelf ? (
-          <div style={{ color: hc.main, fontSize: 9, fontFamily: mono, fontWeight: 700 }}>📍 Base</div>
+          <div style={{ color: hc.main, fontSize: 8, fontFamily: mono, fontWeight: 700 }}>📍 Base</div>
         ) : (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: driveCol.bg, padding: "4px 10px", borderRadius: 6, border: `1px solid ${driveCol.color}25` }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: driveCol.color }} />
-            <span style={{ color: driveCol.color, fontSize: 11, fontWeight: 700, fontFamily: mono }}>{mins}m</span>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 3, background: driveCol.bg, padding: "3px 6px", borderRadius: 5, border: `1px solid ${driveCol.color}25` }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: driveCol.color }} />
+            <span style={{ color: driveCol.color, fontSize: 10, fontWeight: 700, fontFamily: mono }}>{mins}m</span>
           </div>
         )}
+      </div>
+      {/* Miles to Hub */}
+      <div style={{ textAlign: "center" }}>
+        <div style={{ color: "#6a7a8a", fontSize: 10, fontWeight: 600, fontFamily: mono }}>
+          {miles != null ? (miles === 0 ? "—" : miles.toFixed(1)) : ""}
+        </div>
+        <div style={{ color: "#aabbcc", fontSize: 5, fontFamily: mono, letterSpacing: 1 }}>MILES</div>
+      </div>
+      {/* CUCC car */}
+      <div style={{ textAlign: "center" }}>
+        {cucc ? (
+          <>
+            <div style={{ color: cuccColor, fontSize: 10, fontWeight: 700, fontFamily: mono }}>{cucc.carMin}m</div>
+            <div style={{ color: "#aabbcc", fontSize: 5, fontFamily: mono, letterSpacing: 1 }}>CUCC</div>
+          </>
+        ) : <div style={{ color: "#ccc", fontSize: 9 }}>—</div>}
+      </div>
+      {/* Bus to Hub */}
+      <div style={{ textAlign: "center" }}>
+        <div style={{ color: "#005EB8", fontSize: 8, fontWeight: 600, fontFamily: mono }}>{bus || (isHubSelf ? "—" : "")}</div>
+        <div style={{ color: "#aabbcc", fontSize: 5, fontFamily: mono, letterSpacing: 1 }}>🚌 HUB</div>
+      </div>
+      {/* Bus to CUCC */}
+      <div style={{ textAlign: "center" }}>
+        <div style={{ color: "#8B5CF6", fontSize: 7, fontWeight: 600, fontFamily: mono, lineHeight: 1.3 }}>{cucc?.bus || "—"}</div>
+        <div style={{ color: "#aabbcc", fontSize: 5, fontFamily: mono, letterSpacing: 1 }}>🚌 CUCC</div>
       </div>
     </div>
   );
