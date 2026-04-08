@@ -9,7 +9,7 @@ import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
 import { ENNEstatesCapacity } from "@/components/enn/ENNEstatesCapacity";
 import { SDADigitalIntegration as ENNDigitalIntegration } from "@/components/enn/ENNDigitalIntegration";
 const ENNWorkforceInnovation = lazy(() => import("@/components/enn/ENNWorkforceInnovation"));
-import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
+import { ENNDocumentVaultV2 } from '@/components/enn/vault/ENNDocumentVaultV2';
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
 
 const ENNNeighbourhoodMap = lazy(() => import("@/components/enn/ENNNeighbourhoodMap").then(m => ({ default: m.ENNNeighbourhoodMap })));
@@ -216,7 +216,7 @@ const ENNDashboard = () => {
                 />
               </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
-                <NRESDocumentVault scope="enn_vault" />
+                <ENNDocumentVaultV2 />
               </TabsContent>
             </div>
           </Tabs>
