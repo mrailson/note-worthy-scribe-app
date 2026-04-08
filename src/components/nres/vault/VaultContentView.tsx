@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { VaultFolder, VaultFile } from '@/hooks/useNRESVaultData';
+import type { VaultFolder, VaultFile, VaultScope } from '@/hooks/useNRESVaultData';
 import { useUpdateFileDescription, useReplaceVaultFile } from '@/hooks/useNRESVaultData';
 import { logVaultAction } from '@/hooks/useNRESVaultAudit';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,6 +56,7 @@ export interface ClipboardState {
 interface VaultContentViewProps {
   folders: VaultFolder[];
   files: VaultFile[];
+  scope?: VaultScope;
   viewMode: VaultViewMode;
   onNavigateToFolder: (folderId: string) => void;
   onNavigateUp: () => void;
@@ -140,6 +141,7 @@ interface UnifiedItem {
 export const VaultContentView = ({
   folders,
   files,
+  scope = 'nres_vault',
   viewMode,
   onNavigateToFolder,
   onNavigateUp,
@@ -374,8 +376,8 @@ export const VaultContentView = ({
 
   const loadTreeChildren = async (folderId: string) => {
     const [{ data: childFolders }, { data: childFiles }] = await Promise.all([
-      supabase.from('shared_drive_folders').select('id, name, parent_id, created_by, created_at, updated_at, path').eq('scope', 'nres_vault').eq('parent_id', folderId).order('name'),
-      supabase.from('shared_drive_files').select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description').eq('scope', 'nres_vault').eq('folder_id', folderId).order('name'),
+      supabase.from('shared_drive_folders').select('id, name, parent_id, created_by, created_at, updated_at, path').eq('scope', scope).eq('parent_id', folderId).order('name'),
+      supabase.from('shared_drive_files').select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description').eq('scope', scope).eq('folder_id', folderId).order('name'),
     ]);
     setTreeChildren(prev => ({
       ...prev,
@@ -830,13 +832,13 @@ export const VaultContentView = ({
       supabase
         .from('shared_drive_folders')
         .select('id, name, parent_id, created_by, created_at, updated_at, path')
-        .eq('scope', 'nres_vault')
+        .eq('scope', scope)
         .eq('parent_id', folderId)
         .order('name'),
       supabase
         .from('shared_drive_files')
         .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description')
-        .eq('scope', 'nres_vault')
+        .eq('scope', scope)
         .eq('folder_id', folderId)
         .order('name'),
     ]);

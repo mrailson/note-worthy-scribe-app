@@ -368,6 +368,7 @@ export const NRESDocumentVault = () => {
               <VaultContentView
                 folders={displayFolders}
                 files={displayFiles}
+                scope={SCOPE}
                 viewMode={viewMode}
                 onNavigateToFolder={(id) => handleNavigate(id)}
                 onNavigateUp={() => {
