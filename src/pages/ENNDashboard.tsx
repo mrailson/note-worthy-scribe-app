@@ -43,6 +43,7 @@ const ennPopulationData = [
 const tabs = [
   { value: "executive", label: "Executive Summary", shortLabel: "Summary", icon: LayoutDashboard },
   { value: "estates", label: "Estates & Capacity", shortLabel: "Estates", icon: Building2 },
+  { value: "cucc", label: "CUCC Attendance", shortLabel: "CUCC", icon: Hospital },
   { value: "digital", label: "IT & Reporting", shortLabel: "Digital", icon: Monitor },
   { value: "workforce", label: "Workforce", shortLabel: "Workforce", icon: Users },
   { value: "hours", label: "Claims & Oversight", shortLabel: "Claims", icon: Clock },
