@@ -93,6 +93,8 @@ function persistSettings(patch: Record<string, unknown>) {
 }
 
 export const ENNEstatesCapacity = () => {
+  const saved = useMemo(() => loadPersistedSettings(), []);
+
   const [season, setSeason] = useState<Season>("total");
   const [viewMode, setViewMode] = useState<"sessions" | "appointments">("appointments");
   const [viewLevel, setViewLevel] = useState<ViewLevel>("hub");
@@ -103,34 +105,55 @@ export const ENNEstatesCapacity = () => {
   const [durationDisplayMode, setDurationDisplayMode] = useState<DurationDisplayMode>("perSession");
   const [apptsDisplayMode, setApptsDisplayMode] = useState<ApptsDisplayMode>("perSession");
 
-  const [onsitePct, setOnsitePct] = useState(50);
+  const [onsitePct, setOnsitePct] = useState(saved.onsitePct ?? 50);
   const remotePct = 100 - onsitePct;
-  const [gpPct, setGpPct] = useState(50);
+  const [gpPct, setGpPct] = useState(saved.gpPct ?? 50);
 
   const hubNames = Object.keys(hubPracticeMapping);
   const [hubOnsitePcts, setHubOnsitePcts] = useState<Record<string, number>>(
-    () => Object.fromEntries(hubNames.map(h => [h, 50]))
+    () => saved.hubOnsitePcts ?? Object.fromEntries(hubNames.map(h => [h, 50]))
   );
   const setHubOnsitePct = (hubName: string, val: number) => {
-    setHubOnsitePcts(prev => ({ ...prev, [hubName]: val }));
+    setHubOnsitePcts(prev => {
+      const next = { ...prev, [hubName]: val };
+      persistSettings({ hubOnsitePcts: next });
+      return next;
+    });
   };
   const [hubGpPcts, setHubGpPcts] = useState<Record<string, number>>(
-    () => Object.fromEntries(hubNames.map(h => [h, 50]))
+    () => saved.hubGpPcts ?? Object.fromEntries(hubNames.map(h => [h, 50]))
   );
   const setHubGpPct = (hubName: string, val: number) => {
-    setHubGpPcts(prev => ({ ...prev, [hubName]: val }));
+    setHubGpPcts(prev => {
+      const next = { ...prev, [hubName]: val };
+      persistSettings({ hubGpPcts: next });
+      return next;
+    });
   };
+
+  // Cost settings — persisted
+  const [gpRate, setGpRate] = useState<number>(saved.gpRate ?? 11000);
+  const [anpRate, setAnpRate] = useState<number>(saved.anpRate ?? 60000);
+  const [onCostsPct, setOnCostsPct] = useState<number>(saved.onCostsPct ?? 30);
+  const [showCostSettings, setShowCostSettings] = useState(false);
+
+  const updateGpPct = (val: number) => { setGpPct(val); persistSettings({ gpPct: val }); };
+  const updateOnsitePct = (val: number) => { setOnsitePct(val); persistSettings({ onsitePct: val }); };
+  const updateGpRate = (val: number) => { setGpRate(val); persistSettings({ gpRate: val }); };
+  const updateAnpRate = (val: number) => { setAnpRate(val); persistSettings({ anpRate: val }); };
+  const updateOnCostsPct = (val: number) => { setOnCostsPct(val); persistSettings({ onCostsPct: val }); };
 
   const HOURS_PER_SESSION = 4.1667;
   const HOURS_PER_WTE = 37.5;
   const calcWTE = (sessions: number) => (sessions * HOURS_PER_SESSION) / HOURS_PER_WTE;
 
-  // Cost assumptions: GP £11K/session p.a. + 30% on-costs; ANP £60K/WTE p.a. + 30% on-costs
-  const GP_COST_PER_SESSION = 11000 * 1.3;
-  const ANP_COST_PER_WTE = 60000 * 1.3;
+  const onCostsMultiplier = 1 + onCostsPct / 100;
+  const GP_COST_PER_SESSION = gpRate * onCostsMultiplier;
+  const ANP_COST_PER_WTE = anpRate * onCostsMultiplier;
   const calcGpCost = (sessions: number) => sessions * GP_COST_PER_SESSION;
   const calcAnpCost = (wte: number) => wte * ANP_COST_PER_WTE;
-  const formatCost = (cost: number) => `£${(cost / 1000).toFixed(0)}K`;
+  const formatCost = (cost: number) => cost >= 1000000 ? `£${(cost / 1000000).toFixed(2)}M` : `£${(cost / 1000).toFixed(0)}K`;
+  const costLabel = `GP £${(gpRate/1000).toFixed(0)}K/sess + ${onCostsPct}% on-costs · ANP £${(anpRate/1000).toFixed(0)}K/WTE + ${onCostsPct}% on-costs · excl. overhead & innovation`;
 
   type ColumnGroup = "listIncome" | "winter" | "nonWinter";
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
