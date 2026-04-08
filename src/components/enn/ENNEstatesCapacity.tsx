@@ -762,46 +762,48 @@ export const ENNEstatesCapacity = () => {
                         <Settings className="w-4 h-4 text-slate-700" />
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-72" side="left" align="start">
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-sm text-slate-900">Cost Assumptions</h4>
+                    <PopoverContent className="w-80 p-0" side="bottom" align="end" sideOffset={8}>
+                      <div className="px-5 py-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-sm text-slate-900">Cost Assumptions</h4>
+                        </div>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-xs font-medium text-slate-600">GP Rate (£/session p.a.)</label>
+                            <label className="text-xs font-medium text-slate-600 block mb-1">GP Rate (£/session p.a.)</label>
                             <input
                               type="number"
                               value={gpRate}
                               onChange={(e) => updateGpRate(Number(e.target.value))}
-                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                               min={0}
                               step={500}
                             />
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-slate-600">ANP/ACP Rate (£/WTE p.a.)</label>
+                            <label className="text-xs font-medium text-slate-600 block mb-1">ANP/ACP Rate (£/WTE p.a.)</label>
                             <input
                               type="number"
                               value={anpRate}
                               onChange={(e) => updateAnpRate(Number(e.target.value))}
-                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                               min={0}
                               step={1000}
                             />
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-slate-600">On-Costs (%)</label>
+                            <label className="text-xs font-medium text-slate-600 block mb-1">On-Costs (%)</label>
                             <input
                               type="number"
                               value={onCostsPct}
                               onChange={(e) => updateOnCostsPct(Math.round(Number(e.target.value) * 100) / 100)}
-                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                               min={0}
                               max={100}
                               step={0.5}
                             />
                           </div>
                         </div>
-                        <p className="text-[9px] text-slate-400 italic">Excludes overhead &amp; innovation costs. Changes persist locally.</p>
+                        <p className="text-[9px] text-slate-400 italic">Excludes overhead &amp; innovation costs. Changes auto-save locally.</p>
                       </div>
                     </PopoverContent>
                   </Popover>
