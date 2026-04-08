@@ -181,10 +181,13 @@ export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeed
       const sectionName = sectionLabels[currentSection] || currentSection;
       const submittedAt = format(new Date(), "dd/MM/yyyy, HH:mm");
 
-      // Send email via edge function
-      const { error } = await supabase.functions.invoke("send-email-resend", {
+      // Send email to admin with CC to the sender
+      const ADMIN_EMAIL = "michael.mayatt@nhs.net";
+      const { data: emailData, error } = await supabase.functions.invoke("send-email-resend", {
         body: {
-          to_email: user.email,
+          to_email: ADMIN_EMAIL,
+          cc_email: user.email,
+          reply_to: user.email,
           subject: `[SDA Programme Feedback] - ${sectionName}`,
           html_content: `
             <h2>SDA Programme Feedback Received</h2>
@@ -209,6 +212,8 @@ export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeed
           `,
         },
       });
+
+      console.log("Feedback email response:", emailData);
 
       if (error) {
         throw error;
