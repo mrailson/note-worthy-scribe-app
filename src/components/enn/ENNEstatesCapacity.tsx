@@ -676,8 +676,13 @@ export const ENNEstatesCapacity = () => {
               {sortedPracticeSummary.map((practice, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium whitespace-nowrap">
-                    {practice.practice}
-                    {practice.role === "HUB" && <Badge variant="outline" className="ml-2 text-[10px] bg-[#005EB8] text-white border-[#005EB8]">HUB</Badge>}
+                    <div>
+                      {practice.practice}
+                      {practice.role === "HUB" && <Badge variant="outline" className="ml-2 text-[10px] bg-[#005EB8] text-white border-[#005EB8]">HUB</Badge>}
+                      {practice.branchSite && (
+                        <p className="text-[10px] text-slate-500 italic font-normal mt-0.5">{practice.branchSite}</p>
+                      )}
+                    </div>
                   </TableCell>
                   {expandedGroups.has("listIncome") && (
                     <TableCell className="text-right">{practice.listSize.toLocaleString()}</TableCell>
