@@ -486,12 +486,7 @@ export const SDAEstatesCapacity = () => {
                 {isSaving ? "Saving..." : "Save Changes"}
               </Button>
             </>
-          ) : (
-            <Button size="sm" variant="outline" onClick={startEditing}>
-              <Pencil className="w-4 h-4 mr-1" />
-              Edit Data
-            </Button>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -511,6 +506,12 @@ export const SDAEstatesCapacity = () => {
             <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
               {Math.max(0, Math.round(currentCapacity.sessionsPerWeek) - totalWeeklySessions) * multiplier} Remote {viewMode === "appointments" ? "Appts" : "Sessions"}
             </Badge>
+            {canEditEstates && !isEditing && (
+              <Button size="sm" variant="outline" onClick={startEditing} className="h-7 text-xs">
+                <Pencil className="w-3.5 h-3.5 mr-1" />
+                Edit Data
+              </Button>
+            )}
           </div>
         }
       >
