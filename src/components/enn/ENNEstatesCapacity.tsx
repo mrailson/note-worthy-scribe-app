@@ -105,6 +105,13 @@ export const ENNEstatesCapacity = () => {
   const HOURS_PER_WTE = 37.5;
   const calcWTE = (sessions: number) => (sessions * HOURS_PER_SESSION) / HOURS_PER_WTE;
 
+  // Cost assumptions: GP £11K/session p.a. + 30% on-costs; ANP £60K/WTE p.a. + 30% on-costs
+  const GP_COST_PER_SESSION = 11000 * 1.3;
+  const ANP_COST_PER_WTE = 60000 * 1.3;
+  const calcGpCost = (sessions: number) => sessions * GP_COST_PER_SESSION;
+  const calcAnpCost = (wte: number) => wte * ANP_COST_PER_WTE;
+  const formatCost = (cost: number) => `£${(cost / 1000).toFixed(0)}K`;
+
   type ColumnGroup = "listIncome" | "winter" | "nonWinter";
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
 
@@ -410,19 +417,27 @@ export const ENNEstatesCapacity = () => {
                     const anpSessions = totalRequired * ((100 - gpPct) / 100);
                     const gpWTE = calcWTE(gpSessions);
                     const anpWTE = calcWTE(anpSessions);
+                    const gpCost = calcGpCost(gpSessions);
+                    const anpCost = calcAnpCost(anpWTE);
+                    const totalCost = gpCost + anpCost;
                     return (
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                          <p className="text-[10px] font-medium text-blue-700">GP</p>
-                          <p className="text-sm font-bold text-blue-900">{gpSessions.toFixed(1)} sess</p>
-                          <p className="text-[10px] font-semibold text-blue-800">{gpWTE.toFixed(2)} WTE</p>
+                      <>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                            <p className="text-[10px] font-medium text-blue-700">GP</p>
+                            <p className="text-sm font-bold text-blue-900">{gpSessions.toFixed(1)} sess</p>
+                            <p className="text-[10px] font-semibold text-blue-800">{gpWTE.toFixed(2)} WTE</p>
+                            <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(gpCost)}/yr</p>
+                          </div>
+                          <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                            <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
+                            <p className="text-sm font-bold text-cyan-900">{anpSessions.toFixed(1)} sess</p>
+                            <p className="text-[10px] font-semibold text-cyan-800">{anpWTE.toFixed(2)} WTE</p>
+                            <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(anpCost)}/yr</p>
+                          </div>
                         </div>
-                        <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
-                          <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
-                          <p className="text-sm font-bold text-cyan-900">{anpSessions.toFixed(1)} sess</p>
-                          <p className="text-[10px] font-semibold text-cyan-800">{anpWTE.toFixed(2)} WTE</p>
-                        </div>
-                      </div>
+                        <p className="text-[10px] text-center font-semibold text-emerald-800 mt-1">Est. workforce cost: {formatCost(totalCost)}/yr</p>
+                      </>
                     );
                   })()}
 
@@ -502,19 +517,30 @@ export const ENNEstatesCapacity = () => {
                 const totalSessions = currentCapacity.sessionsPerWeek;
                 const gpSess = totalSessions * (gpPct / 100);
                 const anpSess = totalSessions * ((100 - gpPct) / 100);
+                const gpW = calcWTE(gpSess);
+                const anpW = calcWTE(anpSess);
+                const gpCost = calcGpCost(gpSess);
+                const anpCost = calcAnpCost(anpW);
+                const totalCost = gpCost + anpCost;
                 return (
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                      <p className="text-[10px] font-medium text-blue-700">GP</p>
-                      <p className="text-sm font-bold text-blue-900">{gpSess.toFixed(1)} sess</p>
-                      <p className="text-[10px] font-semibold text-blue-800">{calcWTE(gpSess).toFixed(2)} WTE</p>
+                  <>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                        <p className="text-[10px] font-medium text-blue-700">GP</p>
+                        <p className="text-sm font-bold text-blue-900">{gpSess.toFixed(1)} sess</p>
+                        <p className="text-[10px] font-semibold text-blue-800">{gpW.toFixed(2)} WTE</p>
+                        <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(gpCost)}/yr</p>
+                      </div>
+                      <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                        <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
+                        <p className="text-sm font-bold text-cyan-900">{anpSess.toFixed(1)} sess</p>
+                        <p className="text-[10px] font-semibold text-cyan-800">{anpW.toFixed(2)} WTE</p>
+                        <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(anpCost)}/yr</p>
+                      </div>
                     </div>
-                    <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
-                      <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
-                      <p className="text-sm font-bold text-cyan-900">{anpSess.toFixed(1)} sess</p>
-                      <p className="text-[10px] font-semibold text-cyan-800">{calcWTE(anpSess).toFixed(2)} WTE</p>
-                    </div>
-                  </div>
+                    <p className="text-[10px] text-center font-semibold text-emerald-800 mt-1">Est. workforce cost: {formatCost(totalCost)}/yr</p>
+                    <p className="text-[9px] text-center text-slate-400 mt-0.5 italic">GP £11K/sess + 30% on-costs · ANP £60K/WTE + 30% on-costs · excl. overhead &amp; innovation</p>
+                  </>
                 );
               })()}
 
@@ -617,21 +643,29 @@ export const ENNEstatesCapacity = () => {
                   const anpSessions = totalSessions * ((100 - hub.gpPct) / 100);
                   const gpWTE = calcWTE(gpSessions);
                   const anpWTE = calcWTE(anpSessions);
+                  const gpCost = calcGpCost(gpSessions);
+                  const anpCost = calcAnpCost(anpWTE);
+                  const totalCost = gpCost + anpCost;
                   return (
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                        <p className="text-[10px] font-medium text-blue-700">GP</p>
-                        <p className="text-lg font-bold text-blue-900">{gpSessions.toFixed(1)}</p>
-                        <p className="text-[10px] text-blue-600">sessions/week</p>
-                        <p className="text-xs font-semibold text-blue-800 mt-1">{gpWTE.toFixed(2)} WTE</p>
+                    <>
+                      <div className="grid grid-cols-2 gap-2 mb-1">
+                        <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                          <p className="text-[10px] font-medium text-blue-700">GP</p>
+                          <p className="text-lg font-bold text-blue-900">{gpSessions.toFixed(1)}</p>
+                          <p className="text-[10px] text-blue-600">sessions/week</p>
+                          <p className="text-xs font-semibold text-blue-800 mt-1">{gpWTE.toFixed(2)} WTE</p>
+                          <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(gpCost)}/yr</p>
+                        </div>
+                        <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                          <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
+                          <p className="text-lg font-bold text-cyan-900">{anpSessions.toFixed(1)}</p>
+                          <p className="text-[10px] text-cyan-600">sessions/week</p>
+                          <p className="text-xs font-semibold text-cyan-800 mt-1">{anpWTE.toFixed(2)} WTE</p>
+                          <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(anpCost)}/yr</p>
+                        </div>
                       </div>
-                      <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
-                        <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
-                        <p className="text-lg font-bold text-cyan-900">{anpSessions.toFixed(1)}</p>
-                        <p className="text-[10px] text-cyan-600">sessions/week</p>
-                        <p className="text-xs font-semibold text-cyan-800 mt-1">{anpWTE.toFixed(2)} WTE</p>
-                      </div>
-                    </div>
+                      <p className="text-[10px] text-center font-semibold text-emerald-800 mb-3">Est. workforce cost: {formatCost(totalCost)}/yr</p>
+                    </>
                   );
                 })()}
 
@@ -705,21 +739,30 @@ export const ENNEstatesCapacity = () => {
                   const totalSess = h.totalRequired / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
                   return sum + totalSess * ((100 - h.gpPct) / 100);
                 }, 0);
+                const gpCostAll = calcGpCost(allGpSess);
+                const anpCostAll = calcAnpCost(calcWTE(allAnpSess));
+                const totalCostAll = gpCostAll + anpCostAll;
                 return (
-                  <div className="grid grid-cols-2 gap-2 mt-3">
-                    <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                      <p className="text-[10px] font-medium text-blue-700">GP Total</p>
-                      <p className="text-lg font-bold text-blue-900">{allGpSess.toFixed(1)}</p>
-                      <p className="text-[10px] text-blue-600">sessions/week</p>
-                      <p className="text-xs font-semibold text-blue-800 mt-1">{calcWTE(allGpSess).toFixed(2)} WTE</p>
+                  <>
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                        <p className="text-[10px] font-medium text-blue-700">GP Total</p>
+                        <p className="text-lg font-bold text-blue-900">{allGpSess.toFixed(1)}</p>
+                        <p className="text-[10px] text-blue-600">sessions/week</p>
+                        <p className="text-xs font-semibold text-blue-800 mt-1">{calcWTE(allGpSess).toFixed(2)} WTE</p>
+                        <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(gpCostAll)}/yr</p>
+                      </div>
+                      <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                        <p className="text-[10px] font-medium text-cyan-700">ANP/ACP Total</p>
+                        <p className="text-lg font-bold text-cyan-900">{allAnpSess.toFixed(1)}</p>
+                        <p className="text-[10px] text-cyan-600">sessions/week</p>
+                        <p className="text-xs font-semibold text-cyan-800 mt-1">{calcWTE(allAnpSess).toFixed(2)} WTE</p>
+                        <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(anpCostAll)}/yr</p>
+                      </div>
                     </div>
-                    <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
-                      <p className="text-[10px] font-medium text-cyan-700">ANP/ACP Total</p>
-                      <p className="text-lg font-bold text-cyan-900">{allAnpSess.toFixed(1)}</p>
-                      <p className="text-[10px] text-cyan-600">sessions/week</p>
-                      <p className="text-xs font-semibold text-cyan-800 mt-1">{calcWTE(allAnpSess).toFixed(2)} WTE</p>
-                    </div>
-                  </div>
+                    <p className="text-[10px] text-center font-semibold text-emerald-800 mt-1">Est. workforce cost: {formatCost(totalCostAll)}/yr</p>
+                    <p className="text-[9px] text-center text-slate-400 mt-0.5 italic">GP £11K/sess + 30% on-costs · ANP £60K/WTE + 30% on-costs · excl. overhead &amp; innovation</p>
+                  </>
                 );
               })()}
             </div>
