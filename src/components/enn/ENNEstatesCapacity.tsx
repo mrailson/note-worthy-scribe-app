@@ -1333,7 +1333,7 @@ export const ENNEstatesCapacity = () => {
       <CollapsibleCard
         title="Corby Urgent Care Centre — Attendance"
         icon={<Hospital className="w-5 h-5" />}
-        badge={<span className="text-xs text-slate-500 font-normal">Apr 2024 – Feb 2025</span>}
+        badge={<span className="text-xs text-slate-500 font-normal">Apr 2025 – Feb 2026</span>}
         defaultOpen={false}
       >
         <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>

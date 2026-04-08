@@ -30,31 +30,31 @@ interface MonthRow {
 
 /** Raw CUCC attendance data (Apr 2024 – Feb 2025, 11 months) */
 const CUCC_DATA: MonthRow[] = [
-  { month: "April 2024", shortMonth: "Apr", harborough: 163, parklands: 139, spinney: 96, oundle: 84, cottons: 91, rushden: 109, neneValley: 62, meadows: 43, higham: 63, marshalls: 36 },
-  { month: "May 2024", shortMonth: "May", harborough: 155, parklands: 128, spinney: 105, oundle: 79, cottons: 82, rushden: 98, neneValley: 55, meadows: 48, higham: 52, marshalls: 30 },
-  { month: "June 2024", shortMonth: "Jun", harborough: 148, parklands: 121, spinney: 89, oundle: 72, cottons: 78, rushden: 92, neneValley: 51, meadows: 39, higham: 48, marshalls: 28 },
-  { month: "July 2024", shortMonth: "Jul", harborough: 141, parklands: 118, spinney: 92, oundle: 68, cottons: 85, rushden: 87, neneValley: 48, meadows: 42, higham: 45, marshalls: 25 },
-  { month: "August 2024", shortMonth: "Aug", harborough: 152, parklands: 125, spinney: 98, oundle: 75, cottons: 88, rushden: 95, neneValley: 53, meadows: 45, higham: 50, marshalls: 29 },
-  { month: "September 2024", shortMonth: "Sep", harborough: 145, parklands: 130, spinney: 101, oundle: 80, cottons: 90, rushden: 102, neneValley: 58, meadows: 47, higham: 55, marshalls: 32 },
-  { month: "October 2024", shortMonth: "Oct", harborough: 168, parklands: 142, spinney: 112, oundle: 88, cottons: 95, rushden: 115, neneValley: 65, meadows: 52, higham: 60, marshalls: 38 },
-  { month: "November 2024", shortMonth: "Nov", harborough: 175, parklands: 148, spinney: 118, oundle: 92, cottons: 102, rushden: 120, neneValley: 70, meadows: 55, higham: 65, marshalls: 40 },
-  { month: "December 2024", shortMonth: "Dec", harborough: 185, parklands: 155, spinney: 125, oundle: 98, cottons: 108, rushden: 128, neneValley: 75, meadows: 58, higham: 70, marshalls: 42 },
-  { month: "January 2025", shortMonth: "Jan", harborough: 180, parklands: 150, spinney: 120, oundle: 95, cottons: 105, rushden: 125, neneValley: 72, meadows: 56, higham: 68, marshalls: 41 },
-  { month: "February 2025", shortMonth: "Feb", harborough: 160, parklands: 135, spinney: 108, oundle: 82, cottons: 92, rushden: 105, neneValley: 60, meadows: 46, higham: 58, marshalls: 33 },
+  { month: "April 2025", shortMonth: "Apr", harborough: 125, parklands: 89, spinney: 123, oundle: 160, cottons: 160, rushden: 174, neneValley: 147, meadows: 93, higham: 51, marshalls: 55 },
+  { month: "May 2025", shortMonth: "May", harborough: 121, parklands: 91, spinney: 115, oundle: 177, cottons: 144, rushden: 132, neneValley: 126, meadows: 107, higham: 59, marshalls: 28 },
+  { month: "June 2025", shortMonth: "Jun", harborough: 124, parklands: 79, spinney: 106, oundle: 157, cottons: 153, rushden: 113, neneValley: 100, meadows: 91, higham: 44, marshalls: 29 },
+  { month: "July 2025", shortMonth: "Jul", harborough: 128, parklands: 71, spinney: 2, oundle: 183, cottons: 166, rushden: 116, neneValley: 101, meadows: 116, higham: 49, marshalls: 37 },
+  { month: "August 2025", shortMonth: "Aug", harborough: 99, parklands: 93, spinney: 99, oundle: 174, cottons: 143, rushden: 98, neneValley: 109, meadows: 93, higham: 55, marshalls: 40 },
+  { month: "September 2025", shortMonth: "Sep", harborough: 106, parklands: 82, spinney: 120, oundle: 180, cottons: 175, rushden: 119, neneValley: 114, meadows: 95, higham: 63, marshalls: 41 },
+  { month: "October 2025", shortMonth: "Oct", harborough: 100, parklands: 88, spinney: 112, oundle: 172, cottons: 153, rushden: 107, neneValley: 110, meadows: 102, higham: 46, marshalls: 30 },
+  { month: "November 2025", shortMonth: "Nov", harborough: 77, parklands: 81, spinney: 103, oundle: 159, cottons: 137, rushden: 121, neneValley: 82, meadows: 101, higham: 41, marshalls: 30 },
+  { month: "December 2025", shortMonth: "Dec", harborough: 92, parklands: 75, spinney: 103, oundle: 204, cottons: 202, rushden: 120, neneValley: 97, meadows: 96, higham: 38, marshalls: 33 },
+  { month: "January 2026", shortMonth: "Jan", harborough: 118, parklands: 51, spinney: 99, oundle: 134, cottons: 162, rushden: 134, neneValley: 101, meadows: 112, higham: 37, marshalls: 26 },
+  { month: "February 2026", shortMonth: "Feb", harborough: 95, parklands: 63, spinney: 99, oundle: 165, cottons: 146, rushden: 128, neneValley: 110, meadows: 109, higham: 26, marshalls: 27 },
 ];
 
 /** Annual SDA appointment allocation per practice */
 const SDA_ALLOCATIONS: Record<PracticeKey, number> = {
-  harborough: 11597,
-  parklands: 11283,
-  spinney: 9562,
-  oundle: 8785,
-  cottons: 7767,
-  rushden: 7578,
-  neneValley: 5737,
-  meadows: 5255,
-  higham: 4616,
-  marshalls: 2617,
+  harborough: 11604,
+  parklands: 11290,
+  spinney: 9569,
+  oundle: 8792,
+  cottons: 7773,
+  rushden: 7583,
+  neneValley: 5740,
+  meadows: 5258,
+  higham: 4619,
+  marshalls: 2618,
 };
 
 type SortField = "practice" | "total" | "avg" | "sda" | string;
@@ -167,7 +167,7 @@ const ENNCUCCAttendance = () => {
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground">Total Attendances</p>
             <p className="text-xl font-bold text-[#005EB8]">{displayTotal.toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground">Apr 2024 – Feb 2025</p>
+            <p className="text-[10px] text-muted-foreground">Apr 2025 – Feb 2026</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-[#00A499]">
