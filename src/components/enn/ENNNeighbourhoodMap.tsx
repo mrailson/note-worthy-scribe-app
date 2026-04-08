@@ -43,6 +43,34 @@ const driveTimes = [
   [14, 28, 12,  6, 16, 11, 20, 17, 11,  0],
 ];
 
+/** Miles from each spoke to its assigned hub */
+const hubMiles: Record<string, number> = {
+  "K83007": 0, "K83044": 1.1, "K83024": 1.1, "K83080": 2.4,
+  "K83030": 0, "K83028": 5.2, "K83069": 0.4,
+  "K83616": 0, "K83023": 8, "K83065": 0,
+};
+
+/** Bus service from spoke to hub */
+const hubBus: Record<string, string> = {
+  "K83044": "25", "K83024": "X46", "K83080": "94",
+  "K83028": "X47", "K83069": "X47",
+  "K83023": "94/DTRS", "K83065": "16",
+};
+
+/** Travel from each practice to Corby Urgent Care Centre */
+const cuccTravel: Record<string, { miles: number; carMin: number; publicTransport: string; bus: string }> = {
+  "K83007": { miles: 21.3, carMin: 34, publicTransport: "2h 8m", bus: "X46/EMR/X4/1" },
+  "K83028": { miles: 17.8, carMin: 30, publicTransport: "1h 28m", bus: "48/EMR/X4" },
+  "K83030": { miles: 23, carMin: 33, publicTransport: "1h 43m", bus: "16/X4/1" },
+  "K83044": { miles: 22.3, carMin: 38, publicTransport: "1h 55m", bus: "46/X4" },
+  "K83065": { miles: 19.4, carMin: 29, publicTransport: "1h 23m", bus: "X16/X4/DTRS" },
+  "K83069": { miles: 23.4, carMin: 33, publicTransport: "2h 5m", bus: "16/X4/1" },
+  "K83080": { miles: 19.6, carMin: 11, publicTransport: "2h 12m", bus: "50/X4" },
+  "K83616": { miles: 19.3, carMin: 29, publicTransport: "1h 23m", bus: "X16/DTRS/X4" },
+  "K83023": { miles: 12.9, carMin: 26, publicTransport: "0h 56m", bus: "X4" },
+  "K83024": { miles: 21.9, carMin: 37, publicTransport: "1h 30m", bus: "X47/X4" },
+};
+
 const hubAssignments: Record<string, string> = {
   "K83007": "K83007", "K83024": "K83007", "K83044": "K83007", "K83080": "K83007",
   "K83028": "K83030", "K83030": "K83030", "K83069": "K83030",
