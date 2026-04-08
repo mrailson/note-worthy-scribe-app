@@ -166,29 +166,29 @@ const ENNCUCCAttendance = () => {
         <Card className="border-l-4 border-l-[#005EB8]">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground">Total Attendances</p>
-            <p className="text-xl font-bold text-[#005EB8]">{grandTotal.toLocaleString()}</p>
+            <p className="text-xl font-bold text-[#005EB8]">{displayTotal.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">Apr 2024 – Feb 2025</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-[#00A499]">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground">Monthly Average</p>
-            <p className="text-xl font-bold text-[#00A499]">{avgMonthly.toLocaleString()}</p>
+            <p className="text-xl font-bold text-[#00A499]">{displayAvg.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">across {CUCC_DATA.length} months</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-[#AE2573]">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Highest Month</p>
-            <p className="text-xl font-bold text-[#AE2573]">{monthlyTotals[highestIdx].toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground">{CUCC_DATA[highestIdx].month}</p>
+            <p className="text-xl font-bold text-[#AE2573]">{highestMonth.value.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">{highestMonth.label}</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-[#768692]">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingDown className="w-3 h-3" /> Lowest Month</p>
-            <p className="text-xl font-bold text-[#768692]">{monthlyTotals[lowestIdx].toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground">{CUCC_DATA[lowestIdx].month}</p>
+            <p className="text-xl font-bold text-[#768692]">{lowestMonth.value.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">{lowestMonth.label}</p>
           </CardContent>
         </Card>
       </div>
