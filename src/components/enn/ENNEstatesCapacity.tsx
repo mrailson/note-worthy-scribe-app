@@ -406,8 +406,8 @@ export const ENNEstatesCapacity = () => {
 
                   {/* GP / ANP-ACP Workforce Breakdown */}
                   {(() => {
-                    const gpSessions = f2fRequired * (gpPct / 100);
-                    const anpSessions = f2fRequired * ((100 - gpPct) / 100);
+                    const gpSessions = totalRequired * (gpPct / 100);
+                    const anpSessions = totalRequired * ((100 - gpPct) / 100);
                     const gpWTE = calcWTE(gpSessions);
                     const anpWTE = calcWTE(anpSessions);
                     return (
@@ -499,9 +499,9 @@ export const ENNEstatesCapacity = () => {
               </div>
 
               {(() => {
-                const totalOnSiteSessions = currentCapacity.f2fRequired;
-                const gpSess = totalOnSiteSessions * (gpPct / 100);
-                const anpSess = totalOnSiteSessions * ((100 - gpPct) / 100);
+                const totalSessions = currentCapacity.sessionsPerWeek;
+                const gpSess = totalSessions * (gpPct / 100);
+                const anpSess = totalSessions * ((100 - gpPct) / 100);
                 return (
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
@@ -612,9 +612,9 @@ export const ENNEstatesCapacity = () => {
 
                 {/* GP / ANP-ACP Workforce Breakdown */}
                 {(() => {
-                  const totalOnSiteSessions = hub.f2f / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
-                  const gpSessions = totalOnSiteSessions * (hub.gpPct / 100);
-                  const anpSessions = totalOnSiteSessions * ((100 - hub.gpPct) / 100);
+                  const totalSessions = hub.totalRequired / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                  const gpSessions = totalSessions * (hub.gpPct / 100);
+                  const anpSessions = totalSessions * ((100 - hub.gpPct) / 100);
                   const gpWTE = calcWTE(gpSessions);
                   const anpWTE = calcWTE(anpSessions);
                   return (
@@ -698,12 +698,12 @@ export const ENNEstatesCapacity = () => {
               {/* Aggregated GP / ANP-ACP WTE for all hubs */}
               {(() => {
                 const allGpSess = hubAggregatedData.reduce((sum, h) => {
-                  const onSiteSess = h.f2f / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
-                  return sum + onSiteSess * (h.gpPct / 100);
+                  const totalSess = h.totalRequired / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                  return sum + totalSess * (h.gpPct / 100);
                 }, 0);
                 const allAnpSess = hubAggregatedData.reduce((sum, h) => {
-                  const onSiteSess = h.f2f / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
-                  return sum + onSiteSess * ((100 - h.gpPct) / 100);
+                  const totalSess = h.totalRequired / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                  return sum + totalSess * ((100 - h.gpPct) / 100);
                 }, 0);
                 return (
                   <div className="grid grid-cols-2 gap-2 mt-3">
