@@ -216,7 +216,7 @@ const ENNDashboard = () => {
                 />
               </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
-                <NRESDocumentVault scope="enn_vault" />
+                <ENNDocumentVaultV2 />
               </TabsContent>
             </div>
           </Tabs>
