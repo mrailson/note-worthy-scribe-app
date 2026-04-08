@@ -100,6 +100,10 @@ function SpokeRow({ practice, hubId, isLast }: { practice: Practice; hubId: stri
   const driveCol = getDriveColor(mins);
   const isHubSelf = practice.id === hubId;
   const hc = hubColors[hubId];
+  const miles = hubMiles[practice.id];
+  const bus = hubBus[practice.id] || "";
+  const cucc = cuccTravel[practice.id];
+  const cuccColor = cucc ? (cucc.carMin <= 20 ? "#00875A" : cucc.carMin <= 30 ? "#C68A00" : "#CC3333") : "#ccc";
 
   const gridCols = "minmax(150px, 1.3fr) 75px 75px 75px 75px 75px 60px 55px 55px 50px 85px";
 
