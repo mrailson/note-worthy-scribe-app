@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Users, 
   Lock, 
@@ -31,6 +33,7 @@ import {
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { useNRESPeople } from "@/contexts/NRESPeopleContext";
 import { PeopleDirectoryDialog } from "./PeopleDirectoryDialog";
+import { useENNInsuranceChecklist } from "@/hooks/useENNInsuranceChecklist";
 
 const roleIcons: Record<string, any> = {
   "SRO / Chair": Crown,
