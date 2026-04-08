@@ -23,8 +23,8 @@ type TravelInfo = {
 const PRACTICE_TRAVEL: Record<string, TravelInfo> = {
   'Harborough Field Surgery': { miles: 0 },
   'Parklands Surgery': { miles: 1.1, carMin: 4, publicTransportMin: 8, busService: '25' },
-  'Rushden Medical Centre': { miles: 1.1, carMin: 5, publicTransportMin: 5, busService: 'X46' },
-  'Higham Ferrers Surgery': { miles: 2.4, carMin: 5, publicTransportMin: 10, busService: '94' },
+  'Rushden Medical Centre': { miles: 1.1, carMin: 3, publicTransportMin: 5, busService: 'X46' },
+  'Higham Ferrers Surgery': { miles: 2.4, carMin: 4, publicTransportMin: 10, busService: '94' },
   'The Cottons MC': { miles: 0 },
   'Spinney Brook MC': { miles: 5.2, carMin: 11, publicTransportMin: 35, busService: 'X47' },
   'Marshalls Road Surgery': { miles: 0.4, carMin: 2, publicTransportMin: 5, busService: 'X47' },
