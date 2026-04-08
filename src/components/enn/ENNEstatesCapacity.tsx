@@ -85,6 +85,7 @@ export const ENNEstatesCapacity = () => {
 
   const [onsitePct, setOnsitePct] = useState(50);
   const remotePct = 100 - onsitePct;
+  const [gpPct, setGpPct] = useState(50);
 
   const hubNames = Object.keys(hubPracticeMapping);
   const [hubOnsitePcts, setHubOnsitePcts] = useState<Record<string, number>>(
@@ -93,6 +94,16 @@ export const ENNEstatesCapacity = () => {
   const setHubOnsitePct = (hubName: string, val: number) => {
     setHubOnsitePcts(prev => ({ ...prev, [hubName]: val }));
   };
+  const [hubGpPcts, setHubGpPcts] = useState<Record<string, number>>(
+    () => Object.fromEntries(hubNames.map(h => [h, 50]))
+  );
+  const setHubGpPct = (hubName: string, val: number) => {
+    setHubGpPcts(prev => ({ ...prev, [hubName]: val }));
+  };
+
+  const HOURS_PER_SESSION = 4.1667;
+  const HOURS_PER_WTE = 37.5;
+  const calcWTE = (sessions: number) => (sessions * HOURS_PER_SESSION) / HOURS_PER_WTE;
 
   type ColumnGroup = "listIncome" | "winter" | "nonWinter";
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
