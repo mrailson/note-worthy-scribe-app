@@ -762,7 +762,7 @@ export const ENNEstatesCapacity = () => {
                         <Settings className="w-4 h-4 text-slate-700" />
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 p-0" side="bottom" align="end" sideOffset={8}>
+                    <PopoverContent className="w-80 p-0" side="top" align="end" sideOffset={8}>
                       <div className="px-5 py-4 space-y-4">
                         <div className="flex items-center justify-between">
                           <h4 className="font-semibold text-sm text-slate-900">Cost Assumptions</h4>
