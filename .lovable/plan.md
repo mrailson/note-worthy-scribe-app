@@ -1,32 +1,53 @@
 
 
-## Plan: Upgrade NRES Document Vault to V2 Layout
+## Plan: Fix approval_signatories Anon RLS Policies
 
-### What We're Doing
-Replace the current NRES Document Vault (single folder view with V2 preview banner) with the full V2 tabbed interface already live on ENN. This brings six tabs (Folders, Latest Edits, New Uploads, My Documents, Favourites, All Documents), the unified toolbar, file-type filters, collapsible guidance cards, and the document table with avatars, type badges, and favourites.
+### The Problem
+Two RLS policies on `approval_signatories` grant unrestricted SELECT and UPDATE access to the `anon` role (`USING: true`). This exposes NHS staff names, emails, IP addresses, and signature data to any unauthenticated internet user.
 
-### Safety Guarantees
-- **No database changes** — all V2 hooks (`useAllVaultFiles`, `useVaultFolderMap`, `useVaultFavourites`, `useToggleFavourite`) already accept a `scope` parameter and will use `nres_vault`
-- **No folder/file data affected** — the same queries, same storage bucket paths, same scope filtering
-- **No permission changes** — same `useVaultPermission` and `useIsVaultAdmin` hooks used identically
-- **All existing vault components shared** — `VaultContentView`, `VaultBreadcrumbs`, `VaultPermissionManager`, `VaultSettingsModal`, `VaultDocumentTable`, `VaultFileTypeFilter` are all reused
+### Why It's Safe to Fix
+- **Public approval flow**: Uses the `process-approval` edge function, which authenticates via the **service role key** (bypasses RLS entirely). No client-side code queries this table as anon.
+- **Authenticated flows**: `useDocumentApproval.ts` runs as authenticated users and is covered by existing authenticated-role policies.
 
-### Changes
+### Changes — Single Migration
 
-| File | Action |
-|---|---|
-| `src/components/nres/vault/NRESDocumentVault.tsx` | **Rewrite** — adopt the ENNDocumentVaultV2 structure with `SCOPE = 'nres_vault'`. Remove the V2 preview banner and `VaultV2PreviewModal` import. Keep NRES-specific branding (title says "NRES Document Vault", naming prefix uses `NRES_`). Retain the "Proposed Folder Structure & Access Matrix" download link in the guidance cards. Add the six-tab navigation, file-type filters, favourites, and document table views. |
-| `src/pages/SDADashboard.tsx` | No change needed — already imports `NRESDocumentVault` |
-| `src/pages/NRESDashboard.tsx` | No change needed — already imports `NRESDocumentVault` |
+Drop the two dangerous anon policies and replace with token-scoped versions (matching the `cso_registrations` pattern already used in the project):
 
-### Technical Detail
-The rewrite is essentially a copy of `ENNDocumentVaultV2.tsx` with three substitutions:
-1. `SCOPE = 'nres_vault'` instead of `'enn_vault'`
-2. Card title: "NRES Document Vault" instead of "ENN Document Vault"
-3. Guidance card naming example uses `NRES_Policy_...` prefix
-4. Retains the "Proposed Folder Structure & Access Matrix" download link (NRES-only)
-5. Removes the V2 preview banner (no longer needed — this IS V2)
-6. Removes the `VaultV2PreviewModal` import
+```sql
+-- Remove dangerous open policies
+DROP POLICY "Public can view by approval token" ON approval_signatories;
+DROP POLICY "Public can update by approval token" ON approval_signatories;
 
-All shared components (`VaultDocumentTable`, `VaultFileTypeFilter`, `VaultContentView`, etc.) are already in place and scope-aware — no modifications needed.
+-- Token-scoped SELECT for anon
+CREATE POLICY "Public can view by approval token"
+  ON approval_signatories FOR SELECT TO anon
+  USING (
+    approval_token = (
+      current_setting('request.headers', true)::json ->> 'x-approval-token'
+    )::uuid
+  );
+
+-- Token-scoped UPDATE for anon
+CREATE POLICY "Public can update by approval token"
+  ON approval_signatories FOR UPDATE TO anon
+  USING (
+    approval_token = (
+      current_setting('request.headers', true)::json ->> 'x-approval-token'
+    )::uuid
+  )
+  WITH CHECK (
+    approval_token = (
+      current_setting('request.headers', true)::json ->> 'x-approval-token'
+    )::uuid
+  );
+```
+
+### What Does NOT Change
+- The `process-approval` edge function — uses service role key, unaffected by RLS
+- `useDocumentApproval.ts` — runs as authenticated, uses existing authenticated policies
+- `PublicApproval.tsx` — calls the edge function, never queries the table directly
+- All other approval tables and policies
+
+### Risk Assessment
+**Zero functional impact** — no code path queries this table as anon directly. The token-scoped policies are a defence-in-depth measure should any future code attempt direct anon access.
 
