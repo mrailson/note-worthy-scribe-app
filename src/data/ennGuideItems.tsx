@@ -38,8 +38,8 @@ export const ennGuideItems: GuideItem[] = [
   },
   {
     number: 5,
-    title: "Hub and Spoke Model",
-    description: "Face-to-face appointments are split between central Hubs (30%) and Spoke locations at member practices (20%). ENN operates 3 hubs: Harborough, The Cottons, and The Meadows. Some patients will travel to a hub, whilst others receive care at their registered practice as a spoke site.",
+    title: "Hub Based Model",
+    description: "All face-to-face appointments are delivered at the 3 central Hubs: Harborough (46.89%), The Cottons (26.67%), and The Meadows (26.44%). All practices book into their assigned Hub, with no practices booking at their own sites. Some patients will travel to a hub for their appointment.",
     icon: <Building2 className="w-5 h-5" />,
     category: "operations"
   },

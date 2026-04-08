@@ -611,7 +611,7 @@ export const ENNEstatesCapacity = () => {
                 <div className="mb-3 pb-3 border-b border-blue-200">
                   <div className="flex items-baseline gap-2">
                     <p className="text-3xl font-bold text-slate-900">{hub.listSize.toLocaleString()}</p>
-                    <p className="text-sm text-slate-500">patients ({hub.percentage.toFixed(1)}%)</p>
+                    <p className="text-sm text-slate-500">patients ({hub.percentage.toFixed(2)}%)</p>
                   </div>
                 </div>
 
