@@ -1,53 +1,43 @@
 
 
-## Plan: Fix approval_signatories Anon RLS Policies
+## Plan: Fix staff_responses Broken SELECT Policy
 
 ### The Problem
-Two RLS policies on `approval_signatories` grant unrestricted SELECT and UPDATE access to the `anon` role (`USING: true`). This exposes NHS staff names, emails, IP addresses, and signature data to any unauthenticated internet user.
+The `staff_responses` SELECT policy checks only that the referenced complaint exists — not that the current user has access to it. Any authenticated user can read all staff names, emails, roles, and response text.
 
-### Why It's Safe to Fix
-- **Public approval flow**: Uses the `process-approval` edge function, which authenticates via the **service role key** (bypasses RLS entirely). No client-side code queries this table as anon.
-- **Authenticated flows**: `useDocumentApproval.ts` runs as authenticated users and is covered by existing authenticated-role policies.
+### The Fix — Single Migration
 
-### Changes — Single Migration
-
-Drop the two dangerous anon policies and replace with token-scoped versions (matching the `cso_registrations` pattern already used in the project):
+Drop the broken SELECT policy and replace it with one that mirrors the complaints table's own access logic (practice-based + system admin + PCN manager):
 
 ```sql
--- Remove dangerous open policies
-DROP POLICY "Public can view by approval token" ON approval_signatories;
-DROP POLICY "Public can update by approval token" ON approval_signatories;
+DROP POLICY IF EXISTS "Users can view staff responses for complaints they have access to" 
+  ON public.staff_responses;
 
--- Token-scoped SELECT for anon
-CREATE POLICY "Public can view by approval token"
-  ON approval_signatories FOR SELECT TO anon
+CREATE POLICY "Users can view staff responses for complaints they have access to"
+  ON public.staff_responses FOR SELECT TO authenticated
   USING (
-    approval_token = (
-      current_setting('request.headers', true)::json ->> 'x-approval-token'
-    )::uuid
-  );
-
--- Token-scoped UPDATE for anon
-CREATE POLICY "Public can update by approval token"
-  ON approval_signatories FOR UPDATE TO anon
-  USING (
-    approval_token = (
-      current_setting('request.headers', true)::json ->> 'x-approval-token'
-    )::uuid
-  )
-  WITH CHECK (
-    approval_token = (
-      current_setting('request.headers', true)::json ->> 'x-approval-token'
-    )::uuid
+    EXISTS (
+      SELECT 1 FROM public.complaints c
+      WHERE c.id = staff_responses.complaint_id
+      AND (
+        is_system_admin(auth.uid())
+        OR c.practice_id = get_practice_manager_practice_id(auth.uid())
+        OR c.practice_id = ANY(get_pcn_manager_practice_ids(auth.uid()))
+        OR c.created_by = auth.uid()
+      )
+    )
   );
 ```
 
-### What Does NOT Change
-- The `process-approval` edge function — uses service role key, unaffected by RLS
-- `useDocumentApproval.ts` — runs as authenticated, uses existing authenticated policies
-- `PublicApproval.tsx` — calls the edge function, never queries the table directly
-- All other approval tables and policies
+### Why This Is Safe
+- The `StaffFeedback.tsx` page only **inserts** into `staff_responses` (covered by separate INSERT policy) — it never SELECTs from the table
+- Authenticated complaint views already filter by the same practice/admin/PCN logic on the `complaints` table, so the join condition will match for any user who can already see the complaint
+- System admins, practice managers, PCN managers, and complaint creators retain full read access to related staff responses
+- No client-side code changes needed
 
-### Risk Assessment
-**Zero functional impact** — no code path queries this table as anon directly. The token-scoped policies are a defence-in-depth measure should any future code attempt direct anon access.
+### What Does NOT Change
+- INSERT, UPDATE policies on `staff_responses` — untouched
+- The `complaints` table policies — untouched
+- `StaffFeedback.tsx` — untouched
+- All other tables and edge functions
 
