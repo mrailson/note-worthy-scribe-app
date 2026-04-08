@@ -518,14 +518,19 @@ export const ENNEstatesCapacity = () => {
                   <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">Assigned Practices</p>
                   <div className="space-y-1.5">
                     {hub.practices.map(p => (
-                      <div key={p.practice} className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-1.5">
-                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.role === "HUB" ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-200 text-slate-600 border-slate-300"}`}>
-                            {p.role}
-                          </Badge>
-                          <span className="text-slate-700">{p.practice}</span>
+                      <div key={p.practice}>
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${p.role === "HUB" ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-200 text-slate-600 border-slate-300"}`}>
+                              {p.role}
+                            </Badge>
+                            <span className="text-slate-700">{p.practice}</span>
+                          </div>
+                          <span className="text-slate-500 text-xs">{p.listSize.toLocaleString()}</span>
                         </div>
-                        <span className="text-slate-500 text-xs">{p.listSize.toLocaleString()}</span>
+                        {p.branchSite && (
+                          <p className="text-[10px] text-slate-500 italic ml-14 mt-0.5">{p.branchSite}</p>
+                        )}
                       </div>
                     ))}
                   </div>
