@@ -46,6 +46,7 @@ interface ENNPracticeSummary {
   role: "HUB" | "SPOKE";
   hub: string;
   system: string;
+  systemNote?: string;
 }
 
 const ennPracticeSummary: ENNPracticeSummary[] = [
