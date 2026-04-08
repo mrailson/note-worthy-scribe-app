@@ -151,6 +151,20 @@ export const useCreateVaultFolder = (scope: VaultScope = 'nres_vault') => {
     mutationFn: async ({ name, parentId }: { name: string; parentId: string | null }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
+      // Check for duplicate folder name in the same scope and parent
+      let dupQuery = supabase
+        .from('shared_drive_folders')
+        .select('id')
+        .eq('scope', scope)
+        .eq('name', name);
+      if (parentId) {
+        dupQuery = dupQuery.eq('parent_id', parentId);
+      } else {
+        dupQuery = dupQuery.is('parent_id', null);
+      }
+      const { data: existing } = await dupQuery.maybeSingle();
+      if (existing) throw new Error('A folder with this name already exists here');
+
       const path = parentId ? `${parentId}/${name}` : name;
 
       const { data, error } = await supabase
