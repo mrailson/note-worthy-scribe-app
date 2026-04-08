@@ -96,16 +96,28 @@ const ENNCUCCAttendance = () => {
     });
   }, []);
 
-  const grandTotal = practiceMonthlyTotals.reduce((s, p) => s + p.total, 0);
+  // Compute metrics based on selected practice or all
+  const { displayTotal, displayAvg, displayMonthlyValues, highestMonth, lowestMonth } = useMemo(() => {
+    if (selectedPractice === "all") {
+      const mv = CUCC_DATA.map((m) => PRACTICES.reduce((s, p) => s + (Number(m[p.key]) || 0), 0));
+      const total = mv.reduce((s, v) => s + v, 0);
+      const hIdx = mv.indexOf(Math.max(...mv));
+      const lIdx = mv.indexOf(Math.min(...mv));
+      return { displayTotal: total, displayAvg: Math.round(total / mv.length), displayMonthlyValues: mv, highestMonth: { value: mv[hIdx], label: CUCC_DATA[hIdx].month }, lowestMonth: { value: mv[lIdx], label: CUCC_DATA[lIdx].month } };
+    }
+    const mv = CUCC_DATA.map((m) => Number(m[selectedPractice]) || 0);
+    const total = mv.reduce((s, v) => s + v, 0);
+    const hIdx = mv.indexOf(Math.max(...mv));
+    const lIdx = mv.indexOf(Math.min(...mv));
+    return { displayTotal: total, displayAvg: Math.round(total / mv.length), displayMonthlyValues: mv, highestMonth: { value: mv[hIdx], label: CUCC_DATA[hIdx].month }, lowestMonth: { value: mv[lIdx], label: CUCC_DATA[lIdx].month } };
+  }, [selectedPractice]);
+
   const monthlyTotals = CUCC_DATA.map((m) =>
     PRACTICES.reduce((s, p) => s + (Number(m[p.key]) || 0), 0)
   );
-  const avgMonthly = Math.round(grandTotal / CUCC_DATA.length);
-  const highestIdx = monthlyTotals.indexOf(Math.max(...monthlyTotals));
-  const lowestIdx = monthlyTotals.indexOf(Math.min(...monthlyTotals));
 
   const chartData = CUCC_DATA.map((m) => {
-    const row: any = { name: m.shortMonth, fullMonth: m.month };
+    const row: any = { name: m.shortMonth + " '" + m.month.split(" ")[1].slice(2), fullMonth: m.month };
     if (selectedPractice === "all") {
       PRACTICES.forEach((p) => { row[p.key] = Number(m[p.key]) || 0; });
     } else {
