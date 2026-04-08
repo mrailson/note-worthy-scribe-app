@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, MapPin } from "lucide-react";
+import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, MapPin, Stethoscope } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { ENNNeighbourhoodMap } from "@/components/enn/ENNNeighbourhoodMap";
 
@@ -85,6 +85,7 @@ export const ENNEstatesCapacity = () => {
 
   const [onsitePct, setOnsitePct] = useState(50);
   const remotePct = 100 - onsitePct;
+  const [gpPct, setGpPct] = useState(50);
 
   const hubNames = Object.keys(hubPracticeMapping);
   const [hubOnsitePcts, setHubOnsitePcts] = useState<Record<string, number>>(
@@ -93,6 +94,16 @@ export const ENNEstatesCapacity = () => {
   const setHubOnsitePct = (hubName: string, val: number) => {
     setHubOnsitePcts(prev => ({ ...prev, [hubName]: val }));
   };
+  const [hubGpPcts, setHubGpPcts] = useState<Record<string, number>>(
+    () => Object.fromEntries(hubNames.map(h => [h, 50]))
+  );
+  const setHubGpPct = (hubName: string, val: number) => {
+    setHubGpPcts(prev => ({ ...prev, [hubName]: val }));
+  };
+
+  const HOURS_PER_SESSION = 4.1667;
+  const HOURS_PER_WTE = 37.5;
+  const calcWTE = (sessions: number) => (sessions * HOURS_PER_SESSION) / HOURS_PER_WTE;
 
   type ColumnGroup = "listIncome" | "winter" | "nonWinter";
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
@@ -219,6 +230,7 @@ export const ENNEstatesCapacity = () => {
       const displayValue = viewMode === "appointments" ? sessionsNeeded * APPTS_PER_SESSION : sessionsNeeded;
       const hubOnsite = hubOnsitePcts[hubName] ?? onsitePct;
       const hubRemote = 100 - hubOnsite;
+      const hubGp = hubGpPcts[hubName] ?? gpPct;
       return {
         hubName,
         practices,
@@ -228,9 +240,10 @@ export const ENNEstatesCapacity = () => {
         f2f: displayValue * (hubOnsite / 100),
         remote: displayValue * (hubRemote / 100),
         onsitePct: hubOnsite,
+        gpPct: hubGp,
       };
     });
-  }, [currentCapacity.sessionsPerWeek, viewMode, onsitePct, hubOnsitePcts]);
+  }, [currentCapacity.sessionsPerWeek, viewMode, onsitePct, hubOnsitePcts, gpPct, hubGpPcts]);
 
   const cycleSitesMode = () => {
     const modes: SitesDisplayMode[] = ["total", "hub", "spoke"];
@@ -391,6 +404,28 @@ export const ENNEstatesCapacity = () => {
                     {(f2fRequired).toFixed(1)} sessions on-site • {(remoteRequired).toFixed(1)} sessions remote
                   </p>
 
+                  {/* GP / ANP-ACP Workforce Breakdown */}
+                  {(() => {
+                    const gpSessions = f2fRequired * (gpPct / 100);
+                    const anpSessions = f2fRequired * ((100 - gpPct) / 100);
+                    const gpWTE = calcWTE(gpSessions);
+                    const anpWTE = calcWTE(anpSessions);
+                    return (
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                          <p className="text-[10px] font-medium text-blue-700">GP</p>
+                          <p className="text-sm font-bold text-blue-900">{gpSessions.toFixed(1)} sess</p>
+                          <p className="text-[10px] font-semibold text-blue-800">{gpWTE.toFixed(2)} WTE</p>
+                        </div>
+                        <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                          <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
+                          <p className="text-sm font-bold text-cyan-900">{anpSessions.toFixed(1)} sess</p>
+                          <p className="text-[10px] font-semibold text-cyan-800">{anpWTE.toFixed(2)} WTE</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="mt-3 pt-2 border-t border-slate-200">
                     <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">Recruitment</p>
                     <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-200">
@@ -442,6 +477,47 @@ export const ENNEstatesCapacity = () => {
               <p className="text-[10px] text-slate-500 text-center mt-1.5">
                 {currentCapacity.f2fRequired.toFixed(1)} sessions on-site • {currentCapacity.remoteRequired.toFixed(1)} sessions remote
               </p>
+
+              {/* Global GP/ANP slider for practice view */}
+              <div className="mt-3 pt-2 border-t border-slate-200 px-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-medium text-slate-500">GP / ANP-ACP Split</span>
+                  <span className="text-[10px] font-semibold text-slate-700">{gpPct}% GP / {100 - gpPct}% ANP</span>
+                </div>
+                <Slider
+                  value={[gpPct]}
+                  onValueChange={(val) => setGpPct(val[0])}
+                  min={50}
+                  max={100}
+                  step={5}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                  <span>50% GP</span>
+                  <span>100% GP</span>
+                </div>
+              </div>
+
+              {(() => {
+                const totalOnSiteSessions = currentCapacity.f2fRequired;
+                const gpSess = totalOnSiteSessions * (gpPct / 100);
+                const anpSess = totalOnSiteSessions * ((100 - gpPct) / 100);
+                return (
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                      <p className="text-[10px] font-medium text-blue-700">GP</p>
+                      <p className="text-sm font-bold text-blue-900">{gpSess.toFixed(1)} sess</p>
+                      <p className="text-[10px] font-semibold text-blue-800">{calcWTE(gpSess).toFixed(2)} WTE</p>
+                    </div>
+                    <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                      <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
+                      <p className="text-sm font-bold text-cyan-900">{anpSess.toFixed(1)} sess</p>
+                      <p className="text-[10px] font-semibold text-cyan-800">{calcWTE(anpSess).toFixed(2)} WTE</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="flex items-center justify-between mt-2">
                 <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
                   {season === "winter" ? "Winter" : season === "total" ? "Combined" : "Non-Winter"}
@@ -514,6 +590,51 @@ export const ENNEstatesCapacity = () => {
                   </div>
                 </div>
 
+                {/* Per-hub GP/ANP slider */}
+                <div className="mb-3 px-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-medium text-slate-500">GP / ANP-ACP Split</span>
+                    <span className="text-[10px] font-semibold text-slate-700">{hub.gpPct}% GP / {100 - hub.gpPct}% ANP</span>
+                  </div>
+                  <Slider
+                    value={[hub.gpPct]}
+                    onValueChange={(val) => setHubGpPct(hub.hubName, val[0])}
+                    min={50}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                    <span>50% GP</span>
+                    <span>100% GP</span>
+                  </div>
+                </div>
+
+                {/* GP / ANP-ACP Workforce Breakdown */}
+                {(() => {
+                  const totalOnSiteSessions = hub.f2f / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                  const gpSessions = totalOnSiteSessions * (hub.gpPct / 100);
+                  const anpSessions = totalOnSiteSessions * ((100 - hub.gpPct) / 100);
+                  const gpWTE = calcWTE(gpSessions);
+                  const anpWTE = calcWTE(anpSessions);
+                  return (
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                        <p className="text-[10px] font-medium text-blue-700">GP</p>
+                        <p className="text-lg font-bold text-blue-900">{gpSessions.toFixed(1)}</p>
+                        <p className="text-[10px] text-blue-600">sessions/week</p>
+                        <p className="text-xs font-semibold text-blue-800 mt-1">{gpWTE.toFixed(2)} WTE</p>
+                      </div>
+                      <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                        <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
+                        <p className="text-lg font-bold text-cyan-900">{anpSessions.toFixed(1)}</p>
+                        <p className="text-[10px] text-cyan-600">sessions/week</p>
+                        <p className="text-xs font-semibold text-cyan-800 mt-1">{anpWTE.toFixed(2)} WTE</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="border-t border-blue-200 pt-3">
                   <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">Assigned Practices</p>
                   <div className="space-y-1.5">
@@ -573,6 +694,34 @@ export const ENNEstatesCapacity = () => {
               <p className="text-[10px] text-slate-500 text-center mt-1.5">
                 {currentCapacity.f2fRequired.toFixed(1)} sessions on-site • {currentCapacity.remoteRequired.toFixed(1)} sessions remote
               </p>
+
+              {/* Aggregated GP / ANP-ACP WTE for all hubs */}
+              {(() => {
+                const allGpSess = hubAggregatedData.reduce((sum, h) => {
+                  const onSiteSess = h.f2f / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                  return sum + onSiteSess * (h.gpPct / 100);
+                }, 0);
+                const allAnpSess = hubAggregatedData.reduce((sum, h) => {
+                  const onSiteSess = h.f2f / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                  return sum + onSiteSess * ((100 - h.gpPct) / 100);
+                }, 0);
+                return (
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                      <p className="text-[10px] font-medium text-blue-700">GP Total</p>
+                      <p className="text-lg font-bold text-blue-900">{allGpSess.toFixed(1)}</p>
+                      <p className="text-[10px] text-blue-600">sessions/week</p>
+                      <p className="text-xs font-semibold text-blue-800 mt-1">{calcWTE(allGpSess).toFixed(2)} WTE</p>
+                    </div>
+                    <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                      <p className="text-[10px] font-medium text-cyan-700">ANP/ACP Total</p>
+                      <p className="text-lg font-bold text-cyan-900">{allAnpSess.toFixed(1)}</p>
+                      <p className="text-[10px] text-cyan-600">sessions/week</p>
+                      <p className="text-xs font-semibold text-cyan-800 mt-1">{calcWTE(allAnpSess).toFixed(2)} WTE</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
