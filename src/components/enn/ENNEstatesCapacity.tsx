@@ -4,24 +4,31 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Slider } from "@/components/ui/slider";
 import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/components/ui/popover";
-import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, Settings } from "lucide-react";
+import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, Settings, Car, Bus, MapPin } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { ENNNeighbourhoodMap } from "@/components/enn/ENNNeighbourhoodMap";
 
 const APPTS_PER_SESSION = 14;
 
-/** Approximate drive time in minutes from each spoke to its hub site */
-const SPOKE_DRIVE_TIMES: Record<string, number> = {
-  // Harborough Field Surgery hub spokes
-  'Parklands Surgery': 5,
-  'Rushden Medical Centre': 7,
-  'Higham Ferrers Surgery': 8,
-  // The Cottons MC hub spokes
-  'Spinney Brook Medical Centre': 10,
-  'Marshalls Road Surgery': 4,
-  // The Meadows Surgery hub spokes
-  'Oundle Medical Practice': 22,
-  'Nene Valley Surgery': 12,
+/** Travel data for each practice to its nearest hub */
+type TravelInfo = {
+  miles?: number;
+  carMin?: number;
+  publicTransportMin?: number;
+  busService?: string;
+};
+
+const PRACTICE_TRAVEL: Record<string, TravelInfo> = {
+  'Harborough Field Surgery': { miles: 0 },
+  'Parklands Surgery': { miles: 1.1, carMin: 4, publicTransportMin: 8, busService: '25' },
+  'Rushden Medical Centre': { miles: 1.1, carMin: 5, publicTransportMin: 5, busService: 'X46' },
+  'Higham Ferrers Surgery': { miles: 2.4, carMin: 5, publicTransportMin: 10, busService: '94' },
+  'The Cottons MC': { miles: 0 },
+  'Spinney Brook Medical Centre': { miles: 5.2, carMin: 11, publicTransportMin: 35, busService: 'X47' },
+  'Marshalls Road Surgery': { miles: 0.4, carMin: 2, publicTransportMin: 5, busService: 'X47' },
+  'The Meadows Surgery': { miles: 0 },
+  'Oundle Medical Practice': { miles: 8, carMin: 13, publicTransportMin: 34, busService: '94 or DTRS' },
+  'Nene Valley Surgery': { carMin: 0, publicTransportMin: 0, busService: '16' },
 };
 
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote" | "annualAppts" | "weeklyAppts" | "winterAppts" | "nonWinterAppts" | "weeklyWinter" | "weeklyNonWinter" | "annualIncome" | "hub";
@@ -1090,37 +1097,67 @@ export const ENNEstatesCapacity = () => {
                   <span className="font-semibold text-slate-900">{hubName}</span>
                   <span className="text-slate-500 text-sm">— {hubListSize.toLocaleString()} patients</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-6">
-                  {practices.map(p => {
-                    const driveMin = SPOKE_DRIVE_TIMES[p.practice];
-                    const isHub = p.role === "HUB";
-                    let driveColour = "";
-                    let driveLabel = "";
-                    if (!isHub && driveMin != null) {
-                      if (driveMin < 15) { driveColour = "text-green-700 bg-green-50"; }
-                      else if (driveMin <= 20) { driveColour = "text-amber-700 bg-amber-50"; }
-                      else { driveColour = "text-red-700 bg-red-50"; }
-                      driveLabel = `${driveMin} min`;
-                    }
-                    return (
-                      <div key={p.practice} className="flex items-center gap-2 text-sm flex-wrap">
-                        <Badge variant="outline" className={`text-xs ${isHub ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-100 text-slate-600 border-slate-300"}`}>
-                          {p.role}
-                        </Badge>
-                        <span className="text-slate-700">{p.practice}</span>
-                        <span className="text-slate-400 text-xs">({p.listSize.toLocaleString()})</span>
-                        {driveLabel && (
-                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${driveColour}`}>
-                            {driveLabel}
-                          </span>
-                        )}
-                        {p.branchSite && (
-                          <span className="text-[10px] text-slate-500 italic w-full ml-16">{p.branchSite}</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="text-xs font-semibold">Practice</TableHead>
+                      <TableHead className="text-xs font-semibold text-right">Population</TableHead>
+                      <TableHead className="text-xs font-semibold text-center">
+                        <div className="flex items-center justify-center gap-1"><MapPin className="w-3.5 h-3.5" />Miles</div>
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-center">
+                        <div className="flex items-center justify-center gap-1"><Car className="w-3.5 h-3.5" />By Car</div>
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-center">
+                        <div className="flex items-center justify-center gap-1"><Bus className="w-3.5 h-3.5" />Public Transport</div>
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-center">
+                        <div className="flex items-center justify-center gap-1"><Bus className="w-3.5 h-3.5" />Bus Service</div>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {practices.map(p => {
+                      const isHub = p.role === "HUB";
+                      const travel = PRACTICE_TRAVEL[p.practice] || {};
+                      const carMin = travel.carMin;
+                      let carColour = "text-slate-500";
+                      if (carMin != null && carMin > 0) {
+                        if (carMin < 10) carColour = "text-green-700";
+                        else if (carMin <= 15) carColour = "text-amber-700";
+                        else carColour = "text-red-700";
+                      }
+                      return (
+                        <TableRow key={p.practice} className={isHub ? "bg-blue-50/50 font-medium" : ""}>
+                          <TableCell className="text-sm">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className={`text-[10px] px-1.5 ${isHub ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-100 text-slate-600 border-slate-300"}`}>
+                                {p.role}
+                              </Badge>
+                              <span>{p.practice}</span>
+                            </div>
+                            {p.branchSite && (
+                              <span className="text-[10px] text-slate-500 italic ml-16 block">{p.branchSite}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm text-right tabular-nums">{p.listSize.toLocaleString()}</TableCell>
+                          <TableCell className="text-sm text-center tabular-nums text-slate-600">
+                            {travel.miles != null ? (travel.miles === 0 ? "—" : travel.miles.toFixed(1)) : ""}
+                          </TableCell>
+                          <TableCell className={`text-sm text-center tabular-nums font-medium ${carColour}`}>
+                            {carMin != null ? (carMin === 0 ? "—" : `${carMin}m`) : ""}
+                          </TableCell>
+                          <TableCell className="text-sm text-center tabular-nums text-slate-600">
+                            {travel.publicTransportMin != null ? (travel.publicTransportMin === 0 ? "—" : `${travel.publicTransportMin}m`) : ""}
+                          </TableCell>
+                          <TableCell className="text-sm text-center font-medium text-blue-700">
+                            {travel.busService || ""}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             );
           })}
