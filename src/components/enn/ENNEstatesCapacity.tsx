@@ -1185,7 +1185,7 @@ export const ENNEstatesCapacity = () => {
 
       {/* Hub Location Status & Drive Times */}
       <CollapsibleCard
-        title="Hub Location Status & Drive Times"
+        title="Hub Location Status, Drive Times & Public Transport"
         icon={<Building2 className="w-5 h-5" />}
         badge={<span className="text-xs text-slate-500 font-normal">ENN Neighbourhood</span>}
       >
