@@ -136,12 +136,16 @@ interface SDAFinanceGovernanceProps {
   customInsuranceCheckedBy?: string;
   customInsuranceUpdatedDate?: string;
   neighbourhoodName?: 'NRES' | 'ENN';
+  interactiveInsurance?: boolean;
 }
 
-export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsuranceChecklist, customInsuranceCheckedBy, customInsuranceUpdatedDate, neighbourhoodName = 'NRES' }: SDAFinanceGovernanceProps) => {
+export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsuranceChecklist, customInsuranceCheckedBy, customInsuranceUpdatedDate, neighbourhoodName = 'NRES', interactiveInsurance = false }: SDAFinanceGovernanceProps) => {
   const isENN = neighbourhoodName === 'ENN';
   const { people } = useNRESPeople();
   const [peopleDialogOpen, setPeopleDialogOpen] = useState(false);
+  const [editingAmountId, setEditingAmountId] = useState<string | null>(null);
+  const [amountInput, setAmountInput] = useState('');
+  const ennChecklist = useENNInsuranceChecklist();
 
   const seniorLeadership = people.filter((p) => p.isActive).map((p) => ({
     name: p.name,
