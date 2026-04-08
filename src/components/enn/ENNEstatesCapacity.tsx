@@ -743,7 +743,58 @@ export const ENNEstatesCapacity = () => {
                   <h4 className="font-bold text-lg text-slate-900">Neighbourhood Total</h4>
                   <p className="text-xs text-slate-500">All 3 hubs combined</p>
                 </div>
-                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">TOTAL</Badge>
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="p-1.5 rounded-lg hover:bg-slate-200 transition-colors" title="Cost assumptions">
+                        <Settings className="w-4 h-4 text-slate-500" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72" side="left" align="start">
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-sm text-slate-900">Cost Assumptions</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs font-medium text-slate-600">GP Rate (£/session p.a.)</label>
+                            <input
+                              type="number"
+                              value={gpRate}
+                              onChange={(e) => updateGpRate(Number(e.target.value))}
+                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              min={0}
+                              step={500}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-600">ANP/ACP Rate (£/WTE p.a.)</label>
+                            <input
+                              type="number"
+                              value={anpRate}
+                              onChange={(e) => updateAnpRate(Number(e.target.value))}
+                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              min={0}
+                              step={1000}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-600">On-Costs (%)</label>
+                            <input
+                              type="number"
+                              value={onCostsPct}
+                              onChange={(e) => updateOnCostsPct(Math.round(Number(e.target.value) * 100) / 100)}
+                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              min={0}
+                              max={100}
+                              step={0.5}
+                            />
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-slate-400 italic">Excludes overhead &amp; innovation costs. Changes persist locally.</p>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">TOTAL</Badge>
+                </div>
               </div>
               <div className="mb-3 pb-3 border-b border-slate-200">
                 <div className="flex items-baseline gap-2">
