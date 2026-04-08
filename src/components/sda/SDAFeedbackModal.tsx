@@ -182,7 +182,7 @@ export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeed
       const submittedAt = format(new Date(), "dd/MM/yyyy, HH:mm");
 
       // Send email to admin with CC to the sender
-      const ADMIN_EMAIL = "michael.mayatt@nhs.net";
+      const ADMIN_EMAIL = "malcolm.railson@nhs.net";
       const { data: emailData, error } = await supabase.functions.invoke("send-email-resend", {
         body: {
           to_email: ADMIN_EMAIL,
