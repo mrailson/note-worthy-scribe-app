@@ -96,16 +96,28 @@ const ENNCUCCAttendance = () => {
     });
   }, []);
 
-  const grandTotal = practiceMonthlyTotals.reduce((s, p) => s + p.total, 0);
+  // Compute metrics based on selected practice or all
+  const { displayTotal, displayAvg, highestMonth, lowestMonth } = useMemo(() => {
+    if (selectedPractice === "all") {
+      const mv = CUCC_DATA.map((m) => PRACTICES.reduce((s, p) => s + (Number(m[p.key]) || 0), 0));
+      const total = mv.reduce((s, v) => s + v, 0);
+      const hIdx = mv.indexOf(Math.max(...mv));
+      const lIdx = mv.indexOf(Math.min(...mv));
+      return { displayTotal: total, displayAvg: Math.round(total / mv.length), displayMonthlyValues: mv, highestMonth: { value: mv[hIdx], label: CUCC_DATA[hIdx].month }, lowestMonth: { value: mv[lIdx], label: CUCC_DATA[lIdx].month } };
+    }
+    const mv = CUCC_DATA.map((m) => Number(m[selectedPractice]) || 0);
+    const total = mv.reduce((s, v) => s + v, 0);
+    const hIdx = mv.indexOf(Math.max(...mv));
+    const lIdx = mv.indexOf(Math.min(...mv));
+    return { displayTotal: total, displayAvg: Math.round(total / mv.length), displayMonthlyValues: mv, highestMonth: { value: mv[hIdx], label: CUCC_DATA[hIdx].month }, lowestMonth: { value: mv[lIdx], label: CUCC_DATA[lIdx].month } };
+  }, [selectedPractice]);
+
   const monthlyTotals = CUCC_DATA.map((m) =>
     PRACTICES.reduce((s, p) => s + (Number(m[p.key]) || 0), 0)
   );
-  const avgMonthly = Math.round(grandTotal / CUCC_DATA.length);
-  const highestIdx = monthlyTotals.indexOf(Math.max(...monthlyTotals));
-  const lowestIdx = monthlyTotals.indexOf(Math.min(...monthlyTotals));
 
   const chartData = CUCC_DATA.map((m) => {
-    const row: any = { name: m.shortMonth, fullMonth: m.month };
+    const row: any = { name: m.shortMonth + " '" + m.month.split(" ")[1].slice(2), fullMonth: m.month };
     if (selectedPractice === "all") {
       PRACTICES.forEach((p) => { row[p.key] = Number(m[p.key]) || 0; });
     } else {
@@ -154,29 +166,29 @@ const ENNCUCCAttendance = () => {
         <Card className="border-l-4 border-l-[#005EB8]">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground">Total Attendances</p>
-            <p className="text-xl font-bold text-[#005EB8]">{grandTotal.toLocaleString()}</p>
+            <p className="text-xl font-bold text-[#005EB8]">{displayTotal.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">Apr 2024 – Feb 2025</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-[#00A499]">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground">Monthly Average</p>
-            <p className="text-xl font-bold text-[#00A499]">{avgMonthly.toLocaleString()}</p>
+            <p className="text-xl font-bold text-[#00A499]">{displayAvg.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">across {CUCC_DATA.length} months</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-[#AE2573]">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Highest Month</p>
-            <p className="text-xl font-bold text-[#AE2573]">{monthlyTotals[highestIdx].toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground">{CUCC_DATA[highestIdx].month}</p>
+            <p className="text-xl font-bold text-[#AE2573]">{highestMonth.value.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">{highestMonth.label}</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-[#768692]">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingDown className="w-3 h-3" /> Lowest Month</p>
-            <p className="text-xl font-bold text-[#768692]">{monthlyTotals[lowestIdx].toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground">{CUCC_DATA[lowestIdx].month}</p>
+            <p className="text-xl font-bold text-[#768692]">{lowestMonth.value.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">{lowestMonth.label}</p>
           </CardContent>
         </Card>
       </div>
@@ -283,8 +295,8 @@ const ENNCUCCAttendance = () => {
                   {monthlyTotals.map((t, i) => (
                     <TableCell key={i} className="text-center text-xs tabular-nums">{t.toLocaleString()}</TableCell>
                   ))}
-                  <TableCell className="text-center text-xs tabular-nums bg-blue-100">{grandTotal.toLocaleString()}</TableCell>
-                  <TableCell className="text-center text-xs tabular-nums">{avgMonthly}</TableCell>
+                  <TableCell className="text-center text-xs tabular-nums bg-blue-100">{monthlyTotals.reduce((s, v) => s + v, 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-center text-xs tabular-nums">{Math.round(monthlyTotals.reduce((s, v) => s + v, 0) / monthlyTotals.length)}</TableCell>
                   <TableCell className="text-center text-xs tabular-nums bg-amber-100">74,846</TableCell>
                 </TableRow>
               </TableBody>
