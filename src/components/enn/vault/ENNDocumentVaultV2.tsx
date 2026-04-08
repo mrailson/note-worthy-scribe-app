@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { FolderLock, LayoutGrid, List, GitBranch, Settings, Search, X, ChevronDown, ChevronUp, Info, Lightbulb, ShieldAlert } from 'lucide-react';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { FolderLock, Folder, Clock, Upload, FileText, Star, Files, LayoutGrid, List, GitBranch, Settings, Search, X, ChevronDown, ChevronUp, Info, Lightbulb, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -246,14 +246,74 @@ export const ENNDocumentVaultV2 = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setTabSearch(''); setTypeFilter('all'); }}>
-            <TabsList className="w-full justify-start">
-              <TabsTrigger value="folders">Folders</TabsTrigger>
-              <TabsTrigger value="latest">Latest edits</TabsTrigger>
-              <TabsTrigger value="new">New uploads</TabsTrigger>
-              <TabsTrigger value="mine">My documents</TabsTrigger>
-              <TabsTrigger value="favourites">Favourites</TabsTrigger>
-              <TabsTrigger value="all">All documents</TabsTrigger>
-            </TabsList>
+            {/* ── Unified navigation + search + view toolbar ── */}
+            <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-muted/20 px-1.5 py-1.5 flex-wrap">
+              {/* Tab navigation with icons */}
+              <div className="flex items-center gap-0.5">
+                {[
+                  { value: 'folders', label: 'Folders', Icon: Folder },
+                  { value: 'latest', label: 'Latest edits', Icon: Clock },
+                  { value: 'new', label: 'New uploads', Icon: Upload },
+                  { value: 'mine', label: 'My documents', Icon: FileText },
+                  { value: 'favourites', label: 'Favourites', Icon: Star },
+                  { value: 'all', label: 'All documents', Icon: Files },
+                ].map(({ value, label, Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => { setActiveTab(value); setTabSearch(''); setTypeFilter('all'); }}
+                    className={`
+                      inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all whitespace-nowrap
+                      ${activeTab === value
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                      }
+                    `}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="hidden lg:inline">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex-1" />
+
+              {/* Search (folders tab only) */}
+              {activeTab === 'folders' && (
+                <>
+                  <div className="w-px h-5 bg-border/60" />
+                  <div className="max-w-[200px]">
+                    <VaultToolbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+                  </div>
+                </>
+              )}
+
+              {/* View mode switcher (folders tab only) */}
+              {activeTab === 'folders' && (
+                <>
+                  <div className="w-px h-5 bg-border/60" />
+                  <div className="flex items-center gap-0.5 bg-background rounded-lg border border-border/40 p-0.5">
+                    <Tooltip><TooltipTrigger asChild><Button variant={viewMode === 'icons' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-md" onClick={() => setViewMode('icons')}><LayoutGrid className="h-3.5 w-3.5" /></Button></TooltipTrigger><TooltipContent>Icons</TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant={viewMode === 'details' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-md" onClick={() => setViewMode('details')}><List className="h-3.5 w-3.5" /></Button></TooltipTrigger><TooltipContent>Details</TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant={viewMode === 'tree' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-md" onClick={() => setViewMode('tree')}><GitBranch className="h-3.5 w-3.5" /></Button></TooltipTrigger><TooltipContent>Tree</TooltipContent></Tooltip>
+                  </div>
+                </>
+              )}
+
+              {/* Settings */}
+              {isAdmin && (
+                <>
+                  <div className="w-px h-5 bg-border/60" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => setSettingsOpen(true)}>
+                        <Settings className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Vault Settings</TooltipContent>
+                  </Tooltip>
+                </>
+              )}
+            </div>
 
             {/* ── Folders tab (existing V1 view) ── */}
             <TabsContent value="folders" className="space-y-3 mt-3">
@@ -296,32 +356,6 @@ export const ENNDocumentVaultV2 = () => {
                   )}
                 </div>
               )}
-
-              {/* ── Modern toolbar with integrated view/settings ── */}
-              <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-                <div className="flex-1">
-                  <VaultToolbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-                </div>
-                <div className="h-5 w-px bg-border/60" />
-                <div className="flex items-center gap-0.5 bg-background rounded-md border border-border/60 p-0.5">
-                  <Tooltip><TooltipTrigger asChild><Button variant={viewMode === 'icons' ? 'default' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewMode('icons')}><LayoutGrid className="h-3.5 w-3.5" /></Button></TooltipTrigger><TooltipContent>Icons</TooltipContent></Tooltip>
-                  <Tooltip><TooltipTrigger asChild><Button variant={viewMode === 'details' ? 'default' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewMode('details')}><List className="h-3.5 w-3.5" /></Button></TooltipTrigger><TooltipContent>Details</TooltipContent></Tooltip>
-                  <Tooltip><TooltipTrigger asChild><Button variant={viewMode === 'tree' ? 'default' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewMode('tree')}><GitBranch className="h-3.5 w-3.5" /></Button></TooltipTrigger><TooltipContent>Tree</TooltipContent></Tooltip>
-                </div>
-                {isAdmin && (
-                  <>
-                    <div className="h-5 w-px bg-border/60" />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSettingsOpen(true)}>
-                          <Settings className="h-3.5 w-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Vault Settings</TooltipContent>
-                    </Tooltip>
-                  </>
-                )}
-              </div>
 
               {!isSearching && <VaultBreadcrumbs items={breadcrumbs} onNavigate={handleNavigate} />}
 
