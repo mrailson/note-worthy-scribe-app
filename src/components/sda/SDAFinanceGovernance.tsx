@@ -143,8 +143,6 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
   const isENN = neighbourhoodName === 'ENN';
   const { people } = useNRESPeople();
   const [peopleDialogOpen, setPeopleDialogOpen] = useState(false);
-  const [editingAmountId, setEditingAmountId] = useState<string | null>(null);
-  const [amountInput, setAmountInput] = useState('');
   const ennChecklist = useENNInsuranceChecklist();
 
   const seniorLeadership = people.filter((p) => p.isActive).map((p) => ({
