@@ -31,6 +31,20 @@ const PRACTICE_TRAVEL: Record<string, TravelInfo> = {
   'Nene Valley Surgery': { carMin: 0, publicTransportMin: 0, busService: '16' },
 };
 
+/** Travel data from each practice to Corby Urgent Care Centre */
+const CUCC_TRAVEL: Record<string, { miles: number; carMin: number; publicTransport: string; busService: string }> = {
+  'Harborough Field Surgery': { miles: 21.3, carMin: 34, publicTransport: '2h 8m', busService: 'X46/EMR/X4/1' },
+  'Spinney Brook MC': { miles: 17.8, carMin: 30, publicTransport: '1h 28m', busService: '48/EMR/X4' },
+  'The Cottons MC': { miles: 23, carMin: 33, publicTransport: '1h 43m', busService: '16/X4/1' },
+  'Parklands Surgery': { miles: 22.3, carMin: 38, publicTransport: '1h 55m', busService: '46/X4' },
+  'Nene Valley Surgery': { miles: 19.4, carMin: 29, publicTransport: '1h 23m', busService: 'X16/X4/DTRS' },
+  'Marshalls Road Surgery': { miles: 23.4, carMin: 33, publicTransport: '2h 5m', busService: '16/X4/1' },
+  'Higham Ferrers Surgery': { miles: 19.6, carMin: 11, publicTransport: '2h 12m', busService: '50/X4' },
+  'The Meadows Surgery': { miles: 19.3, carMin: 29, publicTransport: '1h 23m', busService: 'X16/DTRS/X4' },
+  'Oundle Medical Practice': { miles: 12.9, carMin: 26, publicTransport: '0h 56m', busService: 'X4' },
+  'Rushden Medical Centre': { miles: 21.9, carMin: 37, publicTransport: '1h 30m', busService: 'X47/X4' },
+};
+
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote" | "annualAppts" | "weeklyAppts" | "winterAppts" | "nonWinterAppts" | "weeklyWinter" | "weeklyNonWinter" | "annualIncome" | "hub";
 type SortDirection = "asc" | "desc";
 type Season = "nonWinter" | "winter" | "total";
