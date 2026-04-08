@@ -744,7 +744,7 @@ export const ENNEstatesCapacity = () => {
                 <div className="flex items-center gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button className="p-1.5 rounded-lg hover:bg-slate-200 transition-colors" title="Cost assumptions">
+                      <button type="button" className="p-1.5 rounded-lg hover:bg-slate-200 transition-colors" title="Cost assumptions" onClick={(e) => e.preventDefault()}>
                         <Settings className="w-4 h-4 text-slate-500" />
                       </button>
                     </PopoverTrigger>
