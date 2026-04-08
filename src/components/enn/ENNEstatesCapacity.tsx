@@ -1169,6 +1169,25 @@ export const ENNEstatesCapacity = () => {
                     })}
                   </TableBody>
                 </Table>
+              </div>
+            );
+          })}
+
+          {/* Drive Times Overview */}
+          <div className="border-t pt-6">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-slate-900 mb-2">Neighbourhood Drive Time Overview</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                The interactive map below shows the geographical spread of all 10 ENN practices across the 3 hub sites. 
+                Use <strong>Hub View</strong> to see practice groupings and patient volumes, or switch to <strong>Map &amp; Drive Times</strong> to 
+                explore estimated travel distances between practices. Drive time data helps inform session planning, clinician routing, 
+                and ensures equitable access across the neighbourhood — particularly for outlying practices such as Oundle and Nene Valley.
+              </p>
+            </div>
+            <ENNNeighbourhoodMap />
+          </div>
+        </div>
+      </CollapsibleCard>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
