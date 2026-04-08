@@ -637,6 +637,7 @@ export const ENNEstatesCapacity = () => {
 
                 <div className="border-t border-blue-200 pt-3">
                   <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">Assigned Practices</p>
+                  <div className="space-y-1.5">
                     {hub.practices.map(p => (
                       <div key={p.practice}>
                         <div className="flex items-center justify-between text-sm">
@@ -654,6 +655,7 @@ export const ENNEstatesCapacity = () => {
                       </div>
                     ))}
                   </div>
+                </div>
                 </div>
               </div>
             ))}
@@ -693,6 +695,34 @@ export const ENNEstatesCapacity = () => {
               <p className="text-[10px] text-slate-500 text-center mt-1.5">
                 {currentCapacity.f2fRequired.toFixed(1)} sessions on-site • {currentCapacity.remoteRequired.toFixed(1)} sessions remote
               </p>
+
+              {/* Aggregated GP / ANP-ACP WTE for all hubs */}
+              {(() => {
+                const allGpSess = hubAggregatedData.reduce((sum, h) => {
+                  const onSiteSess = h.f2f / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                  return sum + onSiteSess * (h.gpPct / 100);
+                }, 0);
+                const allAnpSess = hubAggregatedData.reduce((sum, h) => {
+                  const onSiteSess = h.f2f / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                  return sum + onSiteSess * ((100 - h.gpPct) / 100);
+                }, 0);
+                return (
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                      <p className="text-[10px] font-medium text-blue-700">GP Total</p>
+                      <p className="text-lg font-bold text-blue-900">{allGpSess.toFixed(1)}</p>
+                      <p className="text-[10px] text-blue-600">sessions/week</p>
+                      <p className="text-xs font-semibold text-blue-800 mt-1">{calcWTE(allGpSess).toFixed(2)} WTE</p>
+                    </div>
+                    <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                      <p className="text-[10px] font-medium text-cyan-700">ANP/ACP Total</p>
+                      <p className="text-lg font-bold text-cyan-900">{allAnpSess.toFixed(1)}</p>
+                      <p className="text-[10px] text-cyan-600">sessions/week</p>
+                      <p className="text-xs font-semibold text-cyan-800 mt-1">{calcWTE(allAnpSess).toFixed(2)} WTE</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
