@@ -31,17 +31,6 @@ const PRACTICE_TRAVEL: Record<string, TravelInfo> = {
   'Nene Valley Surgery': { carMin: 0, publicTransportMin: 0, busService: '16' },
 };
 
-/** Approximate drive time in minutes from each spoke to its hub site */
-const SPOKE_DRIVE_TIMES: Record<string, number> = {
-  'Parklands Surgery': 5,
-  'Rushden Medical Centre': 7,
-  'Higham Ferrers Surgery': 8,
-  'Spinney Brook Medical Centre': 10,
-  'Marshalls Road Surgery': 4,
-  'Oundle Medical Practice': 22,
-  'Nene Valley Surgery': 12,
-};
-
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote" | "annualAppts" | "weeklyAppts" | "winterAppts" | "nonWinterAppts" | "weeklyWinter" | "weeklyNonWinter" | "annualIncome" | "hub";
 type SortDirection = "asc" | "desc";
 type Season = "nonWinter" | "winter" | "total";
