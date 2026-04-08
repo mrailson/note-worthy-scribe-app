@@ -527,8 +527,52 @@ export const ENNEstatesCapacity = () => {
                   </div>
                 </div>
 
+                {/* Per-hub GP/ANP slider */}
+                <div className="mb-3 px-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-medium text-slate-500">GP / ANP-ACP Split</span>
+                    <span className="text-[10px] font-semibold text-slate-700">{hub.gpPct}% GP / {100 - hub.gpPct}% ANP</span>
+                  </div>
+                  <Slider
+                    value={[hub.gpPct]}
+                    onValueChange={(val) => setHubGpPct(hub.hubName, val[0])}
+                    min={50}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                    <span>50% GP</span>
+                    <span>100% GP</span>
+                  </div>
+                </div>
+
+                {/* GP / ANP-ACP Workforce Breakdown */}
+                {(() => {
+                  const totalOnSiteSessions = hub.f2f / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                  const gpSessions = totalOnSiteSessions * (hub.gpPct / 100);
+                  const anpSessions = totalOnSiteSessions * ((100 - hub.gpPct) / 100);
+                  const gpWTE = calcWTE(gpSessions);
+                  const anpWTE = calcWTE(anpSessions);
+                  return (
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                        <p className="text-[10px] font-medium text-blue-700">GP</p>
+                        <p className="text-lg font-bold text-blue-900">{gpSessions.toFixed(1)}</p>
+                        <p className="text-[10px] text-blue-600">sessions/week</p>
+                        <p className="text-xs font-semibold text-blue-800 mt-1">{gpWTE.toFixed(2)} WTE</p>
+                      </div>
+                      <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                        <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
+                        <p className="text-lg font-bold text-cyan-900">{anpSessions.toFixed(1)}</p>
+                        <p className="text-[10px] text-cyan-600">sessions/week</p>
+                        <p className="text-xs font-semibold text-cyan-800 mt-1">{anpWTE.toFixed(2)} WTE</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="border-t border-blue-200 pt-3">
-                  <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">Assigned Practices</p>
                   <div className="space-y-1.5">
                     {hub.practices.map(p => (
                       <div key={p.practice}>
