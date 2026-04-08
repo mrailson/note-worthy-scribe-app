@@ -720,68 +720,82 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
                               .replace('Clinical/CNSGP', 'CNSGP');
                             const shortAmount = ins.amount === 'No Limit' ? '∞' : ins.amount;
 
+                            if (!isEditable) {
+                              return (
+                                <Badge
+                                  key={ins.id}
+                                  variant="outline"
+                                  className={`text-[10px] px-1.5 py-0.5 font-medium ${
+                                    ins.confirmed
+                                      ? 'text-green-700 border-green-400 bg-green-50'
+                                      : 'text-amber-700 border-amber-400 bg-amber-50'
+                                  }`}
+                                >
+                                  {shortType} {shortAmount}
+                                </Badge>
+                              );
+                            }
+
                             return (
                               <Popover key={ins.id}>
                                 <PopoverTrigger asChild>
-                                  <Badge
-                                    variant="outline"
-                                    className={`text-[10px] px-1.5 py-0.5 font-medium cursor-pointer hover:opacity-80 ${
+                                  <button
+                                    type="button"
+                                    className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium cursor-pointer hover:opacity-80 transition-opacity ${
                                       isAmber
                                         ? 'text-amber-700 border-amber-400 bg-amber-50'
                                         : 'text-green-700 border-green-400 bg-green-50'
                                     }`}
                                   >
                                     {shortType} {shortAmount}
-                                  </Badge>
+                                  </button>
                                 </PopoverTrigger>
-                                {isEditable && (
-                                  <PopoverContent className="w-64 p-3" align="start">
-                                    <div className="space-y-3">
-                                      <p className="text-sm font-medium text-slate-900">{ins.insurance_type} Liability</p>
-                                      <div className="flex items-center gap-2">
-                                        <Checkbox
-                                          checked={ins.confirmed}
-                                          onCheckedChange={(checked) => {
-                                            ennChecklist.toggleConfirmed({ id: ins.id, confirmed: !!checked });
+                                <PopoverContent className="w-64 p-3" align="start" side="top">
+                                  <div className="space-y-3">
+                                    <p className="text-sm font-medium text-slate-900">{ins.insurance_type} Liability</p>
+                                    <div className="flex items-center gap-2">
+                                      <Checkbox
+                                        checked={ins.confirmed}
+                                        onCheckedChange={(checked) => {
+                                          ennChecklist.toggleConfirmed({ id: ins.id, confirmed: !!checked });
+                                        }}
+                                      />
+                                      <span className="text-sm text-slate-700">Confirmed</span>
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-slate-500 mb-1 block">Insured amount</label>
+                                      <div className="flex gap-1.5">
+                                        {['£5m', '£10m'].map((preset) => (
+                                          <Button
+                                            key={preset}
+                                            variant={ins.amount === preset ? 'default' : 'outline'}
+                                            size="sm"
+                                            className="text-xs h-7"
+                                            onClick={() => ennChecklist.updateAmount({ id: ins.id, amount: preset })}
+                                          >
+                                            {preset}
+                                          </Button>
+                                        ))}
+                                        <Input
+                                          placeholder="Other"
+                                          className="h-7 text-xs w-20"
+                                          defaultValue={!['£5m', '£10m', 'TBC'].includes(ins.amount) ? ins.amount : ''}
+                                          onBlur={(e) => {
+                                            const val = e.target.value.trim();
+                                            if (val && val !== ins.amount) {
+                                              ennChecklist.updateAmount({ id: ins.id, amount: val });
+                                            }
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              (e.target as HTMLInputElement).blur();
+                                            }
                                           }}
                                         />
-                                        <span className="text-sm text-slate-700">Confirmed</span>
-                                      </div>
-                                      <div>
-                                        <label className="text-xs text-slate-500 mb-1 block">Insured amount</label>
-                                        <div className="flex gap-1.5">
-                                          {['£5m', '£10m'].map((preset) => (
-                                            <Button
-                                              key={preset}
-                                              variant={ins.amount === preset ? 'default' : 'outline'}
-                                              size="sm"
-                                              className="text-xs h-7"
-                                              onClick={() => ennChecklist.updateAmount({ id: ins.id, amount: preset })}
-                                            >
-                                              {preset}
-                                            </Button>
-                                          ))}
-                                          <Input
-                                            placeholder="Other"
-                                            className="h-7 text-xs w-20"
-                                            defaultValue={!['£5m', '£10m', 'TBC'].includes(ins.amount) ? ins.amount : ''}
-                                            onBlur={(e) => {
-                                              const val = e.target.value.trim();
-                                              if (val && val !== ins.amount) {
-                                                ennChecklist.updateAmount({ id: ins.id, amount: val });
-                                              }
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter') {
-                                                (e.target as HTMLInputElement).blur();
-                                              }
-                                            }}
-                                          />
-                                        </div>
                                       </div>
                                     </div>
-                                  </PopoverContent>
-                                )}
+                                  </div>
+                                </PopoverContent>
                               </Popover>
                             );
                           })}
