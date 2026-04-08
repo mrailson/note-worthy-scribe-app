@@ -66,7 +66,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return (
     <div className="bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-xs max-w-xs">
       <p className="font-semibold text-slate-800 mb-2 border-b pb-1">{label}</p>
-      {payload.map((p: any) => (
+      {[...payload].reverse().map((p: any) => (
         <div key={p.dataKey} className="flex items-center justify-between gap-4 py-0.5">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: p.color }} />
