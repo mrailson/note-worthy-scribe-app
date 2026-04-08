@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { FolderLock, LayoutGrid, List, GitBranch, Settings, Search, X, ChevronDown, ChevronUp, Info, Lightbulb, ShieldAlert } from 'lucide-react';
+import { FolderLock, Folder, Clock, Upload, FileText, Star, Files, LayoutGrid, List, GitBranch, Settings, Search, X, ChevronDown, ChevronUp, Info, Lightbulb, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
