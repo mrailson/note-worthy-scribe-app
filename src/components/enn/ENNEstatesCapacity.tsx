@@ -404,6 +404,28 @@ export const ENNEstatesCapacity = () => {
                     {(f2fRequired).toFixed(1)} sessions on-site • {(remoteRequired).toFixed(1)} sessions remote
                   </p>
 
+                  {/* GP / ANP-ACP Workforce Breakdown */}
+                  {(() => {
+                    const gpSessions = f2fRequired * (gpPct / 100);
+                    const anpSessions = f2fRequired * ((100 - gpPct) / 100);
+                    const gpWTE = calcWTE(gpSessions);
+                    const anpWTE = calcWTE(anpSessions);
+                    return (
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                          <p className="text-[10px] font-medium text-blue-700">GP</p>
+                          <p className="text-sm font-bold text-blue-900">{gpSessions.toFixed(1)} sess</p>
+                          <p className="text-[10px] font-semibold text-blue-800">{gpWTE.toFixed(2)} WTE</p>
+                        </div>
+                        <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                          <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
+                          <p className="text-sm font-bold text-cyan-900">{anpSessions.toFixed(1)} sess</p>
+                          <p className="text-[10px] font-semibold text-cyan-800">{anpWTE.toFixed(2)} WTE</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="mt-3 pt-2 border-t border-slate-200">
                     <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">Recruitment</p>
                     <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-200">
@@ -573,7 +595,7 @@ export const ENNEstatesCapacity = () => {
                 })()}
 
                 <div className="border-t border-blue-200 pt-3">
-                  <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">Assigned Practices</p>
                     {hub.practices.map(p => (
                       <div key={p.practice}>
                         <div className="flex items-center justify-between text-sm">
