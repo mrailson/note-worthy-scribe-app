@@ -39,7 +39,7 @@ export const ennGuideItems: GuideItem[] = [
   {
     number: 5,
     title: "Hub Based Model",
-    description: "All face-to-face appointments are delivered at the 3 central Hubs: Harborough (46.89%), The Cottons (26.67%), and The Meadows (26.44%). All practices book into their assigned Hub, with no practices booking at their own sites. Some patients will travel to a hub for their appointment.",
+    description: "All face-to-face appointments are delivered at the 3 central Hubs: Harborough (46.89% of neighbourhood list size), The Cottons (26.67% of neighbourhood list size), and The Meadows (26.44% of neighbourhood list size). All practices book into their assigned Hub, with no practices booking at their own sites. Patients will travel to a hub for their appointment.",
     icon: <Building2 className="w-5 h-5" />,
     category: "operations"
   },
