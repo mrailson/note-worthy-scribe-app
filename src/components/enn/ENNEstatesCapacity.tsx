@@ -394,7 +394,12 @@ export const ENNEstatesCapacity = () => {
                   </div>
 
                   <div className="flex items-center justify-between mt-2">
-                    <Badge variant="outline" className="text-xs">{practice.system}</Badge>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant="outline" className="text-xs">{practice.system}</Badge>
+                      {practice.systemNote && (
+                        <span className="text-[10px] text-amber-600 font-medium">{practice.systemNote}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
