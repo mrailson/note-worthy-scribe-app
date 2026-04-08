@@ -75,6 +75,23 @@ const hubPracticeMapping: Record<string, string[]> = {
 const totalListSize = ennPracticeSummary.reduce((sum, p) => sum + p.listSize, 0);
 const ANNUAL_APPTS = 74846;
 
+const LS_KEY = 'enn-estates-settings';
+
+function loadPersistedSettings() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {};
+}
+
+function persistSettings(patch: Record<string, unknown>) {
+  try {
+    const existing = loadPersistedSettings();
+    localStorage.setItem(LS_KEY, JSON.stringify({ ...existing, ...patch }));
+  } catch { /* ignore */ }
+}
+
 export const ENNEstatesCapacity = () => {
   const [season, setSeason] = useState<Season>("total");
   const [viewMode, setViewMode] = useState<"sessions" | "appointments">("appointments");
