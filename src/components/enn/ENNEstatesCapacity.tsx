@@ -47,13 +47,14 @@ interface ENNPracticeSummary {
   hub: string;
   system: string;
   systemNote?: string;
+  branchSite?: string;
 }
 
 const ennPracticeSummary: ENNPracticeSummary[] = [
   { practice: "Harborough Field Surgery", odsCode: "K83007", listSize: 13991, annualAppts: 11604, weeklyAppts: 222, winterAppts: 3310, nonWinterAppts: 8294, weeklyWinter: 255, weeklyNonWinter: 213, annualIncome: 366383.03, role: "HUB", hub: "Harborough Field Surgery", system: "EMIS" },
   { practice: "Oundle Medical Practice", odsCode: "K83023", listSize: 10600, annualAppts: 8792, weeklyAppts: 169, winterAppts: 2509, nonWinterAppts: 6284, weeklyWinter: 193, weeklyNonWinter: 161, annualIncome: 279098.00, role: "SPOKE", hub: "The Meadows Surgery", system: "SystmOne" },
   { practice: "Rushden Medical Centre", odsCode: "K83024", listSize: 9143, annualAppts: 7583, weeklyAppts: 146, winterAppts: 2163, nonWinterAppts: 5420, weeklyWinter: 166, weeklyNonWinter: 139, annualIncome: 240735.19, role: "SPOKE", hub: "Harborough Field Surgery", system: "SystmOne" },
-  { practice: "Spinney Brook MC", odsCode: "K83028", listSize: 11537, annualAppts: 9569, weeklyAppts: 184, winterAppts: 2730, nonWinterAppts: 6839, weeklyWinter: 210, weeklyNonWinter: 175, annualIncome: 303769.21, role: "SPOKE", hub: "The Cottons MC", system: "EMIS", systemNote: "Incl. Woodford branch · Due to switch to S1 in September" },
+  { practice: "Spinney Brook MC", odsCode: "K83028", listSize: 11537, annualAppts: 9569, weeklyAppts: 184, winterAppts: 2730, nonWinterAppts: 6839, weeklyWinter: 210, weeklyNonWinter: 175, annualIncome: 303769.21, role: "SPOKE", hub: "The Cottons MC", system: "EMIS", systemNote: "Due to switch to S1 in September", branchSite: "Branch: Woodford Surgery, 13 Thrapston Rd, Kettering NN14 4HY" },
   { practice: "The Cottons MC", odsCode: "K83030", listSize: 9372, annualAppts: 7773, weeklyAppts: 149, winterAppts: 2217, nonWinterAppts: 5556, weeklyWinter: 171, weeklyNonWinter: 142, annualIncome: 246764.76, role: "HUB", hub: "The Cottons MC", system: "SystmOne" },
   { practice: "Parklands Surgery", odsCode: "K83044", listSize: 13612, annualAppts: 11290, weeklyAppts: 217, winterAppts: 3221, nonWinterAppts: 8069, weeklyWinter: 248, weeklyNonWinter: 207, annualIncome: 358403.96, role: "SPOKE", hub: "Harborough Field Surgery", system: "EMIS" },
   { practice: "Nene Valley Surgery", odsCode: "K83065", listSize: 6921, annualAppts: 5740, weeklyAppts: 110, winterAppts: 1638, nonWinterAppts: 4103, weeklyWinter: 126, weeklyNonWinter: 105, annualIncome: 182229.93, role: "SPOKE", hub: "The Meadows Surgery", system: "EMIS", systemNote: "Due to switch to S1 in May" },
@@ -357,7 +358,12 @@ export const ENNEstatesCapacity = () => {
                   className={`rounded-xl p-4 border transition-all hover:shadow-md ${practice.role === "HUB" ? "bg-blue-50 border-blue-200" : "bg-slate-50 border-slate-200"}`}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-semibold text-slate-900">{practice.practice}</h4>
+                    <div>
+                      <h4 className="font-semibold text-slate-900">{practice.practice}</h4>
+                      {practice.branchSite && (
+                        <p className="text-[10px] text-slate-500 mt-0.5">{practice.branchSite}</p>
+                      )}
+                    </div>
                     <Badge variant="outline" className={practice.role === "HUB" ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-200 text-slate-700 border-slate-300"}>
                       {practice.role}
                     </Badge>
