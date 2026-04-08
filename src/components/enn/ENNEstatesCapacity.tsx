@@ -542,7 +542,7 @@ export const ENNEstatesCapacity = () => {
                 </div>
                 <Slider
                   value={[gpPct]}
-                  onValueChange={(val) => setGpPct(val[0])}
+                  onValueChange={(val) => updateGpPct(val[0])}
                   min={50}
                   max={100}
                   step={5}
