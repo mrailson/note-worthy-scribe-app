@@ -1,14 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderLock, FolderOpen, LayoutGrid, List, GitBranch, Settings, Sparkles } from 'lucide-react';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { FolderLock, FolderOpen, Folder, Clock, Upload, FileText, Star, Files, LayoutGrid, List, GitBranch, Settings, Search, X, ChevronDown, ChevronUp, Info, Lightbulb, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { VaultToolbar } from './VaultToolbar';
 import { VaultContentView, ClipboardState, VaultViewMode } from './VaultContentView';
 import { VaultBreadcrumbs } from './VaultBreadcrumbs';
 import { VaultPermissionManager } from './VaultPermissionManager';
 import { VaultSettingsModal } from './VaultSettingsModal';
-import { VaultV2PreviewModal } from './VaultV2PreviewModal';
+import { VaultDocumentTable } from '@/components/enn/vault/VaultDocumentTable';
+import { VaultFileTypeFilter, type FileTypeFilterValue } from '@/components/enn/vault/VaultFileTypeFilter';
 import {
   useVaultFolders,
   useVaultFiles,
@@ -20,51 +23,144 @@ import {
   useRenameVaultItem,
   useMoveVaultItem,
   useCopyVaultFile,
-  VaultScope,
+  useAllVaultFiles,
+  useVaultFolderMap,
+  useVaultFavourites,
+  useToggleFavourite,
+  type VaultFile,
 } from '@/hooks/useNRESVaultData';
 import { useVaultPermission, useIsVaultAdmin, canUpload, canDelete, canManageAccess } from '@/hooks/useNRESVaultPermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 
-interface NRESDocumentVaultProps {
-  scope?: VaultScope;
+const SCOPE = 'nres_vault' as const;
+
+const LATEST_EDITS_COLS = [
+  { key: 'name', label: 'Document' },
+  { key: 'type', label: 'Type' },
+  { key: 'edited_by', label: 'Edited by' },
+  { key: 'when', label: 'When' },
+  { key: 'star', label: '' },
+];
+const NEW_UPLOADS_COLS = [
+  { key: 'name', label: 'Document' },
+  { key: 'type', label: 'Type' },
+  { key: 'uploaded_by', label: 'Uploaded by' },
+  { key: 'uploaded_date', label: 'Uploaded' },
+  { key: 'star', label: '' },
+];
+const MY_DOCS_COLS = [
+  { key: 'name', label: 'Document' },
+  { key: 'type', label: 'Type' },
+  { key: 'uploaded_date', label: 'Uploaded' },
+  { key: 'last_edited', label: 'Last edited' },
+  { key: 'star', label: '' },
+];
+const FAVOURITES_COLS = [
+  { key: 'name', label: 'Document' },
+  { key: 'type', label: 'Type' },
+  { key: 'location', label: 'Location' },
+  { key: 'last_edited', label: 'Last edited' },
+  { key: 'star', label: '' },
+];
+const ALL_DOCS_COLS = [
+  { key: 'name', label: 'Document' },
+  { key: 'type', label: 'Type' },
+  { key: 'location', label: 'Location' },
+  { key: 'edited_by', label: 'Edited by' },
+  { key: 'last_edited', label: 'Last edited' },
+  { key: 'star', label: '' },
+];
+
+function filterByType(files: VaultFile[], filter: FileTypeFilterValue) {
+  if (filter === 'all') return files;
+  return files.filter((f) => {
+    const t = f.file_type?.toLowerCase();
+    if (filter === 'docx') return t === 'doc' || t === 'docx';
+    if (filter === 'xlsx') return t === 'xls' || t === 'xlsx' || t === 'csv';
+    return t === filter;
+  });
 }
 
-export const NRESDocumentVault = ({ scope = 'nres_vault' }: NRESDocumentVaultProps) => {
+export const NRESDocumentVault = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('folders');
+
+  // Folders tab state
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [permissionTarget, setPermissionTarget] = useState<{
-    id: string;
-    type: 'folder' | 'file';
-    name: string;
-  } | null>(null);
-  const [clipboard, setClipboard] = useState<ClipboardState | null>(null);
   const [viewMode, setViewMode] = useState<VaultViewMode>('tree');
+  const [cardsCollapsed, setCardsCollapsed] = useState(false);
+  const [clipboard, setClipboard] = useState<ClipboardState | null>(null);
+  const [permissionTarget, setPermissionTarget] = useState<{ id: string; type: 'folder' | 'file'; name: string } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const isENN = scope === 'enn_vault';
-  const namingPrefix = isENN ? 'ENN' : 'NRES';
+  // V2 tab state
+  const [typeFilter, setTypeFilter] = useState<FileTypeFilterValue>('all');
+  const [tabSearch, setTabSearch] = useState('');
 
-  // Data queries — scope-aware
-  const { data: folders = [], isLoading: foldersLoading } = useVaultFolders(currentFolderId, scope);
-  const { data: files = [], isLoading: filesLoading } = useVaultFiles(currentFolderId, scope);
-  const { data: breadcrumbs = [] } = useVaultBreadcrumbs(currentFolderId, scope);
-  const { data: searchResults } = useVaultSearch(searchQuery, scope);
+  // Data queries
+  const { data: folders = [], isLoading: foldersLoading } = useVaultFolders(currentFolderId, SCOPE);
+  const { data: files = [], isLoading: filesLoading } = useVaultFiles(currentFolderId, SCOPE);
+  const { data: breadcrumbs = [] } = useVaultBreadcrumbs(currentFolderId, SCOPE);
+  const { data: searchResults } = useVaultSearch(searchQuery, SCOPE);
+  const { data: allFiles = [] } = useAllVaultFiles(SCOPE);
+  const { data: folderMap = {} } = useVaultFolderMap(SCOPE);
+  const { data: favouriteIds = [] } = useVaultFavourites(SCOPE);
 
-  // Permission queries
+  // Permissions
   const { data: currentPermission = 'full_access' } = useVaultPermission(currentFolderId, 'folder');
   const { data: isAdmin = false } = useIsVaultAdmin();
 
-  // Mutations — scope-aware
-  const createFolder = useCreateVaultFolder(scope);
-  const uploadFile = useUploadVaultFile(scope);
-  const deleteItem = useDeleteVaultItem(scope);
-  const renameItem = useRenameVaultItem(scope);
-  const moveItem = useMoveVaultItem(scope);
-  const copyFile = useCopyVaultFile(scope);
+  // Mutations
+  const createFolder = useCreateVaultFolder(SCOPE);
+  const uploadFile = useUploadVaultFile(SCOPE);
+  const deleteItem = useDeleteVaultItem(SCOPE);
+  const renameItem = useRenameVaultItem(SCOPE);
+  const moveItem = useMoveVaultItem(SCOPE);
+  const copyFile = useCopyVaultFile(SCOPE);
+  const toggleFav = useToggleFavourite(SCOPE);
+
+  // Derived file lists
+  const latestEdits = useMemo(() => {
+    const sorted = [...allFiles].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    let filtered = filterByType(sorted, typeFilter);
+    if (tabSearch) filtered = filtered.filter((f) => f.name.toLowerCase().includes(tabSearch.toLowerCase()));
+    return filtered;
+  }, [allFiles, typeFilter, tabSearch]);
+
+  const newUploads = useMemo(() => {
+    const sorted = [...allFiles].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    let filtered = filterByType(sorted, typeFilter);
+    if (tabSearch) filtered = filtered.filter((f) => f.name.toLowerCase().includes(tabSearch.toLowerCase()));
+    return filtered;
+  }, [allFiles, typeFilter, tabSearch]);
+
+  const myDocuments = useMemo(() => {
+    if (!user?.id) return [];
+    let filtered = allFiles.filter((f) => f.created_by === user.id);
+    filtered = filterByType(filtered, typeFilter);
+    if (tabSearch) filtered = filtered.filter((f) => f.name.toLowerCase().includes(tabSearch.toLowerCase()));
+    return filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [allFiles, user?.id, typeFilter, tabSearch]);
+
+  const favouriteFiles = useMemo(() => {
+    let filtered = allFiles.filter((f) => favouriteIds.includes(f.id));
+    filtered = filterByType(filtered, typeFilter);
+    if (tabSearch) filtered = filtered.filter((f) => f.name.toLowerCase().includes(tabSearch.toLowerCase()));
+    return filtered;
+  }, [allFiles, favouriteIds, typeFilter, tabSearch]);
+
+  const allDocsSorted = useMemo(() => {
+    let filtered = filterByType(allFiles, typeFilter);
+    if (tabSearch) filtered = filtered.filter((f) => f.name.toLowerCase().includes(tabSearch.toLowerCase()));
+    return filtered;
+  }, [allFiles, typeFilter, tabSearch]);
+
+  const handleToggleFavourite = useCallback((fileId: string, isFav: boolean) => {
+    toggleFav.mutate({ fileId, isFavourite: isFav });
+  }, [toggleFav]);
 
   const handleNavigate = useCallback((folderId: string | null) => {
     setCurrentFolderId(folderId);
@@ -75,36 +171,33 @@ export const NRESDocumentVault = ({ scope = 'nres_vault' }: NRESDocumentVaultPro
     const folderId = targetFolderId !== undefined ? targetFolderId : currentFolderId;
     try {
       await Promise.all(fileList.map((file) => uploadFile.mutateAsync({ file, folderId })));
-      queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
-      queryClient.invalidateQueries({ queryKey: ['vault-folders', scope] });
-    } catch {
-      // Individual errors already handled by mutation's onError
-    }
-  }, [uploadFile, currentFolderId, queryClient, scope]);
+      queryClient.invalidateQueries({ queryKey: ['vault-files', SCOPE] });
+      queryClient.invalidateQueries({ queryKey: ['all-vault-files', SCOPE] });
+    } catch { /* handled by mutation */ }
+  }, [uploadFile, currentFolderId, queryClient]);
 
   const handleDelete = useCallback(async (id: string, type: 'folder' | 'file', filePath?: string, name?: string) => {
     try {
       await deleteItem.mutateAsync({ id, type, filePath, name });
-    } catch (error) {
-      console.error('Delete failed:', error);
-    }
-  }, [deleteItem]);
+      queryClient.invalidateQueries({ queryKey: ['all-vault-files', SCOPE] });
+    } catch (e) { console.error('Delete failed:', e); }
+  }, [deleteItem, queryClient]);
 
-  const handleManageAccess = useCallback((id: string, type: 'folder' | 'file', name: string) => {
-    setPermissionTarget({ id, type, name });
-  }, []);
+  const handleRename = useCallback(async (id: string, type: 'folder' | 'file', newName: string) => {
+    try {
+      await renameItem.mutateAsync({ id, type, newName });
+      queryClient.invalidateQueries({ queryKey: ['all-vault-files', SCOPE] });
+    } catch (e) { console.error('Rename failed:', e); }
+  }, [renameItem, queryClient]);
 
-  const handleCopy = useCallback((items: ClipboardState['items']) => {
-    setClipboard({ items, operation: 'copy' });
-  }, []);
-
-  const handleCut = useCallback((items: ClipboardState['items']) => {
-    setClipboard({ items, operation: 'cut' });
-  }, []);
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['vault-folders', SCOPE] });
+    queryClient.invalidateQueries({ queryKey: ['vault-files', SCOPE] });
+    queryClient.invalidateQueries({ queryKey: ['all-vault-files', SCOPE] });
+  }, [queryClient]);
 
   const handlePaste = useCallback(() => {
     if (!clipboard) return;
-
     clipboard.items.forEach((item) => {
       if (clipboard.operation === 'cut') {
         moveItem.mutate({ id: item.id, type: item.type, targetFolderId: currentFolderId });
@@ -112,202 +205,262 @@ export const NRESDocumentVault = ({ scope = 'nres_vault' }: NRESDocumentVaultPro
         copyFile.mutate({ fileId: item.id, targetFolderId: currentFolderId });
       }
     });
-
-    if (clipboard.operation === 'cut') {
-      setClipboard(null);
-    }
+    if (clipboard.operation === 'cut') setClipboard(null);
   }, [clipboard, currentFolderId, moveItem, copyFile]);
 
-  const handleRename = useCallback(async (id: string, type: 'folder' | 'file', newName: string) => {
-    try {
-      await renameItem.mutateAsync({ id, type, newName });
-    } catch (error) {
-      console.error('Rename failed:', error);
-    }
-  }, [renameItem]);
-
-  const handleRefresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['vault-folders', scope] });
-    queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
-  }, [queryClient, scope]);
-
-  // Determine what to show
   const isSearching = searchQuery.trim().length > 0;
   const displayFolders = isSearching ? (searchResults?.folders || []) : folders;
   const displayFiles = isSearching ? (searchResults?.files || []) : files;
 
-  const currentFolderCreatedByUser = folders.length > 0 || !currentFolderId;
+  const renderTabToolbar = () => (
+    <div className="flex items-center gap-3 flex-wrap">
+      <div className="relative max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search documents..."
+          value={tabSearch}
+          onChange={(e) => setTabSearch(e.target.value)}
+          className="pl-9 pr-8 h-9"
+        />
+        {tabSearch && (
+          <button onClick={() => setTabSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+      <VaultFileTypeFilter value={typeFilter} onChange={setTypeFilter} />
+    </div>
+  );
 
   return (
     <>
-      <div className="flex items-center justify-between p-3 mb-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
-        <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
-          <Sparkles className="h-4 w-4" />
-          <span className="font-medium">Version 2 of the Document Vault is coming mid April 2026</span>
-        </div>
-        <VaultV2PreviewModal />
-      </div>
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <FolderLock className="h-5 w-5 shrink-0" />
-              <span>Welcome to the Document Vault <span className="font-normal text-muted-foreground">— your secure, centralised store for practice documents and files.</span></span>
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              {isAdmin && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setSettingsOpen(true)}
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Vault Settings</TooltipContent>
-                </Tooltip>
-              )}
-              <div className="flex items-center border rounded-md">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={viewMode === 'icons' ? 'secondary' : 'ghost'}
-                      size="icon"
-                      className="h-8 w-8 rounded-r-none"
-                      onClick={() => setViewMode('icons')}
-                    >
-                      <LayoutGrid className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Icons</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={viewMode === 'details' ? 'secondary' : 'ghost'}
-                      size="icon"
-                      className="h-8 w-8 rounded-none border-x-0"
-                      onClick={() => setViewMode('details')}
-                    >
-                      <List className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Details</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={viewMode === 'tree' ? 'secondary' : 'ghost'}
-                      size="icon"
-                      className="h-8 w-8 rounded-l-none"
-                      onClick={() => setViewMode('tree')}
-                    >
-                      <GitBranch className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Tree</TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-          </div>
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <FolderLock className="h-5 w-5 shrink-0" />
+            <span>NRES Document Vault <span className="font-normal text-muted-foreground">— your secure, centralised store for practice documents and files.</span></span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {!isSearching && currentFolderId === null && (
-            <div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs space-y-1.5">
-                  <p className="font-medium text-foreground text-sm">What to store here</p>
-                  <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-                    <li>Policies, procedures &amp; protocols</li>
-                    <li>Meeting agendas, minutes &amp; action logs</li>
-                    <li>Training materials &amp; guides</li>
-                    <li>Templates &amp; standard forms</li>
-                    <li>Reports &amp; audits (anonymised/aggregated)</li>
-                  </ul>
-                  {!isENN && (
-                    <a
-                      href="/documents/NRES_Document_Vault_Folder_Structure.docx"
-                      download
-                      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#005EB8] hover:text-[#003087] hover:underline transition-colors pt-1 border-t border-border/40 mt-1"
-                    >
-                      <FolderOpen className="h-3.5 w-3.5" />
-                      Proposed Folder Structure &amp; Access Matrix
-                    </a>
+          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setTabSearch(''); setTypeFilter('all'); }}>
+            {/* ── Unified navigation + search + view toolbar ── */}
+            <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-muted/20 px-1.5 py-1.5 flex-wrap">
+              <div className="flex items-center gap-0.5">
+                {[
+                  { value: 'folders', label: 'Folders', Icon: Folder },
+                  { value: 'latest', label: 'Latest edits', Icon: Clock },
+                  { value: 'new', label: 'New uploads', Icon: Upload },
+                  { value: 'mine', label: 'My documents', Icon: FileText },
+                  { value: 'favourites', label: 'Favourites', Icon: Star },
+                  { value: 'all', label: 'All documents', Icon: Files },
+                ].map(({ value, label, Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => { setActiveTab(value); setTabSearch(''); setTypeFilter('all'); }}
+                    className={`
+                      inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all whitespace-nowrap
+                      ${activeTab === value
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                      }
+                    `}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="hidden lg:inline">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex-1" />
+
+              {activeTab === 'folders' && (
+                <>
+                  <div className="w-px h-5 bg-border/60" />
+                  <div className="max-w-[200px]">
+                    <VaultToolbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'folders' && (
+                <>
+                  <div className="w-px h-5 bg-border/60" />
+                  <div className="flex items-center gap-0.5 bg-background rounded-lg border border-border/40 p-0.5">
+                    <Tooltip><TooltipTrigger asChild><Button variant={viewMode === 'icons' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-md" onClick={() => setViewMode('icons')}><LayoutGrid className="h-3.5 w-3.5" /></Button></TooltipTrigger><TooltipContent>Icons</TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant={viewMode === 'details' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-md" onClick={() => setViewMode('details')}><List className="h-3.5 w-3.5" /></Button></TooltipTrigger><TooltipContent>Details</TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant={viewMode === 'tree' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-md" onClick={() => setViewMode('tree')}><GitBranch className="h-3.5 w-3.5" /></Button></TooltipTrigger><TooltipContent>Tree</TooltipContent></Tooltip>
+                  </div>
+                </>
+              )}
+
+              {isAdmin && (
+                <>
+                  <div className="w-px h-5 bg-border/60" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => setSettingsOpen(true)}>
+                        <Settings className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Vault Settings</TooltipContent>
+                  </Tooltip>
+                </>
+              )}
+            </div>
+
+            {/* ── Folders tab ── */}
+            <TabsContent value="folders" className="space-y-3 mt-3">
+              {currentFolderId === null && (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setCardsCollapsed(!cardsCollapsed)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {cardsCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                    {cardsCollapsed ? 'Show guidance' : 'Hide guidance'}
+                  </button>
+                  {!cardsCollapsed && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-200">
+                      <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs space-y-1.5">
+                        <p className="font-medium text-foreground text-sm flex items-center gap-1.5"><Info className="h-3.5 w-3.5 text-primary" />What to store here</p>
+                        <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                          <li>Policies, procedures &amp; protocols</li>
+                          <li>Meeting agendas, minutes &amp; action logs</li>
+                          <li>Training materials &amp; guides</li>
+                          <li>Templates &amp; standard forms</li>
+                          <li>Reports &amp; audits (anonymised/aggregated)</li>
+                        </ul>
+                        <a
+                          href="/documents/NRES_Document_Vault_Folder_Structure.docx"
+                          download
+                          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#005EB8] hover:text-[#003087] hover:underline transition-colors pt-1 border-t border-border/40 mt-1"
+                        >
+                          <FolderOpen className="h-3.5 w-3.5" />
+                          Proposed Folder Structure &amp; Access Matrix
+                        </a>
+                      </div>
+                      <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs space-y-1.5">
+                        <p className="font-medium text-foreground text-sm flex items-center gap-1.5"><Lightbulb className="h-3.5 w-3.5 text-amber-500" />Document hygiene tips</p>
+                        <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                          <li>Use clear naming (e.g. <span className="font-mono text-[10px]">NRES_Policy_InfectionControl_v1.2_Jan2026</span>)</li>
+                          <li>Archive outdated versions rather than deleting</li>
+                          <li>Finalise documents before uploading to shared folders</li>
+                        </ul>
+                        <p className="text-muted-foreground/80 italic pt-1">Access is role-based and audit-logged.</p>
+                      </div>
+                      <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs space-y-1.5">
+                        <p className="font-medium text-destructive text-sm flex items-center gap-1.5"><ShieldAlert className="h-3.5 w-3.5" />Important notice</p>
+                        <p className="text-destructive/90">This vault is for operational and governance documents. <span className="font-semibold">Do not upload patient identifiable information</span> — clinical records should remain in your clinical system (EMIS/TPP).</p>
+                      </div>
+                    </div>
                   )}
                 </div>
-                <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs space-y-1.5">
-                  <p className="font-medium text-foreground text-sm">Document hygiene tips</p>
-                  <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-                    <li>Use clear naming (e.g. <span className="font-mono text-[10px]">{namingPrefix}_Policy_InfectionControl_v1.2_Jan2026</span>)</li>
-                    <li>Archive outdated versions rather than deleting</li>
-                    <li>Finalise documents before uploading to shared folders</li>
-                  </ul>
-                  <p className="text-muted-foreground/80 italic pt-1">Access is role-based and audit-logged.</p>
-                </div>
-                <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs space-y-1.5">
-                  <p className="font-medium text-destructive text-sm">Important notice</p>
-                  <p className="text-destructive/90">This vault is for operational and governance documents. <span className="font-semibold">Do not upload patient identifiable information</span> — clinical records should remain in your clinical system (EMIS/TPP).</p>
-                  <p className="text-muted-foreground/80 pt-1 border-t border-border/40">
-                    {viewMode === 'tree' ? (
-                      <>Use <span className="font-medium text-foreground">expand arrows</span> to browse, or right-click for options.</>
-                    ) : (
-                      <><span className="font-medium text-foreground">Double-click</span> folders to open. Use breadcrumbs to navigate back.</>
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          <VaultToolbar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-          />
+              {!isSearching && <VaultBreadcrumbs items={breadcrumbs} onNavigate={handleNavigate} />}
 
-          {!isSearching && (
-            <VaultBreadcrumbs items={breadcrumbs} onNavigate={handleNavigate} />
-          )}
+              {isSearching && (
+                <p className="text-sm text-muted-foreground">
+                  Showing results for "{searchQuery}" — {displayFolders.length + displayFiles.length} items found
+                </p>
+              )}
 
-          {isSearching && (
-            <p className="text-sm text-muted-foreground">
-              Showing results for "{searchQuery}" — {displayFolders.length + displayFiles.length} items found
-            </p>
-          )}
+              <VaultContentView
+                folders={displayFolders}
+                files={displayFiles}
+                viewMode={viewMode}
+                onNavigateToFolder={(id) => handleNavigate(id)}
+                onNavigateUp={() => {
+                  const parentCrumb = breadcrumbs.length >= 2 ? breadcrumbs[breadcrumbs.length - 2] : null;
+                  handleNavigate(parentCrumb?.id ?? null);
+                }}
+                currentFolderId={currentFolderId}
+                onDelete={handleDelete}
+                onManageAccess={(id, type, name) => setPermissionTarget({ id, type, name })}
+                onCopy={(items) => setClipboard({ items, operation: 'copy' })}
+                onCut={(items) => setClipboard({ items, operation: 'cut' })}
+                onPaste={handlePaste}
+                onRename={handleRename}
+                onCreateFolder={(name, parentId) => createFolder.mutate({ name, parentId: parentId !== undefined ? parentId : currentFolderId })}
+                onUploadFiles={handleUploadFiles}
+                onRefresh={handleRefresh}
+                clipboard={clipboard}
+                canDeleteItems={canDelete(currentPermission)}
+                canManageAccessItems={canManageAccess(currentPermission, isAdmin, true)}
+                canUpload={canUpload(currentPermission)}
+                isLoading={foldersLoading || filesLoading}
+              />
+            </TabsContent>
 
-          <VaultContentView
-            folders={displayFolders}
-            files={displayFiles}
-            viewMode={viewMode}
-            onNavigateToFolder={(id) => handleNavigate(id)}
-            onNavigateUp={() => {
-              const parentCrumb = breadcrumbs.length >= 2 ? breadcrumbs[breadcrumbs.length - 2] : null;
-              handleNavigate(parentCrumb?.id ?? null);
-            }}
-            currentFolderId={currentFolderId}
-            onDelete={handleDelete}
-            onManageAccess={handleManageAccess}
-            onCopy={handleCopy}
-            onCut={handleCut}
-            onPaste={handlePaste}
-            onRename={handleRename}
-            onCreateFolder={(name, parentId) => {
-              try {
-                createFolder.mutate({ name, parentId: parentId !== undefined ? parentId : currentFolderId });
-              } catch (error) {
-                console.error("Unexpected error during folder creation:", error);
-              }
-            }}
-            onUploadFiles={handleUploadFiles}
-            onRefresh={handleRefresh}
-            clipboard={clipboard}
-            canDeleteItems={canDelete(currentPermission)}
-            canManageAccessItems={canManageAccess(currentPermission, isAdmin, currentFolderCreatedByUser)}
-            canUpload={canUpload(currentPermission)}
-            isLoading={foldersLoading || filesLoading}
-          />
+            {/* ── Latest edits ── */}
+            <TabsContent value="latest" className="space-y-3 mt-3">
+              {renderTabToolbar()}
+              <VaultDocumentTable
+                files={latestEdits}
+                columns={LATEST_EDITS_COLS}
+                favouriteIds={favouriteIds}
+                onToggleFavourite={handleToggleFavourite}
+                folderMap={folderMap}
+                showGroupHeaders
+                groupByKey="updated_at"
+                emptyMessage="No recently edited documents"
+              />
+            </TabsContent>
+
+            {/* ── New uploads ── */}
+            <TabsContent value="new" className="space-y-3 mt-3">
+              {renderTabToolbar()}
+              <VaultDocumentTable
+                files={newUploads}
+                columns={NEW_UPLOADS_COLS}
+                favouriteIds={favouriteIds}
+                onToggleFavourite={handleToggleFavourite}
+                folderMap={folderMap}
+                showGroupHeaders
+                groupByKey="created_at"
+                emptyMessage="No new uploads"
+              />
+            </TabsContent>
+
+            {/* ── My documents ── */}
+            <TabsContent value="mine" className="space-y-3 mt-3">
+              {renderTabToolbar()}
+              <VaultDocumentTable
+                files={myDocuments}
+                columns={MY_DOCS_COLS}
+                favouriteIds={favouriteIds}
+                onToggleFavourite={handleToggleFavourite}
+                folderMap={folderMap}
+                emptyMessage="You haven't uploaded any documents yet"
+              />
+            </TabsContent>
+
+            {/* ── Favourites ── */}
+            <TabsContent value="favourites" className="space-y-3 mt-3">
+              {renderTabToolbar()}
+              <VaultDocumentTable
+                files={favouriteFiles}
+                columns={FAVOURITES_COLS}
+                favouriteIds={favouriteIds}
+                onToggleFavourite={handleToggleFavourite}
+                folderMap={folderMap}
+                emptyMessage="No favourite documents — click the star on any document to add it here"
+              />
+            </TabsContent>
+
+            {/* ── All documents ── */}
+            <TabsContent value="all" className="space-y-3 mt-3">
+              {renderTabToolbar()}
+              <VaultDocumentTable
+                files={allDocsSorted}
+                columns={ALL_DOCS_COLS}
+                favouriteIds={favouriteIds}
+                onToggleFavourite={handleToggleFavourite}
+                folderMap={folderMap}
+                emptyMessage="No documents in the vault yet"
+              />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -320,7 +473,6 @@ export const NRESDocumentVault = ({ scope = 'nres_vault' }: NRESDocumentVaultPro
           targetName={permissionTarget.name}
         />
       )}
-
       <VaultSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>
   );
