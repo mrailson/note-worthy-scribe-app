@@ -477,6 +477,47 @@ export const ENNEstatesCapacity = () => {
               <p className="text-[10px] text-slate-500 text-center mt-1.5">
                 {currentCapacity.f2fRequired.toFixed(1)} sessions on-site • {currentCapacity.remoteRequired.toFixed(1)} sessions remote
               </p>
+
+              {/* Global GP/ANP slider for practice view */}
+              <div className="mt-3 pt-2 border-t border-slate-200 px-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-medium text-slate-500">GP / ANP-ACP Split</span>
+                  <span className="text-[10px] font-semibold text-slate-700">{gpPct}% GP / {100 - gpPct}% ANP</span>
+                </div>
+                <Slider
+                  value={[gpPct]}
+                  onValueChange={(val) => setGpPct(val[0])}
+                  min={50}
+                  max={100}
+                  step={5}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                  <span>50% GP</span>
+                  <span>100% GP</span>
+                </div>
+              </div>
+
+              {(() => {
+                const totalOnSiteSessions = currentCapacity.f2fRequired;
+                const gpSess = totalOnSiteSessions * (gpPct / 100);
+                const anpSess = totalOnSiteSessions * ((100 - gpPct) / 100);
+                return (
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                      <p className="text-[10px] font-medium text-blue-700">GP</p>
+                      <p className="text-sm font-bold text-blue-900">{gpSess.toFixed(1)} sess</p>
+                      <p className="text-[10px] font-semibold text-blue-800">{calcWTE(gpSess).toFixed(2)} WTE</p>
+                    </div>
+                    <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                      <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
+                      <p className="text-sm font-bold text-cyan-900">{anpSess.toFixed(1)} sess</p>
+                      <p className="text-[10px] font-semibold text-cyan-800">{calcWTE(anpSess).toFixed(2)} WTE</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="flex items-center justify-between mt-2">
                 <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
                   {season === "winter" ? "Winter" : season === "total" ? "Combined" : "Non-Winter"}
