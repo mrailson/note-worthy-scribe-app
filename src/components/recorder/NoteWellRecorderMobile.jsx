@@ -1010,9 +1010,21 @@ export default function NoteWellRecorder() {
   // ── Poll for notes completion after client timeout — still send email ──
   const pollAndEmailIfReady = async (meetingId, toastMsg) => {
     showToast(toastMsg, "info");
-    const MAX_POLLS = 12; // 12 × 10s = 2 min max wait
+    const MAX_POLLS = 36; // 36 × 10s = 6 min max wait (up from 2 min)
     for (let i = 0; i < MAX_POLLS; i++) {
       await new Promise(r => setTimeout(r, 10000));
+
+      // Also check notes_generation_status on the meeting itself
+      const { data: meetingStatus } = await supabase
+        .from("meetings")
+        .select("notes_generation_status")
+        .eq("id", meetingId)
+        .maybeSingle();
+      if (meetingStatus?.notes_generation_status === "failed") {
+        showToast("Note generation failed — meeting saved without notes", "warning");
+        return;
+      }
+
       const { data: summary } = await supabase
         .from("meeting_summaries")
         .select("id")
@@ -1027,128 +1039,36 @@ export default function NoteWellRecorder() {
     showToast("Meeting saved — note generation may still be processing", "warning");
   };
 
-  // ── Post-note-generation actions (auto-email only — overview handled by orchestrator) ──
+  // ── Post-note-generation actions (auto-email via shared helper) ──
   const triggerPostNoteActions = async (meetingId) => {
     try {
-      const { data: meeting } = await supabase
-        .from("meetings")
-        .select("title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count")
-        .eq("id", meetingId)
-        .maybeSingle();
-      const meetingTitle = meeting?.title || "Mobile Recording";
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) return;
-
-      const { data: summary } = await supabase
-        .from("meeting_summaries")
-        .select("summary")
-        .eq("meeting_id", meetingId)
-        .maybeSingle();
-      if (!summary?.summary) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("email", user.email)
-        .maybeSingle();
-
-      const senderName = profile?.full_name || user.email.split("@")[0] || "Notewell AI";
-      const meetingDate = meeting?.start_time 
-        ? new Date(meeting.start_time).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
-        : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-      const meetingTime = meeting?.start_time
-        ? new Date(meeting.start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + " GMT"
-        : undefined;
-      const subject = `Notewell AI | ${meetingTitle} — ${meetingDate}`;
-
-      const { buildProfessionalMeetingEmail } = await import("@/utils/meetingEmailBuilder");
-      const htmlContent = buildProfessionalMeetingEmail(
-        summary.summary,
-        senderName,
-        meetingTitle,
-        {
-          date: meetingDate,
-          time: meetingTime,
-          duration: meeting?.duration_minutes,
-          format: meeting?.meeting_format,
-          location: meeting?.meeting_location,
-          overview: meeting?.overview,
-          wordCount: meeting?.word_count,
-          attendees: Array.isArray(meeting?.participants) ? meeting.participants : [],
-        }
-      );
-
-      let wordAttachment = null;
+      // Refresh session first — critical for iPhone offline syncs where
+      // the session may have gone stale during a long upload/transcription
+      let userEmail = null;
       try {
-        const { generateProfessionalWordBlob } = await import("@/utils/generateProfessionalMeetingDocx");
-        const cleanTitle = meetingTitle.replace(/^\*+\s*/, "").replace(/\*\*/g, "").trim();
-        const parsedDetails = {
-          title: cleanTitle,
-          date: meetingDate || undefined,
-          time: meetingTime,
-          location: meeting?.meeting_format || meeting?.meeting_location || undefined,
-          attendees: Array.isArray(meeting?.participants) && meeting.participants.length > 0
-            ? meeting.participants.join(", ")
-            : undefined,
-        };
-
-        let parsedActionItems = [];
-        try {
-          const { data: actionItemsData } = await supabase
-            .from("meeting_action_items")
-            .select("action_text, assignee_name, due_date, priority, status")
-            .eq("meeting_id", meetingId);
-          if (actionItemsData && actionItemsData.length > 0) {
-            parsedActionItems = actionItemsData.map((item) => ({
-              action: item.action_text,
-              owner: item.assignee_name || "Unassigned",
-              deadline: item.due_date || undefined,
-              priority: item.priority || "medium",
-              status: item.status === "completed" ? "Completed" : item.status === "in_progress" ? "In Progress" : "Open",
-              isCompleted: item.status === "completed",
-            }));
-          }
-        } catch (aiErr) {
-          console.warn("Could not fetch action items for Word attachment:", aiErr);
-        }
-
-        const blob = await generateProfessionalWordBlob(summary.summary, cleanTitle, parsedDetails, parsedActionItems);
-        const base64Content = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const result = reader.result;
-            if (result) resolve(result.split(",")[1]);
-            else reject(new Error("FileReader returned empty"));
-          };
-          reader.onerror = () => reject(new Error("FileReader error"));
-          reader.readAsDataURL(blob);
-        });
-
-        const { generateMeetingFilename } = await import("@/utils/meetingFilename");
-        wordAttachment = {
-          content: base64Content,
-          filename: generateMeetingFilename(meetingTitle, meeting?.start_time ? new Date(meeting.start_time) : new Date(), "docx"),
-          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        };
-        console.log("📎 Mobile: Professional Word attachment generated");
-      } catch (docErr) {
-        console.warn("Mobile Word attachment generation failed (non-critical):", docErr);
+        const { data: { session } } = await supabase.auth.refreshSession();
+        userEmail = session?.user?.email;
+      } catch (refreshErr) {
+        console.warn("Session refresh before email failed:", refreshErr);
+      }
+      if (!userEmail) {
+        const { data: { user } } = await supabase.auth.getUser();
+        userEmail = user?.email;
+      }
+      if (!userEmail) {
+        console.warn("No authenticated user email — skipping auto-email");
+        return;
       }
 
-      await supabase.functions.invoke("send-meeting-email-resend", {
-        body: {
-          to_email: user.email,
-          cc_emails: [],
-          subject,
-          html_content: htmlContent,
-          from_name: senderName,
-          word_attachment: wordAttachment,
-        },
+      const { sendMeetingNotesEmail } = await import("@/utils/sendMeetingNotesEmail");
+      await sendMeetingNotesEmail({
+        meetingId,
+        recipientEmail: userEmail,
       });
-      console.log("✅ Mobile auto-email sent to:", user.email);
+      console.log("✅ Mobile auto-email sent via shared helper");
     } catch (e) {
-      console.warn("Post-note actions failed (non-critical):", e);
+      console.error("Mobile auto-email failed:", e);
+      showToast("Meeting saved but email could not be sent — try 'Email notes to me' manually", "warning");
     }
   };
 
