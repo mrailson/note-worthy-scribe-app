@@ -94,6 +94,96 @@ const hubPracticeMapping: Record<string, string[]> = {
 const totalListSize = ennPracticeSummary.reduce((sum, p) => sum + p.listSize, 0);
 const ANNUAL_APPTS = 74846;
 
+type CUCCSortKey = 'practice' | 'population' | 'miles' | 'carMin' | 'publicTransport' | 'busService';
+
+function CUCCSortableTable({ practices }: { practices: { practice: string; listSize: number }[] }) {
+  const [sortKey, setSortKey] = useState<CUCCSortKey>('carMin');
+  const [sortDir, setSortDir] = useState<SortDirection>('asc');
+
+  const toggle = (key: CUCCSortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  const SortIcon = ({ col }: { col: CUCCSortKey }) => {
+    if (sortKey !== col) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    return sortDir === 'asc' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
+
+  const parseTransport = (s: string) => {
+    const m = s.match(/(\d+)h\s*(\d+)m/);
+    return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 999;
+  };
+
+  const sorted = useMemo(() => {
+    const rows = practices
+      .map(p => ({ ...p, cucc: CUCC_TRAVEL[p.practice] }))
+      .filter(p => p.cucc);
+    rows.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case 'practice': cmp = a.practice.localeCompare(b.practice); break;
+        case 'population': cmp = a.listSize - b.listSize; break;
+        case 'miles': cmp = (a.cucc?.miles ?? 99) - (b.cucc?.miles ?? 99); break;
+        case 'carMin': cmp = (a.cucc?.carMin ?? 99) - (b.cucc?.carMin ?? 99); break;
+        case 'publicTransport': cmp = parseTransport(a.cucc?.publicTransport ?? '') - parseTransport(b.cucc?.publicTransport ?? ''); break;
+        case 'busService': cmp = (a.cucc?.busService ?? '').localeCompare(b.cucc?.busService ?? ''); break;
+      }
+      return sortDir === 'desc' ? -cmp : cmp;
+    });
+    return rows;
+  }, [practices, sortKey, sortDir]);
+
+  return (
+    <>
+      <p className="text-xs text-slate-500 mb-3">Distances and travel times from each ENN practice to Corby Urgent Care Centre, including public transport options with changes.</p>
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-slate-50">
+            <TableHead className="text-xs font-semibold cursor-pointer select-none hover:bg-slate-100" onClick={() => toggle('practice')}>
+              <div className="flex items-center">Practice<SortIcon col="practice" /></div>
+            </TableHead>
+            <TableHead className="text-xs font-semibold text-right cursor-pointer select-none hover:bg-slate-100" onClick={() => toggle('population')}>
+              <div className="flex items-center justify-end">Population<SortIcon col="population" /></div>
+            </TableHead>
+            <TableHead className="text-xs font-semibold text-center cursor-pointer select-none hover:bg-slate-100" onClick={() => toggle('miles')}>
+              <div className="flex items-center justify-center gap-1"><MapPin className="w-3.5 h-3.5" />Miles<SortIcon col="miles" /></div>
+            </TableHead>
+            <TableHead className="text-xs font-semibold text-center cursor-pointer select-none hover:bg-slate-100" onClick={() => toggle('carMin')}>
+              <div className="flex items-center justify-center gap-1"><Car className="w-3.5 h-3.5" />By Car<SortIcon col="carMin" /></div>
+            </TableHead>
+            <TableHead className="text-xs font-semibold text-center cursor-pointer select-none hover:bg-slate-100" onClick={() => toggle('publicTransport')}>
+              <div className="flex items-center justify-center gap-1"><Bus className="w-3.5 h-3.5" />Public Transport<SortIcon col="publicTransport" /></div>
+            </TableHead>
+            <TableHead className="text-xs font-semibold text-center cursor-pointer select-none hover:bg-slate-100" onClick={() => toggle('busService')}>
+              <div className="flex items-center justify-center gap-1"><Bus className="w-3.5 h-3.5" />Bus Service (incl. changes)<SortIcon col="busService" /></div>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sorted.map(p => {
+            const cucc = p.cucc!;
+            let carColour = "text-slate-600";
+            if (cucc.carMin <= 20) carColour = "text-green-700";
+            else if (cucc.carMin <= 30) carColour = "text-amber-700";
+            else carColour = "text-red-700";
+            return (
+              <TableRow key={p.practice}>
+                <TableCell className="text-sm font-medium text-slate-700">{p.practice}</TableCell>
+                <TableCell className="text-sm text-right tabular-nums">{p.listSize.toLocaleString()}</TableCell>
+                <TableCell className="text-sm text-center tabular-nums text-slate-600">{cucc.miles.toFixed(1)}</TableCell>
+                <TableCell className={`text-sm text-center tabular-nums font-medium ${carColour}`}>{cucc.carMin}m</TableCell>
+                <TableCell className="text-sm text-center tabular-nums text-slate-600">{cucc.publicTransport}</TableCell>
+                <TableCell className="text-sm text-center font-medium text-blue-700">{cucc.busService}</TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </>
+  );
+}
+
 const LS_KEY = 'enn-estates-settings';
 
 function loadPersistedSettings() {
