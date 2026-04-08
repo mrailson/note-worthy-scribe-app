@@ -827,23 +827,33 @@ export const ENNEstatesCapacity = () => {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
-                  <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
-                  <p className="text-xl font-bold text-green-900">{(currentCapacity.f2fRequired * multiplier).toFixed(1)}</p>
-                  <p className="text-[10px] text-green-600">{uLabel} / week</p>
-                  <p className="text-sm font-semibold text-green-800 mt-1">{(currentCapacity.f2fRequired * multiplier * 52).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} / yr</p>
-                </div>
-                <div className="bg-indigo-50 rounded-lg p-3 text-center border border-indigo-200">
-                  <p className="text-xs font-medium text-indigo-700">Remote</p>
-                  <p className="text-xl font-bold text-indigo-900">{(currentCapacity.remoteRequired * multiplier).toFixed(1)}</p>
-                  <p className="text-[10px] text-indigo-600">{uLabel} / week</p>
-                  <p className="text-sm font-semibold text-indigo-800 mt-1">{(currentCapacity.remoteRequired * multiplier * 52).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} / yr</p>
-                </div>
-              </div>
-              <p className="text-[10px] text-slate-500 text-center mt-1.5">
-                {currentCapacity.f2fRequired.toFixed(1)} sessions on-site • {currentCapacity.remoteRequired.toFixed(1)} sessions remote
-              </p>
+              {(() => {
+                const aggF2f = hubAggregatedData.reduce((s, h) => s + h.f2f, 0);
+                const aggRemote = hubAggregatedData.reduce((s, h) => s + h.remote, 0);
+                const aggF2fSess = aggF2f / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                const aggRemoteSess = aggRemote / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
+                        <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
+                        <p className="text-xl font-bold text-green-900">{aggF2f.toFixed(1)}</p>
+                        <p className="text-[10px] text-green-600">{uLabel} / week</p>
+                        <p className="text-sm font-semibold text-green-800 mt-1">{(aggF2f * 52).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} / yr</p>
+                      </div>
+                      <div className="bg-indigo-50 rounded-lg p-3 text-center border border-indigo-200">
+                        <p className="text-xs font-medium text-indigo-700">Remote</p>
+                        <p className="text-xl font-bold text-indigo-900">{aggRemote.toFixed(1)}</p>
+                        <p className="text-[10px] text-indigo-600">{uLabel} / week</p>
+                        <p className="text-sm font-semibold text-indigo-800 mt-1">{(aggRemote * 52).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} / yr</p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 text-center mt-1.5">
+                      {aggF2fSess.toFixed(1)} sessions on-site • {aggRemoteSess.toFixed(1)} sessions remote
+                    </p>
+                  </>
+                );
+              })()}
 
               {/* Aggregated GP / ANP-ACP WTE for all hubs */}
               {(() => {
