@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, MapPin, Stethoscope } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, Settings } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { ENNNeighbourhoodMap } from "@/components/enn/ENNNeighbourhoodMap";
 
@@ -72,7 +73,26 @@ const hubPracticeMapping: Record<string, string[]> = {
 const totalListSize = ennPracticeSummary.reduce((sum, p) => sum + p.listSize, 0);
 const ANNUAL_APPTS = 74846;
 
+const LS_KEY = 'enn-estates-settings';
+
+function loadPersistedSettings() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {};
+}
+
+function persistSettings(patch: Record<string, unknown>) {
+  try {
+    const existing = loadPersistedSettings();
+    localStorage.setItem(LS_KEY, JSON.stringify({ ...existing, ...patch }));
+  } catch { /* ignore */ }
+}
+
 export const ENNEstatesCapacity = () => {
+  const saved = useMemo(() => loadPersistedSettings(), []);
+
   const [season, setSeason] = useState<Season>("total");
   const [viewMode, setViewMode] = useState<"sessions" | "appointments">("appointments");
   const [viewLevel, setViewLevel] = useState<ViewLevel>("hub");
@@ -83,34 +103,55 @@ export const ENNEstatesCapacity = () => {
   const [durationDisplayMode, setDurationDisplayMode] = useState<DurationDisplayMode>("perSession");
   const [apptsDisplayMode, setApptsDisplayMode] = useState<ApptsDisplayMode>("perSession");
 
-  const [onsitePct, setOnsitePct] = useState(50);
+  const [onsitePct, setOnsitePct] = useState(saved.onsitePct ?? 50);
   const remotePct = 100 - onsitePct;
-  const [gpPct, setGpPct] = useState(50);
+  const [gpPct, setGpPct] = useState(saved.gpPct ?? 50);
 
   const hubNames = Object.keys(hubPracticeMapping);
   const [hubOnsitePcts, setHubOnsitePcts] = useState<Record<string, number>>(
-    () => Object.fromEntries(hubNames.map(h => [h, 50]))
+    () => saved.hubOnsitePcts ?? Object.fromEntries(hubNames.map(h => [h, 50]))
   );
   const setHubOnsitePct = (hubName: string, val: number) => {
-    setHubOnsitePcts(prev => ({ ...prev, [hubName]: val }));
+    setHubOnsitePcts(prev => {
+      const next = { ...prev, [hubName]: val };
+      persistSettings({ hubOnsitePcts: next });
+      return next;
+    });
   };
   const [hubGpPcts, setHubGpPcts] = useState<Record<string, number>>(
-    () => Object.fromEntries(hubNames.map(h => [h, 50]))
+    () => saved.hubGpPcts ?? Object.fromEntries(hubNames.map(h => [h, 50]))
   );
   const setHubGpPct = (hubName: string, val: number) => {
-    setHubGpPcts(prev => ({ ...prev, [hubName]: val }));
+    setHubGpPcts(prev => {
+      const next = { ...prev, [hubName]: val };
+      persistSettings({ hubGpPcts: next });
+      return next;
+    });
   };
+
+  // Cost settings — persisted
+  const [gpRate, setGpRate] = useState<number>(saved.gpRate ?? 11000);
+  const [anpRate, setAnpRate] = useState<number>(saved.anpRate ?? 60000);
+  const [onCostsPct, setOnCostsPct] = useState<number>(saved.onCostsPct ?? 30);
+  
+
+  const updateGpPct = (val: number) => { setGpPct(val); persistSettings({ gpPct: val }); };
+  const updateOnsitePct = (val: number) => { setOnsitePct(val); persistSettings({ onsitePct: val }); };
+  const updateGpRate = (val: number) => { setGpRate(val); persistSettings({ gpRate: val }); };
+  const updateAnpRate = (val: number) => { setAnpRate(val); persistSettings({ anpRate: val }); };
+  const updateOnCostsPct = (val: number) => { setOnCostsPct(val); persistSettings({ onCostsPct: val }); };
 
   const HOURS_PER_SESSION = 4.1667;
   const HOURS_PER_WTE = 37.5;
   const calcWTE = (sessions: number) => (sessions * HOURS_PER_SESSION) / HOURS_PER_WTE;
 
-  // Cost assumptions: GP £11K/session p.a. + 30% on-costs; ANP £60K/WTE p.a. + 30% on-costs
-  const GP_COST_PER_SESSION = 11000 * 1.3;
-  const ANP_COST_PER_WTE = 60000 * 1.3;
+  const onCostsMultiplier = 1 + onCostsPct / 100;
+  const GP_COST_PER_SESSION = gpRate * onCostsMultiplier;
+  const ANP_COST_PER_WTE = anpRate * onCostsMultiplier;
   const calcGpCost = (sessions: number) => sessions * GP_COST_PER_SESSION;
   const calcAnpCost = (wte: number) => wte * ANP_COST_PER_WTE;
-  const formatCost = (cost: number) => `£${(cost / 1000).toFixed(0)}K`;
+  const formatCost = (cost: number) => cost >= 1000000 ? `£${(cost / 1000000).toFixed(2)}M` : `£${(cost / 1000).toFixed(0)}K`;
+  const costLabel = `GP £${(gpRate/1000).toFixed(0)}K/sess + ${onCostsPct}% on-costs · ANP £${(anpRate/1000).toFixed(0)}K/WTE + ${onCostsPct}% on-costs · excl. overhead & innovation`;
 
   type ColumnGroup = "listIncome" | "winter" | "nonWinter";
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
@@ -501,7 +542,7 @@ export const ENNEstatesCapacity = () => {
                 </div>
                 <Slider
                   value={[gpPct]}
-                  onValueChange={(val) => setGpPct(val[0])}
+                  onValueChange={(val) => updateGpPct(val[0])}
                   min={50}
                   max={100}
                   step={5}
@@ -539,7 +580,7 @@ export const ENNEstatesCapacity = () => {
                       </div>
                     </div>
                     <p className="text-[10px] text-center font-semibold text-emerald-800 mt-1">Est. workforce cost: {formatCost(totalCost)}/yr</p>
-                    <p className="text-[9px] text-center text-slate-400 mt-0.5 italic">GP £11K/sess + 30% on-costs · ANP £60K/WTE + 30% on-costs · excl. overhead &amp; innovation</p>
+                    <p className="text-[9px] text-center text-slate-400 mt-0.5 italic">{costLabel}</p>
                   </>
                 );
               })()}
@@ -700,7 +741,58 @@ export const ENNEstatesCapacity = () => {
                   <h4 className="font-bold text-lg text-slate-900">Neighbourhood Total</h4>
                   <p className="text-xs text-slate-500">All 3 hubs combined</p>
                 </div>
-                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">TOTAL</Badge>
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="p-1.5 rounded-lg hover:bg-slate-200 transition-colors" title="Cost assumptions">
+                        <Settings className="w-4 h-4 text-slate-500" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72" side="left" align="start">
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-sm text-slate-900">Cost Assumptions</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs font-medium text-slate-600">GP Rate (£/session p.a.)</label>
+                            <input
+                              type="number"
+                              value={gpRate}
+                              onChange={(e) => updateGpRate(Number(e.target.value))}
+                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              min={0}
+                              step={500}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-600">ANP/ACP Rate (£/WTE p.a.)</label>
+                            <input
+                              type="number"
+                              value={anpRate}
+                              onChange={(e) => updateAnpRate(Number(e.target.value))}
+                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              min={0}
+                              step={1000}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-600">On-Costs (%)</label>
+                            <input
+                              type="number"
+                              value={onCostsPct}
+                              onChange={(e) => updateOnCostsPct(Math.round(Number(e.target.value) * 100) / 100)}
+                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              min={0}
+                              max={100}
+                              step={0.5}
+                            />
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-slate-400 italic">Excludes overhead &amp; innovation costs. Changes persist locally.</p>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">TOTAL</Badge>
+                </div>
               </div>
               <div className="mb-3 pb-3 border-b border-slate-200">
                 <div className="flex items-baseline gap-2">
@@ -761,7 +853,7 @@ export const ENNEstatesCapacity = () => {
                       </div>
                     </div>
                     <p className="text-[10px] text-center font-semibold text-emerald-800 mt-1">Est. workforce cost: {formatCost(totalCostAll)}/yr</p>
-                    <p className="text-[9px] text-center text-slate-400 mt-0.5 italic">GP £11K/sess + 30% on-costs · ANP £60K/WTE + 30% on-costs · excl. overhead &amp; innovation</p>
+                    <p className="text-[9px] text-center text-slate-400 mt-0.5 italic">{costLabel}</p>
                   </>
                 );
               })()}
