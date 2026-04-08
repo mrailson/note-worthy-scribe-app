@@ -1,11 +1,10 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, Settings } from "lucide-react";
 import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, Settings } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { ENNNeighbourhoodMap } from "@/components/enn/ENNNeighbourhoodMap";
@@ -582,7 +581,7 @@ export const ENNEstatesCapacity = () => {
                       </div>
                     </div>
                     <p className="text-[10px] text-center font-semibold text-emerald-800 mt-1">Est. workforce cost: {formatCost(totalCost)}/yr</p>
-                    <p className="text-[9px] text-center text-slate-400 mt-0.5 italic">GP £11K/sess + 30% on-costs · ANP £60K/WTE + 30% on-costs · excl. overhead &amp; innovation</p>
+                    <p className="text-[9px] text-center text-slate-400 mt-0.5 italic">{costLabel}</p>
                   </>
                 );
               })()}
@@ -855,7 +854,7 @@ export const ENNEstatesCapacity = () => {
                       </div>
                     </div>
                     <p className="text-[10px] text-center font-semibold text-emerald-800 mt-1">Est. workforce cost: {formatCost(totalCostAll)}/yr</p>
-                    <p className="text-[9px] text-center text-slate-400 mt-0.5 italic">GP £11K/sess + 30% on-costs · ANP £60K/WTE + 30% on-costs · excl. overhead &amp; innovation</p>
+                    <p className="text-[9px] text-center text-slate-400 mt-0.5 italic">{costLabel}</p>
                   </>
                 );
               })()}
