@@ -127,7 +127,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
           </TabsTrigger>
           <TabsTrigger value="finance-governance" className="flex items-center gap-2">
             <PoundSterling className="w-4 h-4" />
-            Finance & Governance
+            Finance, Governance & Insurance
           </TabsTrigger>
           <TabsTrigger value="risks" className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4" />
