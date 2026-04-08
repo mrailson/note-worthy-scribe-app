@@ -675,74 +675,192 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
           <div>
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-semibold text-slate-900">Practice Confirmation Checklist</h4>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Updated: {customInsuranceUpdatedDate || '11 Mar 2026'}</span>
-                <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
-                  {customInsuranceCheckedBy || (isENN ? 'Rebecca Gane' : 'Amanda Taylor')} Checked
-                </Badge>
-              </div>
+              {!interactiveInsurance && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">Updated: {customInsuranceUpdatedDate || '11 Mar 2026'}</span>
+                  <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
+                    {customInsuranceCheckedBy || (isENN ? 'Rebecca Gane' : 'Amanda Taylor')} Checked
+                  </Badge>
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(customInsuranceChecklist || practiceInsuranceChecklist).map((practice, index) => {
-                const allConfirmed = practice.insurances.every(ins => ins.confirmed);
-                
-                const formatBadgeText = (type: string, amount: string) => {
-                  const shortType = type
-                    .replace('Prof/MDU', 'MDU')
-                    .replace('Clinical/CNSGP', 'CNSGP')
-                    .replace('Prof Negligence', 'Prof Neg');
-                  const shortAmount = amount === 'No Limit' ? '∞' : amount;
-                  return `${shortType} ${shortAmount}`;
-                };
 
-                return (
-                  <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Checkbox id={`insurance-${index}`} checked={allConfirmed} disabled />
-                      <label 
-                        htmlFor={`insurance-${index}`} 
-                        className={`text-sm font-medium ${allConfirmed ? 'text-slate-700' : 'text-amber-600'}`}
-                      >
-                        {practice.practice}
-                      </label>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 ml-6">
-                      {practice.insurances.map((ins, insIndex) => {
-                        const isTbc = ins.amount === "TBC";
-                        const isPublicNotConfirmed = ins.type === "Public" && !ins.confirmed && !isTbc;
-                        const isPublicLowAmount = ins.type === "Public" && ins.confirmed && ins.amount !== "£10m";
-                        const isAmber = isTbc || (!ins.confirmed && ins.type !== "Public") || isPublicLowAmount;
-                        return (
-                          <Badge 
-                            key={insIndex}
-                            variant="outline" 
-                            className={`text-[10px] px-1.5 py-0.5 font-medium ${
-                              isPublicNotConfirmed
-                                ? 'text-red-700 border-red-400 bg-red-50'
-                                : isAmber 
-                                  ? 'text-amber-700 border-amber-400 bg-amber-50' 
-                                  : 'text-green-700 border-green-400 bg-green-50'
-                            }`}
-                          >
-                            {isPublicNotConfirmed ? 'Public Unconfirmed' : formatBadgeText(ins.type, ins.amount)}
-                          </Badge>
-                        );
-                      })}
-                      {!practice.insurances.some(ins => ins.type === "Employers") && (
-                        <Badge 
-                          variant="outline" 
-                          className="text-[10px] px-1.5 py-0.5 font-medium text-red-700 border-red-400 bg-red-50"
+            {interactiveInsurance ? (
+              /* Interactive ENN insurance checklist */
+              ennChecklist.isLoading ? (
+                <div className="flex items-center justify-center py-8 text-sm text-slate-500">Loading checklist…</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {ennChecklist.practices.map((practice) => {
+                    const allConfirmed = practice.insurances.every(ins => ins.confirmed);
+                    
+                    const parseAmount = (amt: string): number => {
+                      const m = amt.match(/[\d.]+/);
+                      if (!m) return 0;
+                      const num = parseFloat(m[0]);
+                      if (amt.toLowerCase().includes('m')) return num * 1_000_000;
+                      return num;
+                    };
+
+                    return (
+                      <div key={practice.practice} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Checkbox checked={allConfirmed} disabled className="pointer-events-none" />
+                          <span className={`text-sm font-medium ${allConfirmed ? 'text-slate-700' : 'text-amber-600'}`}>
+                            {practice.practice}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 ml-6">
+                          {practice.insurances.map((ins) => {
+                            const isEditable = ins.insurance_type === 'Public' || ins.insurance_type === 'Employers';
+                            const isTbc = ins.amount === 'TBC';
+                            const isEmployersLow = ins.insurance_type === 'Employers' && ins.confirmed && parseAmount(ins.amount) < 5_000_000;
+                            const isAmber = isTbc || !ins.confirmed || isEmployersLow;
+
+                            const shortType = ins.insurance_type
+                              .replace('Prof/MDU', 'MDU')
+                              .replace('Clinical/CNSGP', 'CNSGP');
+                            const shortAmount = ins.amount === 'No Limit' ? '∞' : ins.amount;
+
+                            return (
+                              <Popover key={ins.id}>
+                                <PopoverTrigger asChild>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[10px] px-1.5 py-0.5 font-medium cursor-pointer hover:opacity-80 ${
+                                      isAmber
+                                        ? 'text-amber-700 border-amber-400 bg-amber-50'
+                                        : 'text-green-700 border-green-400 bg-green-50'
+                                    }`}
+                                  >
+                                    {shortType} {shortAmount}
+                                  </Badge>
+                                </PopoverTrigger>
+                                {isEditable && (
+                                  <PopoverContent className="w-64 p-3" align="start">
+                                    <div className="space-y-3">
+                                      <p className="text-sm font-medium text-slate-900">{ins.insurance_type} Liability</p>
+                                      <div className="flex items-center gap-2">
+                                        <Checkbox
+                                          checked={ins.confirmed}
+                                          onCheckedChange={(checked) => {
+                                            ennChecklist.toggleConfirmed({ id: ins.id, confirmed: !!checked });
+                                          }}
+                                        />
+                                        <span className="text-sm text-slate-700">Confirmed</span>
+                                      </div>
+                                      <div>
+                                        <label className="text-xs text-slate-500 mb-1 block">Insured amount</label>
+                                        <div className="flex gap-1.5">
+                                          {['£5m', '£10m'].map((preset) => (
+                                            <Button
+                                              key={preset}
+                                              variant={ins.amount === preset ? 'default' : 'outline'}
+                                              size="sm"
+                                              className="text-xs h-7"
+                                              onClick={() => ennChecklist.updateAmount({ id: ins.id, amount: preset })}
+                                            >
+                                              {preset}
+                                            </Button>
+                                          ))}
+                                          <Input
+                                            placeholder="Other"
+                                            className="h-7 text-xs w-20"
+                                            defaultValue={!['£5m', '£10m', 'TBC'].includes(ins.amount) ? ins.amount : ''}
+                                            onBlur={(e) => {
+                                              const val = e.target.value.trim();
+                                              if (val && val !== ins.amount) {
+                                                ennChecklist.updateAmount({ id: ins.id, amount: val });
+                                              }
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                (e.target as HTMLInputElement).blur();
+                                              }
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </PopoverContent>
+                                )}
+                              </Popover>
+                            );
+                          })}
+                        </div>
+                        {practice.lastUpdatedBy && (
+                          <p className="text-[10px] text-slate-400 ml-6 mt-1.5">
+                            Updated by {practice.lastUpdatedBy} · {new Date(practice.lastUpdatedAt!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              /* Static NRES insurance checklist */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(customInsuranceChecklist || practiceInsuranceChecklist).map((practice, index) => {
+                  const allConfirmed = practice.insurances.every(ins => ins.confirmed);
+                  
+                  const formatBadgeText = (type: string, amount: string) => {
+                    const shortType = type
+                      .replace('Prof/MDU', 'MDU')
+                      .replace('Clinical/CNSGP', 'CNSGP')
+                      .replace('Prof Negligence', 'Prof Neg');
+                    const shortAmount = amount === 'No Limit' ? '∞' : amount;
+                    return `${shortType} ${shortAmount}`;
+                  };
+
+                  return (
+                    <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Checkbox id={`insurance-${index}`} checked={allConfirmed} disabled />
+                        <label 
+                          htmlFor={`insurance-${index}`} 
+                          className={`text-sm font-medium ${allConfirmed ? 'text-slate-700' : 'text-amber-600'}`}
                         >
-                          Employers Unconfirmed
-                        </Badge>
-                      )}
+                          {practice.practice}
+                        </label>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 ml-6">
+                        {practice.insurances.map((ins, insIndex) => {
+                          const isTbc = ins.amount === "TBC";
+                          const isPublicNotConfirmed = ins.type === "Public" && !ins.confirmed && !isTbc;
+                          const isPublicLowAmount = ins.type === "Public" && ins.confirmed && ins.amount !== "£10m";
+                          const isAmber = isTbc || (!ins.confirmed && ins.type !== "Public") || isPublicLowAmount;
+                          return (
+                            <Badge 
+                              key={insIndex}
+                              variant="outline" 
+                              className={`text-[10px] px-1.5 py-0.5 font-medium ${
+                                isPublicNotConfirmed
+                                  ? 'text-red-700 border-red-400 bg-red-50'
+                                  : isAmber 
+                                    ? 'text-amber-700 border-amber-400 bg-amber-50' 
+                                    : 'text-green-700 border-green-400 bg-green-50'
+                              }`}
+                            >
+                              {isPublicNotConfirmed ? 'Public Unconfirmed' : formatBadgeText(ins.type, ins.amount)}
+                            </Badge>
+                          );
+                        })}
+                        {!practice.insurances.some(ins => ins.type === "Employers") && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] px-1.5 py-0.5 font-medium text-red-700 border-red-400 bg-red-50"
+                          >
+                            Employers Unconfirmed
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
             
-            {/* Indemnity Coverage Explanation */}
             {/* Indemnity Coverage Explanation */}
             <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-slate-700 leading-relaxed">
