@@ -621,92 +621,106 @@ export const ENNEstatesCapacity = () => {
                   <p className="text-xs text-slate-500">{uLabel}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
-                    <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
-                    <p className="text-xl font-bold text-green-900">{hub.f2f.toFixed(1)}</p>
-                    <p className="text-[10px] text-green-600">{uLabel}</p>
-                  </div>
-                  <div className="bg-indigo-50 rounded-lg p-3 text-center border border-indigo-200">
-                    <p className="text-xs font-medium text-indigo-700">Remote</p>
-                    <p className="text-xl font-bold text-indigo-900">{hub.remote.toFixed(1)}</p>
-                    <p className="text-[10px] text-indigo-600">{uLabel}</p>
-                  </div>
-                </div>
-                <p className="text-[10px] text-slate-500 text-center mb-2">
-                  {(hub.f2f / APPTS_PER_SESSION).toFixed(1)} sessions on-site • {(hub.remote / APPTS_PER_SESSION).toFixed(1)} sessions remote
-                </p>
-
-                {/* Per-hub on-site slider */}
-                <div className="mb-3 px-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-medium text-slate-500">On-Site Split</span>
-                    <span className="text-[10px] font-semibold text-slate-700">{hub.onsitePct}% On-Site / {100 - hub.onsitePct}% Remote</span>
-                  </div>
-                  <Slider
-                    value={[hub.onsitePct]}
-                    onValueChange={(val) => setHubOnsitePct(hub.hubName, val[0])}
-                    min={50}
-                    max={100}
-                    step={5}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
-                    <span>50%</span>
-                    <span>100%</span>
-                  </div>
-                </div>
-
-                {/* Per-hub GP/ANP slider */}
-                <div className="mb-3 px-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-medium text-slate-500">GP / ANP-ACP Split</span>
-                    <span className="text-[10px] font-semibold text-slate-700">{hub.gpPct}% GP / {100 - hub.gpPct}% ANP</span>
-                  </div>
-                  <Slider
-                    value={[hub.gpPct]}
-                    onValueChange={(val) => setHubGpPct(hub.hubName, val[0])}
-                    min={50}
-                    max={100}
-                    step={5}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
-                    <span>50% GP</span>
-                    <span>100% GP</span>
-                  </div>
-                </div>
-
-                {/* GP / ANP-ACP Workforce Breakdown */}
+                {/* Collapsible workforce section */}
                 {(() => {
-                  const totalSessions = hub.totalRequired / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
-                  const gpSessions = totalSessions * (hub.gpPct / 100);
-                  const anpSessions = totalSessions * ((100 - hub.gpPct) / 100);
-                  const gpWTE = calcWTE(gpSessions);
-                  const anpWTE = calcWTE(anpSessions);
-                  const gpCost = calcGpCost(gpSessions);
-                  const anpCost = calcAnpCost(anpWTE);
-                  const totalCost = gpCost + anpCost;
+                  const sectionId = `hub-workforce-${hub.hubName.replace(/\s/g, '-')}`;
                   return (
-                    <>
-                      <div className="grid grid-cols-2 gap-2 mb-1">
-                        <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                          <p className="text-[10px] font-medium text-blue-700">GP</p>
-                          <p className="text-lg font-bold text-blue-900">{gpSessions.toFixed(1)}</p>
-                          <p className="text-[10px] text-blue-600">sessions/week</p>
-                          <p className="text-xs font-semibold text-blue-800 mt-1">{gpWTE.toFixed(2)} WTE</p>
-                          <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(gpCost)}/yr</p>
+                    <details className="group mb-3">
+                      <summary className="cursor-pointer select-none text-xs font-semibold text-[#005EB8] flex items-center gap-1 mb-3 hover:underline">
+                        <ArrowDown className="w-3 h-3 transition-transform group-open:rotate-180" />
+                        Workforce &amp; Capacity Planning
+                      </summary>
+
+                      {/* On-site slider FIRST */}
+                      <div className="mb-3 px-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-medium text-slate-500">On-Site Split</span>
+                          <span className="text-[10px] font-semibold text-slate-700">{hub.onsitePct}% On-Site / {100 - hub.onsitePct}% Remote</span>
                         </div>
-                        <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
-                          <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
-                          <p className="text-lg font-bold text-cyan-900">{anpSessions.toFixed(1)}</p>
-                          <p className="text-[10px] text-cyan-600">sessions/week</p>
-                          <p className="text-xs font-semibold text-cyan-800 mt-1">{anpWTE.toFixed(2)} WTE</p>
-                          <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(anpCost)}/yr</p>
+                        <Slider
+                          value={[hub.onsitePct]}
+                          onValueChange={(val) => setHubOnsitePct(hub.hubName, val[0])}
+                          min={50}
+                          max={100}
+                          step={5}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                          <span>50%</span>
+                          <span>100%</span>
                         </div>
                       </div>
-                      <p className="text-[10px] text-center font-semibold text-emerald-800 mb-3">Est. workforce cost: {formatCost(totalCost)}/yr</p>
-                    </>
+
+                      {/* F2F / Remote cards */}
+                      <div className="grid grid-cols-2 gap-3 mb-2">
+                        <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
+                          <p className="text-xs font-medium text-green-700">F2F (On-Site)</p>
+                          <p className="text-xl font-bold text-green-900">{hub.f2f.toFixed(1)}</p>
+                          <p className="text-[10px] text-green-600">{uLabel}</p>
+                        </div>
+                        <div className="bg-indigo-50 rounded-lg p-3 text-center border border-indigo-200">
+                          <p className="text-xs font-medium text-indigo-700">Remote</p>
+                          <p className="text-xl font-bold text-indigo-900">{hub.remote.toFixed(1)}</p>
+                          <p className="text-[10px] text-indigo-600">{uLabel}</p>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 text-center mb-3">
+                        {(hub.f2f / APPTS_PER_SESSION).toFixed(1)} sessions on-site • {(hub.remote / APPTS_PER_SESSION).toFixed(1)} sessions remote
+                      </p>
+
+                      {/* GP/ANP slider */}
+                      <div className="mb-3 px-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-medium text-slate-500">GP / ANP-ACP Split</span>
+                          <span className="text-[10px] font-semibold text-slate-700">{hub.gpPct}% GP / {100 - hub.gpPct}% ANP</span>
+                        </div>
+                        <Slider
+                          value={[hub.gpPct]}
+                          onValueChange={(val) => setHubGpPct(hub.hubName, val[0])}
+                          min={50}
+                          max={100}
+                          step={5}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                          <span>50% GP</span>
+                          <span>100% GP</span>
+                        </div>
+                      </div>
+
+                      {/* GP / ANP-ACP Workforce Breakdown */}
+                      {(() => {
+                        const totalSessions = hub.totalRequired / (viewMode === "appointments" ? APPTS_PER_SESSION : 1);
+                        const gpSessions = totalSessions * (hub.gpPct / 100);
+                        const anpSessions = totalSessions * ((100 - hub.gpPct) / 100);
+                        const gpWTE = calcWTE(gpSessions);
+                        const anpWTE = calcWTE(anpSessions);
+                        const gpCost = calcGpCost(gpSessions);
+                        const anpCost = calcAnpCost(anpWTE);
+                        const totalCost = gpCost + anpCost;
+                        return (
+                          <>
+                            <div className="grid grid-cols-2 gap-2 mb-1">
+                              <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                                <p className="text-[10px] font-medium text-blue-700">GP</p>
+                                <p className="text-lg font-bold text-blue-900">{gpSessions.toFixed(1)}</p>
+                                <p className="text-[10px] text-blue-600">sessions/week</p>
+                                <p className="text-xs font-semibold text-blue-800 mt-1">{gpWTE.toFixed(2)} WTE</p>
+                                <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(gpCost)}/yr</p>
+                              </div>
+                              <div className="bg-cyan-50 rounded-lg p-2 text-center border border-cyan-200">
+                                <p className="text-[10px] font-medium text-cyan-700">ANP/ACP</p>
+                                <p className="text-lg font-bold text-cyan-900">{anpSessions.toFixed(1)}</p>
+                                <p className="text-[10px] text-cyan-600">sessions/week</p>
+                                <p className="text-xs font-semibold text-cyan-800 mt-1">{anpWTE.toFixed(2)} WTE</p>
+                                <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">{formatCost(anpCost)}/yr</p>
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-center font-semibold text-emerald-800 mb-3">Est. workforce cost: {formatCost(totalCost)}/yr</p>
+                          </>
+                        );
+                      })()}
+                    </details>
                   );
                 })()}
 
