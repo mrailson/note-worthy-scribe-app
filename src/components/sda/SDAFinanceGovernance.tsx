@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Users, 
   Lock, 
@@ -143,6 +142,7 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
   const isENN = neighbourhoodName === 'ENN';
   const { people } = useNRESPeople();
   const [peopleDialogOpen, setPeopleDialogOpen] = useState(false);
+  const [activeInsuranceId, setActiveInsuranceId] = useState<string | null>(null);
   const ennChecklist = useENNInsuranceChecklist();
 
   const seniorLeadership = people.filter((p) => p.isActive).map((p) => ({
