@@ -78,11 +78,6 @@ export const NRESHeader = ({ activeTab }: NRESHeaderProps) => {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Go-Live pill */}
-          <span className="hidden sm:inline-flex items-center text-[11px] font-semibold bg-emerald-500 text-white px-2.5 py-0.5 rounded-full">
-            Go-Live: 1st April 2026
-          </span>
-
           <Button
             onClick={() => navigate('/?from=home')}
             variant="ghost"
