@@ -1176,7 +1176,64 @@ export const ENNEstatesCapacity = () => {
             );
           })}
 
-          {/* Drive Times Overview */}
+          {/* Travel to Corby Urgent Care Centre */}
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Badge className="bg-red-100 text-red-800 border-red-300">CUCC</Badge>
+              <span className="font-semibold text-slate-900">Travel to Corby Urgent Care Centre</span>
+              <span className="text-slate-500 text-sm">— All 10 practices</span>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">Distances and travel times from each ENN practice to Corby Urgent Care Centre, including public transport options with changes.</p>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50">
+                  <TableHead className="text-xs font-semibold">Practice</TableHead>
+                  <TableHead className="text-xs font-semibold text-right">Population</TableHead>
+                  <TableHead className="text-xs font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1"><MapPin className="w-3.5 h-3.5" />Miles</div>
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1"><Car className="w-3.5 h-3.5" />By Car</div>
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1"><Bus className="w-3.5 h-3.5" />Public Transport</div>
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1"><Bus className="w-3.5 h-3.5" />Bus Service (incl. changes)</div>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ennPracticeSummary
+                  .slice()
+                  .sort((a, b) => {
+                    const at = CUCC_TRAVEL[a.practice];
+                    const bt = CUCC_TRAVEL[b.practice];
+                    return (at?.carMin ?? 99) - (bt?.carMin ?? 99);
+                  })
+                  .map(p => {
+                    const cucc = CUCC_TRAVEL[p.practice];
+                    if (!cucc) return null;
+                    let carColour = "text-slate-600";
+                    if (cucc.carMin <= 20) carColour = "text-green-700";
+                    else if (cucc.carMin <= 30) carColour = "text-amber-700";
+                    else carColour = "text-red-700";
+                    return (
+                      <TableRow key={p.practice}>
+                        <TableCell className="text-sm font-medium text-slate-700">{p.practice}</TableCell>
+                        <TableCell className="text-sm text-right tabular-nums">{p.listSize.toLocaleString()}</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums text-slate-600">{cucc.miles.toFixed(1)}</TableCell>
+                        <TableCell className={`text-sm text-center tabular-nums font-medium ${carColour}`}>{cucc.carMin}m</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums text-slate-600">{cucc.publicTransport}</TableCell>
+                        <TableCell className="text-sm text-center font-medium text-blue-700">{cucc.busService}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+              </TableBody>
+            </Table>
+          </div>
+
+
           <div className="border-t pt-6">
             <div className="mb-4">
               <h3 className="text-base font-semibold text-slate-900 mb-2">Neighbourhood Drive Time Overview</h3>
