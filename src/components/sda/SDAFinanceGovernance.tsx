@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Users, 
   Lock, 
@@ -143,6 +142,7 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
   const isENN = neighbourhoodName === 'ENN';
   const { people } = useNRESPeople();
   const [peopleDialogOpen, setPeopleDialogOpen] = useState(false);
+  const [activeInsuranceId, setActiveInsuranceId] = useState<string | null>(null);
   const ennChecklist = useENNInsuranceChecklist();
 
   const seniorLeadership = people.filter((p) => p.isActive).map((p) => ({
@@ -700,15 +700,16 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
                       return num;
                     };
 
+                    const activeInsurance = practice.insurances.find((ins) => ins.id === activeInsuranceId);
+
                     return (
                       <div key={practice.practice} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Checkbox checked={allConfirmed} disabled className="pointer-events-none" />
+                        <div className="mb-2">
                           <span className={`text-sm font-medium ${allConfirmed ? 'text-slate-700' : 'text-amber-600'}`}>
                             {practice.practice}
                           </span>
                         </div>
-                        <div className="flex flex-wrap gap-1.5 ml-6">
+                        <div className="flex flex-wrap gap-1.5">
                           {practice.insurances.map((ins) => {
                             const isEditable = ins.insurance_type === 'Public' || ins.insurance_type === 'Employers';
                             const isTbc = ins.amount === 'TBC';
@@ -737,71 +738,103 @@ export const SDAFinanceGovernance = ({ hideBoardLeadership = false, customInsura
                             }
 
                             return (
-                              <Popover key={ins.id}>
-                                <PopoverTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium cursor-pointer hover:opacity-80 transition-opacity ${
-                                      isAmber
-                                        ? 'text-amber-700 border-amber-400 bg-amber-50'
-                                        : 'text-green-700 border-green-400 bg-green-50'
-                                    }`}
-                                  >
-                                    {shortType} {shortAmount}
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-64 p-3" align="start" side="top">
-                                  <div className="space-y-3">
-                                    <p className="text-sm font-medium text-slate-900">{ins.insurance_type} Liability</p>
-                                    <div className="flex items-center gap-2">
-                                      <Checkbox
-                                        checked={ins.confirmed}
-                                        onCheckedChange={(checked) => {
-                                          ennChecklist.toggleConfirmed({ id: ins.id, confirmed: !!checked });
-                                        }}
-                                      />
-                                      <span className="text-sm text-slate-700">Confirmed</span>
-                                    </div>
-                                    <div>
-                                      <label className="text-xs text-slate-500 mb-1 block">Insured amount</label>
-                                      <div className="flex gap-1.5">
-                                        {['£5m', '£10m'].map((preset) => (
-                                          <Button
-                                            key={preset}
-                                            variant={ins.amount === preset ? 'default' : 'outline'}
-                                            size="sm"
-                                            className="text-xs h-7"
-                                            onClick={() => ennChecklist.updateAmount({ id: ins.id, amount: preset })}
-                                          >
-                                            {preset}
-                                          </Button>
-                                        ))}
-                                        <Input
-                                          placeholder="Other"
-                                          className="h-7 text-xs w-20"
-                                          defaultValue={!['£5m', '£10m', 'TBC'].includes(ins.amount) ? ins.amount : ''}
-                                          onBlur={(e) => {
-                                            const val = e.target.value.trim();
-                                            if (val && val !== ins.amount) {
-                                              ennChecklist.updateAmount({ id: ins.id, amount: val });
-                                            }
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              (e.target as HTMLInputElement).blur();
-                                            }
-                                          }}
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
+                              <button
+                                key={ins.id}
+                                type="button"
+                                onClick={() => setActiveInsuranceId(activeInsuranceId === ins.id ? null : ins.id)}
+                                className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80 ${
+                                  isAmber
+                                    ? 'text-amber-700 border-amber-400 bg-amber-50'
+                                    : 'text-green-700 border-green-400 bg-green-50'
+                                }`}
+                              >
+                                {shortType} {shortAmount}
+                              </button>
                             );
                           })}
                         </div>
+
+                        {activeInsurance && (
+                          <div className="mt-3 rounded-lg border border-border bg-background p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium text-foreground">
+                                {activeInsurance.insurance_type} Liability
+                              </p>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => setActiveInsuranceId(null)}
+                              >
+                                Close
+                              </Button>
+                            </div>
+
+                            <div className="mt-3 space-y-3">
+                              <div>
+                                <label className="mb-1 block text-xs text-muted-foreground">Status</label>
+                                <div className="flex gap-1.5">
+                                  <Button
+                                    type="button"
+                                    variant={activeInsurance.confirmed ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => ennChecklist.toggleConfirmed({ id: activeInsurance.id, confirmed: true })}
+                                  >
+                                    Confirmed
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant={!activeInsurance.confirmed ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => ennChecklist.toggleConfirmed({ id: activeInsurance.id, confirmed: false })}
+                                  >
+                                    Not confirmed
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="mb-1 block text-xs text-muted-foreground">Insured amount</label>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {['£5m', '£10m', 'TBC'].map((preset) => (
+                                    <Button
+                                      key={preset}
+                                      type="button"
+                                      variant={activeInsurance.amount === preset ? 'default' : 'outline'}
+                                      size="sm"
+                                      className="h-7 text-xs"
+                                      onClick={() => ennChecklist.updateAmount({ id: activeInsurance.id, amount: preset })}
+                                    >
+                                      {preset}
+                                    </Button>
+                                  ))}
+                                  <Input
+                                    placeholder="Other"
+                                    className="h-7 w-24 text-xs"
+                                    defaultValue={!['£5m', '£10m', 'TBC', 'No Limit'].includes(activeInsurance.amount) ? activeInsurance.amount : ''}
+                                    onBlur={(e) => {
+                                      const val = e.target.value.trim();
+                                      if (val && val !== activeInsurance.amount) {
+                                        ennChecklist.updateAmount({ id: activeInsurance.id, amount: val });
+                                      }
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        (e.target as HTMLInputElement).blur();
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {practice.lastUpdatedBy && (
-                          <p className="text-[10px] text-slate-400 ml-6 mt-1.5">
+                          <p className="mt-1.5 text-[10px] text-slate-400">
                             Updated by {practice.lastUpdatedBy} · {new Date(practice.lastUpdatedAt!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         )}
