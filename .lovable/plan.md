@@ -1,30 +1,50 @@
 
+What I found
 
-## Plan: Add CUCC Attendance Tab to ENN Dashboard
+- The normal desktop auto-email flow lives in `src/components/PostMeetingActionsModal.tsx`.
+- Offline iPhone sync does not use that flow at all. It uses a separate mobile-only path in `src/components/recorder/NoteWellRecorderMobile.jsx`:
+  - `generateNotesForMeeting()`
+  - `pollAndEmailIfReady()`
+  - `triggerPostNoteActions()`
+- That means earlier fixes in the desktop/modal path would not have fixed this issue.
 
-### What We're Building
-A new "CUCC" tab on the ENN dashboard showing a stacked bar chart of monthly patient attendance at Corby Urgent Care Centre, broken down by practice. Users can view neighbourhood totals with practice breakdown on hover, and also filter to a single practice via a dropdown.
+Most likely reasons it is failing
 
-### Data Source
-The data from the uploaded spreadsheet (11 months, April–February, 10 practices) will be hardcoded as a constant array — matching the exact figures provided.
+1. `pollAndEmailIfReady()` only waits about 2 minutes. If note generation finishes later, the email is never attempted.
+2. `triggerPostNoteActions()` fetches the current user again after a long sync. On iPhone, that session can be stale by then, so it can exit before sending.
+3. The mobile path does not properly validate the result from `send-meeting-email-resend`, so a failed send can be silently treated like success.
 
-### Changes
+Plan to fix it safely
 
-**1. New component: `src/components/enn/ENNCUCCAttendance.tsx`**
-- Stacked `BarChart` (recharts, already in project) — one bar per month, stacked by practice with distinct colours matching existing `ennPopulationData` palette
-- Custom tooltip on hover shows each practice's count and the monthly total
-- Practice filter dropdown (default "All Practices") — selecting a single practice shows only that practice's bars (simple bar, not stacked)
-- Summary cards at top: Total Attendance (11,294), Average Monthly (1,027), Highest Month, Lowest Month
-- A data table below the chart showing the raw monthly figures per practice (sortable, matching the spreadsheet layout)
-- SDA allocation column showing each practice's annual appointment allocation (74,846 total) for context
+1. Extract a shared “send meeting notes email” helper from the existing working logic so mobile, desktop, and manual email use the same send code.
+2. Update the offline iPhone/mobile sync path to use that helper instead of its own separate send sequence.
+3. In the mobile flow, capture the recipient email earlier, refresh auth again before post-note actions, and only mark success if the email function really returns success.
+4. Replace the short fixed poll with a longer, bounded retry that checks both `meetings.notes_generation_status` and `meeting_summaries`.
+5. Add a meeting-level dedupe/retry guard so failed mobile auto-sends can retry safely without creating duplicate emails.
+6. Keep the desktop modal flow and manual “Email notes to me” action functionally unchanged, apart from reusing the same helper.
 
-**2. Update `src/pages/ENNDashboard.tsx`**
-- Add new tab entry: `{ value: "cucc", label: "CUCC Attendance", shortLabel: "CUCC", icon: Hospital }` (using `Hospital` from lucide-react)
-- Add lazy-loaded `TabsContent` for the new component
-- Position after "Estates & Capacity" tab (logical grouping)
+Technical details
 
-### What Does NOT Change
-- All other tabs, data, and components remain untouched
-- No database changes — purely frontend with hardcoded data
-- ENN Document Vault, NRES dashboard — completely unaffected
+- Main file to change: `src/components/recorder/NoteWellRecorderMobile.jsx`
+- Likely shared/reused files:
+  - `src/components/PostMeetingActionsModal.tsx`
+  - `src/components/mobile-meetings/MobileExportSheet.tsx`
+  - existing builders such as `src/utils/meetingEmailBuilder.ts`
+- I would avoid changing the email edge function first, because the same send function is already used elsewhere; the weaker point is the mobile caller.
 
+Risk control
+
+- Scope the behavioural change to the mobile/offline path first.
+- Reuse the current HTML and Word attachment builders so the email output stays the same.
+- Add explicit success/error handling and dedupe guards so we fix the silent failure without breaking the existing desktop behaviour.
+
+Checks after implementation
+
+- Desktop recording still auto-emails exactly as before.
+- Mobile live recording still behaves as before.
+- Offline iPhone sync sends automatically after both short and long note-generation runs.
+- If sending genuinely fails, the app shows a real failure and can retry, instead of quietly doing nothing.
+
+Confidence note
+
+- I could not verify the exact failing runtime from logs in this session, but the code makes the root issue area clear: the offline iPhone sync uses a separate, more brittle auto-email path than the desktop flow. That is the safest place to fix first without breaking existing functionality.
