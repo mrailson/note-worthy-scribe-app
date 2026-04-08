@@ -1,12 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Slider } from "@/components/ui/slider";
 import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/components/ui/popover";
-import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, Settings, Car, Bus, MapPin } from "lucide-react";
+import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, Settings, Car, Bus, MapPin, Hospital } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { ENNNeighbourhoodMap } from "@/components/enn/ENNNeighbourhoodMap";
+
+const ENNCUCCAttendance = lazy(() => import("@/components/enn/ENNCUCCAttendance"));
 
 const APPTS_PER_SESSION = 14;
 
@@ -1326,6 +1328,18 @@ export const ENNEstatesCapacity = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* CUCC Attendance */}
+      <CollapsibleCard
+        title="Corby Urgent Care Centre — Attendance"
+        icon={<Hospital className="w-5 h-5" />}
+        badge={<span className="text-xs text-slate-500 font-normal">Apr 2024 – Feb 2025</span>}
+        defaultOpen={false}
+      >
+        <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+          <ENNCUCCAttendance />
+        </Suspense>
+      </CollapsibleCard>
     </div>
   );
 };
