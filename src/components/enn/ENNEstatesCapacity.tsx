@@ -4,22 +4,40 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Slider } from "@/components/ui/slider";
 import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/components/ui/popover";
-import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, Settings } from "lucide-react";
+import { CheckCircle2, Building2, Clock, Users, Calendar, LayoutGrid, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, Sun, Snowflake, Layers, Info, Settings, Car, Bus, MapPin } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { ENNNeighbourhoodMap } from "@/components/enn/ENNNeighbourhoodMap";
 
 const APPTS_PER_SESSION = 14;
 
+/** Travel data for each practice to its nearest hub */
+type TravelInfo = {
+  miles?: number;
+  carMin?: number;
+  publicTransportMin?: number;
+  busService?: string;
+};
+
+const PRACTICE_TRAVEL: Record<string, TravelInfo> = {
+  'Harborough Field Surgery': { miles: 0 },
+  'Parklands Surgery': { miles: 1.1, carMin: 4, publicTransportMin: 8, busService: '25' },
+  'Rushden Medical Centre': { miles: 1.1, carMin: 5, publicTransportMin: 5, busService: 'X46' },
+  'Higham Ferrers Surgery': { miles: 2.4, carMin: 5, publicTransportMin: 10, busService: '94' },
+  'The Cottons MC': { miles: 0 },
+  'Spinney Brook Medical Centre': { miles: 5.2, carMin: 11, publicTransportMin: 35, busService: 'X47' },
+  'Marshalls Road Surgery': { miles: 0.4, carMin: 2, publicTransportMin: 5, busService: 'X47' },
+  'The Meadows Surgery': { miles: 0 },
+  'Oundle Medical Practice': { miles: 8, carMin: 13, publicTransportMin: 34, busService: '94 or DTRS' },
+  'Nene Valley Surgery': { carMin: 0, publicTransportMin: 0, busService: '16' },
+};
+
 /** Approximate drive time in minutes from each spoke to its hub site */
 const SPOKE_DRIVE_TIMES: Record<string, number> = {
-  // Harborough Field Surgery hub spokes
   'Parklands Surgery': 5,
   'Rushden Medical Centre': 7,
   'Higham Ferrers Surgery': 8,
-  // The Cottons MC hub spokes
   'Spinney Brook Medical Centre': 10,
   'Marshalls Road Surgery': 4,
-  // The Meadows Surgery hub spokes
   'Oundle Medical Practice': 22,
   'Nene Valley Surgery': 12,
 };
