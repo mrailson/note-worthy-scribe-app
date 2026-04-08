@@ -656,7 +656,6 @@ export const ENNEstatesCapacity = () => {
                     ))}
                   </div>
                 </div>
-                </div>
               </div>
             ))}
 
