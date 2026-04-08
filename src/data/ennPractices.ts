@@ -42,7 +42,7 @@ export const ENN_PRACTICE_ADDRESSES: Record<ENNPracticeKey, string> = {
   neneValley: 'Nene Valley Surgery, Green Lane, Thrapston, NN14 4QL',
   marshalls: "Marshalls Road Surgery, 7 Marshall's Rd, Raunds, Wellingborough NN9 6ET",
   higham: 'Higham Ferrers Surgery, Saffron Rd, Higham Ferrers, Rushden NN10 8ED',
-  meadows: 'The Meadows Surgery, Meadow Lane, Wellingborough NN14 4GD',
+  meadows: 'The Meadows Surgery, Meadow Lane, Thrapston, Kettering, Northamptonshire, NN14 4GD',
 };
 
 /** Hub assignments per the Jan 2026 data */
