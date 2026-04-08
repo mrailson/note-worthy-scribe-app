@@ -442,10 +442,92 @@ export const useUpdateFileDescription = (scope: VaultScope = 'nres_vault') => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['vault-files', scope] });
       queryClient.invalidateQueries({ queryKey: ['vault-search', scope] });
+      queryClient.invalidateQueries({ queryKey: ['all-vault-files', scope] });
       if (user?.id) logVaultAction(user.id, { action: 'edit_description', target_type: 'file', target_id: variables.fileId });
     },
     onError: (error: any) => {
       toast.error('Failed to update description', { description: error.message });
+    },
+  });
+};
+
+// ── V2 hooks ──────────────────────────────────────────────
+
+export const useAllVaultFiles = (scope: VaultScope = 'nres_vault') => {
+  return useQuery({
+    queryKey: ['all-vault-files', scope],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('shared_drive_files')
+        .select('id, name, original_name, folder_id, file_path, file_size, file_type, mime_type, created_by, created_at, updated_at, tags, description')
+        .eq('scope', scope)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as VaultFile[];
+    },
+  });
+};
+
+export const useVaultFolderMap = (scope: VaultScope = 'nres_vault') => {
+  return useQuery({
+    queryKey: ['vault-folder-map', scope],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('shared_drive_folders')
+        .select('id, name, path')
+        .eq('scope', scope);
+      if (error) throw error;
+      const map: Record<string, { name: string; path: string }> = {};
+      (data || []).forEach((f: any) => { map[f.id] = { name: f.name, path: f.path }; });
+      return map;
+    },
+  });
+};
+
+export const useVaultFavourites = (scope: VaultScope = 'nres_vault') => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['vault-favourites', scope, user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('vault_favourites')
+        .select('file_id')
+        .eq('user_id', user.id)
+        .eq('scope', scope);
+      if (error) throw error;
+      return (data || []).map((r: any) => r.file_id as string);
+    },
+    enabled: !!user?.id,
+  });
+};
+
+export const useToggleFavourite = (scope: VaultScope = 'nres_vault') => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ fileId, isFavourite }: { fileId: string; isFavourite: boolean }) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      if (isFavourite) {
+        const { error } = await supabase
+          .from('vault_favourites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('file_id', fileId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('vault_favourites')
+          .insert({ user_id: user.id, file_id: fileId, scope });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vault-favourites', scope] });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update favourite', { description: error.message });
     },
   });
 };
