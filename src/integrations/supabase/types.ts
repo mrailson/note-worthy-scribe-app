@@ -4069,6 +4069,39 @@ export type Database = {
           },
         ]
       }
+      enn_insurance_checklist: {
+        Row: {
+          amount: string
+          confirmed: boolean
+          created_at: string
+          id: string
+          insurance_type: string
+          practice_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount?: string
+          confirmed?: boolean
+          created_at?: string
+          id?: string
+          insurance_type: string
+          practice_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: string
+          confirmed?: boolean
+          created_at?: string
+          id?: string
+          insurance_type?: string
+          practice_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       enn_practice_data: {
         Row: {
           address: string | null

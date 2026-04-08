@@ -34,9 +34,10 @@ interface NRESHoursTrackerProps {
   customInsuranceCheckedBy?: string;
   customInsuranceUpdatedDate?: string;
   neighbourhoodName?: 'NRES' | 'ENN';
+  interactiveInsurance?: boolean;
 }
 
-export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeadership = false, customInsuranceChecklist, customInsuranceCheckedBy, customInsuranceUpdatedDate, neighbourhoodName = 'NRES' }: NRESHoursTrackerProps = {}) {
+export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeadership = false, customInsuranceChecklist, customInsuranceCheckedBy, customInsuranceUpdatedDate, neighbourhoodName = 'NRES', interactiveInsurance = false }: NRESHoursTrackerProps = {}) {
   const { user } = useAuth();
   const isAdmin = !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
   
@@ -260,7 +261,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
       </TabsContent>
 
       <TabsContent value="finance-governance">
-        <SDAFinanceGovernance hideBoardLeadership={hideBoardLeadership} customInsuranceChecklist={customInsuranceChecklist} customInsuranceCheckedBy={customInsuranceCheckedBy} customInsuranceUpdatedDate={customInsuranceUpdatedDate} neighbourhoodName={neighbourhoodName} />
+        <SDAFinanceGovernance hideBoardLeadership={hideBoardLeadership} customInsuranceChecklist={customInsuranceChecklist} customInsuranceCheckedBy={customInsuranceCheckedBy} customInsuranceUpdatedDate={customInsuranceUpdatedDate} neighbourhoodName={neighbourhoodName} interactiveInsurance={interactiveInsurance} />
       </TabsContent>
 
       <TabsContent value="risks">
