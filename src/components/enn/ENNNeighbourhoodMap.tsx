@@ -44,9 +44,9 @@ const driveTimes = [
 ];
 
 const hubAssignments: Record<string, string> = {
-  "K83007": "K83007", "K83023": "K83007", "K83024": "K83007",
-  "K83028": "K83030", "K83030": "K83030", "K83044": "K83007",
-  "K83065": "K83007", "K83069": "K83030", "K83080": "K83616", "K83616": "K83616",
+  "K83007": "K83007", "K83024": "K83007", "K83044": "K83007", "K83080": "K83007",
+  "K83028": "K83030", "K83030": "K83030", "K83069": "K83030",
+  "K83616": "K83616", "K83023": "K83616", "K83065": "K83616",
 };
 
 const hubColors: Record<string, { main: string; dark: string; light: string; glow: string; accent: string; mid: string }> = {
@@ -88,6 +88,9 @@ function SpokeRow({ practice, hubId, isLast }: { practice: Practice; hubId: stri
         <div>
           <div style={{ color: "#1a2a3a", fontSize: 11, fontWeight: isHubSelf ? 700 : 600, fontFamily: sans }}>{practice.short}</div>
           <div style={{ color: "#aabbcc", fontSize: 8, fontFamily: mono }}>{practice.id}</div>
+          {practice.id === "K83028" && (
+            <div style={{ color: "#8a9aaa", fontSize: 7, fontFamily: sans, fontStyle: "italic", marginTop: 1 }}>Incl. Woodford Surgery (branch)</div>
+          )}
         </div>
       </div>
       <div style={{ textAlign: "right" }}>
