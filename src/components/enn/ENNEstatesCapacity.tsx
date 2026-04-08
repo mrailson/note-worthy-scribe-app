@@ -31,6 +31,20 @@ const PRACTICE_TRAVEL: Record<string, TravelInfo> = {
   'Nene Valley Surgery': { carMin: 0, publicTransportMin: 0, busService: '16' },
 };
 
+/** Travel data from each practice to Corby Urgent Care Centre */
+const CUCC_TRAVEL: Record<string, { miles: number; carMin: number; publicTransport: string; busService: string }> = {
+  'Harborough Field Surgery': { miles: 21.3, carMin: 34, publicTransport: '2h 8m', busService: 'X46/EMR/X4/1' },
+  'Spinney Brook MC': { miles: 17.8, carMin: 30, publicTransport: '1h 28m', busService: '48/EMR/X4' },
+  'The Cottons MC': { miles: 23, carMin: 33, publicTransport: '1h 43m', busService: '16/X4/1' },
+  'Parklands Surgery': { miles: 22.3, carMin: 38, publicTransport: '1h 55m', busService: '46/X4' },
+  'Nene Valley Surgery': { miles: 19.4, carMin: 29, publicTransport: '1h 23m', busService: 'X16/X4/DTRS' },
+  'Marshalls Road Surgery': { miles: 23.4, carMin: 33, publicTransport: '2h 5m', busService: '16/X4/1' },
+  'Higham Ferrers Surgery': { miles: 19.6, carMin: 11, publicTransport: '2h 12m', busService: '50/X4' },
+  'The Meadows Surgery': { miles: 19.3, carMin: 29, publicTransport: '1h 23m', busService: 'X16/DTRS/X4' },
+  'Oundle Medical Practice': { miles: 12.9, carMin: 26, publicTransport: '0h 56m', busService: 'X4' },
+  'Rushden Medical Centre': { miles: 21.9, carMin: 37, publicTransport: '1h 30m', busService: 'X47/X4' },
+};
+
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote" | "annualAppts" | "weeklyAppts" | "winterAppts" | "nonWinterAppts" | "weeklyWinter" | "weeklyNonWinter" | "annualIncome" | "hub";
 type SortDirection = "asc" | "desc";
 type Season = "nonWinter" | "winter" | "total";
@@ -1162,7 +1176,64 @@ export const ENNEstatesCapacity = () => {
             );
           })}
 
-          {/* Drive Times Overview */}
+          {/* Travel to Corby Urgent Care Centre */}
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Badge className="bg-red-100 text-red-800 border-red-300">CUCC</Badge>
+              <span className="font-semibold text-slate-900">Travel to Corby Urgent Care Centre</span>
+              <span className="text-slate-500 text-sm">— All 10 practices</span>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">Distances and travel times from each ENN practice to Corby Urgent Care Centre, including public transport options with changes.</p>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50">
+                  <TableHead className="text-xs font-semibold">Practice</TableHead>
+                  <TableHead className="text-xs font-semibold text-right">Population</TableHead>
+                  <TableHead className="text-xs font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1"><MapPin className="w-3.5 h-3.5" />Miles</div>
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1"><Car className="w-3.5 h-3.5" />By Car</div>
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1"><Bus className="w-3.5 h-3.5" />Public Transport</div>
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1"><Bus className="w-3.5 h-3.5" />Bus Service (incl. changes)</div>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ennPracticeSummary
+                  .slice()
+                  .sort((a, b) => {
+                    const at = CUCC_TRAVEL[a.practice];
+                    const bt = CUCC_TRAVEL[b.practice];
+                    return (at?.carMin ?? 99) - (bt?.carMin ?? 99);
+                  })
+                  .map(p => {
+                    const cucc = CUCC_TRAVEL[p.practice];
+                    if (!cucc) return null;
+                    let carColour = "text-slate-600";
+                    if (cucc.carMin <= 20) carColour = "text-green-700";
+                    else if (cucc.carMin <= 30) carColour = "text-amber-700";
+                    else carColour = "text-red-700";
+                    return (
+                      <TableRow key={p.practice}>
+                        <TableCell className="text-sm font-medium text-slate-700">{p.practice}</TableCell>
+                        <TableCell className="text-sm text-right tabular-nums">{p.listSize.toLocaleString()}</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums text-slate-600">{cucc.miles.toFixed(1)}</TableCell>
+                        <TableCell className={`text-sm text-center tabular-nums font-medium ${carColour}`}>{cucc.carMin}m</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums text-slate-600">{cucc.publicTransport}</TableCell>
+                        <TableCell className="text-sm text-center font-medium text-blue-700">{cucc.busService}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+              </TableBody>
+            </Table>
+          </div>
+
+
           <div className="border-t pt-6">
             <div className="mb-4">
               <h3 className="text-base font-semibold text-slate-900 mb-2">Neighbourhood Drive Time Overview</h3>
