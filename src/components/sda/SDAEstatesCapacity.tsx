@@ -486,12 +486,7 @@ export const SDAEstatesCapacity = () => {
                 {isSaving ? "Saving..." : "Save Changes"}
               </Button>
             </>
-          ) : (
-            <Button size="sm" variant="outline" onClick={startEditing}>
-              <Pencil className="w-4 h-4 mr-1" />
-              Edit Data
-            </Button>
-          )}
+          ) : null}
         </div>
       )}
 
