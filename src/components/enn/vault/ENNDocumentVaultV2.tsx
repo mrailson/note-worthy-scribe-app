@@ -91,6 +91,7 @@ export const ENNDocumentVaultV2 = () => {
   // Folders tab state
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<VaultViewMode>('tree');
   const [cardsCollapsed, setCardsCollapsed] = useState(false);
   const [clipboard, setClipboard] = useState<ClipboardState | null>(null);
   const [permissionTarget, setPermissionTarget] = useState<{ id: string; type: 'folder' | 'file'; name: string } | null>(null);
