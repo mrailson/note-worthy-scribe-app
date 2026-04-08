@@ -768,7 +768,7 @@ export const ENNEstatesCapacity = () => {
                       driveLabel = `${driveMin} min`;
                     }
                     return (
-                      <div key={p.practice} className="flex items-center gap-2 text-sm">
+                      <div key={p.practice} className="flex items-center gap-2 text-sm flex-wrap">
                         <Badge variant="outline" className={`text-xs ${isHub ? "bg-[#005EB8] text-white border-[#005EB8]" : "bg-slate-100 text-slate-600 border-slate-300"}`}>
                           {p.role}
                         </Badge>
@@ -778,6 +778,9 @@ export const ENNEstatesCapacity = () => {
                           <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${driveColour}`}>
                             {driveLabel}
                           </span>
+                        )}
+                        {p.branchSite && (
+                          <span className="text-[10px] text-slate-500 italic w-full ml-16">{p.branchSite}</span>
                         )}
                       </div>
                     );
