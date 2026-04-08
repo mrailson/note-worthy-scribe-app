@@ -105,6 +105,13 @@ export const ENNEstatesCapacity = () => {
   const HOURS_PER_WTE = 37.5;
   const calcWTE = (sessions: number) => (sessions * HOURS_PER_SESSION) / HOURS_PER_WTE;
 
+  // Cost assumptions: GP £11K/session p.a. + 30% on-costs; ANP £60K/WTE p.a. + 30% on-costs
+  const GP_COST_PER_SESSION = 11000 * 1.3;
+  const ANP_COST_PER_WTE = 60000 * 1.3;
+  const calcGpCost = (sessions: number) => sessions * GP_COST_PER_SESSION;
+  const calcAnpCost = (wte: number) => wte * ANP_COST_PER_WTE;
+  const formatCost = (cost: number) => `£${(cost / 1000).toFixed(0)}K`;
+
   type ColumnGroup = "listIncome" | "winter" | "nonWinter";
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(new Set());
 
