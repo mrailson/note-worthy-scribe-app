@@ -641,7 +641,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                         { ods: 'K83065', name: 'Nene Valley Surgery', list: 6921, annual: 5740, weekly: 110, hub: 'The Meadows Surgery', address: 'Green Lane, Thrapston NN14 4QL' },
                         { ods: 'K83069', name: 'Marshalls Road Surgery', list: 3156, annual: 2618, weekly: 50, hub: 'The Cottons', address: "7 Marshall's Rd, Raunds NN9 6ET" },
                         { ods: 'K83080', name: 'Higham Ferrers Surgery', list: 5569, annual: 4619, weekly: 89, hub: 'Harborough Field Surgery', address: 'Saffron Rd, Higham Ferrers NN10 8ED' },
-                        { ods: 'K83616', name: 'The Meadows Surgery', list: 6340, annual: 5258, weekly: 101, hub: 'The Meadows Surgery', address: 'Meadow Lane, Wellingborough NN14 4GD' },
+                        { ods: 'K83616', name: 'The Meadows Surgery', list: 6340, annual: 5258, weekly: 101, hub: 'The Meadows Surgery', address: 'Meadow Lane, Thrapston, Kettering, Northamptonshire, NN14 4GD' },
                       ].map((p, i) => (
                         <tr key={p.ods} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
                           <td className="p-2 border-b font-mono text-xs text-slate-600">{p.ods}</td>
