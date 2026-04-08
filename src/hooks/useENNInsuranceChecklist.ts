@@ -39,6 +39,8 @@ export const useENNInsuranceChecklist = () => {
     staleTime: 30_000,
   });
 
+  const typeOrder: Record<string, number> = { 'Employers': 0, 'Public': 1, 'Clinical/CNSGP': 2, 'Prof/MDU': 3 };
+
   const grouped: PracticeInsuranceGroup[] = (() => {
     if (!rows) return [];
     const map = new Map<string, InsuranceChecklistRow[]>();
@@ -48,6 +50,7 @@ export const useENNInsuranceChecklist = () => {
       map.set(r.practice_name, arr);
     }
     return Array.from(map.entries()).map(([practice, insurances]) => {
+      insurances.sort((a, b) => (typeOrder[a.insurance_type] ?? 9) - (typeOrder[b.insurance_type] ?? 9));
       const latest = insurances.reduce((a, b) =>
         new Date(a.updated_at) > new Date(b.updated_at) ? a : b
       );
