@@ -12107,6 +12107,38 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_favourites: {
+        Row: {
+          created_at: string
+          file_id: string
+          id: string
+          scope: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_id: string
+          id?: string
+          scope?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_id?: string
+          id?: string
+          scope?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_favourites_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "shared_drive_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       complaint_involved_parties_secure: {
