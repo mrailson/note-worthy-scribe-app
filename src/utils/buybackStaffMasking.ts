@@ -11,7 +11,7 @@ export const BUYBACK_APPROVER_EMAILS = [
   'm.green28@nhs.net',         // Maureen Green (admin)
   'malcolm.railson@nhs.net',   // Malcolm Railson
   'mark.gray1@nhs.net',        // Dr Mark Gray (SNO)
-  'amanda.taylor75@nhs.net',   // Amanda Taylor
+  'amanda.palin2@nhs.net',      // Amanda Palin
   'carolyn.abbisogni@nhs.net'  // Carolyn Abbisogni
 ] as const;
 
