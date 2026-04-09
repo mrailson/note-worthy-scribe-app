@@ -240,8 +240,12 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                 </Card>
                 </div>
 
-                {/* Column 3 — Logos & Status */}
-                <div className="flex flex-col gap-4 h-full">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <Handshake className="h-5 w-5 text-[#005EB8]" />
+                    <span className="font-semibold text-slate-900">Programme Partners</span>
+                  </div>
+                <div className="flex flex-col gap-4 h-full flex-1">
                   <div className="flex justify-center items-center gap-6">
                     {customLogos ? (
                       customLogos.map((logo, i) => (
