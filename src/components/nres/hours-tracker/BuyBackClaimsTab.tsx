@@ -661,7 +661,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                      );
                    })}
                    <tr className="border-t bg-muted/30 font-semibold">
-                     <td colSpan={6} className="p-2 text-right">Total Calculated Monthly</td>
+                     <td colSpan={7} className="p-2 text-right">Total Calculated Monthly</td>
                      <td className="p-2 text-right">{fmtGBP(totalCalculated)}</td>
                      <td></td>
                    </tr>
@@ -1167,7 +1167,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 {/* Saved notes row */}
                 {hasNotes && editingNoteIdx !== idx && (
                   <tr key={`saved-note-${idx}`} className="border-b">
-                    <td colSpan={canEdit ? 7 : 6} className="px-2 py-1">
+                    <td colSpan={canEdit ? 8 : 7} className="px-2 py-1">
                       <p className="text-xs text-muted-foreground italic">
                         <MessageSquarePlus className="w-3 h-3 inline mr-1 text-blue-600" />
                         {s.notes}
@@ -1178,7 +1178,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 {/* Inline notes editor */}
                 {editingNoteIdx === idx && canEdit && (
                   <tr key={`note-${idx}`} className="border-b bg-muted/10">
-                    <td colSpan={canEdit ? 7 : 6} className="p-2">
+                    <td colSpan={canEdit ? 8 : 7} className="p-2">
                       <div className="flex gap-2 items-start">
                         <Input
                           className="flex-1 text-xs"
@@ -1214,7 +1214,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 )}
                 {/* Inline staff evidence */}
                 <tr key={`evidence-${idx}`} className="border-b">
-                  <td colSpan={canEdit ? 7 : 6} className="p-0">
+                  <td colSpan={canEdit ? 8 : 7} className="p-0">
                     <StaffLineEvidence
                       staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda'}
                       staffIndex={idx}
@@ -1232,7 +1232,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
           })}
           {/* Total row */}
           <tr className="bg-muted/30 font-semibold border-t">
-            <td colSpan={4} className="p-2 text-right">Total</td>
+            <td colSpan={5} className="p-2 text-right">Total</td>
             <td className="p-2 text-right">{fmtGBP(totalCalculated)}</td>
             <td className="p-2 text-right">{fmtGBP(totalClaimed)}</td>
             {canEdit && <td></td>}
