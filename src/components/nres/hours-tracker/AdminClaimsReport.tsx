@@ -69,12 +69,13 @@ const formatCurrency = (amount: number): string => {
   return amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-// Authorised admin users
+// Deprecated — now also checked via nres_system_roles table
 const ADMIN_EMAILS = [
   'm.green28@nhs.net',
   'mark.gray1@nhs.net',
   'amanda.palin2@nhs.net',
-  'carolyn.abbisogni@nhs.net'
+  'carolyn.abbisogni@nhs.net',
+  'malcolm.railson@nhs.net'
 ];
 
 export function AdminClaimsReport() {
