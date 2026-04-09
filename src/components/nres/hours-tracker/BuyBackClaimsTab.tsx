@@ -723,7 +723,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           <CardTitle className="text-lg">
             {filteredClaims.some(c => c.status === 'draft') ? 'Current Claim' : 'Claims History'}
           </CardTitle>
-          {isAdmin && (
+          {effectiveIsAdmin && !testActive && (
             <div className="flex flex-wrap gap-2 mt-2 items-center">
               {([
                 { key: 'all', label: 'All' },
@@ -762,17 +762,25 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                   : 'mixed';
                 const isBuyBack = claimCategory === 'buyback' || claimCategory === 'mixed';
                 
-                // Verifiers can verify submitted Buy-Back claims
-                const canVerifyClaim = isAdmin && isBuyBack && c.status === 'submitted' && (
-                  (!hasAnyAssignment) || myVerifierPractices.includes(c.practice_key || '')
-                );
-                
-                // Approvers: for Buy-Back, can only approve Verified claims; for New SDA, approve Submitted
-                const canApproveBuyBack = isBuyBack && c.status === 'verified';
-                const canApproveNewSda = !isBuyBack && c.status === 'submitted';
-                const canApproveThisClaim = isAdmin && (canApproveBuyBack || canApproveNewSda) && (
-                  (!hasAnyAssignment) || myApproverPractices.includes(c.practice_key || '')
-                );
+                // Test mode overrides for verify/approve
+                let canVerifyClaim: boolean;
+                let canApproveThisClaim: boolean;
+
+                if (testActive) {
+                  canVerifyClaim = testMode.role === 'mgmt_lead' && isBuyBack && c.status === 'submitted';
+                  const canApproveBB = isBuyBack && c.status === 'verified';
+                  const canApproveNS = !isBuyBack && c.status === 'submitted';
+                  canApproveThisClaim = testMode.role === 'pml_director' && (canApproveBB || canApproveNS);
+                } else {
+                  canVerifyClaim = isAdmin && isBuyBack && c.status === 'submitted' && (
+                    (!hasAnyAssignment) || myVerifierPractices.includes(c.practice_key || '')
+                  );
+                  const canApproveBuyBack = isBuyBack && c.status === 'verified';
+                  const canApproveNewSda = !isBuyBack && c.status === 'submitted';
+                  canApproveThisClaim = isAdmin && (canApproveBuyBack || canApproveNewSda) && (
+                    (!hasAnyAssignment) || myApproverPractices.includes(c.practice_key || '')
+                  );
+                }
 
                 return (
                   <ClaimCard
@@ -781,7 +789,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     claimCategory={claimCategory}
                     userId={user?.id}
                     userEmail={user?.email}
-                    isAdmin={isAdmin}
+                    isAdmin={testActive ? (testMode.role !== 'practice' && testMode.role !== 'pml_finance') : isAdmin}
                     canApproveClaim={canApproveThisClaim}
                     canVerifyClaim={canVerifyClaim}
                     rateParams={rateParams}
