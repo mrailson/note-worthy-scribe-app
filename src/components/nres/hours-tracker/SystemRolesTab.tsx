@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Trash2, Crown, ClipboardList, Briefcase, Eye } from 'lucide-react';
+import { Loader2, Plus, Trash2, Crown, ClipboardList, Briefcase, Eye, Pencil, Check, X } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useNRESSystemRoles, formatRoleLabel, type SystemRole, type SystemRoleEntry } from '@/hooks/useNRESSystemRoles';
 
@@ -37,12 +37,87 @@ function AddRoleForm({ role, onAdd }: { role: SystemRole; onAdd: (email: string,
   );
 }
 
-function RoleSection({ role, icon, description, entries, onAdd, onRemove, onToggle }: {
+function RoleEntryRow({ entry, role, onRemove, onToggle, onUpdateOrg }: {
+  entry: SystemRoleEntry; role: SystemRole;
+  onRemove: (id: string) => void;
+  onToggle: (id: string, active: boolean) => void;
+  onUpdateOrg: (id: string, org: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [orgValue, setOrgValue] = useState(entry.organisation || '');
+
+  const handleSave = () => {
+    onUpdateOrg(entry.id, orgValue);
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setOrgValue(entry.organisation || '');
+    setEditing(false);
+  };
+
+  return (
+    <div className="flex items-center gap-3 text-xs py-1.5 px-2 rounded hover:bg-muted/30 transition-colors">
+      <span className="font-medium w-36 truncate">{entry.user_name}</span>
+      <span className="text-muted-foreground flex-1 truncate">{entry.user_email}</span>
+      {editing ? (
+        <div className="flex items-center gap-1 w-48">
+          <Input
+            className="h-6 text-xs flex-1"
+            placeholder="Organisation"
+            value={orgValue}
+            onChange={e => setOrgValue(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
+            autoFocus
+          />
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600" onClick={handleSave}>
+            <Check className="w-3 h-3" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={handleCancel}>
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setEditing(true)}
+          className="flex items-center gap-1 w-48 text-right justify-end group cursor-pointer hover:text-foreground text-muted-foreground truncate"
+          title="Click to edit organisation"
+        >
+          <span className="truncate">{entry.organisation || '—'}</span>
+          <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
+        </button>
+      )}
+      <Switch checked={entry.is_active} onCheckedChange={v => onToggle(entry.id, v)} className="scale-75" />
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive">
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Role</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogDescription>
+            Remove <strong>{entry.user_name}</strong> from the <strong>{formatRoleLabel(role)}</strong> role? This can be re-added later.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => onRemove(entry.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function RoleSection({ role, icon, description, entries, onAdd, onRemove, onToggle, onUpdateOrg }: {
   role: SystemRole; icon: React.ReactNode; description: string;
   entries: SystemRoleEntry[];
   onAdd: (email: string, name: string, org: string) => void;
   onRemove: (id: string) => void;
   onToggle: (id: string, active: boolean) => void;
+  onUpdateOrg: (id: string, org: string) => void;
 }) {
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -60,31 +135,14 @@ function RoleSection({ role, icon, description, entries, onAdd, onRemove, onTogg
         ) : (
           <div className="space-y-1.5">
             {entries.map(entry => (
-              <div key={entry.id} className="flex items-center gap-3 text-xs py-1.5 px-2 rounded hover:bg-muted/30 transition-colors">
-                <span className="font-medium w-36 truncate">{entry.user_name}</span>
-                <span className="text-muted-foreground flex-1 truncate">{entry.user_email}</span>
-                <span className="text-muted-foreground w-40 truncate text-right">{entry.organisation || '—'}</span>
-                <Switch checked={entry.is_active} onCheckedChange={v => onToggle(entry.id, v)} className="scale-75" />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive">
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remove Role</AlertDialogTitle>
-                    </AlertDialogHeader>
-                    <AlertDialogDescription>
-                      Remove <strong>{entry.user_name}</strong> from the <strong>{formatRoleLabel(role)}</strong> role? This can be re-added later.
-                    </AlertDialogDescription>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onRemove(entry.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
+              <RoleEntryRow
+                key={entry.id}
+                entry={entry}
+                role={role}
+                onRemove={onRemove}
+                onToggle={onToggle}
+                onUpdateOrg={onUpdateOrg}
+              />
             ))}
           </div>
         )}
@@ -95,7 +153,7 @@ function RoleSection({ role, icon, description, entries, onAdd, onRemove, onTogg
 }
 
 export function SystemRolesTab() {
-  const { roles, loading, addRole, removeRole, toggleActive } = useNRESSystemRoles();
+  const { roles, loading, addRole, removeRole, toggleActive, updateOrganisation } = useNRESSystemRoles();
 
   if (loading) {
     return (
@@ -122,6 +180,7 @@ export function SystemRolesTab() {
           onAdd={(email, name, org) => addRole(email, name, role, org)}
           onRemove={removeRole}
           onToggle={toggleActive}
+          onUpdateOrg={updateOrganisation}
         />
       ))}
     </div>

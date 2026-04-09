@@ -105,11 +105,27 @@ export function useNRESSystemRoles() {
     }
   };
 
+  const updateOrganisation = async (id: string, organisation: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('nres_system_roles')
+        .update({ organisation: organisation.trim() || null })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      setRoles(prev => prev.map(r => r.id === id ? (data as SystemRoleEntry) : r));
+      toast.success('Organisation updated');
+    } catch (error) {
+      toast.error('Failed to update organisation');
+    }
+  };
+
   return {
     roles, loading,
     isSuperAdmin, isManagementLead, isPMLDirector, isPMLFinance, isAnyAdmin, isAnyPML,
     myRoles,
-    addRole, removeRole, toggleActive,
+    addRole, removeRole, toggleActive, updateOrganisation,
     refetch: fetchRoles,
   };
 }
