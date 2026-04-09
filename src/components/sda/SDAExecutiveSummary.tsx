@@ -248,7 +248,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     </div>
 
                     <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200 text-center">
-                      👋 Click the <strong>Talk with Notewell AI</strong> bubble in the bottom-right corner to start
+                      👋 Click the <strong>Ask GP Notewell</strong> bubble in the bottom-right corner to start a consultation
                     </p>
                   </CardContent>
                 </Card>
