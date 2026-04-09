@@ -8412,6 +8412,39 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_system_roles: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          organisation: string | null
+          role: string
+          updated_at: string
+          user_email: string
+          user_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organisation?: string | null
+          role: string
+          updated_at?: string
+          user_email: string
+          user_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organisation?: string | null
+          role?: string
+          updated_at?: string
+          user_email?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
       nres_user_settings: {
         Row: {
           created_at: string
@@ -13160,6 +13193,7 @@ export type Database = {
         Args: { _practice_id: string; _user_id: string }
         Returns: boolean
       }
+      is_pml_user: { Args: never; Returns: boolean }
       is_practice_manager_for_practice: {
         Args: { _practice_id: string; _user_id: string }
         Returns: boolean
