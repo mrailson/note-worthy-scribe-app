@@ -25,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { format } from 'date-fns';
@@ -1068,6 +1068,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
             <th className="text-left p-2 font-medium">Staff Member</th>
             <th className="text-left p-2 font-medium">Category</th>
             <th className="text-left p-2 font-medium">Role</th>
+            <th className="text-left p-2 font-medium">GL</th>
             <th className="text-left p-2 font-medium">Allocation</th>
             <th className="text-right p-2 font-medium">Calculated</th>
             <th className="text-right p-2 font-medium">Claimed</th>
@@ -1090,6 +1091,11 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                       : <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">Buy-Back</Badge>}
                   </td>
                   <td className="p-2">{s.staff_role}</td>
+                  <td className="p-2">
+                    {(s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) === 'GP'
+                      ? <Badge className="bg-blue-100 text-blue-800 text-[10px]">GP</Badge>
+                      : <Badge className="bg-purple-100 text-purple-800 text-[10px]">Other</Badge>}
+                  </td>
                   <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
                   <td className="p-2 text-right">
                     <CalcBreakdownHover staff={s} claimMonth={claim.claim_month} amount={maxAmount} rateParams={rateParams} />
