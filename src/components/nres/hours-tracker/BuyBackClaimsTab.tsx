@@ -1350,6 +1350,63 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                     />
                   </td>
                 </tr>
+                {/* Ground rules for this role */}
+                {(() => {
+                  const rules = getRulesForRole(s.staff_role);
+                  if (rules.length === 0) return null;
+                  const acked: string[] = s.acknowledged_rules || [];
+                  const requiredRules = rules.filter(r => r.requires_acknowledgement);
+                  const unacked = requiredRules.filter(r => !acked.includes(r.id)).length;
+                  return (
+                    <tr key={`rules-${idx}`} className="border-b">
+                      <td colSpan={canEdit ? 9 : 8} className="px-2 py-1">
+                        <Collapsible>
+                          <CollapsibleTrigger className="text-xs flex items-center gap-1 text-primary hover:underline">
+                            <FileText className="w-3 h-3" />
+                            Role Requirements ({rules.length})
+                            {unacked > 0 && (
+                              <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200 text-[10px] ml-1">
+                                {unacked} to confirm
+                              </Badge>
+                            )}
+                            {unacked === 0 && requiredRules.length > 0 && (
+                              <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200 text-[10px] ml-1">
+                                All confirmed
+                              </Badge>
+                            )}
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-primary/20">
+                              {rules.map(rule => (
+                                <div key={rule.id} className="flex items-start gap-2 text-xs">
+                                  {rule.type === 'must_have' && <CheckCircle2 className="w-3.5 h-3.5 text-green-600 mt-0.5 shrink-0" />}
+                                  {rule.type === 'must_not' && <XCircle className="w-3.5 h-3.5 text-red-500 mt-0.5 shrink-0" />}
+                                  {rule.type === 'condition' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />}
+                                  {rule.type === 'information' && <Info className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />}
+                                  <div className="flex-1">
+                                    <span className={rule.type === 'must_not' ? 'text-red-700 dark:text-red-400' : ''}>{rule.text}</span>
+                                  </div>
+                                  {rule.requires_acknowledgement && canEdit && (
+                                    <Checkbox
+                                      checked={isRuleAcknowledged(idx, rule.id)}
+                                      onCheckedChange={(checked) => handleAcknowledgeRule(idx, rule.id, !!checked)}
+                                      className="mt-0.5"
+                                    />
+                                  )}
+                                  {rule.requires_acknowledgement && !canEdit && (
+                                    <span className="text-[10px] shrink-0">
+                                      {isRuleAcknowledged(idx, rule.id) ? '✓ Confirmed' : '✗ Not confirmed'}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </td>
+                    </tr>
+                  );
+                })()}
               </>
             );
           })}
