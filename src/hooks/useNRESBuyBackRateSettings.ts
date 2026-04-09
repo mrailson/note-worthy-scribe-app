@@ -11,12 +11,24 @@ export interface RoleConfig {
   working_hours_per_year: number;
 }
 
+export interface ManagementRoleConfig {
+  key: string;
+  label: string;
+  person_name: string;
+  person_email: string;
+  hourly_rate: number;
+  billing_entity: string;
+  billing_org_code: string;
+  is_active: boolean;
+}
+
 export interface RateSettings {
   on_costs_pct: number;
   employer_ni_pct: number;
   employer_pension_pct: number;
   roles_config: RoleConfig[];
   email_testing_mode: boolean;
+  management_roles_config: ManagementRoleConfig[];
 }
 
 const DEFAULT_ROLES: RoleConfig[] = [
@@ -40,6 +52,7 @@ export function useNRESBuyBackRateSettings() {
     employer_pension_pct: DEFAULT_EMPLOYER_PENSION_PCT,
     roles_config: DEFAULT_ROLES,
     email_testing_mode: false,
+    management_roles_config: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,6 +79,7 @@ export function useNRESBuyBackRateSettings() {
           employer_pension_pct: pensionPct,
           roles_config: (data.roles_config as RoleConfig[]) || DEFAULT_ROLES,
           email_testing_mode: data.email_testing_mode ?? false,
+          management_roles_config: (data.management_roles_config as ManagementRoleConfig[]) || [],
         });
       }
       hasFetchedRef.current = true;
