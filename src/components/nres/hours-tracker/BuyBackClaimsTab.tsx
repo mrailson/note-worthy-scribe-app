@@ -8,6 +8,7 @@ import { useNRESBuyBackClaims, calculateStaffMonthlyAmount, type BuyBackClaim, t
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
+import { UnclaimedFundsIndicator } from './UnclaimedFundsIndicator';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 import { ENN_PRACTICES, ENN_PRACTICE_KEYS, type ENNPracticeKey } from '@/data/ennPractices';
@@ -770,6 +771,11 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             </div>
           )}
         </CardHeader>
+        {effectiveIsAdmin && (
+          <div className="px-6 pb-2">
+            <UnclaimedFundsIndicator claims={claims} practiceKeys={ALL_PRACTICE_KEYS} />
+          </div>
+        )}
         <CardContent>
           {filteredClaims.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">No claims yet.</p>
