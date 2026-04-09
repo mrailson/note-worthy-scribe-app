@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@11labs/react": "^0.1.4",
+    "@elevenlabs/react": "^1.0.3",
     "@emailjs/browser": "^4.4.1",
     "@google/genai": "^1.47.0",
     "@hookform/resolvers": "^3.9.0",
