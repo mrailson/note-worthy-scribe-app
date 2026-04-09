@@ -403,22 +403,18 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                       </>
                     )}
                   </div>
-                  {/* Working Days Countdown */}
+                  {/* Days Since Go-Live */}
                   {(() => {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     const goLive = goLiveDate || new Date(2026, 3, 1); // default 1st April 2026
-                    let count = 0;
-                    const d = new Date(today);
-                    while (d < goLive) {
-                      d.setDate(d.getDate() + 1);
-                      const day = d.getDay();
-                      if (day !== 0 && day !== 6) count++;
-                    }
+                    goLive.setHours(0, 0, 0, 0);
+                    const diffMs = today.getTime() - goLive.getTime();
+                    const daysSince = Math.floor(diffMs / (1000 * 60 * 60 * 24));
                     return (
                       <div className="flex items-center justify-center gap-3 py-2">
-                        <p className="text-4xl font-bold text-[#005EB8]">{count}</p>
-                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Working Days<br />to Go-Live</p>
+                        <p className="text-4xl font-bold text-[#005EB8]">{daysSince}</p>
+                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">DAYS SINCE<br />GO-LIVE</p>
                       </div>
                     );
                   })()}
