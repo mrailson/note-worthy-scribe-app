@@ -98,7 +98,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [requirementsOpen, setRequirementsOpen] = useState(false);
   
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
-  const [aiCardTab, setAiCardTab] = useState<"Overview" | "Patient" | "GP" | "Practice Manager" | "NRES" | "Buy-Back" | "Translate">("Overview");
+  const [aiCardTab, setAiCardTab] = useState<"Overview" | "Patient" | "GP" | "Practice Manager" | "NRES" | "Translate">("Overview");
   const [showReportingPreview, setShowReportingPreview] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
 
@@ -170,7 +170,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
 
                      {/* Audience tabs */}
                      <div className="flex flex-wrap gap-1 mt-3">
-                       {(["Overview", "Patient", "GP", "Practice Manager", "NRES", "Buy-Back", "Translate"] as const).map((tab) => (
+                       {(["Overview", "Patient", "GP", "Practice Manager", "NRES", "Translate"] as const).map((tab) => (
                          <button
                            key={tab}
                            onClick={() => setAiCardTab(tab)}
@@ -246,21 +246,6 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Everything about the pilot, instantly.</p>
                         </>
                       )}
-                      {aiCardTab === "Buy-Back" && (
-                        <>
-                          <p className="text-xs font-semibold text-slate-800 italic mb-2">"The buy-back scheme explained, step by step"</p>
-                          <ul className="space-y-2 text-xs text-slate-700">
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">💰</span><span>How buy-back works — existing staff delivering SDA reclaim costs against your allocation</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📊</span><span>Your practice budget — list size × £26.33, the 70/16/14 split, and what you actually get</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📝</span><span>Claims process — the 6-step workflow from submission to payment</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">💷</span><span>Approved rates — GP session rates, ANP/ACP hourly rates, on-costs at 29.38%</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">✅</span><span>Evidence requirements — what you need to submit and what gets approved</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🔄</span><span>Part A to Part B link — how buy-back funds must be spent on new proactive care</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">⚠️</span><span>Common pitfalls — unclaimed funds, cumulative budgets, locum rate caps</span></li>
-                          </ul>
-                          <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Complex scheme, simple answers. Ask me anything about your practice's position.</p>
-                        </>
-                       )}
                        {aiCardTab === "Translate" && (
                          <>
                            <p className="text-xs font-semibold text-emerald-800 italic mb-2">"Real-time patient translation — no interpreter needed"</p>
