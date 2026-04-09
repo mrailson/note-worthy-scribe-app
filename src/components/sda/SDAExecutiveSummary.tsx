@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { NRESVoiceAgent } from "@/components/nres/NRESVoiceAgent";
+import { NRESWidgetLoader } from "@/components/nres/NRESWidgetLoader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, X, Bot } from "lucide-react";
