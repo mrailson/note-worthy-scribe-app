@@ -151,15 +151,15 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
                 {/* Column 1 — Innovation */}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 h-full">
                   <div className="flex items-center gap-2">
                     <svg className="h-5 w-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z"/></svg>
                     <span className="font-semibold text-slate-900">Innovation</span>
                   </div>
                 {/* Card 1 — GP Notewell AI Assistant */}
-                <Card className="border-0 shadow-sm hover:shadow-lg transition-shadow flex flex-col overflow-hidden" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 50%, #f0f0ff 100%)' }}>
+                <Card className="border-0 shadow-sm hover:shadow-lg transition-shadow flex flex-col flex-1 overflow-hidden" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 50%, #f0f0ff 100%)' }}>
                   <CardContent className="p-6 flex flex-col flex-1 relative">
                     <div className="absolute top-4 right-4 opacity-60">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#6366f1" opacity="0.7"/></svg>
@@ -194,7 +194,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                 </div>
 
                 {/* Column 2 — Key Programme Metrics */}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 h-full">
                   <div className="flex items-center gap-2">
                     <BarChart3 className="h-5 w-5 text-[#005EB8]" />
                     <span className="font-semibold text-slate-900">Key Programme Metrics</span>
@@ -241,7 +241,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                 </Card>
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 h-full">
                   <div className="flex items-center gap-2">
                     <Handshake className="h-5 w-5 text-[#005EB8]" />
                     <span className="font-semibold text-slate-900">Programme Partners</span>
