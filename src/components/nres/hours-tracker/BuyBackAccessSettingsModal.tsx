@@ -11,6 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail } from 'lucide-react';
 import { EvidenceConfigTab } from './EvidenceConfigTab';
+import { SystemRolesTab } from './SystemRolesTab';
+import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 import { useNRESUserAccess } from '@/hooks/useNRESUserAccess';
 import { useNRESBuyBackRateSettings, type RoleConfig, type ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
