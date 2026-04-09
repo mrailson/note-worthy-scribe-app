@@ -94,10 +94,8 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [requirementsOpen, setRequirementsOpen] = useState(true);
   
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
-  const [buybackBtnHovered, setBuybackBtnHovered] = useState(false);
   const [showReportingPreview, setShowReportingPreview] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
-  const [showBuybackExplainer, setShowBuybackExplainer] = useState(false);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
@@ -125,12 +123,8 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
         </div>
       )}
 
-      {/* Buy-Back Explainer Fullscreen Dialog */}
-      <Dialog open={showBuybackExplainer} onOpenChange={setShowBuybackExplainer}>
-        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
-          {CustomBuybackExplainer ? <CustomBuybackExplainer /> : <BoardPresentationExplainer />}
-        </DialogContent>
-      </Dialog>
+
+
     <div className="space-y-6">
       {/* Collapsible Key Metrics Row */}
       <Collapsible open={metricsOpen} onOpenChange={setMetricsOpen}>
@@ -176,93 +170,12 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                       </span>
                     </div>
                     <div className="flex-1" />
-                    {/* Workforce Buy-Back Explainer Button */}
-                    <div
-                      onClick={() => setShowBuybackExplainer(true)}
-                      onMouseEnter={() => setBuybackBtnHovered(true)}
-                      onMouseLeave={() => setBuybackBtnHovered(false)}
-                      style={{
-                        position: "relative",
-                        cursor: "pointer",
-                        borderRadius: "10px",
-                        padding: "10px 12px",
-                        display: "block",
-                        textDecoration: "none",
-                        background: buybackBtnHovered 
-                          ? "linear-gradient(135deg, #0D9488 0%, #0f766e 100%)" 
-                          : "linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)",
-                        border: buybackBtnHovered ? "1px solid #0D9488" : "1px solid rgba(13, 148, 136, 0.2)",
-                        transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-                        boxShadow: buybackBtnHovered 
-                          ? "0 8px 30px rgba(13, 148, 136, 0.3), 0 0 0 1px rgba(13, 148, 136, 0.1)" 
-                          : "0 2px 12px rgba(13, 148, 136, 0.15)",
-                        overflow: "hidden",
-                        marginTop: "12px",
-                        maxWidth: "100%",
-                      }}
-                    >
-                      {buybackBtnHovered && (
-                        <div style={{
-                          position: "absolute",
-                          top: 0, left: 0, right: 0, bottom: 0,
-                          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)",
-                          backgroundSize: "200% 100%",
-                          animation: "shimmer 2s linear infinite",
-                          pointerEvents: "none",
-                        }} />
-                      )}
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", zIndex: 1 }}>
-                        <div style={{
-                          width: "36px", height: "36px", borderRadius: "8px",
-                          background: buybackBtnHovered ? "rgba(255,255,255,0.15)" : "rgba(13,148,136,0.08)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          transition: "all 0.3s ease", flexShrink: 0,
-                        }}>
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="9" stroke={buybackBtnHovered ? "#fff" : "#0D9488"} strokeWidth="1.5" fill="none">
-                              <animate attributeName="opacity" values="0.9;1;0.9" dur="2s" repeatCount="indefinite" />
-                            </circle>
-                            <path d="M8 12h8M12 8v8" stroke={buybackBtnHovered ? "rgba(255,255,255,0.7)" : "rgba(13,148,136,0.5)"} strokeWidth="1.2" strokeLinecap="round" />
-                            <path d="M9 15l3-3 3 3" stroke={buybackBtnHovered ? "#fff" : "#0D9488"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-                              <animate attributeName="opacity" values="0.7;1;0.7" dur="2.5s" repeatCount="indefinite" />
-                            </path>
-                          </svg>
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span style={{
-                              fontSize: "12px", fontWeight: 700, letterSpacing: "0.3px",
-                              color: buybackBtnHovered ? "#fff" : "#0f766e",
-                              transition: "color 0.3s ease",
-                              whiteSpace: "nowrap",
-                            }}>{customBuybackLabel?.title || 'Workforce Buy-Back Explainer'}</span>
-                            <span style={{
-                              fontSize: "7px", fontWeight: 700, letterSpacing: "1.5px",
-                              padding: "2px 5px", borderRadius: "4px",
-                              background: buybackBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(13,148,136,0.1)",
-                              color: buybackBtnHovered ? "rgba(255,255,255,0.9)" : "#0D9488",
-                              transition: "all 0.3s ease",
-                            }}>{customBuybackLabel?.badge || 'GUIDE'}</span>
-                          </div>
-                          <div style={{
-                            fontSize: "9px", marginTop: "2px",
-                            color: buybackBtnHovered ? "rgba(255,255,255,0.8)" : "#5a8d8a",
-                            transition: "color 0.3s ease",
-                          }}>{customBuybackLabel?.subtitle || 'SDA buy-back rules, process & quick reference'}</div>
-                        </div>
-                        <div style={{
-                          width: "24px", height: "24px", borderRadius: "6px",
-                          background: buybackBtnHovered ? "rgba(255,255,255,0.15)" : "rgba(13,148,136,0.06)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          transition: "all 0.3s ease", flexShrink: 0,
-                        }}>
-                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                            <path d="M5 3L9 7L5 11" stroke={buybackBtnHovered ? "#fff" : "#0D9488"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </div>
-                      </div>
+                    {/* ElevenLabs Conversational AI Widget */}
+                    <div className="mt-3 pt-3 border-t border-slate-200">
+                      <p className="text-xs text-slate-500 font-medium mb-2">AI Programme Assistant</p>
+                      {/* @ts-ignore */}
+                      <elevenlabs-convai agent-id="agent_01jwry2fzme7xsb2mwzatxseyt"></elevenlabs-convai>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-2">Updated: {customBuybackLabel?.date || '09 March 2026'}</p>
                   </CardContent>
                 </Card>
 

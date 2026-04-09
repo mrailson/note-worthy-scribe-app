@@ -104,9 +104,8 @@ const NRESDashboard = () => {
               </Link>
             </div>
 
-            {/* ElevenLabs Conversational AI Widget */}
-            {/* @ts-ignore */}
-            <elevenlabs-convai agent-id="agent_01jwry2fzme7xsb2mwzatxseyt"></elevenlabs-convai>
+
+
             <DashboardHeader
               selectedPractice={selectedPractice}
               onPracticeChange={setSelectedPractice}
