@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import BoardPresentationExplainer from './BoardPresentationExplainer';
 import ENNBoardPresentationExplainer from '@/components/enn/ENNBoardPresentationExplainer';
@@ -609,14 +610,28 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                             <CalcBreakdownHover staff={s} amount={monthly} rateParams={rateParams} />
                           </td>
                          <td className="p-2 text-right">
-                           <Button variant="ghost" size="icon" onClick={() => {
-                             if (window.confirm(`Remove ${displayName} from the staff list?`)) {
-                               removeStaff(s.id);
-                             }
-                           }}>
-                             <Trash2 className="w-4 h-4 text-destructive" />
-                           </Button>
-                         </td>
+                           <AlertDialog>
+                             <AlertDialogTrigger asChild>
+                               <Button variant="ghost" size="icon">
+                                 <Trash2 className="w-4 h-4 text-destructive" />
+                               </Button>
+                             </AlertDialogTrigger>
+                             <AlertDialogContent>
+                               <AlertDialogHeader>
+                                 <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
+                                 <AlertDialogDescription>
+                                   Are you sure you want to remove <span className="font-semibold">{displayName}</span> from the staff list? This action cannot be undone.
+                                 </AlertDialogDescription>
+                               </AlertDialogHeader>
+                               <AlertDialogFooter>
+                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                 <AlertDialogAction onClick={() => removeStaff(s.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                   Remove
+                                 </AlertDialogAction>
+                               </AlertDialogFooter>
+                             </AlertDialogContent>
+                           </AlertDialog>
+                          </td>
                        </tr>
                      );
                    })}

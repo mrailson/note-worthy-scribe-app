@@ -72,15 +72,12 @@ export function useNRESBuyBackStaff() {
     if (!user?.id) return null;
     try {
       setSaving(true);
-      const payload = { ...member, user_id: user.id };
-      console.log('[addStaff] Inserting with payload:', JSON.stringify(payload));
       const { data, error } = await supabase
         .from('nres_buyback_staff')
-        .insert(payload)
+        .insert({ ...member, user_id: user.id })
         .select()
         .single();
       if (error) throw error;
-      console.log('[addStaff] Returned data:', JSON.stringify(data));
       setStaff(prev => [...prev, data as BuyBackStaffMember]);
       
       return data;
