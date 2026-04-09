@@ -488,11 +488,27 @@ export const useVaultFolderMap = (scope: VaultScope = 'nres_vault') => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('shared_drive_folders')
-        .select('id, name, path')
+        .select('id, name, parent_id')
         .eq('scope', scope);
       if (error) throw error;
+
+      // Build a lookup by id
+      const byId: Record<string, { name: string; parent_id: string | null }> = {};
+      (data || []).forEach((f: any) => {
+        byId[f.id] = { name: f.name, parent_id: f.parent_id };
+      });
+
+      // Build full human-readable path for each folder
       const map: Record<string, { name: string; path: string }> = {};
-      (data || []).forEach((f: any) => { map[f.id] = { name: f.name, path: f.path }; });
+      (data || []).forEach((f: any) => {
+        const parts: string[] = [];
+        let current: string | null = f.id;
+        while (current && byId[current]) {
+          parts.unshift(byId[current].name);
+          current = byId[current].parent_id;
+        }
+        map[f.id] = { name: f.name, path: parts.join(' / ') };
+      });
       return map;
     },
   });

@@ -173,8 +173,8 @@ export const VaultDocumentTable = ({
                                 {file.name}
                               </button>
                               {file.folder_id && folderMap[file.folder_id] && (
-                                <p className="text-[11px] text-muted-foreground truncate max-w-[250px]">
-                                  {folderMap[file.folder_id].name}
+                                <p className="text-[11px] text-muted-foreground truncate max-w-[400px]" title={folderMap[file.folder_id].path}>
+                                  {folderMap[file.folder_id].path}
                                 </p>
                               )}
                             </div>
