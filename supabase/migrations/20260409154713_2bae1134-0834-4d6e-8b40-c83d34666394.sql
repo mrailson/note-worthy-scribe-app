@@ -1,0 +1,2 @@
+ALTER TABLE nres_buyback_access DROP CONSTRAINT nres_buyback_access_access_role_check;
+ALTER TABLE nres_buyback_access ADD CONSTRAINT nres_buyback_access_access_role_check CHECK (access_role = ANY (ARRAY['submit'::text, 'view'::text, 'approver'::text, 'verifier'::text]));
