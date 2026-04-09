@@ -383,6 +383,16 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
 
   return (
     <div className="space-y-6">
+      {/* Test Mode Bar — admin only */}
+      {isAdmin && (
+        <TestModeBar
+          state={testMode}
+          onChange={setTestMode}
+          practiceKeys={ALL_PRACTICE_KEYS}
+          practiceNames={ALL_PRACTICES}
+        />
+      )}
+
       {/* Programme Board Proposal - only show for NRES */}
       {!isENN && <div className="bg-white rounded-lg shadow-sm border-2 border-amber-300 overflow-hidden">
         <Collapsible>
