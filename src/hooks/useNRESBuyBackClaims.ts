@@ -497,7 +497,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
-      toast.success('Claim rejected');
+      toast.success('Claim rejected permanently — a new claim must be created');
 
       // Send emails (non-blocking)
       if (emailConfig && claim?.practice_key) {
@@ -571,6 +571,82 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     }
   };
 
+  /** Query a claim (Verified → Queried) — returns to editable status */
+  const queryClaim = async (id: string, notes: string) => {
+    if (!user?.id || !admin) return;
+    if (!notes.trim()) {
+      toast.error('Please provide query notes explaining what needs attention');
+      return;
+    }
+    try {
+      setSaving(true);
+      const { data, error } = await supabase
+        .from('nres_buyback_claims')
+        .update({
+          status: 'queried',
+          queried_by: user.email || null,
+          queried_at: new Date().toISOString(),
+          query_notes: notes,
+          declaration_confirmed: false,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
+      toast.success('Claim queried — returned to practice for amendment');
+
+      const claim = claims.find(c => c.id === id);
+      if (emailConfig && claim?.practice_key) {
+        const staffDetails = (claim.staff_details as any[]) || [];
+        const emailData: BuyBackEmailData = {
+          claimId: id,
+          practiceKey: claim.practice_key,
+          claimMonth: claim.claim_month,
+          totalAmount: claim.claimed_amount,
+          staffLineCount: staffDetails.length,
+          staffCategories: staffDetails.map((s: any) => s.staff_category).filter(Boolean),
+          submitterEmail: claim.submitted_by_email || '',
+          reviewerEmail: user.email || '',
+          reviewerName: emailConfig.currentUserName,
+          reviewNotes: notes,
+        };
+        sendBuyBackEmail('claim_rejected', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+      }
+    } catch (error) {
+      console.error('Error querying claim:', error);
+      toast.error('Failed to query claim');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /** Mark a claim as paid (Invoiced → Paid) */
+  const markPaid = async (id: string) => {
+    if (!user?.id || !admin) return;
+    try {
+      setSaving(true);
+      const { data, error } = await supabase
+        .from('nres_buyback_claims')
+        .update({
+          status: 'paid',
+          paid_at: new Date().toISOString(),
+          paid_by: user.email || null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
+      toast.success('Claim marked as paid');
+    } catch (error) {
+      console.error('Error marking claim as paid:', error);
+      toast.error('Failed to mark as paid');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return {
     claims,
     loading,
@@ -579,8 +655,10 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     createClaim,
     submitClaim,
     verifyClaim,
+    queryClaim,
     approveClaim,
     rejectClaim,
+    markPaid,
     updateClaimAmount,
     updateStaffClaimedAmount,
     removeStaffFromClaim,
