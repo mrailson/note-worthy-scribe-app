@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { NRESVoiceAgent } from "@/components/nres/NRESVoiceAgent";
+import { NRESWidgetLoader } from "@/components/nres/NRESWidgetLoader";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -378,15 +379,6 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                             <p className="text-[10px] text-slate-500">Original ICB Bid Requirements for SDA Pilot & Innovator Site</p>
                           </div>
                         </div>
-                        <Button
-                          onClick={() => setShowContractAskAI(true)}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1 hover:bg-[#005EB8] hover:text-white transition-colors text-xs h-7 px-2"
-                        >
-                          <Bot className="w-3 h-3" />
-                          Ask AI about the New Models Pilot
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>
