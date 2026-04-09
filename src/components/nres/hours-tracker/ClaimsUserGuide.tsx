@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
-import { Info, ChevronDown, ChevronRight, ExternalLink, BookOpen, CheckCircle2, XCircle, AlertTriangle, Printer } from 'lucide-react';
-import type { RateSettings, RoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
+import { ChevronDown, ChevronRight, ExternalLink, BookOpen, CheckCircle2, Printer } from 'lucide-react';
+import type { RateSettings } from '@/hooks/useNRESBuyBackRateSettings';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 import BoardPresentationExplainer from './BoardPresentationExplainer';
 import ENNBoardPresentationExplainer from '@/components/enn/ENNBoardPresentationExplainer';
@@ -456,7 +456,7 @@ function FAQTab() {
 }
 
 /* ── Main Component ──────────────────────────────────────────────── */
-export function ClaimsUserGuide({ neighbourhoodName, rateSettings, onCostMultiplier, staffRoles, isENN }: ClaimsUserGuideProps) {
+export function ClaimsUserGuide({ neighbourhoodName, rateSettings, onCostMultiplier, isENN }: ClaimsUserGuideProps) {
   const [open, setOpen] = useState(false);
 
   const handlePrint = () => {
