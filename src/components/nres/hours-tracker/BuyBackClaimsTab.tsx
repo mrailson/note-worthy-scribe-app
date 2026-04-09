@@ -9,6 +9,7 @@ import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 import { UnclaimedFundsIndicator } from './UnclaimedFundsIndicator';
+import { ManagementTimeTab } from './ManagementTimeTab';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 import { ENN_PRACTICES, ENN_PRACTICE_KEYS, type ENNPracticeKey } from '@/data/ennPractices';
@@ -787,6 +788,14 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           )}
         </CardContent>
       </Card>
+
+      {/* Management Time Section */}
+      {effectiveIsAdmin && !isENN && (
+        <>
+          <Separator className="my-6" />
+          <ManagementTimeTab isAdmin={effectiveIsAdmin} />
+        </>
+      )}
 
     </div>
   );

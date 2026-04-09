@@ -187,3 +187,55 @@ export function exportYTDRunningTotals(claims: BuyBackClaim[]) {
   XLSX.utils.book_append_sheet(wb, ws, 'YTD Running Totals');
   downloadWorkbook(wb, `NRES_YTD_Running_Totals_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
 }
+
+/**
+ * Export 4: Management Time Detail — one row per time entry.
+ */
+export function exportManagementTimeDetail(entries: { person_name: string; management_role_key: string; work_date: string; hours: number; hourly_rate: number; total_amount: number; description: string | null; billing_entity: string | null; billing_org_code: string | null; claim_month: string | null; status: string; invoice_number: string | null }[]) {
+  const rows: any[][] = [['Date', 'Person', 'Role', 'Hours', 'Hourly Rate (£)', 'Amount (£)', 'Description', 'Billing Entity', 'Org Code', 'Claim Month', 'Status', 'Invoice Number']];
+  entries.forEach(e => {
+    rows.push([
+      e.work_date ? format(new Date(e.work_date), 'dd/MM/yyyy') : '—',
+      e.person_name,
+      e.management_role_key,
+      e.hours,
+      e.hourly_rate,
+      e.total_amount,
+      e.description || '—',
+      e.billing_entity || '—',
+      e.billing_org_code || '—',
+      e.claim_month ? format(new Date(e.claim_month), 'MMM yyyy') : '—',
+      e.status,
+      e.invoice_number || '—',
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 12 }, { wch: 22 }, { wch: 28 }, { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 40 }, { wch: 28 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 28 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Management Time Detail');
+  downloadWorkbook(wb, `NRES_Management_Time_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+}
+
+/**
+ * Export 5: Management Monthly Summary — one row per person per month.
+ */
+export function exportManagementMonthlySummary(entries: { person_name: string; management_role_key: string; hours: number; hourly_rate: number; total_amount: number; billing_entity: string | null; billing_org_code: string | null; claim_month: string | null; status: string }[]) {
+  const groups = new Map<string, { person: string; role: string; month: string; hours: number; rate: number; amount: number; entity: string; status: string }>();
+  entries.forEach(e => {
+    const key = `${e.management_role_key}|${e.claim_month}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.hours += e.hours;
+      existing.amount += e.total_amount;
+    } else {
+      groups.set(key, { person: e.person_name, role: e.management_role_key, month: e.claim_month ? format(new Date(e.claim_month), 'MMM yyyy') : '—', hours: e.hours, rate: e.hourly_rate, amount: e.total_amount, entity: e.billing_entity || '—', status: e.status });
+    }
+  });
+  const rows: any[][] = [['Person', 'Role', 'Claim Month', 'Total Hours', 'Hourly Rate (£)', 'Total Amount (£)', 'Billing Entity', 'Status']];
+  groups.forEach(g => { rows.push([g.person, g.role, g.month, g.hours, g.rate, g.amount, g.entity, g.status]); });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 22 }, { wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 28 }, { wch: 12 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Monthly Summary');
+  downloadWorkbook(wb, `NRES_Management_Summary_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+}

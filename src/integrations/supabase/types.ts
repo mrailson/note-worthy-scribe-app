@@ -7852,6 +7852,7 @@ export type Database = {
           employer_ni_pct: number
           employer_pension_pct: number
           id: string
+          management_roles_config: Json
           on_costs_pct: number
           roles_config: Json
           updated_at: string | null
@@ -7862,6 +7863,7 @@ export type Database = {
           employer_ni_pct?: number
           employer_pension_pct?: number
           id?: string
+          management_roles_config?: Json
           on_costs_pct?: number
           roles_config?: Json
           updated_at?: string | null
@@ -7872,6 +7874,7 @@ export type Database = {
           employer_ni_pct?: number
           employer_pension_pct?: number
           id?: string
+          management_roles_config?: Json
           on_costs_pct?: number
           roles_config?: Json
           updated_at?: string | null
@@ -8240,6 +8243,87 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      nres_management_time: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          billing_entity: string | null
+          billing_org_code: string | null
+          claim_month: string | null
+          created_at: string
+          description: string | null
+          hourly_rate: number
+          hours: number
+          id: string
+          invoice_number: string | null
+          management_role_key: string
+          notes: string | null
+          person_name: string
+          query_notes: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          total_amount: number | null
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+          work_date: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          billing_entity?: string | null
+          billing_org_code?: string | null
+          claim_month?: string | null
+          created_at?: string
+          description?: string | null
+          hourly_rate?: number
+          hours?: number
+          id?: string
+          invoice_number?: string | null
+          management_role_key: string
+          notes?: string | null
+          person_name: string
+          query_notes?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          total_amount?: number | null
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+          work_date: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          billing_entity?: string | null
+          billing_org_code?: string | null
+          claim_month?: string | null
+          created_at?: string
+          description?: string | null
+          hourly_rate?: number
+          hours?: number
+          id?: string
+          invoice_number?: string | null
+          management_role_key?: string
+          notes?: string | null
+          person_name?: string
+          query_notes?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          total_amount?: number | null
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          work_date?: string
+        }
+        Relationships: []
       }
       nres_recruitment_audit: {
         Row: {
