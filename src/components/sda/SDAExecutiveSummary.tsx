@@ -97,7 +97,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [requirementsOpen, setRequirementsOpen] = useState(true);
   
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
-  const [aiCardTab, setAiCardTab] = useState<"Overview" | "Patient" | "GP" | "Practice Manager" | "NRES" | "Buy-Back">("Overview");
+  const [aiCardTab, setAiCardTab] = useState<"Overview" | "Patient" | "GP" | "Practice Manager" | "NRES" | "Buy-Back" | "Translate">("Overview");
   const [showReportingPreview, setShowReportingPreview] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
 
@@ -167,22 +167,22 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <p className="text-lg font-bold text-slate-900">GP Notewell AI</p>
                     <p className="text-xs text-slate-500 mt-0.5">Your intelligent programme assistant</p>
 
-                    {/* Audience tabs */}
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      {(["Overview", "Patient", "GP", "Practice Manager", "NRES", "Buy-Back"] as const).map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() => setAiCardTab(tab)}
-                          className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${
-                            aiCardTab === tab
-                              ? "bg-blue-600 text-white"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                          }`}
-                        >
-                          {tab}
-                        </button>
-                      ))}
-                    </div>
+                     {/* Audience tabs */}
+                     <div className="flex flex-wrap gap-1 mt-3">
+                       {(["Overview", "Patient", "GP", "Practice Manager", "NRES", "Buy-Back", "Translate"] as const).map((tab) => (
+                         <button
+                           key={tab}
+                           onClick={() => setAiCardTab(tab)}
+                           className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${
+                             aiCardTab === tab
+                               ? tab === "Translate" ? "bg-emerald-600 text-white" : "bg-blue-600 text-white"
+                               : tab === "Translate" ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                           }`}
+                         >
+                           {tab === "Translate" ? "🌍 Translate" : tab}
+                         </button>
+                       ))}
+                     </div>
 
                     {/* Tab content */}
                     <div className="mt-3 flex-1">
@@ -259,8 +259,22 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                           </ul>
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Complex scheme, simple answers. Ask me anything about your practice's position.</p>
                         </>
-                      )}
-                    </div>
+                       )}
+                       {aiCardTab === "Translate" && (
+                         <>
+                           <p className="text-xs font-semibold text-emerald-800 italic mb-2">"Real-time patient translation — no interpreter needed"</p>
+                           <ul className="space-y-2 text-xs text-slate-700">
+                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🌍</span><span>Just say "I need translation" and name the language</span></li>
+                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🗣️</span><span>You speak English — your patient speaks their language — I translate both ways live</span></li>
+                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🏥</span><span>Medical terms translated into plain language your patient will understand</span></li>
+                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">⚡</span><span>Instant — no booking interpreters, no waiting, no phone loops</span></li>
+                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🚨</span><span>Safety built in — I'll flag any clinical red flags I hear during translation</span></li>
+                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🌐</span><span>Any language — Polish, Urdu, Arabic, Romanian, Bengali, Mandarin, and many more</span></li>
+                           </ul>
+                           <p className="text-[10px] text-emerald-600 font-medium mt-3 italic">Say 'I need translation' to start. Say 'stop translating' when you're done.</p>
+                         </>
+                       )}
+                     </div>
 
                     <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200 text-center">
                       👋 Click <strong>Start a Consultation</strong> in the bottom-right corner to get started
