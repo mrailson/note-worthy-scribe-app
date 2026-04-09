@@ -610,12 +610,27 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                             <CalcBreakdownHover staff={s} amount={monthly} rateParams={rateParams} />
                           </td>
                          <td className="p-2 text-right">
-                           <Button variant="ghost" size="icon" onClick={() => {
-                             if (window.confirm(`Remove ${displayName} from the staff list?`)) {
-                               removeStaff(s.id);
-                             }
-                           }}>
-                             <Trash2 className="w-4 h-4 text-destructive" />
+                           <AlertDialog>
+                             <AlertDialogTrigger asChild>
+                               <Button variant="ghost" size="icon">
+                                 <Trash2 className="w-4 h-4 text-destructive" />
+                               </Button>
+                             </AlertDialogTrigger>
+                             <AlertDialogContent>
+                               <AlertDialogHeader>
+                                 <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
+                                 <AlertDialogDescription>
+                                   Are you sure you want to remove <span className="font-semibold">{displayName}</span> from the staff list? This action cannot be undone.
+                                 </AlertDialogDescription>
+                               </AlertDialogHeader>
+                               <AlertDialogFooter>
+                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                 <AlertDialogAction onClick={() => removeStaff(s.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                   Remove
+                                 </AlertDialogAction>
+                               </AlertDialogFooter>
+                             </AlertDialogContent>
+                           </AlertDialog>
                            </Button>
                          </td>
                        </tr>
