@@ -1363,7 +1363,7 @@ export const SDAEstatesCapacity = () => {
 
       {/* Glass Map Fullscreen Modal */}
       <Dialog open={showMapModal} onOpenChange={(open) => { setShowMapModal(open); if (!open) setMapZoom(100); }}>
-        <DialogContent className="!max-w-none !w-screen !h-screen !max-h-screen !translate-x-[-50%] !translate-y-[-50%] !rounded-none p-0 overflow-auto border-0 bg-[#0e1a2e] mx-0 my-0">
+        <DialogContent className="!max-w-none !w-[100vw] !h-[100vh] !max-h-[100vh] !top-0 !left-0 !translate-x-0 !translate-y-0 !rounded-none p-0 overflow-auto border-0 bg-[#0e1a2e] !fixed !inset-0" style={{ margin: 0 }}>
           <DialogTitle className="sr-only">NRES Neighbourhood Map</DialogTitle>
           <div style={{ transform: `scale(${mapZoom / 100})`, transformOrigin: 'top center', transition: 'transform 0.2s ease' }}>
             <NRESGlassMap />
