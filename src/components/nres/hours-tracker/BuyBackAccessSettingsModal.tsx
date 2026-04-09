@@ -489,44 +489,51 @@ function RatesAndRolesPanel() {
             </thead>
             <tbody>
               {roles.map((role, i) => (
-                <tr key={role.key} className="border-t">
-                  <td className="px-3 py-2.5">
-                    <Input
-                      className="h-8 text-xs w-full bg-white dark:bg-slate-900"
-                      value={role.label}
-                      onChange={e => handleRoleFieldChange(i, 'label', e.target.value)}
-                    />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Input
-                      type="number"
-                      className="h-8 text-xs w-28 bg-white dark:bg-slate-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                      value={role.annual_rate}
-                      onChange={e => handleRoleFieldChange(i, 'annual_rate', parseFloat(e.target.value) || 0)}
-                      min="0"
-                    />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Select
-                      value={role.allocation_default}
-                      onValueChange={v => handleRoleFieldChange(i, 'allocation_default', v)}
-                    >
-                      <SelectTrigger className="h-8 text-xs w-28 bg-white dark:bg-slate-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sessions">Sessions</SelectItem>
-                        <SelectItem value="hours">Hours</SelectItem>
-                        <SelectItem value="wte">WTE</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteRole(i)}>
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                    </Button>
-                  </td>
-                </tr>
+                <React.Fragment key={role.key}>
+                  <tr className="border-t">
+                    <td className="px-3 py-2.5">
+                      <Input
+                        className="h-8 text-xs w-full bg-white dark:bg-slate-900"
+                        value={role.label}
+                        onChange={e => handleRoleFieldChange(i, 'label', e.target.value)}
+                      />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <Input
+                        type="number"
+                        className="h-8 text-xs w-28 bg-white dark:bg-slate-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                        value={role.annual_rate}
+                        onChange={e => handleRoleFieldChange(i, 'annual_rate', parseFloat(e.target.value) || 0)}
+                        min="0"
+                      />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <Select
+                        value={role.allocation_default}
+                        onValueChange={v => handleRoleFieldChange(i, 'allocation_default', v)}
+                      >
+                        <SelectTrigger className="h-8 text-xs w-28 bg-white dark:bg-slate-900">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sessions">Sessions</SelectItem>
+                          <SelectItem value="hours">Hours</SelectItem>
+                          <SelectItem value="wte">WTE</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteRole(i)}>
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </Button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colSpan={4} className="px-3 pb-2">
+                      <GroundRulesEditor role={role} onRulesChange={(rules) => handleGroundRulesChange(i, rules)} />
+                    </td>
+                  </tr>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
