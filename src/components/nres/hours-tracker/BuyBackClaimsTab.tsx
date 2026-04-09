@@ -988,7 +988,8 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
 
   // Shared evidence state — single instance for all staff lines
   const { files: evidenceFiles, uploading: evidenceUploading, uploadedTypes, uploadEvidence, deleteEvidence, getDownloadUrl, getUploadedTypesForStaff, refetch: refetchEvidence } = useNRESClaimEvidence(claim.id);
-  const { allComplete: evidenceComplete } = useStaffLineEvidenceComplete(staffDetails, getUploadedTypesForStaff);
+  const { getConfigForCategory } = useNRESEvidenceConfig();
+  const { allComplete: evidenceComplete } = useStaffLineEvidenceComplete(staffDetails, getUploadedTypesForStaff, getConfigForCategory);
 
   const statusBadge = (status: string) => {
     const variants: Record<string, string> = {
