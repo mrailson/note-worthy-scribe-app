@@ -347,7 +347,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
 
   const handleCreateClaim = async () => {
     if (filteredStaff.length === 0) return;
-    const practiceForClaim = claimPractice || (effectiveFilterPractice !== 'all' ? effectiveFilterPractice : '');
+    const practiceForClaim = effectiveClaimPractice || (effectiveFilterPractice !== 'all' ? effectiveFilterPractice : '');
     if (!practiceForClaim) return;
     const monthDate = `${claimMonth}-01`;
     const staffForClaim = filteredStaff.filter(s => s.practice_key === practiceForClaim);
