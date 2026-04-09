@@ -602,6 +602,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         </div>
       )}
 
+      {effectiveShowStaffMgmt && <>
       {/* Staff Management */}
       <Card>
         <CardHeader>
