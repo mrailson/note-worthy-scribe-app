@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { GroundRulesEditor, getDefaultGroundRules } from './GroundRulesEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
@@ -377,7 +378,6 @@ function RatesAndRolesPanel() {
     if (!newRoleLabel.trim()) return;
     const key = newRoleLabel.trim().toLowerCase().replace(/\s+/g, '_');
     if (roles.some(r => r.key === key)) return;
-    const { getDefaultGroundRules } = require('./GroundRulesEditor');
     setRoles(prev => [...prev, {
       key,
       label: newRoleLabel.trim(),
@@ -387,6 +387,10 @@ function RatesAndRolesPanel() {
       ground_rules: getDefaultGroundRules(key),
     }]);
     setNewRoleLabel('');
+  };
+
+  const handleGroundRulesChange = (index: number, rules: import('@/hooks/useNRESBuyBackRateSettings').GroundRule[]) => {
+    setRoles(prev => prev.map((r, i) => i === index ? { ...r, ground_rules: rules } : r));
   };
 
   const handleDeleteRole = (index: number) => {
