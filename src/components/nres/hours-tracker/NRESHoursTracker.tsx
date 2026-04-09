@@ -245,19 +245,141 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
         <BuyBackClaimsTab neighbourhoodName={neighbourhoodName} />
       </TabsContent>
 
-      <TabsContent value="finance-governance">
-        <SDAFinanceGovernance hideBoardLeadership={hideBoardLeadership} customInsuranceChecklist={customInsuranceChecklist} customInsuranceCheckedBy={customInsuranceCheckedBy} customInsuranceUpdatedDate={customInsuranceUpdatedDate} neighbourhoodName={neighbourhoodName} interactiveInsurance={interactiveInsurance} />
-      </TabsContent>
+      <TabsContent value="finance-governance" className="space-y-4">
+        <Tabs value={financeSubTab} onValueChange={setFinanceSubTab}>
+          <TabsList className="mb-4 flex-wrap h-auto gap-1">
+            <TabsTrigger value="finance-governance" className="flex items-center gap-2">
+              <PoundSterling className="w-4 h-4" />
+              Finance & Governance
+            </TabsTrigger>
+            {neighbourhoodName !== 'ENN' && (
+              <TabsTrigger value="time-expenses" className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Pre Go-Live Time & Expenses
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="risks" className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Risks & Mitigation
+            </TabsTrigger>
+            {!hideEvidenceLibrary && (
+              <TabsTrigger value="evidence" className="flex items-center gap-2">
+                <FolderOpen className="w-4 h-4" />
+                Evidence Library
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-      <TabsContent value="risks">
-        <SDARisksMitigation neighbourhoodName={neighbourhoodName} />
-      </TabsContent>
+          <TabsContent value="finance-governance">
+            <SDAFinanceGovernance hideBoardLeadership={hideBoardLeadership} customInsuranceChecklist={customInsuranceChecklist} customInsuranceCheckedBy={customInsuranceCheckedBy} customInsuranceUpdatedDate={customInsuranceUpdatedDate} neighbourhoodName={neighbourhoodName} interactiveInsurance={interactiveInsurance} />
+          </TabsContent>
 
-      {!hideEvidenceLibrary && (
-        <TabsContent value="evidence">
-          <SDAEvidenceLibrary />
-        </TabsContent>
-      )}
+          <TabsContent value="time-expenses" className="space-y-6">
+            <div className="flex gap-3 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-4">
+              <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <div className="text-sm text-foreground space-y-2">
+                <p className="font-semibold">Pre Go-Live Time Reclaim</p>
+                <p>
+                  This facility is for reclaiming time spent by Practice Managers, Member Practice GPs, and {neighbourhoodName === 'ENN' ? '3Sixty' : 'PCN'} Support staff involved in preparing the {neighbourhoodName} neighbourhood project before go-live. The maximum budget for this programme is <strong>£30,000</strong>. Hours are claimed at agreed rates:
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-1">
+                  <li><strong>Attending GP</strong> ({neighbourhoodName} business): £100 per hour</li>
+                  <li><strong>Practice Manager / {neighbourhoodName === 'ENN' ? '3Sixty' : 'PCN'} Support</strong>: £50 per hour</li>
+                </ul>
+              </div>
+            </div>
+
+            <TrackerSummary
+              totalHours={filteredEntries.reduce((sum, e) => sum + Number(e.duration_hours), 0)}
+              totalExpenses={totalExpenses}
+              hourlyRate={hourlyRate}
+              entries={filteredEntries}
+            />
+
+            <div className="flex flex-wrap gap-4 items-start justify-between">
+              <HoursSettings
+                hourlyRate={hourlyRate}
+                hasRateSet={hasRateSet}
+                saving={savingSettings}
+                onSaveRate={saveHourlyRate}
+              />
+              <TrackerReportModal
+                entries={filteredEntries}
+                expenses={expenses}
+                hourlyRate={hourlyRate}
+              />
+            </div>
+
+            <Separator />
+
+            <Collapsible open={claimantsOpen} onOpenChange={setClaimantsOpen}>
+              <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+                {claimantsOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                <Users className="w-5 h-5 text-blue-600" />
+                <h3 className="text-lg font-semibold">Manage Claimants</h3>
+                 <span className="text-sm text-muted-foreground">({practiceFilteredClaimants.length} active)</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                <ClaimantsManager />
+              </CollapsibleContent>
+            </Collapsible>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Time Tracking</h3>
+              <HoursEntryForm 
+                saving={savingEntry}
+                claimants={practiceFilteredClaimants}
+                onSubmit={addEntry}
+              />
+              <HoursEntriesTable
+                entries={filteredEntries}
+                hourlyRate={hourlyRate}
+                loading={loadingEntries}
+                claimants={practiceFilteredClaimants}
+                onUpdate={updateEntry}
+              />
+            </div>
+
+            <Separator />
+
+            <Collapsible open={expensesOpen} onOpenChange={setExpensesOpen}>
+              <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+                {expensesOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                <Receipt className="w-5 h-5 text-amber-600" />
+                <h3 className="text-lg font-semibold">Expenses</h3>
+                <span className="text-sm text-muted-foreground">({expenses.length} items)</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 mt-4">
+                <ExpenseEntryForm
+                  saving={savingExpense}
+                  onSubmit={addExpense}
+                />
+                <ExpensesTable
+                  expenses={expenses}
+                  loading={loadingExpenses}
+                  onDelete={deleteExpense}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+
+            <Separator />
+
+            <AdminClaimsReport />
+          </TabsContent>
+
+          <TabsContent value="risks">
+            <SDARisksMitigation neighbourhoodName={neighbourhoodName} />
+          </TabsContent>
+
+          {!hideEvidenceLibrary && (
+            <TabsContent value="evidence">
+              <SDAEvidenceLibrary />
+            </TabsContent>
+          )}
+        </Tabs>
+      </TabsContent>
 
       {/* Access Settings Modal (lifted from BuyBackClaimsTab) */}
       <BuyBackAccessSettingsModal
