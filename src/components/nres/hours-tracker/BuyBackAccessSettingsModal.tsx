@@ -106,89 +106,12 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="flex gap-4 flex-1 min-h-0 overflow-hidden pb-2">
-                {/* User list */}
-                <div className="w-64 shrink-0 flex flex-col border rounded-md overflow-hidden">
-                  <div className="p-2 border-b">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
-                        className="pl-7 h-8 text-xs"
-                        placeholder="Search users..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1 overflow-y-auto">
-                    {filteredUsers.map(u => (
-                      <button
-                        key={u.user_id}
-                        className={`w-full text-left px-3 py-2 text-xs border-b hover:bg-muted/50 transition-colors ${
-                          selectedUserId === u.user_id ? 'bg-primary/10 border-l-2 border-l-primary' : ''
-                        }`}
-                        onClick={() => setSelectedUserId(u.user_id)}
-                      >
-                        <p className="font-medium truncate">{u.full_name || 'No name'}</p>
-                        <p className="text-muted-foreground truncate">{u.email}</p>
-                        {u.practice_name && <p className="text-muted-foreground truncate">{u.practice_name}</p>}
-                      </button>
-                    ))}
-                    {filteredUsers.length === 0 && (
-                      <p className="text-xs text-muted-foreground p-3 text-center">No users found</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Permissions grid */}
-                <div className="flex-1 overflow-y-auto">
-                  {selectedUser ? (
-                    <div className="space-y-3">
-                      <div className="mb-3">
-                        <h3 className="font-semibold text-sm">{selectedUser.full_name || 'No name'}</h3>
-                        <p className="text-xs text-muted-foreground">{selectedUser.email}</p>
-                      </div>
-                      <div className="border rounded-md overflow-hidden">
-                        <table className="w-full text-xs">
-                          <thead className="bg-muted/50">
-                            <tr>
-                              <th className="text-left p-2 font-medium">Practice</th>
-                              {ROLES.map(r => (
-                                <th key={r.key} className="text-center p-2 font-medium w-20">{r.label}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {NRES_PRACTICE_KEYS.map(pk => (
-                              <tr key={pk} className="border-t">
-                                <td className="p-2">{NRES_PRACTICES[pk]}</td>
-                                {ROLES.map(r => {
-                                  const checked = hasAccess(selectedUser.user_id, pk, r.key);
-                                  return (
-                                    <td key={r.key} className="p-2 text-center">
-                                      <Checkbox
-                                        checked={checked}
-                                        onCheckedChange={(val) => handleToggle(selectedUser.user_id, pk, r.key, !!val)}
-                                      />
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">
-                        Changes are saved automatically. Users will only see claims and staff for practices they are assigned to.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                      Select a user to manage their access
-                    </div>
-                  )}
-                </div>
-              </div>
+              <PracticeFirstAccessPanel
+                users={users || []}
+                hasAccess={hasAccess}
+                grantAccess={grantAccess}
+                revokeByKey={revokeByKey}
+              />
             )}
           </TabsContent>
 
