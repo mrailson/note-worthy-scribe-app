@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNRESManagementTime, type ManagementTimeEntry, type ManagementRoleConfig } from '@/hooks/useNRESManagementTime';
+import { useNRESManagementTime, type ManagementRoleConfig } from '@/hooks/useNRESManagementTime';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ const STATUS_COLOURS: Record<string, string> = {
 };
 
 export function ManagementTimeTab({ isAdmin }: { isAdmin: boolean }) {
-  const { entries, loading, saving, addEntry, deleteEntry, submitMonth, approveEntries, markEntriesPaid } = useNRESManagementTime();
+  const { entries, loading, saving, addEntry, deleteEntry, submitMonth } = useNRESManagementTime();
   const { settings } = useNRESBuyBackRateSettings();
   const mgmtRoles = (settings as any).management_roles_config as ManagementRoleConfig[] | undefined;
   const activeRoles = useMemo(() => (mgmtRoles || []).filter(r => r.is_active), [mgmtRoles]);
