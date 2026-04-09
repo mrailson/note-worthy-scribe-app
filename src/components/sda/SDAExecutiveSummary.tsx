@@ -97,6 +97,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [requirementsOpen, setRequirementsOpen] = useState(true);
   
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
+  const [aiCardTab, setAiCardTab] = useState<"Overview" | "Patient" | "GP" | "Practice Manager" | "NRES">("Overview");
   const [showReportingPreview, setShowReportingPreview] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
 
