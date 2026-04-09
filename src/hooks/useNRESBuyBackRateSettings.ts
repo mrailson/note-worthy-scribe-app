@@ -3,12 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+export interface GroundRule {
+  id: string;
+  type: 'must_have' | 'must_not' | 'condition' | 'information';
+  text: string;
+  requires_acknowledgement: boolean;
+}
+
 export interface RoleConfig {
   key: string;
   label: string;
   annual_rate: number;
   allocation_default: 'sessions' | 'hours' | 'wte';
   working_hours_per_year: number;
+  ground_rules?: GroundRule[];
 }
 
 export interface ManagementRoleConfig {
