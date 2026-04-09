@@ -201,14 +201,19 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                       )}
                       {aiCardTab === "Patient" && (
                         <>
-                          <p className="text-xs font-semibold text-slate-800 italic mb-2">"Talk to me like your GP would"</p>
+                          <p className="text-xs font-semibold text-slate-800 italic mb-2">"Your GP Practice in your pocket"</p>
                           <ul className="space-y-2 text-xs text-slate-700">
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">💬</span><span>Describe your symptoms — I'll ask the right questions</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">💊</span><span>Get advice on over-the-counter medications and dosing</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🔬</span><span>Understand your test results in plain English</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🚨</span><span>I'll always tell you when to seek urgent help</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🩺</span><span>Symptom checker — describe how you feel and get clear advice on what to do next</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📋</span><span>Request a GP review — answer a few quick questions and we'll submit it to your practice today</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🔬</span><span>Understand your results — "my cholesterol is 6.8, is that bad?" — explained in plain English</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">💊</span><span>Medication questions — what's this tablet for? Can I take it with paracetamol? I've missed a dose</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📝</span><span>Complaints & feedback — guided step by step, submitted to your Practice Manager</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🌍</span><span>Need an interpreter? — switch to the Translate tab for real-time translation in any language</span></li>
                           </ul>
-                          <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">No jargon. No judgement. Just clear, caring advice.</p>
+                          <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">No waiting on hold. No jargon. Just clear, caring advice — like talking to your GP.</p>
+                          <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-2 rounded-lg text-center mt-2">
+                            📞 No internet? Call <strong>01327 221722</strong> from any phone to speak to your GP Practice Assistant directly.
+                          </div>
                           <NRESPatientAgent />
                         </>
                       )}
