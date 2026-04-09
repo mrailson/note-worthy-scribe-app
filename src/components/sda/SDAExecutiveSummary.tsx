@@ -94,10 +94,8 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [requirementsOpen, setRequirementsOpen] = useState(true);
   
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
-  const [buybackBtnHovered, setBuybackBtnHovered] = useState(false);
   const [showReportingPreview, setShowReportingPreview] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
-  const [showBuybackExplainer, setShowBuybackExplainer] = useState(false);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
@@ -125,12 +123,8 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
         </div>
       )}
 
-      {/* Buy-Back Explainer Fullscreen Dialog */}
-      <Dialog open={showBuybackExplainer} onOpenChange={setShowBuybackExplainer}>
-        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
-          {CustomBuybackExplainer ? <CustomBuybackExplainer /> : <BoardPresentationExplainer />}
-        </DialogContent>
-      </Dialog>
+
+
     <div className="space-y-6">
       {/* Collapsible Key Metrics Row */}
       <Collapsible open={metricsOpen} onOpenChange={setMetricsOpen}>
