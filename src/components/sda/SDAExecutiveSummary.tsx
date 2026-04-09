@@ -4,7 +4,7 @@ import { NRESWidgetLoader } from "@/components/nres/NRESWidgetLoader";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, X, Bot } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, X, Bot, Handshake } from "lucide-react";
 import { ContractAskAI } from "./ContractAskAI";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/nres-logo.png";
@@ -240,8 +240,12 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                 </Card>
                 </div>
 
-                {/* Column 3 — Logos & Status */}
-                <div className="flex flex-col gap-4 h-full">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <Handshake className="h-5 w-5 text-[#005EB8]" />
+                    <span className="font-semibold text-slate-900">Programme Partners</span>
+                  </div>
+                <div className="flex flex-col gap-4 h-full flex-1">
                   <div className="flex justify-center items-center gap-6">
                     {customLogos ? (
                       customLogos.map((logo, i) => (
@@ -395,6 +399,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                       </div>
                     </CardContent>
                   </Card>
+                </div>
                 </div>
               </div>
             </CardContent>
