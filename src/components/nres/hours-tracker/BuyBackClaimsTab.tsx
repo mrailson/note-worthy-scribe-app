@@ -792,6 +792,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     canApproveClaim={canApproveThisClaim}
                     canVerifyClaim={canVerifyClaim}
                     rateParams={rateParams}
+                    rolesConfig={rateSettings.roles_config}
                     onSubmit={submitClaim}
                     onDelete={deleteClaim}
                     onConfirmDeclaration={confirmDeclaration}
@@ -962,7 +963,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
+function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
   claim: BuyBackClaim;
   claimCategory: 'buyback' | 'new_sda' | 'mixed';
   userId?: string;
@@ -971,13 +972,14 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   canApproveClaim?: boolean;
   canVerifyClaim?: boolean;
   rateParams?: RateParams;
+  rolesConfig?: import('@/hooks/useNRESBuyBackRateSettings').RoleConfig[];
   onSubmit: (id: string) => void;
   onDelete: (id: string) => void;
   onConfirmDeclaration: (id: string, confirmed: boolean) => void;
   onUpdateStaffAmount: (claimId: string, staffIndex: number, amount: number) => void;
   onRemoveStaff: (claimId: string, staffIndex: number) => void;
   onUpdateStaffNotes: (claimId: string, staffIndex: number, notes: string) => void;
-  onUpdateStaffLine: (claimId: string, staffIndex: number, updates: { allocation_type?: string; allocation_value?: number; start_date?: string | null; claimed_amount?: number; notes?: string }, rateParams?: RateParams) => void;
+  onUpdateStaffLine: (claimId: string, staffIndex: number, updates: { allocation_type?: string; allocation_value?: number; start_date?: string | null; claimed_amount?: number; notes?: string; acknowledged_rules?: string[] }, rateParams?: RateParams) => void;
   onApprove: (id: string, notes?: string) => void;
   onReject: (id: string, notes: string) => void;
   onVerify?: (id: string, notes?: string) => void;
@@ -1011,6 +1013,31 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   const { files: evidenceFiles, uploading: evidenceUploading, uploadedTypes, uploadEvidence, deleteEvidence, getDownloadUrl, getUploadedTypesForStaff, refetch: refetchEvidence } = useNRESClaimEvidence(claim.id);
   const { getConfigForCategory } = useNRESEvidenceConfig();
   const { allComplete: evidenceComplete } = useStaffLineEvidenceComplete(staffDetails, getUploadedTypesForStaff, getConfigForCategory);
+
+  // Ground rules helpers
+  const getRulesForRole = (roleLabel: string) => {
+    const rc = (rolesConfig || []).find(r => r.label.toLowerCase() === roleLabel?.toLowerCase());
+    return rc?.ground_rules || [];
+  };
+
+  const isRuleAcknowledged = (staffIdx: number, ruleId: string) => {
+    const acked: string[] = staffDetails[staffIdx]?.acknowledged_rules || [];
+    return acked.includes(ruleId);
+  };
+
+  const handleAcknowledgeRule = (staffIdx: number, ruleId: string, checked: boolean) => {
+    const current: string[] = staffDetails[staffIdx]?.acknowledged_rules || [];
+    const updated = checked ? [...current, ruleId] : current.filter(id => id !== ruleId);
+    onUpdateStaffLine(claim.id, staffIdx, { acknowledged_rules: updated });
+  };
+
+  // Count all unacknowledged required rules across all staff
+  const unacknowledgedTotal = staffDetails.reduce((sum, s, idx) => {
+    const rules = getRulesForRole(s.staff_role);
+    const required = rules.filter(r => r.requires_acknowledgement);
+    const acked: string[] = s.acknowledged_rules || [];
+    return sum + required.filter(r => !acked.includes(r.id)).length;
+  }, 0);
 
   const statusBadge = (status: string) => {
     const variants: Record<string, string> = {
@@ -1323,6 +1350,63 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                     />
                   </td>
                 </tr>
+                {/* Ground rules for this role */}
+                {(() => {
+                  const rules = getRulesForRole(s.staff_role);
+                  if (rules.length === 0) return null;
+                  const acked: string[] = s.acknowledged_rules || [];
+                  const requiredRules = rules.filter(r => r.requires_acknowledgement);
+                  const unacked = requiredRules.filter(r => !acked.includes(r.id)).length;
+                  return (
+                    <tr key={`rules-${idx}`} className="border-b">
+                      <td colSpan={canEdit ? 9 : 8} className="px-2 py-1">
+                        <Collapsible>
+                          <CollapsibleTrigger className="text-xs flex items-center gap-1 text-primary hover:underline">
+                            <FileText className="w-3 h-3" />
+                            Role Requirements ({rules.length})
+                            {unacked > 0 && (
+                              <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200 text-[10px] ml-1">
+                                {unacked} to confirm
+                              </Badge>
+                            )}
+                            {unacked === 0 && requiredRules.length > 0 && (
+                              <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200 text-[10px] ml-1">
+                                All confirmed
+                              </Badge>
+                            )}
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-primary/20">
+                              {rules.map(rule => (
+                                <div key={rule.id} className="flex items-start gap-2 text-xs">
+                                  {rule.type === 'must_have' && <CheckCircle2 className="w-3.5 h-3.5 text-green-600 mt-0.5 shrink-0" />}
+                                  {rule.type === 'must_not' && <XCircle className="w-3.5 h-3.5 text-red-500 mt-0.5 shrink-0" />}
+                                  {rule.type === 'condition' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />}
+                                  {rule.type === 'information' && <Info className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />}
+                                  <div className="flex-1">
+                                    <span className={rule.type === 'must_not' ? 'text-red-700 dark:text-red-400' : ''}>{rule.text}</span>
+                                  </div>
+                                  {rule.requires_acknowledgement && canEdit && (
+                                    <Checkbox
+                                      checked={isRuleAcknowledged(idx, rule.id)}
+                                      onCheckedChange={(checked) => handleAcknowledgeRule(idx, rule.id, !!checked)}
+                                      className="mt-0.5"
+                                    />
+                                  )}
+                                  {rule.requires_acknowledgement && !canEdit && (
+                                    <span className="text-[10px] shrink-0">
+                                      {isRuleAcknowledged(idx, rule.id) ? '✓ Confirmed' : '✗ Not confirmed'}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </td>
+                    </tr>
+                  );
+                })()}
               </>
             );
           })}
@@ -1472,7 +1556,12 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
             {!evidenceComplete && (
               <span className="text-[10px] text-red-500">Upload all required evidence first</span>
             )}
-            <Button size="sm" onClick={() => onSubmit(claim.id)} disabled={!claim.declaration_confirmed || !evidenceComplete}>
+            {unacknowledgedTotal > 0 && (
+              <span className="text-[10px] text-red-500">
+                {unacknowledgedTotal} role requirement{unacknowledgedTotal !== 1 ? 's' : ''} need confirming
+              </span>
+            )}
+            <Button size="sm" onClick={() => onSubmit(claim.id)} disabled={!claim.declaration_confirmed || !evidenceComplete || unacknowledgedTotal > 0}>
               <Send className="w-3 h-3 mr-1" /> Submit
             </Button>
           </div>
