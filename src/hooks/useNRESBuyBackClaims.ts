@@ -16,7 +16,7 @@ export interface BuyBackClaim {
   calculated_amount: number;
   claimed_amount: number;
   declaration_confirmed: boolean;
-  status: 'draft' | 'submitted' | 'verified' | 'approved' | 'rejected';
+  status: 'draft' | 'submitted' | 'verified' | 'approved' | 'queried' | 'invoiced' | 'paid' | 'rejected';
   submitted_at: string | null;
   submitted_by_email: string | null;
   reviewed_by: string | null;
@@ -26,6 +26,18 @@ export interface BuyBackClaim {
   verified_by: string | null;
   verified_at: string | null;
   verified_notes: string | null;
+  // Invoice fields
+  invoice_number: string | null;
+  invoice_pdf_path: string | null;
+  invoice_generated_at: string | null;
+  gl_summary: any | null;
+  // Query fields
+  queried_at: string | null;
+  queried_by: string | null;
+  query_notes: string | null;
+  // Payment fields
+  paid_at: string | null;
+  paid_by: string | null;
   created_at: string;
   updated_at: string;
 }
