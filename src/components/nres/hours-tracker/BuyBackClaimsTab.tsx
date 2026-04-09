@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { TestModeBar, type TestModeState } from './TestModeBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNRESBuyBackStaff, type BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
@@ -25,7 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { format } from 'date-fns';
@@ -661,7 +662,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                      );
                    })}
                    <tr className="border-t bg-muted/30 font-semibold">
-                     <td colSpan={6} className="p-2 text-right">Total Calculated Monthly</td>
+                     <td colSpan={7} className="p-2 text-right">Total Calculated Monthly</td>
                      <td className="p-2 text-right">{fmtGBP(totalCalculated)}</td>
                      <td></td>
                    </tr>
@@ -1068,6 +1069,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
             <th className="text-left p-2 font-medium">Staff Member</th>
             <th className="text-left p-2 font-medium">Category</th>
             <th className="text-left p-2 font-medium">Role</th>
+            <th className="text-left p-2 font-medium">GL</th>
             <th className="text-left p-2 font-medium">Allocation</th>
             <th className="text-right p-2 font-medium">Calculated</th>
             <th className="text-right p-2 font-medium">Claimed</th>
@@ -1090,6 +1092,11 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                       : <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">Buy-Back</Badge>}
                   </td>
                   <td className="p-2">{s.staff_role}</td>
+                  <td className="p-2">
+                    {(s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) === 'GP'
+                      ? <Badge className="bg-blue-100 text-blue-800 text-[10px]">GP</Badge>
+                      : <Badge className="bg-purple-100 text-purple-800 text-[10px]">Other</Badge>}
+                  </td>
                   <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
                   <td className="p-2 text-right">
                     <CalcBreakdownHover staff={s} claimMonth={claim.claim_month} amount={maxAmount} rateParams={rateParams} />
@@ -1161,7 +1168,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 {/* Saved notes row */}
                 {hasNotes && editingNoteIdx !== idx && (
                   <tr key={`saved-note-${idx}`} className="border-b">
-                    <td colSpan={canEdit ? 7 : 6} className="px-2 py-1">
+                    <td colSpan={canEdit ? 8 : 7} className="px-2 py-1">
                       <p className="text-xs text-muted-foreground italic">
                         <MessageSquarePlus className="w-3 h-3 inline mr-1 text-blue-600" />
                         {s.notes}
@@ -1172,7 +1179,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 {/* Inline notes editor */}
                 {editingNoteIdx === idx && canEdit && (
                   <tr key={`note-${idx}`} className="border-b bg-muted/10">
-                    <td colSpan={canEdit ? 7 : 6} className="p-2">
+                    <td colSpan={canEdit ? 8 : 7} className="p-2">
                       <div className="flex gap-2 items-start">
                         <Input
                           className="flex-1 text-xs"
@@ -1208,7 +1215,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 )}
                 {/* Inline staff evidence */}
                 <tr key={`evidence-${idx}`} className="border-b">
-                  <td colSpan={canEdit ? 7 : 6} className="p-0">
+                  <td colSpan={canEdit ? 8 : 7} className="p-0">
                     <StaffLineEvidence
                       staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda'}
                       staffIndex={idx}
@@ -1226,7 +1233,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
           })}
           {/* Total row */}
           <tr className="bg-muted/30 font-semibold border-t">
-            <td colSpan={4} className="p-2 text-right">Total</td>
+            <td colSpan={5} className="p-2 text-right">Total</td>
             <td className="p-2 text-right">{fmtGBP(totalCalculated)}</td>
             <td className="p-2 text-right">{fmtGBP(totalClaimed)}</td>
             {canEdit && <td></td>}
@@ -1289,6 +1296,30 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
         <div className="px-3 py-2 border-t bg-green-50/50 dark:bg-green-950/20 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
           <span>Paid by: <strong className="text-foreground">{claim.paid_by || '—'}</strong></span>
           <span>on <strong className="text-foreground">{format(new Date(claim.paid_at), 'dd/MM/yyyy')} at {format(new Date(claim.paid_at), 'HH:mm')}</strong></span>
+        </div>
+      )}
+
+      {/* Invoice info & download */}
+      {claim.invoice_number && (
+        <div className="px-3 py-2 border-t bg-blue-50/50 dark:bg-blue-950/20 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <FileText className="w-4 h-4 text-blue-600" />
+            <span>Invoice: <strong className="text-foreground">{claim.invoice_number}</strong></span>
+            {claim.invoice_generated_at && (
+              <span>Generated {format(new Date(claim.invoice_generated_at), 'dd/MM/yyyy HH:mm')}</span>
+            )}
+            {claim.gl_summary && (
+              <span className="ml-2">GL: GP {fmtGBP(claim.gl_summary.gp_total || 0)} / Other {fmtGBP(claim.gl_summary.other_clinical_total || 0)}</span>
+            )}
+          </div>
+          {claim.invoice_pdf_path && (
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={async () => {
+              const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(claim.invoice_pdf_path!, 300);
+              if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+            }}>
+              <Download className="w-3 h-3" /> Download PDF
+            </Button>
+          )}
         </div>
       )}
 

@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import { sendBuyBackEmail, type BuyBackEmailData } from '@/utils/buybackEmailService';
+import { generateInvoiceNumber } from '@/utils/invoiceNumberGenerator';
+import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import type { BuyBackStaffMember } from './useNRESBuyBackStaff';
 
 export interface BuyBackClaim {
@@ -192,6 +194,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           start_date: s.start_date,
           practice_key: s.practice_key,
           claimed_amount: maxAmount,
+          gl_category: s.staff_role === 'GP' ? 'GP' : 'Other Clinical',
         };
       });
 
@@ -450,18 +453,71 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
-      toast.success('Claim approved');
+      toast.success('Claim approved — generating invoice...');
+
+      // Calculate GL summary
+      const staffDetails = (claim?.staff_details as any[]) || [];
+      const gpTotal = staffDetails
+        .filter(s => (s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) === 'GP')
+        .reduce((sum, s) => sum + (s.claimed_amount || 0), 0);
+      const otherTotal = staffDetails
+        .filter(s => (s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) !== 'GP')
+        .reduce((sum, s) => sum + (s.claimed_amount || 0), 0);
+
+      // Generate invoice number and PDF
+      try {
+        const invoiceNum = await generateInvoiceNumber('NRES', claim?.practice_key || '', claim?.claim_month || '');
+        const approvedClaim = { ...(claim || data), status: 'approved' as const } as BuyBackClaim;
+        const pdfDoc = generateInvoicePdf({
+          claim: approvedClaim,
+          invoiceNumber: invoiceNum,
+          neighbourhoodName: 'NRES',
+        });
+        const pdfBlob = pdfDoc.output('blob');
+
+        // Upload to Supabase Storage
+        const pdfPath = `invoices/${invoiceNum}.pdf`;
+        const { error: uploadError } = await supabase.storage
+          .from('nres-claim-evidence')
+          .upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+        if (uploadError) {
+          console.error('Failed to upload invoice PDF:', uploadError);
+        }
+
+        // Update claim with invoice details → status becomes 'invoiced'
+        const { data: invoicedData } = await supabase
+          .from('nres_buyback_claims')
+          .update({
+            status: 'invoiced',
+            invoice_number: invoiceNum,
+            invoice_pdf_path: pdfPath,
+            invoice_generated_at: new Date().toISOString(),
+            gl_summary: { gp_total: gpTotal, other_clinical_total: otherTotal },
+          })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (invoicedData) {
+          setClaims(prev => prev.map(c => c.id === id ? (invoicedData as BuyBackClaim) : c));
+          toast.success(`Invoice ${invoiceNum} generated`);
+        }
+      } catch (invoiceError) {
+        console.error('Invoice generation failed (claim still approved):', invoiceError);
+        toast.error('Claim approved but invoice generation failed — can be retried');
+      }
 
       // Send emails (non-blocking)
       if (emailConfig && claim?.practice_key) {
-        const staffDetails = (claim.staff_details as any[]) || [];
+        const emailStaff = (claim.staff_details as any[]) || [];
         const emailData: BuyBackEmailData = {
           claimId: id,
           practiceKey: claim.practice_key,
           claimMonth: claim.claim_month,
           totalAmount: claim.claimed_amount,
-          staffLineCount: staffDetails.length,
-          staffCategories: staffDetails.map((s: any) => s.staff_category).filter(Boolean),
+          staffLineCount: emailStaff.length,
+          staffCategories: emailStaff.map((s: any) => s.staff_category).filter(Boolean),
           submitterEmail: claim.submitted_by_email || '',
           reviewerEmail: user.email || '',
           reviewerName: emailConfig.currentUserName,
