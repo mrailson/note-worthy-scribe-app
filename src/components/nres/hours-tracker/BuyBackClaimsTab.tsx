@@ -259,7 +259,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     currentUserEmail: user?.email || undefined,
     currentUserName: user?.user_metadata?.full_name || user?.email || undefined,
   }), [rateSettings.email_testing_mode, user?.email, user?.user_metadata?.full_name]);
-  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, approveClaim, rejectClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims(emailConfig);
+  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, markPaid, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
   const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
 
@@ -363,6 +363,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     submitted: practiceFilteredClaims.filter(c => c.status === 'submitted').length,
     verified: practiceFilteredClaims.filter(c => c.status === 'verified').length,
     approved: practiceFilteredClaims.filter(c => c.status === 'approved').length,
+    queried: practiceFilteredClaims.filter(c => c.status === 'queried').length,
+    invoiced: practiceFilteredClaims.filter(c => c.status === 'invoiced').length,
+    paid: practiceFilteredClaims.filter(c => c.status === 'paid').length,
     rejected: practiceFilteredClaims.filter(c => c.status === 'rejected').length,
     draft: practiceFilteredClaims.filter(c => c.status === 'draft').length,
   };
@@ -730,6 +733,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                 { key: 'submitted', label: 'Outstanding' },
                 { key: 'verified', label: 'Verified' },
                 { key: 'approved', label: 'Approved' },
+                { key: 'queried', label: 'Queried' },
+                { key: 'invoiced', label: 'Invoiced' },
+                { key: 'paid', label: 'Paid' },
                 { key: 'rejected', label: 'Rejected' },
                 { key: 'draft', label: 'Draft' },
               ] as const).map(({ key, label }) => (
@@ -802,6 +808,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     onApprove={approveClaim}
                     onReject={rejectClaim}
                     onVerify={verifyClaim}
+                    onQuery={queryClaim}
+                    onMarkPaid={markPaid}
                   />
                 );
               })}
@@ -952,7 +960,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject, onVerify }: {
+function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
   claim: BuyBackClaim;
   claimCategory: 'buyback' | 'new_sda' | 'mixed';
   userId?: string;
@@ -970,16 +978,19 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   onApprove: (id: string, notes?: string) => void;
   onReject: (id: string, notes: string) => void;
   onVerify?: (id: string, notes?: string) => void;
+  onQuery?: (id: string, notes: string) => void;
+  onMarkPaid?: (id: string) => void;
 }) {
   const [editingNoteIdx, setEditingNoteIdx] = useState<number | null>(null);
   const [noteText, setNoteText] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const isDraft = claim.status === 'draft';
+  const isQueried = claim.status === 'queried';
   const isRejected = claim.status === 'rejected';
   const isSubmitted = claim.status === 'submitted';
   const isVerified = claim.status === 'verified';
-  const canEdit = (isDraft || isRejected) && (userId === claim.user_id || isAdmin);
+  const canEdit = (isDraft || isQueried) && (userId === claim.user_id || isAdmin);
   const canApprove = canApproveClaim;
   const staffDetails = claim.staff_details as any[];
 
@@ -993,9 +1004,22 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
       submitted: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
       verified: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
       approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      queried: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+      invoiced: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      paid: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
       rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     };
-    return <Badge className={variants[status] || ''}>{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>;
+    const labels: Record<string, string> = {
+      draft: 'Draft',
+      submitted: 'Submitted',
+      verified: 'Verified',
+      approved: 'Approved',
+      queried: 'Queried — Awaiting Amendment',
+      invoiced: 'Invoiced',
+      paid: 'Paid',
+      rejected: 'Rejected (Closed)',
+    };
+    return <Badge className={variants[status] || ''}>{labels[status] || status}</Badge>;
   };
 
   const totalCalculated = staffDetails.reduce((sum, s) => sum + getStaffMaxAmount(s, claim.claim_month, rateParams), 0);
@@ -1238,7 +1262,36 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
         </div>
       )}
 
-      {/* Practice mismatch warning */}
+      {/* Query notes banner */}
+      {claim.status === 'queried' && claim.query_notes && (
+        <div className="px-3 py-2 border-t bg-orange-50 dark:bg-orange-950/20 text-xs text-muted-foreground">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5 shrink-0" />
+            <div>
+              <span className="font-semibold text-orange-800 dark:text-orange-200">PML Query:</span>
+              <p className="text-orange-700 dark:text-orange-300 mt-0.5">{claim.query_notes}</p>
+              <span className="text-muted-foreground">Queried by: {claim.queried_by} on {claim.queried_at ? format(new Date(claim.queried_at), 'dd/MM/yyyy') + ' at ' + format(new Date(claim.queried_at), 'HH:mm') : '—'}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejected claim terminal state */}
+      {claim.status === 'rejected' && (
+        <div className="px-3 py-2 border-t bg-red-50 dark:bg-red-950/20 text-xs flex items-center gap-2">
+          <XCircle className="w-4 h-4 text-red-500" />
+          <span className="text-red-700 dark:text-red-300 font-medium">This claim has been permanently rejected. A new claim must be created.</span>
+        </div>
+      )}
+
+      {/* Payment info */}
+      {claim.paid_at && (
+        <div className="px-3 py-2 border-t bg-green-50/50 dark:bg-green-950/20 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+          <span>Paid by: <strong className="text-foreground">{claim.paid_by || '—'}</strong></span>
+          <span>on <strong className="text-foreground">{format(new Date(claim.paid_at), 'dd/MM/yyyy')} at {format(new Date(claim.paid_at), 'HH:mm')}</strong></span>
+        </div>
+      )}
+
       {(() => {
         const mismatched = staffDetails.filter(s => s.practice_key && s.practice_key !== claim.practice_key);
         if (mismatched.length === 0) return null;
@@ -1326,15 +1379,15 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
         </div>
       )}
 
-      {/* Admin Approval Actions */}
+      {/* Admin Approval Actions — with Query option */}
       {canApprove && (
-        <div className="px-3 py-3 border-t bg-green-50/50 dark:bg-green-950/20 space-y-2">
-          <p className="text-xs font-medium text-green-800 dark:text-green-200">Final approval</p>
+        <div className="px-3 py-3 border-t bg-indigo-50/50 dark:bg-indigo-950/20 space-y-2">
+          <p className="text-xs font-medium text-indigo-800 dark:text-indigo-200">PML Finance Review</p>
           <div className="flex gap-2 items-end">
             <div className="flex-1">
               <Input
                 className="text-xs"
-                placeholder="Review notes (optional for approval, required for rejection)..."
+                placeholder="Notes (required for Query and Reject)..."
                 value={reviewNotes}
                 onChange={e => setReviewNotes(e.target.value)}
               />
@@ -1342,13 +1395,27 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
             <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => { onApprove(claim.id, reviewNotes); setReviewNotes(''); }}>
               <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
             </Button>
-            <Button size="sm" variant="destructive" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onReject(claim.id, reviewNotes); setReviewNotes(''); }} disabled={showRejectInput && !reviewNotes.trim()}>
+            <Button size="sm" variant="outline" className="border-orange-400 text-orange-700 hover:bg-orange-50" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onQuery?.(claim.id, reviewNotes); setReviewNotes(''); }}>
+              <MessageSquarePlus className="w-3.5 h-3.5 mr-1" /> Query
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onReject(claim.id, reviewNotes); setReviewNotes(''); }}>
               <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
             </Button>
           </div>
           {showRejectInput && !reviewNotes.trim() && (
-            <p className="text-xs text-destructive">Please enter a reason for rejection above.</p>
+            <p className="text-xs text-destructive">Please enter notes above before querying or rejecting.</p>
           )}
+          <p className="text-[10px] text-muted-foreground">Query returns claim for amendment. Reject closes it permanently.</p>
+        </div>
+      )}
+
+      {/* Mark as Paid action for approved/invoiced claims */}
+      {isAdmin && (claim.status === 'approved' || claim.status === 'invoiced') && onMarkPaid && (
+        <div className="px-3 py-3 border-t bg-green-50/50 dark:bg-green-950/20 flex items-center justify-between">
+          <p className="text-xs font-medium text-green-800 dark:text-green-200">Payment Processing</p>
+          <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => onMarkPaid(claim.id)}>
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark as Paid
+          </Button>
         </div>
       )}
     </div>

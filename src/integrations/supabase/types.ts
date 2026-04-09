@@ -7747,9 +7747,18 @@ export type Database = {
           claimed_amount: number
           created_at: string
           declaration_confirmed: boolean
+          gl_summary: Json | null
           id: string
+          invoice_generated_at: string | null
+          invoice_number: string | null
+          invoice_pdf_path: string | null
+          paid_at: string | null
+          paid_by: string | null
           practice_id: string | null
           practice_key: string | null
+          queried_at: string | null
+          queried_by: string | null
+          query_notes: string | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -7770,9 +7779,18 @@ export type Database = {
           claimed_amount?: number
           created_at?: string
           declaration_confirmed?: boolean
+          gl_summary?: Json | null
           id?: string
+          invoice_generated_at?: string | null
+          invoice_number?: string | null
+          invoice_pdf_path?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
           practice_id?: string | null
           practice_key?: string | null
+          queried_at?: string | null
+          queried_by?: string | null
+          query_notes?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -7793,9 +7811,18 @@ export type Database = {
           claimed_amount?: number
           created_at?: string
           declaration_confirmed?: boolean
+          gl_summary?: Json | null
           id?: string
+          invoice_generated_at?: string | null
+          invoice_number?: string | null
+          invoice_pdf_path?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
           practice_id?: string | null
           practice_key?: string | null
+          queried_at?: string | null
+          queried_by?: string | null
+          query_notes?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
