@@ -263,8 +263,11 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                              <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">⚡</span><span>Instant — no booking interpreters, no waiting, no phone loops</span></li>
                              <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🚨</span><span>Safety built in — I'll flag any clinical red flags I hear during translation</span></li>
                              <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🌐</span><span>Any language — Polish, Urdu, Arabic, Romanian, Bengali, Mandarin, and many more</span></li>
-                           </ul>
-                            <NRESTranslateAgent />
+                            </ul>
+                            <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-2 rounded-lg text-center mt-2">
+                              📞 On a home visit? Call <strong>01280 730716</strong> from any phone for instant translation — no internet needed.
+                            </div>
+                             <NRESTranslateAgent />
                           </>
                        )}
                      </div>
