@@ -32,14 +32,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, ExternalLink, ChevronDown, ChevronRight, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { format } from 'date-fns';
-import BoardPresentationExplainer from './BoardPresentationExplainer';
-import ENNBoardPresentationExplainer from '@/components/enn/ENNBoardPresentationExplainer';
-import BoardPresentation from './BoardPresentation';
 
 /** Format a number as £X,XXX.XX */
 function fmtGBP(n: number): string {
@@ -288,7 +283,6 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const [filterPractice, setFilterPractice] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  const [guideOpen, setGuideOpen] = useState(false);
   const [proposalOpen, setProposalOpen] = useState(false);
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
