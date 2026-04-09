@@ -713,7 +713,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                 { key: 'paid', label: 'Paid' },
                 { key: 'rejected', label: 'Rejected' },
                 { key: 'draft', label: 'Draft' },
-              ] as const).map(({ key, label }) => (
+              ] as const).filter(({ key }) => key === 'all' || statusCounts[key] > 0).map(({ key, label }) => (
                 <Button
                   key={key}
                   size="sm"
