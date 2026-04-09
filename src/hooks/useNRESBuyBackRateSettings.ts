@@ -17,6 +17,7 @@ export interface ManagementRoleConfig {
   person_name: string;
   person_email: string;
   hourly_rate: number;
+  max_hours_per_week: number;
   billing_entity: string;
   billing_org_code: string;
   is_active: boolean;
@@ -159,12 +160,36 @@ export function useNRESBuyBackRateSettings() {
     }
   }, [user?.id]);
 
+  const updateManagementRoles = useCallback(async (mgmtRoles: ManagementRoleConfig[]) => {
+    if (!user?.id) return;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_buyback_rate_settings')
+        .upsert({
+          id: 'default',
+          management_roles_config: mgmtRoles,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        });
+      if (error) throw error;
+      setSettings(prev => ({ ...prev, management_roles_config: mgmtRoles }));
+      toast.success('Management roles saved');
+    } catch (err) {
+      console.error('Error saving management roles:', err);
+      toast.error('Failed to save management roles');
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.id]);
+
   return {
     settings,
     loading,
     saving,
     updateSettings,
     toggleEmailTestingMode,
+    updateManagementRoles,
     onCostMultiplier,
     getRoleConfig,
     getAnnualRate,
