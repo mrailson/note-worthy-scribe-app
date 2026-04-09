@@ -149,7 +149,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
           <CollapsibleContent>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col">
                   <CardContent className="p-6 flex flex-col flex-1">
                     <div className="flex items-start justify-between">
                       <div>
@@ -171,6 +171,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                       </span>
                     </div>
                     <div className="flex-1" />
+                    <NRESVoiceAgent />
                   </CardContent>
                 </Card>
 
@@ -587,7 +588,6 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
       `}</style>
     </div>
     <ContractAskAI open={showContractAskAI} onOpenChange={setShowContractAskAI} neighbourhoodName={neighbourhoodName} />
-    <NRESVoiceAgent />
     </>
   );
 };
