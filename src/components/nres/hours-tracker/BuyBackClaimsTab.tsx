@@ -648,7 +648,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           <div className="flex flex-wrap gap-4 items-end">
             <div>
               <Label>Practice</Label>
-              <Select value={claimPractice} onValueChange={setClaimPractice}>
+              <Select value={effectiveClaimPractice} onValueChange={setClaimPractice} disabled={!!testPracticeLocked}>
                 <SelectTrigger className="w-[220px]">
                   <SelectValue placeholder="Select practice" />
                 </SelectTrigger>
@@ -663,7 +663,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               <Label>Claim Month</Label>
               <Input type="month" value={claimMonth} onChange={e => setClaimMonth(e.target.value)} />
             </div>
-            <Button onClick={handleCreateClaim} disabled={savingClaim || filteredStaff.length === 0 || !claimPractice}>
+            <Button onClick={handleCreateClaim} disabled={savingClaim || filteredStaff.length === 0 || !effectiveClaimPractice}>
               {savingClaim ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
               Create Claim
             </Button>
@@ -671,7 +671,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           {filteredStaff.length === 0 && (
             <p className="text-sm text-muted-foreground">Add staff members above before creating a claim.</p>
           )}
-          {!claimPractice && filteredStaff.length > 0 && (
+          {!effectiveClaimPractice && filteredStaff.length > 0 && (
             <p className="text-sm text-muted-foreground">Select a practice to create a claim.</p>
           )}
         </CardContent>
