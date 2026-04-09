@@ -10,6 +10,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import NRESLogo from "@/assets/nres-logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
 import SNVBLogo from "@/assets/snvb-logo.png";
+import NHSNorthantsICBLogo from "@/assets/nhs-northants-icb-logo.png";
 
 export interface SDAExecutiveSummaryProps {
   customLogos?: { src: string; alt: string }[];
@@ -246,7 +247,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <span className="font-semibold text-slate-900">Programme Partners</span>
                   </div>
                 <div className="flex flex-col gap-4 h-full flex-1">
-                  <div className="flex justify-center items-center gap-6">
+                  <div className="grid grid-cols-2 gap-4 place-items-center">
                     {customLogos ? (
                       customLogos.map((logo, i) => (
                         <img 
@@ -271,6 +272,11 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                         <img 
                           src={SNVBLogo} 
                           alt="SNVB - Supporting Voluntary Activity" 
+                          className="h-20 w-auto object-contain"
+                        />
+                        <img 
+                          src={NHSNorthantsICBLogo} 
+                          alt="NHS Northamptonshire Integrated Care Board" 
                           className="h-20 w-auto object-contain"
                         />
                       </>
