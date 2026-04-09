@@ -173,6 +173,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <div className="mt-3 pt-3 border-t border-slate-200">
                       <p className="text-xs text-slate-500 font-medium mb-2">AI Programme Assistant</p>
                       <NRESVoiceAgent />
+                      <elevenlabs-convai agent-id="agent_01jwry2fzme7xsb2mwzatxseyt"></elevenlabs-convai>
                     </div>
                     <div className="flex-1" />
                   </CardContent>
