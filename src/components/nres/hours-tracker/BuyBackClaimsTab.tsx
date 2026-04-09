@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { TestModeBar, type TestModeState } from './TestModeBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNRESBuyBackStaff, type BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
