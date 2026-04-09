@@ -1262,7 +1262,36 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
         </div>
       )}
 
-      {/* Practice mismatch warning */}
+      {/* Query notes banner */}
+      {claim.status === 'queried' && claim.query_notes && (
+        <div className="px-3 py-2 border-t bg-orange-50 dark:bg-orange-950/20 text-xs text-muted-foreground">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5 shrink-0" />
+            <div>
+              <span className="font-semibold text-orange-800 dark:text-orange-200">PML Query:</span>
+              <p className="text-orange-700 dark:text-orange-300 mt-0.5">{claim.query_notes}</p>
+              <span className="text-muted-foreground">Queried by: {claim.queried_by} on {claim.queried_at ? format(new Date(claim.queried_at), 'dd/MM/yyyy') + ' at ' + format(new Date(claim.queried_at), 'HH:mm') : '—'}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejected claim terminal state */}
+      {claim.status === 'rejected' && (
+        <div className="px-3 py-2 border-t bg-red-50 dark:bg-red-950/20 text-xs flex items-center gap-2">
+          <XCircle className="w-4 h-4 text-red-500" />
+          <span className="text-red-700 dark:text-red-300 font-medium">This claim has been permanently rejected. A new claim must be created.</span>
+        </div>
+      )}
+
+      {/* Payment info */}
+      {claim.paid_at && (
+        <div className="px-3 py-2 border-t bg-green-50/50 dark:bg-green-950/20 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+          <span>Paid by: <strong className="text-foreground">{claim.paid_by || '—'}</strong></span>
+          <span>on <strong className="text-foreground">{format(new Date(claim.paid_at), 'dd/MM/yyyy')} at {format(new Date(claim.paid_at), 'HH:mm')}</strong></span>
+        </div>
+      )}
+
       {(() => {
         const mismatched = staffDetails.filter(s => s.practice_key && s.practice_key !== claim.practice_key);
         if (mismatched.length === 0) return null;
