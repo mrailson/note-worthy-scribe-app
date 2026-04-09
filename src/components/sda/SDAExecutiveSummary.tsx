@@ -139,7 +139,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
             >
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-[#005EB8]" />
-                <span className="font-semibold text-slate-900">Key Programme Metrics</span>
+                <span className="font-semibold text-slate-900">Programme Overview</span>
               </div>
               {metricsOpen ? (
                 <ChevronUp className="h-5 w-5 text-slate-500" />
