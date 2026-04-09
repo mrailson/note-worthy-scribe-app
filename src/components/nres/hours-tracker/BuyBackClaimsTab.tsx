@@ -1239,7 +1239,10 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                     <StaffLineEvidence
                       staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda'}
                       staffIndex={idx}
+                      staffName={s.staff_name}
+                      staffRole={s.staff_role}
                       uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
+                      allFilesForStaff={evidenceFiles.filter(f => f.staff_index === idx)}
                       canEdit={canEdit}
                       uploading={evidenceUploading}
                       onUpload={uploadEvidence}
