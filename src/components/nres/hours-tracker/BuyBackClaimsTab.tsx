@@ -12,6 +12,7 @@ import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidence
 import { UnclaimedFundsIndicator } from './UnclaimedFundsIndicator';
 import { ManagementTimeTab } from './ManagementTimeTab';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
+import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 import { ENN_PRACTICES, ENN_PRACTICE_KEYS, type ENNPracticeKey } from '@/data/ennPractices';
 
