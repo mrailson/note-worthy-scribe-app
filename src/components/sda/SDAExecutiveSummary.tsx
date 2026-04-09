@@ -185,9 +185,9 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     </ul>
                     <p className="text-[10px] text-indigo-600 font-medium mt-4 italic">Powered by AI, grounded in NHS guidance. Try it now.</p>
                     <div className="flex-1" />
-                    <div className="mt-4">
-                      <NRESWidgetEmbed />
-                    </div>
+                    <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200 text-center">
+                      👋 Click the <strong>Talk with Notewell AI</strong> bubble in the bottom-right corner to start
+                    </p>
                   </CardContent>
                 </Card>
                 </div>
@@ -334,7 +334,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <Handshake className="h-5 w-5 text-[#005EB8]" />
                     <span className="font-semibold text-slate-900">Programme Partners</span>
                   </div>
-                <Card className="border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col flex-1" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 50%, #f0f0ff 100%)' }}>
+                <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col flex-1">
                   <CardContent className="p-6 flex flex-col flex-1 justify-between">
                     <div className="grid grid-cols-2 gap-4 place-items-center">
                       {customLogos ? (
@@ -639,7 +639,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
       `}</style>
     </div>
     <ContractAskAI open={showContractAskAI} onOpenChange={setShowContractAskAI} neighbourhoodName={neighbourhoodName} />
-    
+    <NRESWidgetEmbed />
     </>
   );
 };
