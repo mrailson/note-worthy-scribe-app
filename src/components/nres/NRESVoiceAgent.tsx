@@ -15,6 +15,7 @@ const NRESVoiceAgentInner = () => {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       await conversation.startSession({
         agentId: AGENT_ID,
+        connectionType: "websocket",
       });
     } catch (error) {
       console.error("Failed to start conversation:", error);
