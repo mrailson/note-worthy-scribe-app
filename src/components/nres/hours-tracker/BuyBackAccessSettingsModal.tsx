@@ -9,21 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail } from 'lucide-react';
+import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2 } from 'lucide-react';
 import { EvidenceConfigTab } from './EvidenceConfigTab';
 import { SystemRolesTab } from './SystemRolesTab';
 import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
-import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
+import { NRES_PRACTICES, NRES_PRACTICE_KEYS, NRES_ODS_CODES } from '@/data/nresPractices';
 import { useNRESUserAccess } from '@/hooks/useNRESUserAccess';
 import { useNRESBuyBackRateSettings, type RoleConfig, type ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 import { useAuth } from '@/contexts/AuthContext';
+import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import type { BuyBackAccessRole } from '@/hooks/useNRESBuyBackAccess';
+import type { NRESUser } from '@/types/nresAccess';
 
-const ROLES: { key: BuyBackAccessRole; label: string }[] = [
-  { key: 'submit', label: 'Submit' },
-  { key: 'view', label: 'View' },
-  { key: 'verifier', label: 'Verifier' },
-  { key: 'approver', label: 'Approver' },
+const ACCESS_ROLES: { key: BuyBackAccessRole; label: string; description: string }[] = [
+  { key: 'submit', label: 'Submitter', description: 'Create, edit and submit claims' },
+  { key: 'verifier', label: 'Verifier', description: 'Verify/validate claims' },
+  { key: 'approver', label: 'Approver', description: 'Approve or reject claims' },
+  { key: 'view', label: 'View', description: 'View claims (read-only)' },
 ];
 
 interface Props {
@@ -39,32 +41,233 @@ function fmtGBP(n: number): string {
   return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/* ── Practice-First Access Panel ── */
+
+function PracticeFirstAccessPanel({ users, hasAccess, grantAccess, revokeByKey }: {
+  users: NRESUser[];
+  hasAccess: (userId: string, practiceKey: string, role: BuyBackAccessRole) => boolean;
+  grantAccess: (userId: string, practiceKey: string, role: BuyBackAccessRole) => Promise<void>;
+  revokeByKey: (userId: string, practiceKey: string, role: BuyBackAccessRole) => Promise<void>;
+}) {
+  const [selectedPractice, setSelectedPractice] = useState<string>(NRES_PRACTICE_KEYS[0]);
+  const [addSearch, setAddSearch] = useState('');
+
+  // Users assigned to selected practice (any role)
+  const assignedUsers = useMemo(() => {
+    return users.filter(u =>
+      ACCESS_ROLES.some(r => hasAccess(u.user_id, selectedPractice, r.key))
+    );
+  }, [users, selectedPractice, hasAccess]);
+
+  // Users NOT assigned to selected practice
+  const unassignedUsers = useMemo(() => {
+    const assigned = new Set(assignedUsers.map(u => u.user_id));
+    let available = users.filter(u => !assigned.has(u.user_id));
+    if (addSearch.trim()) {
+      const q = addSearch.toLowerCase();
+      available = available.filter(u =>
+        (u.full_name?.toLowerCase().includes(q)) ||
+        (u.email?.toLowerCase().includes(q))
+      );
+    }
+    // Sort: admin users first
+    return available.sort((a, b) => {
+      const aAdmin = NRES_ADMIN_EMAILS.includes(a.email?.toLowerCase() || '');
+      const bAdmin = NRES_ADMIN_EMAILS.includes(b.email?.toLowerCase() || '');
+      if (aAdmin && !bAdmin) return -1;
+      if (!aAdmin && bAdmin) return 1;
+      return (a.full_name || '').localeCompare(b.full_name || '');
+    });
+  }, [users, assignedUsers, addSearch]);
+
+  // Count assigned users per practice
+  const practiceUserCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    NRES_PRACTICE_KEYS.forEach(pk => {
+      counts[pk] = users.filter(u =>
+        ACCESS_ROLES.some(r => hasAccess(u.user_id, pk, r.key))
+      ).length;
+    });
+    return counts;
+  }, [users, hasAccess]);
+
+  const handleAddUser = async (userId: string) => {
+    await grantAccess(userId, selectedPractice, 'submit');
+  };
+
+  const handleRemoveAllRoles = async (userId: string) => {
+    for (const r of ACCESS_ROLES) {
+      if (hasAccess(userId, selectedPractice, r.key)) {
+        await revokeByKey(userId, selectedPractice, r.key);
+      }
+    }
+  };
+
+  const handleRoleToggle = async (userId: string, role: BuyBackAccessRole, checked: boolean) => {
+    if (checked) {
+      await grantAccess(userId, selectedPractice, role);
+    } else {
+      await revokeByKey(userId, selectedPractice, role);
+    }
+  };
+
+  return (
+    <div className="flex gap-4 flex-1 min-h-0 overflow-hidden pb-2">
+      {/* Left: Practice list */}
+      <div className="w-56 shrink-0 flex flex-col border rounded-lg overflow-hidden">
+        <div className="px-3 py-2 bg-muted/30 border-b">
+          <div className="flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs font-semibold">Practices</span>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {NRES_PRACTICE_KEYS.map(pk => (
+            <button
+              key={pk}
+              className={`w-full text-left px-3 py-2.5 text-xs border-b transition-colors ${
+                selectedPractice === pk
+                  ? 'bg-primary/10 border-l-2 border-l-primary font-semibold'
+                  : 'hover:bg-muted/50'
+              }`}
+              onClick={() => { setSelectedPractice(pk); setAddSearch(''); }}
+            >
+              <p className="truncate">{NRES_PRACTICES[pk]}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[10px] text-muted-foreground">{NRES_ODS_CODES[pk]}</span>
+                {practiceUserCounts[pk] > 0 && (
+                  <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{practiceUserCounts[pk]} user{practiceUserCounts[pk] !== 1 ? 's' : ''}</Badge>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Right: User assignments for selected practice */}
+      <div className="flex-1 overflow-y-auto space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold">{NRES_PRACTICES[selectedPractice]}</h3>
+          <p className="text-[10px] text-muted-foreground">ODS: {NRES_ODS_CODES[selectedPractice]} · Manage user access for this practice</p>
+        </div>
+
+        {/* Assigned users */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Users className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium">Assigned Users ({assignedUsers.length})</span>
+          </div>
+          {assignedUsers.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic py-3 text-center border rounded-md bg-muted/20">No users assigned to this practice</p>
+          ) : (
+            <div className="border rounded-md overflow-hidden divide-y">
+              {assignedUsers.map(u => {
+                const isAdmin = NRES_ADMIN_EMAILS.includes(u.email?.toLowerCase() || '');
+                return (
+                  <div key={u.user_id} className="px-3 py-2.5 text-xs">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">{u.full_name || 'No name'}</span>
+                        {isAdmin && <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-primary/30 text-primary">Admin</Badge>}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-[10px] text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemoveAllRoles(u.user_id)}
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" />
+                        Remove
+                      </Button>
+                    </div>
+                    <p className="text-muted-foreground mb-2">{u.email}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ACCESS_ROLES.map(r => {
+                        const checked = hasAccess(u.user_id, selectedPractice, r.key);
+                        return (
+                          <button
+                            key={r.key}
+                            className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                              checked
+                                ? 'bg-primary/10 border-primary/30 text-primary font-medium'
+                                : 'border-border text-muted-foreground hover:border-primary/20 hover:text-foreground'
+                            }`}
+                            onClick={() => handleRoleToggle(u.user_id, r.key, !checked)}
+                            title={r.description}
+                          >
+                            {r.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Add user section */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium">Add User to {NRES_PRACTICES[selectedPractice]}</span>
+          </div>
+          <div className="relative mb-2">
+            <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              className="pl-7 h-8 text-xs"
+              placeholder="Search available users..."
+              value={addSearch}
+              onChange={e => setAddSearch(e.target.value)}
+            />
+          </div>
+          {unassignedUsers.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic py-3 text-center">
+              {addSearch ? 'No matching users found' : 'All users are already assigned'}
+            </p>
+          ) : (
+            <div className="border rounded-md overflow-hidden divide-y max-h-48 overflow-y-auto">
+              {unassignedUsers.slice(0, 20).map(u => {
+                const isAdmin = NRES_ADMIN_EMAILS.includes(u.email?.toLowerCase() || '');
+                return (
+                  <div key={u.user_id} className="flex items-center justify-between px-3 py-2 text-xs hover:bg-muted/30 transition-colors">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">{u.full_name || 'No name'}</span>
+                        {isAdmin && <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-primary/30 text-primary">Admin</Badge>}
+                      </div>
+                      <p className="text-muted-foreground">{u.email}</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => handleAddUser(u.user_id)}>
+                      <Plus className="w-3 h-3 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                );
+              })}
+              {unassignedUsers.length > 20 && (
+                <p className="text-[10px] text-muted-foreground text-center py-2">
+                  Showing 20 of {unassignedUsers.length} — use search to filter
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <p className="text-[10px] text-muted-foreground">
+          Changes are saved automatically. Users will only see claims and staff for practices they are assigned to.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, grantAccess, revokeByKey }: Props) {
   const { data: users, isLoading } = useNRESUserAccess();
   const { isSuperAdmin } = useNRESSystemRoles();
-  const [search, setSearch] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-
-  const filteredUsers = useMemo(() => {
-    if (!users) return [];
-    if (!search.trim()) return users;
-    const q = search.toLowerCase();
-    return users.filter(u =>
-      (u.full_name?.toLowerCase().includes(q)) ||
-      (u.email?.toLowerCase().includes(q)) ||
-      (u.practice_name?.toLowerCase().includes(q))
-    );
-  }, [users, search]);
-
-  const selectedUser = useMemo(() => users?.find(u => u.user_id === selectedUserId), [users, selectedUserId]);
-
-  const handleToggle = async (userId: string, practiceKey: string, role: BuyBackAccessRole, checked: boolean) => {
-    if (checked) {
-      await grantAccess(userId, practiceKey, role);
-    } else {
-      await revokeByKey(userId, practiceKey, role);
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
