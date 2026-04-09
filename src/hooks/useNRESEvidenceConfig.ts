@@ -9,7 +9,7 @@ export interface EvidenceConfigRow {
   label: string;
   description: string | null;
   is_mandatory: boolean;
-  applies_to: 'all' | 'buyback';
+  applies_to: 'all' | 'buyback' | 'new_sda';
   sort_order: number;
   updated_by: string | null;
   updated_at: string;
