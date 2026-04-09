@@ -5959,7 +5959,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
           console.log('🧠 Using model for initial generation:', modelOverride);
           const skipQc = localStorage.getItem('meeting-qc-enabled') !== 'true';
-          const functionResult = await supabase.functions
+          
+          // Fire-and-forget: do NOT await the edge function — long meetings (60min+)
+          // can take 2-3 minutes to generate notes, exceeding the browser fetch timeout.
+          // The function runs server-side regardless of client connection.
+          supabase.functions
             .invoke('auto-generate-meeting-notes', {
               body: { 
                 meetingId: savedMeeting.id,
@@ -5967,13 +5971,45 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 modelOverride,
                 skipQc,
               }
+            })
+            .then(result => {
+              if (result.error) {
+                console.error('❌ Background notes generation failed:', result.error);
+              } else {
+                console.log('🎉 Background notes generation completed (via auto-generate-meeting-notes pipeline)');
+              }
+            })
+            .catch(err => {
+              // Client timeout is expected for long meetings — the edge function
+              // continues running server-side. This is NOT a real failure.
+              console.warn('⚠️ Notes generation request timed out client-side (expected for long meetings):', err?.message);
             });
           
-          if (functionResult.error) {
-            console.error('❌ Background notes generation failed:', functionResult.error);
-          } else {
-            console.log('🎉 Background notes generation started successfully (via auto-generate-meeting-notes pipeline)');
-          }
+          console.log('🚀 Notes generation triggered (fire-and-forget) for meeting:', savedMeeting.id);
+          
+          // Safety net: if notes haven't started generating after 3 minutes,
+          // retry the edge function call once. This catches cases where the
+          // initial fire-and-forget request was dropped entirely.
+          setTimeout(async () => {
+            try {
+              const { data: check } = await supabase
+                .from('meetings')
+                .select('notes_generation_status')
+                .eq('id', savedMeeting.id)
+                .single();
+              
+              if (check?.notes_generation_status === 'not_started' || check?.notes_generation_status === 'queued') {
+                console.warn('🔄 Safety net: notes still not generating after 3min, retrying...');
+                supabase.functions
+                  .invoke('auto-generate-meeting-notes', {
+                    body: { meetingId: savedMeeting.id, forceRegenerate: false, modelOverride, skipQc }
+                  })
+                  .catch(() => console.warn('Safety net retry also timed out client-side'));
+              }
+            } catch (e) {
+              console.warn('Safety net check failed:', e);
+            }
+          }, 180_000); // 3 minutes
 
           // Clean up session storage
           sessionStorage.removeItem('currentSessionId');
