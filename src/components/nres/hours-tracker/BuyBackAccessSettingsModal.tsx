@@ -377,12 +377,14 @@ function RatesAndRolesPanel() {
     if (!newRoleLabel.trim()) return;
     const key = newRoleLabel.trim().toLowerCase().replace(/\s+/g, '_');
     if (roles.some(r => r.key === key)) return;
+    const { getDefaultGroundRules } = require('./GroundRulesEditor');
     setRoles(prev => [...prev, {
       key,
       label: newRoleLabel.trim(),
       annual_rate: 0,
       allocation_default: 'hours' as const,
       working_hours_per_year: 1950,
+      ground_rules: getDefaultGroundRules(key),
     }]);
     setNewRoleLabel('');
   };
