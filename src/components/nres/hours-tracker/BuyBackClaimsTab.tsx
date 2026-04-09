@@ -552,7 +552,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Practices</SelectItem>
-              {accessFilteredPracticeKeys.map(k => (
+              {effectivePracticeKeys.map(k => (
                 <SelectItem key={k} value={k}>{ALL_PRACTICES[k]}</SelectItem>
               ))}
             </SelectContent>
@@ -570,7 +570,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={ALL_PRACTICE_KEYS} practiceNames={ALL_PRACTICES} />
+          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={effectivePracticeKeys} practiceNames={ALL_PRACTICES} />
 
           {/* Staff list */}
           {filteredStaff.length > 0 && (
@@ -711,13 +711,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           )}
           {effectiveIsAdmin && (
             <div className="flex gap-2 mt-2">
-              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(claims, filterPractice, filterStatus)}>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus)}>
                 <Download className="w-3 h-3" /> Export Detail
               </Button>
-              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportMonthlySummary(claims, filterPractice)}>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportMonthlySummary(accessFilteredClaims, effectiveFilterPractice)}>
                 <Download className="w-3 h-3" /> Export Summary
               </Button>
-              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportYTDRunningTotals(claims)}>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportYTDRunningTotals(accessFilteredClaims)}>
                 <Download className="w-3 h-3" /> Export YTD
               </Button>
             </div>
