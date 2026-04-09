@@ -960,7 +960,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject, onVerify }: {
+function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
   claim: BuyBackClaim;
   claimCategory: 'buyback' | 'new_sda' | 'mixed';
   userId?: string;
@@ -978,16 +978,19 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   onApprove: (id: string, notes?: string) => void;
   onReject: (id: string, notes: string) => void;
   onVerify?: (id: string, notes?: string) => void;
+  onQuery?: (id: string, notes: string) => void;
+  onMarkPaid?: (id: string) => void;
 }) {
   const [editingNoteIdx, setEditingNoteIdx] = useState<number | null>(null);
   const [noteText, setNoteText] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const isDraft = claim.status === 'draft';
+  const isQueried = claim.status === 'queried';
   const isRejected = claim.status === 'rejected';
   const isSubmitted = claim.status === 'submitted';
   const isVerified = claim.status === 'verified';
-  const canEdit = (isDraft || isRejected) && (userId === claim.user_id || isAdmin);
+  const canEdit = (isDraft || isQueried) && (userId === claim.user_id || isAdmin);
   const canApprove = canApproveClaim;
   const staffDetails = claim.staff_details as any[];
 
@@ -1001,9 +1004,22 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
       submitted: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
       verified: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
       approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      queried: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+      invoiced: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      paid: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
       rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     };
-    return <Badge className={variants[status] || ''}>{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>;
+    const labels: Record<string, string> = {
+      draft: 'Draft',
+      submitted: 'Submitted',
+      verified: 'Verified',
+      approved: 'Approved',
+      queried: 'Queried — Awaiting Amendment',
+      invoiced: 'Invoiced',
+      paid: 'Paid',
+      rejected: 'Rejected (Closed)',
+    };
+    return <Badge className={variants[status] || ''}>{labels[status] || status}</Badge>;
   };
 
   const totalCalculated = staffDetails.reduce((sum, s) => sum + getStaffMaxAmount(s, claim.claim_month, rateParams), 0);
