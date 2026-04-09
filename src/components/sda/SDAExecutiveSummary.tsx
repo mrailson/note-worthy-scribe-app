@@ -170,11 +170,10 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                       </span>
                     </div>
                     <div className="flex-1" />
-                    {/* ElevenLabs Conversational AI Widget */}
+                    {/* ElevenLabs Voice Agent */}
                     <div className="mt-3 pt-3 border-t border-slate-200">
                       <p className="text-xs text-slate-500 font-medium mb-2">AI Programme Assistant</p>
-                      {/* @ts-ignore */}
-                      <elevenlabs-convai agent-id="agent_01jwry2fzme7xsb2mwzatxseyt"></elevenlabs-convai>
+                      <NRESVoiceAgent />
                     </div>
                   </CardContent>
                 </Card>
