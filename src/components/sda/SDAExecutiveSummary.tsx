@@ -150,6 +150,41 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
           <CollapsibleContent>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Card 1 — GP Notewell AI Assistant */}
+                <Card className="border-0 shadow-sm hover:shadow-lg transition-shadow flex flex-col overflow-hidden" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 50%, #f0f0ff 100%)' }}>
+                  <CardContent className="p-6 flex flex-col flex-1 relative">
+                    <div className="absolute top-4 right-4 opacity-60">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#6366f1" opacity="0.7"/></svg>
+                    </div>
+                    <p className="text-lg font-bold text-slate-900">GP Notewell AI</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Your intelligent programme assistant</p>
+                    <ul className="mt-4 space-y-2.5 text-xs text-slate-700">
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0">💬</span>
+                        <span>Ask clinical questions — get GP-level guidance instantly</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0">📊</span>
+                        <span>NRES programme knowledge — targets, funding, buy-back, practices</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0">🏥</span>
+                        <span>Practice management — CQC, HR, complaints, NHS contracts</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0">❤️</span>
+                        <span>Patient support — plain English health advice</span>
+                      </li>
+                    </ul>
+                    <p className="text-[10px] text-indigo-600 font-medium mt-4 italic">Powered by AI, grounded in NHS guidance. Try it now.</p>
+                    <div className="flex-1" />
+                    <div className="mt-4">
+                      <NRESVoiceAgent />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Card 2 — Key Programme Metrics (consolidated) */}
                 <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col">
                   <CardContent className="p-6 flex flex-col flex-1">
                     <div className="flex items-start justify-between">
@@ -162,6 +197,20 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                         <Users className="w-6 h-6 text-[#005EB8]" />
                       </div>
                     </div>
+
+                    <div className="mt-3 pt-3 border-t border-slate-200">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">Contract Value (per year)</p>
+                          <p className="text-2xl font-bold text-slate-900 mt-0.5">{customMetrics?.contractValue || '£2.36m'}</p>
+                          <p className="text-xs text-slate-600 mt-0.5">{customMetrics?.contractDetail || '£2,358,746.72 p/a · 2-year pilot'}</p>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+                          <PoundSterling className="w-5 h-5 text-green-600" />
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="mt-3 pt-3 border-t border-slate-200 flex items-center gap-3">
                       <div>
                         <p className="text-xs text-slate-500 font-medium">Annual Capacity</p>
@@ -171,25 +220,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                         50% Remote Assumption
                       </span>
                     </div>
-                    <div className="flex-1" />
-                    <NRESVoiceAgent />
-                  </CardContent>
-                </Card>
-      <NRESWidgetLoader />
 
-
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col">
-                  <CardContent className="p-6 flex flex-col flex-1">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm text-slate-500 font-medium">Contract Value (per year)</p>
-                        <p className="text-3xl font-bold text-slate-900 mt-1">{customMetrics?.contractValue || '£2.36m'}</p>
-                        <p className="text-sm text-slate-600 mt-1">{customMetrics?.contractDetail || '£2,358,746.72 p/a · 2-year pilot'}</p>
-                      </div>
-                      <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
-                        <PoundSterling className="w-6 h-6 text-green-600" />
-                      </div>
-                    </div>
                     <div className="flex-1" />
                     {/* Reporting Requirements Button */}
                     <div
