@@ -1,6 +1,7 @@
 import { useState, lazy, Suspense } from "react";
 import { NRESWidgetEmbed } from "@/components/nres/NRESWidgetLoader";
 import { NRESTranslateAgent } from "@/components/nres/NRESTranslateAgent";
+import { NRESPatientAgent } from "@/components/nres/NRESPatientAgent";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -208,6 +209,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🚨</span><span>I'll always tell you when to seek urgent help</span></li>
                           </ul>
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">No jargon. No judgement. Just clear, caring advice.</p>
+                          <NRESPatientAgent />
                         </>
                       )}
                       {aiCardTab === "GP" && (
