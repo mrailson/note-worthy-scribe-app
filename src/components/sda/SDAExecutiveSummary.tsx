@@ -238,7 +238,9 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <p className="text-[10px] text-slate-400 mt-2">Updated: 09 April 2026</p>
                   </CardContent>
                 </Card>
+                </div>
 
+                {/* Column 3 — Logos & Status */}
                 <div className="flex flex-col gap-4 h-full">
                   <div className="flex justify-center items-center gap-6">
                     {customLogos ? (
