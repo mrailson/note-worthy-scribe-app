@@ -1238,7 +1238,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 {/* Saved notes row */}
                 {hasNotes && editingNoteIdx !== idx && (
                   <tr key={`saved-note-${idx}`} className="border-b">
-                    <td colSpan={canEdit ? 8 : 7} className="px-2 py-1">
+                    <td colSpan={canEdit ? 9 : 8} className="px-2 py-1">
                       <p className="text-xs text-muted-foreground italic">
                         <MessageSquarePlus className="w-3 h-3 inline mr-1 text-blue-600" />
                         {s.notes}
@@ -1249,7 +1249,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 {/* Inline notes editor */}
                 {editingNoteIdx === idx && canEdit && (
                   <tr key={`note-${idx}`} className="border-b bg-muted/10">
-                    <td colSpan={canEdit ? 8 : 7} className="p-2">
+                    <td colSpan={canEdit ? 9 : 8} className="p-2">
                       <div className="flex gap-2 items-start">
                         <Input
                           className="flex-1 text-xs"
@@ -1285,7 +1285,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 )}
                 {/* Inline staff evidence */}
                 <tr key={`evidence-${idx}`} className="border-b">
-                  <td colSpan={canEdit ? 8 : 7} className="p-0">
+                  <td colSpan={canEdit ? 9 : 8} className="p-0">
                     <StaffLineEvidence
                       staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda'}
                       staffIndex={idx}
