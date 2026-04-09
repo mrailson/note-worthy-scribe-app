@@ -1379,15 +1379,15 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
         </div>
       )}
 
-      {/* Admin Approval Actions */}
+      {/* Admin Approval Actions — with Query option */}
       {canApprove && (
-        <div className="px-3 py-3 border-t bg-green-50/50 dark:bg-green-950/20 space-y-2">
-          <p className="text-xs font-medium text-green-800 dark:text-green-200">Final approval</p>
+        <div className="px-3 py-3 border-t bg-indigo-50/50 dark:bg-indigo-950/20 space-y-2">
+          <p className="text-xs font-medium text-indigo-800 dark:text-indigo-200">PML Finance Review</p>
           <div className="flex gap-2 items-end">
             <div className="flex-1">
               <Input
                 className="text-xs"
-                placeholder="Review notes (optional for approval, required for rejection)..."
+                placeholder="Notes (required for Query and Reject)..."
                 value={reviewNotes}
                 onChange={e => setReviewNotes(e.target.value)}
               />
@@ -1395,13 +1395,27 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
             <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => { onApprove(claim.id, reviewNotes); setReviewNotes(''); }}>
               <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
             </Button>
-            <Button size="sm" variant="destructive" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onReject(claim.id, reviewNotes); setReviewNotes(''); }} disabled={showRejectInput && !reviewNotes.trim()}>
+            <Button size="sm" variant="outline" className="border-orange-400 text-orange-700 hover:bg-orange-50" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onQuery?.(claim.id, reviewNotes); setReviewNotes(''); }}>
+              <MessageSquarePlus className="w-3.5 h-3.5 mr-1" /> Query
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onReject(claim.id, reviewNotes); setReviewNotes(''); }}>
               <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
             </Button>
           </div>
           {showRejectInput && !reviewNotes.trim() && (
-            <p className="text-xs text-destructive">Please enter a reason for rejection above.</p>
+            <p className="text-xs text-destructive">Please enter notes above before querying or rejecting.</p>
           )}
+          <p className="text-[10px] text-muted-foreground">Query returns claim for amendment. Reject closes it permanently.</p>
+        </div>
+      )}
+
+      {/* Mark as Paid action for approved/invoiced claims */}
+      {isAdmin && (claim.status === 'approved' || claim.status === 'invoiced') && onMarkPaid && (
+        <div className="px-3 py-3 border-t bg-green-50/50 dark:bg-green-950/20 flex items-center justify-between">
+          <p className="text-xs font-medium text-green-800 dark:text-green-200">Payment Processing</p>
+          <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => onMarkPaid(claim.id)}>
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark as Paid
+          </Button>
         </div>
       )}
     </div>
