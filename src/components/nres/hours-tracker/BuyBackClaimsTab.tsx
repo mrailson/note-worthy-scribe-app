@@ -330,19 +330,24 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       ? ALL_PRACTICE_KEYS
       : ALL_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k)));
 
+  // Auto-set practice selections when in practice test mode
+  const testPracticeLocked = testActive && testMode.role === 'practice' && testMode.selectedPractice;
+  const effectiveClaimPractice = testPracticeLocked ? testMode.selectedPractice! : claimPractice;
+  const effectiveFilterPracticeForStaff = testPracticeLocked ? testMode.selectedPractice! : effectiveFilterPractice;
+
   // Filter staff by practice — respect access assignments (use effective keys for test mode)
   const accessFilteredStaff = activeStaff.filter(s =>
     !s.practice_key || effectivePracticeKeys.includes(s.practice_key as string)
   );
-  const filteredStaff = effectiveFilterPractice === 'all'
+  const filteredStaff = effectiveFilterPracticeForStaff === 'all'
     ? accessFilteredStaff
-    : accessFilteredStaff.filter(s => s.practice_key === effectiveFilterPractice);
+    : accessFilteredStaff.filter(s => s.practice_key === effectiveFilterPracticeForStaff);
 
   const totalCalculated = filteredStaff.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, undefined, undefined, rateParams), 0);
 
   const handleCreateClaim = async () => {
     if (filteredStaff.length === 0) return;
-    const practiceForClaim = claimPractice || (effectiveFilterPractice !== 'all' ? effectiveFilterPractice : '');
+    const practiceForClaim = effectiveClaimPractice || (effectiveFilterPractice !== 'all' ? effectiveFilterPractice : '');
     if (!practiceForClaim) return;
     const monthDate = `${claimMonth}-01`;
     const staffForClaim = filteredStaff.filter(s => s.practice_key === practiceForClaim);
@@ -552,7 +557,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Practices</SelectItem>
-              {accessFilteredPracticeKeys.map(k => (
+              {effectivePracticeKeys.map(k => (
                 <SelectItem key={k} value={k}>{ALL_PRACTICES[k]}</SelectItem>
               ))}
             </SelectContent>
@@ -570,7 +575,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={ALL_PRACTICE_KEYS} practiceNames={ALL_PRACTICES} />
+          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={effectivePracticeKeys} practiceNames={ALL_PRACTICES} />
 
           {/* Staff list */}
           {filteredStaff.length > 0 && (
@@ -643,7 +648,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           <div className="flex flex-wrap gap-4 items-end">
             <div>
               <Label>Practice</Label>
-              <Select value={claimPractice} onValueChange={setClaimPractice}>
+              <Select value={effectiveClaimPractice} onValueChange={setClaimPractice} disabled={!!testPracticeLocked}>
                 <SelectTrigger className="w-[220px]">
                   <SelectValue placeholder="Select practice" />
                 </SelectTrigger>
@@ -658,7 +663,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               <Label>Claim Month</Label>
               <Input type="month" value={claimMonth} onChange={e => setClaimMonth(e.target.value)} />
             </div>
-            <Button onClick={handleCreateClaim} disabled={savingClaim || filteredStaff.length === 0 || !claimPractice}>
+            <Button onClick={handleCreateClaim} disabled={savingClaim || filteredStaff.length === 0 || !effectiveClaimPractice}>
               {savingClaim ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
               Create Claim
             </Button>
@@ -666,7 +671,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           {filteredStaff.length === 0 && (
             <p className="text-sm text-muted-foreground">Add staff members above before creating a claim.</p>
           )}
-          {!claimPractice && filteredStaff.length > 0 && (
+          {!effectiveClaimPractice && filteredStaff.length > 0 && (
             <p className="text-sm text-muted-foreground">Select a practice to create a claim.</p>
           )}
         </CardContent>
@@ -711,13 +716,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           )}
           {effectiveIsAdmin && (
             <div className="flex gap-2 mt-2">
-              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(claims, filterPractice, filterStatus)}>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus)}>
                 <Download className="w-3 h-3" /> Export Detail
               </Button>
-              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportMonthlySummary(claims, filterPractice)}>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportMonthlySummary(accessFilteredClaims, effectiveFilterPractice)}>
                 <Download className="w-3 h-3" /> Export Summary
               </Button>
-              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportYTDRunningTotals(claims)}>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportYTDRunningTotals(accessFilteredClaims)}>
                 <Download className="w-3 h-3" /> Export YTD
               </Button>
             </div>
