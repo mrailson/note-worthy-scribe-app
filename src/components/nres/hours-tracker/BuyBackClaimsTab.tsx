@@ -264,7 +264,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
 
   const isAdmin = admin;
-  
+
+  // Test mode state — UI-only, admin users only
+  const [testMode, setTestMode] = useState<TestModeState>({ enabled: false, role: 'admin' });
+  const testActive = isAdmin && testMode.enabled && testMode.role !== 'admin';
 
   // New claim state
   const [claimMonth, setClaimMonth] = useState(() => {
