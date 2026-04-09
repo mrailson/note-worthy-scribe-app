@@ -1,9 +1,11 @@
-import { useRef, useState } from 'react';
-import { Upload, FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { useRef, useState, useMemo } from 'react';
+import { Upload, FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNRESClaimEvidence, type ClaimEvidenceFile } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig, type EvidenceConfigRow } from '@/hooks/useNRESEvidenceConfig';
+import { SmartUploadZone } from './SmartUploadZone';
+import { generateEvidenceSummaryFallback } from '@/utils/evidenceAiSummary';
 
 interface ClaimEvidencePanelProps {
   claimId: string;
@@ -62,7 +64,7 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
   );
 }
 
-/** Reusable evidence slot component – exported for use in StaffLineEvidence */
+/** Reusable evidence slot component */
 export function EvidenceSlot({
   config,
   uploadedFile,
@@ -128,31 +130,14 @@ export function EvidenceSlot({
           </Button>
         )}
         {hasFile && canEdit && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs text-destructive"
-            onClick={() => onDelete(uploadedFile!.id)}
-          >
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => onDelete(uploadedFile!.id)}>
             <Trash2 className="w-3 h-3" />
           </Button>
         )}
         {!hasFile && canEdit && (
           <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif"
-              onChange={handleFileSelect}
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 px-2 text-xs"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-            >
+            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif" onChange={handleFileSelect} />
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
               {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
               Upload
             </Button>
@@ -163,22 +148,32 @@ export function EvidenceSlot({
   );
 }
 
-/** Evidence type definitions for inline staff-line evidence */
-const SDA_EVIDENCE_TYPES: EvidenceConfigRow[] = [
-  { id: 'sda-slot', evidence_type: 'sda_slot_type', label: 'SDA Slot Type', description: 'Screenshot or document showing SDA session/slot allocation', is_mandatory: true, applies_to: 'all', sort_order: 1, updated_by: null, updated_at: '' },
-  { id: 'sda-rota', evidence_type: 'sda_rota', label: 'SDA Rota', description: 'Rota showing SDA activity delivery', is_mandatory: true, applies_to: 'all', sort_order: 2, updated_by: null, updated_at: '' },
+/** Evidence types for Buy-Back staff */
+const BUYBACK_EVIDENCE_TYPES: EvidenceConfigRow[] = [
+  { id: 'bb-sda-rota', evidence_type: 'sda_rota', label: 'SDA Rota / Session Allocation', description: 'Screenshot or rota showing SDA sessions/slots allocated to this staff member', is_mandatory: true, applies_to: 'buyback', sort_order: 1, updated_by: null, updated_at: '' },
+  { id: 'bb-ltc-rota', evidence_type: 'ltc_rota', label: 'LTC Rota / Part B Backfill', description: 'Rota proving matching LTC delivery is happening for the bought-back time', is_mandatory: true, applies_to: 'buyback', sort_order: 2, updated_by: null, updated_at: '' },
+  { id: 'bb-payslip', evidence_type: 'payslip', label: 'Payslip (redacted OK)', description: 'Payslip proving the cost basis — personal details can be redacted', is_mandatory: true, applies_to: 'buyback', sort_order: 3, updated_by: null, updated_at: '' },
+  { id: 'bb-contract', evidence_type: 'contract_variation', label: 'Contract / Allocation Letter', description: 'Contract variation or letter confirming the SDA buy-back allocation', is_mandatory: false, applies_to: 'buyback', sort_order: 4, updated_by: null, updated_at: '' },
+  { id: 'bb-other', evidence_type: 'other_supporting', label: 'Other Supporting Evidence', description: 'Any additional supporting documentation', is_mandatory: false, applies_to: 'buyback', sort_order: 5, updated_by: null, updated_at: '' },
 ];
 
-const LTC_EVIDENCE_TYPES: EvidenceConfigRow[] = [
-  { id: 'ltc-slot', evidence_type: 'ltc_slot_type', label: 'LTC Slot Type (Part B)', description: 'Screenshot or document showing LTC session/slot allocation', is_mandatory: true, applies_to: 'buyback', sort_order: 3, updated_by: null, updated_at: '' },
-  { id: 'ltc-rota', evidence_type: 'ltc_rota', label: 'LTC Rota (Part B)', description: 'Rota showing matching LTC activity delivery', is_mandatory: true, applies_to: 'buyback', sort_order: 4, updated_by: null, updated_at: '' },
+/** Evidence types for New SDA staff */
+const NEW_SDA_EVIDENCE_TYPES: EvidenceConfigRow[] = [
+  { id: 'ns-employment', evidence_type: 'employment_agreement', label: 'Employment Agreement', description: 'Offer letter or employment contract for this SDA role', is_mandatory: true, applies_to: 'new_sda', sort_order: 1, updated_by: null, updated_at: '' },
+  { id: 'ns-payslip', evidence_type: 'payslip', label: 'Payslip (redacted OK)', description: 'Payslip proving employment and cost basis — personal details can be redacted', is_mandatory: true, applies_to: 'new_sda', sort_order: 2, updated_by: null, updated_at: '' },
+  { id: 'ns-registration', evidence_type: 'professional_registration', label: 'Professional Registration', description: 'GMC, NMC, or HCPC registration confirmation for this clinician', is_mandatory: true, applies_to: 'new_sda', sort_order: 3, updated_by: null, updated_at: '' },
+  { id: 'ns-sda-rota', evidence_type: 'sda_rota', label: 'SDA Rota / Session Allocation', description: 'Screenshot or rota showing SDA sessions being delivered', is_mandatory: true, applies_to: 'new_sda', sort_order: 4, updated_by: null, updated_at: '' },
+  { id: 'ns-other', evidence_type: 'other_supporting', label: 'Other Supporting Evidence', description: 'Any additional supporting documentation', is_mandatory: false, applies_to: 'new_sda', sort_order: 5, updated_by: null, updated_at: '' },
 ];
 
 /** Inline evidence component for a single staff member row */
 export function StaffLineEvidence({
   staffCategory,
   staffIndex,
+  staffName,
+  staffRole,
   uploadedTypesForStaff,
+  allFilesForStaff,
   canEdit,
   uploading,
   onUpload,
@@ -187,24 +182,46 @@ export function StaffLineEvidence({
 }: {
   staffCategory: 'buyback' | 'new_sda';
   staffIndex: number;
+  staffName?: string;
+  staffRole?: string;
   uploadedTypesForStaff: Record<string, ClaimEvidenceFile>;
+  allFilesForStaff?: ClaimEvidenceFile[];
   canEdit: boolean;
   uploading: boolean;
   onUpload: (evidenceType: string, file: File, staffIndex: number) => Promise<any>;
   onDelete: (id: string) => Promise<void>;
   onDownload: (filePath: string) => Promise<string | null>;
 }) {
-  // For Buy-Back: SDA mandatory + LTC mandatory
-  // For New SDA: SDA mandatory + LTC optional
-  const ltcTypes = LTC_EVIDENCE_TYPES.map(t => ({
-    ...t,
-    is_mandatory: staffCategory === 'buyback',
-  }));
-  const allTypes = [...SDA_EVIDENCE_TYPES, ...ltcTypes];
+  const allTypes = staffCategory === 'buyback' ? BUYBACK_EVIDENCE_TYPES : NEW_SDA_EVIDENCE_TYPES;
 
   const uploadedCount = Object.keys(uploadedTypesForStaff).length;
   const mandatoryTypes = allTypes.filter(t => t.is_mandatory);
   const mandatoryUploaded = mandatoryTypes.filter(t => !!uploadedTypesForStaff[t.evidence_type]).length;
+
+  // Generate fallback AI summary
+  const aiSummary = useMemo(() => {
+    const files = allFilesForStaff || Object.values(uploadedTypesForStaff);
+    if (files.length === 0) return '';
+    return generateEvidenceSummaryFallback(
+      staffName || 'Staff',
+      staffRole || 'Unknown',
+      staffCategory,
+      files.map(f => ({ file_name: f.file_name, evidence_type: f.evidence_type, file_size: f.file_size })),
+    );
+  }, [uploadedTypesForStaff, allFilesForStaff, staffName, staffRole, staffCategory]);
+
+  // Handle multi-file drop/paste — assign to 'other_supporting' by default
+  const handleSmartUpload = async (files: File[]) => {
+    // Find first missing mandatory type
+    const missingMandatory = mandatoryTypes.filter(t => !uploadedTypesForStaff[t.evidence_type]);
+
+    for (let i = 0; i < files.length; i++) {
+      const targetType = (files.length === 1 && missingMandatory.length === 1)
+        ? missingMandatory[0].evidence_type
+        : 'other_supporting';
+      await onUpload(targetType, files[i], staffIndex);
+    }
+  };
 
   return (
     <div className="bg-slate-50/80 dark:bg-slate-900/30">
@@ -232,6 +249,28 @@ export function StaffLineEvidence({
           />
         ))}
       </div>
+
+      {/* Smart Upload Zone for drag-drop / paste */}
+      {canEdit && (
+        <div className="px-4 py-2 border-t">
+          <SmartUploadZone
+            onFilesSelected={handleSmartUpload}
+            uploading={uploading}
+            multiple
+          />
+        </div>
+      )}
+
+      {/* AI Evidence Summary */}
+      {aiSummary && (
+        <div className="px-4 py-2 border-t flex items-start gap-2 bg-blue-50/50 dark:bg-blue-950/20">
+          <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+          <p className="text-[11px] text-muted-foreground">
+            <span className="font-medium text-blue-700 dark:text-blue-300">Summary: </span>
+            {aiSummary}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -250,17 +289,16 @@ export function useStaffLineEvidenceComplete(
     const cat = s.staff_category || 'buyback';
     const uploaded = getUploadedTypesForStaff(i);
 
-    // SDA evidence is always mandatory
-    const sdaMandatory = SDA_EVIDENCE_TYPES;
-    // LTC mandatory only for buyback
-    const ltcMandatory = cat === 'buyback' ? LTC_EVIDENCE_TYPES : [];
-    const mandatory = [...sdaMandatory, ...ltcMandatory];
+    // Use the correct evidence types per category
+    const mandatoryTypes = cat === 'buyback'
+      ? BUYBACK_EVIDENCE_TYPES.filter(t => t.is_mandatory)
+      : NEW_SDA_EVIDENCE_TYPES.filter(t => t.is_mandatory);
 
-    totalMandatory += mandatory.length;
-    const staffUploaded = mandatory.filter(t => !!uploaded[t.evidence_type]).length;
+    totalMandatory += mandatoryTypes.length;
+    const staffUploaded = mandatoryTypes.filter(t => !!uploaded[t.evidence_type]).length;
     totalUploaded += staffUploaded;
 
-    if (staffUploaded < mandatory.length) {
+    if (staffUploaded < mandatoryTypes.length) {
       allComplete = false;
     }
   }
