@@ -116,12 +116,6 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
       <div className="flex items-center gap-2">
         <TabsList>
-          {neighbourhoodName !== 'ENN' && (
-            <TabsTrigger value="time-expenses" className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Pre Go-Live Time & Expenses
-            </TabsTrigger>
-          )}
           <TabsTrigger value="buy-back" className="flex items-center gap-2">
             <ArrowLeftRight className="w-4 h-4" />
             SDA Resource &amp; Buy-Back Claims
@@ -130,16 +124,6 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
             <PoundSterling className="w-4 h-4" />
             Finance, Governance & Insurance
           </TabsTrigger>
-          <TabsTrigger value="risks" className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            Risks & Mitigation
-          </TabsTrigger>
-          {!hideEvidenceLibrary && (
-            <TabsTrigger value="evidence" className="flex items-center gap-2">
-              <FolderOpen className="w-4 h-4" />
-              Evidence Library
-            </TabsTrigger>
-          )}
         </TabsList>
         {activeTab === 'buy-back' && admin && (
           <TooltipProvider>
