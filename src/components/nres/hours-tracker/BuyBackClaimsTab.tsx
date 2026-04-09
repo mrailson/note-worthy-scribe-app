@@ -1556,7 +1556,12 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
             {!evidenceComplete && (
               <span className="text-[10px] text-red-500">Upload all required evidence first</span>
             )}
-            <Button size="sm" onClick={() => onSubmit(claim.id)} disabled={!claim.declaration_confirmed || !evidenceComplete}>
+            {unacknowledgedTotal > 0 && (
+              <span className="text-[10px] text-red-500">
+                {unacknowledgedTotal} role requirement{unacknowledgedTotal !== 1 ? 's' : ''} need confirming
+              </span>
+            )}
+            <Button size="sm" onClick={() => onSubmit(claim.id)} disabled={!claim.declaration_confirmed || !evidenceComplete || unacknowledgedTotal > 0}>
               <Send className="w-3 h-3 mr-1" /> Submit
             </Button>
           </div>
