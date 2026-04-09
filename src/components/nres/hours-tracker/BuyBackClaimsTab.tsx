@@ -966,6 +966,16 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   const [noteText, setNoteText] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const debouncedUpdateStaffLine = useCallback((claimId: string, staffIndex: number, updates: any) => {
+    const key = `${claimId}-${staffIndex}`;
+    if (debounceRef.current[key]) clearTimeout(debounceRef.current[key]);
+    debounceRef.current[key] = setTimeout(() => {
+      onUpdateStaffLine(claimId, staffIndex, updates, rateParams);
+      delete debounceRef.current[key];
+    }, 400);
+  }, [onUpdateStaffLine, rateParams]);
   const isDraft = claim.status === 'draft';
   const isQueried = claim.status === 'queried';
   const isRejected = claim.status === 'rejected';
