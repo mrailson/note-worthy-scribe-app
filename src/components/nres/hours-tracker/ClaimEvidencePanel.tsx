@@ -148,24 +148,6 @@ export function EvidenceSlot({
   );
 }
 
-/** Evidence types for Buy-Back staff */
-const BUYBACK_EVIDENCE_TYPES: EvidenceConfigRow[] = [
-  { id: 'bb-sda-rota', evidence_type: 'sda_rota', label: 'SDA Rota / Session Allocation', description: 'Screenshot or rota showing SDA sessions/slots allocated to this staff member', is_mandatory: true, applies_to: 'buyback', sort_order: 1, updated_by: null, updated_at: '' },
-  { id: 'bb-ltc-rota', evidence_type: 'ltc_rota', label: 'LTC Rota / Part B Backfill', description: 'Rota proving matching LTC delivery is happening for the bought-back time', is_mandatory: true, applies_to: 'buyback', sort_order: 2, updated_by: null, updated_at: '' },
-  { id: 'bb-payslip', evidence_type: 'payslip', label: 'Payslip (redacted OK)', description: 'Payslip proving the cost basis — personal details can be redacted', is_mandatory: true, applies_to: 'buyback', sort_order: 3, updated_by: null, updated_at: '' },
-  { id: 'bb-contract', evidence_type: 'contract_variation', label: 'Contract / Allocation Letter', description: 'Contract variation or letter confirming the SDA buy-back allocation', is_mandatory: false, applies_to: 'buyback', sort_order: 4, updated_by: null, updated_at: '' },
-  { id: 'bb-other', evidence_type: 'other_supporting', label: 'Other Supporting Evidence', description: 'Any additional supporting documentation', is_mandatory: false, applies_to: 'buyback', sort_order: 5, updated_by: null, updated_at: '' },
-];
-
-/** Evidence types for New SDA staff */
-const NEW_SDA_EVIDENCE_TYPES: EvidenceConfigRow[] = [
-  { id: 'ns-employment', evidence_type: 'employment_agreement', label: 'Employment Agreement', description: 'Offer letter or employment contract for this SDA role', is_mandatory: true, applies_to: 'new_sda', sort_order: 1, updated_by: null, updated_at: '' },
-  { id: 'ns-payslip', evidence_type: 'payslip', label: 'Payslip (redacted OK)', description: 'Payslip proving employment and cost basis — personal details can be redacted', is_mandatory: true, applies_to: 'new_sda', sort_order: 2, updated_by: null, updated_at: '' },
-  { id: 'ns-registration', evidence_type: 'professional_registration', label: 'Professional Registration', description: 'GMC, NMC, or HCPC registration confirmation for this clinician', is_mandatory: true, applies_to: 'new_sda', sort_order: 3, updated_by: null, updated_at: '' },
-  { id: 'ns-sda-rota', evidence_type: 'sda_rota', label: 'SDA Rota / Session Allocation', description: 'Screenshot or rota showing SDA sessions being delivered', is_mandatory: true, applies_to: 'new_sda', sort_order: 4, updated_by: null, updated_at: '' },
-  { id: 'ns-other', evidence_type: 'other_supporting', label: 'Other Supporting Evidence', description: 'Any additional supporting documentation', is_mandatory: false, applies_to: 'new_sda', sort_order: 5, updated_by: null, updated_at: '' },
-];
-
 /** Inline evidence component for a single staff member row */
 export function StaffLineEvidence({
   staffCategory,
@@ -192,7 +174,8 @@ export function StaffLineEvidence({
   onDelete: (id: string) => Promise<void>;
   onDownload: (filePath: string) => Promise<string | null>;
 }) {
-  const allTypes = staffCategory === 'buyback' ? BUYBACK_EVIDENCE_TYPES : NEW_SDA_EVIDENCE_TYPES;
+  const { getConfigForCategory } = useNRESEvidenceConfig();
+  const allTypes = getConfigForCategory(staffCategory);
 
   const uploadedCount = Object.keys(uploadedTypesForStaff).length;
   const mandatoryTypes = allTypes.filter(t => t.is_mandatory);
@@ -212,7 +195,6 @@ export function StaffLineEvidence({
 
   // Handle multi-file drop/paste — assign to 'other_supporting' by default
   const handleSmartUpload = async (files: File[]) => {
-    // Find first missing mandatory type
     const missingMandatory = mandatoryTypes.filter(t => !uploadedTypesForStaff[t.evidence_type]);
 
     for (let i = 0; i < files.length; i++) {
@@ -250,7 +232,6 @@ export function StaffLineEvidence({
         ))}
       </div>
 
-      {/* Smart Upload Zone for drag-drop / paste */}
       {canEdit && (
         <div className="px-4 py-2 border-t">
           <SmartUploadZone
@@ -261,7 +242,6 @@ export function StaffLineEvidence({
         </div>
       )}
 
-      {/* AI Evidence Summary */}
       {aiSummary && (
         <div className="px-4 py-2 border-t flex items-start gap-2 bg-blue-50/50 dark:bg-blue-950/20">
           <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
@@ -275,10 +255,11 @@ export function StaffLineEvidence({
   );
 }
 
-/** Hook-like helper to check if all mandatory evidence is uploaded per staff line */
+/** Hook-like helper to check if all mandatory evidence is uploaded per staff line — now config-driven */
 export function useStaffLineEvidenceComplete(
   staffDetails: any[],
   getUploadedTypesForStaff: (staffIndex: number) => Record<string, ClaimEvidenceFile>,
+  getConfigForCategory: (category: 'buyback' | 'new_sda' | 'mixed') => EvidenceConfigRow[],
 ) {
   let allComplete = true;
   let totalMandatory = 0;
@@ -289,10 +270,7 @@ export function useStaffLineEvidenceComplete(
     const cat = s.staff_category || 'buyback';
     const uploaded = getUploadedTypesForStaff(i);
 
-    // Use the correct evidence types per category
-    const mandatoryTypes = cat === 'buyback'
-      ? BUYBACK_EVIDENCE_TYPES.filter(t => t.is_mandatory)
-      : NEW_SDA_EVIDENCE_TYPES.filter(t => t.is_mandatory);
+    const mandatoryTypes = getConfigForCategory(cat).filter(t => t.is_mandatory);
 
     totalMandatory += mandatoryTypes.length;
     const staffUploaded = mandatoryTypes.filter(t => !!uploaded[t.evidence_type]).length;
