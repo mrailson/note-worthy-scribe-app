@@ -400,6 +400,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     </CardContent>
                   </Card>
                 </div>
+                </div>
               </div>
             </CardContent>
           </CollapsibleContent>
