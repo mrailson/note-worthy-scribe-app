@@ -224,7 +224,7 @@ function RatesAndRolesPanel() {
   const niPctNum = parseFloat(niPct) || 0;
   const pensionPctNum = parseFloat(pensionPct) || 0;
   const onCostsPctNum = niPctNum + pensionPctNum;
-  const onCostMultiplier = 1 + onCostsPctNum / 100;
+  const _onCostMultiplier = 1 + onCostsPctNum / 100;
 
   const handleRoleFieldChange = (index: number, field: keyof RoleConfig, value: any) => {
     setRoles(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r));

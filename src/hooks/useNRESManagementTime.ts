@@ -37,6 +37,7 @@ export interface ManagementRoleConfig {
   person_name: string;
   person_email: string;
   hourly_rate: number;
+  max_hours_per_week: number;
   billing_entity: string;
   billing_org_code: string;
   is_active: boolean;
