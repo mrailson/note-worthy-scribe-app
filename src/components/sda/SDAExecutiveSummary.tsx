@@ -151,6 +151,12 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
           <CollapsibleContent>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Column 1 — Innovation */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-5 w-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z"/></svg>
+                    <span className="font-semibold text-slate-900">Innovation</span>
+                  </div>
                 {/* Card 1 — GP Notewell AI Assistant */}
                 <Card className="border-0 shadow-sm hover:shadow-lg transition-shadow flex flex-col overflow-hidden" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 50%, #f0f0ff 100%)' }}>
                   <CardContent className="p-6 flex flex-col flex-1 relative">
