@@ -330,13 +330,18 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       ? ALL_PRACTICE_KEYS
       : ALL_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k)));
 
+  // Auto-set practice selections when in practice test mode
+  const testPracticeLocked = testActive && testMode.role === 'practice' && testMode.selectedPractice;
+  const effectiveClaimPractice = testPracticeLocked ? testMode.selectedPractice! : claimPractice;
+  const effectiveFilterPracticeForStaff = testPracticeLocked ? testMode.selectedPractice! : effectiveFilterPractice;
+
   // Filter staff by practice — respect access assignments (use effective keys for test mode)
   const accessFilteredStaff = activeStaff.filter(s =>
     !s.practice_key || effectivePracticeKeys.includes(s.practice_key as string)
   );
-  const filteredStaff = effectiveFilterPractice === 'all'
+  const filteredStaff = effectiveFilterPracticeForStaff === 'all'
     ? accessFilteredStaff
-    : accessFilteredStaff.filter(s => s.practice_key === effectiveFilterPractice);
+    : accessFilteredStaff.filter(s => s.practice_key === effectiveFilterPracticeForStaff);
 
   const totalCalculated = filteredStaff.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, undefined, undefined, rateParams), 0);
 
