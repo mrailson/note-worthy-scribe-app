@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { NRESWidgetEmbed } from "@/components/nres/NRESWidgetLoader";
+import { NRESTranslateAgent } from "@/components/nres/NRESTranslateAgent";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
