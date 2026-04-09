@@ -776,6 +776,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     onUpdateStaffAmount={updateStaffClaimedAmount}
                     onRemoveStaff={removeStaffFromClaim}
                     onUpdateStaffNotes={updateStaffNotes}
+                    onUpdateStaffLine={updateStaffLine}
                     onApprove={approveClaim}
                     onReject={rejectClaim}
                     onVerify={verifyClaim}
