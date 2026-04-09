@@ -7,6 +7,20 @@ import { getPracticeName } from '@/data/nresPractices';
 import { format, differenceInCalendarDays, subMonths, startOfMonth } from 'date-fns';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 
+const STORAGE_KEY = 'nres-unclaimed-dismissed';
+
+function loadDismissed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {}
+  return new Set();
+}
+
+function saveDismissed(keys: Set<string>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...keys]));
+}
+
 interface Props {
   claims: BuyBackClaim[];
   practiceKeys: string[];
@@ -22,8 +36,7 @@ interface PracticeMonthStatus {
 }
 
 export function UnclaimedFundsIndicator({ claims, practiceKeys }: Props) {
-  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(new Set());
-  const [dismissAll, setDismissAll] = useState(false);
+  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(loadDismissed);
   const [confirmTarget, setConfirmTarget] = useState<{ type: 'all' } | { type: 'single'; key: string; label: string } | null>(null);
 
   const statuses = useMemo(() => {
@@ -75,19 +88,28 @@ export function UnclaimedFundsIndicator({ claims, practiceKeys }: Props) {
   const expired = statuses.filter(s => s.status === 'expired');
   const approaching = statuses.filter(s => s.status === 'approaching');
 
-  if (dismissAll || (expired.length === 0 && approaching.length === 0)) return null;
+  if (expired.length === 0 && approaching.length === 0) return null;
 
   const visibleExpired = expired.filter(s => !dismissedKeys.has(`${s.practiceKey}-${s.claimMonth}`));
   const visibleApproaching = approaching.filter(s => !dismissedKeys.has(`${s.practiceKey}-${s.claimMonth}`));
 
   if (visibleExpired.length === 0 && visibleApproaching.length === 0) return null;
 
+  const persistDismiss = (newSet: Set<string>) => {
+    setDismissedKeys(newSet);
+    saveDismissed(newSet);
+  };
+
   const handleConfirm = () => {
     if (!confirmTarget) return;
     if (confirmTarget.type === 'all') {
-      setDismissAll(true);
+      const allKeys = new Set(dismissedKeys);
+      [...expired, ...approaching].forEach(s => allKeys.add(`${s.practiceKey}-${s.claimMonth}`));
+      persistDismiss(allKeys);
     } else {
-      setDismissedKeys(prev => new Set(prev).add(confirmTarget.key));
+      const next = new Set(dismissedKeys);
+      next.add(confirmTarget.key);
+      persistDismiss(next);
     }
     setConfirmTarget(null);
   };
