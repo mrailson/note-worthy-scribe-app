@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { exportClaimsDetail, exportMonthlySummary, exportYTDRunningTotals } from '@/utils/buybackExcelExport';
 import { TestModeBar, type TestModeState } from './TestModeBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -263,7 +264,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     currentUserEmail: user?.email || undefined,
     currentUserName: user?.user_metadata?.full_name || user?.email || undefined,
   }), [rateSettings.email_testing_mode, user?.email, user?.user_metadata?.full_name]);
-  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, markPaid, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims(emailConfig);
+  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, markPaid, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
   const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
 
@@ -776,6 +777,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     onUpdateStaffAmount={updateStaffClaimedAmount}
                     onRemoveStaff={removeStaffFromClaim}
                     onUpdateStaffNotes={updateStaffNotes}
+                    onUpdateStaffLine={updateStaffLine}
                     onApprove={approveClaim}
                     onReject={rejectClaim}
                     onVerify={verifyClaim}
@@ -939,7 +941,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
+function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
   claim: BuyBackClaim;
   claimCategory: 'buyback' | 'new_sda' | 'mixed';
   userId?: string;
@@ -954,6 +956,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   onUpdateStaffAmount: (claimId: string, staffIndex: number, amount: number) => void;
   onRemoveStaff: (claimId: string, staffIndex: number) => void;
   onUpdateStaffNotes: (claimId: string, staffIndex: number, notes: string) => void;
+  onUpdateStaffLine: (claimId: string, staffIndex: number, updates: { allocation_type?: string; allocation_value?: number; start_date?: string | null; claimed_amount?: number; notes?: string }, rateParams?: RateParams) => void;
   onApprove: (id: string, notes?: string) => void;
   onReject: (id: string, notes: string) => void;
   onVerify?: (id: string, notes?: string) => void;
@@ -964,6 +967,16 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   const [noteText, setNoteText] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const debouncedUpdateStaffLine = useCallback((claimId: string, staffIndex: number, updates: any) => {
+    const key = `${claimId}-${staffIndex}`;
+    if (debounceRef.current[key]) clearTimeout(debounceRef.current[key]);
+    debounceRef.current[key] = setTimeout(() => {
+      onUpdateStaffLine(claimId, staffIndex, updates, rateParams);
+      delete debounceRef.current[key];
+    }, 400);
+  }, [onUpdateStaffLine, rateParams]);
   const isDraft = claim.status === 'draft';
   const isQueried = claim.status === 'queried';
   const isRejected = claim.status === 'rejected';
@@ -1049,7 +1062,8 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
             <th className="text-left p-2 font-medium">Role</th>
             <th className="text-left p-2 font-medium">GL</th>
             <th className="text-left p-2 font-medium">Allocation</th>
-            <th className="text-right p-2 font-medium">Calculated</th>
+            <th className="text-left p-2 font-medium">Start Date</th>
+            <th className="text-right p-2 font-medium">Max Rate</th>
             <th className="text-right p-2 font-medium">Claimed</th>
             {canEdit && <th className="p-2 font-medium w-20"></th>}
           </tr>
@@ -1060,6 +1074,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
             const claimedAmount = s.claimed_amount ?? maxAmount;
             const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail);
             const hasNotes = !!s.notes;
+            const belowMax = claimedAmount < maxAmount && maxAmount > 0;
             return (
               <>
                 <tr key={idx} className="border-b">
@@ -1075,29 +1090,106 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                       ? <Badge className="bg-blue-100 text-blue-800 text-[10px]">GP</Badge>
                       : <Badge className="bg-purple-100 text-purple-800 text-[10px]">Other</Badge>}
                   </td>
-                  <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
+                  {/* Allocation — editable in draft/queried */}
+                  <td className="p-2">
+                    {canEdit ? (
+                      <div className="flex items-center gap-1">
+                        <Select
+                          value={s.allocation_type}
+                          onValueChange={(v) => {
+                            onUpdateStaffLine(claim.id, idx, { allocation_type: v }, rateParams);
+                          }}
+                        >
+                          <SelectTrigger className="h-7 w-[80px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sessions">Sessions</SelectItem>
+                            <SelectItem value="hours">Hrs/wk</SelectItem>
+                            <SelectItem value="wte">WTE</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          className="h-7 w-16 text-xs text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          defaultValue={s.allocation_value}
+                          min={0}
+                          max={s.allocation_type === 'sessions' ? 9 : s.allocation_type === 'hours' ? 37.5 : 1}
+                          step={s.allocation_type === 'wte' ? 0.1 : s.allocation_type === 'hours' ? 0.5 : 1}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val) && val >= 0) {
+                              debouncedUpdateStaffLine(claim.id, idx, { allocation_value: val });
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs">{s.allocation_value} {s.allocation_type}</span>
+                    )}
+                  </td>
+                  {/* Start Date — editable */}
+                  <td className="p-2">
+                    {canEdit ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="h-7 text-xs w-24 justify-start font-normal">
+                            <CalendarIcon className="w-3 h-3 mr-1" />
+                            {s.start_date ? format(new Date(s.start_date), 'dd/MM/yy') : '—'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={s.start_date ? new Date(s.start_date) : undefined}
+                            onSelect={(date) => onUpdateStaffLine(claim.id, idx, { start_date: date ? format(date, 'yyyy-MM-dd') : null }, rateParams)}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <span className="text-xs">{s.start_date ? format(new Date(s.start_date), 'dd/MM/yyyy') : '—'}</span>
+                    )}
+                  </td>
+                  {/* Max Rate */}
                   <td className="p-2 text-right">
                     <CalcBreakdownHover staff={s} claimMonth={claim.claim_month} amount={maxAmount} rateParams={rateParams} />
                   </td>
+                  {/* Claimed Amount — editable */}
                   <td className="p-2 text-right">
                     {canEdit ? (
                       <div className="space-y-0.5">
                         <Input
                           type="number"
-                          className="w-28 ml-auto text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                          value={claimedAmount.toFixed(2)}
-                          onChange={e => {
-                            const val = parseFloat(e.target.value) || 0;
-                            onUpdateStaffAmount(claim.id, idx, Math.min(val, maxAmount));
-                          }}
-                          min="0"
+                          className="h-7 w-28 ml-auto text-right text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          defaultValue={claimedAmount.toFixed(2)}
+                          min={0}
                           max={maxAmount}
-                          step="0.01"
+                          step={0.01}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            const capped = Math.min(val, maxAmount);
+                            if (val > maxAmount) {
+                              toast.info(`Capped at maximum reclaimable rate: ${fmtGBP(maxAmount)}`);
+                            }
+                            debouncedUpdateStaffLine(claim.id, idx, { claimed_amount: capped });
+                          }}
                         />
                         <p className="text-[10px] text-muted-foreground text-right">Max: {fmtGBP(maxAmount)}</p>
+                        {belowMax && (
+                          <p className="text-[10px] text-amber-600 text-right">
+                            Below max by {fmtGBP(maxAmount - claimedAmount)}
+                          </p>
+                        )}
                       </div>
                     ) : (
-                      fmtGBP(claimedAmount)
+                      <div>
+                        <span>{fmtGBP(claimedAmount)}</span>
+                        {belowMax && (
+                          <p className="text-[10px] text-amber-600">Below max by {fmtGBP(maxAmount - claimedAmount)}</p>
+                        )}
+                      </div>
                     )}
                   </td>
                   {canEdit && (
@@ -1146,7 +1238,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 {/* Saved notes row */}
                 {hasNotes && editingNoteIdx !== idx && (
                   <tr key={`saved-note-${idx}`} className="border-b">
-                    <td colSpan={canEdit ? 8 : 7} className="px-2 py-1">
+                    <td colSpan={canEdit ? 9 : 8} className="px-2 py-1">
                       <p className="text-xs text-muted-foreground italic">
                         <MessageSquarePlus className="w-3 h-3 inline mr-1 text-blue-600" />
                         {s.notes}
@@ -1157,7 +1249,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 {/* Inline notes editor */}
                 {editingNoteIdx === idx && canEdit && (
                   <tr key={`note-${idx}`} className="border-b bg-muted/10">
-                    <td colSpan={canEdit ? 8 : 7} className="p-2">
+                    <td colSpan={canEdit ? 9 : 8} className="p-2">
                       <div className="flex gap-2 items-start">
                         <Input
                           className="flex-1 text-xs"
@@ -1193,7 +1285,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                 )}
                 {/* Inline staff evidence */}
                 <tr key={`evidence-${idx}`} className="border-b">
-                  <td colSpan={canEdit ? 8 : 7} className="p-0">
+                  <td colSpan={canEdit ? 9 : 8} className="p-0">
                     <StaffLineEvidence
                       staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda'}
                       staffIndex={idx}
