@@ -175,6 +175,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <NRESVoiceAgent />
                   </CardContent>
                 </Card>
+      <NRESWidgetLoader />
 
 
                 <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col">
