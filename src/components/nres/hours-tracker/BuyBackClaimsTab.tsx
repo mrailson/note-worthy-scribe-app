@@ -1014,6 +1014,31 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   const { getConfigForCategory } = useNRESEvidenceConfig();
   const { allComplete: evidenceComplete } = useStaffLineEvidenceComplete(staffDetails, getUploadedTypesForStaff, getConfigForCategory);
 
+  // Ground rules helpers
+  const getRulesForRole = (roleLabel: string) => {
+    const rc = (rolesConfig || []).find(r => r.label.toLowerCase() === roleLabel?.toLowerCase());
+    return rc?.ground_rules || [];
+  };
+
+  const isRuleAcknowledged = (staffIdx: number, ruleId: string) => {
+    const acked: string[] = staffDetails[staffIdx]?.acknowledged_rules || [];
+    return acked.includes(ruleId);
+  };
+
+  const handleAcknowledgeRule = (staffIdx: number, ruleId: string, checked: boolean) => {
+    const current: string[] = staffDetails[staffIdx]?.acknowledged_rules || [];
+    const updated = checked ? [...current, ruleId] : current.filter(id => id !== ruleId);
+    onUpdateStaffLine(claim.id, staffIdx, { acknowledged_rules: updated });
+  };
+
+  // Count all unacknowledged required rules across all staff
+  const unacknowledgedTotal = staffDetails.reduce((sum, s, idx) => {
+    const rules = getRulesForRole(s.staff_role);
+    const required = rules.filter(r => r.requires_acknowledgement);
+    const acked: string[] = s.acknowledged_rules || [];
+    return sum + required.filter(r => !acked.includes(r.id)).length;
+  }, 0);
+
   const statusBadge = (status: string) => {
     const variants: Record<string, string> = {
       draft: 'bg-muted text-muted-foreground',
