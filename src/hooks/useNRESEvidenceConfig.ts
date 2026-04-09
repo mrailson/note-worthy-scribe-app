@@ -15,6 +15,8 @@ export interface EvidenceConfigRow {
   updated_at: string;
 }
 
+export type StaffEvidenceCategory = 'buyback' | 'new_sda' | 'mixed';
+
 export function useNRESEvidenceConfig() {
   const { user } = useAuth();
   const [config, setConfig] = useState<EvidenceConfigRow[]>([]);
@@ -59,12 +61,15 @@ export function useNRESEvidenceConfig() {
   }, [user?.email]);
 
   /** Get config rows applicable to a given staff category */
-  const getConfigForCategory = useCallback((category: 'buyback' | 'new_sda' | 'mixed') => {
-    if (category === 'buyback' || category === 'mixed') {
-      return config; // Buy-back gets all evidence types
+  const getConfigForCategory = useCallback((category: StaffEvidenceCategory) => {
+    if (category === 'mixed') {
+      return config; // Mixed gets everything
     }
-    // New SDA only gets 'all' evidence types (SDA slot type + rota)
-    return config.filter(c => c.applies_to === 'all');
+    if (category === 'buyback') {
+      return config.filter(c => c.applies_to === 'all' || c.applies_to === 'buyback');
+    }
+    // new_sda
+    return config.filter(c => c.applies_to === 'all' || c.applies_to === 'new_sda');
   }, [config]);
 
   /** Get mandatory evidence types for a category */

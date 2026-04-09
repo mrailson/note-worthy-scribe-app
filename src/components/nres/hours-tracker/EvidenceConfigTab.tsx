@@ -45,7 +45,7 @@ export function EvidenceConfigTab() {
                 <td className="px-3 py-2.5 text-muted-foreground">{cfg.description || '—'}</td>
                 <td className="px-3 py-2.5 text-center">
                   <Badge variant="outline" className="text-[10px]">
-                    {cfg.applies_to === 'all' ? 'All Routes' : 'Buy-Back Only'}
+                    {cfg.applies_to === 'all' ? 'All Roles' : cfg.applies_to === 'buyback' ? 'Buy-Back Only' : 'New SDA Only'}
                   </Badge>
                 </td>
                 <td className="px-3 py-2.5 text-center">
