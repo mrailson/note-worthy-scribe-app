@@ -602,8 +602,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         </div>
       )}
 
-      {effectiveShowStaffMgmt && <>
-      {/* Staff Management */}
+      {/* Staff Management — hidden in mgmt_lead, pml_director, pml_finance test modes */}
+      {effectiveShowStaffMgmt && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -668,10 +668,12 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           )}
         </CardContent>
       </Card>
+      )}
 
-      <Separator />
+      {effectiveCanCreateClaim && <Separator />}
 
-      {/* Create Claim */}
+      {/* Create Claim — hidden in mgmt_lead, pml_director, pml_finance test modes */}
+      {effectiveCanCreateClaim && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -711,6 +713,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           )}
         </CardContent>
       </Card>
+      )}
 
       <Separator />
 
