@@ -170,7 +170,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
 
                      {/* Audience tabs */}
                      <div className="flex flex-wrap gap-1 mt-3">
-                       {(["Overview", "Patient", "GP", "Practice Manager", "NRES", "Translate"] as const).map((tab) => (
+                       {(["Overview", "NRES", "GP", "Practice Manager", "Patient", "Translate"] as const).map((tab) => (
                          <button
                            key={tab}
                            onClick={() => setAiCardTab(tab)}
