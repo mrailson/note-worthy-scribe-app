@@ -720,7 +720,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
       `}</style>
     </div>
     <ContractAskAI open={showContractAskAI} onOpenChange={setShowContractAskAI} neighbourhoodName={neighbourhoodName} />
-    <NRESWidgetEmbed />
+    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && <NRESWidgetEmbed />}
     </>
   );
 };
