@@ -324,39 +324,38 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       ? ALL_PRACTICE_KEYS
       : ALL_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k)));
 
-  // Filter staff by practice — respect access assignments
+  // Filter staff by practice — respect access assignments (use effective keys for test mode)
   const accessFilteredStaff = activeStaff.filter(s =>
-    !s.practice_key || accessFilteredPracticeKeys.includes(s.practice_key as string)
+    !s.practice_key || effectivePracticeKeys.includes(s.practice_key as string)
   );
-  const filteredStaff = filterPractice === 'all'
+  const filteredStaff = effectiveFilterPractice === 'all'
     ? accessFilteredStaff
-    : accessFilteredStaff.filter(s => s.practice_key === filterPractice);
+    : accessFilteredStaff.filter(s => s.practice_key === effectiveFilterPractice);
 
   const totalCalculated = filteredStaff.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, undefined, undefined, rateParams), 0);
 
   const handleCreateClaim = async () => {
     if (filteredStaff.length === 0) return;
-    const practiceForClaim = claimPractice || (filterPractice !== 'all' ? filterPractice : '');
+    const practiceForClaim = claimPractice || (effectiveFilterPractice !== 'all' ? effectiveFilterPractice : '');
     if (!practiceForClaim) return;
     const monthDate = `${claimMonth}-01`;
     const staffForClaim = filteredStaff.filter(s => s.practice_key === practiceForClaim);
     if (staffForClaim.length === 0) return;
     const calcAmount = staffForClaim.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, monthDate, s.start_date, rateParams), 0);
-    // Pre-populate claimed amount at the calculated max — user can lower but not raise
     await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim, rateParams);
   };
 
-  // Filter claims by access then practice/status
+  // Filter claims by access then practice/status (use effective overrides for test mode)
   const accessFilteredClaims = claims.filter(c =>
-    !c.practice_key || accessFilteredPracticeKeys.includes(c.practice_key as string)
+    !c.practice_key || effectivePracticeKeys.includes(c.practice_key as string)
   );
-  const practiceFilteredClaims = filterPractice === 'all'
+  const practiceFilteredClaims = effectiveFilterPractice === 'all'
     ? accessFilteredClaims
-    : accessFilteredClaims.filter(c => c.practice_key === filterPractice);
+    : accessFilteredClaims.filter(c => c.practice_key === effectiveFilterPractice);
 
-  const filteredClaims = filterStatus === 'all'
+  const filteredClaims = effectiveFilterStatus === 'all'
     ? practiceFilteredClaims
-    : practiceFilteredClaims.filter(c => c.status === filterStatus);
+    : practiceFilteredClaims.filter(c => c.status === effectiveFilterStatus);
 
   // Status counts for badges
   const statusCounts = {
