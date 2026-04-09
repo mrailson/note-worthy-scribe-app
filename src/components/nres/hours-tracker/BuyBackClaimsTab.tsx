@@ -792,6 +792,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     canApproveClaim={canApproveThisClaim}
                     canVerifyClaim={canVerifyClaim}
                     rateParams={rateParams}
+                    rolesConfig={rateSettings.roles_config}
                     onSubmit={submitClaim}
                     onDelete={deleteClaim}
                     onConfirmDeclaration={confirmDeclaration}
