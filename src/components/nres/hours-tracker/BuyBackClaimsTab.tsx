@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { TestModeBar, type TestModeState } from './TestModeBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNRESBuyBackStaff, type BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
 import { useNRESBuyBackClaims, calculateStaffMonthlyAmount, type BuyBackClaim, type RateParams } from '@/hooks/useNRESBuyBackClaims';
@@ -263,7 +264,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
 
   const isAdmin = admin;
-  
+
+  // Test mode state — UI-only, admin users only
+  const [testMode, setTestMode] = useState<TestModeState>({ enabled: false, role: 'admin' });
+  const testActive = isAdmin && testMode.enabled && testMode.role !== 'admin';
 
   // New claim state
   const [claimMonth, setClaimMonth] = useState(() => {
@@ -288,50 +292,70 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     return ALL_PRACTICES[key] ?? getPracticeName(key);
   };
 
+  // === Test mode overrides ===
+  const effectiveIsAdmin = testActive ? (testMode.role !== 'practice') : isAdmin;
+  const effectiveFilterPractice = testActive && testMode.role === 'practice' && testMode.selectedPractice
+    ? testMode.selectedPractice
+    : filterPractice;
+  const effectiveFilterStatus = testActive
+    ? (testMode.role === 'mgmt_lead' ? 'submitted'
+      : testMode.role === 'pml_director' ? 'verified'
+      : testMode.role === 'pml_finance' ? 'approved'
+      : filterStatus)
+    : filterStatus;
+  const effectiveCanCreateClaim = !testActive || testMode.role === 'admin' || testMode.role === 'practice';
+  const effectiveShowStaffMgmt = !testActive || testMode.role === 'admin' || testMode.role === 'practice';
+
   // Admins with no assignments see everything; otherwise filtered
   const hasAnyAssignment = myPractices.length > 0;
   const accessFilteredPracticeKeys = isAdmin && !hasAnyAssignment
     ? ALL_PRACTICE_KEYS
     : ALL_PRACTICE_KEYS.filter(k => myPractices.includes(k));
 
-  // Practices user can submit claims for
-  const submitPracticeKeys = isAdmin && !hasAnyAssignment
-    ? ALL_PRACTICE_KEYS
-    : ALL_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k));
+  // In practice test mode, lock to selected practice
+  const effectivePracticeKeys = testActive && testMode.role === 'practice' && testMode.selectedPractice
+    ? [testMode.selectedPractice]
+    : accessFilteredPracticeKeys;
 
-  // Filter staff by practice — respect access assignments
+  // Practices user can submit claims for
+  const submitPracticeKeys = testActive && testMode.role === 'practice' && testMode.selectedPractice
+    ? [testMode.selectedPractice]
+    : (isAdmin && !hasAnyAssignment
+      ? ALL_PRACTICE_KEYS
+      : ALL_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k)));
+
+  // Filter staff by practice — respect access assignments (use effective keys for test mode)
   const accessFilteredStaff = activeStaff.filter(s =>
-    !s.practice_key || accessFilteredPracticeKeys.includes(s.practice_key as string)
+    !s.practice_key || effectivePracticeKeys.includes(s.practice_key as string)
   );
-  const filteredStaff = filterPractice === 'all'
+  const filteredStaff = effectiveFilterPractice === 'all'
     ? accessFilteredStaff
-    : accessFilteredStaff.filter(s => s.practice_key === filterPractice);
+    : accessFilteredStaff.filter(s => s.practice_key === effectiveFilterPractice);
 
   const totalCalculated = filteredStaff.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, undefined, undefined, rateParams), 0);
 
   const handleCreateClaim = async () => {
     if (filteredStaff.length === 0) return;
-    const practiceForClaim = claimPractice || (filterPractice !== 'all' ? filterPractice : '');
+    const practiceForClaim = claimPractice || (effectiveFilterPractice !== 'all' ? effectiveFilterPractice : '');
     if (!practiceForClaim) return;
     const monthDate = `${claimMonth}-01`;
     const staffForClaim = filteredStaff.filter(s => s.practice_key === practiceForClaim);
     if (staffForClaim.length === 0) return;
     const calcAmount = staffForClaim.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, monthDate, s.start_date, rateParams), 0);
-    // Pre-populate claimed amount at the calculated max — user can lower but not raise
     await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim, rateParams);
   };
 
-  // Filter claims by access then practice/status
+  // Filter claims by access then practice/status (use effective overrides for test mode)
   const accessFilteredClaims = claims.filter(c =>
-    !c.practice_key || accessFilteredPracticeKeys.includes(c.practice_key as string)
+    !c.practice_key || effectivePracticeKeys.includes(c.practice_key as string)
   );
-  const practiceFilteredClaims = filterPractice === 'all'
+  const practiceFilteredClaims = effectiveFilterPractice === 'all'
     ? accessFilteredClaims
-    : accessFilteredClaims.filter(c => c.practice_key === filterPractice);
+    : accessFilteredClaims.filter(c => c.practice_key === effectiveFilterPractice);
 
-  const filteredClaims = filterStatus === 'all'
+  const filteredClaims = effectiveFilterStatus === 'all'
     ? practiceFilteredClaims
-    : practiceFilteredClaims.filter(c => c.status === filterStatus);
+    : practiceFilteredClaims.filter(c => c.status === effectiveFilterStatus);
 
   // Status counts for badges
   const statusCounts = {
@@ -359,6 +383,16 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
 
   return (
     <div className="space-y-6">
+      {/* Test Mode Bar — admin only */}
+      {isAdmin && (
+        <TestModeBar
+          state={testMode}
+          onChange={setTestMode}
+          practiceKeys={ALL_PRACTICE_KEYS}
+          practiceNames={ALL_PRACTICES}
+        />
+      )}
+
       {/* Programme Board Proposal - only show for NRES */}
       {!isENN && <div className="bg-white rounded-lg shadow-sm border-2 border-amber-300 overflow-hidden">
         <Collapsible>
@@ -551,7 +585,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         </div>
       </Collapsible>
 
-      {isAdmin && (
+      {effectiveIsAdmin && !testActive && (
         <div className="flex items-center gap-3">
           <Label className="text-sm font-medium">Filter by Practice:</Label>
           <Select value={filterPractice} onValueChange={setFilterPractice}>
@@ -568,7 +602,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         </div>
       )}
 
-      {/* Staff Management */}
+      {/* Staff Management — hidden in mgmt_lead, pml_director, pml_finance test modes */}
+      {effectiveShowStaffMgmt && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -633,10 +668,12 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           )}
         </CardContent>
       </Card>
+      )}
 
-      <Separator />
+      {effectiveCanCreateClaim && <Separator />}
 
-      {/* Create Claim */}
+      {/* Create Claim — hidden in mgmt_lead, pml_director, pml_finance test modes */}
+      {effectiveCanCreateClaim && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -676,6 +713,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           )}
         </CardContent>
       </Card>
+      )}
 
       <Separator />
 
@@ -685,7 +723,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           <CardTitle className="text-lg">
             {filteredClaims.some(c => c.status === 'draft') ? 'Current Claim' : 'Claims History'}
           </CardTitle>
-          {isAdmin && (
+          {effectiveIsAdmin && !testActive && (
             <div className="flex flex-wrap gap-2 mt-2 items-center">
               {([
                 { key: 'all', label: 'All' },
@@ -724,17 +762,25 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                   : 'mixed';
                 const isBuyBack = claimCategory === 'buyback' || claimCategory === 'mixed';
                 
-                // Verifiers can verify submitted Buy-Back claims
-                const canVerifyClaim = isAdmin && isBuyBack && c.status === 'submitted' && (
-                  (!hasAnyAssignment) || myVerifierPractices.includes(c.practice_key || '')
-                );
-                
-                // Approvers: for Buy-Back, can only approve Verified claims; for New SDA, approve Submitted
-                const canApproveBuyBack = isBuyBack && c.status === 'verified';
-                const canApproveNewSda = !isBuyBack && c.status === 'submitted';
-                const canApproveThisClaim = isAdmin && (canApproveBuyBack || canApproveNewSda) && (
-                  (!hasAnyAssignment) || myApproverPractices.includes(c.practice_key || '')
-                );
+                // Test mode overrides for verify/approve
+                let canVerifyClaim: boolean;
+                let canApproveThisClaim: boolean;
+
+                if (testActive) {
+                  canVerifyClaim = testMode.role === 'mgmt_lead' && isBuyBack && c.status === 'submitted';
+                  const canApproveBB = isBuyBack && c.status === 'verified';
+                  const canApproveNS = !isBuyBack && c.status === 'submitted';
+                  canApproveThisClaim = testMode.role === 'pml_director' && (canApproveBB || canApproveNS);
+                } else {
+                  canVerifyClaim = isAdmin && isBuyBack && c.status === 'submitted' && (
+                    (!hasAnyAssignment) || myVerifierPractices.includes(c.practice_key || '')
+                  );
+                  const canApproveBuyBack = isBuyBack && c.status === 'verified';
+                  const canApproveNewSda = !isBuyBack && c.status === 'submitted';
+                  canApproveThisClaim = isAdmin && (canApproveBuyBack || canApproveNewSda) && (
+                    (!hasAnyAssignment) || myApproverPractices.includes(c.practice_key || '')
+                  );
+                }
 
                 return (
                   <ClaimCard
@@ -743,7 +789,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     claimCategory={claimCategory}
                     userId={user?.id}
                     userEmail={user?.email}
-                    isAdmin={isAdmin}
+                    isAdmin={testActive ? (testMode.role !== 'practice' && testMode.role !== 'pml_finance') : isAdmin}
                     canApproveClaim={canApproveThisClaim}
                     canVerifyClaim={canVerifyClaim}
                     rateParams={rateParams}
