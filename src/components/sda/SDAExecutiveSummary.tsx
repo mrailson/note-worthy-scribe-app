@@ -165,26 +165,87 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     </div>
                     <p className="text-lg font-bold text-slate-900">GP Notewell AI</p>
                     <p className="text-xs text-slate-500 mt-0.5">Your intelligent programme assistant</p>
-                    <ul className="mt-4 space-y-2.5 text-xs text-slate-700">
-                      <li className="flex items-start gap-2">
-                        <span className="mt-0.5 shrink-0">💬</span>
-                        <span>Ask clinical questions — get GP-level guidance instantly</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="mt-0.5 shrink-0">📊</span>
-                        <span>NRES programme knowledge — targets, funding, buy-back, practices</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="mt-0.5 shrink-0">🏥</span>
-                        <span>Practice management — CQC, HR, complaints, NHS contracts</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="mt-0.5 shrink-0">❤️</span>
-                        <span>Patient support — plain English health advice</span>
-                      </li>
-                    </ul>
-                    <p className="text-[10px] text-indigo-600 font-medium mt-4 italic">Powered by AI, grounded in NHS guidance. Try it now.</p>
-                    <div className="flex-1" />
+
+                    {/* Audience tabs */}
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {(["Overview", "Patient", "GP", "Practice Manager", "NRES"] as const).map((tab) => (
+                        <button
+                          key={tab}
+                          onClick={() => setAiCardTab(tab)}
+                          className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${
+                            aiCardTab === tab
+                              ? "bg-blue-600 text-white"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          }`}
+                        >
+                          {tab}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Tab content */}
+                    <div className="mt-3 flex-1">
+                      {aiCardTab === "Overview" && (
+                        <>
+                          <ul className="space-y-2 text-xs text-slate-700">
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🩺</span><span>Ask clinical questions — get GP-level guidance instantly</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📊</span><span>NRES programme knowledge — targets, funding, buy-back, practices</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📋</span><span>Practice management — CQC, HR, complaints, NHS contracts</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">❤️</span><span>Patient support — plain English health advice</span></li>
+                          </ul>
+                          <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Powered by AI, grounded in NHS guidance. Try it now.</p>
+                        </>
+                      )}
+                      {aiCardTab === "Patient" && (
+                        <>
+                          <p className="text-xs font-semibold text-slate-800 italic mb-2">"Talk to me like your GP would"</p>
+                          <ul className="space-y-2 text-xs text-slate-700">
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">💬</span><span>Describe your symptoms — I'll ask the right questions</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">💊</span><span>Get advice on over-the-counter medications and dosing</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🔬</span><span>Understand your test results in plain English</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🚨</span><span>I'll always tell you when to seek urgent help</span></li>
+                          </ul>
+                          <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">No jargon. No judgement. Just clear, caring advice.</p>
+                        </>
+                      )}
+                      {aiCardTab === "GP" && (
+                        <>
+                          <p className="text-xs font-semibold text-slate-800 italic mb-2">"Your senior colleague, always available"</p>
+                          <ul className="space-y-2 text-xs text-slate-700">
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📖</span><span>NICE/CKS guidelines with source references</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">💊</span><span>BNF prescribing guidance and MHRA alerts</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🔀</span><span>Differential diagnosis support</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📋</span><span>2WW referral criteria and red flag screening</span></li>
+                          </ul>
+                          <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Evidence-based. Source-cited. Verify before you prescribe.</p>
+                        </>
+                      )}
+                      {aiCardTab === "Practice Manager" && (
+                        <>
+                          <p className="text-xs font-semibold text-slate-800 italic mb-2">"Like having a senior PM consultant on call"</p>
+                          <ul className="space-y-2 text-xs text-slate-700">
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">✅</span><span>CQC inspection prep — checklists, gap analysis, evidence</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📄</span><span>NHS contracts — GMS/PMS, QOF, Enhanced Services, ARRS</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">👥</span><span>HR guidance — recruitment, sickness, disciplinary, TUPE</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📝</span><span>Complaints handling — process, templates, PHSO escalation</span></li>
+                          </ul>
+                          <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Practical, actionable, grounded in regulation.</p>
+                        </>
+                      )}
+                      {aiCardTab === "NRES" && (
+                        <>
+                          <p className="text-xs font-semibold text-slate-800 italic mb-2">"Full programme knowledge at your fingertips"</p>
+                          <ul className="space-y-2 text-xs text-slate-700">
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🏥</span><span>All 7 practices — list sizes, targets, allocations</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">💰</span><span>Buy-back scheme — rates, claims process, evidence requirements</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📊</span><span>GPAD data, ICB metrics, reporting schedules</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">👤</span><span>Key contacts — ICB, PML, programme team</span></li>
+                          </ul>
+                          <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Everything about the pilot, instantly.</p>
+                        </>
+                      )}
+                    </div>
+
                     <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200 text-center">
                       👋 Click the <strong>Talk with Notewell AI</strong> bubble in the bottom-right corner to start
                     </p>
