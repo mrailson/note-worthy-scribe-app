@@ -259,7 +259,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     currentUserEmail: user?.email || undefined,
     currentUserName: user?.user_metadata?.full_name || user?.email || undefined,
   }), [rateSettings.email_testing_mode, user?.email, user?.user_metadata?.full_name]);
-  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, approveClaim, rejectClaim, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims(emailConfig);
+  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, markPaid, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
   const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
 
@@ -363,6 +363,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     submitted: practiceFilteredClaims.filter(c => c.status === 'submitted').length,
     verified: practiceFilteredClaims.filter(c => c.status === 'verified').length,
     approved: practiceFilteredClaims.filter(c => c.status === 'approved').length,
+    queried: practiceFilteredClaims.filter(c => c.status === 'queried').length,
+    invoiced: practiceFilteredClaims.filter(c => c.status === 'invoiced').length,
+    paid: practiceFilteredClaims.filter(c => c.status === 'paid').length,
     rejected: practiceFilteredClaims.filter(c => c.status === 'rejected').length,
     draft: practiceFilteredClaims.filter(c => c.status === 'draft').length,
   };
