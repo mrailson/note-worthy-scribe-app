@@ -13,7 +13,7 @@ import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail } from 'lucide-rea
 import { EvidenceConfigTab } from './EvidenceConfigTab';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 import { useNRESUserAccess } from '@/hooks/useNRESUserAccess';
-import { useNRESBuyBackRateSettings, type RoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
+import { useNRESBuyBackRateSettings, type RoleConfig, type ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import type { BuyBackAccessRole } from '@/hooks/useNRESBuyBackAccess';
 
@@ -200,10 +200,11 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
 }
 
 function RatesAndRolesPanel() {
-  const { settings, loading, saving, updateSettings } = useNRESBuyBackRateSettings();
+  const { settings, loading, saving, updateSettings, updateManagementRoles } = useNRESBuyBackRateSettings();
   const [niPct, setNiPct] = useState<string>('');
   const [pensionPct, setPensionPct] = useState<string>('');
   const [roles, setRoles] = useState<RoleConfig[]>([]);
+  const [mgmtRoles, setMgmtRoles] = useState<ManagementRoleConfig[]>([]);
   const [initialised, setInitialised] = useState(false);
   const [newRoleLabel, setNewRoleLabel] = useState('');
 
@@ -211,7 +212,12 @@ function RatesAndRolesPanel() {
   if (!loading && !initialised) {
     setNiPct(String(settings.employer_ni_pct));
     setPensionPct(String(settings.employer_pension_pct));
-    setRoles(settings.roles_config);
+    // Filter out any management role that crept into clinical roles
+    setRoles(settings.roles_config.filter(r => !r.key.startsWith('nres_')));
+    setMgmtRoles(settings.management_roles_config.map(r => ({
+      ...r,
+      max_hours_per_week: (r as any).max_hours_per_week ?? 8,
+    })));
     setInitialised(true);
   }
 
@@ -222,6 +228,10 @@ function RatesAndRolesPanel() {
 
   const handleRoleFieldChange = (index: number, field: keyof RoleConfig, value: any) => {
     setRoles(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r));
+  };
+
+  const handleMgmtFieldChange = (index: number, field: string, value: any) => {
+    setMgmtRoles(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r));
   };
 
   const handleAddRole = () => {
@@ -242,14 +252,16 @@ function RatesAndRolesPanel() {
     setRoles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
-    updateSettings(niPctNum, pensionPctNum, roles);
+  const handleSave = async () => {
+    await updateSettings(niPctNum, pensionPctNum, roles);
+    await updateManagementRoles(mgmtRoles);
   };
 
   const hasChanges = initialised && (
     niPct !== String(settings.employer_ni_pct) ||
     pensionPct !== String(settings.employer_pension_pct) ||
-    JSON.stringify(roles) !== JSON.stringify(settings.roles_config)
+    JSON.stringify(roles) !== JSON.stringify(settings.roles_config.filter(r => !r.key.startsWith('nres_'))) ||
+    JSON.stringify(mgmtRoles) !== JSON.stringify(settings.management_roles_config)
   );
 
   if (loading) {
