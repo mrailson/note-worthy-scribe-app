@@ -631,8 +631,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                                </AlertDialogFooter>
                              </AlertDialogContent>
                            </AlertDialog>
-                           </Button>
-                         </td>
+                          </td>
                        </tr>
                      );
                    })}
