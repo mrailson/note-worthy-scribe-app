@@ -205,8 +205,8 @@ export const VaultDocumentTable = ({
                           <span className="text-xs text-muted-foreground">{relativeTime(file.updated_at)}</span>
                         )}
                         {col.key === 'location' && (
-                          <span className="text-xs text-muted-foreground truncate max-w-[200px] block">
-                            {file.folder_id && folderMap[file.folder_id] ? folderMap[file.folder_id].name : 'Root'}
+                          <span className="text-xs text-muted-foreground truncate max-w-[250px] block" title={file.folder_id && folderMap[file.folder_id] ? folderMap[file.folder_id].path : 'Root'}>
+                            {file.folder_id && folderMap[file.folder_id] ? folderMap[file.folder_id].path : 'Root'}
                           </span>
                         )}
                         {col.key === 'star' && (
