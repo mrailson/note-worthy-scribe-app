@@ -13,7 +13,7 @@ import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail } from 'lucide-rea
 import { EvidenceConfigTab } from './EvidenceConfigTab';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 import { useNRESUserAccess } from '@/hooks/useNRESUserAccess';
-import { useNRESBuyBackRateSettings, type RoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
+import { useNRESBuyBackRateSettings, type RoleConfig, type ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import type { BuyBackAccessRole } from '@/hooks/useNRESBuyBackAccess';
 
@@ -200,10 +200,11 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
 }
 
 function RatesAndRolesPanel() {
-  const { settings, loading, saving, updateSettings } = useNRESBuyBackRateSettings();
+  const { settings, loading, saving, updateSettings, updateManagementRoles } = useNRESBuyBackRateSettings();
   const [niPct, setNiPct] = useState<string>('');
   const [pensionPct, setPensionPct] = useState<string>('');
   const [roles, setRoles] = useState<RoleConfig[]>([]);
+  const [mgmtRoles, setMgmtRoles] = useState<ManagementRoleConfig[]>([]);
   const [initialised, setInitialised] = useState(false);
   const [newRoleLabel, setNewRoleLabel] = useState('');
 
@@ -211,17 +212,26 @@ function RatesAndRolesPanel() {
   if (!loading && !initialised) {
     setNiPct(String(settings.employer_ni_pct));
     setPensionPct(String(settings.employer_pension_pct));
-    setRoles(settings.roles_config);
+    // Filter out any management role that crept into clinical roles
+    setRoles(settings.roles_config.filter(r => !r.key.startsWith('nres_')));
+    setMgmtRoles(settings.management_roles_config.map(r => ({
+      ...r,
+      max_hours_per_week: (r as any).max_hours_per_week ?? 8,
+    })));
     setInitialised(true);
   }
 
   const niPctNum = parseFloat(niPct) || 0;
   const pensionPctNum = parseFloat(pensionPct) || 0;
   const onCostsPctNum = niPctNum + pensionPctNum;
-  const onCostMultiplier = 1 + onCostsPctNum / 100;
+  const _onCostMultiplier = 1 + onCostsPctNum / 100;
 
   const handleRoleFieldChange = (index: number, field: keyof RoleConfig, value: any) => {
     setRoles(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r));
+  };
+
+  const handleMgmtFieldChange = (index: number, field: string, value: any) => {
+    setMgmtRoles(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r));
   };
 
   const handleAddRole = () => {
@@ -242,14 +252,16 @@ function RatesAndRolesPanel() {
     setRoles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
-    updateSettings(niPctNum, pensionPctNum, roles);
+  const handleSave = async () => {
+    await updateSettings(niPctNum, pensionPctNum, roles);
+    await updateManagementRoles(mgmtRoles);
   };
 
   const hasChanges = initialised && (
     niPct !== String(settings.employer_ni_pct) ||
     pensionPct !== String(settings.employer_pension_pct) ||
-    JSON.stringify(roles) !== JSON.stringify(settings.roles_config)
+    JSON.stringify(roles) !== JSON.stringify(settings.roles_config.filter(r => !r.key.startsWith('nres_'))) ||
+    JSON.stringify(mgmtRoles) !== JSON.stringify(settings.management_roles_config)
   );
 
   if (loading) {
@@ -386,6 +398,82 @@ function RatesAndRolesPanel() {
             <Plus className="w-3.5 h-3.5 mr-1" />
             Add Role
           </Button>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Section B2: Management Roles */}
+      <div>
+        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">NRES Management Rates</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Management time is billed at a simple hourly rate — no annual salary, on-costs, or allocation type.
+        </p>
+        <div className="bg-white dark:bg-slate-900 border rounded-lg overflow-hidden overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-100 dark:bg-slate-800">
+              <tr>
+                <th className="text-left px-3 py-2.5 font-medium">Role</th>
+                <th className="text-left px-3 py-2.5 font-medium">Person</th>
+                <th className="text-left px-3 py-2.5 font-medium">Hourly Rate (£)</th>
+                <th className="text-left px-3 py-2.5 font-medium">Max Hrs/Week</th>
+                <th className="text-left px-3 py-2.5 font-medium">Billing Entity</th>
+                <th className="text-left px-3 py-2.5 font-medium">Org Code</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mgmtRoles.map((role, i) => (
+                <tr key={role.key} className="border-t">
+                  <td className="px-3 py-2.5 text-xs font-medium">{role.label}</td>
+                  <td className="px-3 py-2.5">
+                    <Input
+                      className="h-8 text-xs w-36 bg-white dark:bg-slate-900"
+                      value={role.person_name}
+                      onChange={e => handleMgmtFieldChange(i, 'person_name', e.target.value)}
+                    />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <Input
+                      type="number"
+                      className="h-8 text-xs w-24 bg-white dark:bg-slate-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                      value={role.hourly_rate}
+                      onChange={e => handleMgmtFieldChange(i, 'hourly_rate', parseFloat(e.target.value) || 0)}
+                      min="0"
+                      step="0.01"
+                    />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <Input
+                      type="number"
+                      className="h-8 text-xs w-20 bg-white dark:bg-slate-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                      value={role.max_hours_per_week ?? 8}
+                      onChange={e => handleMgmtFieldChange(i, 'max_hours_per_week', parseFloat(e.target.value) || 0)}
+                      min="0"
+                      max="40"
+                      step="0.5"
+                    />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <Input
+                      className="h-8 text-xs w-44 bg-white dark:bg-slate-900"
+                      value={role.billing_entity}
+                      onChange={e => handleMgmtFieldChange(i, 'billing_entity', e.target.value)}
+                    />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <Input
+                      className="h-8 text-xs w-20 bg-white dark:bg-slate-900"
+                      value={role.billing_org_code}
+                      onChange={e => handleMgmtFieldChange(i, 'billing_org_code', e.target.value)}
+                    />
+                  </td>
+                </tr>
+              ))}
+              {mgmtRoles.length === 0 && (
+                <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground">No management roles configured</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
