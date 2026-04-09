@@ -585,7 +585,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         </div>
       </Collapsible>
 
-      {isAdmin && (
+      {effectiveIsAdmin && !testActive && (
         <div className="flex items-center gap-3">
           <Label className="text-sm font-medium">Filter by Practice:</Label>
           <Select value={filterPractice} onValueChange={setFilterPractice}>
