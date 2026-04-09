@@ -1,10 +1,10 @@
-import { useConversation } from "@elevenlabs/react";
+import { useConversation, ConversationProvider } from "@elevenlabs/react";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
 
-export const NRESVoiceAgent = () => {
+const NRESVoiceAgentInner = () => {
   const conversation = useConversation();
   
   const isConnected = conversation.status === "connected";
@@ -48,3 +48,9 @@ export const NRESVoiceAgent = () => {
     </div>
   );
 };
+
+export const NRESVoiceAgent = () => (
+  <ConversationProvider>
+    <NRESVoiceAgentInner />
+  </ConversationProvider>
+);
