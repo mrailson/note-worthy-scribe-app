@@ -292,16 +292,37 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     return ALL_PRACTICES[key] ?? getPracticeName(key);
   };
 
+  // === Test mode overrides ===
+  const effectiveIsAdmin = testActive ? (testMode.role !== 'practice') : isAdmin;
+  const effectiveFilterPractice = testActive && testMode.role === 'practice' && testMode.selectedPractice
+    ? testMode.selectedPractice
+    : filterPractice;
+  const effectiveFilterStatus = testActive
+    ? (testMode.role === 'mgmt_lead' ? 'submitted'
+      : testMode.role === 'pml_director' ? 'verified'
+      : testMode.role === 'pml_finance' ? 'approved'
+      : filterStatus)
+    : filterStatus;
+  const effectiveCanCreateClaim = !testActive || testMode.role === 'admin' || testMode.role === 'practice';
+  const effectiveShowStaffMgmt = !testActive || testMode.role === 'admin' || testMode.role === 'practice';
+
   // Admins with no assignments see everything; otherwise filtered
   const hasAnyAssignment = myPractices.length > 0;
   const accessFilteredPracticeKeys = isAdmin && !hasAnyAssignment
     ? ALL_PRACTICE_KEYS
     : ALL_PRACTICE_KEYS.filter(k => myPractices.includes(k));
 
+  // In practice test mode, lock to selected practice
+  const effectivePracticeKeys = testActive && testMode.role === 'practice' && testMode.selectedPractice
+    ? [testMode.selectedPractice]
+    : accessFilteredPracticeKeys;
+
   // Practices user can submit claims for
-  const submitPracticeKeys = isAdmin && !hasAnyAssignment
-    ? ALL_PRACTICE_KEYS
-    : ALL_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k));
+  const submitPracticeKeys = testActive && testMode.role === 'practice' && testMode.selectedPractice
+    ? [testMode.selectedPractice]
+    : (isAdmin && !hasAnyAssignment
+      ? ALL_PRACTICE_KEYS
+      : ALL_PRACTICE_KEYS.filter(k => mySubmitPractices.includes(k)));
 
   // Filter staff by practice — respect access assignments
   const accessFilteredStaff = activeStaff.filter(s =>
