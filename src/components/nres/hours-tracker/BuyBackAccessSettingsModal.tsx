@@ -11,6 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail } from 'lucide-react';
 import { EvidenceConfigTab } from './EvidenceConfigTab';
+import { SystemRolesTab } from './SystemRolesTab';
+import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 import { useNRESUserAccess } from '@/hooks/useNRESUserAccess';
 import { useNRESBuyBackRateSettings, type RoleConfig, type ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
@@ -39,6 +41,7 @@ function fmtGBP(n: number): string {
 
 export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, grantAccess, revokeByKey }: Props) {
   const { data: users, isLoading } = useNRESUserAccess();
+  const { isSuperAdmin } = useNRESSystemRoles();
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
@@ -80,11 +83,21 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
 
         <Tabs defaultValue="access" className="flex-1 min-h-0 flex flex-col">
           <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto mb-4">
+            {isSuperAdmin && (
+              <TabsTrigger value="system-roles" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">System Roles</TabsTrigger>
+            )}
             <TabsTrigger value="access" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Access Permissions</TabsTrigger>
             <TabsTrigger value="rates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Rates &amp; Roles</TabsTrigger>
             <TabsTrigger value="evidence" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Evidence Requirements</TabsTrigger>
             <TabsTrigger value="email" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Email Settings</TabsTrigger>
           </TabsList>
+
+          {/* System Roles Tab */}
+          {isSuperAdmin && (
+            <TabsContent value="system-roles" className="flex-1 min-h-0 overflow-y-auto mt-0">
+              <SystemRolesTab />
+            </TabsContent>
+          )}
 
           {/* Access Permissions Tab */}
           <TabsContent value="access" className="flex-1 min-h-0 overflow-y-auto mt-0">
