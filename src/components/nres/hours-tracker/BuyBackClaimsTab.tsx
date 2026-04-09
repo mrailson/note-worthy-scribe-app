@@ -11,6 +11,7 @@ import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 import { UnclaimedFundsIndicator } from './UnclaimedFundsIndicator';
 import { ManagementTimeTab } from './ManagementTimeTab';
+import { ClaimsUserGuide } from './ClaimsUserGuide';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
