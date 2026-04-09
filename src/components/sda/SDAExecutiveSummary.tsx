@@ -180,7 +180,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                                : tab === "Translate" ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                            }`}
                          >
-                           {tab === "Translate" ? "🌍 Translate" : tab}
+                           {tab === "Translate" ? "🌍 Translate Now" : tab}
                          </button>
                        ))}
                      </div>
