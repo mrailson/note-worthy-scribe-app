@@ -402,6 +402,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       start_date?: string | null;
       claimed_amount?: number;
       notes?: string;
+      acknowledged_rules?: string[];
     },
     rateParams?: RateParams,
   ) => {
@@ -421,6 +422,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       if (updates.allocation_value !== undefined) currentLine.allocation_value = updates.allocation_value;
       if (updates.start_date !== undefined) currentLine.start_date = updates.start_date;
       if (updates.notes !== undefined) currentLine.notes = updates.notes;
+      if (updates.acknowledged_rules !== undefined) currentLine.acknowledged_rules = updates.acknowledged_rules;
 
       // Recalculate maximum
       const maxAmount = calculateStaffMonthlyAmount(
