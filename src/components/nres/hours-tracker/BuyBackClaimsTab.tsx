@@ -808,6 +808,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     onApprove={approveClaim}
                     onReject={rejectClaim}
                     onVerify={verifyClaim}
+                    onQuery={queryClaim}
+                    onMarkPaid={markPaid}
                   />
                 );
               })}
