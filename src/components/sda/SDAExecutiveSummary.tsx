@@ -1,6 +1,5 @@
 import { useState, lazy, Suspense } from "react";
-import { NRESVoiceAgent } from "@/components/nres/NRESVoiceAgent";
-import { NRESWidgetLoader } from "@/components/nres/NRESWidgetLoader";
+import { NRESWidgetEmbed } from "@/components/nres/NRESWidgetLoader";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -187,7 +186,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <p className="text-[10px] text-indigo-600 font-medium mt-4 italic">Powered by AI, grounded in NHS guidance. Try it now.</p>
                     <div className="flex-1" />
                     <div className="mt-4">
-                      <NRESVoiceAgent />
+                      <NRESWidgetEmbed />
                     </div>
                   </CardContent>
                 </Card>
@@ -335,7 +334,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     <Handshake className="h-5 w-5 text-[#005EB8]" />
                     <span className="font-semibold text-slate-900">Programme Partners</span>
                   </div>
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col flex-1">
+                <Card className="border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col flex-1" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 50%, #f0f0ff 100%)' }}>
                   <CardContent className="p-6 flex flex-col flex-1 justify-between">
                     <div className="grid grid-cols-2 gap-4 place-items-center">
                       {customLogos ? (
@@ -389,7 +388,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                       );
                     })()}
 
-                    <Card className="bg-white border border-slate-200 hover:border-[#005EB8] transition-colors">
+                    <Card className="bg-white/80 border border-slate-200 hover:border-[#005EB8] transition-colors">
                       <CardContent className="p-3">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
@@ -640,7 +639,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
       `}</style>
     </div>
     <ContractAskAI open={showContractAskAI} onOpenChange={setShowContractAskAI} neighbourhoodName={neighbourhoodName} />
-    <NRESWidgetLoader />
+    
     </>
   );
 };
