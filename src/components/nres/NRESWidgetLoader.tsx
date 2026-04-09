@@ -1,21 +1,29 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
-export const NRESWidgetLoader = () => {
+export const NRESWidgetEmbed = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
+    if (!containerRef.current) return;
+
     const el = document.createElement("elevenlabs-convai");
     el.setAttribute("agent-id", "agent_01jwry2fzme7xsb2mwzatxseyt");
-    document.body.appendChild(el);
+    containerRef.current.appendChild(el);
 
-    const script = document.createElement("script");
-    script.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
-    script.async = true;
-    document.body.appendChild(script);
+    const existing = document.querySelector('script[src*="convai-widget-embed"]');
+    if (!existing) {
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+      script.async = true;
+      document.body.appendChild(script);
+    }
 
     return () => {
-      document.body.removeChild(el);
-      document.body.removeChild(script);
+      if (containerRef.current && el.parentNode === containerRef.current) {
+        containerRef.current.removeChild(el);
+      }
     };
   }, []);
 
-  return null;
+  return <div ref={containerRef} />;
 };
