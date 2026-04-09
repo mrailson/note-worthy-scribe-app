@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Clock, X } from 'lucide-react';
@@ -6,6 +6,20 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { getPracticeName } from '@/data/nresPractices';
 import { format, differenceInCalendarDays, subMonths, startOfMonth } from 'date-fns';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+
+const STORAGE_KEY = 'nres-unclaimed-dismissed';
+
+function loadDismissed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {}
+  return new Set();
+}
+
+function saveDismissed(keys: Set<string>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...keys]));
+}
 
 interface Props {
   claims: BuyBackClaim[];
@@ -22,8 +36,7 @@ interface PracticeMonthStatus {
 }
 
 export function UnclaimedFundsIndicator({ claims, practiceKeys }: Props) {
-  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(new Set());
-  const [dismissAll, setDismissAll] = useState(false);
+  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(loadDismissed);
   const [confirmTarget, setConfirmTarget] = useState<{ type: 'all' } | { type: 'single'; key: string; label: string } | null>(null);
 
   const statuses = useMemo(() => {
