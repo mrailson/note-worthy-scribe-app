@@ -733,6 +733,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                 { key: 'submitted', label: 'Outstanding' },
                 { key: 'verified', label: 'Verified' },
                 { key: 'approved', label: 'Approved' },
+                { key: 'queried', label: 'Queried' },
+                { key: 'invoiced', label: 'Invoiced' },
+                { key: 'paid', label: 'Paid' },
                 { key: 'rejected', label: 'Rejected' },
                 { key: 'draft', label: 'Draft' },
               ] as const).map(({ key, label }) => (
