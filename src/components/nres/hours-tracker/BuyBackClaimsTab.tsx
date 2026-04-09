@@ -1298,6 +1298,30 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
         </div>
       )}
 
+      {/* Invoice info & download */}
+      {claim.invoice_number && (
+        <div className="px-3 py-2 border-t bg-blue-50/50 dark:bg-blue-950/20 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <FileText className="w-4 h-4 text-blue-600" />
+            <span>Invoice: <strong className="text-foreground">{claim.invoice_number}</strong></span>
+            {claim.invoice_generated_at && (
+              <span>Generated {format(new Date(claim.invoice_generated_at), 'dd/MM/yyyy HH:mm')}</span>
+            )}
+            {claim.gl_summary && (
+              <span className="ml-2">GL: GP {fmtGBP(claim.gl_summary.gp_total || 0)} / Other {fmtGBP(claim.gl_summary.other_clinical_total || 0)}</span>
+            )}
+          </div>
+          {claim.invoice_pdf_path && (
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={async () => {
+              const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(claim.invoice_pdf_path!, 300);
+              if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+            }}>
+              <Download className="w-3 h-3" /> Download PDF
+            </Button>
+          )}
+        </div>
+      )}
+
       {(() => {
         const mismatched = staffDetails.filter(s => s.practice_key && s.practice_key !== claim.practice_key);
         if (mismatched.length === 0) return null;
