@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { exportClaimsDetail, exportMonthlySummary, exportYTDRunningTotals } from '@/utils/buybackExcelExport';
 import { TestModeBar, type TestModeState } from './TestModeBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNRESBuyBackStaff, type BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
@@ -753,6 +754,19 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                   </Badge>
                 </Button>
               ))}
+            </div>
+          )}
+          {effectiveIsAdmin && (
+            <div className="flex gap-2 mt-2">
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(claims, filterPractice, filterStatus)}>
+                <Download className="w-3 h-3" /> Export Detail
+              </Button>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportMonthlySummary(claims, filterPractice)}>
+                <Download className="w-3 h-3" /> Export Summary
+              </Button>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportYTDRunningTotals(claims)}>
+                <Download className="w-3 h-3" /> Export YTD
+              </Button>
             </div>
           )}
         </CardHeader>
