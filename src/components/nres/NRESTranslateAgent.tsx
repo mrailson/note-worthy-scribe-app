@@ -1,10 +1,10 @@
-import { useConversation } from "@elevenlabs/react";
+import { useConversation, ConversationProvider } from "@elevenlabs/react";
 import { Globe, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const TRANSLATE_AGENT_ID = "agent_2601knsxn311f9evq5zs0rrese7s";
 
-export const NRESTranslateAgent = () => {
+const TranslateInner = () => {
   const conversation = useConversation();
   const isConnected = conversation.status === "connected";
   const isConnecting = conversation.status === "connecting";
@@ -62,3 +62,9 @@ export const NRESTranslateAgent = () => {
     </div>
   );
 };
+
+export const NRESTranslateAgent = () => (
+  <ConversationProvider>
+    <TranslateInner />
+  </ConversationProvider>
+);
