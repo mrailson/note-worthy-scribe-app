@@ -389,7 +389,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     })()}
 
                     <Card className="bg-white/80 border border-slate-200 hover:border-[#005EB8] transition-colors">
-                      <CardContent className="p-3">
+                      <CardContent className="p-3 flex items-center min-h-[56px]">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
                             <FileText className="w-4 h-4 text-red-600" />
