@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { NRESWidgetEmbed } from "@/components/nres/NRESWidgetLoader";
+import { NRESTranslateAgent } from "@/components/nres/NRESTranslateAgent";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -271,15 +272,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                              <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🚨</span><span>Safety built in — I'll flag any clinical red flags I hear during translation</span></li>
                              <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🌐</span><span>Any language — Polish, Urdu, Arabic, Romanian, Bengali, Mandarin, and many more</span></li>
                            </ul>
-                             <p className="text-[10px] text-emerald-600 font-medium mt-3 italic">Launch the dedicated interpreter below — instant, no booking, any language.</p>
-                             <a
-                               href="https://elevenlabs.io/app/talk-to?agent_id=agent_2601knsxn311f9evq5zs0rrese7s"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold shadow-md hover:shadow-lg hover:from-emerald-600 hover:to-teal-700 transition-all"
-                            >
-                              🌍 Launch Notewell Translate
-                            </a>
+                            <NRESTranslateAgent />
                           </>
                        )}
                      </div>
