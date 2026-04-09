@@ -190,9 +190,15 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                     </div>
                   </CardContent>
                 </Card>
+                </div>
 
-                {/* Card 2 — Key Programme Metrics (consolidated) */}
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                {/* Column 2 — Key Programme Metrics */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-[#005EB8]" />
+                    <span className="font-semibold text-slate-900">Key Programme Metrics</span>
+                  </div>
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow flex flex-col flex-1">
                   <CardContent className="p-6 flex flex-col flex-1">
                     <div className="flex items-start justify-between">
                       <div>
