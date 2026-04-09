@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { exportClaimsDetail, exportMonthlySummary, exportYTDRunningTotals } from '@/utils/buybackExcelExport';
 import { TestModeBar, type TestModeState } from './TestModeBar';
