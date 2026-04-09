@@ -799,6 +799,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     updateStaffClaimedAmount,
     removeStaffFromClaim,
     updateStaffNotes,
+    updateStaffLine,
     confirmDeclaration,
     deleteClaim,
     refetch: () => fetchClaims(true),
