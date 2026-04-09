@@ -392,6 +392,86 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     }
   };
 
+  /** Update a staff line's editable fields within a claim, enforcing rate cap */
+  const updateStaffLine = async (
+    claimId: string,
+    staffIndex: number,
+    updates: {
+      allocation_type?: string;
+      allocation_value?: number;
+      start_date?: string | null;
+      claimed_amount?: number;
+      notes?: string;
+    },
+    rateParams?: RateParams,
+  ) => {
+    if (!user?.id) return;
+    try {
+      const claim = claims.find(c => c.id === claimId);
+      if (!claim) return;
+      if (claim.status !== 'draft' && claim.status !== 'queried') {
+        toast.error('Can only edit draft or queried claims');
+        return;
+      }
+
+      const updatedDetails = [...(claim.staff_details as any[])];
+      const currentLine = { ...updatedDetails[staffIndex] };
+
+      if (updates.allocation_type !== undefined) currentLine.allocation_type = updates.allocation_type;
+      if (updates.allocation_value !== undefined) currentLine.allocation_value = updates.allocation_value;
+      if (updates.start_date !== undefined) currentLine.start_date = updates.start_date;
+      if (updates.notes !== undefined) currentLine.notes = updates.notes;
+
+      // Recalculate maximum
+      const maxAmount = calculateStaffMonthlyAmount(
+        {
+          allocation_type: currentLine.allocation_type,
+          allocation_value: currentLine.allocation_value,
+          staff_role: currentLine.staff_role,
+        },
+        claim.claim_month,
+        currentLine.start_date,
+        rateParams,
+      );
+
+      // Enforce cap
+      if (updates.claimed_amount !== undefined) {
+        currentLine.claimed_amount = Math.min(updates.claimed_amount, maxAmount);
+      } else if (currentLine.claimed_amount > maxAmount) {
+        currentLine.claimed_amount = maxAmount;
+      }
+      currentLine.max_claimable = maxAmount;
+
+      updatedDetails[staffIndex] = currentLine;
+
+      const newCalculated = updatedDetails.reduce((sum, s) => {
+        return sum + calculateStaffMonthlyAmount(
+          { allocation_type: s.allocation_type, allocation_value: s.allocation_value, staff_role: s.staff_role },
+          claim.claim_month, s.start_date, rateParams
+        );
+      }, 0);
+      const newClaimed = updatedDetails.reduce((sum, s) => sum + (s.claimed_amount ?? 0), 0);
+
+      // Optimistic update
+      setClaims(prev => prev.map(c => c.id === claimId ? { ...c, staff_details: updatedDetails, calculated_amount: newCalculated, claimed_amount: newClaimed } : c));
+
+      let query = supabase
+        .from('nres_buyback_claims')
+        .update({ staff_details: updatedDetails, calculated_amount: newCalculated, claimed_amount: newClaimed })
+        .eq('id', claimId);
+
+      if (!admin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { error } = await query;
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating staff line:', error);
+      toast.error('Failed to update');
+    }
+  };
+
   const confirmDeclaration = async (id: string, confirmed: boolean) => {
     if (!user?.id) return;
     try {
