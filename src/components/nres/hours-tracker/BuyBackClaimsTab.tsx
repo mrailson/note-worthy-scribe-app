@@ -939,7 +939,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
+function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
   claim: BuyBackClaim;
   claimCategory: 'buyback' | 'new_sda' | 'mixed';
   userId?: string;
@@ -954,6 +954,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
   onUpdateStaffAmount: (claimId: string, staffIndex: number, amount: number) => void;
   onRemoveStaff: (claimId: string, staffIndex: number) => void;
   onUpdateStaffNotes: (claimId: string, staffIndex: number, notes: string) => void;
+  onUpdateStaffLine: (claimId: string, staffIndex: number, updates: { allocation_type?: string; allocation_value?: number; start_date?: string | null; claimed_amount?: number; notes?: string }, rateParams?: RateParams) => void;
   onApprove: (id: string, notes?: string) => void;
   onReject: (id: string, notes: string) => void;
   onVerify?: (id: string, notes?: string) => void;
