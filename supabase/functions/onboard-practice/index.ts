@@ -183,7 +183,7 @@ serve(async (req) => {
         practice_id: gpPracticeId || null,
         practice_name: practiceName,
         k_code: odsCode || null,
-        modules: ["ai4gp", "complaints", "meetings", "translation"],
+        modules: ["ai4gp", "complaints", "meetings", "translation", "survey", "cqc_compliance"],
         created_by: "dpia_onboarding",
       }, { onConflict: "id" });
 
@@ -204,7 +204,7 @@ serve(async (req) => {
         survey_manager_access: true,
         gp_scribe_access: false,
         enhanced_access: false,
-        cqc_compliance_access: false,
+        cqc_compliance_access: true,
         shared_drive_access: false,
         mic_test_service_access: false,
         api_testing_service_access: false,
