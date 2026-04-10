@@ -41,8 +41,10 @@ interface WidgetMode {
   color: string;
   icon: string;
   type: 'widget';
+  tagline: string;
   description: string;
-  examples: string[];
+  features: string[];
+  footnote?: string;
 }
 
 interface InfoMode {
@@ -66,23 +68,29 @@ type ModeConfig = WidgetMode | InfoMode;
 const ALL_MODES: ModeConfig[] = [
   {
     id: 'gp', label: 'GP', color: '#7C2855', icon: '⚕️', type: 'widget',
+    tagline: '"Your AI clinical companion — grounded in NICE, BNF and NHS guidance"',
     description: 'Ask clinical questions — get GP-level guidance instantly from NHS frameworks.',
-    examples: [
-      'What are the NICE guidelines for managing new-onset atrial fibrillation?',
-      'Summarise the red flag symptoms for suspected cauda equina syndrome',
-      'What blood tests should I consider for unexplained weight loss in over-60s?',
-      'When should I refer a child with recurrent tonsillitis to ENT?',
+    features: [
+      'Clinical guidance — NICE guidelines, BNF references, and red flag recognition',
+      'Differential diagnosis support — structured thinking for complex presentations',
+      'Referral criteria — when to refer, what to include, and which pathway to use',
+      'Investigations — which blood tests, imaging, or assessments to consider and why',
+      'Prescribing queries — dosing, interactions, contraindications, and switching advice',
     ],
+    footnote: 'Always follow established clinical pathways and professional judgement.',
   },
   {
     id: 'pm', label: 'Practice Manager', color: '#ED8B00', icon: '📋', type: 'widget',
+    tagline: '"Your intelligent practice management assistant"',
     description: 'Practice management — CQC, HR, complaints, NHS contracts, operations.',
-    examples: [
-      'What are the CQC key lines of enquiry for the Safe domain?',
-      'Draft a response to a patient complaint about appointment availability',
-      'What are the statutory notice periods for dismissing a salaried GP?',
-      'Summarise our obligations under the NHS Standard Contract for enhanced access',
+    features: [
+      'CQC preparation — key lines of enquiry, evidence gathering, and inspection readiness',
+      'HR & employment — contracts, notice periods, disciplinary processes, and Agenda for Change',
+      'Complaints handling — draft responses, timeline tracking, and NHS complaints procedure',
+      'NHS contracts — Standard Contract obligations, enhanced access, and QOF requirements',
+      'Policy & governance — draft policies, risk assessments, and compliance checklists',
     ],
+    footnote: 'Powered by NHS frameworks, employment law, and CQC guidance.',
   },
   {
     id: 'patient', label: 'Patient', color: '#41B6E6', icon: '👤', type: 'info',
