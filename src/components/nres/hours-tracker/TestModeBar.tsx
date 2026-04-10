@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { FlaskConical, RotateCcw, ChevronDown, Building2 } from 'lucide-react';
+import { FlaskConical, RotateCcw, Building2 } from 'lucide-react';
 
 export type TestRole = 'admin' | 'practice' | 'mgmt_lead' | 'pml_director' | 'pml_finance';
 
