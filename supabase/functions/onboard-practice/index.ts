@@ -30,9 +30,9 @@ serve(async (req) => {
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("No authorization header present");
       return new Response(JSON.stringify({ error: "Missing authorization header" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -42,36 +42,49 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
 
-    // Verify caller is system admin
+    if (!serviceRoleKey) {
+      console.error("SUPABASE_SERVICE_ROLE_KEY not set");
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify caller
     const callerClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) {
+    const { data: { user: caller }, error: authError } = await callerClient.auth.getUser();
+    if (authError || !caller) {
+      console.error("Auth error:", authError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log("Caller:", caller.email);
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // Check caller is sda
-    const { data: roleData } = await adminClient
+    const { data: roleData, error: roleError } = await adminClient
       .from("nres_system_roles")
       .select("role")
       .eq("user_id", caller.id)
       .eq("role", "sda")
       .maybeSingle();
+    
+    if (roleError) {
+      console.error("Role check error:", roleError.message);
+    }
     if (!roleData) {
+      console.error("User not SDA:", caller.id);
       return new Response(JSON.stringify({ error: "Not authorised — system admin role required" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const body = await req.json();
-    const {
-      pmEmail, pmName, practiceName, practiceId, odsCode, dpiaBase64, dpiaFileName,
-    } = body;
+    const { pmEmail, pmName, practiceName, practiceId, odsCode, dpiaBase64, dpiaFileName } = body;
+    console.log("Onboarding:", pmEmail, practiceName);
 
     if (!pmEmail || !pmName || !practiceName || !dpiaBase64) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -79,15 +92,46 @@ serve(async (req) => {
       });
     }
 
-    // Step 1: Check if user already exists
-    const { data: { users: existingUsers } } = await adminClient.auth.admin.listUsers();
-    const existingUser = existingUsers?.find(
-      (u: any) => u.email?.toLowerCase() === pmEmail.toLowerCase()
-    );
-
+    // Step 1: Check if user already exists — use admin API with email filter
     let alreadyExisted = false;
     let userId: string | null = null;
     let tempPassword: string | null = null;
+
+    // Try to find by email using the admin API
+    const { data: { users: matchedUsers }, error: listError } = await adminClient.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+    });
+
+    // Search across all users by fetching with a filter approach
+    // Use the Supabase REST API to check auth.users by email
+    const { data: profileMatch } = await adminClient
+      .from("profiles")
+      .select("id, email")
+      .eq("email", pmEmail.toLowerCase())
+      .maybeSingle();
+
+    let existingUser = null;
+    if (profileMatch) {
+      // Verify user exists in auth
+      const { data: { user: authUser } } = await adminClient.auth.admin.getUserById(profileMatch.id);
+      if (authUser) {
+        existingUser = authUser;
+      }
+    }
+
+    if (!existingUser) {
+      // Also try creating — if email exists, createUser will fail with a specific error
+      // But first, let's try a direct lookup
+      try {
+        const { data: { users: allUsers } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+        existingUser = allUsers?.find(
+          (u: any) => u.email?.toLowerCase() === pmEmail.toLowerCase()
+        ) || null;
+      } catch (listErr) {
+        console.error("listUsers error (non-fatal):", listErr);
+      }
+    }
 
     if (existingUser) {
       alreadyExisted = true;
@@ -104,7 +148,7 @@ serve(async (req) => {
       });
 
       if (createError) {
-        console.error("Create user error:", createError);
+        console.error("Create user error:", createError.message);
         return new Response(JSON.stringify({ error: `Failed to create account: ${createError.message}` }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -127,8 +171,7 @@ serve(async (req) => {
       }, { onConflict: "id" });
 
       if (profileError) {
-        console.error("Profile upsert error:", profileError);
-        // Non-fatal — continue with emails
+        console.error("Profile upsert error:", profileError.message);
       }
     }
 
@@ -177,6 +220,9 @@ serve(async (req) => {
       const dpiaResult = await dpiaResp.text();
       console.log("DPIA email response:", dpiaResp.status, dpiaResult);
       dpiaEmailSent = dpiaResp.ok;
+      if (!dpiaResp.ok) {
+        console.error("DPIA email failed:", dpiaResult);
+      }
     } catch (emailErr) {
       console.error("DPIA email error:", emailErr);
     }
@@ -239,10 +285,13 @@ serve(async (req) => {
 
     // Update onboarded_at
     if (body.dpiaRecordId) {
-      await adminClient.from("dpia_practices").update({
+      const { error: updateErr } = await adminClient.from("dpia_practices").update({
         onboarded_at: new Date().toISOString(),
       }).eq("id", body.dpiaRecordId);
+      if (updateErr) console.error("Update onboarded_at error:", updateErr.message);
     }
+
+    console.log("Onboarding complete:", { alreadyExisted, userId, dpiaEmailSent, welcomeEmailSent });
 
     return new Response(JSON.stringify({
       success: true,
@@ -255,7 +304,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("Onboard practice error:", err);
+    console.error("Onboard practice error:", err.message, err.stack);
     return new Response(JSON.stringify({ error: err.message || "Internal error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
