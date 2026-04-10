@@ -141,13 +141,13 @@ Deno.serve(async (req) => {
       const { data: existingProfile } = await adminClient
         .from("profiles")
         .select("id")
-        .eq("id", userId)
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (!existingProfile) {
         console.log("Creating missing profile for existing auth user");
         const { error: profileError } = await adminClient.from("profiles").insert({
-          id: userId,
+          user_id: userId,
           full_name: pmName,
           email: pmEmail.toLowerCase(),
           role: "practice_manager",
@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
           user_id: userId,
           practice_id: gpPracticeId || null,
           role: "practice_manager",
-          practice_role: "Practice Manager",
+          practice_role: "practice_manager",
           assigned_by: caller.id,
           meeting_notes_access: true,
           complaints_manager_access: true,
@@ -210,11 +210,11 @@ Deno.serve(async (req) => {
 
       // Create profile — only use columns that exist on the profiles table
       const { error: profileError } = await adminClient.from("profiles").upsert({
-        id: userId,
+        user_id: userId,
         full_name: pmName,
         email: pmEmail.toLowerCase(),
         role: "practice_manager",
-      }, { onConflict: "id" });
+      }, { onConflict: "user_id" });
 
       if (profileError) {
         console.error("Profile upsert error:", profileError.message);
@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
         user_id: userId,
         practice_id: gpPracticeId || null,
         role: "practice_manager",
-        practice_role: "Practice Manager",
+        practice_role: "practice_manager",
         assigned_by: caller.id,
         meeting_notes_access: true,
         complaints_manager_access: true,
