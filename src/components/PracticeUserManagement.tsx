@@ -297,10 +297,11 @@ export const PracticeUserManagement = () => {
       const { data: serviceActivations } = await supabase
         .from('user_service_activations')
         .select('user_id, service')
-        .in('service', ['nres', 'policy_service'])
+        .in('service', ['nres', 'enn', 'policy_service'])
         .in('user_id', userIds);
       
       const nresUserIds = new Set(serviceActivations?.filter(a => a.service === 'nres').map(a => a.user_id) || []);
+      const ennUserIds = new Set(serviceActivations?.filter(a => a.service === 'enn').map(a => a.user_id) || []);
       const policyUserIds = new Set(serviceActivations?.filter(a => a.service === 'policy_service').map(a => a.user_id) || []);
       
       setUsers(data?.map((user: any) => ({
@@ -309,6 +310,7 @@ export const PracticeUserManagement = () => {
         survey_manager_access: user.survey_manager_access ?? false,
         document_signoff_access: user.document_signoff_access ?? false,
         nres_access: nresUserIds.has(user.user_id),
+        enn_access: ennUserIds.has(user.user_id),
         policy_service_access: policyUserIds.has(user.user_id)
       })) || []);
     } catch (error) {
