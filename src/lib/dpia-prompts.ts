@@ -62,7 +62,7 @@ ${documentText}
  * for the deployment of Notewell AI. Returns clean HTML.
  */
 export const DPIA_GENERATE_PROMPT = (practice: DPIAPractice): string => `
-You are a UK NHS information governance expert. Generate a comprehensive Data Protection Impact Assessment (DPIA) for the deployment of Notewell AI at the following GP practice.
+You are a UK NHS information governance expert. Generate a comprehensive Data Protection Impact Assessment (DPIA) for the deployment of Notewell AI at the following GP practice. The document should be approximately 12–15 pages when printed and must satisfy an ICB IG review.
 
 PRACTICE DETAILS:
 - Practice Name: ${practice.practice_name}
@@ -76,41 +76,50 @@ PRACTICE DETAILS:
 - Data Protection Officer: ${practice.dpo_name} (${practice.dpo_org}) — ${practice.dpo_email} — ${practice.dpo_tel}
 
 ABOUT NOTEWELL AI:
-- MHRA Class I registered medical device (registration confirmed)
+- MHRA Class I registered medical device (Manufacturer Self-Certification — registration confirmed)
 - AI-powered clinical consultation transcription and note generation platform designed for NHS primary care
 - Developed by PCN Services Ltd on a not-for-profit, self-funded basis
 - Multi-engine transcription architecture: Whisper, AssemblyAI, Deepgram, Gladia
-- Hallucination detection and speaker diarisation built in
+- Hallucination detection (125+ pattern library) and speaker diarisation built in
 - Best-of-Three merge pipeline for transcription accuracy
 - Offline recording capability for mobile and desktop
-- Clinical Safety Officer: Dr Simon Ellis
-- DCB0129 v1.3 Clinical Risk Management — Manufacturer's safety case completed
-- DCB0160 Clinical Risk Management — Health Organisation's safety case completed
-- DTAC (Digital Technology Assessment Criteria) completed
-- ICB DDaT (Digital, Data and Technology) Delivery Group approved — rollout to 40 practices authorised
+- Clinical Safety Officer: Dr Simon Ellis (GP Partner, Clinical Director — NRES)
+- DCB0129 v1.3 Clinical Risk Management — Manufacturer's safety case completed and signed off
+- DCB0160 Clinical Risk Management — Health Organisation's deployment safety assessment completed and signed off by CSO Dr Simon Ellis
+- DTAC (Digital Technology Assessment Criteria) completed — met in principle subject to go-live gating conditions
+- ICB DDaT (Digital, Data and Technology) Delivery Group approved — 30-practice pilot commencing Q1 2026
 - Data hosting: Supabase (EU region), AES-256 encryption at rest, TLS 1.3 in transit
 - No patient data is used for AI model training — ever
-- Audio recordings are deleted immediately after transcription processing
+- Audio recordings are automatically deleted within 7 days of transcription processing
 - Role-based access control with NHS email authentication (nhs.net)
+- Session timeouts: 5 hours (standard), 4 hours or less (PII-bearing sessions)
+- 6-layer AI safety guardrail system: clinical safety monitoring, input security validation, rate limiting (30 req/min), offensive language filtering, hallucination detection, explicit user disclaimers
+- Penetration testing: mandatory go-live gating requirement post-migration to NHS hosting
+- Cyber Essentials: mandatory pre-go-live gating requirement
 - The Practice is the Data Controller
 - PCN Services Ltd (trading as Notewell AI) is the Data Processor
-- A Data Processing Agreement is in place between Data Controller and Data Processor
+- A Data Processing Agreement (DPA) is in place between Data Controller and Data Processor
+- Enterprise contractual assurances available where required
 
 DATA PROCESSED:
-- Audio recordings of clinical consultations (temporarily, deleted after processing)
+- Audio recordings of clinical consultations (temporarily, auto-deleted after processing within 7 days)
 - Transcribed consultation text
 - AI-generated clinical notes (SOAP format and free-text)
+- Patient demographics as present within the clinical narrative (name, date of birth, NHS number — as dictated by the clinician)
+- Clinical notes and observations as dictated during consultations
+- Consultation recordings (audio — transient)
 - Clinician identifiers (name, role, NHS email)
 - Patient identifiers are present only within the clinical narrative as dictated by the clinician
 - No direct patient demographic data is collected or stored by Notewell AI separately from the consultation content
-- Special category data (health data) processed under UK GDPR Article 9(2)(h) — processing necessary for health care purposes
+- Special category data (health data) processed under UK GDPR Article 9(2)(h)
 
 LAWFUL BASIS:
 - UK GDPR Article 6(1)(e) — processing necessary for the performance of a task carried out in the public interest (provision of NHS healthcare)
 - UK GDPR Article 9(2)(h) — processing necessary for the provision of health care, subject to the conditions and safeguards referred to in Article 9(3)
 - Common law duty of confidentiality is maintained — the clinician controls what is recorded and reviews all AI-generated output before it enters the patient record
+- Data Protection Act 2018, Schedule 1, Part 1, Condition 2 — health or social care purposes
 
-GENERATE THE FOLLOWING SECTIONS:
+GENERATE THE FOLLOWING SECTIONS (number them exactly as shown):
 
 1. DOCUMENT CONTROL
    - Document title: "Data Protection Impact Assessment — Notewell AI — ${practice.practice_name}"
@@ -118,90 +127,169 @@ GENERATE THE FOLLOWING SECTIONS:
    - Date: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
    - Author: Malcolm Railson, Digital & Transformation Lead, NRES Programme
    - Reviewers: ${practice.cg_name} (Caldicott Guardian), ${practice.dpo_name} (DPO), ${practice.pm_name} (Practice Manager)
-   - Classification: Confidential
-   - Include a version history table
+   - Classification: Official — Sensitive
+   - Include a version history table with at least 3 rows (drafts and current version)
 
 2. INTRODUCTION AND PURPOSE
-   - Why this DPIA has been conducted
-   - Reference to UK GDPR Article 35 and ICO guidance
-   - Scope of the assessment
+   - Why this DPIA has been conducted (reference UK GDPR Article 35 and ICO guidance on when a DPIA is required)
+   - State that a DPIA is mandatory because the processing involves large-scale processing of special category health data and systematic monitoring of individuals
+   - Scope: describe the types of personal data involved in detail — patient demographics (name, DOB, NHS number as dictated), clinical notes, consultation audio recordings, transcriptions, AI-generated clinical summaries, and clinician identifiers
+   - Legal basis for processing: explain GDPR Article 6(1)(e) (public task — provision of NHS healthcare) and Article 9(2)(h) (health data processing for healthcare purposes under the management of a health professional) in full
+   - Reference the Data Protection Act 2018 Schedule 1 Part 1 Condition 2
+   - State the assessment covers all processing activities undertaken by Notewell AI at ${practice.practice_name}
 
-3. DESCRIPTION OF PROCESSING
-   - What personal data is processed
-   - Categories of data subjects (patients, clinicians)
+3. SYSTEM COMPLIANCE AND ASSURANCE
+   Write a detailed section covering:
+
+   3.1 Clinical Safety
+   Notewell AI is a registered MHRA Class I medical device. A Clinical Safety Case Report has been completed in accordance with DCB0129 (Clinical Risk Management: its Application in the Manufacture of Health IT Systems). The appointed Clinical Safety Officer (CSO) is Dr Simon Ellis (GP Partner, Clinical Director — NRES), who has reviewed and signed off the clinical safety case documentation.
+
+   3.2 DCB0160 Compliance
+   The deploying organisation's obligations under DCB0160 (Clinical Risk Management: its Application in the Deployment and Use of Health IT Systems) have been fulfilled. Dr Simon Ellis, as CSO, has signed off the deployment clinical safety assessment confirming that residual clinical risks have been evaluated and are acceptable for use in the NHS primary care setting.
+
+   3.3 DDaT Approval
+   Notewell AI has received approval from the NHS Northamptonshire ICB Digital, Data and Technology (DDaT) board for deployment as a 30-practice pilot commencing Q1 2026. This approval followed review of the clinical safety case, information governance documentation, and technical architecture.
+
+   3.4 Regulatory Summary
+   Include a TABLE with columns: Requirement | Status | Reference
+   Rows:
+   - MHRA Class I Registration | ✅ Completed | Medical Device Registration
+   - DCB0129 Clinical Safety Case | ✅ Completed | Clinical Safety Case Report v1.3
+   - DCB0160 Deployment Safety | ✅ Signed off | CSO: Dr Simon Ellis
+   - ICB DDaT Board Approval | ✅ Approved | 30-practice pilot, Q1 2026
+   - DPIA | ✅ This document | Practice-specific assessment
+   - Data Sharing Agreement | ✅ Completed | DSA v1.1
+   - DTAC Assessment | ✅ Met in principle | Subject to go-live gating conditions
+   - Cyber Essentials | ⏳ Pre-go-live gate | Mandatory before deployment
+   - DSPT | ⏳ Pre-go-live gate | Ownership to be confirmed by host NHS organisation
+
+4. DESCRIPTION OF PROCESSING
+   - What personal data is processed — be thorough and specific
+   - Categories of data subjects (patients, clinicians, practice staff)
    - Purpose of processing
-   - Lawful basis (Article 6 and Article 9)
-   - Data retention periods
-   - Data sharing (none — data stays within practice control)
+   - Lawful basis (Article 6 and Article 9) — repeat in full for this section
+   - Data retention periods (audio: auto-deleted within 7 days; transcripts and notes: configurable, aligned to NHS Records Management Code of Practice)
+   - Data sharing (none — data stays within practice control; no data used for AI training)
 
-4. NECESSITY AND PROPORTIONALITY
-   - Why AI transcription is necessary
+5. NECESSITY AND PROPORTIONALITY
+   - Why AI transcription is necessary (reduce clinician administrative burden, improve consultation documentation quality, support NHS digitalisation agenda)
    - How it is proportionate to the aim
-   - Alternatives considered
-   - Data minimisation measures
+   - Alternatives considered (manual note-taking, dictation services, third-party transcription services)
+   - Data minimisation measures (audio auto-deletion, no separate patient demographic collection, role-based access)
 
-5. DATA FLOW MAPPING
-   - Step-by-step flow: Clinician initiates recording → Audio captured (encrypted) → Audio sent to transcription engine(s) → Transcription returned → Best-of-Three merge → AI generates clinical note → Clinician reviews and approves → Note available for copy to patient record → Audio deleted
-   - Describe each stage with data state and encryption status
-
-6. IDENTIFICATION AND ASSESSMENT OF RISKS
-   Present as a TABLE with columns:
-   | Risk | Description | Likelihood (Low/Medium/High) | Severity (Low/Medium/High) | Overall Risk | Mitigation Measures | Residual Risk |
+6. DATA FLOW MAPPING
+   Describe the complete data flow step by step:
+   Step 1: Clinician initiates recording within Notewell AI during patient consultation
+   Step 2: Audio captured locally on device (encrypted at rest using AES-256)
+   Step 3: Audio transmitted to transcription engines via TLS 1.3 encrypted connection
+   Step 4: Multi-engine transcription (Whisper, AssemblyAI, Deepgram, Gladia) processes audio in parallel
+   Step 5: Best-of-Three merge pipeline selects optimal transcription with hallucination detection (125+ pattern library)
+   Step 6: Speaker diarisation identifies clinician vs patient speech
+   Step 7: AI generates structured clinical note (SOAP format) from merged transcription
+   Step 8: 6-layer safety guardrail system validates output (clinical safety, input security, hallucination detection, disclaimers)
+   Step 9: Clinician reviews, edits, and approves the AI-generated note
+   Step 10: Approved note available for copy to clinical system (EMIS/SystmOne)
+   Step 11: Audio recording auto-deleted within 7 days
    
-   Include at minimum these risks:
-   - Unauthorised access to consultation audio
-   - Transcription inaccuracy / hallucination
-   - Data breach during transmission
-   - Inappropriate access by unauthorised staff
-   - AI-generated note contains clinical error
-   - Loss of audio before transcription completes
-   - Third-party processor (Supabase) data breach
-   - Re-identification from anonymised/pseudonymised data
-   - Clinician fails to review AI output before use
-   - Device loss/theft with cached data
+   State clearly: All processing occurs within UK/EU-hosted infrastructure. No data is transferred outside the UK adequacy region. No patient data is used for AI model training.
 
-7. TECHNICAL AND ORGANISATIONAL MEASURES
-   - Encryption (at rest and in transit)
-   - Access controls (RBAC, NHS email auth)
-   - Audit logging
-   - Data minimisation
-   - Staff training requirements
-   - Incident response procedures
-   - Regular review schedule
+7. IDENTIFICATION AND ASSESSMENT OF RISKS
+   Present as a detailed TABLE with columns:
+   | Ref | Risk | Description | Likelihood (1-5) | Impact (1-5) | Risk Score | Mitigation Measures | Residual Risk (Low/Medium/High) |
+
+   Include these risks (minimum 10):
+   R1 - Transcription inaccuracy: AI transcription contains errors or omissions affecting clinical accuracy
+   R2 - AI hallucination: AI generates content not present in the original audio
+   R3 - Data breach during transmission: Patient data intercepted during transfer to transcription engines
+   R4 - Unauthorised access: Inappropriate access to consultation data by non-authorised staff
+   R5 - Patient consent: Patient not informed or does not consent to AI-assisted recording
+   R6 - Data retention: Data retained beyond necessary period or not deleted as required
+   R7 - Third-party processor non-compliance: Supabase, OpenAI, or other processor fails to meet contractual data protection obligations
+   R8 - Business continuity: System unavailability during clinical sessions affecting patient care
+   R9 - Clinician over-reliance: Clinician fails to review AI output before clinical use
+   R10 - Device loss or theft: Device containing cached audio data is lost or stolen
+   R11 - Re-identification risk: Re-identification of individuals from pseudonymised or aggregated data
+   R12 - Clinical error from AI output: AI-generated note contains clinical error that is not caught during review
+
+   After the table, provide a brief risk summary paragraph stating the overall risk profile.
+
+8. DATA PROCESSOR ASSESSMENT
+   Present as a TABLE with columns:
+   | Processor | Service | Data Processing Location | DPA in Place | Key Certifications |
+   
+   Include:
+   - OpenAI — AI note generation — USA (UK adequacy, Standard Contractual Clauses) — Yes — SOC 2 Type II, ISO 27001
+   - Anthropic — AI processing (backup) — USA (UK adequacy, SCCs) — Yes — SOC 2 Type II
+   - Whisper (OpenAI) — Audio transcription — USA (UK adequacy, SCCs) — Yes — SOC 2 Type II
+   - AssemblyAI — Audio transcription — USA (UK adequacy, SCCs) — Yes — SOC 2 Type II, HIPAA
+   - Deepgram — Audio transcription — USA (UK adequacy, SCCs) — Yes — SOC 2 Type II
+   - Gladia — Audio transcription — EU — Yes — GDPR compliant
+   - Supabase — Database and authentication — EU (Frankfurt) — Yes — SOC 2 Type II, ISO 27001
+   - ElevenLabs — Text-to-speech (AI Voice features) — EU — Yes — GDPR compliant
+   
+   Include a paragraph explaining the transfer mechanism (UK adequacy decision for EU; Standard Contractual Clauses for USA) and supplementary measures in place.
+
+9. TECHNICAL AND ORGANISATIONAL MEASURES
+   - Encryption (AES-256 at rest, TLS 1.3 in transit)
+   - Access controls (RBAC, NHS email authentication, MFA where available)
+   - Session timeouts (5 hours standard, 4 hours PII-bearing)
+   - Audit logging (comprehensive access and action logging)
+   - Data minimisation (audio auto-deletion, no separate demographics collection)
+   - 6-layer AI safety guardrail system (describe briefly)
+   - Staff training requirements (mandatory before access granted)
+   - Incident response procedures (reference NHS DSPT incident reporting)
+   - Regular review schedule (DPIA reviewed annually or on material change)
    - DCB0129/DCB0160 compliance
    - DTAC compliance
+   - Penetration testing (mandatory go-live gating requirement)
+   - Cyber Essentials (mandatory pre-go-live requirement)
 
-8. DATA SUBJECT RIGHTS
-   - How each right under UK GDPR is addressed:
-     - Right of access (SAR)
-     - Right to rectification
-     - Right to erasure
-     - Right to restrict processing
-     - Right to data portability
-     - Right to object
-   - How patients are informed (Privacy Notice update)
-   - Contact details for exercising rights
+10. DATA SUBJECT RIGHTS
+    How each right under UK GDPR is addressed within Notewell AI:
+    - Right of access (Subject Access Request — patients can request copies of any data held; practice responds within 1 calendar month)
+    - Right to rectification (clinician can edit AI-generated notes before and after saving; patients can request corrections via the practice)
+    - Right to erasure (audio auto-deleted within 7 days; clinical notes can be deleted at practice discretion in line with records management obligations)
+    - Right to restrict processing (patient can request their consultations are not recorded; clinician simply does not activate recording)
+    - Right to data portability (data can be exported in standard formats on request)
+    - Right to object (patients can object to AI-assisted recording at any point; the clinician controls whether recording is initiated)
+    - Right not to be subject to automated decision-making (no automated clinical decisions are made — all AI output must be reviewed by a clinician before use)
+    
+    Include: how patients are informed (updated Privacy Notice displayed in the practice and on the practice website), contact details for exercising rights (practice email and DPO contact).
 
-9. CONSULTATION
-   - Consultation with Caldicott Guardian: ${practice.cg_name}
-   - Consultation with DPO: ${practice.dpo_name} (${practice.dpo_org})
-   - Staff consultation and training plan
-   - Patient communication via updated Privacy Notice
-   - ICB approval obtained
+11. CONSULTATION
+    - Consultation with Caldicott Guardian: ${practice.cg_name}
+    - Consultation with DPO: ${practice.dpo_name} (${practice.dpo_org})
+    - Staff consultation and training plan
+    - Patient communication via updated Privacy Notice
+    - ICB DDaT approval obtained
+    - Clinical Safety Officer sign-off obtained (Dr Simon Ellis)
 
-10. DPIA OUTCOME AND RECOMMENDATION
+12. DPIA OUTCOME AND RECOMMENDATION
     - Summary of findings
-    - Overall risk assessment
-    - Recommendation to proceed (with conditions if applicable)
-    - Review date (6 months from today)
+    - Overall risk assessment (state that residual risks are acceptable with mitigations in place)
+    - Recommendation to proceed with deployment, subject to:
+      * DSPT ownership confirmed
+      * Cyber Essentials achieved
+      * Penetration testing completed post-migration to NHS hosting
+      * All staff training completed
+    - State: "This DPIA has been prepared in accordance with the requirements of the UK General Data Protection Regulation and the Data Protection Act 2018."
 
-11. SIGN-OFF
+13. REVIEW SCHEDULE
+    - State the DPIA will be reviewed annually, or sooner if there are material changes to processing activities, new data processors, changes in legislation, or significant security incidents
+    - Next scheduled review: ${new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+    - State that the review will be coordinated by the Practice Manager and DPO
+    - Include a review trigger list: change of processor, new data category, security incident, regulatory change, ICO guidance update
+
+14. SIGN-OFF
     Present as a TABLE:
     | Role | Name | Signature | Date |
-    | Caldicott Guardian | ${practice.cg_name} | | |
-    | Data Protection Officer | ${practice.dpo_name} | | |
-    | Practice Manager | ${practice.pm_name} | | |
-    | Digital & Transformation Lead | Malcolm Railson | | |
+    | Practice Data Protection Officer | ${practice.dpo_name} | _________________ | __________ |
+    | Caldicott Guardian | ${practice.cg_name} | _________________ | __________ |
+    | Practice Manager | ${practice.pm_name} | _________________ | __________ |
+    | Clinical Safety Officer (CSO) | Dr Simon Ellis | _________________ | __________ |
+    | Digital & Transformation Lead | Malcolm Railson | _________________ | __________ |
+
+    Include a declaration statement above the table: "We, the undersigned, confirm that we have reviewed this Data Protection Impact Assessment and are satisfied that the risks identified have been appropriately assessed and mitigated. We approve the deployment of Notewell AI at ${practice.practice_name} subject to the conditions stated in Section 12."
 
 FORMAT INSTRUCTIONS:
 - Output clean HTML only — no markdown fences, no preamble, no explanation
@@ -209,7 +297,11 @@ FORMAT INSTRUCTIONS:
 - Use color #005EB8 for h1 and h2 elements
 - Use color #003087 for h3 elements
 - All tables must have border-collapse: collapse, 1px solid #999 borders, and header row with background #005EB8 and white text
+- Use ✅ and ⏳ emoji in the regulatory summary table Status column
 - Font: Arial, 11pt equivalent
-- The document should be professional, thorough, and ready for sign-off without further editing
+- Include generous spacing between sections
+- The document should be professional, thorough, and ready for ICB IG review and sign-off without further editing
 - Include the practice name prominently throughout
+- Aim for 12–15 pages of content when printed
+- Use British English throughout (organisation, summarise, recognised, etc.)
 `;
