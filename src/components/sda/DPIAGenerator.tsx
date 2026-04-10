@@ -597,6 +597,24 @@ export default function DPIAGenerator() {
                         <Eye className="w-4 h-4" />
                       </Button>
                     )}
+                    {p.dpia_generated && (
+                      <TooltipProvider>
+                        <Tooltip delayDuration={200}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={!!onboardingBusy}
+                              onClick={() => { setOnboardingTestMode(true); setOnboardingPractice(p); }}
+                              className="text-amber-600 hover:text-amber-800"
+                            >
+                              <FlaskConical className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Test – Send to Malcolm only (no account created)</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     {p.dpia_generated && !p.onboarded_at && (
                       <TooltipProvider>
                         <Tooltip delayDuration={200}>
@@ -605,7 +623,7 @@ export default function DPIAGenerator() {
                               variant="ghost"
                               size="icon"
                               disabled={onboardingBusy === p.id}
-                              onClick={() => setOnboardingPractice(p)}
+                              onClick={() => { setOnboardingTestMode(false); setOnboardingPractice(p); }}
                               className="text-blue-600 hover:text-blue-800"
                             >
                               {onboardingBusy === p.id ? (
@@ -641,20 +659,37 @@ export default function DPIAGenerator() {
         )}
 
         {/* Onboarding confirmation dialog */}
-        <Dialog open={!!onboardingPractice} onOpenChange={(open) => { if (!open) setOnboardingPractice(null); }}>
+        <Dialog open={!!onboardingPractice} onOpenChange={(open) => { if (!open) { setOnboardingPractice(null); setOnboardingTestMode(false); } }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Send DPIA & Create Account</DialogTitle>
+              <DialogTitle>
+                {onboardingTestMode ? "🧪 Test Onboarding" : "Send DPIA & Create Account"}
+              </DialogTitle>
               <DialogDescription>
-                This will send the DPIA to <strong>{onboardingPractice?.pm_name}</strong> at{" "}
-                <strong>{onboardingPractice?.pm_email}</strong> and create their Notewell AI account. Continue?
+                {onboardingTestMode ? (
+                  <>
+                    This will send the DPIA and welcome email for <strong>{onboardingPractice?.practice_name}</strong> to <strong>your inbox only</strong> (malcolm.railson@nhs.net).
+                    No account will be created for {onboardingPractice?.pm_name}.
+                  </>
+                ) : (
+                  <>
+                    This will send the DPIA to <strong>{onboardingPractice?.pm_name}</strong> at{" "}
+                    <strong>{onboardingPractice?.pm_email}</strong> and create their Notewell AI account. Continue?
+                  </>
+                )}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOnboardingPractice(null)}>Cancel</Button>
-              <Button onClick={() => { if (onboardingPractice) onboardPractice(onboardingPractice); }}>
-                <UserPlus className="w-4 h-4 mr-1" />
-                Confirm & Send
+              <Button variant="outline" onClick={() => { setOnboardingPractice(null); setOnboardingTestMode(false); }}>Cancel</Button>
+              <Button
+                variant={onboardingTestMode ? "secondary" : "default"}
+                onClick={() => { if (onboardingPractice) onboardPractice(onboardingPractice, onboardingTestMode); }}
+              >
+                {onboardingTestMode ? (
+                  <><FlaskConical className="w-4 h-4 mr-1" /> Send Test to Me</>
+                ) : (
+                  <><UserPlus className="w-4 h-4 mr-1" /> Confirm & Send</>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
