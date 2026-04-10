@@ -18,6 +18,9 @@ const PatientInner = () => {
   const sessionStartRef = useRef<Date | null>(null);
 
   const conversation = useConversation({
+    onError: (error) => {
+      console.error("❌ Patient agent error:", error);
+    },
     onMessage: (payload) => {
       console.log("📝 Patient onMessage:", payload.source, payload.message?.substring(0, 50));
       messagesRef.current.push({
@@ -69,7 +72,7 @@ const PatientInner = () => {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       messagesRef.current = [];
       sessionStartRef.current = new Date();
-      conversation.startSession({
+      await conversation.startSession({
         agentId: PATIENT_AGENT_ID,
       });
     } catch (error) {
