@@ -168,6 +168,10 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
                 Evidence Library
               </TabsTrigger>
             )}
+            <TabsTrigger value="workforce" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Workforce
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="finance-governance">
