@@ -463,10 +463,11 @@ export default function DPIAGenerator() {
                   dpo_name: parsed.dpoName || "",
                   dpo_org: parsed.dpoOrg || "",
                   dpo_email: parsed.dpoEmail || "",
-                  dpiaGenerated: false,
+                  dpia_generated: false,
                 };
-                await savePractice(practice);
-                toast({ title: `${practice.practice_name || "Practice"} added from pasted text` });
+                setCurrent(practice);
+                setView("form");
+                toast({ title: `Extracted details for ${practice.practice_name || "Practice"} from pasted text` });
               } catch (err) {
                 console.error("Paste extraction error:", err);
                 toast({ title: "Could not extract practice details from pasted text", variant: "destructive" });
