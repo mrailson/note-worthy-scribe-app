@@ -205,7 +205,7 @@ const AIVoiceStudio: React.FC = () => {
                 <span className="font-bold text-[15px]">{mode.label}</span>
               </div>
               <p className={cn('text-xs leading-snug m-0', isActive ? 'opacity-90' : 'opacity-65')}>
-                {mode.type === 'info' ? mode.tagline : mode.description}
+                {mode.type === 'info' ? mode.tagline : mode.tagline}
               </p>
             </button>
           );
