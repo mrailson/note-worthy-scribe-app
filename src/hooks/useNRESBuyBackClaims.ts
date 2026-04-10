@@ -6,6 +6,8 @@ import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import { sendBuyBackEmail, type BuyBackEmailData } from '@/utils/buybackEmailService';
 import { generateInvoiceNumber } from '@/utils/invoiceNumberGenerator';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
+import { NRES_PRACTICE_CONTACTS, getPracticeName } from '@/data/nresPractices';
+import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackStaffMember } from './useNRESBuyBackStaff';
 
 export interface BuyBackClaim {
@@ -618,6 +620,59 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         if (invoicedData) {
           setClaims(prev => prev.map(c => c.id === id ? (invoicedData as BuyBackClaim) : c));
           toast.success(`Invoice ${invoiceNum} generated`);
+
+          // Email invoice PDF to Practice Manager (non-blocking)
+          const practiceKey = claim?.practice_key as NRESPracticeKey | undefined;
+          const pmContact = practiceKey ? NRES_PRACTICE_CONTACTS[practiceKey] : null;
+          if (pmContact?.email) {
+            const practiceName = getPracticeName(practiceKey);
+            const claimDate = new Date(claim?.claim_month || '');
+            const claimMonthLabel = claimDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+            // Convert PDF blob to base64
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve) => {
+              reader.onloadend = () => {
+                const base64 = (reader.result as string).split(',')[1];
+                resolve(base64);
+              };
+            });
+            reader.readAsDataURL(pdfBlob);
+            const pdfBase64 = await base64Promise;
+
+            supabase.functions.invoke('send-meeting-email-resend', {
+              body: {
+                to_email: pmContact.email,
+                subject: `Invoice ${invoiceNum} — ${practiceName} NRES Buy-Back Claim (${claimMonthLabel})`,
+                html_content: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background-color: #003087; padding: 16px 24px;">
+                      <h1 style="color: #ffffff; font-size: 18px; margin: 0;">NRES Buy-Back Invoice</h1>
+                    </div>
+                    <div style="padding: 24px;">
+                      <p>Dear ${pmContact.practiceManager},</p>
+                      <p>Please find attached invoice <strong>${invoiceNum}</strong> for the NRES Neighbourhood Access Service buy-back claim for <strong>${practiceName}</strong> covering <strong>${claimMonthLabel}</strong>.</p>
+                      <p>Payment terms: <strong>30 days</strong> from the date of this invoice.</p>
+                      <p>Invoice payable to: <strong>PML (Principal Medical Limited)</strong>, 3 Barberry Place, Bicester, Oxfordshire, OX26 3HA.</p>
+                      <p>If you have any queries regarding this invoice, please contact your Neighbourhood Manager.</p>
+                      <p style="margin-top: 24px; color: #666; font-size: 12px;">This is an automated message from Notewell AI — NRES SDA Programme.</p>
+                    </div>
+                  </div>
+                `,
+                from_name: 'NRES Buy-Back Claims',
+                extra_attachments: [{
+                  content: pdfBase64,
+                  filename: `Invoice_${invoiceNum}.pdf`,
+                  type: 'application/pdf',
+                }],
+              },
+            }).then(() => {
+              toast.success(`Invoice emailed to ${pmContact.practiceManager}`);
+            }).catch((emailErr) => {
+              console.error('Failed to email invoice to PM:', emailErr);
+              toast.error('Invoice generated but email to Practice Manager failed');
+            });
+          }
         }
       } catch (invoiceError) {
         console.error('Invoice generation failed (claim still approved):', invoiceError);
