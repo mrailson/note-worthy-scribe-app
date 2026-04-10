@@ -253,27 +253,28 @@ export const PracticeUserManagement = () => {
         return;
       }
 
-      const { data: practice, error } = await supabase
-        .from('practice_details')
-        .select('practice_name')
+      // Prefer gp_practices as the authoritative source for practice names
+      const { data: gpPractice, error: gpError } = await supabase
+        .from('gp_practices')
+        .select('name, organisation_type')
         .eq('id', practiceId)
         .single();
 
-      if (error) {
-        // Try gp_practices table
-        const { data: gpPractice, error: gpError } = await supabase
-          .from('gp_practices')
-          .select('name, organisation_type')
-          .eq('id', practiceId)
-          .single();
-
-        if (gpError) {
-          console.error('Error loading practice info:', error, gpError);
-          return;
-        }
+      if (!gpError && gpPractice) {
         setPracticeInfo({ id: practiceId, name: gpPractice.name });
         setIsNonPracticeOrg(nonPracticeOrgTypes.includes(gpPractice.organisation_type || ''));
       } else {
+        // Fallback to practice_details
+        const { data: practice, error } = await supabase
+          .from('practice_details')
+          .select('practice_name')
+          .eq('id', practiceId)
+          .single();
+
+        if (error) {
+          console.error('Error loading practice info:', gpError, error);
+          return;
+        }
         setPracticeInfo({ id: practiceId, name: practice.practice_name });
         setIsNonPracticeOrg(false);
       }
