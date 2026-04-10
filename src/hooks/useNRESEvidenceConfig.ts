@@ -157,7 +157,7 @@ export function useNRESEvidenceConfig() {
   }, [config]);
 
   /** Get mandatory evidence types for a category */
-  const getMandatoryForCategory = useCallback((category: 'buyback' | 'new_sda' | 'mixed') => {
+  const getMandatoryForCategory = useCallback((category: StaffEvidenceCategory) => {
     return getConfigForCategory(category).filter(c => c.is_mandatory);
   }, [getConfigForCategory]);
 
