@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { PDFProcessor } from "@/utils/fileProcessors/PDFProcessor";
 import mammoth from "mammoth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -210,14 +211,20 @@ export default function DPIAGenerator() {
 
   // ---- File upload & parse ----
   const handleFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith(".docx")) {
-      toast({ title: "Please upload a .docx file", variant: "destructive" });
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".docx") && !name.endsWith(".pdf")) {
+      toast({ title: "Please upload a .docx or .pdf file", variant: "destructive" });
       return;
     }
     setBusy(true);
     setBusyMsg("Reading document…");
     try {
-      const text = await extractTextFromDocx(file);
+      let text: string;
+      if (name.endsWith(".pdf")) {
+        text = await PDFProcessor.extractText(file);
+      } else {
+        text = await extractTextFromDocx(file);
+      }
       if (text.length < 50) throw new Error("Could not extract text from document");
 
       setBusyMsg("Extracting practice details with AI…");
@@ -395,7 +402,7 @@ export default function DPIAGenerator() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".docx"
+            accept=".docx,.pdf"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -419,7 +426,7 @@ export default function DPIAGenerator() {
         >
           <CardContent className="flex flex-col items-center justify-center py-8 gap-2">
             <Upload className="w-8 h-8 text-slate-400" />
-            <p className="text-sm text-slate-500">Drop a completed DPIA Data Collection Template (.docx) here</p>
+            <p className="text-sm text-slate-500">Drop a completed DPIA Data Collection Template (.docx or .pdf) here</p>
             <p className="text-xs text-slate-400">or click to browse</p>
           </CardContent>
         </Card>
