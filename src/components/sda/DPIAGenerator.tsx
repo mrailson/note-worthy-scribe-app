@@ -397,7 +397,9 @@ export default function DPIAGenerator() {
 
       await loadPractices();
 
-      if (data.alreadyExisted) {
+      if (testMode) {
+        toast({ title: `🧪 Test complete – ${practice.practice_name} emails sent to your inbox (no account created)` });
+      } else if (data.alreadyExisted) {
         toast({ title: `${practice.practice_name} – DPIA sent to ${practice.pm_name} (account already existed, no new credentials sent)` });
       } else {
         toast({ title: `${practice.practice_name} onboarded – DPIA & login sent to ${practice.pm_name}` });
