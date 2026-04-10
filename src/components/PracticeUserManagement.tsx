@@ -1173,22 +1173,44 @@ export const PracticeUserManagement = () => {
                   </div>
                 </div>
                 
-                {/* NRES Access - Only visible if current user has NRES access and editing */}
-                {currentUserHasNRES && editingUser && (
-                  <div className="pt-3 mt-3 border-t border-border">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="nres_access"
-                        checked={editingUserNRESAccess}
-                        onCheckedChange={handleNRESAccessChange}
-                      />
-                      <Label htmlFor="nres_access" className="text-sm font-medium">
-                        NRES Dashboard
-                      </Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1 ml-10">
-                      Grants access to the NRES New Models Pilot Dashboard
-                    </p>
+                {/* NRES / ENN Access - Only visible if current user has access */}
+                {(currentUserHasNRES || currentUserHasENN) && (
+                  <div className="pt-3 mt-3 border-t border-border space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Neighbourhood Dashboard Access</p>
+                    {currentUserHasNRES && (
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="nres_access"
+                            checked={editingUser ? editingUserNRESAccess : newUserNRESAccess}
+                            onCheckedChange={editingUser ? handleNRESAccessChange : setNewUserNRESAccess}
+                          />
+                          <Label htmlFor="nres_access" className="text-sm font-medium">
+                            NRES Dashboard
+                          </Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 ml-10">
+                          Grants access to the NRES New Models Pilot Dashboard
+                        </p>
+                      </div>
+                    )}
+                    {currentUserHasENN && (
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="enn_access"
+                            checked={editingUser ? editingUserENNAccess : newUserENNAccess}
+                            onCheckedChange={editingUser ? handleENNAccessChange : setNewUserENNAccess}
+                          />
+                          <Label htmlFor="enn_access" className="text-sm font-medium">
+                            ENN Dashboard
+                          </Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 ml-10">
+                          Grants access to the East Northants Neighbourhood Dashboard
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
