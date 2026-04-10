@@ -462,18 +462,19 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                       )}
                     </div>
 
-                    {/* Days Since Go-Live */}
+                    {/* Days Since/Until Go-Live */}
                     {(() => {
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
-                      const goLive = goLiveDate || new Date(2026, 3, 1);
+                      const goLive = new Date(goLiveDate || new Date(2026, 3, 1));
                       goLive.setHours(0, 0, 0, 0);
                       const diffMs = today.getTime() - goLive.getTime();
-                      const daysSince = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                      const daysDiff = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                      const isLive = daysDiff >= 0;
                       return (
                         <div className="flex items-center justify-center gap-3 py-4">
-                          <p className="text-4xl font-bold text-[#005EB8]">{daysSince}</p>
-                          <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">DAYS SINCE<br />GO-LIVE</p>
+                          <p className={`text-4xl font-bold ${isLive ? 'text-[#005EB8]' : 'text-[#ED8B00]'}`}>{isLive ? daysDiff : Math.abs(daysDiff)}</p>
+                          <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{isLive ? 'DAYS SINCE' : 'DAYS UNTIL'}<br />GO-LIVE</p>
                         </div>
                       );
                     })()}
