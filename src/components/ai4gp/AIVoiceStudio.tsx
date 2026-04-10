@@ -148,7 +148,7 @@ const AIVoiceStudio: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in px-2 sm:px-4">
       {/* Header */}
       <div className="flex items-center gap-3.5">
         <div
