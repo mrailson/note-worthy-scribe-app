@@ -48,6 +48,7 @@ interface PracticeUser {
   fridge_monitoring_access: boolean;
   survey_manager_access?: boolean;
   nres_access?: boolean;
+  enn_access?: boolean;
   policy_service_access?: boolean;
   document_signoff_access?: boolean;
 }
@@ -165,8 +166,12 @@ export const PracticeUserManagement = () => {
   const [practiceInfo, setPracticeInfo] = useState<any>(null);
   const [isNonPracticeOrg, setIsNonPracticeOrg] = useState(false);
   const [currentUserHasNRES, setCurrentUserHasNRES] = useState(false);
+  const [currentUserHasENN, setCurrentUserHasENN] = useState(false);
   const [editingUserNRESAccess, setEditingUserNRESAccess] = useState(false);
+  const [editingUserENNAccess, setEditingUserENNAccess] = useState(false);
   const [editingUserPolicyAccess, setEditingUserPolicyAccess] = useState(false);
+  const [newUserNRESAccess, setNewUserNRESAccess] = useState(false);
+  const [newUserENNAccess, setNewUserENNAccess] = useState(false);
   
   // Password state - auto-generate on init
   const [password, setPassword] = useState(() => generateMemorablePassword());
@@ -217,13 +222,13 @@ export const PracticeUserManagement = () => {
     
     const { data, error } = await supabase
       .from('user_service_activations')
-      .select('id')
+      .select('id, service')
       .eq('user_id', user.id)
-      .eq('service', 'nres')
-      .maybeSingle();
+      .in('service', ['nres', 'enn']);
     
     if (!error && data) {
-      setCurrentUserHasNRES(true);
+      setCurrentUserHasNRES(data.some(d => d.service === 'nres'));
+      setCurrentUserHasENN(data.some(d => d.service === 'enn'));
     }
   };
 
@@ -292,10 +297,11 @@ export const PracticeUserManagement = () => {
       const { data: serviceActivations } = await supabase
         .from('user_service_activations')
         .select('user_id, service')
-        .in('service', ['nres', 'policy_service'])
+        .in('service', ['nres', 'enn', 'policy_service'])
         .in('user_id', userIds);
       
       const nresUserIds = new Set(serviceActivations?.filter(a => a.service === 'nres').map(a => a.user_id) || []);
+      const ennUserIds = new Set(serviceActivations?.filter(a => a.service === 'enn').map(a => a.user_id) || []);
       const policyUserIds = new Set(serviceActivations?.filter(a => a.service === 'policy_service').map(a => a.user_id) || []);
       
       setUsers(data?.map((user: any) => ({
@@ -304,6 +310,7 @@ export const PracticeUserManagement = () => {
         survey_manager_access: user.survey_manager_access ?? false,
         document_signoff_access: user.document_signoff_access ?? false,
         nres_access: nresUserIds.has(user.user_id),
+        enn_access: ennUserIds.has(user.user_id),
         policy_service_access: policyUserIds.has(user.user_id)
       })) || []);
     } catch (error) {
@@ -345,9 +352,25 @@ export const PracticeUserManagement = () => {
       if (data.success) {
         toast.success(data.message);
         
+        // Activate NRES/ENN service access if toggled on
+        const newUserId = data.user_id;
+        const serviceInserts: { user_id: string; service: 'nres' | 'enn'; activated_by: string; activated_at: string }[] = [];
+        if (newUserNRESAccess) {
+          serviceInserts.push({ user_id: newUserId, service: 'nres' as const, activated_by: user?.id || '', activated_at: new Date().toISOString() });
+        }
+        if (newUserENNAccess) {
+          serviceInserts.push({ user_id: newUserId, service: 'enn' as const, activated_by: user?.id || '', activated_at: new Date().toISOString() });
+        }
+        if (serviceInserts.length > 0) {
+          const { error: svcError } = await supabase
+            .from('user_service_activations')
+            .insert(serviceInserts);
+          if (svcError) console.error('Error activating services for new user:', svcError);
+        }
+        
         // Store created user data for email preview
         setCreatedUserData({
-          user_id: data.user_id,
+          user_id: newUserId,
           email: userFormData.email,
           full_name: userFormData.full_name,
           role: userFormData.role,
@@ -499,6 +522,7 @@ export const PracticeUserManagement = () => {
   const openEditModal = (user: PracticeUser) => {
     setEditingUser(user);
     setEditingUserNRESAccess(user.nres_access || false);
+    setEditingUserENNAccess(user.enn_access || false);
     setEditingUserPolicyAccess(user.policy_service_access || false);
     setUserFormData({
       email: user.email,
@@ -569,6 +593,45 @@ export const PracticeUserManagement = () => {
     }
   };
 
+  const handleENNAccessChange = async (checked: boolean) => {
+    if (!editingUser) return;
+    
+    try {
+      if (checked) {
+        const { error } = await supabase
+          .from('user_service_activations')
+          .insert({
+            user_id: editingUser.user_id,
+            service: 'enn' as const,
+            activated_by: user?.id,
+            activated_at: new Date().toISOString(),
+          });
+
+        if (error) {
+          const msg = (error as any)?.message as string | undefined;
+          const code = (error as any)?.code as string | undefined;
+          const isDuplicate =
+            code === '23505' || msg?.includes('user_service_activations_user_id_service_key');
+          if (!isDuplicate) throw error;
+        }
+      } else {
+        const { error } = await supabase
+          .from('user_service_activations')
+          .delete()
+          .eq('user_id', editingUser.user_id)
+          .eq('service', 'enn');
+
+        if (error) throw error;
+      }
+      
+      setEditingUserENNAccess(checked);
+      toast.success(checked ? 'ENN access granted' : 'ENN access revoked');
+    } catch (error) {
+      console.error('Error updating ENN access:', error);
+      toast.error('Failed to update ENN access');
+    }
+  };
+
   const resetForm = () => {
     setUserFormData({
       email: '',
@@ -599,7 +662,10 @@ export const PracticeUserManagement = () => {
     setShowPassword(true);
     setPasswordError('');
     setEditingUserNRESAccess(false);
+    setEditingUserENNAccess(false);
     setEditingUserPolicyAccess(false);
+    setNewUserNRESAccess(false);
+    setNewUserENNAccess(false);
     setSearchQuery('');
   };
 
@@ -800,6 +866,7 @@ export const PracticeUserManagement = () => {
                             {user.document_signoff_access && <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">Sign-Off</Badge>}
                             {user.fridge_monitoring_access && <Badge variant="outline" className="text-xs">Fridge</Badge>}
                             {user.nres_access && <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">NRES</Badge>}
+                            {user.enn_access && <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">ENN</Badge>}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -1107,22 +1174,44 @@ export const PracticeUserManagement = () => {
                   </div>
                 </div>
                 
-                {/* NRES Access - Only visible if current user has NRES access and editing */}
-                {currentUserHasNRES && editingUser && (
-                  <div className="pt-3 mt-3 border-t border-border">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="nres_access"
-                        checked={editingUserNRESAccess}
-                        onCheckedChange={handleNRESAccessChange}
-                      />
-                      <Label htmlFor="nres_access" className="text-sm font-medium">
-                        NRES Dashboard
-                      </Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1 ml-10">
-                      Grants access to the NRES New Models Pilot Dashboard
-                    </p>
+                {/* NRES / ENN Access - Only visible if current user has access */}
+                {(currentUserHasNRES || currentUserHasENN) && (
+                  <div className="pt-3 mt-3 border-t border-border space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Neighbourhood Dashboard Access</p>
+                    {currentUserHasNRES && (
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="nres_access"
+                            checked={editingUser ? editingUserNRESAccess : newUserNRESAccess}
+                            onCheckedChange={editingUser ? handleNRESAccessChange : setNewUserNRESAccess}
+                          />
+                          <Label htmlFor="nres_access" className="text-sm font-medium">
+                            NRES Dashboard
+                          </Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 ml-10">
+                          Grants access to the NRES New Models Pilot Dashboard
+                        </p>
+                      </div>
+                    )}
+                    {currentUserHasENN && (
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="enn_access"
+                            checked={editingUser ? editingUserENNAccess : newUserENNAccess}
+                            onCheckedChange={editingUser ? handleENNAccessChange : setNewUserENNAccess}
+                          />
+                          <Label htmlFor="enn_access" className="text-sm font-medium">
+                            ENN Dashboard
+                          </Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 ml-10">
+                          Grants access to the East Northants Neighbourhood Dashboard
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
