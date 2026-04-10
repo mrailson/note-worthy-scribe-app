@@ -74,6 +74,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   const { saveSession } = useGenieHistory();
   const deviceInfo = useDeviceInfo();
   const conversationStartTime = useRef<Date | null>(null);
+  const profileEmailRef = useRef<string | null>(null);
   const getLanguageName = (code: string) => {
     if (!code) return 'Unknown';
     const lower = code.toLowerCase();
