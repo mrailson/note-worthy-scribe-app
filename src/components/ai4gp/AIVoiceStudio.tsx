@@ -217,22 +217,23 @@ const AIVoiceStudio: React.FC = () => {
         const widget = activeData as WidgetMode;
         return (
           <Card className="rounded-[14px] border p-6 shadow-sm animate-fade-in">
-            <div className="flex items-center gap-2.5 mb-4">
+            <div className="flex items-center gap-2.5 mb-1.5">
               <span
                 className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg text-white"
                 style={{ background: widget.color }}
               >
                 {widget.icon}
               </span>
-              <div>
-                <h2 className="text-[17px] font-bold" style={{ color: '#003087' }}>{widget.label} Mode</h2>
-                <p className="text-xs text-muted-foreground">Ask anything within this context</p>
-              </div>
+              <h2 className="text-[17px] font-bold" style={{ color: '#003087' }}>{widget.label}</h2>
             </div>
+
+            <p className="text-sm font-semibold italic mb-3.5" style={{ color: widget.color }}>
+              {widget.tagline}
+            </p>
 
             {/* GP Warning */}
             {activeMode === 'gp' && (
-              <div className="mb-4 p-3 rounded-lg text-xs leading-relaxed flex items-start gap-2.5"
+              <div className="mb-3 p-3 rounded-lg text-xs leading-relaxed flex items-start gap-2.5"
                 style={{ background: '#FFF3CD', border: '1px solid #FFCB05', color: '#594300' }}>
                 <span className="text-lg shrink-0">⚠️</span>
                 <span>
@@ -243,8 +244,27 @@ const AIVoiceStudio: React.FC = () => {
               </div>
             )}
 
+            {/* Features */}
+            <div className="flex flex-col gap-2 mb-2">
+              {widget.features.map((feat, i) => (
+                <div key={i} className="flex items-start gap-2.5 text-[13px] leading-relaxed">
+                  <span
+                    className="w-[22px] h-[22px] rounded-md shrink-0 mt-0.5 flex items-center justify-center text-[11px] font-bold"
+                    style={{ background: `${widget.color}18`, color: widget.color }}
+                  >
+                    {widget.id === 'gp' ? '🩺' : '📋'}
+                  </span>
+                  <span>{feat}</span>
+                </div>
+              ))}
+            </div>
+
+            {widget.footnote && (
+              <p className="text-xs text-muted-foreground italic mb-2">{widget.footnote}</p>
+            )}
+
             {/* ElevenLabs Widget */}
-            <div className="mb-4">
+            <div className="mb-2">
               <ElevenLabsWidget agentId={AGENT_IDS[widget.id]} />
             </div>
 
