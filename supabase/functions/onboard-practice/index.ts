@@ -213,8 +213,9 @@ serve(async (req) => {
           subject: `Notewell AI – DPIA for ${practiceName}`,
           html: dpiaEmailBody,
           attachments: [{
-            filename: dpiaFileName || `DPIA_Notewell_AI_${practiceName.replace(/\s+/g, "_")}.pdf`,
+            filename: dpiaFileName || `DPIA_Notewell_AI_${practiceName.replace(/\s+/g, "_")}.doc`,
             content: dpiaBase64,
+            content_type: "application/msword",
           }],
         }),
       });
