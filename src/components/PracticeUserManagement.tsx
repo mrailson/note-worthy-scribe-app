@@ -354,12 +354,12 @@ export const PracticeUserManagement = () => {
         
         // Activate NRES/ENN service access if toggled on
         const newUserId = data.user_id;
-        const serviceInserts: { user_id: string; service: string; activated_by: string; activated_at: string }[] = [];
+        const serviceInserts: { user_id: string; service: 'nres' | 'enn'; activated_by: string; activated_at: string }[] = [];
         if (newUserNRESAccess) {
-          serviceInserts.push({ user_id: newUserId, service: 'nres', activated_by: user?.id || '', activated_at: new Date().toISOString() });
+          serviceInserts.push({ user_id: newUserId, service: 'nres' as const, activated_by: user?.id || '', activated_at: new Date().toISOString() });
         }
         if (newUserENNAccess) {
-          serviceInserts.push({ user_id: newUserId, service: 'enn', activated_by: user?.id || '', activated_at: new Date().toISOString() });
+          serviceInserts.push({ user_id: newUserId, service: 'enn' as const, activated_by: user?.id || '', activated_at: new Date().toISOString() });
         }
         if (serviceInserts.length > 0) {
           const { error: svcError } = await supabase
