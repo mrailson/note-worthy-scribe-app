@@ -352,7 +352,7 @@ export default function DPIAGenerator() {
   };
 
   // ---- Onboard practice (send DPIA + create account) ----
-  const onboardPractice = async (practice: DPIAPractice) => {
+  const onboardPractice = async (practice: DPIAPractice, testMode = false) => {
     if (!practice.dpia_html || !practice.pm_email || !practice.pm_name) {
       toast({ title: "Missing DPIA or PM details", variant: "destructive" });
       return;
