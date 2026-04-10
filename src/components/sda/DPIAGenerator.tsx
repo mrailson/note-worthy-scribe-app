@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import {
   Upload, FileText, Download, Mail, Printer, Plus, Pencil, Trash2,
-  Eye, RefreshCw, Loader2, ArrowLeft, Shield, CheckCircle2, UserPlus, Check
+  Eye, RefreshCw, Loader2, ArrowLeft, Shield, CheckCircle2, UserPlus, Check, FlaskConical
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -203,6 +203,7 @@ export default function DPIAGenerator() {
   const [dpiaHtml, setDpiaHtml] = useState("");
   const [onboardingPractice, setOnboardingPractice] = useState<DPIAPractice | null>(null);
   const [onboardingBusy, setOnboardingBusy] = useState<string | null>(null);
+  const [onboardingTestMode, setOnboardingTestMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load practices
