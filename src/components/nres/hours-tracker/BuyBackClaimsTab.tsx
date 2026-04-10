@@ -577,7 +577,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               <Badge variant="secondary" className="ml-auto text-xs">{filteredClaims.length}</Badge>
             </button>
           </CollapsibleTrigger>
-          {claimsHistoryOpen && effectiveIsAdmin && !testActive && (
+          {claimsHistoryOpen && effectiveIsAdmin && (!testActive || testMode.role === 'pml_finance' || testMode.role === 'pml_director') && (
             <div className="flex flex-wrap gap-2 mt-2 items-center">
               {([
                 { key: 'all', label: 'All' },
