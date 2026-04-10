@@ -168,7 +168,7 @@ function HowToClaimTab() {
       <div>
         <h4 className="font-semibold text-[#003087] mb-1">Step 6: Payment</h4>
         <Badge variant="outline" className="mb-1 text-[10px]">PML Finance</Badge>
-        <p className="text-muted-foreground">Once invoiced, PML processes payment within 14 days. The claim status updates to "Paid" when payment is confirmed.</p>
+        <p className="text-muted-foreground">Once invoiced, PML processes payment within 30 days. The claim status updates to "Paid" when payment is confirmed.</p>
       </div>
     </div>
   );

@@ -126,7 +126,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   doc.setTextColor(GREY_100);
   doc.text('Payment Terms:', rightX, metaY + 18);
   doc.setTextColor(0);
-  doc.text('14 days', rightX + 40, metaY + 18);
+  doc.text('30 days', rightX + 40, metaY + 18);
 
   // --- Programme reference ---
   doc.setFontSize(9);
