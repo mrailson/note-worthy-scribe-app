@@ -42,7 +42,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   doc.text('Invoice To:', rightX, 20);
   doc.setFontSize(10);
   doc.setTextColor(0);
-  doc.text('PML (Practice Makes Perfect Ltd)', rightX, 26);
+  doc.text('PML (Principal Medical Limited)', rightX, 26);
   doc.setFontSize(9);
   doc.setTextColor(60);
   doc.text(`Invoice No: ${invoiceNumber}`, rightX, 36);
