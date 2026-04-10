@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
@@ -11,9 +11,12 @@ import {
   Building2, 
   Monitor, 
   FolderLock,
-  Clock
+  Clock,
+  Shield
 } from "lucide-react";
 import { NRESPeopleProvider } from "@/contexts/NRESPeopleContext";
+
+const DPIAGenerator = lazy(() => import("@/components/sda/DPIAGenerator"));
 
 const tabs = [
   { value: "executive", label: "Executive Summary", shortLabel: "Summary", icon: LayoutDashboard },
