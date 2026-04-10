@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
       throw new Error("RESEND_API_KEY not configured");
     }
 
-    const fromEmail = Deno.env.get("NRES_FROM_EMAIL") || "nres@notewell.ai";
+    const fromEmail = Deno.env.get("NRES_FROM_EMAIL") || "noreply@bluepcn.co.uk";
     const hasRedFlags = data.redFlags && data.redFlags.length > 0;
     const subjectPrefix = hasRedFlags ? "⚠️ " : "";
     const subjectLine = `${subjectPrefix}GP Session — ${data.sessionType} — ${data.practiceName} — ${formatDateGB(data.startTime)}`;
