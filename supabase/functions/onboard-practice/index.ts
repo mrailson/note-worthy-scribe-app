@@ -207,7 +207,7 @@ serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendApiKey}` },
         body: JSON.stringify({
-          from: "Notewell AI <noreply@gpnotewell.co.uk>",
+          from: "Notewell AI <noreply@bluepcn.co.uk>",
           to: [pmEmail],
           bcc: ["malcolm.railson@nhs.net"],
           subject: `Notewell AI – DPIA for ${practiceName}`,
@@ -269,7 +269,7 @@ serve(async (req) => {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendApiKey}` },
           body: JSON.stringify({
-            from: "Notewell AI <noreply@gpnotewell.co.uk>",
+            from: "Notewell AI <noreply@bluepcn.co.uk>",
             to: [pmEmail],
             bcc: ["malcolm.railson@nhs.net"],
             subject: `Notewell AI – Your Login Details for ${practiceName}`,
