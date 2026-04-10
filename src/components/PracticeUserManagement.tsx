@@ -222,13 +222,13 @@ export const PracticeUserManagement = () => {
     
     const { data, error } = await supabase
       .from('user_service_activations')
-      .select('id')
+      .select('id, service')
       .eq('user_id', user.id)
-      .eq('service', 'nres')
-      .maybeSingle();
+      .in('service', ['nres', 'enn']);
     
     if (!error && data) {
-      setCurrentUserHasNRES(true);
+      setCurrentUserHasNRES(data.some(d => d.service === 'nres'));
+      setCurrentUserHasENN(data.some(d => d.service === 'enn'));
     }
   };
 
