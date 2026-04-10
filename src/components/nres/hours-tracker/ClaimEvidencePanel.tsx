@@ -162,7 +162,7 @@ export function StaffLineEvidence({
   onDelete,
   onDownload,
 }: {
-  staffCategory: 'buyback' | 'new_sda';
+  staffCategory: 'buyback' | 'new_sda' | 'management';
   staffIndex: number;
   staffName?: string;
   staffRole?: string;
