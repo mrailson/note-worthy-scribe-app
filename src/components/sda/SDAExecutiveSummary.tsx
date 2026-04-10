@@ -100,7 +100,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [requirementsOpen, setRequirementsOpen] = useState(false);
   
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
-  const [aiCardTab, setAiCardTab] = useState<"Overview" | "Patient" | "GP" | "Practice Manager" | "NRES" | "Translate">("Overview");
+  const [aiCardTab, setAiCardTab] = useState<string>("Overview");
   const [showReportingPreview, setShowReportingPreview] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
 
@@ -172,7 +172,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
 
                      {/* Audience tabs */}
                      <div className="flex flex-wrap gap-1 mt-3">
-                       {(["Overview", "NRES", "GP", "Practice Manager", "Patient", "Translate"] as const).map((tab) => (
+                       {(["Overview", neighbourhoodName, "GP", "Practice Manager", "Patient", "Translate"] as const).map((tab) => (
                          <button
                            key={tab}
                            onClick={() => setAiCardTab(tab)}
@@ -193,7 +193,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                         <>
                           <ul className="space-y-2 text-xs text-slate-700">
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🩺</span><span>Ask clinical questions — get GP-level guidance instantly</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📊</span><span>NRES programme knowledge — targets, funding, buy-back, practices</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📊</span><span>{neighbourhoodName} programme knowledge — targets, funding, buy-back, practices</span></li>
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📋</span><span>Practice management — CQC, HR, complaints, NHS contracts</span></li>
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">❤️</span><span>Patient support — plain English health advice</span></li>
                           </ul>
@@ -242,14 +242,14 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Practical, actionable, grounded in regulation.</p>
                         </>
                       )}
-                      {aiCardTab === "NRES" && (
+                      {aiCardTab === neighbourhoodName && (
                         <>
                           <p className="text-xs font-semibold text-slate-800 italic mb-2">"Full programme knowledge at your fingertips"</p>
                           <ul className="space-y-2 text-xs text-slate-700">
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🏥</span><span>All 7 practices — list sizes, targets, allocations</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🏥</span><span>All {neighbourhoodName === 'ENN' ? '10' : '7'} practices — list sizes, targets, allocations</span></li>
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">💰</span><span>Buy-back scheme — rates, claims process, evidence requirements</span></li>
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📊</span><span>GPAD data, ICB metrics, reporting schedules</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">👤</span><span>Key contacts — ICB, PML, programme team</span></li>
+                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">👤</span><span>Key contacts — ICB, {neighbourhoodName === 'ENN' ? '3Sixty' : 'PML'}, programme team</span></li>
                           </ul>
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Everything about the pilot, instantly.</p>
                         </>
