@@ -370,19 +370,21 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   });
 
   // Fetch bank holidays for working-weeks calculation (management claims)
-  const [bankHolidayDates, setBankHolidayDates] = useState<string[]>([]);
+  const [bankHolidayData, setBankHolidayData] = useState<{ date: string; name: string }[]>([]);
   useEffect(() => {
     const fetchBH = async () => {
       try {
         const { data } = await (supabase as any)
           .from('bank_holidays_closed_days')
-          .select('date')
+          .select('date, name')
           .eq('type', 'bank_holiday');
-        if (data) setBankHolidayDates(data.map((r: any) => r.date));
+        if (data) setBankHolidayData(data.map((r: any) => ({ date: r.date, name: r.name })));
       } catch { /* ignore */ }
     };
     fetchBH();
   }, []);
+
+  const bankHolidayDates = useMemo(() => bankHolidayData.map(b => b.date), [bankHolidayData]);
 
   const { getWorkingWeeksInMonth: calcWorkingWeeks, getWorkingDaysInMonth: calcWorkingDays } = useMemo(() => {
     // Inline helpers using fetched bank holidays
@@ -406,7 +408,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     return { getWorkingWeeksInMonth, getWorkingDaysInMonth };
   }, [bankHolidayDates]);
 
-  // Count bank holidays in a specific month
+  // Get bank holidays in a specific month with names and formatted dates
   const getBankHolidaysInMonth = useCallback((claimMonth: string): number => {
     const start = new Date(claimMonth);
     const year = start.getFullYear();
@@ -416,6 +418,30 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       return bh.getFullYear() === year && bh.getMonth() === month && bh.getDay() !== 0 && bh.getDay() !== 6;
     }).length;
   }, [bankHolidayDates]);
+
+  const getBankHolidayDetailsInMonth = useCallback((claimMonth: string): { date: string; name: string; formatted: string }[] => {
+    const start = new Date(claimMonth);
+    const year = start.getFullYear();
+    const month = start.getMonth();
+    const ordinal = (n: number) => {
+      const s = ['th', 'st', 'nd', 'rd'];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
+    return bankHolidayData
+      .filter(b => {
+        const bh = new Date(b.date);
+        return bh.getFullYear() === year && bh.getMonth() === month && bh.getDay() !== 0 && bh.getDay() !== 6;
+      })
+      .map(b => {
+        const d = new Date(b.date);
+        const dayName = d.toLocaleDateString('en-GB', { weekday: 'long' });
+        const dayNum = d.getDate();
+        const monthName = d.toLocaleDateString('en-GB', { month: 'long' });
+        return { date: b.date, name: b.name, formatted: `${dayName} ${ordinal(dayNum)} ${monthName}` };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [bankHolidayData]);
 
   // Build rateParams with working weeks for the current claim month
   const claimMonthDate = `${claimMonth}-01`;
