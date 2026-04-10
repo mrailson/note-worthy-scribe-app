@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Load ElevenLabs widget script once
@@ -124,13 +121,11 @@ const ALL_MODES: ModeConfig[] = [
 const AIVoiceStudio: React.FC = () => {
   useElevenLabs();
   const [activeMode, setActiveMode] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
 
   const activeData = ALL_MODES.find(m => m.id === activeMode);
 
   const handleModeClick = (modeId: string) => {
     setActiveMode(prev => prev === modeId ? null : modeId);
-    setQuery('');
   };
 
   const renderPhoneNote = (mode: InfoMode) => {
@@ -241,41 +236,10 @@ const AIVoiceStudio: React.FC = () => {
             )}
 
             {/* ElevenLabs Widget */}
-            <div className="bg-muted rounded-[10px] p-4 border border-border mb-4 text-center">
-              <p className="text-xs font-semibold text-muted-foreground mb-2.5">
-                🎙️ Click the microphone below to start a voice conversation
-              </p>
+            <div className="mb-4">
               <ElevenLabsWidget agentId={AGENT_IDS[widget.id]} />
             </div>
 
-            {/* Text input */}
-            <div className="flex gap-2.5 items-center mb-4">
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={`Or type your question about ${widget.label.toLowerCase()}...`}
-                className="flex-1"
-              />
-              <Button size="icon" className="w-11 h-11 rounded-[10px] shrink-0" style={{ background: '#003087' }}>
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Example prompts */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-2">Try asking...</p>
-              <div className="flex flex-col gap-1.5">
-                {widget.examples.map((ex, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setQuery(ex)}
-                    className="text-left bg-muted border border-border rounded-lg px-3 py-2 text-[13px] text-foreground cursor-pointer hover:bg-accent transition-colors leading-snug"
-                  >
-                    💡 {ex}
-                  </button>
-                ))}
-              </div>
-            </div>
           </Card>
         );
       })()}
