@@ -11,8 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import {
   Upload, FileText, Download, Mail, Printer, Plus, Pencil, Trash2,
-  Eye, RefreshCw, Loader2, ArrowLeft, Shield, CheckCircle2
+  Eye, RefreshCw, Loader2, ArrowLeft, Shield, CheckCircle2, UserPlus, Check
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DPIA_EXTRACT_PROMPT, DPIA_GENERATE_PROMPT } from "@/lib/dpia-prompts";
 
 // ---- Types ----
