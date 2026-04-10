@@ -3900,6 +3900,7 @@ export type Database = {
           ico_reg: string | null
           id: string
           ods_code: string | null
+          onboarded_at: string | null
           pm_email: string | null
           pm_name: string | null
           practice_address: string | null
@@ -3928,6 +3929,7 @@ export type Database = {
           ico_reg?: string | null
           id?: string
           ods_code?: string | null
+          onboarded_at?: string | null
           pm_email?: string | null
           pm_name?: string | null
           practice_address?: string | null
@@ -3956,6 +3958,7 @@ export type Database = {
           ico_reg?: string | null
           id?: string
           ods_code?: string | null
+          onboarded_at?: string | null
           pm_email?: string | null
           pm_name?: string | null
           practice_address?: string | null
