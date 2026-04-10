@@ -315,11 +315,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const effectiveCanCreateClaim = !testActive || testMode.role === 'admin' || testMode.role === 'practice';
   const effectiveShowStaffMgmt = !testActive || testMode.role === 'admin' || testMode.role === 'practice';
 
-  // Admins with no assignments see everything; otherwise filtered
+  // System-level admins (super_admin, management_lead, etc.) always see all practices
   const hasAnyAssignment = myPractices.length > 0;
-  const accessFilteredPracticeKeys = isAdmin && !hasAnyAssignment
+  const accessFilteredPracticeKeys = (isSuperAdmin || isManagementLead || isPMLDirector || isPMLFinance)
     ? ALL_PRACTICE_KEYS
-    : ALL_PRACTICE_KEYS.filter(k => myPractices.includes(k));
+    : (isAdmin && !hasAnyAssignment)
+      ? ALL_PRACTICE_KEYS
+      : ALL_PRACTICE_KEYS.filter(k => myPractices.includes(k));
 
   // In practice test mode, lock to selected practice
   const effectivePracticeKeys = testActive && testMode.role === 'practice' && testMode.selectedPractice
