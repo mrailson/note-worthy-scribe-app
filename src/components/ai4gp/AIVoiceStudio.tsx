@@ -318,14 +318,6 @@ const AIVoiceStudio: React.FC = () => {
               <p className="text-xs text-muted-foreground italic mb-4">{info.footnote}</p>
             )}
 
-            {/* ElevenLabs Widget */}
-            <div className="bg-muted rounded-[10px] p-4 border border-border mb-4 text-center">
-              <p className="text-[13px] font-semibold mb-2.5" style={{ color: info.color }}>
-                🎙️ Try it now — click the microphone to start
-              </p>
-              <ElevenLabsWidget agentId={AGENT_IDS[info.id]} />
-            </div>
-
             {/* Phone section */}
             <div className="bg-muted rounded-[10px] p-3.5 border border-border mb-4">
               <div className="flex items-center gap-2.5 mb-2">
