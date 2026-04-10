@@ -18,6 +18,7 @@ import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
 import { SDAFinanceGovernance } from '@/components/sda/SDAFinanceGovernance';
 import { SDARisksMitigation } from '@/components/sda/SDARisksMitigation';
 import { SDAEvidenceLibrary } from '@/components/sda/SDAEvidenceLibrary';
+import { SDAWorkforceInnovation } from '@/components/sda/SDAWorkforceInnovation';
 import { useNRESUserSettings } from '@/hooks/useNRESUserSettings';
 import { useNRESHoursTracker } from '@/hooks/useNRESHoursTracker';
 import { useNRESExpenses } from '@/hooks/useNRESExpenses';
@@ -167,6 +168,10 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
                 Evidence Library
               </TabsTrigger>
             )}
+            <TabsTrigger value="workforce" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Workforce
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="finance-governance">
@@ -277,6 +282,10 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
               <SDAEvidenceLibrary />
             </TabsContent>
           )}
+
+          <TabsContent value="workforce">
+            <SDAWorkforceInnovation />
+          </TabsContent>
         </Tabs>
       </TabsContent>
 
