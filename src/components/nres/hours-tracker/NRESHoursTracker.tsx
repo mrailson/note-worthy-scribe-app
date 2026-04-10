@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -26,7 +26,9 @@ import { useNRESClaimants } from '@/hooks/useNRESClaimants';
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info, Shield } from 'lucide-react';
+
+const DPIAGenerator = lazy(() => import("@/components/sda/DPIAGenerator"));
 
 interface NRESHoursTrackerProps {
   hideEvidenceLibrary?: boolean;
@@ -172,6 +174,12 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
               <Users className="w-4 h-4" />
               Workforce
             </TabsTrigger>
+            {neighbourhoodName === 'NRES' && (
+              <TabsTrigger value="dpia" className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                DPIA Generator
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="finance-governance">
@@ -286,6 +294,14 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
           <TabsContent value="workforce">
             <SDAWorkforceInnovation />
           </TabsContent>
+
+          {neighbourhoodName === 'NRES' && (
+            <TabsContent value="dpia">
+              <Suspense fallback={<div className="py-8 text-center text-sm text-slate-500">Loading DPIA Generator…</div>}>
+                <DPIAGenerator />
+              </Suspense>
+            </TabsContent>
+          )}
         </Tabs>
       </TabsContent>
 

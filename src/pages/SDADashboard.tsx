@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState } from "react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
@@ -12,18 +12,17 @@ import {
   Monitor, 
   FolderLock,
   Clock,
-  Shield
 } from "lucide-react";
 import { NRESPeopleProvider } from "@/contexts/NRESPeopleContext";
 
-const DPIAGenerator = lazy(() => import("@/components/sda/DPIAGenerator"));
+
 
 const tabs = [
   { value: "executive", label: "Executive Summary", shortLabel: "Summary", icon: LayoutDashboard },
   { value: "estates", label: "Estates & Capacity", shortLabel: "Estates", icon: Building2 },
   { value: "digital", label: "IT & Reporting", shortLabel: "Digital", icon: Monitor },
   { value: "hours", label: "Claims & Oversight", shortLabel: "Claims", icon: Clock },
-  { value: "dpia", label: "DPIA Generator", shortLabel: "DPIA", icon: Shield },
+  { value: "document-vault", label: "NRES Document Vault Home", shortLabel: "Vault", icon: FolderLock },
   { value: "document-vault", label: "NRES Document Vault Home", shortLabel: "Vault", icon: FolderLock },
 ];
 
@@ -82,11 +81,6 @@ const SDADashboard = () => {
               </TabsContent>
               <TabsContent value="hours" className="mt-0">
                 <NRESHoursTracker />
-              </TabsContent>
-              <TabsContent value="dpia" className="mt-0">
-                <Suspense fallback={<div className="py-8 text-center text-sm text-slate-500">Loading DPIA Generator…</div>}>
-                  <DPIAGenerator />
-                </Suspense>
               </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
                 <NRESDocumentVault />
