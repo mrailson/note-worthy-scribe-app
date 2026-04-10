@@ -74,6 +74,7 @@ const PatientInner = () => {
       sessionStartRef.current = new Date();
       await conversation.startSession({
         agentId: PATIENT_AGENT_ID,
+        origin: "https://api.us.elevenlabs.io",
       });
     } catch (error) {
       console.error("Failed to start patient assistant:", error);
