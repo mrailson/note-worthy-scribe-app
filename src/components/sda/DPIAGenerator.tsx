@@ -415,6 +415,7 @@ export default function DPIAGenerator() {
         {/* Drop zone */}
         <Card
           className="border-2 border-dashed border-slate-300 hover:border-[#005EB8]/50 transition-colors cursor-pointer"
+          tabIndex={0}
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
           onDrop={(e) => {
@@ -423,11 +424,66 @@ export default function DPIAGenerator() {
             const file = e.dataTransfer.files[0];
             if (file) handleFile(file);
           }}
+          onPaste={async (e) => {
+            // Check for pasted files first (e.g. copied file from explorer)
+            const items = e.clipboardData?.items;
+            if (items) {
+              for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.kind === 'file') {
+                  const file = item.getAsFile();
+                  if (file) { handleFile(file); return; }
+                }
+              }
+            }
+            // Fall back to pasted text
+            const text = e.clipboardData?.getData('text/plain');
+            if (text && text.length >= 50) {
+              e.preventDefault();
+              setBusy(true);
+              setBusyMsg("Extracting practice details from pasted text…");
+              try {
+                const json = await callAI(DPIA_EXTRACT_PROMPT(text.slice(0, 6000)));
+                const cleaned = json.replace(/```json|```/g, "").trim();
+                const parsed = JSON.parse(cleaned);
+                const practice: DPIAPractice = {
+                  ...EMPTY_PRACTICE,
+                  id: crypto.randomUUID(),
+                  practice_name: parsed.practiceName || "",
+                  practice_address: parsed.practiceAddress || "",
+                  ods_code: parsed.odsCode || "",
+                  practice_tel: parsed.practiceTel || "",
+                  pm_name: parsed.pmName || "",
+                  pm_email: parsed.pmEmail || "",
+                  ico_reg: parsed.icoReg || "",
+                  dspt_status: parsed.dsptStatus || "Standards Met",
+                  cg_name: parsed.cgName || "",
+                  cg_role: parsed.cgRole || "",
+                  cg_email: parsed.cgEmail || "",
+                  dpo_name: parsed.dpoName || "",
+                  dpo_org: parsed.dpoOrg || "",
+                  dpo_email: parsed.dpoEmail || "",
+                  dpia_generated: false,
+                };
+                setCurrent(practice);
+                setView("form");
+                toast({ title: `Extracted details for ${practice.practice_name || "Practice"} from pasted text` });
+              } catch (err) {
+                console.error("Paste extraction error:", err);
+                toast({ title: "Could not extract practice details from pasted text", variant: "destructive" });
+              } finally {
+                setBusy(false);
+                setBusyMsg("");
+              }
+            } else if (text) {
+              toast({ title: "Pasted text is too short — please paste the full template content", variant: "destructive" });
+            }
+          }}
         >
           <CardContent className="flex flex-col items-center justify-center py-8 gap-2">
             <Upload className="w-8 h-8 text-slate-400" />
             <p className="text-sm text-slate-500">Drop a completed DPIA Data Collection Template (.docx or .pdf) here</p>
-            <p className="text-xs text-slate-400">or click to browse</p>
+            <p className="text-xs text-slate-400">or click to browse, or paste (Ctrl+V) template text</p>
           </CardContent>
         </Card>
 
