@@ -867,6 +867,7 @@ export const PracticeUserManagement = () => {
                             {user.fridge_monitoring_access && <Badge variant="outline" className="text-xs">Fridge</Badge>}
                             {user.nres_access && <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">NRES</Badge>}
                             {user.enn_access && <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">ENN</Badge>}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
