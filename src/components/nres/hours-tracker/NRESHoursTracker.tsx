@@ -282,6 +282,10 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
               <SDAEvidenceLibrary />
             </TabsContent>
           )}
+
+          <TabsContent value="workforce">
+            <SDAWorkforceInnovation />
+          </TabsContent>
         </Tabs>
       </TabsContent>
 
