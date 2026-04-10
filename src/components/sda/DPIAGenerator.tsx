@@ -202,6 +202,8 @@ export default function DPIAGenerator() {
   const [busy, setBusy] = useState(false);
   const [busyMsg, setBusyMsg] = useState("");
   const [dpiaHtml, setDpiaHtml] = useState("");
+  const [onboardingPractice, setOnboardingPractice] = useState<DPIAPractice | null>(null);
+  const [onboardingBusy, setOnboardingBusy] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load practices
