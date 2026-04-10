@@ -352,9 +352,25 @@ export const PracticeUserManagement = () => {
       if (data.success) {
         toast.success(data.message);
         
+        // Activate NRES/ENN service access if toggled on
+        const newUserId = data.user_id;
+        const serviceInserts: { user_id: string; service: string; activated_by: string; activated_at: string }[] = [];
+        if (newUserNRESAccess) {
+          serviceInserts.push({ user_id: newUserId, service: 'nres', activated_by: user?.id || '', activated_at: new Date().toISOString() });
+        }
+        if (newUserENNAccess) {
+          serviceInserts.push({ user_id: newUserId, service: 'enn', activated_by: user?.id || '', activated_at: new Date().toISOString() });
+        }
+        if (serviceInserts.length > 0) {
+          const { error: svcError } = await supabase
+            .from('user_service_activations')
+            .insert(serviceInserts);
+          if (svcError) console.error('Error activating services for new user:', svcError);
+        }
+        
         // Store created user data for email preview
         setCreatedUserData({
-          user_id: data.user_id,
+          user_id: newUserId,
           email: userFormData.email,
           full_name: userFormData.full_name,
           role: userFormData.role,
