@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,40 +9,75 @@ import { Mail, Send, Loader2, FileText, Download, Check, ChevronsUpDown } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { NRES_PRACTICES, NRES_ODS_CODES, type NRESPracticeKey } from "@/data/nresPractices";
-import { ENN_PRACTICES, ENN_ODS_CODES, type ENNPracticeKey } from "@/data/ennPractices";
 
-// Build a combined list of all practices with ODS codes
-const ALL_PRACTICES = [
-  ...Object.entries(NRES_PRACTICES).map(([key, name]) => ({
-    key,
-    name: name as string,
-    ods: NRES_ODS_CODES[key as NRESPracticeKey],
-    group: "NRES" as const,
-  })),
-  ...Object.entries(ENN_PRACTICES).map(([key, name]) => ({
-    key,
-    name: name as string,
-    ods: ENN_ODS_CODES[key as ENNPracticeKey],
-    group: "ENN" as const,
-  })),
-];
+interface PracticeOption {
+  id: string;
+  name: string;
+  practiceCode: string;
+  orgType: string;
+}
+
+const ORG_TYPE_ORDER: Record<string, number> = {
+  Practice: 1,
+  PCN: 2,
+  ICB: 3,
+  Neighbourhood: 4,
+  LMC: 5,
+  Management: 6,
+  "GP Practice": 7,
+};
+
+const ORG_TYPE_LABELS: Record<string, string> = {
+  Practice: "GP Practices",
+  "GP Practice": "GP Practices (Other)",
+  PCN: "Primary Care Networks",
+  ICB: "Integrated Care Board",
+  Neighbourhood: "Neighbourhoods",
+  LMC: "Local Medical Committee",
+  Management: "Management",
+};
 
 export function SendDPIATemplateCard() {
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
-  const [selectedPracticeKey, setSelectedPracticeKey] = useState("");
+  const [selectedPracticeId, setSelectedPracticeId] = useState("");
   const [practiceOpen, setPracticeOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [practices, setPractices] = useState<PracticeOption[]>([]);
 
-  const selectedPractice = useMemo(
-    () => ALL_PRACTICES.find((p) => p.key === selectedPracticeKey),
-    [selectedPracticeKey]
-  );
+  useEffect(() => {
+    const fetchPractices = async () => {
+      const { data } = await supabase
+        .from("gp_practices")
+        .select("id, name, practice_code, organisation_type")
+        .order("name");
+      if (data) {
+        setPractices(
+          data.map((p) => ({
+            id: p.id,
+            name: p.name,
+            practiceCode: p.practice_code || "",
+            orgType: p.organisation_type || "Practice",
+          }))
+        );
+      }
+    };
+    fetchPractices();
+  }, []);
 
-  const practiceName = selectedPractice
-    ? `${selectedPractice.name} (${selectedPractice.ods})`
-    : "";
+  const grouped = useMemo(() => {
+    const groups: Record<string, PracticeOption[]> = {};
+    for (const p of practices) {
+      const key = p.orgType;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(p);
+    }
+    return Object.entries(groups).sort(
+      ([a], [b]) => (ORG_TYPE_ORDER[a] || 99) - (ORG_TYPE_ORDER[b] || 99)
+    );
+  }, [practices]);
+
+  const selectedPractice = practices.find((p) => p.id === selectedPracticeId);
 
   const handleSend = async () => {
     if (!recipientEmail || !recipientName) {
@@ -52,12 +87,12 @@ export function SendDPIATemplateCard() {
 
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-dpia-template", {
+      const { error } = await supabase.functions.invoke("send-dpia-template", {
         body: {
           recipientEmail,
           recipientName,
           practiceName: selectedPractice?.name || "",
-          practiceOds: selectedPractice?.ods || "",
+          practiceOds: selectedPractice?.practiceCode || "",
         },
       });
 
@@ -66,7 +101,7 @@ export function SendDPIATemplateCard() {
       toast.success(`Template sent successfully to ${recipientEmail}`);
       setRecipientEmail("");
       setRecipientName("");
-      setSelectedPracticeKey("");
+      setSelectedPracticeId("");
     } catch (err: any) {
       console.error("Send error:", err);
       toast.error(err.message || "Failed to send template");
@@ -109,7 +144,7 @@ export function SendDPIATemplateCard() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Practice Name</Label>
+            <Label>Practice / Organisation</Label>
             <Popover open={practiceOpen} onOpenChange={setPracticeOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -118,59 +153,44 @@ export function SendDPIATemplateCard() {
                   aria-expanded={practiceOpen}
                   className="w-full justify-between font-normal bg-white h-10 min-h-[44px] sm:min-h-[40px]"
                 >
-                  {selectedPractice
-                    ? `${selectedPractice.name} (${selectedPractice.ods})`
-                    : "Search practices…"}
+                  <span className="truncate">
+                    {selectedPractice
+                      ? `${selectedPractice.name} (${selectedPractice.practiceCode})`
+                      : "Search practices…"}
+                  </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[360px] p-0" align="start">
+              <PopoverContent className="w-[400px] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Search by name or ODS code…" />
-                  <CommandList>
-                    <CommandEmpty>No practice found.</CommandEmpty>
-                    <CommandGroup heading="NRES Practices">
-                      {ALL_PRACTICES.filter((p) => p.group === "NRES").map((p) => (
-                        <CommandItem
-                          key={p.key}
-                          value={`${p.name} ${p.ods}`}
-                          onSelect={() => {
-                            setSelectedPracticeKey(p.key === selectedPracticeKey ? "" : p.key);
-                            setPracticeOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedPracticeKey === p.key ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <span className="truncate">{p.name}</span>
-                          <span className="ml-auto text-xs text-muted-foreground">{p.ods}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                    <CommandGroup heading="ENN Practices">
-                      {ALL_PRACTICES.filter((p) => p.group === "ENN").map((p) => (
-                        <CommandItem
-                          key={p.key}
-                          value={`${p.name} ${p.ods}`}
-                          onSelect={() => {
-                            setSelectedPracticeKey(p.key === selectedPracticeKey ? "" : p.key);
-                            setPracticeOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedPracticeKey === p.key ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <span className="truncate">{p.name}</span>
-                          <span className="ml-auto text-xs text-muted-foreground">{p.ods}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
+                  <CommandInput placeholder="Search by name or code…" />
+                  <CommandList className="max-h-[300px]">
+                    <CommandEmpty>No organisation found.</CommandEmpty>
+                    {grouped.map(([orgType, items]) => (
+                      <CommandGroup key={orgType} heading={ORG_TYPE_LABELS[orgType] || orgType}>
+                        {items.map((p) => (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.name} ${p.practiceCode}`}
+                            onSelect={() => {
+                              setSelectedPracticeId(p.id === selectedPracticeId ? "" : p.id);
+                              setPracticeOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4 shrink-0",
+                                selectedPracticeId === p.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span className="truncate">{p.name}</span>
+                            <span className="ml-auto text-xs text-muted-foreground pl-2 shrink-0">
+                              {p.practiceCode}
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    ))}
                   </CommandList>
                 </Command>
               </PopoverContent>
