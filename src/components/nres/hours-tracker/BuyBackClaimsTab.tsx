@@ -345,11 +345,6 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const [testMode, setTestMode] = useState<TestModeState>({ enabled: false, role: 'admin' });
   const testActive = isAdmin && testMode.enabled && testMode.role !== 'admin';
 
-  // New claim state
-  const [claimMonth, setClaimMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  });
   const [claimPractice, setClaimPractice] = useState<string>('');
 
   // Filters (admin)
