@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Loader2, FileText, Pencil, X, Plus, GripVertical } from 'lucide-react';
+import { Loader2, Pencil, X, Plus, GripVertical } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
