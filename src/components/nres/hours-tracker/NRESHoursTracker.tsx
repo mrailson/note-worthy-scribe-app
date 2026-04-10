@@ -18,6 +18,7 @@ import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
 import { SDAFinanceGovernance } from '@/components/sda/SDAFinanceGovernance';
 import { SDARisksMitigation } from '@/components/sda/SDARisksMitigation';
 import { SDAEvidenceLibrary } from '@/components/sda/SDAEvidenceLibrary';
+import { SDAWorkforceInnovation } from '@/components/sda/SDAWorkforceInnovation';
 import { useNRESUserSettings } from '@/hooks/useNRESUserSettings';
 import { useNRESHoursTracker } from '@/hooks/useNRESHoursTracker';
 import { useNRESExpenses } from '@/hooks/useNRESExpenses';
