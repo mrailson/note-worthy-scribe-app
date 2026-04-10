@@ -268,7 +268,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
   const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
 
-  const isAdmin = admin;
+  const { isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
+
+  // isAdmin = NRES_ADMIN_EMAILS check; elevate PML role holders to see all claims
+  const isAdmin = admin || isPMLFinance || isPMLDirector || isManagementLead || isSuperAdmin;
 
   // Test mode state — UI-only, admin users only
   const [testMode, setTestMode] = useState<TestModeState>({ enabled: false, role: 'admin' });
