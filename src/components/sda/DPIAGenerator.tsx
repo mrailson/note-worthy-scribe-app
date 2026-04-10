@@ -45,6 +45,7 @@ interface DPIAPractice {
   dpia_generated: boolean;
   dpia_date: string | null;
   dpia_html: string | null;
+  onboarded_at: string | null;
   user_id?: string;
 }
 
