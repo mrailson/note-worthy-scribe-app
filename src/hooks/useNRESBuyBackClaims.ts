@@ -63,18 +63,29 @@ export interface RateParams {
   getRoleAnnualRate?: (roleLabel: string) => number | undefined;
   employerNiPct?: number;
   employerPensionPct?: number;
+  /** Pre-calculated working weeks for a given claim month (used for management billing) */
+  workingWeeksInMonth?: number;
+  /** Number of bank holidays excluded from the month */
+  bankHolidaysInMonth?: number;
 }
 
 /** Calculate the maximum monthly claim amount for a staff member */
 export function calculateStaffMonthlyAmount(
-  staff: BuyBackStaffMember | { allocation_type: string; allocation_value: number; staff_role?: string },
+  staff: BuyBackStaffMember | { allocation_type: string; allocation_value: number; staff_role?: string; staff_category?: string; hourly_rate?: number },
   claimMonth?: string,
   startDate?: string | null,
   rateParams?: RateParams,
 ): number {
   let fullMonthly: number;
 
-  if (rateParams?.getRoleAnnualRate && staff.staff_role) {
+  // Management category: hourly_rate × weekly_hours × working_weeks_in_month
+  const isManagement = (staff as any).staff_category === 'management' || staff.staff_role === 'NRES Management';
+  if (isManagement && (staff as any).hourly_rate && rateParams?.workingWeeksInMonth) {
+    const hourlyRate = (staff as any).hourly_rate as number;
+    const weeklyHours = staff.allocation_value; // max_hours_per_week
+    const workingWeeks = rateParams.workingWeeksInMonth;
+    fullMonthly = hourlyRate * weeklyHours * workingWeeks;
+  } else if (rateParams?.getRoleAnnualRate && staff.staff_role) {
     // Dynamic rates from settings
     const roleRate = rateParams.getRoleAnnualRate(staff.staff_role);
     if (roleRate !== undefined) {
@@ -94,8 +105,8 @@ export function calculateStaffMonthlyAmount(
     fullMonthly = calculateFallback(staff);
   }
 
-  // Pro-rata if start_date falls within the claim month
-  if (claimMonth && startDate) {
+  // Pro-rata if start_date falls within the claim month (skip for management — working weeks already handles it)
+  if (!isManagement && claimMonth && startDate) {
     const claimStart = new Date(claimMonth);
     const claimYear = claimStart.getFullYear();
     const claimMonthNum = claimStart.getMonth();

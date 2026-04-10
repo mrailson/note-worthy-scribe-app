@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { exportClaimsDetail, exportMonthlySummary, exportYTDRunningTotals } from '@/utils/buybackExcelExport';
@@ -44,7 +44,14 @@ function fmtGBP(n: number): string {
 }
 
 /** Build a human-readable calculation breakdown for the live preview */
-function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: number, rateParams?: RateParams, role?: string): string {
+function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
+  // Management: hourly_rate × weekly_hours × working_weeks
+  if ((category === 'management' || role === 'NRES Management') && hourlyRate && rateParams?.workingWeeksInMonth) {
+    const ww = rateParams.workingWeeksInMonth;
+    const bhNote = rateParams.bankHolidaysInMonth ? ` (${rateParams.bankHolidaysInMonth} bank hol${rateParams.bankHolidaysInMonth > 1 ? 's' : ''} excluded)` : '';
+    return `${allocValue} hrs/wk × ${ww.toFixed(1)} working weeks${bhNote} × ${fmtGBP(hourlyRate)}/hr`;
+  }
+
   const niPct = rateParams?.employerNiPct ?? 15;
   const penPct = rateParams?.employerPensionPct ?? 14.38;
   const totalPct = niPct + penPct;
@@ -267,7 +274,74 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   }), [rateSettings.email_testing_mode, user?.email, user?.user_metadata?.full_name]);
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, markPaid, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
-  const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
+
+  // New claim state — declared early so bank holidays can reference claimMonth
+  const [claimMonth, setClaimMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // Fetch bank holidays for working-weeks calculation (management claims)
+  const [bankHolidayDates, setBankHolidayDates] = useState<string[]>([]);
+  useEffect(() => {
+    const fetchBH = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from('bank_holidays_closed_days')
+          .select('date')
+          .eq('type', 'bank_holiday');
+        if (data) setBankHolidayDates(data.map((r: any) => r.date));
+      } catch { /* ignore */ }
+    };
+    fetchBH();
+  }, []);
+
+  const { getWorkingWeeksInMonth: calcWorkingWeeks, getWorkingDaysInMonth: calcWorkingDays } = useMemo(() => {
+    // Inline helpers using fetched bank holidays
+    const getWorkingDaysInMonth = (claimMonth: string): number => {
+      const start = new Date(claimMonth);
+      const year = start.getFullYear();
+      const month = start.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      let weekdays = 0;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const day = new Date(year, month, d).getDay();
+        if (day !== 0 && day !== 6) weekdays++;
+      }
+      const bhInMonth = bankHolidayDates.filter(dateStr => {
+        const bh = new Date(dateStr);
+        return bh.getFullYear() === year && bh.getMonth() === month && bh.getDay() !== 0 && bh.getDay() !== 6;
+      });
+      return weekdays - bhInMonth.length;
+    };
+    const getWorkingWeeksInMonth = (claimMonth: string): number => getWorkingDaysInMonth(claimMonth) / 5;
+    return { getWorkingWeeksInMonth, getWorkingDaysInMonth };
+  }, [bankHolidayDates]);
+
+  // Count bank holidays in a specific month
+  const getBankHolidaysInMonth = useCallback((claimMonth: string): number => {
+    const start = new Date(claimMonth);
+    const year = start.getFullYear();
+    const month = start.getMonth();
+    return bankHolidayDates.filter(dateStr => {
+      const bh = new Date(dateStr);
+      return bh.getFullYear() === year && bh.getMonth() === month && bh.getDay() !== 0 && bh.getDay() !== 6;
+    }).length;
+  }, [bankHolidayDates]);
+
+  // Build rateParams with working weeks for the current claim month
+  const claimMonthDate = `${claimMonth}-01`;
+  const workingWeeksForMonth = calcWorkingWeeks(claimMonthDate);
+  const bankHolidaysForMonth = getBankHolidaysInMonth(claimMonthDate);
+
+  const rateParams: RateParams = {
+    onCostMultiplier,
+    getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; },
+    employerNiPct: rateSettings.employer_ni_pct,
+    employerPensionPct: rateSettings.employer_pension_pct,
+    workingWeeksInMonth: workingWeeksForMonth,
+    bankHolidaysInMonth: bankHolidaysForMonth,
+  };
 
   const { isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
 
@@ -278,11 +352,6 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const [testMode, setTestMode] = useState<TestModeState>({ enabled: false, role: 'admin' });
   const testActive = isAdmin && testMode.enabled && testMode.role !== 'admin';
 
-  // New claim state
-  const [claimMonth, setClaimMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  });
   const [claimPractice, setClaimPractice] = useState<string>('');
 
   // Filters (admin)
@@ -703,13 +772,37 @@ function getStaffMaxAmount(staff: any, claimMonth?: string, rateParams?: RatePar
     allocation_type: staff.allocation_type,
     allocation_value: staff.allocation_value,
     staff_role: staff.staff_role,
-  } as BuyBackStaffMember, claimMonth, staff.start_date, rateParams);
+    staff_category: staff.staff_category,
+    hourly_rate: staff.hourly_rate,
+  } as any, claimMonth, staff.start_date, rateParams);
 }
 
 /** Build a detailed calculation breakdown for hover display */
 function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RateParams) {
   const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours';
   const allocValue = staff.allocation_value as number;
+  const isManagement = staff.staff_category === 'management' || staff.staff_role === 'NRES Management';
+
+  // Management: simple hourly × weekly hours × working weeks
+  if (isManagement && staff.hourly_rate && rateParams?.workingWeeksInMonth) {
+    const hourlyRate = staff.hourly_rate as number;
+    const workingWeeks = rateParams.workingWeeksInMonth;
+    const totalHours = allocValue * workingWeeks;
+    const finalMonthly = hourlyRate * totalHours;
+    const bhCount = rateParams.bankHolidaysInMonth ?? 0;
+    return {
+      isManagement: true,
+      hourlyRate,
+      weeklyHours: allocValue,
+      workingWeeks,
+      totalHours,
+      bankHolidaysExcluded: bhCount,
+      baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
+      onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
+      proRataInfo: null, finalMonthly, baseRate: fmtGBP(hourlyRate),
+    };
+  }
+
   const niPct = rateParams?.employerNiPct ?? 15;
   const pensionPct = rateParams?.employerPensionPct ?? 14.38;
   const onCostRate = rateParams ? (rateParams.onCostMultiplier - 1) : 0.2938;
@@ -763,7 +856,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     }
   }
 
-  return { baseSalary, baseLabel, niPct, pensionPct, niValue, pensionValue, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly, baseRate: rateLabel };
+  return { isManagement: false, baseSalary, baseLabel, niPct, pensionPct, niValue, pensionValue, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly, baseRate: rateLabel };
 }
 
 /** Hover card showing the full calculation breakdown for a staff line's monthly amount */
@@ -785,50 +878,91 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
           </h4>
         </div>
         <div className="p-3 space-y-2 text-xs">
-          {/* Step 1: Base salary */}
-          <div>
-            <p className="text-muted-foreground font-medium mb-0.5">Base Salary</p>
-            <p className="text-foreground">{breakdown.baseLabel}</p>
-            <p className="font-semibold">= {fmtGBP(breakdown.baseSalary)}/year</p>
-          </div>
-          <Separator />
-          {/* Step 2: On-costs split */}
-          <div>
-            <p className="text-muted-foreground font-medium mb-0.5">+ Employer On-Costs ({breakdown.onCostPct.toFixed(2)}%)</p>
-            <p className="text-foreground">Employer NI ({breakdown.niPct}%): {fmtGBP(breakdown.niValue)}</p>
-            <p className="text-foreground">Employer Pension ({breakdown.pensionPct}%): {fmtGBP(breakdown.pensionValue)}</p>
-            <p className="text-foreground">Total on-costs: {fmtGBP(breakdown.onCostsValue)}</p>
-            <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)} + {fmtGBP(breakdown.onCostsValue)} = {fmtGBP(breakdown.annualBase)}/year</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 italic">Rates as configured in Settings</p>
-          </div>
-          <Separator />
-          {/* Step 2: Monthly */}
-          <div>
-            <p className="text-muted-foreground font-medium mb-0.5">Monthly Amount</p>
-            <p className="text-foreground">{fmtGBP(breakdown.annualBase)} ÷ 12 months</p>
-            <p className="font-semibold">= {fmtGBP(breakdown.fullMonthly)}/month</p>
-          </div>
-          {/* Step 3: Pro-rata if applicable */}
-          {breakdown.proRataInfo && (
+          {breakdown.isManagement ? (
             <>
+              {/* Management: simple hourly calculation */}
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Hourly Rate</p>
+                <p className="font-semibold">{fmtGBP(breakdown.hourlyRate ?? 0)}/hr</p>
+              </div>
               <Separator />
               <div>
-                <p className="text-muted-foreground font-medium mb-0.5">Pro-Rata Adjustment</p>
-                <p className="text-foreground">
-                  Staff started on day {breakdown.proRataInfo.startDay} of {breakdown.proRataInfo.daysInMonth}
-                </p>
-                <p className="text-foreground">
-                  {breakdown.proRataInfo.workingDays} of {breakdown.proRataInfo.daysInMonth} days = {(breakdown.proRataInfo.ratio * 100).toFixed(1)}%
-                </p>
-                <p className="font-semibold">= {fmtGBP(breakdown.finalMonthly)}/month (pro-rated)</p>
+                <p className="text-muted-foreground font-medium mb-0.5">Weekly Hours</p>
+                <p className="font-semibold">{breakdown.weeklyHours} hrs/wk</p>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Working Weeks in Month</p>
+                <p className="text-foreground">{(breakdown.workingWeeks ?? 0).toFixed(1)} weeks (working days ÷ 5)</p>
+                {(breakdown.bankHolidaysExcluded ?? 0) > 0 && (
+                  <p className="text-muted-foreground italic">{breakdown.bankHolidaysExcluded} bank holiday{(breakdown.bankHolidaysExcluded ?? 0) > 1 ? 's' : ''} excluded</p>
+                )}
+              </div>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Total Hours</p>
+                <p className="text-foreground">{breakdown.weeklyHours} hrs × {(breakdown.workingWeeks ?? 0).toFixed(1)} weeks = {(breakdown.totalHours ?? 0).toFixed(1)} hrs</p>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Monthly Amount</p>
+                <p className="text-foreground">{(breakdown.totalHours ?? 0).toFixed(1)} hrs × {fmtGBP(breakdown.hourlyRate ?? 0)}/hr</p>
+                <p className="font-semibold">= {fmtGBP(breakdown.finalMonthly)}</p>
+              </div>
+              <Separator />
+              <div className="flex justify-between font-semibold text-sm">
+                <span>Maximum Claimable</span>
+                <span className="text-primary">{fmtGBP(breakdown.finalMonthly)}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Step 1: Base salary */}
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Base Salary</p>
+                <p className="text-foreground">{breakdown.baseLabel}</p>
+                <p className="font-semibold">= {fmtGBP(breakdown.baseSalary)}/year</p>
+              </div>
+              <Separator />
+              {/* Step 2: On-costs split */}
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">+ Employer On-Costs ({breakdown.onCostPct.toFixed(2)}%)</p>
+                <p className="text-foreground">Employer NI ({breakdown.niPct}%): {fmtGBP(breakdown.niValue)}</p>
+                <p className="text-foreground">Employer Pension ({breakdown.pensionPct}%): {fmtGBP(breakdown.pensionValue)}</p>
+                <p className="text-foreground">Total on-costs: {fmtGBP(breakdown.onCostsValue)}</p>
+                <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)} + {fmtGBP(breakdown.onCostsValue)} = {fmtGBP(breakdown.annualBase)}/year</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 italic">Rates as configured in Settings</p>
+              </div>
+              <Separator />
+              {/* Step 3: Monthly */}
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Monthly Amount</p>
+                <p className="text-foreground">{fmtGBP(breakdown.annualBase)} ÷ 12 months</p>
+                <p className="font-semibold">= {fmtGBP(breakdown.fullMonthly)}/month</p>
+              </div>
+              {/* Step 4: Pro-rata if applicable */}
+              {breakdown.proRataInfo && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-muted-foreground font-medium mb-0.5">Pro-Rata Adjustment</p>
+                    <p className="text-foreground">
+                      Staff started on day {breakdown.proRataInfo.startDay} of {breakdown.proRataInfo.daysInMonth}
+                    </p>
+                    <p className="text-foreground">
+                      {breakdown.proRataInfo.workingDays} of {breakdown.proRataInfo.daysInMonth} days = {(breakdown.proRataInfo.ratio * 100).toFixed(1)}%
+                    </p>
+                    <p className="font-semibold">= {fmtGBP(breakdown.finalMonthly)}/month (pro-rated)</p>
+                  </div>
+                </>
+              )}
+              <Separator />
+              <div className="flex justify-between font-semibold text-sm">
+                <span>Maximum Claimable</span>
+                <span className="text-primary">{fmtGBP(breakdown.finalMonthly)}</span>
               </div>
             </>
           )}
-          <Separator />
-          <div className="flex justify-between font-semibold text-sm">
-            <span>Maximum Claimable</span>
-            <span className="text-primary">{fmtGBP(breakdown.finalMonthly)}</span>
-          </div>
         </div>
       </HoverCardContent>
     </HoverCard>
