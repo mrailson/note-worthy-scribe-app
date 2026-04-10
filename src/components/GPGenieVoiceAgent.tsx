@@ -335,10 +335,14 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
           if (message.source === 'user') {
             console.log('👤 User message captured:', message.message.substring(0, 50) + '...');
             updated.push(newEntry);
-          } else if (message.source === 'ai' && updated.length > 0) {
+          } else if (message.source === 'ai') {
             console.log('🤖 AI response captured:', message.message.substring(0, 50) + '...');
-            updated[updated.length - 1].agent = message.message;
-            updated[updated.length - 1].agentTimestamp = timestamp;
+            if (updated.length > 0) {
+              updated[updated.length - 1].agent = message.message;
+              updated[updated.length - 1].agentTimestamp = timestamp;
+            } else {
+              updated.push({ ...newEntry, user: '', agent: message.message, agentTimestamp: timestamp });
+            }
             
             // Trigger verification ONLY for Oak Lane Patient Line
             if (activeTab === 'patient-line') {
