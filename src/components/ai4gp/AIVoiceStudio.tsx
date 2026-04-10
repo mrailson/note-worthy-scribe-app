@@ -121,13 +121,11 @@ const ALL_MODES: ModeConfig[] = [
 const AIVoiceStudio: React.FC = () => {
   useElevenLabs();
   const [activeMode, setActiveMode] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
 
   const activeData = ALL_MODES.find(m => m.id === activeMode);
 
   const handleModeClick = (modeId: string) => {
     setActiveMode(prev => prev === modeId ? null : modeId);
-    setQuery('');
   };
 
   const renderPhoneNote = (mode: InfoMode) => {
