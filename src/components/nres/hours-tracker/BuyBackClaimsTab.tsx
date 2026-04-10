@@ -772,7 +772,9 @@ function getStaffMaxAmount(staff: any, claimMonth?: string, rateParams?: RatePar
     allocation_type: staff.allocation_type,
     allocation_value: staff.allocation_value,
     staff_role: staff.staff_role,
-  } as BuyBackStaffMember, claimMonth, staff.start_date, rateParams);
+    staff_category: staff.staff_category,
+    hourly_rate: staff.hourly_rate,
+  } as any, claimMonth, staff.start_date, rateParams);
 }
 
 /** Build a detailed calculation breakdown for hover display */
