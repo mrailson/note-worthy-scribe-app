@@ -11,8 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import {
   Upload, FileText, Download, Mail, Printer, Plus, Pencil, Trash2,
-  Eye, RefreshCw, Loader2, ArrowLeft, Shield, CheckCircle2
+  Eye, RefreshCw, Loader2, ArrowLeft, Shield, CheckCircle2, UserPlus, Check
 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DPIA_EXTRACT_PROMPT, DPIA_GENERATE_PROMPT } from "@/lib/dpia-prompts";
 
 // ---- Types ----
@@ -40,6 +44,7 @@ interface DPIAPractice {
   dpia_generated: boolean;
   dpia_date: string | null;
   dpia_html: string | null;
+  onboarded_at: string | null;
   user_id?: string;
 }
 
@@ -49,7 +54,7 @@ const EMPTY_PRACTICE: Omit<DPIAPractice, "id"> = {
   cg_name: "", cg_role: "", cg_email: "",
   dpo_name: "", dpo_org: "", dpo_email: "", dpo_tel: "",
   source_file: null, completed_by: "", completed_role: "", completed_date: "",
-  dpia_generated: false, dpia_date: null, dpia_html: null,
+  dpia_generated: false, dpia_date: null, dpia_html: null, onboarded_at: null,
 };
 
 const FORM_SECTIONS = [
@@ -196,6 +201,8 @@ export default function DPIAGenerator() {
   const [busy, setBusy] = useState(false);
   const [busyMsg, setBusyMsg] = useState("");
   const [dpiaHtml, setDpiaHtml] = useState("");
+  const [onboardingPractice, setOnboardingPractice] = useState<DPIAPractice | null>(null);
+  const [onboardingBusy, setOnboardingBusy] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load practices
@@ -343,6 +350,60 @@ export default function DPIAGenerator() {
     toast({ title: "Practice deleted" });
   };
 
+  // ---- Onboard practice (send DPIA + create account) ----
+  const onboardPractice = async (practice: DPIAPractice) => {
+    if (!practice.dpia_html || !practice.pm_email || !practice.pm_name) {
+      toast({ title: "Missing DPIA or PM details", variant: "destructive" });
+      return;
+    }
+
+    setOnboardingBusy(practice.id);
+    try {
+      // Generate a simple HTML-to-PDF via print-style blob
+      // We'll send the DPIA HTML content as a base64 "PDF" (actually Word-like HTML for Resend attachment)
+      const docHtml = `<html><head><meta charset="utf-8"><title>DPIA - ${practice.practice_name}</title>
+        <style>body{font-family:Arial,sans-serif;font-size:11pt;color:#212b32;line-height:1.6;padding:2cm;}
+        h1{color:#005EB8;font-size:18pt;border-bottom:2px solid #005EB8;padding-bottom:6px;}
+        h2{color:#003087;font-size:14pt;margin-top:20px;}h3{color:#005EB8;font-size:12pt;}
+        table{border-collapse:collapse;width:100%;margin:12px 0;}
+        th,td{border:1px solid #999;padding:6px 10px;font-size:10pt;vertical-align:top;word-wrap:break-word;}
+        th{background:#005EB8;color:white;text-align:left;font-weight:bold;}
+        tr:nth-child(even){background:#f5f7fa;}</style>
+        </head><body>${practice.dpia_html}</body></html>`;
+      
+      const dpiaBase64 = btoa(unescape(encodeURIComponent(docHtml)));
+      const fileName = `DPIA_Notewell_AI_${practice.practice_name.replace(/\s+/g, "_")}_${practice.ods_code || ""}_${new Date().toISOString().slice(0,10)}.html`;
+
+      const { data, error } = await supabase.functions.invoke("onboard-practice", {
+        body: {
+          pmEmail: practice.pm_email,
+          pmName: practice.pm_name,
+          practiceName: practice.practice_name,
+          practiceId: practice.id,
+          odsCode: practice.ods_code,
+          dpiaBase64,
+          dpiaFileName: fileName,
+          dpiaRecordId: practice.id,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || "Onboarding failed");
+
+      await loadPractices();
+
+      if (data.alreadyExisted) {
+        toast({ title: `${practice.practice_name} – DPIA sent to ${practice.pm_name} (account already existed, no new credentials sent)` });
+      } else {
+        toast({ title: `${practice.practice_name} onboarded – DPIA & login sent to ${practice.pm_name}` });
+      }
+    } catch (err: any) {
+      toast({ title: "Onboarding failed", description: err.message, variant: "destructive" });
+    }
+    setOnboardingBusy(null);
+    setOnboardingPractice(null);
+  };
+
   // ---- Email ----
   const emailDPIA = () => {
     if (!current) return;
@@ -463,7 +524,7 @@ export default function DPIAGenerator() {
                   dpo_name: parsed.dpoName || "",
                   dpo_org: parsed.dpoOrg || "",
                   dpo_email: parsed.dpoEmail || "",
-                  dpia_generated: false,
+                  dpia_generated: false, onboarded_at: null,
                 };
                 setCurrent(practice);
                 setView("form");
@@ -511,6 +572,12 @@ export default function DPIAGenerator() {
                       ) : (
                         <Badge variant="secondary" className="text-xs shrink-0">Pending</Badge>
                       )}
+                      {p.onboarded_at && (
+                        <Badge className="bg-emerald-100 text-emerald-800 text-xs shrink-0">
+                          <Check className="w-3 h-3 mr-1" />
+                          Onboarded {new Date(p.onboarded_at).toLocaleDateString("en-GB")}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5 truncate">
                       PM: {p.pm_name} · CG: {p.cg_name} · DPO: {p.dpo_name}
@@ -522,6 +589,28 @@ export default function DPIAGenerator() {
                       <Button variant="ghost" size="icon" onClick={() => viewDPIA(p)} title="View DPIA">
                         <Eye className="w-4 h-4" />
                       </Button>
+                    )}
+                    {p.dpia_generated && !p.onboarded_at && (
+                      <TooltipProvider>
+                        <Tooltip delayDuration={200}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={onboardingBusy === p.id}
+                              onClick={() => setOnboardingPractice(p)}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              {onboardingBusy === p.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <UserPlus className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Send DPIA & Create PM Account</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                     <Button
                       variant="ghost"
@@ -543,6 +632,26 @@ export default function DPIAGenerator() {
             ))}
           </div>
         )}
+
+        {/* Onboarding confirmation dialog */}
+        <Dialog open={!!onboardingPractice} onOpenChange={(open) => { if (!open) setOnboardingPractice(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send DPIA & Create Account</DialogTitle>
+              <DialogDescription>
+                This will send the DPIA to <strong>{onboardingPractice?.pm_name}</strong> at{" "}
+                <strong>{onboardingPractice?.pm_email}</strong> and create their Notewell AI account. Continue?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOnboardingPractice(null)}>Cancel</Button>
+              <Button onClick={() => { if (onboardingPractice) onboardPractice(onboardingPractice); }}>
+                <UserPlus className="w-4 h-4 mr-1" />
+                Confirm & Send
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
