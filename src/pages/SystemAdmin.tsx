@@ -66,6 +66,7 @@ import { HazardAnalysisReport } from '@/components/HazardAnalysisReport';
 import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboard';
 import { AdminMeetingControls } from '@/components/AdminMeetingControls';
 import { DCB0129Panel } from '@/components/admin/DCB0129Panel';
+import { SendDPIATemplateCard } from '@/components/sda/SendDPIATemplateCard';
 import { ConsultationVisibilitySettings } from '@/components/admin/ConsultationVisibilitySettings';
 import { MeetingStatsByUser } from '@/components/admin/MeetingStatsByUser';
 import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
