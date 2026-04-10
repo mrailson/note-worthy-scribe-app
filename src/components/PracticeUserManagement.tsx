@@ -842,7 +842,7 @@ export const PracticeUserManagement = () => {
                           <Badge variant={user.role === 'practice_user' ? 'secondary' : 'default'}>
                             {isNonPracticeOrg && user.role === 'practice_manager' 
                               ? 'Organisation Admin' 
-                              : user.role === 'practice_user' ? 'Practice User' : user.role}
+                              : getRoleDisplayName(user.role)}
                           </Badge>
                         </TableCell>
                         {!isNonPracticeOrg && (
