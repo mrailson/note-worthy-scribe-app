@@ -35,7 +35,7 @@ export const NRES_PRACTICE_ADDRESSES: Record<NRESPracticeKey, string> = {
   bugbrooke: 'Bugbrooke Medical Practice, Levitts Road, Bugbrooke, Northampton, NN7 3QN',
   brook: 'Brook Health Centre, Stratford Road, Roade, Northampton, NN7 2NT',
   denton: 'Denton Village Surgery, Orchard Lane, Denton, Northampton, NN7 1HT',
-  bt_pcn: 'Brackley & Towcester PCN Ltd, c/o Brackley Medical Centre, Halse Road, Brackley, NN13 6EQ',
+  bt_pcn: 'Brackley Medical Centre, Halse Road, Brackley, NN13 6EQ',
 };
 
 export interface NRESPracticeContact {
@@ -52,7 +52,24 @@ export const NRES_PRACTICE_CONTACTS: Record<NRESPracticeKey, NRESPracticeContact
   bugbrooke: { practiceManager: 'Lorraine Spicer', email: 'lorraine.spicer@nhs.net', phone: '01604 830348' },
   brook: { practiceManager: 'Anita Carter', email: 'anita.carter5@nhs.net', phone: '' },
   denton: { practiceManager: 'Nicola Draper', email: 'nicola.draper3@nhs.net', phone: '01604 890313' },
-  bt_pcn: { practiceManager: 'Malcolm Railson', email: 'malcolm.railson@nhs.net', phone: '' },
+  bt_pcn: { practiceManager: 'Amanda Palin', email: 'amanda.palin2@nhs.net', phone: '' },
+};
+
+export interface NRESPracticeBankDetails {
+  bankName: string;
+  sortCode: string;
+  accountNumber: string;
+  accountName: string;
+}
+
+/** Bank details for invoice remittance — only populated where known */
+export const NRES_PRACTICE_BANK_DETAILS: Partial<Record<NRESPracticeKey, NRESPracticeBankDetails>> = {
+  bt_pcn: {
+    bankName: 'Lloyds Bank',
+    sortCode: '30-11-08',
+    accountNumber: '28122560',
+    accountName: 'Brackley & Towcester PCN Ltd',
+  },
 };
 
 /** Get the display name for a practice key, checking both NRES and ENN practices */

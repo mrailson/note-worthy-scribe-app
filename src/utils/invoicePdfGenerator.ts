@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { getPracticeName, getOdsCode } from '@/data/nresPractices';
-import { NRES_PRACTICE_ADDRESSES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
+import { NRES_PRACTICE_ADDRESSES, NRES_PRACTICE_CONTACTS, NRES_PRACTICE_BANK_DETAILS } from '@/data/nresPractices';
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 
@@ -31,6 +31,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   const practiceKey = claim.practice_key as NRESPracticeKey;
   const practiceAddress = NRES_PRACTICE_ADDRESSES[practiceKey] || '';
   const practiceContact = NRES_PRACTICE_CONTACTS[practiceKey];
+  const bankDetails = NRES_PRACTICE_BANK_DETAILS[practiceKey];
 
   // --- Header band ---
   doc.setFillColor(...NHS_DARK_BLUE);
@@ -199,6 +200,26 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   doc.setTextColor(...NHS_DARK_BLUE);
   doc.text('TOTAL:', 134, finalY + 18);
   doc.text(fmt(grandTotal), 192, finalY + 18, { align: 'right' });
+
+  // --- Bank Details (if available) ---
+  let bankY = finalY + 28;
+  if (bankDetails) {
+    doc.setFillColor(245, 248, 252);
+    doc.roundedRect(14, bankY - 4, 100, 30, 2, 2, 'F');
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...NHS_DARK_BLUE);
+    doc.text('Payment Details', 18, bankY);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(GREY_60);
+    doc.text(`Bank: ${bankDetails.bankName}`, 18, bankY + 6);
+    doc.text(`Sort Code: ${bankDetails.sortCode}`, 18, bankY + 11);
+    doc.text(`Account No: ${bankDetails.accountNumber}`, 18, bankY + 16);
+    doc.text(`Account Name: ${bankDetails.accountName}`, 18, bankY + 21);
+  }
 
   // --- Footer band ---
   doc.setFillColor(...NHS_DARK_BLUE);
