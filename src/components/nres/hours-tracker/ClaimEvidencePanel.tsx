@@ -227,9 +227,6 @@ export function StaffLineEvidence({
         {visibleTypes.map(cfg => {
           // For 'other_supporting', render inline SmartUploadZone instead of separate section
           if (cfg.evidence_type === 'other_supporting' && canEdit) {
-            const otherFiles = Object.entries(uploadedTypesForStaff)
-              .filter(([key]) => key === 'other_supporting')
-              .map(([, f]) => f);
             return (
               <div key={`${staffIndex}-${cfg.evidence_type}`} className="px-3 py-2 flex items-center gap-3 text-xs">
                 <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
