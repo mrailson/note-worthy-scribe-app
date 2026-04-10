@@ -86,12 +86,18 @@ async function callAI(prompt: string, maxTokens = 4096): Promise<string> {
       max_tokens: maxTokens,
     },
   });
-  if (error) throw error;
-  // gpt5-fast-clinical may return various shapes — ensure we always return a string
-  const raw = data?.response || data?.text || data?.choices?.[0]?.message?.content || "";
+  if (error) throw new Error(error.message || "AI request failed");
+
+  // data may be: a string, an object with .response/.text/.choices, or null
+  if (!data) throw new Error("No response from AI");
+  if (typeof data === "string") return data;
+  
+  const raw = data.response || data.text || data.choices?.[0]?.message?.content;
   if (typeof raw === "string") return raw;
-  // If the response is already parsed JSON, stringify it so callers can work with it
-  return JSON.stringify(raw);
+  if (raw != null) return JSON.stringify(raw);
+  
+  // Last resort: stringify the entire data object
+  return JSON.stringify(data);
 }
 
 // ---- File parser ----
