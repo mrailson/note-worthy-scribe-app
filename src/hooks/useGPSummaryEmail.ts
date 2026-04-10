@@ -9,27 +9,27 @@ interface TranscriptionSegment {
   text: string;
 }
 
-interface PatientSummaryPayload {
+interface GPSummaryPayload {
   sessionId: string;
   practiceName: string;
   sessionType: string;
   startTime: string;
   endTime: string;
   durationMinutes: number;
-  languageUsed: string;
   transcription: TranscriptionSegment[];
   summary?: string;
-  triageFlags?: string[];
-  gpActions?: string[];
-  complaintsRaised?: string[];
+  guidelinesReferenced?: string[];
+  prescribingNotes?: string[];
+  redFlags?: string[];
+  referralSuggestions?: string[];
 }
 
-export function usePatientSummaryEmail() {
-  const sendPatientSummaryEmail = useCallback(async (payload: PatientSummaryPayload): Promise<boolean> => {
+export function useGPSummaryEmail() {
+  const sendGPSummaryEmail = useCallback(async (payload: GPSummaryPayload): Promise<boolean> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) {
-        console.warn("No user email available for patient summary");
+        console.warn("No user email available for GP summary");
         return false;
       }
 
@@ -52,7 +52,7 @@ export function usePatientSummaryEmail() {
         getPublicIP(),
       ]);
 
-      const { error } = await supabase.functions.invoke("send-patient-summary", {
+      const { error } = await supabase.functions.invoke("send-gp-summary", {
         body: {
           ...payload,
           userEmail: user.email,
@@ -67,12 +67,12 @@ export function usePatientSummaryEmail() {
       }
 
       showToast.success("Summary sent", {
-        description: `Patient session summary emailed to ${user.email}`,
+        description: `GP session summary emailed to ${user.email}`,
         section: "system",
       });
       return true;
     } catch (err) {
-      console.error("Patient summary email failed:", err);
+      console.error("GP summary email failed:", err);
       showToast.error("Email failed", {
         description: "Session saved but email could not be sent. You can download the transcript manually.",
         section: "system",
@@ -81,5 +81,5 @@ export function usePatientSummaryEmail() {
     }
   }, []);
 
-  return { sendPatientSummaryEmail };
+  return { sendGPSummaryEmail };
 }
