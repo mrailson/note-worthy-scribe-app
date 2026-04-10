@@ -394,7 +394,7 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
               <p style="margin:0;font-size:14px;color:#212B32;line-height:1.6;">
                 Kind regards,<br>
                 <strong>Malcolm Railson</strong><br>
-                <span style="color:#4C6272;font-size:13px;">Digital &amp; Transformation Lead, NRES</span><br>
+                <span style="color:#4C6272;font-size:13px;">PCN Manager and Notewell Developer for Primary Care Northamptonshire GP Practices</span><br>
                 <span style="color:#4C6272;font-size:13px;">
                   <a href="mailto:malcolm.railson@nhs.net" style="color:#0072CE;text-decoration:none;">malcolm.railson@nhs.net</a> | 07740 812180
                 </span>
