@@ -1,10 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Mic } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CompactMicButton } from '@/components/ai4gp/studio/CompactMicButton';
+
+// Load ElevenLabs widget script once
+function useElevenLabs() {
+  useEffect(() => {
+    if (document.querySelector('script[src*="elevenlabs"]')) return;
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
+}
+
+function ElevenLabsWidget({ agentId }: { agentId: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.innerHTML = '';
+    const el = document.createElement('elevenlabs-convai');
+    el.setAttribute('agent-id', agentId);
+    ref.current.appendChild(el);
+    return () => {
+      if (ref.current) ref.current.innerHTML = '';
+    };
+  }, [agentId]);
+  return <div ref={ref} style={{ minHeight: 60 }} />;
+}
+
+const AGENT_IDS: Record<string, string> = {
+  gp: 'agent_01jwry2fzme7xsb2mwzatxseyt',
+  pm: 'agent_01jwry2fzme7xsb2mwzatxseyt',
+  patient: 'agent_3501knsz3wj8f0frkttr1yd90k72',
+  translate: 'agent_2601knsxn311f9evq5zs0rrese7s',
+};
 
 interface WidgetMode {
   id: string;
@@ -22,7 +54,6 @@ interface InfoMode {
   color: string;
   icon: string;
   type: 'info';
-  description?: string;
   tagline: string;
   features: string[];
   footnote?: string;
@@ -35,13 +66,9 @@ interface InfoMode {
 
 type ModeConfig = WidgetMode | InfoMode;
 
-const WIDGET_MODES: WidgetMode[] = [
+const ALL_MODES: ModeConfig[] = [
   {
-    id: 'gp',
-    label: 'GP',
-    color: '#7C2855',
-    icon: '⚕️',
-    type: 'widget',
+    id: 'gp', label: 'GP', color: '#7C2855', icon: '⚕️', type: 'widget',
     description: 'Ask clinical questions — get GP-level guidance instantly from NHS frameworks.',
     examples: [
       'What are the NICE guidelines for managing new-onset atrial fibrillation?',
@@ -51,11 +78,7 @@ const WIDGET_MODES: WidgetMode[] = [
     ],
   },
   {
-    id: 'pm',
-    label: 'Practice Manager',
-    color: '#ED8B00',
-    icon: '📋',
-    type: 'widget',
+    id: 'pm', label: 'Practice Manager', color: '#ED8B00', icon: '📋', type: 'widget',
     description: 'Practice management — CQC, HR, complaints, NHS contracts, operations.',
     examples: [
       'What are the CQC key lines of enquiry for the Safe domain?',
@@ -64,15 +87,8 @@ const WIDGET_MODES: WidgetMode[] = [
       'Summarise our obligations under the NHS Standard Contract for enhanced access',
     ],
   },
-];
-
-const INFO_MODES: InfoMode[] = [
   {
-    id: 'patient',
-    label: 'Patient',
-    color: '#41B6E6',
-    icon: '👤',
-    type: 'info',
+    id: 'patient', label: 'Patient', color: '#41B6E6', icon: '👤', type: 'info',
     tagline: '"Your GP Practice in your pocket"',
     features: [
       'Symptom checker — describe how you feel and get clear advice on what to do next',
@@ -85,15 +101,10 @@ const INFO_MODES: InfoMode[] = [
     phone: '01327 221722',
     phoneNote: 'No internet? Call {phone} from any phone to speak to your GP Practice Assistant directly.',
     phoneExplainer: 'Designed for patients who aren\'t online — a plain old telephone service powered by AI. No internet, no smartphone, no app needed. Just pick up the phone and talk.',
-    actionLabel: 'Talk to Your GP Assistant',
-    actionColor: '#E8175D',
+    actionLabel: 'Talk to Your GP Assistant', actionColor: '#E8175D',
   },
   {
-    id: 'translate',
-    label: 'Live Translate',
-    color: '#006747',
-    icon: '🌐',
-    type: 'info',
+    id: 'translate', label: 'Live Translate', color: '#006747', icon: '🌐', type: 'info',
     tagline: '"Real-time patient translation — no interpreter needed"',
     features: [
       'Just say "I need translation" and name the language',
@@ -106,27 +117,20 @@ const INFO_MODES: InfoMode[] = [
     phone: '01280 730716',
     phoneNote: 'On a home visit? Call {phone} from any phone for instant translation — no internet needed.',
     phoneExplainer: 'Works as a plain old telephone service — just call the number and start interpreting. No app, no internet, no login required. Ideal for home visits and patients without technology.',
-    actionLabel: 'Start Interpreting',
-    actionColor: '#006747',
+    actionLabel: 'Start Interpreting', actionColor: '#006747',
   },
 ];
 
-const ALL_MODES: ModeConfig[] = [
-  ...WIDGET_MODES,
-  ...INFO_MODES,
-];
-
 const AIVoiceStudio: React.FC = () => {
+  useElevenLabs();
   const [activeMode, setActiveMode] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [isListening, setIsListening] = useState(false);
 
   const activeData = ALL_MODES.find(m => m.id === activeMode);
 
   const handleModeClick = (modeId: string) => {
     setActiveMode(prev => prev === modeId ? null : modeId);
     setQuery('');
-    setIsListening(false);
   };
 
   const renderPhoneNote = (mode: InfoMode) => {
@@ -223,33 +227,9 @@ const AIVoiceStudio: React.FC = () => {
               </div>
             </div>
 
-            {/* Input row */}
-            <div className="flex gap-2.5 items-center">
-              <div className="flex-1 flex items-center bg-muted rounded-[10px] px-3.5 py-2.5 border border-border">
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={`Ask about ${widget.label.toLowerCase()}...`}
-                  className="flex-1 border-none bg-transparent shadow-none focus-visible:ring-0 h-auto min-h-0 p-0 text-sm"
-                />
-                <CompactMicButton
-                  onTranscriptUpdate={(text) => setQuery(text)}
-                  currentValue={query}
-                  className="ml-2"
-                />
-              </div>
-              <Button
-                size="icon"
-                className="w-11 h-11 rounded-[10px] shrink-0"
-                style={{ background: '#003087' }}
-              >
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-
             {/* GP Warning */}
             {activeMode === 'gp' && (
-              <div className="mt-3 p-3 rounded-lg text-xs leading-relaxed flex items-start gap-2.5"
+              <div className="mb-4 p-3 rounded-lg text-xs leading-relaxed flex items-start gap-2.5"
                 style={{ background: '#FFF3CD', border: '1px solid #FFCB05', color: '#594300' }}>
                 <span className="text-lg shrink-0">⚠️</span>
                 <span>
@@ -260,16 +240,29 @@ const AIVoiceStudio: React.FC = () => {
               </div>
             )}
 
-            {/* Listening indicator */}
-            {isListening && (
-              <div className="mt-3 p-2.5 rounded-lg text-[13px] flex items-center gap-2"
-                style={{ background: '#fce8e6', color: '#DA291C' }}>
-                <span className="animate-pulse">●</span> Listening... speak now
-              </div>
-            )}
+            {/* ElevenLabs Widget */}
+            <div className="bg-muted rounded-[10px] p-4 border border-border mb-4 text-center">
+              <p className="text-xs font-semibold text-muted-foreground mb-2.5">
+                🎙️ Click the microphone below to start a voice conversation
+              </p>
+              <ElevenLabsWidget agentId={AGENT_IDS[widget.id]} />
+            </div>
+
+            {/* Text input */}
+            <div className="flex gap-2.5 items-center mb-4">
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={`Or type your question about ${widget.label.toLowerCase()}...`}
+                className="flex-1"
+              />
+              <Button size="icon" className="w-11 h-11 rounded-[10px] shrink-0" style={{ background: '#003087' }}>
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
 
             {/* Example prompts */}
-            <div className="mt-3.5">
+            <div>
               <p className="text-xs font-semibold text-muted-foreground mb-2">Try asking...</p>
               <div className="flex flex-col gap-1.5">
                 {widget.examples.map((ex, i) => (
@@ -324,6 +317,14 @@ const AIVoiceStudio: React.FC = () => {
             {info.footnote && (
               <p className="text-xs text-muted-foreground italic mb-4">{info.footnote}</p>
             )}
+
+            {/* ElevenLabs Widget */}
+            <div className="bg-muted rounded-[10px] p-4 border border-border mb-4 text-center">
+              <p className="text-[13px] font-semibold mb-2.5" style={{ color: info.color }}>
+                🎙️ Try it now — click the microphone to start
+              </p>
+              <ElevenLabsWidget agentId={AGENT_IDS[info.id]} />
+            </div>
 
             {/* Phone section */}
             <div className="bg-muted rounded-[10px] p-3.5 border border-border mb-4">
