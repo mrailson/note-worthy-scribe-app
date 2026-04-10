@@ -344,13 +344,10 @@ const AIVoiceStudio: React.FC = () => {
               </div>
             </div>
 
-            {/* Action button */}
-            <button
-              className="w-full py-3.5 px-5 text-white border-none rounded-[10px] text-[15px] font-bold cursor-pointer flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
-              style={{ background: info.actionColor, boxShadow: `0 4px 12px ${info.actionColor}44` }}
-            >
-              {info.id === 'patient' ? '👤' : '🌐'} {info.actionLabel}
-            </button>
+            {/* Try it prompt */}
+            <p className="text-center text-[13px] text-muted-foreground italic">
+              👆 Click the microphone widget above to start
+            </p>
           </Card>
         );
       })()}
