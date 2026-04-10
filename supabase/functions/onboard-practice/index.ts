@@ -8,20 +8,20 @@ const corsHeaders = {
 };
 
 function generatePassword(): string {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghjkmnpqrstuvwxyz";
-  const digits = "23456789";
-  const special = "!@#$%&*";
-  const all = upper + lower + digits + special;
-  let pw = "";
-  pw += upper[Math.floor(Math.random() * upper.length)];
-  pw += lower[Math.floor(Math.random() * lower.length)];
-  pw += digits[Math.floor(Math.random() * digits.length)];
-  pw += special[Math.floor(Math.random() * special.length)];
-  for (let i = 4; i < 10; i++) {
-    pw += all[Math.floor(Math.random() * all.length)];
-  }
-  return pw.split("").sort(() => Math.random() - 0.5).join("");
+  const words = [
+    "run", "let", "set", "map", "sun", "red", "top", "big", "hot", "new",
+    "sky", "oak", "pen", "cup", "hat", "box", "fox", "bay", "key", "jam",
+    "ice", "dew", "elm", "fog", "gem", "hop", "ink", "joy", "kit", "log",
+    "mud", "net", "owl", "pip", "ram", "tap", "vet", "win", "zip", "ace",
+    "bear", "cake", "dawn", "east", "farm", "gate", "hill", "iron", "jade",
+    "lake", "mint", "nest", "pine", "rain", "sage", "tree", "vine", "wave",
+    "blue", "calm", "dark", "fern", "gold", "haze", "leaf", "moon", "palm",
+    "rose", "sand", "wind", "bell", "cord", "drum", "fish", "glow", "hive",
+  ];
+  const w1 = words[Math.floor(Math.random() * words.length)];
+  const w2 = words[Math.floor(Math.random() * words.length)];
+  const num = Math.floor(Math.random() * 9) + 1; // 1-9
+  return `${w1}${num}${w2}`;
 }
 
 serve(async (req) => {
