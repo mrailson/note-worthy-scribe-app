@@ -79,13 +79,14 @@ const DECLARATION_TEXT =
 // STAFF_ROLES is now dynamic — see BuyBackClaimsTab below
 
 /** Isolated add-staff form – keeps its own state so typing never loses focus */
-function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, practiceNames }: {
+function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, practiceNames, managementRoles }: {
   saving: boolean;
   onAdd: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   staffRoles: string[];
   rateParams?: RateParams;
   practiceKeys: string[];
   practiceNames: Record<string, string>;
+  managementRoles?: import('@/hooks/useNRESBuyBackRateSettings').ManagementRoleConfig[];
 }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('GP');
@@ -94,6 +95,62 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management'>('buyback');
   const [practice, setPractice] = useState<string>('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [selectedMgmtKey, setSelectedMgmtKey] = useState('');
+
+  // Management category only available for bugbrooke and bt_pcn
+  const managementPractices = ['bugbrooke', 'bt_pcn'];
+  const canShowManagement = managementPractices.includes(practice);
+
+  // Reset category if practice changes to one that doesn't support management
+  const handlePracticeChange = (newPractice: string) => {
+    setPractice(newPractice);
+    if (!managementPractices.includes(newPractice) && category === 'management') {
+      setCategory('buyback');
+      setName('');
+      setSelectedMgmtKey('');
+      setRole('GP');
+      setAllocType('sessions');
+      setAllocValue('');
+    }
+  };
+
+  // Filter management roles by practice's billing_org_code
+  const availableMgmtRoles = useMemo(() => {
+    if (!managementRoles || !practice) return [];
+    return managementRoles.filter(r => r.is_active && r.billing_org_code === practice);
+  }, [managementRoles, practice]);
+
+  // When management person is selected from picklist
+  const handleMgmtPersonChange = (key: string) => {
+    setSelectedMgmtKey(key);
+    const mgmtRole = availableMgmtRoles.find(r => r.key === key);
+    if (mgmtRole) {
+      setName(mgmtRole.person_name);
+      setRole('NRES Management');
+      setAllocType('hours');
+      setAllocValue(String(mgmtRole.max_hours_per_week));
+    }
+  };
+
+  // When category changes
+  const handleCategoryChange = (newCat: 'buyback' | 'new_sda' | 'management') => {
+    setCategory(newCat);
+    if (newCat === 'management') {
+      setRole('NRES Management');
+      setAllocType('hours');
+      setAllocValue('');
+      setName('');
+      setSelectedMgmtKey('');
+    } else {
+      setSelectedMgmtKey('');
+      if (role === 'NRES Management') {
+        setRole('GP');
+        setAllocType('sessions');
+        setAllocValue('');
+        setName('');
+      }
+    }
+  };
 
   // Default allocation type based on role
   const handleRoleChange = (newRole: string) => {
@@ -104,6 +161,9 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
       setAllocType('sessions');
     }
   };
+
+  const isManagement = category === 'management';
+  const selectedMgmtRole = isManagement ? availableMgmtRoles.find(r => r.key === selectedMgmtKey) : undefined;
 
   const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : 9;
 
@@ -125,7 +185,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
       staff_role: role,
       allocation_type: allocType,
       allocation_value: numVal,
-      hourly_rate: 0,
+      hourly_rate: selectedMgmtRole?.hourly_rate ?? 0,
       is_active: true,
       staff_category: category,
       practice_key: practice,
@@ -134,6 +194,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
     setName('');
     setAllocValue('');
     setStartDate(undefined);
+    setSelectedMgmtKey('');
   };
 
   return (
@@ -141,7 +202,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-2 items-end">
         <div>
           <Label className="text-xs">Practice</Label>
-          <Select value={practice} onValueChange={setPractice}>
+          <Select value={practice} onValueChange={handlePracticeChange}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Select" /></SelectTrigger>
             <SelectContent>
               {practiceKeys.map(k => (
@@ -152,38 +213,57 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
         </div>
         <div>
           <Label className="text-xs">Category</Label>
-          <Select value={category} onValueChange={v => setCategory(v as 'buyback' | 'new_sda' | 'management')}>
+          <Select value={category} onValueChange={v => handleCategoryChange(v as 'buyback' | 'new_sda' | 'management')}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="buyback">Buy-Back</SelectItem>
               <SelectItem value="new_sda">New SDA</SelectItem>
-              <SelectItem value="management">Management</SelectItem>
+              {canShowManagement && <SelectItem value="management">Management</SelectItem>}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label className="text-xs">Name</Label>
-          <Input id="staff-name" className="h-9" value={name} onChange={e => setName(e.target.value)} placeholder="Staff name" />
+          {isManagement ? (
+            <Select value={selectedMgmtKey} onValueChange={handleMgmtPersonChange}>
+              <SelectTrigger className="h-9"><SelectValue placeholder="Select person" /></SelectTrigger>
+              <SelectContent>
+                {availableMgmtRoles.map(r => (
+                  <SelectItem key={r.key} value={r.key}>{r.person_name} — {r.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input id="staff-name" className="h-9" value={name} onChange={e => setName(e.target.value)} placeholder="Staff name" />
+          )}
         </div>
         <div>
           <Label className="text-xs">Role</Label>
-          <Select value={role} onValueChange={handleRoleChange}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {staffRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {isManagement ? (
+            <Input className="h-9 bg-muted" value="NRES Management" disabled />
+          ) : (
+            <Select value={role} onValueChange={handleRoleChange}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {staffRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div>
           <Label className="text-xs">Allocation Type</Label>
-          <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours'); setAllocValue(''); }}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sessions">Sessions</SelectItem>
-              <SelectItem value="hours">Hrs/wk</SelectItem>
-              <SelectItem value="wte">WTE</SelectItem>
-            </SelectContent>
-          </Select>
+          {isManagement ? (
+            <Input className="h-9 bg-muted" value="Hrs/wk" disabled />
+          ) : (
+            <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours'); setAllocValue(''); }}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sessions">Sessions</SelectItem>
+                <SelectItem value="hours">Hrs/wk</SelectItem>
+                <SelectItem value="wte">WTE</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div>
           <Label className="text-xs">
@@ -191,13 +271,14 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
           </Label>
           <Input
             type="number"
-            className="h-9 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className={cn("h-9 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none", isManagement && "bg-muted")}
             value={allocValue}
             onChange={e => handleAllocValueChange(e.target.value)}
             placeholder="0"
             min="0"
             max={maxAlloc}
             step={allocType === 'wte' ? 0.1 : 1}
+            disabled={isManagement && !!selectedMgmtKey}
           />
         </div>
         <div>
@@ -235,12 +316,14 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
       {/* Live monthly amount preview with calculation breakdown */}
       {allocValue && parseFloat(allocValue) > 0 && (() => {
         const val = parseFloat(allocValue);
+        const hourlyRate = selectedMgmtRole?.hourly_rate ?? 0;
         const monthly = calculateStaffMonthlyAmount({
           allocation_type: allocType,
           allocation_value: val,
-          hourly_rate: 0,
+          hourly_rate: hourlyRate,
           staff_role: role,
-        } as BuyBackStaffMember, undefined, undefined, rateParams);
+          staff_category: category,
+        } as any, undefined, undefined, rateParams);
         return (
           <div className="rounded-md bg-teal-50 dark:bg-teal-950 border border-teal-200 dark:border-teal-800 px-3 py-2 text-sm space-y-1">
             <div>
@@ -248,7 +331,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
               <span className="font-semibold text-teal-800 dark:text-teal-200">{fmtGBP(monthly)}</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              {calcBreakdown(allocType, val, rateParams, role)} = {fmtGBP(monthly)}/month
+              {calcBreakdown(allocType, val, rateParams, role, category, hourlyRate)} = {fmtGBP(monthly)}/month
             </p>
           </div>
         );
@@ -510,7 +593,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={effectivePracticeKeys} practiceNames={ALL_PRACTICES} />
+          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={effectivePracticeKeys} practiceNames={ALL_PRACTICES} managementRoles={rateSettings.management_roles_config} />
 
           {/* Staff list */}
           {filteredStaff.length > 0 && (
