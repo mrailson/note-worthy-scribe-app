@@ -2001,11 +2001,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <span className="hidden sm:inline">Pilot Usage Report</span>
               <span className="sm:hidden">Pilot</span>
             </TabsTrigger>
-            <TabsTrigger value="platform-audit" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
-              <Database className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Platform Audit</span>
-              <span className="sm:hidden">Audit</span>
-            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
