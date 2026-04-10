@@ -632,6 +632,26 @@ export default function DPIAGenerator() {
             ))}
           </div>
         )}
+
+        {/* Onboarding confirmation dialog */}
+        <Dialog open={!!onboardingPractice} onOpenChange={(open) => { if (!open) setOnboardingPractice(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send DPIA & Create Account</DialogTitle>
+              <DialogDescription>
+                This will send the DPIA to <strong>{onboardingPractice?.pm_name}</strong> at{" "}
+                <strong>{onboardingPractice?.pm_email}</strong> and create their Notewell AI account. Continue?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOnboardingPractice(null)}>Cancel</Button>
+              <Button onClick={() => { if (onboardingPractice) onboardPractice(onboardingPractice); }}>
+                <UserPlus className="w-4 h-4 mr-1" />
+                Confirm & Send
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
