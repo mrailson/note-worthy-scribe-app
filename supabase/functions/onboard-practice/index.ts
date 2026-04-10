@@ -174,6 +174,30 @@ serve(async (req) => {
       if (profileError) {
         console.error("Profile upsert error:", profileError.message);
       }
+
+      // Step 2b: Create user_roles record with default PM module access
+      const { error: roleError2 } = await adminClient.from("user_roles").insert({
+        user_id: userId,
+        practice_id: practiceId || null,
+        role: "practice_manager",
+        practice_role: "Practice Manager",
+        assigned_by: caller.id,
+        meeting_notes_access: true,
+        complaints_manager_access: true,
+        translation_service_access: true,
+        survey_manager_access: true,
+        gp_scribe_access: false,
+        enhanced_access: false,
+        cqc_compliance_access: false,
+        shared_drive_access: false,
+        mic_test_service_access: false,
+        api_testing_service_access: false,
+        document_signoff_access: false,
+      });
+
+      if (roleError2) {
+        console.error("User roles insert error:", roleError2.message);
+      }
     }
 
     // Step 3: Send DPIA email (always)
