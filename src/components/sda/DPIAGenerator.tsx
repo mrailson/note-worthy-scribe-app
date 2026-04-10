@@ -80,25 +80,69 @@ const FORM_SECTIONS = [
 
 // ---- AI call helper — routes through gpt5-fast-clinical ----
 async function callAI(prompt: string, maxTokens = 4096): Promise<string> {
-  const { data, error } = await supabase.functions.invoke("gpt5-fast-clinical", {
-    body: {
-      messages: [{ role: "system", content: "You are a data extraction assistant. Return only what is asked, no web search needed." }, { role: "user", content: prompt }],
+  // gpt5-fast-clinical returns SSE streams, so we need to collect the full response
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  
+  // Get auth token for the request
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  const resp = await fetch(`${supabaseUrl}/functions/v1/gpt5-fast-clinical`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session?.access_token || supabaseKey}`,
+      "apikey": supabaseKey,
+    },
+    body: JSON.stringify({
+      messages: [
+        { role: "system", content: "You are a data extraction assistant. Return only what is asked." },
+        { role: "user", content: prompt },
+      ],
       max_tokens: maxTokens,
       skipWebSearch: true,
-    },
+    }),
   });
-  if (error) throw new Error(error.message || "AI request failed");
 
-  // data may be: a string, an object with .response/.text/.choices, or null
-  if (!data) throw new Error("No response from AI");
-  if (typeof data === "string") return data;
-  
-  const raw = data.response || data.text || data.choices?.[0]?.message?.content;
-  if (typeof raw === "string") return raw;
-  if (raw != null) return JSON.stringify(raw);
-  
-  // Last resort: stringify the entire data object
-  return JSON.stringify(data);
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`AI request failed (${resp.status}): ${errText}`);
+  }
+
+  // Collect SSE stream into complete text
+  const reader = resp.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let result = "";
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let newlineIdx: number;
+    while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+      let line = buffer.slice(0, newlineIdx);
+      buffer = buffer.slice(newlineIdx + 1);
+      if (line.endsWith("\r")) line = line.slice(0, -1);
+      if (!line.startsWith("data: ")) continue;
+      const jsonStr = line.slice(6).trim();
+      if (jsonStr === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        if (parsed._meta) continue; // skip meta messages
+        const content = parsed.choices?.[0]?.delta?.content;
+        if (content) result += content;
+      } catch {
+        // partial JSON, skip
+      }
+    }
+  }
+
+  if (!result) throw new Error("No content in AI response");
+  return result;
 }
 
 // ---- File parser ----
