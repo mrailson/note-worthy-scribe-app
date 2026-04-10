@@ -134,10 +134,10 @@ Once we receive the completed template, we will generate your practice-specific 
 <tr><td style="padding:16px;">
 <p style="color:#2e7d32;font-size:13px;font-weight:700;margin:0 0 6px;">\u2705 Governance & Compliance</p>
 <p style="color:#555;font-size:13px;line-height:1.6;margin:0;">
-Notewell AI is registered as an MHRA Class I Medical Device. A DCB0160 Clinical Safety Case Report has been signed off by the ICB Chief Safety Officer, and the ICB DDaT Delivery Group have approved the Notewell AI pilot for your practice.
+Notewell AI is registered as an MHRA Class I Medical Device and has a DCB0160 Clinical Safety Case Report in place. The ICB DDaT Delivery Group have approved the Notewell AI pilot for your practice.
 </p>
 <p style="color:#555;font-size:13px;line-height:1.6;margin:8px 0 0;">
-If you have any queries regarding information governance or data protection, please speak with your practice DPO or contact the ICB IG team.
+For any queries regarding information governance, data protection, or clinical safety documentation, please speak with your practice DPO or contact <strong>Claire Mansfield</strong>, ICB Chief Safety Officer, who holds all Notewell governance documentation.
 </p>
 </td></tr>
 </table>
