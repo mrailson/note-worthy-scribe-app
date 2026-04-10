@@ -62,6 +62,8 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
   } = useNRESUserSettings();
 
   const { admin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
+  const { staffRoles, settings: rateSettings, onCostMultiplier } = useNRESBuyBackRateSettings();
+  const isENN = neighbourhoodName === 'ENN';
 
   const {
     entries,
