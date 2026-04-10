@@ -68,7 +68,7 @@ serve(async (req) => {
     const { data: roleData, error: roleError } = await adminClient
       .from("nres_system_roles")
       .select("role")
-      .eq("user_id", caller.id)
+      .eq("user_email", caller.email)
       .eq("role", "sda")
       .maybeSingle();
     
