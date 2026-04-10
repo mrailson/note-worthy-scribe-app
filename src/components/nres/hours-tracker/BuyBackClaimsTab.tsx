@@ -1264,21 +1264,27 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
 
       {/* Staff lines */}
       <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b bg-muted/20">
-            <th className="text-left p-2 font-medium">Staff Member</th>
-            <th className="text-left p-2 font-medium">Category</th>
-            <th className="text-left p-2 font-medium">Role</th>
-            <th className="text-left p-2 font-medium">GL</th>
-            <th className="text-left p-2 font-medium">Allocation</th>
-            <th className="text-left p-2 font-medium">Start Date</th>
-            <th className="text-right p-2 font-medium">Max Rate</th>
-            <th className="text-right p-2 font-medium">Claimed</th>
-            {canEdit && <th className="p-2 font-medium w-20"></th>}
-          </tr>
-        </thead>
         <tbody>
           {staffDetails.map((s, idx) => {
+            const colCount = canEdit ? 9 : 8;
+            const headerRow = (
+              <>
+                {idx > 0 && (
+                  <tr key={`spacer-${idx}`}><td colSpan={colCount} className="h-3"></td></tr>
+                )}
+                <tr key={`header-${idx}`} className="bg-muted/20">
+                  <th className="text-left p-2 font-medium">Staff Member</th>
+                  <th className="text-left p-2 font-medium">Category</th>
+                  <th className="text-left p-2 font-medium">Role</th>
+                  <th className="text-left p-2 font-medium">GL</th>
+                  <th className="text-left p-2 font-medium">Allocation</th>
+                  <th className="text-left p-2 font-medium">Start Date</th>
+                  <th className="text-right p-2 font-medium">Max Rate</th>
+                  <th className="text-right p-2 font-medium">Claimed</th>
+                  {canEdit && <th className="p-2 font-medium w-20"></th>}
+                </tr>
+              </>
+            );
             const maxAmount = getStaffMaxAmount(s, claim.claim_month, rateParams);
             const claimedAmount = s.claimed_amount ?? maxAmount;
             const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail);
