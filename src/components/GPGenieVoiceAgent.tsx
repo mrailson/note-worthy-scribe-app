@@ -276,13 +276,13 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       const bufferedForEmail = conversationBufferRef.current;
       const serviceTypeForEmail = serviceTypeAtConnectionRef.current;
       const serviceNameForEmail = serviceTypeForEmail === 'gp-genie' ? 'GP Genie' : serviceTypeForEmail === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
-      if (bufferedForEmail.length > 0 && profile?.email && conversationIdRef.current) {
-        console.log(`📧 Sending ${serviceNameForEmail} transcript on disconnect to ${profile.email}...`);
+      if (bufferedForEmail.length > 0 && profileEmailRef.current && conversationIdRef.current) {
+        console.log(`📧 Sending ${serviceNameForEmail} transcript on disconnect to ${profileEmailRef.current}...`);
         
         try {
           await supabase.functions.invoke('send-genie-transcript-email', {
             body: {
-              userEmail: profile.email,
+              userEmail: profileEmailRef.current,
               serviceName: serviceNameForEmail,
               conversationBuffer: bufferedForEmail,
               conversationId: conversationIdRef.current,
@@ -1056,13 +1056,13 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       }
       
       // Send transcript email silently BEFORE ending session
-      if (buffered.length > 0 && profile?.email) {
+      if (buffered.length > 0 && profileEmailRef.current) {
         const serviceNameForEmail = serviceAtConnect === 'gp-genie' ? 'GP Genie' : serviceAtConnect === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
-        console.log(`📧 Sending ${serviceNameForEmail} transcript to ${profile.email}...`);
+        console.log(`📧 Sending ${serviceNameForEmail} transcript to ${profileEmailRef.current}...`);
         
         const { data, error } = await supabase.functions.invoke('send-genie-transcript-email', {
           body: {
-            userEmail: profile.email,
+            userEmail: profileEmailRef.current,
             serviceName: serviceNameForEmail,
             conversationBuffer: buffered,
             conversationId: conversationIdRef.current,
@@ -1155,6 +1155,10 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       setIsMicMuted(!newState);
     }
   };
+
+  useEffect(() => {
+    profileEmailRef.current = profile?.email ?? null;
+  }, [profile?.email]);
 
   useEffect(() => {
     // Check if microphone permission is already granted
