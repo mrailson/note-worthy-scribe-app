@@ -23,7 +23,6 @@ const tabs = [
   { value: "digital", label: "IT & Reporting", shortLabel: "Digital", icon: Monitor },
   { value: "hours", label: "Claims & Oversight", shortLabel: "Claims", icon: Clock },
   { value: "document-vault", label: "NRES Document Vault Home", shortLabel: "Vault", icon: FolderLock },
-  { value: "document-vault", label: "NRES Document Vault Home", shortLabel: "Vault", icon: FolderLock },
 ];
 
 const SDADashboard = () => {
