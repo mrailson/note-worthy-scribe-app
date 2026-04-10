@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -26,7 +26,9 @@ import { useNRESClaimants } from '@/hooks/useNRESClaimants';
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info, Shield } from 'lucide-react';
+
+const DPIAGenerator = lazy(() => import("@/components/sda/DPIAGenerator"));
 
 interface NRESHoursTrackerProps {
   hideEvidenceLibrary?: boolean;
