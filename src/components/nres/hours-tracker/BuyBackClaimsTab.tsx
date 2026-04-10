@@ -790,9 +790,30 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     const totalHours = allocValue * workingWeeks;
     const finalMonthly = hourlyRate * totalHours;
     const bhCount = rateParams.bankHolidaysInMonth ?? 0;
+
+    // Reverse-engineer on-costs from the gross hourly rate
+    const onCostPct = rateParams ? (rateParams.onCostMultiplier - 1) * 100 : 29.38;
+    const mgmtNiPct = rateParams?.employerNiPct ?? 15;
+    const mgmtPensionPct = rateParams?.employerPensionPct ?? 14.38;
+    const baseHourlyRate = hourlyRate / (1 + onCostPct / 100);
+    const niPerHour = baseHourlyRate * (mgmtNiPct / 100);
+    const pensionPerHour = baseHourlyRate * (mgmtPensionPct / 100);
+    const onCostsPerHour = niPerHour + pensionPerHour;
+    const grossHoursCost = totalHours * baseHourlyRate;
+    const totalOnCosts = totalHours * onCostsPerHour;
+
     return {
       isManagement: true,
       hourlyRate,
+      baseHourlyRate,
+      niPerHour,
+      pensionPerHour,
+      onCostsPerHour,
+      mgmtNiPct,
+      mgmtPensionPct,
+      mgmtOnCostPct: onCostPct,
+      grossHoursCost,
+      totalOnCosts,
       weeklyHours: allocValue,
       workingWeeks,
       totalHours,
@@ -880,10 +901,19 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
         <div className="p-3 space-y-2 text-xs">
           {breakdown.isManagement ? (
             <>
-              {/* Management: simple hourly calculation */}
+              {/* Management: hourly rate with on-costs breakdown */}
               <div>
-                <p className="text-muted-foreground font-medium mb-0.5">Hourly Rate</p>
+                <p className="text-muted-foreground font-medium mb-0.5">Gross Hourly Rate</p>
                 <p className="font-semibold">{fmtGBP(breakdown.hourlyRate ?? 0)}/hr</p>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Rate Breakdown (incl. {(breakdown.mgmtOnCostPct ?? 29.38).toFixed(2)}% on-costs)</p>
+                <p className="text-foreground">Base rate: {fmtGBP(breakdown.baseHourlyRate ?? 0)}/hr</p>
+                <p className="text-foreground">Employer NI ({breakdown.mgmtNiPct ?? 15}%): {fmtGBP(breakdown.niPerHour ?? 0)}/hr</p>
+                <p className="text-foreground">Employer Pension ({breakdown.mgmtPensionPct ?? 14.38}%): {fmtGBP(breakdown.pensionPerHour ?? 0)}/hr</p>
+                <p className="text-foreground">On-costs total: {fmtGBP(breakdown.onCostsPerHour ?? 0)}/hr</p>
+                <p className="font-semibold">Gross rate: {fmtGBP(breakdown.baseHourlyRate ?? 0)} + {fmtGBP(breakdown.onCostsPerHour ?? 0)} = {fmtGBP(breakdown.hourlyRate ?? 0)}/hr</p>
               </div>
               <Separator />
               <div>
@@ -905,9 +935,10 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
               </div>
               <Separator />
               <div>
-                <p className="text-muted-foreground font-medium mb-0.5">Monthly Amount</p>
-                <p className="text-foreground">{(breakdown.totalHours ?? 0).toFixed(1)} hrs × {fmtGBP(breakdown.hourlyRate ?? 0)}/hr</p>
-                <p className="font-semibold">= {fmtGBP(breakdown.finalMonthly)}</p>
+                <p className="text-muted-foreground font-medium mb-0.5">Monthly Cost Breakdown</p>
+                <p className="text-foreground">Gross hours cost: {(breakdown.totalHours ?? 0).toFixed(1)} hrs × {fmtGBP(breakdown.baseHourlyRate ?? 0)}/hr = {fmtGBP(breakdown.grossHoursCost ?? 0)}</p>
+                <p className="text-foreground">Total on-costs: {fmtGBP(breakdown.totalOnCosts ?? 0)}</p>
+                <p className="font-semibold">Total: {fmtGBP(breakdown.grossHoursCost ?? 0)} + {fmtGBP(breakdown.totalOnCosts ?? 0)} = {fmtGBP(breakdown.finalMonthly)}</p>
               </div>
               <Separator />
               <div className="flex justify-between font-semibold text-sm">
