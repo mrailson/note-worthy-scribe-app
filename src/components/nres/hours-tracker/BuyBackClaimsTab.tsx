@@ -447,6 +447,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const claimMonthDate = `${claimMonth}-01`;
   const workingWeeksForMonth = calcWorkingWeeks(claimMonthDate);
   const bankHolidaysForMonth = getBankHolidaysInMonth(claimMonthDate);
+  const bankHolidayDetailsForMonth = getBankHolidayDetailsInMonth(claimMonthDate);
 
   const rateParams: RateParams = {
     onCostMultiplier,
@@ -455,6 +456,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     employerPensionPct: rateSettings.employer_pension_pct,
     workingWeeksInMonth: workingWeeksForMonth,
     bankHolidaysInMonth: bankHolidaysForMonth,
+    bankHolidayDetails: bankHolidayDetailsForMonth,
   };
 
   const { isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
