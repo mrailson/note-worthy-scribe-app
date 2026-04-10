@@ -120,8 +120,8 @@ export function EvidenceConfigTab() {
           </thead>
           <tbody>
             {config.map(cfg => (
-              <>
-                <tr key={cfg.id} className="border-t">
+              <React.Fragment key={cfg.id}>
+                <tr className="border-t">
                   {/* Drag handle */}
                   <td className="px-1 py-2.5 text-center">
                     <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40 mx-auto cursor-grab" />
