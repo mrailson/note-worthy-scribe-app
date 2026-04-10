@@ -110,32 +110,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 1: Check if user already exists — use admin API with email filter
+    // Step 1: Check if user already exists
     let alreadyExisted = false;
     let userId: string | null = null;
     let tempPassword: string | null = null;
 
-    // Try to find by email using the admin API
-    const { data: { users: matchedUsers }, error: listError } = await adminClient.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-    });
-
-    // Search across all users by fetching with a filter approach
-    // Use the Supabase REST API to check auth.users by email
-    const { data: profileMatch } = await adminClient
-      .from("profiles")
-      .select("id, email")
-      .eq("email", pmEmail.toLowerCase())
-      .maybeSingle();
-
+    // Look up auth user by listing all users and matching email
     let existingUser = null;
-    if (profileMatch) {
-      // Verify user exists in auth
-      const { data: { user: authUser } } = await adminClient.auth.admin.getUserById(profileMatch.id);
-      if (authUser) {
-        existingUser = authUser;
-      }
+    try {
+      const { data: { users: allUsers } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+      existingUser = allUsers?.find(
+        (u: any) => u.email?.toLowerCase() === pmEmail.toLowerCase()
+      ) || null;
+    } catch (listErr) {
+      console.error("listUsers error (non-fatal):", listErr);
     }
 
     if (isTest) {
@@ -144,63 +132,41 @@ Deno.serve(async (req) => {
       userId = "test-mode-no-account";
       tempPassword = generatePassword();
       console.log("TEST MODE: Skipping account creation. Generated sample password:", tempPassword);
-    } else if (!existingUser) {
-      // Also try creating — if email exists, createUser will fail with a specific error
-      // But first, let's try a direct lookup
-      try {
-        const { data: { users: allUsers } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-        existingUser = allUsers?.find(
-          (u: any) => u.email?.toLowerCase() === pmEmail.toLowerCase()
-        ) || null;
-      } catch (listErr) {
-        console.error("listUsers error (non-fatal):", listErr);
-      }
-    }
+    } else if (existingUser) {
+      alreadyExisted = true;
+      userId = existingUser.id;
+      console.log(`User already exists: ${pmEmail} (${userId})`);
 
-    if (!isTest) {
-      if (existingUser) {
-        alreadyExisted = true;
-        userId = existingUser.id;
-        console.log(`User already exists: ${pmEmail} (${userId})`);
-      } else {
-        // Create new user
-        tempPassword = generatePassword();
-        const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-          email: pmEmail,
-          password: tempPassword,
-          email_confirm: true,
-          user_metadata: { full_name: pmName, role: "practice_manager" },
-        });
+      // Ensure profile exists even for pre-existing auth users
+      const { data: existingProfile } = await adminClient
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
 
-        if (createError) {
-          console.error("Create user error:", createError.message);
-          return new Response(JSON.stringify({ error: `Failed to create account: ${createError.message}` }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        userId = newUser.user.id;
-        console.log(`Created new user: ${pmEmail} (${userId})`);
-
-        // Step 2: Create profile
-        const { error: profileError } = await adminClient.from("profiles").upsert({
+      if (!existingProfile) {
+        console.log("Creating missing profile for existing auth user");
+        const { error: profileError } = await adminClient.from("profiles").insert({
           id: userId,
           full_name: pmName,
-          email: pmEmail,
+          email: pmEmail.toLowerCase(),
           role: "practice_manager",
-          practice_id: gpPracticeId || null,
-          practice_name: practiceName,
-          k_code: odsCode || null,
-          modules: ["ai4gp", "complaints", "meetings", "translation", "survey", "cqc_compliance"],
-          created_by: "dpia_onboarding",
-        }, { onConflict: "id" });
-
+        });
         if (profileError) {
-          console.error("Profile upsert error:", profileError.message);
+          console.error("Profile insert error:", profileError.message);
         }
+      }
 
-        // Step 2b: Create user_roles record with default PM module access
-        const { error: roleError2 } = await adminClient.from("user_roles").insert({
+      // Ensure user_roles exists
+      const { data: existingRole } = await adminClient
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!existingRole) {
+        console.log("Creating missing user_roles for existing auth user");
+        const { error: roleErr } = await adminClient.from("user_roles").insert({
           user_id: userId,
           practice_id: gpPracticeId || null,
           role: "practice_manager",
@@ -218,10 +184,64 @@ Deno.serve(async (req) => {
           api_testing_service_access: false,
           document_signoff_access: false,
         });
-
-        if (roleError2) {
-          console.error("User roles insert error:", roleError2.message);
+        if (roleErr) {
+          console.error("User roles insert error:", roleErr.message);
         }
+      }
+    } else {
+      // Create new user
+      tempPassword = generatePassword();
+      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+        email: pmEmail,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { full_name: pmName, role: "practice_manager" },
+      });
+
+      if (createError) {
+        console.error("Create user error:", createError.message);
+        return new Response(JSON.stringify({ error: `Failed to create account: ${createError.message}` }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      userId = newUser.user.id;
+      console.log(`Created new user: ${pmEmail} (${userId})`);
+
+      // Create profile — only use columns that exist on the profiles table
+      const { error: profileError } = await adminClient.from("profiles").upsert({
+        id: userId,
+        full_name: pmName,
+        email: pmEmail.toLowerCase(),
+        role: "practice_manager",
+      }, { onConflict: "id" });
+
+      if (profileError) {
+        console.error("Profile upsert error:", profileError.message);
+      }
+
+      // Create user_roles record with default PM module access
+      const { error: roleError2 } = await adminClient.from("user_roles").insert({
+        user_id: userId,
+        practice_id: gpPracticeId || null,
+        role: "practice_manager",
+        practice_role: "Practice Manager",
+        assigned_by: caller.id,
+        meeting_notes_access: true,
+        complaints_manager_access: true,
+        translation_service_access: true,
+        survey_manager_access: true,
+        gp_scribe_access: false,
+        enhanced_access: false,
+        cqc_compliance_access: true,
+        shared_drive_access: false,
+        mic_test_service_access: false,
+        api_testing_service_access: false,
+        document_signoff_access: false,
+      });
+
+      if (roleError2) {
+        console.error("User roles insert error:", roleError2.message);
       }
     }
 
