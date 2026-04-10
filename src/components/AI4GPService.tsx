@@ -48,6 +48,7 @@ const PMHomeScreen = lazy(() => import('@/components/ai4gp/PMHomeScreen').then(m
 const GPHomeScreen = lazy(() => import('@/components/ai4gp/GPHomeScreen').then(m => ({ default: m.GPHomeScreen })));
 const SettingsModal = lazy(() => import('@/components/ai4gp/SettingsModal').then(m => ({ default: m.SettingsModal })));
 const SearchHistorySidebar = lazy(() => import('@/components/ai4gp/SearchHistorySidebar').then(m => ({ default: m.SearchHistorySidebar })));
+const AIVoiceStudio = lazy(() => import('@/components/ai4gp/AIVoiceStudio'));
 const AI4GPSidebar = lazy(() => import('@/components/ai4gp/AI4GPSidebar').then(m => ({ default: m.AI4GPSidebar })));
 const MeetingsDropdown = lazy(() => import('@/components/ai4gp/MeetingsDropdown').then(m => ({ default: m.MeetingsDropdown })));
 
@@ -198,6 +199,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const [imageStudioInitialDescription, setImageStudioInitialDescription] = useState<string | undefined>();
   const [showPresentationStudio, setShowPresentationStudio] = useState(false);
   const [showDocumentStudio, setShowDocumentStudio] = useState(false);
+  const [showVoiceStudio, setShowVoiceStudio] = useState(false);
   const [showAdminDictate, setShowAdminDictate] = useState(false);
   const [showTranslationService, setShowTranslationService] = useState(false);
   const [showEmbeddedPMGenie, setShowEmbeddedPMGenie] = useState(false);
@@ -704,6 +706,19 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         >
                           <FileText className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                           <span className="hidden sm:inline text-xs">Document Studio</span>
+                        </Button>
+                      )}
+
+                      {/* AI Voice Studio link - hidden on mobile */}
+                      {!isMobile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-1 px-2 sm:px-3"
+                          onClick={() => setShowVoiceStudio(true)}
+                        >
+                          <Mic className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                          <span className="hidden sm:inline text-xs">AI Voice Studio</span>
                         </Button>
                       )}
                     </CardTitle>
@@ -1269,6 +1284,21 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
           mode={selectedRole === 'practice-manager' ? 'pm' : 'gp'}
         />
       </Suspense>
+
+      {/* AI Voice Studio Modal */}
+      <Dialog open={showVoiceStudio} onOpenChange={setShowVoiceStudio}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mic className="h-5 w-5 text-primary" />
+              AI Voice Studio
+            </DialogTitle>
+          </DialogHeader>
+          <Suspense fallback={<LazyLoader />}>
+            <AIVoiceStudio />
+          </Suspense>
+        </DialogContent>
+      </Dialog>
 
     </TooltipProvider>
   );
