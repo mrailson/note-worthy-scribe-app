@@ -41,8 +41,10 @@ interface WidgetMode {
   color: string;
   icon: string;
   type: 'widget';
+  tagline: string;
   description: string;
-  examples: string[];
+  features: string[];
+  footnote?: string;
 }
 
 interface InfoMode {
@@ -66,23 +68,29 @@ type ModeConfig = WidgetMode | InfoMode;
 const ALL_MODES: ModeConfig[] = [
   {
     id: 'gp', label: 'GP', color: '#7C2855', icon: '⚕️', type: 'widget',
+    tagline: '"Your AI clinical companion — grounded in NICE, BNF and NHS guidance"',
     description: 'Ask clinical questions — get GP-level guidance instantly from NHS frameworks.',
-    examples: [
-      'What are the NICE guidelines for managing new-onset atrial fibrillation?',
-      'Summarise the red flag symptoms for suspected cauda equina syndrome',
-      'What blood tests should I consider for unexplained weight loss in over-60s?',
-      'When should I refer a child with recurrent tonsillitis to ENT?',
+    features: [
+      'Clinical guidance — NICE guidelines, BNF references, and red flag recognition',
+      'Differential diagnosis support — structured thinking for complex presentations',
+      'Referral criteria — when to refer, what to include, and which pathway to use',
+      'Investigations — which blood tests, imaging, or assessments to consider and why',
+      'Prescribing queries — dosing, interactions, contraindications, and switching advice',
     ],
+    footnote: 'Always follow established clinical pathways and professional judgement.',
   },
   {
     id: 'pm', label: 'Practice Manager', color: '#ED8B00', icon: '📋', type: 'widget',
+    tagline: '"Your intelligent practice management assistant"',
     description: 'Practice management — CQC, HR, complaints, NHS contracts, operations.',
-    examples: [
-      'What are the CQC key lines of enquiry for the Safe domain?',
-      'Draft a response to a patient complaint about appointment availability',
-      'What are the statutory notice periods for dismissing a salaried GP?',
-      'Summarise our obligations under the NHS Standard Contract for enhanced access',
+    features: [
+      'CQC preparation — key lines of enquiry, evidence gathering, and inspection readiness',
+      'HR & employment — contracts, notice periods, disciplinary processes, and Agenda for Change',
+      'Complaints handling — draft responses, timeline tracking, and NHS complaints procedure',
+      'NHS contracts — Standard Contract obligations, enhanced access, and QOF requirements',
+      'Policy & governance — draft policies, risk assessments, and compliance checklists',
     ],
+    footnote: 'Powered by NHS frameworks, employment law, and CQC guidance.',
   },
   {
     id: 'patient', label: 'Patient', color: '#41B6E6', icon: '👤', type: 'info',
@@ -197,7 +205,7 @@ const AIVoiceStudio: React.FC = () => {
                 <span className="font-bold text-[15px]">{mode.label}</span>
               </div>
               <p className={cn('text-xs leading-snug m-0', isActive ? 'opacity-90' : 'opacity-65')}>
-                {mode.type === 'info' ? mode.tagline : mode.description}
+                {mode.type === 'info' ? mode.tagline : mode.tagline}
               </p>
             </button>
           );
@@ -209,22 +217,23 @@ const AIVoiceStudio: React.FC = () => {
         const widget = activeData as WidgetMode;
         return (
           <Card className="rounded-[14px] border p-6 shadow-sm animate-fade-in">
-            <div className="flex items-center gap-2.5 mb-4">
+            <div className="flex items-center gap-2.5 mb-1.5">
               <span
                 className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg text-white"
                 style={{ background: widget.color }}
               >
                 {widget.icon}
               </span>
-              <div>
-                <h2 className="text-[17px] font-bold" style={{ color: '#003087' }}>{widget.label} Mode</h2>
-                <p className="text-xs text-muted-foreground">Ask anything within this context</p>
-              </div>
+              <h2 className="text-[17px] font-bold" style={{ color: '#003087' }}>{widget.label}</h2>
             </div>
+
+            <p className="text-sm font-semibold italic mb-3.5" style={{ color: widget.color }}>
+              {widget.tagline}
+            </p>
 
             {/* GP Warning */}
             {activeMode === 'gp' && (
-              <div className="mb-4 p-3 rounded-lg text-xs leading-relaxed flex items-start gap-2.5"
+              <div className="mb-3 p-3 rounded-lg text-xs leading-relaxed flex items-start gap-2.5"
                 style={{ background: '#FFF3CD', border: '1px solid #FFCB05', color: '#594300' }}>
                 <span className="text-lg shrink-0">⚠️</span>
                 <span>
@@ -235,8 +244,27 @@ const AIVoiceStudio: React.FC = () => {
               </div>
             )}
 
+            {/* Features */}
+            <div className="flex flex-col gap-2 mb-2">
+              {widget.features.map((feat, i) => (
+                <div key={i} className="flex items-start gap-2.5 text-[13px] leading-relaxed">
+                  <span
+                    className="w-[22px] h-[22px] rounded-md shrink-0 mt-0.5 flex items-center justify-center text-[11px] font-bold"
+                    style={{ background: `${widget.color}18`, color: widget.color }}
+                  >
+                    {widget.id === 'gp' ? '🩺' : '📋'}
+                  </span>
+                  <span>{feat}</span>
+                </div>
+              ))}
+            </div>
+
+            {widget.footnote && (
+              <p className="text-xs text-muted-foreground italic mb-2">{widget.footnote}</p>
+            )}
+
             {/* ElevenLabs Widget */}
-            <div className="mb-4">
+            <div className="mb-2">
               <ElevenLabsWidget agentId={AGENT_IDS[widget.id]} />
             </div>
 
