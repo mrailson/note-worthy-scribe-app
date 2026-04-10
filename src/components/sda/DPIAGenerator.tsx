@@ -216,12 +216,12 @@ export default function DPIAGenerator() {
     try {
       const existing = practices.find(p => p.id === current.id);
       if (existing) {
-        const { id, user_id, ...updateData } = current;
+        const { id: _id, user_id: _uid, ...updateData } = current;
         const { error } = await supabase.from("dpia_practices").update(updateData).eq("id", current.id);
         if (error) throw error;
       } else {
         const { data: { user } } = await supabase.auth.getUser();
-        const { id, ...insertData } = current;
+        const { id: _id2, ...insertData } = current;
         const { error } = await supabase.from("dpia_practices").insert({ ...insertData, user_id: user?.id });
         if (error) throw error;
       }
