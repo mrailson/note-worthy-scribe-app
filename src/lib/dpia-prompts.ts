@@ -217,15 +217,11 @@ GENERATE THE FOLLOWING SECTIONS (number them exactly as shown):
    Present as a TABLE with columns:
    | Processor | Service | Data Processing Location | DPA in Place | Key Certifications |
    
-   Include:
-   - OpenAI — AI note generation — USA (UK adequacy, Standard Contractual Clauses) — Yes — SOC 2 Type II, ISO 27001
-   - Anthropic — AI processing (backup) — USA (UK adequacy, SCCs) — Yes — SOC 2 Type II
-   - Whisper (OpenAI) — Audio transcription — USA (UK adequacy, SCCs) — Yes — SOC 2 Type II
-   - AssemblyAI — Audio transcription — USA (UK adequacy, SCCs) — Yes — SOC 2 Type II, HIPAA
-   - Deepgram — Audio transcription — USA (UK adequacy, SCCs) — Yes — SOC 2 Type II
-   - Gladia — Audio transcription — EU — Yes — GDPR compliant
-   - Supabase — Database and authentication — EU (Frankfurt) — Yes — SOC 2 Type II, ISO 27001
-   - ElevenLabs — Text-to-speech (AI Voice features) — EU — Yes — GDPR compliant
+    Include:
+    - OpenAI — AI Note Generation / Whisper Transcription — USA (UK adequacy, Standard Contractual Clauses) — Yes — SOC 2 Type II, ISO 27001
+    - Claude AI (Anthropic) — Transcription and LLM — UK — Yes — GDPR Compliant
+    - AssemblyAI — Audio transcription — USA (UK adequacy, SCCs) — Yes — SOC 2 Type II, HIPAA
+    - Supabase — Database and authentication — EU (Frankfurt/Germany) — Yes — ISO 27001
    
    Include a paragraph explaining the transfer mechanism (UK adequacy decision for EU; Standard Contractual Clauses for USA) and supplementary measures in place.
 
