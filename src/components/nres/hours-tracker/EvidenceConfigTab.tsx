@@ -8,13 +8,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useNRESEvidenceConfig, type AppliesToValue } from '@/hooks/useNRESEvidenceConfig';
 import { cn } from '@/lib/utils';
 
-const APPLIES_TO_ORDER: AppliesToValue[] = ['all', 'buyback', 'new_sda'];
+const APPLIES_TO_ORDER: AppliesToValue[] = ['all', 'buyback', 'new_sda', 'management'];
 
 const appliesToLabel = (v: AppliesToValue) => {
   switch (v) {
     case 'all': return 'All routes';
     case 'buyback': return 'Buy-back only';
     case 'new_sda': return 'New SDA only';
+    case 'management': return 'Management only';
   }
 };
 
@@ -215,6 +216,7 @@ export function EvidenceConfigTab() {
                               <option value="all">All routes</option>
                               <option value="buyback">Buy-back only</option>
                               <option value="new_sda">New SDA only</option>
+                              <option value="management">Management only</option>
                             </select>
                           </div>
                         </div>
