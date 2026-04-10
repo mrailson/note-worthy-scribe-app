@@ -660,6 +660,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
                   </div>
                 `,
                 from_name: 'NRES Buy-Back Claims',
+                cc_emails: ['amanda.palin2@nhs.net'],
                 extra_attachments: [{
                   content: pdfBase64,
                   filename: `Invoice_${invoiceNum}.pdf`,
