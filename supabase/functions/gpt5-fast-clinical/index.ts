@@ -337,7 +337,7 @@ serve(async (req) => {
     return sseError("Bad JSON in request body.", 400);
   }
 
-  let { messages = [], model, systemPrompt, max_tokens } = body;
+  let { messages = [], model, systemPrompt, max_tokens, skipWebSearch } = body;
   
   // Check if we have a large document that needs chunking
   const totalTokens = calculateMessageTokens(messages);
