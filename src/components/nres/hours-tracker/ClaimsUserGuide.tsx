@@ -3,13 +3,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
-import { ChevronDown, ChevronRight, ExternalLink, BookOpen, CheckCircle2, Printer } from 'lucide-react';
+import { ChevronDown, ChevronRight, BookOpen, CheckCircle2, Printer } from 'lucide-react';
 import type { RateSettings } from '@/hooks/useNRESBuyBackRateSettings';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
-import BoardPresentationExplainer from './BoardPresentationExplainer';
-import ENNBoardPresentationExplainer from '@/components/enn/ENNBoardPresentationExplainer';
 
 function fmtGBP(n: number): string {
   return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
