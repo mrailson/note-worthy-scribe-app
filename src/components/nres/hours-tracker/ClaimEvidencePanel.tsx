@@ -246,7 +246,6 @@ export function StaffLineEvidence({
                   onFilesSelected={handleSmartUpload}
                   uploading={uploading}
                   multiple
-                  compact
                 />
               </div>
             );
