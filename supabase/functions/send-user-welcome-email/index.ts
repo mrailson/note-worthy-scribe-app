@@ -30,6 +30,7 @@ interface WelcomeEmailRequest {
   user_email: string;
   user_name: string;
   password_reset_link?: string;
+  user_password?: string;
   user_role: string;
   practice_name?: string;
   module_access: ModuleAccess;
@@ -250,16 +251,29 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
                           <div style="color: #212B32; font-size: 15px;">${data.user_email}</div>
                         </td>
                       </tr>
+                      ${data.user_password ? `
+                      <tr>
+                        <td style="padding-bottom: 12px;">
+                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Password</div>
+                          <div style="color: #212B32; font-size: 15px; font-family: 'Courier New', monospace; background: #FFFFFF; border: 1px solid #D8DDE0; padding: 8px 12px; border-radius: 4px; letter-spacing: 0.5px;">
+                            ${data.user_password}
+                          </div>
+                          <div style="color: #768692; font-size: 11px; margin-top: 6px;">
+                            We recommend changing your password after your first login.
+                          </div>
+                        </td>
+                      </tr>
+                      ` : ''}
                       ${data.password_reset_link ? `
                       <tr>
                         <td style="padding-bottom: 12px;">
-                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 8px;">Set Your Password</div>
+                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 8px;">Or Set a New Password</div>
                           <a href="${data.password_reset_link}" 
                              style="display: inline-block; background: #005EB8; color: #FFFFFF; text-decoration: none; padding: 10px 20px; font-weight: 600; font-size: 13px; border-radius: 4px;">
-                            Create Your Password
+                            Create Your Own Password
                           </a>
                           <div style="color: #768692; font-size: 11px; margin-top: 8px;">
-                            This link expires in 48 hours. If it expires, you can use the "Magic Link" option on the login page to access your account.
+                            This link expires in 48 hours. If it expires, you can use the "Magic Link" option on the login page.
                           </div>
                         </td>
                       </tr>

@@ -24,7 +24,8 @@ import {
   UserCheck,
   AlertCircle,
   Mail,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 
 interface PracticeUser {
@@ -102,6 +103,26 @@ const organisationRoles = [
   { value: 'practice_manager', label: 'Organisation Admin' }
 ];
 
+// Word lists for memorable password generation
+const PASSWORD_WORDS = [
+  'apple', 'brave', 'charm', 'dance', 'eagle', 'flame', 'grace', 'happy',
+  'ivory', 'jolly', 'kneel', 'lemon', 'maple', 'noble', 'ocean', 'pearl',
+  'quiet', 'river', 'storm', 'tiger', 'unity', 'vivid', 'water', 'yacht',
+  'zebra', 'amber', 'bloom', 'cloud', 'dream', 'ember', 'frost', 'globe',
+  'haven', 'image', 'jewel', 'kraft', 'light', 'magic', 'night', 'olive',
+  'piano', 'quest', 'reign', 'solar', 'trail', 'ultra', 'vigor', 'wheat',
+  'lunar', 'coral', 'delta', 'flint', 'grain', 'hazel', 'index', 'lotus',
+  'mango', 'north', 'oasis', 'plume', 'quilt', 'ridge', 'shine', 'trust'
+];
+
+const generateMemorablePassword = (): string => {
+  const word1 = PASSWORD_WORDS[Math.floor(Math.random() * PASSWORD_WORDS.length)];
+  const word2 = PASSWORD_WORDS[Math.floor(Math.random() * PASSWORD_WORDS.length)];
+  const number = Math.floor(Math.random() * 10);
+  // Capitalise first letter of each word for readability
+  return `${word1.charAt(0).toUpperCase() + word1.slice(1)}${number}${word2.charAt(0).toUpperCase() + word2.slice(1)}`;
+};
+
 // Password validation pattern: min 8 chars, at least 1 number
 const passwordRegex = /^(?=.*\d).{8,}$/;
 
@@ -147,9 +168,9 @@ export const PracticeUserManagement = () => {
   const [editingUserNRESAccess, setEditingUserNRESAccess] = useState(false);
   const [editingUserPolicyAccess, setEditingUserPolicyAccess] = useState(false);
   
-  // Password state
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  // Password state - auto-generate on init
+  const [password, setPassword] = useState(() => generateMemorablePassword());
+  const [showPassword, setShowPassword] = useState(true);
   const [passwordError, setPasswordError] = useState('');
   
   // Email preview state
@@ -362,6 +383,7 @@ export const PracticeUserManagement = () => {
           user_email: createdUserData.email,
           user_name: createdUserData.full_name,
           password_reset_link: createdUserData.password_reset_link,
+          user_password: createdUserData.password,
           user_role: createdUserData.role,
           practice_name: createdUserData.practice_name,
           module_access: {
@@ -573,8 +595,8 @@ export const PracticeUserManagement = () => {
         document_signoff_access: false
       }
     });
-    setPassword('');
-    setShowPassword(false);
+    setPassword(generateMemorablePassword());
+    setShowPassword(true);
     setPasswordError('');
     setEditingUserNRESAccess(false);
     setEditingUserPolicyAccess(false);
@@ -636,13 +658,14 @@ export const PracticeUserManagement = () => {
               <div className="grid gap-1 text-sm">
                 <p><span className="text-muted-foreground">Login URL:</span> https://gpnotewell.co.uk</p>
                 <p><span className="text-muted-foreground">Email:</span> {createdUserData.email}</p>
+                <p><span className="text-muted-foreground">Password:</span> <code className="bg-background px-1.5 py-0.5 rounded font-mono">{createdUserData.password}</code></p>
                 <p><span className="text-muted-foreground">Role:</span> {getRoleDisplayName(createdUserData.role)}</p>
                 <p><span className="text-muted-foreground">Practice:</span> {createdUserData.practice_name}</p>
               </div>
               {createdUserData.password_reset_link && (
                 <div className="mt-2 space-y-1">
                   <p className="text-sm text-green-600">
-                    ✓ Password setup link will be included (expires in 48 hours)
+                    ✓ Password setup link will also be included (expires in 48 hours)
                   </p>
                   <p className="text-xs text-muted-foreground">
                     If the link expires, they can use the magic link option on the login page
@@ -854,7 +877,23 @@ export const PracticeUserManagement = () => {
               {/* Password field - Only for new users */}
               {!editingUser && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const newPass = generateMemorablePassword();
+                        setPassword(newPass);
+                        setPasswordError('');
+                      }}
+                      className="h-7 text-xs gap-1"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Regenerate
+                    </Button>
+                  </div>
                   <div className="relative">
                     <Input
                       id="password"
@@ -866,7 +905,7 @@ export const PracticeUserManagement = () => {
                         setPasswordError(validation.valid ? '' : validation.message);
                       }}
                       placeholder="Enter password"
-                      className={passwordError ? 'border-destructive pr-10' : 'pr-10'}
+                      className={`font-mono ${passwordError ? 'border-destructive pr-10' : 'pr-10'}`}
                     />
                     <button
                       type="button"
@@ -883,7 +922,7 @@ export const PracticeUserManagement = () => {
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      Minimum 8 characters with at least 1 number
+                      Auto-generated memorable password (two words with a number)
                     </p>
                   )}
                 </div>
