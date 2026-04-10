@@ -48,6 +48,7 @@ const PMHomeScreen = lazy(() => import('@/components/ai4gp/PMHomeScreen').then(m
 const GPHomeScreen = lazy(() => import('@/components/ai4gp/GPHomeScreen').then(m => ({ default: m.GPHomeScreen })));
 const SettingsModal = lazy(() => import('@/components/ai4gp/SettingsModal').then(m => ({ default: m.SettingsModal })));
 const SearchHistorySidebar = lazy(() => import('@/components/ai4gp/SearchHistorySidebar').then(m => ({ default: m.SearchHistorySidebar })));
+const AIVoiceStudio = lazy(() => import('@/components/ai4gp/AIVoiceStudio'));
 const AI4GPSidebar = lazy(() => import('@/components/ai4gp/AI4GPSidebar').then(m => ({ default: m.AI4GPSidebar })));
 const MeetingsDropdown = lazy(() => import('@/components/ai4gp/MeetingsDropdown').then(m => ({ default: m.MeetingsDropdown })));
 
