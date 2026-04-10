@@ -44,7 +44,14 @@ function fmtGBP(n: number): string {
 }
 
 /** Build a human-readable calculation breakdown for the live preview */
-function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: number, rateParams?: RateParams, role?: string): string {
+function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
+  // Management: hourly_rate × weekly_hours × working_weeks
+  if ((category === 'management' || role === 'NRES Management') && hourlyRate && rateParams?.workingWeeksInMonth) {
+    const ww = rateParams.workingWeeksInMonth;
+    const bhNote = rateParams.bankHolidaysInMonth ? ` (${rateParams.bankHolidaysInMonth} bank hol${rateParams.bankHolidaysInMonth > 1 ? 's' : ''} excluded)` : '';
+    return `${allocValue} hrs/wk × ${ww.toFixed(1)} working weeks${bhNote} × ${fmtGBP(hourlyRate)}/hr`;
+  }
+
   const niPct = rateParams?.employerNiPct ?? 15;
   const penPct = rateParams?.employerPensionPct ?? 14.38;
   const totalPct = niPct + penPct;
