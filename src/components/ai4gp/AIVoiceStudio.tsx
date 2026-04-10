@@ -1,39 +1,41 @@
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, AlertTriangle, Lightbulb, ExternalLink } from 'lucide-react';
+import { Send, Mic } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CompactMicButton } from '@/components/ai4gp/studio/CompactMicButton';
 
-interface ModeConfig {
+interface WidgetMode {
   id: string;
   label: string;
   color: string;
   icon: string;
-  type: 'widget' | 'link';
+  type: 'widget';
   description: string;
-  href?: string;
-  examples?: string[];
+  examples: string[];
 }
 
-const MODES: ModeConfig[] = [
-  {
-    id: 'overview',
-    label: 'Overview',
-    color: '#0072CE',
-    icon: '🏠',
-    type: 'widget',
-    description: 'Programme summary, key metrics, and quick navigation across all NRES services.',
-  },
-  {
-    id: 'nres',
-    label: 'NRES',
-    color: '#00A499',
-    icon: '🏥',
-    type: 'widget',
-    description: 'NRES programme knowledge — targets, funding, buy-back, practice operations.',
-  },
+interface InfoMode {
+  id: string;
+  label: string;
+  color: string;
+  icon: string;
+  type: 'info';
+  description?: string;
+  tagline: string;
+  features: string[];
+  footnote?: string;
+  phone: string;
+  phoneNote: string;
+  phoneExplainer: string;
+  actionLabel: string;
+  actionColor: string;
+}
+
+type ModeConfig = WidgetMode | InfoMode;
+
+const WIDGET_MODES: WidgetMode[] = [
   {
     id: 'gp',
     label: 'GP',
@@ -62,183 +64,194 @@ const MODES: ModeConfig[] = [
       'Summarise our obligations under the NHS Standard Contract for enhanced access',
     ],
   },
+];
+
+const INFO_MODES: InfoMode[] = [
   {
     id: 'patient',
     label: 'Patient',
     color: '#41B6E6',
     icon: '👤',
-    type: 'link',
-    description: 'Patient support — plain English health advice. Opens the patient-facing portal.',
-    href: '#patient-portal',
-    examples: [
-      'What should I expect at an NHS health check?',
-      'How do I order a repeat prescription online?',
-      "What's the difference between a GP and an Advanced Nurse Practitioner?",
-      "I've been referred for blood tests — do I need to fast beforehand?",
+    type: 'info',
+    tagline: '"Your GP Practice in your pocket"',
+    features: [
+      'Symptom checker — describe how you feel and get clear advice on what to do next',
+      'Request a GP review — answer a few quick questions and we\'ll submit it to your practice today',
+      'Understand your results — "my cholesterol is 6.8, is that bad?" — explained in plain English',
+      'Medication questions — what\'s this tablet for? Can I take it with paracetamol? I\'ve missed a dose',
+      'Complaints & feedback — guided step by step, submitted to your Practice Manager',
     ],
+    footnote: 'No waiting on hold. No jargon. Just clear, caring advice — like talking to your GP.',
+    phone: '01327 221722',
+    phoneNote: 'No internet? Call {phone} from any phone to speak to your GP Practice Assistant directly.',
+    phoneExplainer: 'Designed for patients who aren\'t online — a plain old telephone service powered by AI. No internet, no smartphone, no app needed. Just pick up the phone and talk.',
+    actionLabel: 'Talk to Your GP Assistant',
+    actionColor: '#E8175D',
   },
   {
     id: 'translate',
-    label: 'Translate Now',
+    label: 'Live Translate',
     color: '#006747',
     icon: '🌐',
-    type: 'link',
-    description: 'Real-time AI translation service — 15 languages with ElevenLabs voice output.',
-    href: '#translate',
+    type: 'info',
+    tagline: '"Real-time patient translation — no interpreter needed"',
+    features: [
+      'Just say "I need translation" and name the language',
+      'No speak English — your patient speaks their language — it translates both ways live',
+      'Medical terms translated into plain language your patient will understand',
+      'Instant — no booking interpreters, no waiting, no phone loops',
+      'Safety built in — it flags any clinical red flags it hears during translation',
+      'Any language — Polish, Urdu, Arabic, Romanian, Bengali, Mandarin, and many more',
+    ],
+    phone: '01280 730716',
+    phoneNote: 'On a home visit? Call {phone} from any phone for instant translation — no internet needed.',
+    phoneExplainer: 'Works as a plain old telephone service — just call the number and start interpreting. No app, no internet, no login required. Ideal for home visits and patients without technology.',
+    actionLabel: 'Start Interpreting',
+    actionColor: '#006747',
   },
 ];
 
-const FEATURES = [
-  { icon: '💬', text: 'Ask clinical questions — get GP-level guidance instantly' },
-  { icon: '📊', text: 'NRES programme knowledge — targets, funding, buy-back, practice' },
-  { icon: '📝', text: 'Practice management — CQC, HR, complaints, NHS contracts' },
-  { icon: '❤️', text: 'Patient support — plain English health advice' },
+const ALL_MODES: ModeConfig[] = [
+  ...WIDGET_MODES,
+  ...INFO_MODES,
 ];
 
-export const AIVoiceStudio: React.FC = () => {
+const AIVoiceStudio: React.FC = () => {
   const [activeMode, setActiveMode] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [isListening, setIsListening] = useState(false);
 
-  const activeConfig = MODES.find((m) => m.id === activeMode);
+  const activeData = ALL_MODES.find(m => m.id === activeMode);
 
-  const handleModeClick = (mode: ModeConfig) => {
-    if (mode.type === 'link') {
-      // Direct links don't expand a panel
-      setActiveMode(null);
-      return;
-    }
-    setActiveMode(activeMode === mode.id ? null : mode.id);
+  const handleModeClick = (modeId: string) => {
+    setActiveMode(prev => prev === modeId ? null : modeId);
     setQuery('');
+    setIsListening(false);
+  };
+
+  const renderPhoneNote = (mode: InfoMode) => {
+    const parts = mode.phoneNote.split('{phone}');
+    return (
+      <span className="text-[13px] text-foreground">
+        {parts[0]}
+        <strong className="text-base" style={{ color: mode.color }}>{mode.phone}</strong>
+        {parts[1]}
+      </span>
+    );
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3.5">
         <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center text-xl text-white"
+          className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px] text-white"
           style={{ background: 'linear-gradient(135deg, #003087, #0072CE)' }}
         >
           🎙️
         </div>
         <div>
-          <h2 className="text-lg font-bold" style={{ color: '#003087' }}>
-            GP Notewell AI Voice
-          </h2>
-          <p className="text-xs text-muted-foreground">
+          <h1 className="text-[22px] font-bold" style={{ color: '#003087' }}>GP Notewell AI Voice</h1>
+          <p className="text-[13px] text-muted-foreground">
             Your intelligent programme assistant — powered by AI, grounded in NHS guidance
           </p>
         </div>
       </div>
 
-      {/* Mode selector grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {MODES.map((mode) => {
+      {/* 2×2 Mode Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {ALL_MODES.map((mode) => {
           const isActive = activeMode === mode.id;
-          const isLink = mode.type === 'link';
-
+          const isInfo = mode.type === 'info';
           return (
             <button
               key={mode.id}
-              onClick={() => handleModeClick(mode)}
+              onClick={() => handleModeClick(mode.id)}
               className={cn(
-                'relative flex flex-col items-start gap-1.5 p-4 rounded-xl border-2 text-left transition-all duration-200 cursor-pointer',
-                isActive
-                  ? 'text-white shadow-lg'
-                  : 'bg-card text-card-foreground border-border hover:shadow-md'
+                'relative flex flex-col items-start gap-1.5 p-4 rounded-xl text-left transition-all duration-200 border-2 cursor-pointer',
+                isActive ? 'text-white' : 'bg-card text-foreground border-border hover:shadow-md'
               )}
-              style={
-                isActive
+              style={{
+                ...(isActive
                   ? { background: mode.color, borderColor: mode.color, boxShadow: `0 4px 16px ${mode.color}44` }
-                  : undefined
-              }
+                  : { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }),
+              }}
             >
-              {isLink && (
+              {isInfo && (
                 <span
-                  className="absolute top-2.5 right-3 text-[10px] font-semibold px-2 py-0.5 rounded-md"
+                  className="absolute top-2.5 right-3 text-[11px] font-semibold px-2 py-0.5 rounded-md"
                   style={{
                     background: isActive ? 'rgba(255,255,255,0.25)' : `${mode.color}18`,
                     color: isActive ? '#fff' : mode.color,
                   }}
                 >
-                  Direct Link <ExternalLink className="inline h-2.5 w-2.5 -mt-0.5" />
+                  Direct Link ↗
                 </span>
               )}
               <div className="flex items-center gap-2">
                 <span
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
-                  style={{
-                    background: isActive ? 'rgba(255,255,255,0.2)' : `${mode.color}14`,
-                  }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-base"
+                  style={{ background: isActive ? 'rgba(255,255,255,0.2)' : `${mode.color}14` }}
                 >
                   {mode.icon}
                 </span>
-                <span className="font-bold text-sm">{mode.label}</span>
+                <span className="font-bold text-[15px]">{mode.label}</span>
               </div>
-              <p
-                className={cn(
-                  'text-xs leading-snug m-0',
-                  isActive ? 'opacity-90' : 'opacity-60'
-                )}
-              >
-                {mode.description}
+              <p className={cn('text-xs leading-snug m-0', isActive ? 'opacity-90' : 'opacity-65')}>
+                {mode.type === 'info' ? mode.tagline : mode.description}
               </p>
             </button>
           );
         })}
       </div>
 
-      {/* Active mode panel */}
-      {activeMode && activeConfig && (
-        <Card className="animate-fade-in border shadow-sm">
-          <CardContent className="p-5 space-y-4">
-            {/* Panel header */}
-            <div className="flex items-center gap-2.5">
+      {/* Widget Panel (GP / Practice Manager) */}
+      {activeData && activeData.type === 'widget' && (() => {
+        const widget = activeData as WidgetMode;
+        return (
+          <Card className="rounded-[14px] border p-6 shadow-sm animate-fade-in">
+            <div className="flex items-center gap-2.5 mb-4">
               <span
-                className="w-9 h-9 rounded-[10px] flex items-center justify-center text-base text-white"
-                style={{ background: activeConfig.color }}
+                className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg text-white"
+                style={{ background: widget.color }}
               >
-                {activeConfig.icon}
+                {widget.icon}
               </span>
               <div>
-                <h3 className="text-[15px] font-bold" style={{ color: '#003087' }}>
-                  {activeConfig.label} Mode
-                </h3>
+                <h2 className="text-[17px] font-bold" style={{ color: '#003087' }}>{widget.label} Mode</h2>
                 <p className="text-xs text-muted-foreground">Ask anything within this context</p>
               </div>
             </div>
 
-            {/* Input area */}
+            {/* Input row */}
             <div className="flex gap-2.5 items-center">
-              <div className="flex-1 flex items-center gap-2 bg-muted/50 rounded-[10px] px-3 py-2 border">
+              <div className="flex-1 flex items-center bg-muted rounded-[10px] px-3.5 py-2.5 border border-border">
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={`Ask about ${activeConfig.label.toLowerCase()}...`}
-                  className="border-0 bg-transparent shadow-none focus-visible:ring-0 h-auto py-0 min-h-0 text-sm"
+                  placeholder={`Ask about ${widget.label.toLowerCase()}...`}
+                  className="flex-1 border-none bg-transparent shadow-none focus-visible:ring-0 h-auto min-h-0 p-0 text-sm"
                 />
                 <CompactMicButton
                   onTranscriptUpdate={(text) => setQuery(text)}
                   currentValue={query}
-                  className="h-9 w-9"
+                  className="ml-2"
                 />
               </div>
               <Button
                 size="icon"
-                className="h-11 w-11 rounded-[10px] shrink-0"
+                className="w-11 h-11 rounded-[10px] shrink-0"
                 style={{ background: '#003087' }}
-                disabled={!query.trim()}
               >
-                <Send className="h-4 w-4" />
+                <Send className="w-4 h-4" />
               </Button>
             </div>
 
-            {/* GP warning banner */}
+            {/* GP Warning */}
             {activeMode === 'gp' && (
-              <div className="flex items-start gap-2.5 p-3 rounded-lg text-xs leading-relaxed"
-                style={{ background: '#FFF3CD', border: '1px solid #FFCB05', color: '#594300' }}
-              >
-                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: '#B8860B' }} />
+              <div className="mt-3 p-3 rounded-lg text-xs leading-relaxed flex items-start gap-2.5"
+                style={{ background: '#FFF3CD', border: '1px solid #FFCB05', color: '#594300' }}>
+                <span className="text-lg shrink-0">⚠️</span>
                 <span>
                   <strong>Proof of Concept Only.</strong> This feature is not approved for use in real patient care.
                   It is provided as part of the analogue-to-digital journey to demonstrate what AI-assisted clinical
@@ -247,46 +260,121 @@ export const AIVoiceStudio: React.FC = () => {
               </div>
             )}
 
-            {/* Example prompts */}
-            {activeConfig.examples && activeConfig.examples.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Try asking...</p>
-                <div className="flex flex-col gap-1.5">
-                  {activeConfig.examples.map((ex, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setQuery(ex)}
-                      className="flex items-start gap-2 text-left bg-muted/40 hover:bg-muted border border-border rounded-lg px-3 py-2.5 text-xs leading-snug transition-colors cursor-pointer"
-                    >
-                      <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
-                      <span>{ex}</span>
-                    </button>
-                  ))}
-                </div>
+            {/* Listening indicator */}
+            {isListening && (
+              <div className="mt-3 p-2.5 rounded-lg text-[13px] flex items-center gap-2"
+                style={{ background: '#fce8e6', color: '#DA291C' }}>
+                <span className="animate-pulse">●</span> Listening... speak now
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Features summary */}
-      <Card className="border shadow-sm">
-        <CardContent className="p-4 sm:p-5">
-          <h3 className="text-sm font-bold mb-3" style={{ color: '#003087' }}>
-            What you can do
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {FEATURES.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{f.icon}</span>
-                <span>{f.text}</span>
+            {/* Example prompts */}
+            <div className="mt-3.5">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Try asking...</p>
+              <div className="flex flex-col gap-1.5">
+                {widget.examples.map((ex, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setQuery(ex)}
+                    className="text-left bg-muted border border-border rounded-lg px-3 py-2 text-[13px] text-foreground cursor-pointer hover:bg-accent transition-colors leading-snug"
+                  >
+                    💡 {ex}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-          <p className="text-[11px] text-muted-foreground/70 italic mt-3">
-            Powered by AI, grounded in NHS guidance. Try it now.
-          </p>
-        </CardContent>
+            </div>
+          </Card>
+        );
+      })()}
+
+      {/* Info Panel (Patient / Live Translate) */}
+      {activeData && activeData.type === 'info' && (() => {
+        const info = activeData as InfoMode;
+        return (
+          <Card className="rounded-[14px] border p-6 shadow-sm animate-fade-in">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <span
+                className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg text-white"
+                style={{ background: info.color }}
+              >
+                {info.icon}
+              </span>
+              <h2 className="text-[17px] font-bold" style={{ color: '#003087' }}>{info.label}</h2>
+            </div>
+
+            <p className="text-sm font-semibold italic mb-3.5" style={{ color: info.color }}>
+              {info.tagline}
+            </p>
+
+            {/* Features */}
+            <div className="flex flex-col gap-2 mb-4">
+              {info.features.map((feat, i) => (
+                <div key={i} className="flex items-start gap-2.5 text-[13px] leading-relaxed">
+                  <span
+                    className="w-[22px] h-[22px] rounded-md shrink-0 mt-0.5 flex items-center justify-center text-[11px] font-bold"
+                    style={{ background: `${info.color}18`, color: info.color }}
+                  >
+                    {info.id === 'patient' ? '💬' : '🌐'}
+                  </span>
+                  <span>{feat}</span>
+                </div>
+              ))}
+            </div>
+
+            {info.footnote && (
+              <p className="text-xs text-muted-foreground italic mb-4">{info.footnote}</p>
+            )}
+
+            {/* Phone section */}
+            <div className="bg-muted rounded-[10px] p-3.5 border border-border mb-4">
+              <div className="flex items-center gap-2.5 mb-2">
+                <span
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-sm text-white"
+                  style={{ background: info.color }}
+                >
+                  📞
+                </span>
+                {renderPhoneNote(info)}
+              </div>
+              <div className="ml-[38px]">
+                <p
+                  className="text-xs text-muted-foreground leading-relaxed bg-card p-2 px-3 rounded-md"
+                  style={{ borderLeft: `3px solid ${info.color}` }}
+                >
+                  ℹ️ {info.phoneExplainer}
+                </p>
+              </div>
+            </div>
+
+            {/* Action button */}
+            <button
+              className="w-full py-3.5 px-5 text-white border-none rounded-[10px] text-[15px] font-bold cursor-pointer flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+              style={{ background: info.actionColor, boxShadow: `0 4px 12px ${info.actionColor}44` }}
+            >
+              {info.id === 'patient' ? '👤' : '🌐'} {info.actionLabel}
+            </button>
+          </Card>
+        );
+      })()}
+
+      {/* Bottom summary */}
+      <Card className="rounded-[14px] border p-5 shadow-sm">
+        <h3 className="text-sm font-bold mb-3" style={{ color: '#003087' }}>What you can do</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 gap-x-5">
+          {[
+            { icon: '⚕️', text: 'Ask clinical questions — get GP-level guidance instantly' },
+            { icon: '📋', text: 'Practice management — CQC, HR, complaints, NHS contracts' },
+            { icon: '👤', text: 'Patient support — plain English health advice by phone or web' },
+            { icon: '🌐', text: 'Live translation — 15 languages, works by phone or online' },
+          ].map((f, i) => (
+            <div key={i} className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <span>{f.icon}</span><span>{f.text}</span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[11px] text-muted-foreground italic">
+          Powered by AI, grounded in NHS guidance. Try it now.
+        </p>
       </Card>
     </div>
   );
