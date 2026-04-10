@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { recipientEmail, recipientName, practiceName } = await req.json();
+    const { recipientEmail, recipientName, practiceName, practiceOds } = await req.json();
 
     if (!recipientEmail || !recipientName) {
       return new Response(
