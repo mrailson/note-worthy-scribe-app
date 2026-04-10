@@ -3238,13 +3238,14 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* Security & Compliance Tab */}
           <TabsContent value="security" className="space-y-6">
             <Tabs value={securityTab} onValueChange={setSecurityTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-6 h-auto">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-7 h-auto">
                 <TabsTrigger value="monitoring" className="text-xs sm:text-sm p-2">Auth</TabsTrigger>
                 <TabsTrigger value="data-access" className="text-xs sm:text-sm p-2">Data</TabsTrigger>
                 <TabsTrigger value="vulnerabilities" className="text-xs sm:text-sm p-2">Vulns</TabsTrigger>
                 <TabsTrigger value="cso-compliance" className="text-xs sm:text-sm p-2">CSO Compliance</TabsTrigger>
                 <TabsTrigger value="dcb0129" className="text-xs sm:text-sm p-2 font-medium">DCB0129</TabsTrigger>
                 <TabsTrigger value="security-reports" className="text-xs sm:text-sm p-2">Security Reports</TabsTrigger>
+                <TabsTrigger value="platform-audit" className="text-xs sm:text-sm p-2">Platform Audit</TabsTrigger>
               </TabsList>
 
               <TabsContent value="monitoring" className="space-y-6">
