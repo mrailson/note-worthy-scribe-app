@@ -70,6 +70,7 @@ const GPAgentInner = () => {
       sessionStartRef.current = new Date();
       conversation.startSession({
         agentId: GP_AGENT_ID,
+        connectionType: "websocket",
       });
     } catch (error) {
       console.error("Failed to start GP assistant:", error);
