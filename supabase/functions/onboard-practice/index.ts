@@ -139,7 +139,13 @@ serve(async (req) => {
       }
     }
 
-    if (!existingUser) {
+    if (isTest) {
+      // Test mode: skip account creation entirely, just send emails to Malcolm
+      alreadyExisted = false;
+      userId = "test-mode-no-account";
+      tempPassword = generatePassword();
+      console.log("TEST MODE: Skipping account creation. Generated sample password:", tempPassword);
+    } else if (!existingUser) {
       // Also try creating — if email exists, createUser will fail with a specific error
       // But first, let's try a direct lookup
       try {
@@ -152,69 +158,71 @@ serve(async (req) => {
       }
     }
 
-    if (existingUser) {
-      alreadyExisted = true;
-      userId = existingUser.id;
-      console.log(`User already exists: ${pmEmail} (${userId})`);
-    } else {
-      // Create new user
-      tempPassword = generatePassword();
-      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-        email: pmEmail,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { full_name: pmName, role: "practice_manager" },
-      });
-
-      if (createError) {
-        console.error("Create user error:", createError.message);
-        return new Response(JSON.stringify({ error: `Failed to create account: ${createError.message}` }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!isTest) {
+      if (existingUser) {
+        alreadyExisted = true;
+        userId = existingUser.id;
+        console.log(`User already exists: ${pmEmail} (${userId})`);
+      } else {
+        // Create new user
+        tempPassword = generatePassword();
+        const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+          email: pmEmail,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { full_name: pmName, role: "practice_manager" },
         });
-      }
 
-      userId = newUser.user.id;
-      console.log(`Created new user: ${pmEmail} (${userId})`);
+        if (createError) {
+          console.error("Create user error:", createError.message);
+          return new Response(JSON.stringify({ error: `Failed to create account: ${createError.message}` }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
 
-      // Step 2: Create profile
-      const { error: profileError } = await adminClient.from("profiles").upsert({
-        id: userId,
-        full_name: pmName,
-        email: pmEmail,
-        role: "practice_manager",
-        practice_id: gpPracticeId || null,
-        practice_name: practiceName,
-        k_code: odsCode || null,
-        modules: ["ai4gp", "complaints", "meetings", "translation", "survey", "cqc_compliance"],
-        created_by: "dpia_onboarding",
-      }, { onConflict: "id" });
+        userId = newUser.user.id;
+        console.log(`Created new user: ${pmEmail} (${userId})`);
 
-      if (profileError) {
-        console.error("Profile upsert error:", profileError.message);
-      }
+        // Step 2: Create profile
+        const { error: profileError } = await adminClient.from("profiles").upsert({
+          id: userId,
+          full_name: pmName,
+          email: pmEmail,
+          role: "practice_manager",
+          practice_id: gpPracticeId || null,
+          practice_name: practiceName,
+          k_code: odsCode || null,
+          modules: ["ai4gp", "complaints", "meetings", "translation", "survey", "cqc_compliance"],
+          created_by: "dpia_onboarding",
+        }, { onConflict: "id" });
 
-      // Step 2b: Create user_roles record with default PM module access
-      const { error: roleError2 } = await adminClient.from("user_roles").insert({
-        user_id: userId,
-        practice_id: gpPracticeId || null,
-        role: "practice_manager",
-        practice_role: "Practice Manager",
-        assigned_by: caller.id,
-        meeting_notes_access: true,
-        complaints_manager_access: true,
-        translation_service_access: true,
-        survey_manager_access: true,
-        gp_scribe_access: false,
-        enhanced_access: false,
-        cqc_compliance_access: true,
-        shared_drive_access: false,
-        mic_test_service_access: false,
-        api_testing_service_access: false,
-        document_signoff_access: false,
-      });
+        if (profileError) {
+          console.error("Profile upsert error:", profileError.message);
+        }
 
-      if (roleError2) {
-        console.error("User roles insert error:", roleError2.message);
+        // Step 2b: Create user_roles record with default PM module access
+        const { error: roleError2 } = await adminClient.from("user_roles").insert({
+          user_id: userId,
+          practice_id: gpPracticeId || null,
+          role: "practice_manager",
+          practice_role: "Practice Manager",
+          assigned_by: caller.id,
+          meeting_notes_access: true,
+          complaints_manager_access: true,
+          translation_service_access: true,
+          survey_manager_access: true,
+          gp_scribe_access: false,
+          enhanced_access: false,
+          cqc_compliance_access: true,
+          shared_drive_access: false,
+          mic_test_service_access: false,
+          api_testing_service_access: false,
+          document_signoff_access: false,
+        });
+
+        if (roleError2) {
+          console.error("User roles insert error:", roleError2.message);
+        }
       }
     }
 
