@@ -136,8 +136,33 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const hasFetchedRef = useRef(false);
+  const [hasElevatedAccess, setHasElevatedAccess] = useState(false);
 
-  const admin = isAdmin(user?.email);
+  const admin = isAdmin(user?.email) || hasElevatedAccess;
+
+  // Check nres_system_roles for PML Director / PML Finance / Super Admin / Management Lead
+  useEffect(() => {
+    if (!user?.email) return;
+    const checkSystemRole = async () => {
+      try {
+        const { data } = await supabase
+          .from('nres_system_roles')
+          .select('role')
+          .eq('user_email', user.email!.toLowerCase())
+          .eq('is_active', true);
+        if (data && data.length > 0) {
+          setHasElevatedAccess(true);
+        }
+      } catch {
+        // ignore — fall back to NRES_ADMIN_EMAILS
+      }
+    };
+    if (!isAdmin(user.email)) {
+      checkSystemRole();
+    } else {
+      setHasElevatedAccess(true);
+    }
+  }, [user?.email]);
 
   const fetchClaims = useCallback(async (forceRefresh = false) => {
     if (!user?.id) return;
@@ -150,7 +175,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .select('*')
         .order('claim_month', { ascending: false });
 
-      if (!isAdmin(user.email)) {
+      // Users with a system role OR in NRES_ADMIN_EMAILS see all claims
+      if (!isAdmin(user.email) && !hasElevatedAccess) {
         query = query.eq('user_id', user.id);
       }
 
@@ -164,12 +190,20 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, user?.email]);
+  }, [user?.id, user?.email, hasElevatedAccess]);
 
   useEffect(() => {
     if (user?.id) fetchClaims();
     return () => { hasFetchedRef.current = false; };
   }, [user?.id]);
+
+  // Re-fetch when elevated access is detected (initial fetch may have been user-scoped)
+  useEffect(() => {
+    if (hasElevatedAccess && user?.id) {
+      hasFetchedRef.current = false;
+      fetchClaims(true);
+    }
+  }, [hasElevatedAccess]);
 
   const createClaim = async (
     claimMonth: string,
