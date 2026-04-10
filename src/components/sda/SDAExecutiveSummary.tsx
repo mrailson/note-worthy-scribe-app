@@ -228,6 +228,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📋</span><span>2WW referral criteria and red flag screening</span></li>
                           </ul>
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Evidence-based. Source-cited. Verify before you prescribe.</p>
+                          <NRESGPAgent />
                         </>
                       )}
                       {aiCardTab === "Practice Manager" && (
