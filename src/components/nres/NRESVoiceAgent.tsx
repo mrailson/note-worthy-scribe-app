@@ -2,7 +2,7 @@ import { useConversation, ConversationProvider } from "@elevenlabs/react";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNRESSummaryEmail } from "@/hooks/useNRESSummaryEmail";
-import { useRef, useCallback } from "react";
+import { useRef } from "react";
 
 const AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
 
