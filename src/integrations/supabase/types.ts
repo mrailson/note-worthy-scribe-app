@@ -3880,6 +3880,93 @@ export type Database = {
         }
         Relationships: []
       }
+      dpia_practices: {
+        Row: {
+          cg_email: string | null
+          cg_name: string | null
+          cg_role: string | null
+          completed_by: string | null
+          completed_date: string | null
+          completed_role: string | null
+          created_at: string
+          dpia_date: string | null
+          dpia_generated: boolean | null
+          dpia_html: string | null
+          dpo_email: string | null
+          dpo_name: string | null
+          dpo_org: string | null
+          dpo_tel: string | null
+          dspt_status: string | null
+          ico_reg: string | null
+          id: string
+          ods_code: string | null
+          pm_email: string | null
+          pm_name: string | null
+          practice_address: string | null
+          practice_name: string
+          practice_tel: string | null
+          source_file: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cg_email?: string | null
+          cg_name?: string | null
+          cg_role?: string | null
+          completed_by?: string | null
+          completed_date?: string | null
+          completed_role?: string | null
+          created_at?: string
+          dpia_date?: string | null
+          dpia_generated?: boolean | null
+          dpia_html?: string | null
+          dpo_email?: string | null
+          dpo_name?: string | null
+          dpo_org?: string | null
+          dpo_tel?: string | null
+          dspt_status?: string | null
+          ico_reg?: string | null
+          id?: string
+          ods_code?: string | null
+          pm_email?: string | null
+          pm_name?: string | null
+          practice_address?: string | null
+          practice_name: string
+          practice_tel?: string | null
+          source_file?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cg_email?: string | null
+          cg_name?: string | null
+          cg_role?: string | null
+          completed_by?: string | null
+          completed_date?: string | null
+          completed_role?: string | null
+          created_at?: string
+          dpia_date?: string | null
+          dpia_generated?: boolean | null
+          dpia_html?: string | null
+          dpo_email?: string | null
+          dpo_name?: string | null
+          dpo_org?: string | null
+          dpo_tel?: string | null
+          dspt_status?: string | null
+          ico_reg?: string | null
+          id?: string
+          ods_code?: string | null
+          pm_email?: string | null
+          pm_name?: string | null
+          practice_address?: string | null
+          practice_name?: string
+          practice_tel?: string | null
+          source_file?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       drug_synonyms: {
         Row: {
           created_at: string
