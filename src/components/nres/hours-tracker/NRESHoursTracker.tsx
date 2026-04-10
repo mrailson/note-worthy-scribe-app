@@ -50,6 +50,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
   const [activeTab, setActiveTab] = useState(neighbourhoodName === 'ENN' ? 'buy-back' : 'buy-back');
   const [financeSubTab, setFinanceSubTab] = useState('finance-governance');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const { 
     hourlyRate, 
