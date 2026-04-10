@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { exportClaimsDetail, exportMonthlySummary, exportYTDRunningTotals } from '@/utils/buybackExcelExport';
@@ -1291,7 +1291,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
             const hasNotes = !!s.notes;
             const belowMax = claimedAmount < maxAmount && maxAmount > 0;
             return (
-              <React.Fragment key={`staff-block-${idx}`}>
+              <Fragment key={`staff-block-${idx}`}>
                 {headerRow}
                 <tr className="border-b">
                   <td className="p-2">{displayName}</td>
@@ -1590,7 +1590,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                     </tr>
                   );
                 })()}
-              </React.Fragment>
+              </Fragment>
             );
           })}
           {/* Total row */}
