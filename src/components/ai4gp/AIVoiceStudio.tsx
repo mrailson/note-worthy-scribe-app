@@ -300,7 +300,7 @@ const AIVoiceStudio: React.FC = () => {
             </p>
 
             {/* Features */}
-            <div className="flex flex-col gap-2 mb-4">
+            <div className="flex flex-col gap-2 mb-2">
               {info.features.map((feat, i) => (
                 <div key={i} className="flex items-start gap-2.5 text-[13px] leading-relaxed">
                   <span
@@ -315,16 +315,16 @@ const AIVoiceStudio: React.FC = () => {
             </div>
 
             {info.footnote && (
-              <p className="text-xs text-muted-foreground italic mb-4">{info.footnote}</p>
+              <p className="text-xs text-muted-foreground italic mb-2">{info.footnote}</p>
             )}
 
             {/* ElevenLabs Widget */}
-            <div className="mb-4">
+            <div className="mb-2">
               <ElevenLabsWidget agentId={AGENT_IDS[info.id]} />
             </div>
 
             {/* Phone section */}
-            <div className="bg-muted rounded-[10px] p-3.5 border border-border mb-4">
+            <div className="bg-muted rounded-[10px] p-3.5 border border-border mb-2">
               <div className="flex items-center gap-2.5 mb-2">
                 <span
                   className="w-7 h-7 rounded-full flex items-center justify-center text-sm text-white"
