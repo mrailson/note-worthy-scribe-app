@@ -186,8 +186,8 @@ export const PracticeUserManagement = () => {
     module_access: {
       meeting_notes_access: true,
       gp_scribe_access: false,
-      complaints_manager_access: false,
-      ai4gp_access: false,
+      complaints_manager_access: true,
+      ai4gp_access: true,
       enhanced_access: false,
       cqc_compliance_access: false,
       shared_drive_access: false,
@@ -578,8 +578,8 @@ export const PracticeUserManagement = () => {
       module_access: {
         meeting_notes_access: true,
         gp_scribe_access: false,
-        complaints_manager_access: false,
-        ai4gp_access: false,
+        complaints_manager_access: true,
+        ai4gp_access: true,
         enhanced_access: false,
         cqc_compliance_access: false,
         shared_drive_access: false,
@@ -590,7 +590,7 @@ export const PracticeUserManagement = () => {
         cso_governance_access: false,
         lg_capture_access: false,
         bp_service_access: false,
-        survey_manager_access: false,
+        survey_manager_access: true,
         policy_service_access: false,
         document_signoff_access: false
       }

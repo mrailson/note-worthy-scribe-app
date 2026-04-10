@@ -37,6 +37,7 @@ import {
   CheckCircle,
   ExternalLink,
   Eye,
+  EyeOff,
   Key,
   UserCheck,
   AlertCircle,
@@ -52,7 +53,8 @@ import {
   LogIn,
   Mail,
   Mic,
-  Bot
+  Bot,
+  RefreshCw
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -81,6 +83,25 @@ import { ICBTrafficLightManager } from '@/components/admin/ICBTrafficLightManage
 import { EdgeFunctionAudit } from '@/components/admin/EdgeFunctionAudit';
 import { PageRouteAudit } from '@/components/admin/PageRouteAudit';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
+
+// Word lists for memorable password generation
+const PASSWORD_WORDS = [
+  'apple', 'brave', 'charm', 'dance', 'eagle', 'flame', 'grace', 'happy',
+  'ivory', 'jolly', 'kneel', 'lemon', 'maple', 'noble', 'ocean', 'pearl',
+  'quiet', 'river', 'storm', 'tiger', 'unity', 'vivid', 'water', 'yacht',
+  'zebra', 'amber', 'bloom', 'cloud', 'dream', 'ember', 'frost', 'globe',
+  'haven', 'image', 'jewel', 'kraft', 'light', 'magic', 'night', 'olive',
+  'piano', 'quest', 'reign', 'solar', 'trail', 'ultra', 'vigor', 'wheat',
+  'lunar', 'coral', 'delta', 'flint', 'grain', 'hazel', 'index', 'lotus',
+  'mango', 'north', 'oasis', 'plume', 'quilt', 'ridge', 'shine', 'trust'
+];
+
+const generateMemorablePassword = (): string => {
+  const word1 = PASSWORD_WORDS[Math.floor(Math.random() * PASSWORD_WORDS.length)];
+  const word2 = PASSWORD_WORDS[Math.floor(Math.random() * PASSWORD_WORDS.length)];
+  const number = Math.floor(Math.random() * 10);
+  return `${word1.charAt(0).toUpperCase() + word1.slice(1)}${number}${word2.charAt(0).toUpperCase() + word2.slice(1)}`;
+};
 
 import * as XLSX from 'xlsx-js-style';
 
@@ -241,14 +262,14 @@ const SystemAdmin = () => {
   const [userFormData, setUserFormData] = useState({
     email: '',
     full_name: '',
-    password: '',
+    password: generateMemorablePassword(),
     role: 'practice_manager' as 'practice_user' | 'practice_manager' | 'pcn_manager' | 'system_admin',
     practice_id: 'none',
     module_access: {
       meeting_notes_access: true,
       gp_scribe_access: false,
-      complaints_manager_access: false,
-      ai4gp_access: false,
+      complaints_manager_access: true,
+      ai4gp_access: true,
       enhanced_access: false,
       cqc_compliance_access: false,
       shared_drive_access: false,
@@ -259,11 +280,12 @@ const SystemAdmin = () => {
       cso_governance_access: false,
       lg_capture_access: false,
       bp_service_access: false,
-      survey_manager_access: false,
+      survey_manager_access: true,
       document_signoff_access: false,
       agewell_access: false
     }
   });
+  const [showPasswordField, setShowPasswordField] = useState(true);
   
   // Welcome email options
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
@@ -1108,11 +1130,12 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     setUserFormData({
       email: '',
       full_name: '',
-      password: '',
+      password: generateMemorablePassword(),
       role: 'practice_manager',
       practice_id: 'none',
       module_access: defaultModules
     });
+    setShowPasswordField(true);
     // Reset welcome email options
     setSendWelcomeEmail(true);
     setWelcomeEmailTestMode(false);
@@ -1807,7 +1830,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               body: {
                 user_email: userFormData.email,
                 user_name: userFormData.full_name,
-                temporary_password: userFormData.password,
+                user_password: userFormData.password,
                 user_role: userFormData.role,
                 practice_name: practiceName,
                 module_access: userFormData.module_access,
@@ -4631,16 +4654,41 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
               {!editingUser && (
                 <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={userFormData.password}
-                    onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
-                    placeholder="Enter a secure password"
-                    required
-                    autoComplete="new-password"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="password">Password</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setUserFormData({...userFormData, password: generateMemorablePassword()})}
+                      className="h-7 text-xs gap-1"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Regenerate
+                    </Button>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPasswordField ? 'text' : 'password'}
+                      value={userFormData.password}
+                      onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
+                      placeholder="Enter a secure password"
+                      required
+                      autoComplete="new-password"
+                      className="font-mono pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordField(!showPasswordField)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPasswordField ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Auto-generated memorable password (two words with a number)
+                  </p>
                 </div>
               )}
 
