@@ -561,12 +561,19 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       <Separator />
 
       {/* Claims */}
+      <Collapsible open={claimsHistoryOpen} onOpenChange={setClaimsHistoryOpen}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">
-            {filteredClaims.some(c => c.status === 'draft') ? 'Current Claim' : 'Claims History'}
-          </CardTitle>
-          {effectiveIsAdmin && !testActive && (
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center gap-2 w-full text-left">
+              <ChevronRight className={cn("w-4 h-4 transition-transform", claimsHistoryOpen && "rotate-90")} />
+              <CardTitle className="text-lg">
+                {filteredClaims.some(c => c.status === 'draft') ? 'Current Claim' : 'Claims History'}
+              </CardTitle>
+              <Badge variant="secondary" className="ml-auto text-xs">{filteredClaims.length}</Badge>
+            </button>
+          </CollapsibleTrigger>
+          {claimsHistoryOpen && effectiveIsAdmin && !testActive && (
             <div className="flex flex-wrap gap-2 mt-2 items-center">
               {([
                 { key: 'all', label: 'All' },
@@ -594,7 +601,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               ))}
             </div>
           )}
-          {effectiveIsAdmin && (
+          {claimsHistoryOpen && effectiveIsAdmin && (
             <div className="flex gap-2 mt-2">
               <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus)}>
                 <Download className="w-3 h-3" /> Export Detail
@@ -608,6 +615,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             </div>
           )}
         </CardHeader>
+        <CollapsibleContent>
         {effectiveIsAdmin && (
           <div className="px-6 pb-2">
             <UnclaimedFundsIndicator claims={claims} practiceKeys={ALL_PRACTICE_KEYS} />
@@ -672,7 +680,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             </div>
           )}
         </CardContent>
+        </CollapsibleContent>
       </Card>
+      </Collapsible>
 
       {/* Management Time Section */}
       {effectiveIsAdmin && !isENN && (
