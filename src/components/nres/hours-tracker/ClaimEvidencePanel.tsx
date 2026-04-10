@@ -177,6 +177,9 @@ export function StaffLineEvidence({
   const { getConfigForCategory } = useNRESEvidenceConfig();
   const allTypes = getConfigForCategory(staffCategory);
 
+  // Only show mandatory evidence types + 'other_supporting' to reduce clutter
+  const visibleTypes = allTypes.filter(t => t.is_mandatory || t.evidence_type === 'other_supporting');
+
   const uploadedCount = Object.keys(uploadedTypesForStaff).length;
   const mandatoryTypes = allTypes.filter(t => t.is_mandatory);
   const mandatoryUploaded = mandatoryTypes.filter(t => !!uploadedTypesForStaff[t.evidence_type]).length;
@@ -211,14 +214,14 @@ export function StaffLineEvidence({
         <FileText className="w-3.5 h-3.5 text-primary" />
         <span className="text-[11px] font-semibold text-primary">Evidence</span>
         <Badge variant="outline" className="text-[10px] ml-auto">
-          {uploadedCount}/{allTypes.length} uploaded
+          {uploadedCount} uploaded
           {mandatoryUploaded < mandatoryTypes.length && (
             <span className="ml-1 text-red-500">({mandatoryTypes.length - mandatoryUploaded} required)</span>
           )}
         </Badge>
       </div>
       <div className="divide-y">
-        {allTypes.map(cfg => (
+        {visibleTypes.map(cfg => (
           <EvidenceSlot
             key={`${staffIndex}-${cfg.evidence_type}`}
             config={cfg}
