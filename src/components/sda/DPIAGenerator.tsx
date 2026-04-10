@@ -388,6 +388,7 @@ export default function DPIAGenerator() {
           dpiaBase64,
           dpiaFileName: fileName,
           dpiaRecordId: practice.id,
+          testMode,
         },
       });
 
