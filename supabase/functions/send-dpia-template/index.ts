@@ -72,6 +72,8 @@ Deno.serve(async (req) => {
     }
 
     const practiceLabel = practiceName ? ` for ${practiceName}` : "";
+    const practiceOdsLabel = practiceOds ? ` (ODS: ${practiceOds})` : "";
+    const practiceFullLabel = practiceName ? ` for <strong>${practiceName}</strong>${practiceOdsLabel}` : "";
 
     const htmlBody = `
 <!DOCTYPE html>
