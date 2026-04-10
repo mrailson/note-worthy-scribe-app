@@ -5,7 +5,7 @@
 export function generateEvidenceSummaryFallback(
   staffName: string,
   staffRole: string,
-  staffCategory: 'buyback' | 'new_sda',
+  staffCategory: 'buyback' | 'new_sda' | 'management',
   evidenceFiles: { file_name: string; evidence_type: string; file_size: number | null }[],
 ): string {
   if (evidenceFiles.length === 0) return '';
