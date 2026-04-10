@@ -55,6 +55,23 @@ export const NRES_PRACTICE_CONTACTS: Record<NRESPracticeKey, NRESPracticeContact
   bt_pcn: { practiceManager: 'Amanda Palin', email: 'amanda.palin2@nhs.net', phone: '' },
 };
 
+export interface NRESPracticeBankDetails {
+  bankName: string;
+  sortCode: string;
+  accountNumber: string;
+  accountName: string;
+}
+
+/** Bank details for invoice remittance — only populated where known */
+export const NRES_PRACTICE_BANK_DETAILS: Partial<Record<NRESPracticeKey, NRESPracticeBankDetails>> = {
+  bt_pcn: {
+    bankName: 'Lloyds Bank',
+    sortCode: '30-11-08',
+    accountNumber: '28122560',
+    accountName: 'Brackley & Towcester PCN Ltd',
+  },
+};
+
 /** Get the display name for a practice key, checking both NRES and ENN practices */
 export function getPracticeName(key: string | null | undefined): string {
   if (!key) return '—';
