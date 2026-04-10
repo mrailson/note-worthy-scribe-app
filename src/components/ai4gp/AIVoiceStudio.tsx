@@ -241,24 +241,8 @@ const AIVoiceStudio: React.FC = () => {
             )}
 
             {/* ElevenLabs Widget */}
-            <div className="bg-muted rounded-[10px] p-4 border border-border mb-4 text-center">
-              <p className="text-xs font-semibold text-muted-foreground mb-2.5">
-                🎙️ Click the microphone below to start a voice conversation
-              </p>
+            <div className="mb-4">
               <ElevenLabsWidget agentId={AGENT_IDS[widget.id]} />
-            </div>
-
-            {/* Text input */}
-            <div className="flex gap-2.5 items-center mb-4">
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={`Or type your question about ${widget.label.toLowerCase()}...`}
-                className="flex-1"
-              />
-              <Button size="icon" className="w-11 h-11 rounded-[10px] shrink-0" style={{ background: '#003087' }}>
-                <Send className="w-4 h-4" />
-              </Button>
             </div>
 
             {/* Example prompts */}
