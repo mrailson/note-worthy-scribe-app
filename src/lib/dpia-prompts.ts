@@ -223,7 +223,7 @@ GENERATE THE FOLLOWING SECTIONS (number them exactly as shown):
     - AssemblyAI — Audio transcription — USA (UK adequacy, SCCs) — Yes — SOC 2 Type II, HIPAA
     - Supabase — Database and authentication — EU (Frankfurt/Germany) — Yes — ISO 27001
    
-   Include a paragraph explaining the transfer mechanism (UK adequacy decision for EU; Standard Contractual Clauses for USA) and supplementary measures in place.
+   Include a paragraph explaining international transfers: Transfers to EU-based processors (Supabase) are covered by the UK Adequacy Decision. Transfers to USA-based processors (OpenAI, AssemblyAI) are managed via Standard Contractual Clauses (SCCs) and Supplementary Measures including AES-256 encryption. Claude AI (Anthropic) processes data in the UK. PCN Services Ltd has provided contractual guarantees that patient data is never used for model training.
 
 9. TECHNICAL AND ORGANISATIONAL MEASURES
    - Encryption (AES-256 at rest, TLS 1.3 in transit)
