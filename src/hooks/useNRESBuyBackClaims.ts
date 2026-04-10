@@ -63,6 +63,10 @@ export interface RateParams {
   getRoleAnnualRate?: (roleLabel: string) => number | undefined;
   employerNiPct?: number;
   employerPensionPct?: number;
+  /** Pre-calculated working weeks for a given claim month (used for management billing) */
+  workingWeeksInMonth?: number;
+  /** Number of bank holidays excluded from the month */
+  bankHolidaysInMonth?: number;
 }
 
 /** Calculate the maximum monthly claim amount for a staff member */

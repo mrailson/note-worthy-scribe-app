@@ -1,3 +1,5 @@
+import { supabase } from '@/integrations/supabase/client';
+
 /**
  * Calculate the number of working days between two dates (excluding weekends)
  */
@@ -15,6 +17,67 @@ export const calculateWorkingDays = (startDate: Date, endDate: Date): number => 
   }
   
   return count;
+};
+
+/**
+ * Count weekdays (Mon-Fri) in a given month, then subtract bank holidays.
+ * @param claimMonth - ISO date string for the 1st of the month, e.g. '2026-04-01'
+ * @param bankHolidayDates - array of ISO date strings of bank holidays already fetched
+ */
+export const getWorkingDaysInMonth = (claimMonth: string, bankHolidayDates: string[] = []): number => {
+  const start = new Date(claimMonth);
+  const year = start.getFullYear();
+  const month = start.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  let weekdays = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const day = new Date(year, month, d).getDay();
+    if (day !== 0 && day !== 6) weekdays++;
+  }
+
+  // Subtract bank holidays that fall on a weekday in this month
+  const bhInMonth = bankHolidayDates.filter(dateStr => {
+    const bh = new Date(dateStr);
+    return bh.getFullYear() === year && bh.getMonth() === month && bh.getDay() !== 0 && bh.getDay() !== 6;
+  });
+
+  return weekdays - bhInMonth.length;
+};
+
+/**
+ * Get working weeks in a month (working days / 5).
+ */
+export const getWorkingWeeksInMonth = (claimMonth: string, bankHolidayDates: string[] = []): number => {
+  return getWorkingDaysInMonth(claimMonth, bankHolidayDates) / 5;
+};
+
+/**
+ * Fetch bank holiday dates from the database for a given year range.
+ */
+export const fetchBankHolidayDates = async (startYear?: number, endYear?: number): Promise<string[]> => {
+  try {
+    let query = (supabase as any)
+      .from('bank_holidays_closed_days')
+      .select('date')
+      .eq('type', 'bank_holiday');
+
+    if (startYear) {
+      query = query.gte('date', `${startYear}-01-01`);
+    }
+    if (endYear) {
+      query = query.lte('date', `${endYear}-12-31`);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching bank holidays:', error);
+      return [];
+    }
+    return (data || []).map((r: any) => r.date);
+  } catch {
+    return [];
+  }
 };
 
 /**
