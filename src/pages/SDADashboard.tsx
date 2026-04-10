@@ -23,6 +23,7 @@ const tabs = [
   { value: "estates", label: "Estates & Capacity", shortLabel: "Estates", icon: Building2 },
   { value: "digital", label: "IT & Reporting", shortLabel: "Digital", icon: Monitor },
   { value: "hours", label: "Claims & Oversight", shortLabel: "Claims", icon: Clock },
+  { value: "dpia", label: "DPIA Generator", shortLabel: "DPIA", icon: Shield },
   { value: "document-vault", label: "NRES Document Vault Home", shortLabel: "Vault", icon: FolderLock },
 ];
 
