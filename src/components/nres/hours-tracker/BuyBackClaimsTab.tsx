@@ -1271,6 +1271,20 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
                                   )}
                                 </div>
                               ))}
+                              {canEdit && unacked > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="mt-2 h-6 text-[10px] px-2 gap-1"
+                                  onClick={() => {
+                                    const allRequiredIds = requiredRules.map(r => r.id);
+                                    onUpdateStaffLine(claim.id, idx, { acknowledged_rules: allRequiredIds });
+                                  }}
+                                >
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Confirm all
+                                </Button>
+                              )}
                             </div>
                           </CollapsibleContent>
                         </Collapsible>
