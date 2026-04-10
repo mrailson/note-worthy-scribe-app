@@ -6,6 +6,8 @@ import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import { sendBuyBackEmail, type BuyBackEmailData } from '@/utils/buybackEmailService';
 import { generateInvoiceNumber } from '@/utils/invoiceNumberGenerator';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
+import { NRES_PRACTICE_CONTACTS, getPracticeName } from '@/data/nresPractices';
+import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackStaffMember } from './useNRESBuyBackStaff';
 
 export interface BuyBackClaim {
