@@ -4458,6 +4458,27 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 {/* Meeting Statistics by User */}
                 <MeetingStatsByUser />
               </TabsContent>
+
+              <TabsContent value="platform-audit" className="space-y-6">
+                <Tabs defaultValue="edge-functions" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 h-auto mb-4">
+                    <TabsTrigger value="edge-functions" className="flex items-center gap-2 text-xs sm:text-sm p-2">
+                      <Database className="h-4 w-4" />
+                      <span>Edge Functions</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="pages-routes" className="flex items-center gap-2 text-xs sm:text-sm p-2">
+                      <FileText className="h-4 w-4" />
+                      <span>Pages & Routes</span>
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="edge-functions">
+                    <EdgeFunctionAudit />
+                  </TabsContent>
+                  <TabsContent value="pages-routes">
+                    <PageRouteAudit />
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
             </Tabs>
           </TabsContent>
 
