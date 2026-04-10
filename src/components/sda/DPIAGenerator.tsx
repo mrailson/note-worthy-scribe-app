@@ -14,9 +14,8 @@ import {
   Eye, RefreshCw, Loader2, ArrowLeft, Shield, CheckCircle2, UserPlus, Check
 } from "lucide-react";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DPIA_EXTRACT_PROMPT, DPIA_GENERATE_PROMPT } from "@/lib/dpia-prompts";
 
