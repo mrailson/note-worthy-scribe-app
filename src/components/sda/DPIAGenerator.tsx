@@ -351,6 +351,60 @@ export default function DPIAGenerator() {
     toast({ title: "Practice deleted" });
   };
 
+  // ---- Onboard practice (send DPIA + create account) ----
+  const onboardPractice = async (practice: DPIAPractice) => {
+    if (!practice.dpia_html || !practice.pm_email || !practice.pm_name) {
+      toast({ title: "Missing DPIA or PM details", variant: "destructive" });
+      return;
+    }
+
+    setOnboardingBusy(practice.id);
+    try {
+      // Generate a simple HTML-to-PDF via print-style blob
+      // We'll send the DPIA HTML content as a base64 "PDF" (actually Word-like HTML for Resend attachment)
+      const docHtml = `<html><head><meta charset="utf-8"><title>DPIA - ${practice.practice_name}</title>
+        <style>body{font-family:Arial,sans-serif;font-size:11pt;color:#212b32;line-height:1.6;padding:2cm;}
+        h1{color:#005EB8;font-size:18pt;border-bottom:2px solid #005EB8;padding-bottom:6px;}
+        h2{color:#003087;font-size:14pt;margin-top:20px;}h3{color:#005EB8;font-size:12pt;}
+        table{border-collapse:collapse;width:100%;margin:12px 0;}
+        th,td{border:1px solid #999;padding:6px 10px;font-size:10pt;vertical-align:top;word-wrap:break-word;}
+        th{background:#005EB8;color:white;text-align:left;font-weight:bold;}
+        tr:nth-child(even){background:#f5f7fa;}</style>
+        </head><body>${practice.dpia_html}</body></html>`;
+      
+      const dpiaBase64 = btoa(unescape(encodeURIComponent(docHtml)));
+      const fileName = `DPIA_Notewell_AI_${practice.practice_name.replace(/\s+/g, "_")}_${practice.ods_code || ""}_${new Date().toISOString().slice(0,10)}.html`;
+
+      const { data, error } = await supabase.functions.invoke("onboard-practice", {
+        body: {
+          pmEmail: practice.pm_email,
+          pmName: practice.pm_name,
+          practiceName: practice.practice_name,
+          practiceId: practice.id,
+          odsCode: practice.ods_code,
+          dpiaBase64,
+          dpiaFileName: fileName,
+          dpiaRecordId: practice.id,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || "Onboarding failed");
+
+      await loadPractices();
+
+      if (data.alreadyExisted) {
+        toast({ title: `${practice.practice_name} – DPIA sent to ${practice.pm_name} (account already existed, no new credentials sent)` });
+      } else {
+        toast({ title: `${practice.practice_name} onboarded – DPIA & login sent to ${practice.pm_name}` });
+      }
+    } catch (err: any) {
+      toast({ title: "Onboarding failed", description: err.message, variant: "destructive" });
+    }
+    setOnboardingBusy(null);
+    setOnboardingPractice(null);
+  };
+
   // ---- Email ----
   const emailDPIA = () => {
     if (!current) return;
