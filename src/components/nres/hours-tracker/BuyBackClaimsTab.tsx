@@ -781,6 +781,28 @@ function getStaffMaxAmount(staff: any, claimMonth?: string, rateParams?: RatePar
 function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RateParams) {
   const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours';
   const allocValue = staff.allocation_value as number;
+  const isManagement = staff.staff_category === 'management' || staff.staff_role === 'NRES Management';
+
+  // Management: simple hourly × weekly hours × working weeks
+  if (isManagement && staff.hourly_rate && rateParams?.workingWeeksInMonth) {
+    const hourlyRate = staff.hourly_rate as number;
+    const workingWeeks = rateParams.workingWeeksInMonth;
+    const totalHours = allocValue * workingWeeks;
+    const finalMonthly = hourlyRate * totalHours;
+    const bhCount = rateParams.bankHolidaysInMonth ?? 0;
+    return {
+      isManagement: true,
+      hourlyRate,
+      weeklyHours: allocValue,
+      workingWeeks,
+      totalHours,
+      bankHolidaysExcluded: bhCount,
+      baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
+      onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
+      proRataInfo: null, finalMonthly, baseRate: fmtGBP(hourlyRate),
+    };
+  }
+
   const niPct = rateParams?.employerNiPct ?? 15;
   const pensionPct = rateParams?.employerPensionPct ?? 14.38;
   const onCostRate = rateParams ? (rateParams.onCostMultiplier - 1) : 0.2938;
@@ -834,7 +856,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     }
   }
 
-  return { baseSalary, baseLabel, niPct, pensionPct, niValue, pensionValue, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly, baseRate: rateLabel };
+  return { isManagement: false, baseSalary, baseLabel, niPct, pensionPct, niValue, pensionValue, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly, baseRate: rateLabel };
 }
 
 /** Hover card showing the full calculation breakdown for a staff line's monthly amount */
