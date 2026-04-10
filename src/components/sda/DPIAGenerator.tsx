@@ -359,20 +359,23 @@ export default function DPIAGenerator() {
 
     setOnboardingBusy(practice.id);
     try {
-      // Generate a simple HTML-to-PDF via print-style blob
-      // We'll send the DPIA HTML content as a base64 "PDF" (actually Word-like HTML for Resend attachment)
-      const docHtml = `<html><head><meta charset="utf-8"><title>DPIA - ${practice.practice_name}</title>
-        <style>body{font-family:Arial,sans-serif;font-size:11pt;color:#212b32;line-height:1.6;padding:2cm;}
-        h1{color:#005EB8;font-size:18pt;border-bottom:2px solid #005EB8;padding-bottom:6px;}
-        h2{color:#003087;font-size:14pt;margin-top:20px;}h3{color:#005EB8;font-size:12pt;}
-        table{border-collapse:collapse;width:100%;margin:12px 0;}
-        th,td{border:1px solid #999;padding:6px 10px;font-size:10pt;vertical-align:top;word-wrap:break-word;}
-        th{background:#005EB8;color:white;text-align:left;font-weight:bold;}
-        tr:nth-child(even){background:#f5f7fa;}</style>
-        </head><body>${practice.dpia_html}</body></html>`;
+      // Generate Word-compatible HTML document (.doc format that Word opens natively)
+      const docHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="utf-8"><meta name="ProgId" content="Word.Document"><meta name="Generator" content="Microsoft Word 15">
+        <title>DPIA - ${practice.practice_name}</title>
+        <style>
+          @page { size: A4; margin: 2cm; }
+          body{font-family:Arial,sans-serif;font-size:11pt;color:#212b32;line-height:1.6;}
+          h1{color:#005EB8;font-size:18pt;border-bottom:2px solid #005EB8;padding-bottom:6px;}
+          h2{color:#003087;font-size:14pt;margin-top:20px;}h3{color:#005EB8;font-size:12pt;}
+          table{border-collapse:collapse;width:100%;margin:12px 0;}
+          th,td{border:1px solid #999;padding:6px 10px;font-size:10pt;vertical-align:top;word-wrap:break-word;}
+          th{background:#005EB8;color:white;text-align:left;font-weight:bold;}
+          tr:nth-child(even){background:#f5f7fa;}
+        </style></head><body>${practice.dpia_html}</body></html>`;
       
       const dpiaBase64 = btoa(unescape(encodeURIComponent(docHtml)));
-      const fileName = `DPIA_Notewell_AI_${practice.practice_name.replace(/\s+/g, "_")}_${practice.ods_code || ""}_${new Date().toISOString().slice(0,10)}.html`;
+      const fileName = `DPIA_Notewell_AI_${practice.practice_name.replace(/\s+/g, "_")}_${practice.ods_code || ""}_${new Date().toISOString().slice(0,10)}.doc`;
 
       const { data, error } = await supabase.functions.invoke("onboard-practice", {
         body: {
