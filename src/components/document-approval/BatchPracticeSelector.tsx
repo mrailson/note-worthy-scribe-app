@@ -60,6 +60,7 @@ export function BatchPracticeSelector({ selections, onChange }: BatchPracticeSel
       bugbrooke: 'bugbrooke',
       brook: 'brook health',
       denton: 'denton',
+      bt_pcn: 'brackley & towcester pcn',
     };
 
     const matchedDirectoryIndices = new Set<number>();

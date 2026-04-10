@@ -9,7 +9,7 @@ import { generateEvidenceSummaryFallback } from '@/utils/evidenceAiSummary';
 
 interface ClaimEvidencePanelProps {
   claimId: string;
-  claimCategory: 'buyback' | 'new_sda' | 'mixed';
+  claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed';
   canEdit: boolean;
   sharedEvidence?: {
     uploadedTypes: Record<string, any>;
@@ -162,7 +162,7 @@ export function StaffLineEvidence({
   onDelete,
   onDownload,
 }: {
-  staffCategory: 'buyback' | 'new_sda';
+  staffCategory: 'buyback' | 'new_sda' | 'management';
   staffIndex: number;
   staffName?: string;
   staffRole?: string;
@@ -259,7 +259,7 @@ export function StaffLineEvidence({
 export function useStaffLineEvidenceComplete(
   staffDetails: any[],
   getUploadedTypesForStaff: (staffIndex: number) => Record<string, ClaimEvidenceFile>,
-  getConfigForCategory: (category: 'buyback' | 'new_sda' | 'mixed') => EvidenceConfigRow[],
+  getConfigForCategory: (category: 'buyback' | 'new_sda' | 'management' | 'mixed') => EvidenceConfigRow[],
 ) {
   let allComplete = true;
   let totalMandatory = 0;
@@ -285,7 +285,7 @@ export function useStaffLineEvidenceComplete(
 }
 
 /** Legacy hook-like helper for claim-level evidence (kept for backward compat) */
-export function useEvidenceComplete(claimId: string, claimCategory: 'buyback' | 'new_sda' | 'mixed', externalUploadedTypes?: Record<string, any>) {
+export function useEvidenceComplete(claimId: string, claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed', externalUploadedTypes?: Record<string, any>) {
   const { uploadedTypes: internalUploadedTypes } = useNRESClaimEvidence(claimId);
   const { getMandatoryForCategory } = useNRESEvidenceConfig();
 
