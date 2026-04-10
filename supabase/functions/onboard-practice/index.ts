@@ -180,7 +180,7 @@ serve(async (req) => {
         full_name: pmName,
         email: pmEmail,
         role: "practice_manager",
-        practice_id: practiceId || null,
+        practice_id: gpPracticeId || null,
         practice_name: practiceName,
         k_code: odsCode || null,
         modules: ["ai4gp", "complaints", "meetings", "translation"],
@@ -194,7 +194,7 @@ serve(async (req) => {
       // Step 2b: Create user_roles record with default PM module access
       const { error: roleError2 } = await adminClient.from("user_roles").insert({
         user_id: userId,
-        practice_id: practiceId || null,
+        practice_id: gpPracticeId || null,
         role: "practice_manager",
         practice_role: "Practice Manager",
         assigned_by: caller.id,
