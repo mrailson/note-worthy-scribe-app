@@ -331,18 +331,19 @@ serve(async (req) => {
       }
     }
 
-    // Update onboarded_at
-    if (body.dpiaRecordId) {
+    // Update onboarded_at (skip in test mode)
+    if (body.dpiaRecordId && !isTest) {
       const { error: updateErr } = await adminClient.from("dpia_practices").update({
         onboarded_at: new Date().toISOString(),
       }).eq("id", body.dpiaRecordId);
       if (updateErr) console.error("Update onboarded_at error:", updateErr.message);
     }
 
-    console.log("Onboarding complete:", { alreadyExisted, userId, dpiaEmailSent, welcomeEmailSent });
+    console.log("Onboarding complete:", { isTest, alreadyExisted, userId, dpiaEmailSent, welcomeEmailSent });
 
     return new Response(JSON.stringify({
       success: true,
+      testMode: isTest,
       alreadyExisted,
       userId,
       dpiaEmailSent,
