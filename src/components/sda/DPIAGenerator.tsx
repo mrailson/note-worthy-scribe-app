@@ -573,6 +573,12 @@ export default function DPIAGenerator() {
                       ) : (
                         <Badge variant="secondary" className="text-xs shrink-0">Pending</Badge>
                       )}
+                      {p.onboarded_at && (
+                        <Badge className="bg-emerald-100 text-emerald-800 text-xs shrink-0">
+                          <Check className="w-3 h-3 mr-1" />
+                          Onboarded {new Date(p.onboarded_at).toLocaleDateString("en-GB")}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5 truncate">
                       PM: {p.pm_name} · CG: {p.cg_name} · DPO: {p.dpo_name}
@@ -584,6 +590,28 @@ export default function DPIAGenerator() {
                       <Button variant="ghost" size="icon" onClick={() => viewDPIA(p)} title="View DPIA">
                         <Eye className="w-4 h-4" />
                       </Button>
+                    )}
+                    {p.dpia_generated && !p.onboarded_at && (
+                      <TooltipProvider>
+                        <Tooltip delayDuration={200}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={onboardingBusy === p.id}
+                              onClick={() => setOnboardingPractice(p)}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              {onboardingBusy === p.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <UserPlus className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Send DPIA & Create PM Account</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                     <Button
                       variant="ghost"
