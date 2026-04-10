@@ -9,6 +9,7 @@ export const NRES_PRACTICES = {
   bugbrooke: 'Bugbrooke Medical Practice',
   brook: 'Brook Health Centre',
   denton: 'Denton Village Surgery',
+  bt_pcn: 'Brackley & Towcester PCN Ltd',
 } as const;
 
 export type NRESPracticeKey = keyof typeof NRES_PRACTICES;
@@ -23,6 +24,7 @@ export const NRES_ODS_CODES: Record<NRESPracticeKey, string> = {
   bugbrooke: 'K83070',
   brook: 'K83620',
   denton: 'K83068',
+  bt_pcn: 'N/A',
 };
 
 export const NRES_PRACTICE_ADDRESSES: Record<NRESPracticeKey, string> = {
@@ -33,6 +35,7 @@ export const NRES_PRACTICE_ADDRESSES: Record<NRESPracticeKey, string> = {
   bugbrooke: 'Bugbrooke Medical Practice, Levitts Road, Bugbrooke, Northampton, NN7 3QN',
   brook: 'Brook Health Centre, Stratford Road, Roade, Northampton, NN7 2NT',
   denton: 'Denton Village Surgery, Orchard Lane, Denton, Northampton, NN7 1HT',
+  bt_pcn: 'Brackley & Towcester PCN Ltd, c/o Brackley Medical Centre, Halse Road, Brackley, NN13 6EQ',
 };
 
 export interface NRESPracticeContact {
@@ -49,6 +52,7 @@ export const NRES_PRACTICE_CONTACTS: Record<NRESPracticeKey, NRESPracticeContact
   bugbrooke: { practiceManager: 'Lorraine Spicer', email: 'lorraine.spicer@nhs.net', phone: '01604 830348' },
   brook: { practiceManager: 'Anita Carter', email: 'anita.carter5@nhs.net', phone: '' },
   denton: { practiceManager: 'Nicola Draper', email: 'nicola.draper3@nhs.net', phone: '01604 890313' },
+  bt_pcn: { practiceManager: 'Malcolm Railson', email: 'malcolm.railson@nhs.net', phone: '' },
 };
 
 /** Get the display name for a practice key, checking both NRES and ENN practices */
