@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { exportClaimsDetail, exportMonthlySummary, exportYTDRunningTotals } from '@/utils/buybackExcelExport';
@@ -267,7 +267,67 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   }), [rateSettings.email_testing_mode, user?.email, user?.user_metadata?.full_name]);
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, markPaid, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
-  const rateParams: RateParams = { onCostMultiplier, getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; }, employerNiPct: rateSettings.employer_ni_pct, employerPensionPct: rateSettings.employer_pension_pct };
+  // Fetch bank holidays for working-weeks calculation (management claims)
+  const [bankHolidayDates, setBankHolidayDates] = useState<string[]>([]);
+  useEffect(() => {
+    const fetchBH = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from('bank_holidays_closed_days')
+          .select('date')
+          .eq('type', 'bank_holiday');
+        if (data) setBankHolidayDates(data.map((r: any) => r.date));
+      } catch { /* ignore */ }
+    };
+    fetchBH();
+  }, []);
+
+  const { getWorkingWeeksInMonth: calcWorkingWeeks, getWorkingDaysInMonth: calcWorkingDays } = useMemo(() => {
+    // Inline helpers using fetched bank holidays
+    const getWorkingDaysInMonth = (claimMonth: string): number => {
+      const start = new Date(claimMonth);
+      const year = start.getFullYear();
+      const month = start.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      let weekdays = 0;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const day = new Date(year, month, d).getDay();
+        if (day !== 0 && day !== 6) weekdays++;
+      }
+      const bhInMonth = bankHolidayDates.filter(dateStr => {
+        const bh = new Date(dateStr);
+        return bh.getFullYear() === year && bh.getMonth() === month && bh.getDay() !== 0 && bh.getDay() !== 6;
+      });
+      return weekdays - bhInMonth.length;
+    };
+    const getWorkingWeeksInMonth = (claimMonth: string): number => getWorkingDaysInMonth(claimMonth) / 5;
+    return { getWorkingWeeksInMonth, getWorkingDaysInMonth };
+  }, [bankHolidayDates]);
+
+  // Count bank holidays in a specific month
+  const getBankHolidaysInMonth = useCallback((claimMonth: string): number => {
+    const start = new Date(claimMonth);
+    const year = start.getFullYear();
+    const month = start.getMonth();
+    return bankHolidayDates.filter(dateStr => {
+      const bh = new Date(dateStr);
+      return bh.getFullYear() === year && bh.getMonth() === month && bh.getDay() !== 0 && bh.getDay() !== 6;
+    }).length;
+  }, [bankHolidayDates]);
+
+  // Build rateParams with working weeks for the current claim month
+  const claimMonthDate = `${claimMonth}-01`;
+  const workingWeeksForMonth = calcWorkingWeeks(claimMonthDate);
+  const bankHolidaysForMonth = getBankHolidaysInMonth(claimMonthDate);
+
+  const rateParams: RateParams = {
+    onCostMultiplier,
+    getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; },
+    employerNiPct: rateSettings.employer_ni_pct,
+    employerPensionPct: rateSettings.employer_pension_pct,
+    workingWeeksInMonth: workingWeeksForMonth,
+    bankHolidaysInMonth: bankHolidaysForMonth,
+  };
 
   const { isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
 
