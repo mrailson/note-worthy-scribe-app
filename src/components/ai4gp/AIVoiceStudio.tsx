@@ -318,6 +318,11 @@ const AIVoiceStudio: React.FC = () => {
               <p className="text-xs text-muted-foreground italic mb-4">{info.footnote}</p>
             )}
 
+            {/* ElevenLabs Widget */}
+            <div className="mb-4">
+              <ElevenLabsWidget agentId={AGENT_IDS[info.id]} />
+            </div>
+
             {/* Phone section */}
             <div className="bg-muted rounded-[10px] p-3.5 border border-border mb-4">
               <div className="flex items-center gap-2.5 mb-2">
