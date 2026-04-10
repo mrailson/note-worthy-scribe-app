@@ -114,11 +114,15 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
     }
   };
 
-  // Filter management roles by matching the practice's ODS code to billing_org_code
+  // Filter management roles by matching the practice's ODS code or name to billing config
   const availableMgmtRoles = useMemo(() => {
     if (!managementRoles || !practice) return [];
-    const practiceOdsCode = NRES_ODS_CODES[practice as NRESPracticeKey] ?? practice;
-    return managementRoles.filter(r => r.is_active && r.billing_org_code === practiceOdsCode);
+    const practiceOdsCode = NRES_ODS_CODES[practice as NRESPracticeKey] ?? '';
+    const practiceName = NRES_PRACTICES[practice as NRESPracticeKey] ?? '';
+    return managementRoles.filter(r => r.is_active && (
+      r.billing_org_code === practiceOdsCode ||
+      r.billing_entity === practiceName
+    ));
   }, [managementRoles, practice]);
 
   // When management person is selected from picklist
