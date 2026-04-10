@@ -15,7 +15,7 @@ import { ManagementTimeTab } from './ManagementTimeTab';
 import { ClaimsUserGuide } from './ClaimsUserGuide';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
-import { NRES_PRACTICES, NRES_PRACTICE_KEYS, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
+import { NRES_PRACTICES, NRES_PRACTICE_KEYS, NRES_ODS_CODES, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 import { ENN_PRACTICES, ENN_PRACTICE_KEYS, type ENNPracticeKey } from '@/data/ennPractices';
 
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
@@ -114,10 +114,15 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
     }
   };
 
-  // Filter management roles by practice's billing_org_code
+  // Filter management roles by matching the practice's ODS code or name to billing config
   const availableMgmtRoles = useMemo(() => {
     if (!managementRoles || !practice) return [];
-    return managementRoles.filter(r => r.is_active && r.billing_org_code === practice);
+    const practiceOdsCode = NRES_ODS_CODES[practice as NRESPracticeKey] ?? '';
+    const practiceName = NRES_PRACTICES[practice as NRESPracticeKey] ?? '';
+    return managementRoles.filter(r => r.is_active && (
+      r.billing_org_code === practiceOdsCode ||
+      r.billing_entity === practiceName
+    ));
   }, [managementRoles, practice]);
 
   // When management person is selected from picklist
