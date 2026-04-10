@@ -84,8 +84,10 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { pmEmail, pmName, practiceName, practiceId: dpiaRecordId, odsCode, dpiaBase64, dpiaFileName } = body;
-    console.log("Onboarding:", pmEmail, practiceName, "ODS:", odsCode);
+    const { pmEmail, pmName, practiceName, practiceId: dpiaRecordId, odsCode, dpiaBase64, dpiaFileName, testMode } = body;
+    const TEST_RECIPIENT = "malcolm.railson@nhs.net";
+    const isTest = testMode === true;
+    console.log("Onboarding:", pmEmail, practiceName, "ODS:", odsCode, "testMode:", isTest);
 
     if (!pmEmail || !pmName || !practiceName || !dpiaBase64) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -137,7 +139,13 @@ serve(async (req) => {
       }
     }
 
-    if (!existingUser) {
+    if (isTest) {
+      // Test mode: skip account creation entirely, just send emails to Malcolm
+      alreadyExisted = false;
+      userId = "test-mode-no-account";
+      tempPassword = generatePassword();
+      console.log("TEST MODE: Skipping account creation. Generated sample password:", tempPassword);
+    } else if (!existingUser) {
       // Also try creating — if email exists, createUser will fail with a specific error
       // But first, let's try a direct lookup
       try {
@@ -150,69 +158,71 @@ serve(async (req) => {
       }
     }
 
-    if (existingUser) {
-      alreadyExisted = true;
-      userId = existingUser.id;
-      console.log(`User already exists: ${pmEmail} (${userId})`);
-    } else {
-      // Create new user
-      tempPassword = generatePassword();
-      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-        email: pmEmail,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { full_name: pmName, role: "practice_manager" },
-      });
-
-      if (createError) {
-        console.error("Create user error:", createError.message);
-        return new Response(JSON.stringify({ error: `Failed to create account: ${createError.message}` }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!isTest) {
+      if (existingUser) {
+        alreadyExisted = true;
+        userId = existingUser.id;
+        console.log(`User already exists: ${pmEmail} (${userId})`);
+      } else {
+        // Create new user
+        tempPassword = generatePassword();
+        const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+          email: pmEmail,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { full_name: pmName, role: "practice_manager" },
         });
-      }
 
-      userId = newUser.user.id;
-      console.log(`Created new user: ${pmEmail} (${userId})`);
+        if (createError) {
+          console.error("Create user error:", createError.message);
+          return new Response(JSON.stringify({ error: `Failed to create account: ${createError.message}` }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
 
-      // Step 2: Create profile
-      const { error: profileError } = await adminClient.from("profiles").upsert({
-        id: userId,
-        full_name: pmName,
-        email: pmEmail,
-        role: "practice_manager",
-        practice_id: gpPracticeId || null,
-        practice_name: practiceName,
-        k_code: odsCode || null,
-        modules: ["ai4gp", "complaints", "meetings", "translation", "survey", "cqc_compliance"],
-        created_by: "dpia_onboarding",
-      }, { onConflict: "id" });
+        userId = newUser.user.id;
+        console.log(`Created new user: ${pmEmail} (${userId})`);
 
-      if (profileError) {
-        console.error("Profile upsert error:", profileError.message);
-      }
+        // Step 2: Create profile
+        const { error: profileError } = await adminClient.from("profiles").upsert({
+          id: userId,
+          full_name: pmName,
+          email: pmEmail,
+          role: "practice_manager",
+          practice_id: gpPracticeId || null,
+          practice_name: practiceName,
+          k_code: odsCode || null,
+          modules: ["ai4gp", "complaints", "meetings", "translation", "survey", "cqc_compliance"],
+          created_by: "dpia_onboarding",
+        }, { onConflict: "id" });
 
-      // Step 2b: Create user_roles record with default PM module access
-      const { error: roleError2 } = await adminClient.from("user_roles").insert({
-        user_id: userId,
-        practice_id: gpPracticeId || null,
-        role: "practice_manager",
-        practice_role: "Practice Manager",
-        assigned_by: caller.id,
-        meeting_notes_access: true,
-        complaints_manager_access: true,
-        translation_service_access: true,
-        survey_manager_access: true,
-        gp_scribe_access: false,
-        enhanced_access: false,
-        cqc_compliance_access: true,
-        shared_drive_access: false,
-        mic_test_service_access: false,
-        api_testing_service_access: false,
-        document_signoff_access: false,
-      });
+        if (profileError) {
+          console.error("Profile upsert error:", profileError.message);
+        }
 
-      if (roleError2) {
-        console.error("User roles insert error:", roleError2.message);
+        // Step 2b: Create user_roles record with default PM module access
+        const { error: roleError2 } = await adminClient.from("user_roles").insert({
+          user_id: userId,
+          practice_id: gpPracticeId || null,
+          role: "practice_manager",
+          practice_role: "Practice Manager",
+          assigned_by: caller.id,
+          meeting_notes_access: true,
+          complaints_manager_access: true,
+          translation_service_access: true,
+          survey_manager_access: true,
+          gp_scribe_access: false,
+          enhanced_access: false,
+          cqc_compliance_access: true,
+          shared_drive_access: false,
+          mic_test_service_access: false,
+          api_testing_service_access: false,
+          document_signoff_access: false,
+        });
+
+        if (roleError2) {
+          console.error("User roles insert error:", roleError2.message);
+        }
       }
     }
 
@@ -242,16 +252,18 @@ serve(async (req) => {
         </div>`;
 
     let dpiaEmailSent = false;
+    const dpiaRecipient = isTest ? TEST_RECIPIENT : pmEmail;
+    const dpiaSubjectPrefix = isTest ? "[TEST] " : "";
     try {
       const dpiaResp = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendApiKey}` },
         body: JSON.stringify({
           from: "Notewell AI <noreply@bluepcn.co.uk>",
-          to: [pmEmail],
-          bcc: ["malcolm.railson@nhs.net"],
-          subject: `Notewell AI – DPIA for ${practiceName}`,
-          html: dpiaEmailBody,
+          to: [dpiaRecipient],
+          ...(isTest ? {} : { bcc: ["malcolm.railson@nhs.net"] }),
+          subject: `${dpiaSubjectPrefix}Notewell AI – DPIA for ${practiceName}`,
+          html: (isTest ? `<div style="background:#fff3cd;padding:12px 16px;border:2px solid #ffc107;border-radius:8px;margin-bottom:16px;font-family:Arial,sans-serif;"><strong>🧪 TEST MODE</strong> — This would be sent to <strong>${pmEmail}</strong> (${pmName}). No account was created.</div>` : "") + dpiaEmailBody,
           attachments: [{
             filename: dpiaFileName || `DPIA_Notewell_AI_${practiceName.replace(/\s+/g, "_")}.doc`,
             content: dpiaBase64,
@@ -283,11 +295,13 @@ serve(async (req) => {
               apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
             },
             body: JSON.stringify({
-              user_email: pmEmail,
+              user_email: isTest ? TEST_RECIPIENT : pmEmail,
               user_name: pmName,
               user_password: tempPassword,
               user_role: "practice_manager",
               practice_name: practiceName,
+              test_mode: isTest,
+              original_email: isTest ? pmEmail : undefined,
               module_access: {
                 ai4gp_access: true,
                 complaints_manager_access: true,
@@ -296,7 +310,7 @@ serve(async (req) => {
                 survey_manager_access: true,
                 gp_scribe_access: false,
                 enhanced_access: false,
-                cqc_compliance_access: false,
+                cqc_compliance_access: true,
                 shared_drive_access: false,
                 mic_test_service_access: false,
                 api_testing_service_access: false,
@@ -317,18 +331,19 @@ serve(async (req) => {
       }
     }
 
-    // Update onboarded_at
-    if (body.dpiaRecordId) {
+    // Update onboarded_at (skip in test mode)
+    if (body.dpiaRecordId && !isTest) {
       const { error: updateErr } = await adminClient.from("dpia_practices").update({
         onboarded_at: new Date().toISOString(),
       }).eq("id", body.dpiaRecordId);
       if (updateErr) console.error("Update onboarded_at error:", updateErr.message);
     }
 
-    console.log("Onboarding complete:", { alreadyExisted, userId, dpiaEmailSent, welcomeEmailSent });
+    console.log("Onboarding complete:", { isTest, alreadyExisted, userId, dpiaEmailSent, welcomeEmailSent });
 
     return new Response(JSON.stringify({
       success: true,
+      testMode: isTest,
       alreadyExisted,
       userId,
       dpiaEmailSent,
