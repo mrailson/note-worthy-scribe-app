@@ -2005,8 +2005,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             </TabsTrigger>
             <TabsTrigger value="dpia-generator" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">DPIA Generator</span>
-              <span className="sm:hidden">DPIA</span>
+              <span className="hidden sm:inline">Onboard Service</span>
+              <span className="sm:hidden">Onboard</span>
             </TabsTrigger>
           </TabsList>
 
