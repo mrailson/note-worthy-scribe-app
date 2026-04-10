@@ -934,6 +934,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       workingWeeks,
       totalHours,
       bankHolidaysExcluded: bhCount,
+      bankHolidayDetails: rateParams.bankHolidayDetails ?? [],
       baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
       onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
       proRataInfo: null, finalMonthly, baseRate: fmtGBP(hourlyRate),
