@@ -23,13 +23,13 @@ export const DashboardHeader = ({
 
   const practices = [
     'All Practices',
-    'Towcester MC',
     'Brackley MC',
+    'Brook',
     'Bugbrooke',
     'Denton',
     'Parks MC',
-    'Brook',
-    'Springfield'
+    'Springfield',
+    'Towcester MC'
   ];
 
   return (

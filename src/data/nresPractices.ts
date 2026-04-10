@@ -14,7 +14,9 @@ export const NRES_PRACTICES = {
 
 export type NRESPracticeKey = keyof typeof NRES_PRACTICES;
 
-export const NRES_PRACTICE_KEYS = Object.keys(NRES_PRACTICES) as NRESPracticeKey[];
+export const NRES_PRACTICE_KEYS = (Object.keys(NRES_PRACTICES) as NRESPracticeKey[]).sort(
+  (a, b) => NRES_PRACTICES[a].localeCompare(NRES_PRACTICES[b])
+);
 
 export const NRES_ODS_CODES: Record<NRESPracticeKey, string> = {
   parks: 'K83052',
