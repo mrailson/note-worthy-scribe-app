@@ -32,7 +32,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
@@ -285,6 +285,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const [proposalOpen, setProposalOpen] = useState(false);
+  const [claimsHistoryOpen, setClaimsHistoryOpen] = useState(false);
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
@@ -560,12 +561,19 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       <Separator />
 
       {/* Claims */}
+      <Collapsible open={claimsHistoryOpen} onOpenChange={setClaimsHistoryOpen}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">
-            {filteredClaims.some(c => c.status === 'draft') ? 'Current Claim' : 'Claims History'}
-          </CardTitle>
-          {effectiveIsAdmin && !testActive && (
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center gap-2 w-full text-left">
+              <ChevronRight className={cn("w-4 h-4 transition-transform", claimsHistoryOpen && "rotate-90")} />
+              <CardTitle className="text-lg">
+                {filteredClaims.some(c => c.status === 'draft') ? 'Current Claim' : 'Claims History'}
+              </CardTitle>
+              <Badge variant="secondary" className="ml-auto text-xs">{filteredClaims.length}</Badge>
+            </button>
+          </CollapsibleTrigger>
+          {claimsHistoryOpen && effectiveIsAdmin && !testActive && (
             <div className="flex flex-wrap gap-2 mt-2 items-center">
               {([
                 { key: 'all', label: 'All' },
@@ -593,7 +601,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               ))}
             </div>
           )}
-          {effectiveIsAdmin && (
+          {claimsHistoryOpen && effectiveIsAdmin && (
             <div className="flex gap-2 mt-2">
               <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus)}>
                 <Download className="w-3 h-3" /> Export Detail
@@ -607,6 +615,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             </div>
           )}
         </CardHeader>
+        <CollapsibleContent>
         {effectiveIsAdmin && (
           <div className="px-6 pb-2">
             <UnclaimedFundsIndicator claims={claims} practiceKeys={ALL_PRACTICE_KEYS} />
@@ -671,7 +680,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             </div>
           )}
         </CardContent>
+        </CollapsibleContent>
       </Card>
+      </Collapsible>
 
       {/* Management Time Section */}
       {effectiveIsAdmin && !isENN && (
