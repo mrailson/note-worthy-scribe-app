@@ -744,6 +744,13 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           totalAmount: claim.claimed_amount,
           staffLineCount: staffDetails.length,
           staffCategories: staffDetails.map((s: any) => s.staff_category).filter(Boolean),
+          staffLines: staffDetails.map((s: any) => ({
+            staff_name: s.staff_name || '',
+            staff_role: s.staff_role || '',
+            allocation_type: s.allocation_type || 'hours',
+            allocation_value: s.allocation_value || 0,
+            claimed_amount: s.claimed_amount || 0,
+          })),
           submitterEmail: claim.submitted_by_email || '',
           reviewerEmail: user.email || '',
           reviewerName: emailConfig.currentUserName,
