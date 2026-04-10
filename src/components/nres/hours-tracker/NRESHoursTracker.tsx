@@ -179,7 +179,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
         </DialogContent>
       </Dialog>
 
-
+      <TabsContent value="buy-back">
         <BuyBackClaimsTab neighbourhoodName={neighbourhoodName} />
       </TabsContent>
 
