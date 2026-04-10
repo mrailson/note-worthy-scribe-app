@@ -593,7 +593,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={effectivePracticeKeys} practiceNames={ALL_PRACTICES} />
+          <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={effectivePracticeKeys} practiceNames={ALL_PRACTICES} managementRoles={rateSettings.management_roles_config} />
 
           {/* Staff list */}
           {filteredStaff.length > 0 && (
