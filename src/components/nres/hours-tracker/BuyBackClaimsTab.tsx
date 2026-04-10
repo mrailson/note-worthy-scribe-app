@@ -476,6 +476,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
 
   const [proposalOpen, setProposalOpen] = useState(false);
   const [claimsHistoryOpen, setClaimsHistoryOpen] = useState(isPMLFinance);
+  const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
@@ -570,6 +571,14 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     rejected: practiceFilteredClaims.filter(c => c.status === 'rejected').length,
     draft: practiceFilteredClaims.filter(c => c.status === 'draft').length,
   };
+
+  // Auto-expand claims section when there are claims to show
+  useEffect(() => {
+    if (!hasAutoExpanded && filteredClaims.length > 0) {
+      setClaimsHistoryOpen(true);
+      setHasAutoExpanded(true);
+    }
+  }, [filteredClaims.length, hasAutoExpanded]);
 
   const categoryBadge = (cat: string) => {
     if (cat === 'new_sda') return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>;
