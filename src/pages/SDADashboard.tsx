@@ -83,6 +83,11 @@ const SDADashboard = () => {
               <TabsContent value="hours" className="mt-0">
                 <NRESHoursTracker />
               </TabsContent>
+              <TabsContent value="dpia" className="mt-0">
+                <Suspense fallback={<div className="py-8 text-center text-sm text-slate-500">Loading DPIA Generator…</div>}>
+                  <DPIAGenerator />
+                </Suspense>
+              </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
                 <NRESDocumentVault />
               </TabsContent>
