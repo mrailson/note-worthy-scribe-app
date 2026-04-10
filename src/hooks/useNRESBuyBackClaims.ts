@@ -67,6 +67,8 @@ export interface RateParams {
   workingWeeksInMonth?: number;
   /** Number of bank holidays excluded from the month */
   bankHolidaysInMonth?: number;
+  /** Detailed bank holiday info for display */
+  bankHolidayDetails?: { name: string; formatted: string }[];
 }
 
 /** Calculate the maximum monthly claim amount for a staff member */
