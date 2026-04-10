@@ -132,19 +132,32 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
             Finance, Governance & Insurance
           </TabsTrigger>
         </TabsList>
-        {activeTab === 'buy-back' && admin && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="outline" className="text-xs" onClick={() => setSettingsOpen(true)}>
-                  <Settings className="w-3.5 h-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">Access Settings</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        {activeTab === 'buy-back' && (
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="sm" variant="outline" className="text-xs" onClick={() => setGuideOpen(true)}>
+                    <HelpCircle className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">Claims Guide</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {admin && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" variant="outline" className="text-xs" onClick={() => setSettingsOpen(true)}>
+                      <Settings className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">Access Settings</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         )}
-      </div>
 
 
       <TabsContent value="buy-back">
