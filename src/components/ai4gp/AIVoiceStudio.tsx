@@ -245,21 +245,6 @@ const AIVoiceStudio: React.FC = () => {
               <ElevenLabsWidget agentId={AGENT_IDS[widget.id]} />
             </div>
 
-            {/* Example prompts */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-2">Try asking...</p>
-              <div className="flex flex-col gap-1.5">
-                {widget.examples.map((ex, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setQuery(ex)}
-                    className="text-left bg-muted border border-border rounded-lg px-3 py-2 text-[13px] text-foreground cursor-pointer hover:bg-accent transition-colors leading-snug"
-                  >
-                    💡 {ex}
-                  </button>
-                ))}
-              </div>
-            </div>
           </Card>
         );
       })()}
