@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { recipientEmail, recipientName, practiceName } = await req.json();
+    const { recipientEmail, recipientName, practiceName, practiceOds } = await req.json();
 
     if (!recipientEmail || !recipientName) {
       return new Response(
@@ -72,6 +72,8 @@ Deno.serve(async (req) => {
     }
 
     const practiceLabel = practiceName ? ` for ${practiceName}` : "";
+    const practiceOdsLabel = practiceOds ? ` (ODS: ${practiceOds})` : "";
+    const practiceFullLabel = practiceName ? ` for <strong>${practiceName}</strong>${practiceOdsLabel}` : "";
 
     const htmlBody = `
 <!DOCTYPE html>
@@ -97,7 +99,7 @@ Following formal approval from the NHS Northamptonshire ICB DDaT Delivery Group,
 </p>
 
 <p style="color:#333;font-size:14px;line-height:1.7;margin:0 0 16px;">
-To prepare a custom <strong>Data Protection Impact Assessment (DPIA)</strong>${practiceLabel}, along with a suggested Privacy Notice update, we need to collect some key information from you.
+To prepare a custom <strong>Data Protection Impact Assessment (DPIA)</strong>${practiceFullLabel}, along with a suggested Privacy Notice update, we need to collect some key information from you.
 </p>
 
 <!-- Action Card -->
