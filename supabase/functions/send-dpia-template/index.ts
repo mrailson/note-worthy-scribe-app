@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id);
 
     const isAdmin = roles?.some(
-      (r: any) => r.role === "super_admin" || r.role === "management_lead"
+      (r: any) => ["super_admin", "management_lead", "system_admin"].includes(r.role)
     );
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
