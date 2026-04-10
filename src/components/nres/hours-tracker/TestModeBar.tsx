@@ -1,10 +1,9 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, useRef, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
+import { FlaskConical, RotateCcw, ChevronDown, Building2 } from 'lucide-react';
 
 export type TestRole = 'admin' | 'practice' | 'mgmt_lead' | 'pml_director' | 'pml_finance';
 
@@ -14,12 +13,12 @@ export interface TestModeState {
   selectedPractice?: string;
 }
 
-const ROLE_OPTIONS: { value: TestRole; label: string; description: string }[] = [
-  { value: 'admin', label: 'Full Admin', description: 'See everything — current default behaviour' },
-  { value: 'practice', label: 'Practice User', description: 'Create, upload evidence, submit claims for one practice' },
-  { value: 'mgmt_lead', label: 'Management Lead', description: 'Verify submitted claims across all practices' },
-  { value: 'pml_director', label: 'PML Finance Director', description: 'Approve, query or reject verified claims' },
-  { value: 'pml_finance', label: 'PML Finance (View Only)', description: 'View approved/paid claims, mark as paid' },
+const ROLE_OPTIONS: { value: TestRole; label: string; icon: string }[] = [
+  { value: 'admin', label: 'Admin', icon: '👑' },
+  { value: 'practice', label: 'Practice', icon: '🏥' },
+  { value: 'mgmt_lead', label: 'Mgmt Lead', icon: '📋' },
+  { value: 'pml_director', label: 'PML Director', icon: '✅' },
+  { value: 'pml_finance', label: 'PML Finance', icon: '💰' },
 ];
 
 interface TestModeBarProps {
@@ -30,108 +29,132 @@ interface TestModeBarProps {
 }
 
 export function TestModeBar({ state, onChange, practiceKeys, practiceNames }: TestModeBarProps) {
-  const [open, setOpen] = useState(false);
-
-  const activeRole = ROLE_OPTIONS.find(r => r.value === state.role);
   const isOverriding = state.enabled && state.role !== 'admin';
+  const activeRole = ROLE_OPTIONS.find(r => r.value === state.role);
+  const [showPractice, setShowPractice] = useState(state.role === 'practice');
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setShowPractice(state.role === 'practice');
+  }, [state.role]);
+
+  const handleToggle = (enabled: boolean) => {
+    onChange({ ...state, enabled, role: enabled ? state.role : 'admin' });
+  };
+
+  const handleRoleChange = (role: TestRole) => {
+    onChange({
+      enabled: true,
+      role,
+      selectedPractice: role === 'practice' ? (state.selectedPractice || practiceKeys[0]) : undefined,
+    });
+  };
 
   return (
-    <div className="relative">
-      <Collapsible open={open} onOpenChange={setOpen}>
-        <div className={cn(
-          "rounded-lg border overflow-hidden transition-colors",
-          isOverriding
-            ? "border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700"
-            : "border-slate-200 bg-slate-50 dark:bg-slate-900 dark:border-slate-700"
+    <div
+      className={cn(
+        "rounded-lg border transition-all duration-300 overflow-hidden",
+        isOverriding
+          ? "border-amber-300/80 bg-gradient-to-r from-amber-50/80 to-orange-50/50 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-700/60 shadow-sm shadow-amber-200/30"
+          : "border-border/60 bg-muted/30"
+      )}
+    >
+      {/* Compact top bar */}
+      <div className="flex items-center gap-2.5 px-3 py-1.5">
+        <FlaskConical className={cn(
+          "h-3.5 w-3.5 shrink-0 transition-colors duration-200",
+          isOverriding ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+        )} />
+
+        <span className={cn(
+          "text-[11px] font-semibold tracking-wide uppercase shrink-0 transition-colors duration-200",
+          isOverriding ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"
         )}>
-          <CollapsibleTrigger asChild>
-            <button className="w-full flex items-center justify-between px-3 py-2 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors text-left">
-              <div className="flex items-center gap-2 text-xs">
-                <span>🧪</span>
-                <span className="font-medium">Test Mode</span>
-                {isOverriding && (
-                  <Badge className="bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100 text-[10px] px-1.5 py-0">
-                    Viewing as: {activeRole?.label}
-                    {state.role === 'practice' && state.selectedPractice && ` (${practiceNames[state.selectedPractice] || state.selectedPractice})`}
-                  </Badge>
-                )}
-              </div>
-              <div className="text-slate-400">
-                {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-              </div>
+          Test
+        </span>
+
+        <Switch
+          checked={state.enabled}
+          onCheckedChange={handleToggle}
+          className="scale-75 origin-left shrink-0"
+        />
+
+        {/* Inline role selector — segmented control style */}
+        <div
+          className={cn(
+            "flex items-center gap-0.5 rounded-md bg-background/80 border border-border/50 p-0.5 transition-all duration-300",
+            !state.enabled && "opacity-40 pointer-events-none"
+          )}
+        >
+          {ROLE_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => handleRoleChange(opt.value)}
+              className={cn(
+                "px-2 py-0.5 rounded text-[10px] font-medium transition-all duration-200 whitespace-nowrap",
+                state.role === opt.value
+                  ? "bg-amber-500 text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+              )}
+              title={opt.label}
+            >
+              <span className="mr-0.5">{opt.icon}</span>
+              <span className="hidden sm:inline">{opt.label}</span>
             </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="px-3 pb-3 pt-1 border-t border-amber-200 dark:border-amber-800 space-y-3">
-              <p className="text-[11px] text-muted-foreground">
-                Simulate different user perspectives. This is UI-only — no data or permissions are actually changed.
-              </p>
-
-              {/* Role pills */}
-              <div className="flex flex-wrap gap-1.5">
-                {ROLE_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => onChange({
-                      enabled: true,
-                      role: opt.value,
-                      selectedPractice: opt.value === 'practice' ? (state.selectedPractice || practiceKeys[0]) : undefined,
-                    })}
-                    className={cn(
-                      "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
-                      state.role === opt.value
-                        ? "bg-amber-600 text-white border-amber-600"
-                        : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-amber-400"
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Description */}
-              {activeRole && (
-                <p className="text-[11px] text-amber-800 dark:text-amber-300 italic">
-                  {activeRole.description}
-                </p>
-              )}
-
-              {/* Practice selector for Practice User role */}
-              {state.role === 'practice' && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">Practice:</span>
-                  <Select
-                    value={state.selectedPractice || ''}
-                    onValueChange={v => onChange({ ...state, selectedPractice: v })}
-                  >
-                    <SelectTrigger className="h-7 text-xs w-[200px]">
-                      <SelectValue placeholder="Select practice" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {practiceKeys.map(k => (
-                        <SelectItem key={k} value={k}>{practiceNames[k]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Reset button */}
-              {isOverriding && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs gap-1 border-amber-300 text-amber-800 hover:bg-amber-100"
-                  onClick={() => onChange({ enabled: true, role: 'admin' })}
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  Reset to Admin
-                </Button>
-              )}
-            </div>
-          </CollapsibleContent>
+          ))}
         </div>
-      </Collapsible>
+
+        {/* Active role badge — shows when overriding */}
+        {isOverriding && (
+          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300/50 text-[10px] px-1.5 py-0 animate-fade-in">
+            {activeRole?.icon} {activeRole?.label}
+            {state.role === 'practice' && state.selectedPractice && (
+              <span className="ml-1 opacity-70">· {practiceNames[state.selectedPractice]?.split(' ')[0] || state.selectedPractice}</span>
+            )}
+          </Badge>
+        )}
+
+        {/* Reset */}
+        {isOverriding && (
+          <button
+            onClick={() => onChange({ enabled: true, role: 'admin' })}
+            className="ml-auto text-amber-600/70 hover:text-amber-700 dark:text-amber-400/70 dark:hover:text-amber-300 transition-colors"
+            title="Reset to Admin"
+          >
+            <RotateCcw className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+
+      {/* Practice selector — slides open when Practice role selected */}
+      <div
+        ref={contentRef}
+        className={cn(
+          "grid transition-all duration-300 ease-out",
+          showPractice && state.enabled
+            ? "grid-rows-[1fr] opacity-100"
+            : "grid-rows-[0fr] opacity-0"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="flex items-center gap-2 px-3 pb-2 pt-0.5">
+            <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
+            <Select
+              value={state.selectedPractice || ''}
+              onValueChange={v => onChange({ ...state, selectedPractice: v })}
+            >
+              <SelectTrigger className="h-7 text-xs flex-1 max-w-[280px]">
+                <SelectValue placeholder="Select practice…" />
+              </SelectTrigger>
+              <SelectContent>
+                {practiceKeys.map(k => (
+                  <SelectItem key={k} value={k} className="text-xs">{practiceNames[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
