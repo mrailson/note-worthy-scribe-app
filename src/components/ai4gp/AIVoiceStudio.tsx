@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Mic, MicOff, Send, AlertTriangle, Lightbulb, ExternalLink } from 'lucide-react';
+import { Send, AlertTriangle, Lightbulb, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CompactMicButton } from '@/components/ai4gp/studio/CompactMicButton';
 

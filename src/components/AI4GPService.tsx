@@ -198,6 +198,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const [imageStudioInitialDescription, setImageStudioInitialDescription] = useState<string | undefined>();
   const [showPresentationStudio, setShowPresentationStudio] = useState(false);
   const [showDocumentStudio, setShowDocumentStudio] = useState(false);
+  const [showVoiceStudio, setShowVoiceStudio] = useState(false);
   const [showAdminDictate, setShowAdminDictate] = useState(false);
   const [showTranslationService, setShowTranslationService] = useState(false);
   const [showEmbeddedPMGenie, setShowEmbeddedPMGenie] = useState(false);
