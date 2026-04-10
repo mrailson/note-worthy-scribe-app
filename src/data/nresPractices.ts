@@ -25,6 +25,32 @@ export const NRES_ODS_CODES: Record<NRESPracticeKey, string> = {
   denton: 'K83068',
 };
 
+export const NRES_PRACTICE_ADDRESSES: Record<NRESPracticeKey, string> = {
+  parks: 'The Parks Medical Practice, Alcester Road, Stratford Road, Towcester, NN12 6BX',
+  brackley: 'Brackley Medical Centre, Halse Road, Brackley, NN13 6EQ',
+  springfield: 'Springfield Surgery, Horsefair, Towcester, NN12 6BT',
+  towcester: 'Towcester Medical Centre, Richmond Road, Towcester, NN12 6EX',
+  bugbrooke: 'Bugbrooke Medical Practice, Levitts Road, Bugbrooke, Northampton, NN7 3QN',
+  brook: 'Brook Health Centre, Stratford Road, Roade, Northampton, NN7 2NT',
+  denton: 'Denton Village Surgery, Orchard Lane, Denton, Northampton, NN7 1HT',
+};
+
+export interface NRESPracticeContact {
+  practiceManager: string;
+  email: string;
+  phone: string;
+}
+
+export const NRES_PRACTICE_CONTACTS: Record<NRESPracticeKey, NRESPracticeContact> = {
+  parks: { practiceManager: 'Practice Manager', email: 'parks.k83052@nhs.net', phone: '01onal' },
+  brackley: { practiceManager: 'Practice Manager', email: 'brackley.k83049@nhs.net', phone: '' },
+  springfield: { practiceManager: 'Practice Manager', email: 'springfield.k83018@nhs.net', phone: '' },
+  towcester: { practiceManager: 'Practice Manager', email: 'towcester.k83022@nhs.net', phone: '' },
+  bugbrooke: { practiceManager: 'Lorraine Spicer', email: 'bugbrooke.k83070@nhs.net', phone: '01604 830348' },
+  brook: { practiceManager: 'Practice Manager', email: 'brook.k83620@nhs.net', phone: '' },
+  denton: { practiceManager: 'Nicola Draper', email: 'northantsicb.denton.enquiries@nhs.net', phone: '01604 890313' },
+};
+
 /** Get the display name for a practice key, checking both NRES and ENN practices */
 export function getPracticeName(key: string | null | undefined): string {
   if (!key) return '—';
