@@ -228,54 +228,46 @@ serve(async (req) => {
       console.error("DPIA email error:", emailErr);
     }
 
-    // Step 4: Send Welcome/Credentials email (only for new users)
+    // Step 4: Send Welcome/Credentials email via send-user-welcome-email (only for new users)
     let welcomeEmailSent = false;
     if (!alreadyExisted && tempPassword) {
-      const welcomeHtml = `<div style="font-family:Arial,sans-serif;color:#212b32;line-height:1.6;max-width:600px;margin:0 auto;">
-        <div style="background:#005EB8;padding:20px 30px;border-radius:8px 8px 0 0;">
-          <h1 style="color:white;margin:0;font-size:22px;">Welcome to Notewell AI</h1>
-        </div>
-        <div style="padding:25px 30px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;">
-          <p>Dear ${pmName},</p>
-          <p>Your Notewell AI account has been created for <strong>${practiceName}</strong>${odsCode ? ` (${odsCode})` : ""}.</p>
-          
-          <div style="background:#f0f4f9;border:2px solid #005EB8;border-radius:8px;padding:20px;margin:20px 0;">
-            <h3 style="color:#005EB8;margin:0 0 12px 0;font-size:16px;">Your Login Details</h3>
-            <table style="width:100%;border-collapse:collapse;">
-              <tr><td style="padding:6px 0;font-weight:bold;width:140px;">Platform URL:</td><td style="padding:6px 0;"><a href="https://notewell.dialai.co.uk" style="color:#005EB8;">https://notewell.dialai.co.uk</a></td></tr>
-              <tr><td style="padding:6px 0;font-weight:bold;">Username:</td><td style="padding:6px 0;">${pmEmail}</td></tr>
-              <tr><td style="padding:6px 0;font-weight:bold;">Temporary Password:</td><td style="padding:6px 0;font-family:monospace;font-size:14px;background:#fff;padding:4px 8px;border-radius:4px;border:1px solid #ddd;">${tempPassword}</td></tr>
-            </table>
-          </div>
-          
-          <p style="color:#d4351c;font-weight:bold;">You will be prompted to change your password on first login.</p>
-          
-          <h3 style="color:#005EB8;margin:20px 0 10px 0;font-size:15px;">Enabled Modules</h3>
-          <ul style="padding-left:20px;">
-            <li>AI4GP — Clinical Decision Support</li>
-            <li>Complaints Management</li>
-            <li>Meeting Manager</li>
-            <li>Translation Services</li>
-          </ul>
-          
-          <p>Your account is assigned to <strong>${practiceName}</strong>.</p>
-          
-          <p style="margin-top:25px;">Kind regards,<br/><strong>Malcolm Railson</strong><br/>PCN Manager and Notewell Developer<br/>Primary Care Northamptonshire GP Practices</p>
-        </div>
-      </div>`;
-
       try {
-        const welcomeResp = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendApiKey}` },
-          body: JSON.stringify({
-            from: "Notewell AI <noreply@bluepcn.co.uk>",
-            to: [pmEmail],
-            bcc: ["malcolm.railson@nhs.net"],
-            subject: `Notewell AI – Your Login Details for ${practiceName}`,
-            html: welcomeHtml,
-          }),
-        });
+        const welcomeResp = await fetch(
+          `${supabaseUrl}/functions/v1/send-user-welcome-email`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${serviceRoleKey}`,
+              apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
+            },
+            body: JSON.stringify({
+              user_email: pmEmail,
+              user_name: pmName,
+              user_password: tempPassword,
+              user_role: "practice_manager",
+              practice_name: practiceName,
+              module_access: {
+                ai4gp_access: true,
+                complaints_manager_access: true,
+                meeting_notes_access: true,
+                translation_service_access: true,
+                survey_manager_access: true,
+                gp_scribe_access: false,
+                enhanced_access: false,
+                cqc_compliance_access: false,
+                shared_drive_access: false,
+                mic_test_service_access: false,
+                api_testing_service_access: false,
+                fridge_monitoring_access: false,
+                cso_governance_access: false,
+                lg_capture_access: false,
+                bp_service_access: false,
+                policy_service_access: false,
+              },
+            }),
+          }
+        );
         const welcomeResult = await welcomeResp.text();
         console.log("Welcome email response:", welcomeResp.status, welcomeResult);
         welcomeEmailSent = welcomeResp.ok;
