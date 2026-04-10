@@ -2001,11 +2001,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <span className="hidden sm:inline">Pilot Usage Report</span>
               <span className="sm:hidden">Pilot</span>
             </TabsTrigger>
-            <TabsTrigger value="platform-audit" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
-              <Database className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Platform Audit</span>
-              <span className="sm:hidden">Audit</span>
-            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -2365,27 +2360,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             <AI4GPServicesOverview />
           </TabsContent>
 
-          {/* Platform Audit Tab */}
-          <TabsContent value="platform-audit" className="space-y-6">
-            <Tabs defaultValue="edge-functions" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 h-auto mb-4">
-                <TabsTrigger value="edge-functions" className="flex items-center gap-2 text-xs sm:text-sm p-2">
-                  <Database className="h-4 w-4" />
-                  <span>Edge Functions</span>
-                </TabsTrigger>
-                <TabsTrigger value="pages-routes" className="flex items-center gap-2 text-xs sm:text-sm p-2">
-                  <FileText className="h-4 w-4" />
-                  <span>Pages & Routes</span>
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="edge-functions">
-                <EdgeFunctionAudit />
-              </TabsContent>
-              <TabsContent value="pages-routes">
-                <PageRouteAudit />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
+
+
 
           {/* User Management Tab */}
           <TabsContent value="user-management" className="space-y-6">
@@ -3262,13 +3238,14 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* Security & Compliance Tab */}
           <TabsContent value="security" className="space-y-6">
             <Tabs value={securityTab} onValueChange={setSecurityTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-6 h-auto">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-7 h-auto">
                 <TabsTrigger value="monitoring" className="text-xs sm:text-sm p-2">Auth</TabsTrigger>
                 <TabsTrigger value="data-access" className="text-xs sm:text-sm p-2">Data</TabsTrigger>
                 <TabsTrigger value="vulnerabilities" className="text-xs sm:text-sm p-2">Vulns</TabsTrigger>
                 <TabsTrigger value="cso-compliance" className="text-xs sm:text-sm p-2">CSO Compliance</TabsTrigger>
                 <TabsTrigger value="dcb0129" className="text-xs sm:text-sm p-2 font-medium">DCB0129</TabsTrigger>
                 <TabsTrigger value="security-reports" className="text-xs sm:text-sm p-2">Security Reports</TabsTrigger>
+                <TabsTrigger value="platform-audit" className="text-xs sm:text-sm p-2">Platform Audit</TabsTrigger>
               </TabsList>
 
               <TabsContent value="monitoring" className="space-y-6">
@@ -4480,6 +4457,27 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
                 {/* Meeting Statistics by User */}
                 <MeetingStatsByUser />
+              </TabsContent>
+
+              <TabsContent value="platform-audit" className="space-y-6">
+                <Tabs defaultValue="edge-functions" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 h-auto mb-4">
+                    <TabsTrigger value="edge-functions" className="flex items-center gap-2 text-xs sm:text-sm p-2">
+                      <Database className="h-4 w-4" />
+                      <span>Edge Functions</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="pages-routes" className="flex items-center gap-2 text-xs sm:text-sm p-2">
+                      <FileText className="h-4 w-4" />
+                      <span>Pages & Routes</span>
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="edge-functions">
+                    <EdgeFunctionAudit />
+                  </TabsContent>
+                  <TabsContent value="pages-routes">
+                    <PageRouteAudit />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             </Tabs>
           </TabsContent>
