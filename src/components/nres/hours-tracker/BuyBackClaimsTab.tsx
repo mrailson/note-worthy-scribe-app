@@ -267,6 +267,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   }), [rateSettings.email_testing_mode, user?.email, user?.user_metadata?.full_name]);
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, markPaid, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
+
+  // New claim state — declared early so bank holidays can reference claimMonth
+  const [claimMonth, setClaimMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+
   // Fetch bank holidays for working-weeks calculation (management claims)
   const [bankHolidayDates, setBankHolidayDates] = useState<string[]>([]);
   useEffect(() => {
