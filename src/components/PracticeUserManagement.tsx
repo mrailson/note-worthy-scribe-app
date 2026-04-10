@@ -166,8 +166,12 @@ export const PracticeUserManagement = () => {
   const [practiceInfo, setPracticeInfo] = useState<any>(null);
   const [isNonPracticeOrg, setIsNonPracticeOrg] = useState(false);
   const [currentUserHasNRES, setCurrentUserHasNRES] = useState(false);
+  const [currentUserHasENN, setCurrentUserHasENN] = useState(false);
   const [editingUserNRESAccess, setEditingUserNRESAccess] = useState(false);
+  const [editingUserENNAccess, setEditingUserENNAccess] = useState(false);
   const [editingUserPolicyAccess, setEditingUserPolicyAccess] = useState(false);
+  const [newUserNRESAccess, setNewUserNRESAccess] = useState(false);
+  const [newUserENNAccess, setNewUserENNAccess] = useState(false);
   
   // Password state - auto-generate on init
   const [password, setPassword] = useState(() => generateMemorablePassword());
