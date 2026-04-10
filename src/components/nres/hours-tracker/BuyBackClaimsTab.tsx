@@ -1020,7 +1020,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
             <>
               {/* Management: hourly rate with on-costs breakdown */}
               <div>
-                <p className="text-muted-foreground font-medium mb-0.5">Gross Hourly Rate</p>
+                <p className="text-muted-foreground font-medium mb-0.5">Gross Hourly Rate (inclusive of on-costs)</p>
                 <p className="font-semibold">{fmtGBP(breakdown.hourlyRate ?? 0)}/hr</p>
               </div>
               <Separator />
@@ -1042,7 +1042,12 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
                 <p className="text-muted-foreground font-medium mb-0.5">Working Weeks in Month</p>
                 <p className="text-foreground">{(breakdown.workingWeeks ?? 0).toFixed(1)} weeks (working days ÷ 5)</p>
                 {(breakdown.bankHolidaysExcluded ?? 0) > 0 && (
-                  <p className="text-muted-foreground italic">{breakdown.bankHolidaysExcluded} bank holiday{(breakdown.bankHolidaysExcluded ?? 0) > 1 ? 's' : ''} excluded</p>
+                  <div className="mt-1">
+                    <p className="text-muted-foreground italic mb-0.5">{breakdown.bankHolidaysExcluded} bank holiday{(breakdown.bankHolidaysExcluded ?? 0) > 1 ? 's' : ''} excluded:</p>
+                    {(breakdown.bankHolidayDetails ?? []).map((bh: any, i: number) => (
+                      <p key={i} className="text-muted-foreground italic pl-2">• {bh.formatted} — {bh.name}</p>
+                    ))}
+                  </div>
                 )}
               </div>
               <Separator />
