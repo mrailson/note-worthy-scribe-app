@@ -27,6 +27,9 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
 
   const applicableConfig = getConfigForCategory(claimCategory);
 
+  // Only show mandatory types + 'other_supporting' to keep the UI clean
+  const visibleConfig = applicableConfig.filter(cfg => cfg.is_mandatory || cfg.evidence_type === 'other_supporting');
+
   if (configLoading) {
     return (
       <div className="px-3 py-2 border-t flex items-center gap-2 text-xs text-muted-foreground">
@@ -35,7 +38,7 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
     );
   }
 
-  if (applicableConfig.length === 0) return null;
+  if (visibleConfig.length === 0) return null;
 
   return (
     <div className="border-t">
@@ -43,11 +46,11 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
         <FileText className="w-4 h-4 text-primary" />
         <span className="text-xs font-semibold text-primary">Supporting Evidence</span>
         <Badge variant="outline" className="text-[10px] ml-auto">
-          {Object.keys(uploadedTypes).length}/{applicableConfig.length} uploaded
+          {Object.keys(uploadedTypes).length} uploaded
         </Badge>
       </div>
       <div className="divide-y">
-        {applicableConfig.map(cfg => (
+        {visibleConfig.map(cfg => (
           <EvidenceSlot
             key={cfg.id}
             config={cfg}
@@ -177,6 +180,9 @@ export function StaffLineEvidence({
   const { getConfigForCategory } = useNRESEvidenceConfig();
   const allTypes = getConfigForCategory(staffCategory);
 
+  // Only show mandatory evidence types + 'other_supporting' to reduce clutter
+  const visibleTypes = allTypes.filter(t => t.is_mandatory || t.evidence_type === 'other_supporting');
+
   const uploadedCount = Object.keys(uploadedTypesForStaff).length;
   const mandatoryTypes = allTypes.filter(t => t.is_mandatory);
   const mandatoryUploaded = mandatoryTypes.filter(t => !!uploadedTypesForStaff[t.evidence_type]).length;
@@ -211,14 +217,14 @@ export function StaffLineEvidence({
         <FileText className="w-3.5 h-3.5 text-primary" />
         <span className="text-[11px] font-semibold text-primary">Evidence</span>
         <Badge variant="outline" className="text-[10px] ml-auto">
-          {uploadedCount}/{allTypes.length} uploaded
+          {uploadedCount} uploaded
           {mandatoryUploaded < mandatoryTypes.length && (
             <span className="ml-1 text-red-500">({mandatoryTypes.length - mandatoryUploaded} required)</span>
           )}
         </Badge>
       </div>
       <div className="divide-y">
-        {allTypes.map(cfg => (
+        {visibleTypes.map(cfg => (
           <EvidenceSlot
             key={`${staffIndex}-${cfg.evidence_type}`}
             config={cfg}
