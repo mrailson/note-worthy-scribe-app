@@ -1291,8 +1291,9 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
             const hasNotes = !!s.notes;
             const belowMax = claimedAmount < maxAmount && maxAmount > 0;
             return (
-              <>
-                <tr key={idx} className="border-b">
+              <React.Fragment key={`staff-block-${idx}`}>
+                {headerRow}
+                <tr className="border-b">
                   <td className="p-2">{displayName}</td>
                   <td className="p-2">
                     {(s.staff_category || 'buyback') === 'new_sda'
