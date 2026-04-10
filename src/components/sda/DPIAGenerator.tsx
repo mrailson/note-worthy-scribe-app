@@ -524,7 +524,7 @@ export default function DPIAGenerator() {
                   dpo_name: parsed.dpoName || "",
                   dpo_org: parsed.dpoOrg || "",
                   dpo_email: parsed.dpoEmail || "",
-                  dpia_generated: false,
+                  dpia_generated: false, onboarded_at: null,
                 };
                 setCurrent(practice);
                 setView("form");
