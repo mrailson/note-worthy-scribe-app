@@ -84,13 +84,29 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { pmEmail, pmName, practiceName, practiceId, odsCode, dpiaBase64, dpiaFileName } = body;
-    console.log("Onboarding:", pmEmail, practiceName);
+    const { pmEmail, pmName, practiceName, practiceId: dpiaRecordId, odsCode, dpiaBase64, dpiaFileName } = body;
+    console.log("Onboarding:", pmEmail, practiceName, "ODS:", odsCode);
 
     if (!pmEmail || !pmName || !practiceName || !dpiaBase64) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Resolve the actual gp_practices ID from ODS code
+    let gpPracticeId: string | null = null;
+    if (odsCode) {
+      const { data: gpMatch } = await adminClient
+        .from("gp_practices")
+        .select("id")
+        .eq("practice_code", odsCode)
+        .maybeSingle();
+      if (gpMatch) {
+        gpPracticeId = gpMatch.id;
+        console.log(`Resolved ODS ${odsCode} to gp_practices ID: ${gpPracticeId}`);
+      } else {
+        console.warn(`No gp_practices match for ODS code: ${odsCode}`);
+      }
     }
 
     // Step 1: Check if user already exists — use admin API with email filter
