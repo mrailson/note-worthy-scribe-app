@@ -83,6 +83,36 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
   const amount = formatCurrency(data.totalAmount);
   const now = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+  // Build staff breakdown table (reused across all email types)
+  let staffBreakdown = '';
+  if (data.staffLines && data.staffLines.length > 0) {
+    const rows = data.staffLines.map((s, i) => {
+      const bg = i % 2 === 0 ? '#f9fafb' : '#ffffff';
+      const allocLabel = s.allocation_type === 'sessions' ? 'sessions' : s.allocation_type === 'wte' ? 'WTE' : 'hours';
+      return `
+        <tr style="background:${bg};">
+          <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;">${s.staff_name}</td>
+          <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;">${s.staff_role}</td>
+          <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;text-align:center;">${s.allocation_value} ${allocLabel}</td>
+          <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;text-align:right;font-weight:600;">${formatCurrency(s.claimed_amount)}</td>
+        </tr>`;
+    }).join('');
+    staffBreakdown = `
+      <table width="100%" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;border-collapse:collapse;" cellpadding="0" cellspacing="0">
+        <tr style="background:#1e40af;">
+          <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:left;font-weight:600;">Staff Member</th>
+          <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:left;font-weight:600;">Role</th>
+          <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:center;font-weight:600;">Allocation</th>
+          <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:right;font-weight:600;">Amount</th>
+        </tr>
+        ${rows}
+        <tr style="background:#f0f4ff;">
+          <td colspan="3" style="padding:8px 12px;font-size:12px;font-weight:700;color:#1e40af;border-top:2px solid #1e40af;">Total</td>
+          <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#1e40af;border-top:2px solid #1e40af;text-align:right;">${formatCurrency(data.totalAmount)}</td>
+        </tr>
+      </table>`;
+  }
+
   let bodyContent = '';
 
   switch (type) {
@@ -90,58 +120,32 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       bodyContent = `
         <p>A new ${claimLabel.toLowerCase()} has been submitted and requires your review.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
+        ${staffBreakdown}
         <div style="margin:20px 0;text-align:center;">
           <a href="https://gpnotewell.co.uk" style="display:inline-block;padding:12px 28px;background:#1e40af;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:6px;">Go to Notewell to Review</a>
         </div>
       `;
       break;
-    case 'submission_confirmation': {
-      let staffBreakdown = '';
-      if (data.staffLines && data.staffLines.length > 0) {
-        const rows = data.staffLines.map((s, i) => {
-          const bg = i % 2 === 0 ? '#f9fafb' : '#ffffff';
-          const allocLabel = s.allocation_type === 'sessions' ? 'sessions' : s.allocation_type === 'wte' ? 'WTE' : 'hours';
-          return `
-            <tr style="background:${bg};">
-              <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;">${s.staff_name}</td>
-              <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;">${s.staff_role}</td>
-              <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;text-align:center;">${s.allocation_value} ${allocLabel}</td>
-              <td style="padding:8px 12px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;text-align:right;font-weight:600;">${formatCurrency(s.claimed_amount)}</td>
-            </tr>`;
-        }).join('');
-        staffBreakdown = `
-          <table width="100%" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;border-collapse:collapse;" cellpadding="0" cellspacing="0">
-            <tr style="background:#1e40af;">
-              <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:left;font-weight:600;">Staff Member</th>
-              <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:left;font-weight:600;">Role</th>
-              <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:center;font-weight:600;">Allocation</th>
-              <th style="padding:8px 12px;font-size:12px;color:#ffffff;text-align:right;font-weight:600;">Amount</th>
-            </tr>
-            ${rows}
-            <tr style="background:#f0f4ff;">
-              <td colspan="3" style="padding:8px 12px;font-size:12px;font-weight:700;color:#1e40af;border-top:2px solid #1e40af;">Total</td>
-              <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#1e40af;border-top:2px solid #1e40af;text-align:right;">${formatCurrency(data.totalAmount)}</td>
-            </tr>
-          </table>`;
-      }
+    case 'submission_confirmation':
       bodyContent = `
         <p>Your ${claimLabel.toLowerCase()} has been successfully submitted for approval.</p>
         <p>You will receive an email notification once the claim has been reviewed.</p>
         ${staffBreakdown}
       `;
       break;
-    }
     case 'claim_approved':
       bodyContent = `
         <p>Your ${claimLabel.toLowerCase()} has been approved.</p>
         ${data.reviewerName ? `<p><strong>Approved by:</strong> ${data.reviewerName}</p>` : ''}
         ${data.reviewNotes ? `<p><strong>Notes:</strong> ${data.reviewNotes}</p>` : ''}
+        ${staffBreakdown}
       `;
       break;
     case 'approval_confirmation':
       bodyContent = `
         <p>This confirms that you have approved the following ${claimLabel.toLowerCase()}.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
+        ${staffBreakdown}
         <div style="margin:20px 0;text-align:center;">
           <a href="https://gpnotewell.co.uk" style="display:inline-block;padding:12px 28px;background:#16a34a;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:6px;">Go to Notewell</a>
         </div>
@@ -152,6 +156,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
         <p>Your ${claimLabel.toLowerCase()} has been declined.</p>
         ${data.reviewerName ? `<p><strong>Reviewed by:</strong> ${data.reviewerName}</p>` : ''}
         ${data.reviewNotes ? `<p><strong>Reason:</strong> ${data.reviewNotes}</p>` : ''}
+        ${staffBreakdown}
         <p>Please review the feedback and resubmit if appropriate.</p>
       `;
       break;
@@ -160,6 +165,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
         <p>This confirms that you have declined the following ${claimLabel.toLowerCase()}.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
         ${data.reviewNotes ? `<p><strong>Your notes:</strong> ${data.reviewNotes}</p>` : ''}
+        ${staffBreakdown}
         <div style="margin:20px 0;text-align:center;">
           <a href="https://gpnotewell.co.uk" style="display:inline-block;padding:12px 28px;background:#dc2626;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:6px;">Go to Notewell</a>
         </div>
