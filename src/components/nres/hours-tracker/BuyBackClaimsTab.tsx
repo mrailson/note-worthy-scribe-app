@@ -409,14 +409,6 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         />
       )}
 
-      {/* Guide */}
-      <ClaimsUserGuide
-        neighbourhoodName={neighbourhoodLabel}
-        rateSettings={rateSettings}
-        onCostMultiplier={onCostMultiplier}
-        staffRoles={staffRoles}
-        isENN={isENN}
-      />
 
       {effectiveIsAdmin && !testActive && (
         <div className="flex items-center gap-3">

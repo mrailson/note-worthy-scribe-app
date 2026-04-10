@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -15,6 +16,7 @@ import { AdminClaimsReport } from './AdminClaimsReport';
 import { ClaimantsManager } from './ClaimantsManager';
 import { BuyBackClaimsTab } from './BuyBackClaimsTab';
 import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
+import { ClaimsUserGuide } from './ClaimsUserGuide';
 import { SDAFinanceGovernance } from '@/components/sda/SDAFinanceGovernance';
 import { SDARisksMitigation } from '@/components/sda/SDARisksMitigation';
 import { SDAEvidenceLibrary } from '@/components/sda/SDAEvidenceLibrary';
@@ -24,9 +26,10 @@ import { useNRESHoursTracker } from '@/hooks/useNRESHoursTracker';
 import { useNRESExpenses } from '@/hooks/useNRESExpenses';
 import { useNRESClaimants } from '@/hooks/useNRESClaimants';
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
+import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Receipt, Users, Clock, ArrowLeftRight, PoundSterling, AlertTriangle, Settings, FolderOpen, Info, HelpCircle } from 'lucide-react';
 
 interface NRESHoursTrackerProps {
   hideEvidenceLibrary?: boolean;
@@ -48,6 +51,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
   const [activeTab, setActiveTab] = useState(neighbourhoodName === 'ENN' ? 'buy-back' : 'buy-back');
   const [financeSubTab, setFinanceSubTab] = useState('finance-governance');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const { 
     hourlyRate, 
@@ -58,6 +62,8 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
   } = useNRESUserSettings();
 
   const { admin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
+  const { staffRoles, settings: rateSettings, onCostMultiplier } = useNRESBuyBackRateSettings();
+  const isENN = neighbourhoodName === 'ENN';
 
   const {
     entries,
@@ -126,20 +132,52 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
             Finance, Governance & Insurance
           </TabsTrigger>
         </TabsList>
-        {activeTab === 'buy-back' && admin && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="outline" className="text-xs" onClick={() => setSettingsOpen(true)}>
-                  <Settings className="w-3.5 h-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">Access Settings</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        {activeTab === 'buy-back' && (
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="sm" variant="outline" className="text-xs" onClick={() => setGuideOpen(true)}>
+                    <HelpCircle className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">Claims Guide</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {admin && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" variant="outline" className="text-xs" onClick={() => setSettingsOpen(true)}>
+                      <Settings className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">Access Settings</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         )}
       </div>
 
+      {/* Claims User Guide Modal */}
+      <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-primary" />
+              Claims Scheme Guide
+            </DialogTitle>
+          </DialogHeader>
+          <ClaimsUserGuide
+            neighbourhoodName={isENN ? 'ENN' : 'NRES'}
+            rateSettings={rateSettings}
+            onCostMultiplier={onCostMultiplier}
+            staffRoles={staffRoles}
+            isENN={isENN}
+          />
+        </DialogContent>
+      </Dialog>
 
       <TabsContent value="buy-back">
         <BuyBackClaimsTab neighbourhoodName={neighbourhoodName} />
