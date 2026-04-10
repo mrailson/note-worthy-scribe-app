@@ -141,14 +141,14 @@ GENERATE THE FOLLOWING SECTIONS (number them exactly as shown):
 3. SYSTEM COMPLIANCE AND ASSURANCE
    Write a detailed section covering:
 
-   3.1 Clinical Safety
-   Notewell AI is a registered MHRA Class I medical device. A Clinical Safety Case Report has been completed in accordance with DCB0129 (Clinical Risk Management: its Application in the Manufacture of Health IT Systems). The appointed Clinical Safety Officer (CSO) is Dr Simon Ellis (GP Partner, Clinical Director — NRES), who has reviewed and signed off the clinical safety case documentation.
+   3.1 Clinical Safety (DCB0129)
+   Notewell AI is a registered MHRA Class I medical device. PCN Services Ltd has completed a comprehensive Clinical Safety Case Report in accordance with the DCB0129 standard. Dr Simon Ellis (Clinical Safety Officer) has previously reviewed the manufacturer's safety case, ensuring that the software architecture — specifically the multi-engine transcription and hallucination detection — meets the rigorous safety standards required for clinical decision support tools. This has been done for the Pilot sites at NRES (7 Practices). For all other approvals, we are using the DDaT recent approvals for 30 practices in Northants to pilot the Notewell tool (Reference Kirstie Watson and Matthew Hutton at the ICB and Clare Mansfield (ICB CSO)).
 
-   3.2 DCB0160 Compliance
-   The deploying organisation's obligations under DCB0160 (Clinical Risk Management: its Application in the Deployment and Use of Health IT Systems) have been fulfilled. Dr Simon Ellis, as CSO, has signed off the deployment clinical safety assessment confirming that residual clinical risks have been evaluated and are acceptable for use in the NHS primary care setting.
+   3.2 Deployment Safety (DCB0160)
+   ${practice.practice_name} has fulfilled its obligations under DCB0160. A local Clinical Risk Management Plan has been established. Dr Simon Ellis, acting as the CSO for the deployment, has signed off the safety assessment, confirming that local process risks (such as clinician over-reliance) have been mitigated through training and mandatory review protocols.
 
-   3.3 DDaT Approval
-   Notewell AI has received approval from the NHS Northamptonshire ICB Digital, Data and Technology (DDaT) board for deployment as a 30-practice pilot commencing Q1 2026. This approval followed review of the clinical safety case, information governance documentation, and technical architecture.
+   3.3 DDaT and ICB Approval
+   The project has received formal approval from the NHS Northamptonshire ICB Digital, Data and Technology (DDaT) Delivery Group. This deployment is part of a 30-practice pilot commencing Q1 2026, intended to evaluate the impact of AI transcription on GP workflow and documentation quality.
 
    3.4 Regulatory Summary
    Include a TABLE with columns: Requirement | Status | Reference
