@@ -593,6 +593,44 @@ export const PracticeUserManagement = () => {
     }
   };
 
+  const handleENNAccessChange = async (checked: boolean) => {
+    if (!editingUser) return;
+    
+    try {
+      if (checked) {
+        const { error } = await supabase
+          .from('user_service_activations')
+          .insert({
+            user_id: editingUser.user_id,
+            service: 'enn' as const,
+            activated_by: user?.id,
+            activated_at: new Date().toISOString(),
+          });
+
+        if (error) {
+          const msg = (error as any)?.message as string | undefined;
+          const code = (error as any)?.code as string | undefined;
+          const isDuplicate =
+            code === '23505' || msg?.includes('user_service_activations_user_id_service_key');
+          if (!isDuplicate) throw error;
+        }
+      } else {
+        const { error } = await supabase
+          .from('user_service_activations')
+          .delete()
+          .eq('user_id', editingUser.user_id)
+          .eq('service', 'enn');
+
+        if (error) throw error;
+      }
+      
+      setEditingUserENNAccess(checked);
+      toast.success(checked ? 'ENN access granted' : 'ENN access revoked');
+    } catch (error) {
+      console.error('Error updating ENN access:', error);
+      toast.error('Failed to update ENN access');
+    }
+
   const resetForm = () => {
     setUserFormData({
       email: '',
