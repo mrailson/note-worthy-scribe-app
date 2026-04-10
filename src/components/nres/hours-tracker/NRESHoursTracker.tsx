@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
