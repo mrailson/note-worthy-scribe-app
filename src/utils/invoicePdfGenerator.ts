@@ -1,6 +1,8 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { getPracticeName, getOdsCode } from '@/data/nresPractices';
+import { NRES_PRACTICE_ADDRESSES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
+import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 
 interface InvoiceData {
@@ -12,6 +14,11 @@ interface InvoiceData {
 const fmt = (n: number) =>
   `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const NHS_DARK_BLUE: [number, number, number] = [0, 48, 135];
+const NHS_BLUE: [number, number, number] = [0, 94, 184];
+const GREY_60: number = 60;
+const GREY_100: number = 100;
+
 export function generateInvoicePdf(data: InvoiceData): jsPDF {
   const { claim, invoiceNumber, neighbourhoodName } = data;
   const doc = new jsPDF();
@@ -21,41 +28,119 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   const claimDate = new Date(claim.claim_month);
   const claimMonthLabel = claimDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
-  // --- Header ---
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text('INVOICE', 14, 20);
+  const practiceKey = claim.practice_key as NRESPracticeKey;
+  const practiceAddress = NRES_PRACTICE_ADDRESSES[practiceKey] || '';
+  const practiceContact = NRES_PRACTICE_CONTACTS[practiceKey];
 
-  doc.setFontSize(16);
-  doc.setTextColor(0, 48, 135); // NHS dark blue
-  doc.text(practiceName, 14, 30);
+  // --- Header band ---
+  doc.setFillColor(...NHS_DARK_BLUE);
+  doc.rect(0, 0, 210, 8, 'F');
+
+  // --- INVOICE title ---
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...NHS_DARK_BLUE);
+  doc.text('INVOICE', 14, 22);
+
+  // --- From: Practice details (left side) ---
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(GREY_100);
+  doc.text('FROM', 14, 30);
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...NHS_DARK_BLUE);
+  doc.text(practiceName, 14, 36);
 
   doc.setFontSize(9);
-  doc.setTextColor(100);
-  doc.text(`ODS Code: ${odsCode}`, 14, 36);
-  doc.text(`${neighbourhoodName} Neighbourhood Access Service`, 14, 41);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(GREY_60);
+  doc.text(`ODS Code: ${odsCode}`, 14, 42);
 
-  // --- Invoice Details (right side) ---
+  // Practice address (wrap long lines)
+  if (practiceAddress) {
+    const addressLines = doc.splitTextToSize(practiceAddress, 80);
+    doc.text(addressLines, 14, 47);
+  }
+
+  // Practice Manager contact
+  let practiceInfoY = practiceAddress ? 47 + (doc.splitTextToSize(practiceAddress, 80).length * 4.5) + 2 : 52;
+  if (practiceContact) {
+    doc.setFontSize(8);
+    doc.setTextColor(GREY_100);
+    doc.text('Key Contact:', 14, practiceInfoY);
+    doc.setFontSize(9);
+    doc.setTextColor(GREY_60);
+    doc.text(`${practiceContact.practiceManager} (Practice Manager)`, 14, practiceInfoY + 4.5);
+    doc.text(practiceContact.email, 14, practiceInfoY + 9);
+    if (practiceContact.phone) {
+      doc.text(`Tel: ${practiceContact.phone}`, 14, practiceInfoY + 13.5);
+    }
+  }
+
+  // --- To: PML details (right side) ---
+  const rightX = 125;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(GREY_100);
+  doc.text('INVOICE TO', rightX, 30);
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...NHS_DARK_BLUE);
+  doc.text('PML (Principal Medical Limited)', rightX, 36);
+
   doc.setFontSize(9);
-  doc.setTextColor(60);
-  const rightX = 130;
-  doc.text('Invoice To:', rightX, 20);
-  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(GREY_60);
+  doc.text('3 Barberry Place', rightX, 42);
+  doc.text('Bicester, Oxfordshire', rightX, 46.5);
+  doc.text('OX26 3HA', rightX, 51);
+  doc.text('Tel: 01295 981166', rightX, 56);
+  doc.text('Email: pml.info@nhs.net', rightX, 60.5);
+
+  // --- Invoice meta (right side, below PML address) ---
+  const metaY = 70;
+  doc.setFillColor(240, 244, 248);
+  doc.roundedRect(rightX - 2, metaY - 4, 78, 28, 2, 2, 'F');
+
+  doc.setFontSize(8);
+  doc.setTextColor(GREY_100);
+  doc.text('Invoice No:', rightX, metaY);
   doc.setTextColor(0);
-  doc.text('PML (Principal Medical Limited)', rightX, 26);
+  doc.setFont('helvetica', 'bold');
+  doc.text(invoiceNumber, rightX + 40, metaY);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(GREY_100);
+  doc.text('Invoice Date:', rightX, metaY + 6);
+  doc.setTextColor(0);
+  doc.text(new Date().toLocaleDateString('en-GB'), rightX + 40, metaY + 6);
+
+  doc.setTextColor(GREY_100);
+  doc.text('Claim Period:', rightX, metaY + 12);
+  doc.setTextColor(0);
+  doc.text(claimMonthLabel, rightX + 40, metaY + 12);
+
+  doc.setTextColor(GREY_100);
+  doc.text('Payment Terms:', rightX, metaY + 18);
+  doc.setTextColor(0);
+  doc.text('14 days', rightX + 40, metaY + 18);
+
+  // --- Programme reference ---
   doc.setFontSize(9);
-  doc.setTextColor(60);
-  doc.text(`Invoice No: ${invoiceNumber}`, rightX, 36);
-  doc.text(`Invoice Date: ${new Date().toLocaleDateString('en-GB')}`, rightX, 41);
-  doc.text(`Claim Period: ${claimMonthLabel}`, rightX, 46);
-  doc.text('Payment Terms: 14 days', rightX, 51);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(GREY_100);
+  doc.text(`${neighbourhoodName} Neighbourhood Access Service`, 14, metaY + 22);
 
   // --- Separator ---
-  doc.setDrawColor(0, 94, 184); // NHS blue
-  doc.setLineWidth(0.5);
-  doc.line(14, 56, 196, 56);
+  doc.setDrawColor(...NHS_BLUE);
+  doc.setLineWidth(0.6);
+  doc.line(14, metaY + 26, 196, metaY + 26);
 
   // --- Staff Lines Table ---
+  const tableStartY = metaY + 30;
   const tableData = staffDetails.map((s: any, i: number) => [
     i + 1,
     s.staff_name || '—',
@@ -70,7 +155,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   ]);
 
   autoTable(doc, {
-    startY: 62,
+    startY: tableStartY,
     head: [['#', 'Staff Member', 'Role', 'GL Category', 'Allocation', 'Amount']],
     body: tableData,
     styles: { fontSize: 9, cellPadding: 3 },
@@ -91,28 +176,40 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     .reduce((sum: number, s: any) => sum + (s.claimed_amount || 0), 0);
   const grandTotal = gpTotal + otherTotal;
 
-  const finalY = (doc as any).lastAutoTable.finalY + 8;
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+  // Subtotals box
+  doc.setFillColor(240, 244, 248);
+  doc.roundedRect(130, finalY - 5, 66, 30, 2, 2, 'F');
 
   doc.setFontSize(9);
-  doc.setTextColor(60);
-  doc.text('GP Subtotal:', 140, finalY);
-  doc.text(fmt(gpTotal), 196, finalY, { align: 'right' });
-  doc.text('Other Clinical Subtotal:', 140, finalY + 5);
-  doc.text(fmt(otherTotal), 196, finalY + 5, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(GREY_60);
+  doc.text('GP Subtotal:', 134, finalY);
+  doc.text(fmt(gpTotal), 192, finalY, { align: 'right' });
+  doc.text('Other Clinical Subtotal:', 134, finalY + 6);
+  doc.text(fmt(otherTotal), 192, finalY + 6, { align: 'right' });
 
-  doc.setDrawColor(0, 94, 184);
-  doc.line(140, finalY + 8, 196, finalY + 8);
+  doc.setDrawColor(...NHS_BLUE);
+  doc.setLineWidth(0.4);
+  doc.line(134, finalY + 10, 192, finalY + 10);
 
   doc.setFontSize(12);
-  doc.setTextColor(0, 48, 135);
-  doc.text('TOTAL:', 140, finalY + 14);
-  doc.text(fmt(grandTotal), 196, finalY + 14, { align: 'right' });
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...NHS_DARK_BLUE);
+  doc.text('TOTAL:', 134, finalY + 18);
+  doc.text(fmt(grandTotal), 192, finalY + 18, { align: 'right' });
 
-  // --- Footer ---
-  doc.setFontSize(8);
-  doc.setTextColor(150);
-  doc.text(`Claim ID: ${claim.id}`, 14, 280);
-  doc.text(`Generated by Notewell AI — ${neighbourhoodName} SDA Programme`, 14, 284);
+  // --- Footer band ---
+  doc.setFillColor(...NHS_DARK_BLUE);
+  doc.rect(0, 284, 210, 13, 'F');
+
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(255);
+  doc.text(`Claim ID: ${claim.id}`, 14, 289);
+  doc.text(`Generated by Notewell AI — ${neighbourhoodName} SDA Programme`, 14, 293);
+  doc.text(new Date().toLocaleDateString('en-GB'), 196, 289, { align: 'right' });
 
   return doc;
 }
