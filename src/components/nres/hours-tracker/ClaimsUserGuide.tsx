@@ -499,16 +499,6 @@ export function ClaimsUserGuide({ neighbourhoodName, rateSettings, onCostMultipl
                   <Button variant="ghost" size="sm" onClick={handlePrint} className="text-xs gap-1">
                     <Printer className="w-3.5 h-3.5" /> Print
                   </Button>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="border-teal-300 text-teal-700 hover:bg-teal-50 text-xs gap-1">
-                        <ExternalLink className="w-3.5 h-3.5" /> Explainer Guide
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] h-[92vh] p-0 overflow-hidden">
-                      {isENN ? <ENNBoardPresentationExplainer /> : <BoardPresentationExplainer />}
-                    </DialogContent>
-                  </Dialog>
                 </div>
               </div>
 
