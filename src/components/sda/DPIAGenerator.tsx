@@ -567,7 +567,7 @@ export default function DPIAGenerator() {
             </h2>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => downloadAsWord(dpiaHtml, current.practice_name)}>
+            <Button variant="outline" size="sm" onClick={() => downloadAsWord(dpiaHtml, current.practice_name, current.ods_code)}>
               <Download className="w-4 h-4 mr-1" />
               Word
             </Button>
